@@ -16,6 +16,7 @@ features = ["metrics-unstable"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
+futures = { version = "0.3", default-features = false, features = ["alloc"] }
 sift_connect = { workspace = true }
 sift_error = { workspace = true }
 sift_rs = { workspace = true }

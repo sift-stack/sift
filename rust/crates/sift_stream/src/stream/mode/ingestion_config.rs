@@ -307,12 +307,30 @@ impl SiftStream<IngestionConfigMode> {
 
                 // Re-send the oldest message to the backup to ensure it is re-ingested later despite being
                 // dropped from the ingestion channel.
-                self.mode
+                //
+                // On failure, rely on metrics to track occurences. Logging can quickly become spammy as
+                // the system works through bursts of messages so logs are reduced to the debug level.
+                if let Err(e) = self
+                    .mode
                     .stream_system
                     .backup_tx
                     .try_send(oldest_message)
                     .map_err(|e| Error::new(ErrorKind::StreamError, e))
                     .context("failed to send data to backup task system")
+                {
+                    self.metrics
+                        .old_messages_failed_adding_to_backup
+                        .increment();
+
+                    #[cfg(feature = "tracing")]
+                    tracing::debug!(
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
+                        "failed to send oldest data to backup task system: {e}"
+                    );
+                }
+
+                // Do not interupt ingestion.
+                Ok(())
             }
             Err(e) => Err(Error::new_msg(
                 ErrorKind::StreamError,
@@ -346,34 +364,74 @@ impl SiftStream<IngestionConfigMode> {
             "adding new flows to ingestion config"
         );
 
-        new_ingestion_config_service(self.grpc_channel.clone())
-            .try_create_flows(
-                &self.mode.ingestion_config.ingestion_config_id,
-                filtered
-                    .iter()
-                    .map(|f| (*f).clone())
-                    .collect::<Vec<FlowConfig>>(),
-            )
-            .await
-            .context("SiftStream::add_new_flows")?;
+        let mut calls = Vec::with_capacity(filtered.len());
+        let create_flows = filtered.into_iter().cloned().collect::<Vec<FlowConfig>>();
+        for flow_config in create_flows.iter() {
+            let channel = self.grpc_channel.clone();
+            let ingestion_config_id = self.mode.ingestion_config.ingestion_config_id.clone();
+            let flow_config = flow_config.clone();
 
-        self.metrics.loaded_flows.add(filtered.len() as u64);
+            calls.push(tokio::spawn(async move {
+                new_ingestion_config_service(channel)
+                    .try_create_flows(&ingestion_config_id, vec![flow_config])
+                    .await
+                    .context("SiftStream::add_new_flows")
+            }));
+        }
 
-        for flow_config in filtered {
-            let flow_name = flow_config.name.clone();
+        // Wait for all the gRPC calls to complete.
+        let results = futures::future::join_all(calls).await;
+
+        let mut add_config = |config: &FlowConfig| -> Result<()> {
+            let flow_name = config.name.clone();
             let flow_descriptor = FlowDescriptor::try_from((
                 self.mode.ingestion_config.ingestion_config_id.clone(),
-                flow_config,
+                config,
             ))?;
             self.mode.flows_by_name.insert(flow_name, flow_descriptor);
 
             #[cfg(feature = "tracing")]
             tracing::info!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
-                flow = flow_config.name,
+                flow = config.name,
                 "successfully registered new flow"
             );
+
+            Ok(())
+        };
+
+        // Iterate over the results and update the flow cache for the successfully created flows.
+        for (config, result) in create_flows.iter().zip(results.into_iter()) {
+            match result {
+                Ok(Ok(())) => {
+                    add_config(config)?;
+                }
+                Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError => {
+                    add_config(config)?;
+                }
+                Ok(Err(e)) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!(
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
+                        "failed to create flow {}: {e}",
+                        config.name,
+                    );
+                }
+                Err(e) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!(
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
+                        "failed to create flow {}: {e}",
+                        config.name,
+                    );
+                }
+            }
         }
+
+        self.metrics
+            .loaded_flows
+            .add(self.mode.flows_by_name.len() as u64);
+
         Ok(())
     }
 
