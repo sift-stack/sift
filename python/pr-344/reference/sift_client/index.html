@@ -866,6 +866,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.SiftClient.file_attachments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;file_attachments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.SiftClient.grpc_client" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -958,6 +969,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;test_results
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.SiftClient.get_asyncio_loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_asyncio_loop
       
     </span>
   </a>
@@ -1641,6 +1663,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.SiftClient.file_attachments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;file_attachments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.SiftClient.grpc_client" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1733,6 +1766,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;test_results
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.SiftClient.get_asyncio_loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_asyncio_loop
       
     </span>
   </a>
@@ -2227,6 +2271,26 @@ type-safe access to properties and convenience methods for common operations.</p
 
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">METHOD</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            get_asyncio_loop (sift_client.SiftClient.get_asyncio_loop)" href="#sift_client.SiftClient.get_asyncio_loop">get_asyncio_loop</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Gets the default asyncio loop used by the gRPC client.</p>
+                </div>
+              </td>
+            </tr>
+      </tbody>
+    </table>
+
+
 
 
 <table>
@@ -2309,6 +2373,25 @@ type-safe access to properties and convenience methods for common operations.</p
                   <span class="doc-attribute-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            ChannelsAPI (sift_client.resources.ChannelsAPI)" href="resources/#sift_client.resources.ChannelsAPI">ChannelsAPI</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            file_attachments
+
+
+  
+      instance-attribute
+   (sift_client.SiftClient.file_attachments)" href="#sift_client.SiftClient.file_attachments">file_attachments</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>Instance of the File Attachments API for making synchronous requests.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            FileAttachmentsAPI (sift_client.resources.FileAttachmentsAPI)" href="resources/#sift_client.resources.FileAttachmentsAPI">FileAttachmentsAPI</a></code>
                   </span>
               </p>
             </td>
@@ -2540,13 +2623,14 @@ type-safe access to properties and convenience methods for common operations.</p
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(assets)">assets</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            AssetsAPIAsync (sift_client.resources.AssetsAPIAsync)" href="resources/#sift_client.resources.AssetsAPIAsync">AssetsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(calculated_channels)">calculated_channels</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannelsAPIAsync (sift_client.resources.CalculatedChannelsAPIAsync)" href="resources/#sift_client.resources.CalculatedChannelsAPIAsync">CalculatedChannelsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(channels)">channels</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            ChannelsAPIAsync (sift_client.resources.ChannelsAPIAsync)" href="resources/#sift_client.resources.ChannelsAPIAsync">ChannelsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(ingestion)">ingestion</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            IngestionAPIAsync (sift_client.resources.IngestionAPIAsync)" href="resources/#sift_client.resources.IngestionAPIAsync">IngestionAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(reports)">reports</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            ReportsAPIAsync (sift_client.resources.ReportsAPIAsync)" href="resources/#sift_client.resources.ReportsAPIAsync">ReportsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(rules)">rules</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            RulesAPIAsync (sift_client.resources.RulesAPIAsync)" href="resources/#sift_client.resources.RulesAPIAsync">RulesAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(runs)">runs</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            RunsAPIAsync (sift_client.resources.RunsAPIAsync)" href="resources/#sift_client.resources.RunsAPIAsync">RunsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(tags)">tags</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            TagsAPIAsync (sift_client.resources.TagsAPIAsync)" href="resources/#sift_client.resources.TagsAPIAsync">TagsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(test_results)">test_results</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            TestResultsAPIAsync (sift_client.resources.TestResultsAPIAsync)" href="resources/#sift_client.resources.TestResultsAPIAsync">TestResultsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(file_attachments)">file_attachments</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            FileAttachmentsAPIAsync (sift_client.resources.FileAttachmentsAPIAsync)" href="resources/#sift_client.resources.FileAttachmentsAPIAsync">FileAttachmentsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(ingestion)">ingestion</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            IngestionAPIAsync (sift_client.resources.IngestionAPIAsync)" href="resources/#sift_client.resources.IngestionAPIAsync">IngestionAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(reports)">reports</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            ReportsAPIAsync (sift_client.resources.ReportsAPIAsync)" href="resources/#sift_client.resources.ReportsAPIAsync">ReportsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(rules)">rules</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            RulesAPIAsync (sift_client.resources.RulesAPIAsync)" href="resources/#sift_client.resources.RulesAPIAsync">RulesAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(runs)">runs</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            RunsAPIAsync (sift_client.resources.RunsAPIAsync)" href="resources/#sift_client.resources.RunsAPIAsync">RunsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(tags)">tags</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            TagsAPIAsync (sift_client.resources.TagsAPIAsync)" href="resources/#sift_client.resources.TagsAPIAsync">TagsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n"><span title="sift_client.util.util.AsyncAPIs(test_results)">test_results</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            TestResultsAPIAsync (sift_client.resources.TestResultsAPIAsync)" href="resources/#sift_client.resources.TestResultsAPIAsync">TestResultsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2602,6 +2686,32 @@ type-safe access to properties and convenience methods for common operations.</p
     <div class="doc doc-contents ">
 
         <p>Instance of the Channels API for making synchronous requests.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.SiftClient.file_attachments" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">file_attachments</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_client.SiftClient.file_attachments" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">file_attachments</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            FileAttachmentsAPI (sift_client.resources.FileAttachmentsAPI)" href="resources/#sift_client.resources.FileAttachmentsAPI">FileAttachmentsAPI</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            FileAttachmentsAPI (sift_client.resources.FileAttachmentsAPI)" href="resources/#sift_client.resources.FileAttachmentsAPI">FileAttachmentsAPI</a></span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Instance of the File Attachments API for making synchronous requests.</p>
 
     </div>
 
@@ -2825,6 +2935,50 @@ type-safe access to properties and convenience methods for common operations.</p
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.SiftClient.get_asyncio_loop" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_asyncio_loop</span>
+
+
+<a href="#sift_client.SiftClient.get_asyncio_loop" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_asyncio_loop</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="asyncio.AbstractEventLoop" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop">AbstractEventLoop</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Gets the default asyncio loop used by the gRPC client.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-external" title="asyncio.AbstractEventLoop" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.AbstractEventLoop">AbstractEventLoop</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The default asyncio loop.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
 
 
 
