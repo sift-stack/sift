@@ -14,6 +14,7 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
+from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
 from sift_client.sift_types.tag import Tag
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from sift_client.sift_types.asset import Asset
 
 
-class Run(BaseType[RunProto, "Run"]):
+class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
     """Run model representing a data collection run."""
 
     # Required fields
