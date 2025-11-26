@@ -29,13 +29,18 @@ class AnnotationServiceStub:
         sift.annotations.v1.annotations_pb2.DeleteAnnotationRequest,
         sift.annotations.v1.annotations_pb2.DeleteAnnotationResponse,
     ]
-    """Deletes an annotation."""
+    """Delete Annotation is deprecated. Calling this will archive the annotation, which should be done using the
+    UpdateAnnotation method with the delete date set to a non-null value. Restoring an annotation can be done
+    by calling UpdateAnnotation with the delete date set to a null value.
+    """
 
     BatchDeleteAnnotations: grpc.UnaryUnaryMultiCallable[
         sift.annotations.v1.annotations_pb2.BatchDeleteAnnotationsRequest,
         sift.annotations.v1.annotations_pb2.BatchDeleteAnnotationsResponse,
     ]
-    """Batch deletes annotations."""
+    """BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
+    by calling UpdateAnnotation with the delete date set to a null value.
+    """
 
     ListAnnotations: grpc.UnaryUnaryMultiCallable[
         sift.annotations.v1.annotations_pb2.ListAnnotationsRequest,
@@ -66,13 +71,18 @@ class AnnotationServiceAsyncStub:
         sift.annotations.v1.annotations_pb2.DeleteAnnotationRequest,
         sift.annotations.v1.annotations_pb2.DeleteAnnotationResponse,
     ]
-    """Deletes an annotation."""
+    """Delete Annotation is deprecated. Calling this will archive the annotation, which should be done using the
+    UpdateAnnotation method with the delete date set to a non-null value. Restoring an annotation can be done
+    by calling UpdateAnnotation with the delete date set to a null value.
+    """
 
     BatchDeleteAnnotations: grpc.aio.UnaryUnaryMultiCallable[
         sift.annotations.v1.annotations_pb2.BatchDeleteAnnotationsRequest,
         sift.annotations.v1.annotations_pb2.BatchDeleteAnnotationsResponse,
     ]
-    """Batch deletes annotations."""
+    """BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
+    by calling UpdateAnnotation with the delete date set to a null value.
+    """
 
     ListAnnotations: grpc.aio.UnaryUnaryMultiCallable[
         sift.annotations.v1.annotations_pb2.ListAnnotationsRequest,
@@ -107,7 +117,10 @@ class AnnotationServiceServicer(metaclass=abc.ABCMeta):
         request: sift.annotations.v1.annotations_pb2.DeleteAnnotationRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.annotations.v1.annotations_pb2.DeleteAnnotationResponse, collections.abc.Awaitable[sift.annotations.v1.annotations_pb2.DeleteAnnotationResponse]]:
-        """Deletes an annotation."""
+        """Delete Annotation is deprecated. Calling this will archive the annotation, which should be done using the
+        UpdateAnnotation method with the delete date set to a non-null value. Restoring an annotation can be done
+        by calling UpdateAnnotation with the delete date set to a null value.
+        """
 
     @abc.abstractmethod
     def BatchDeleteAnnotations(
@@ -115,7 +128,9 @@ class AnnotationServiceServicer(metaclass=abc.ABCMeta):
         request: sift.annotations.v1.annotations_pb2.BatchDeleteAnnotationsRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.annotations.v1.annotations_pb2.BatchDeleteAnnotationsResponse, collections.abc.Awaitable[sift.annotations.v1.annotations_pb2.BatchDeleteAnnotationsResponse]]:
-        """Batch deletes annotations."""
+        """BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
+        by calling UpdateAnnotation with the delete date set to a null value.
+        """
 
     @abc.abstractmethod
     def ListAnnotations(

@@ -25,9 +25,11 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
     RULES_FIELD_NUMBER: builtins.int
     RULE_VERSIONS_FIELD_NUMBER: builtins.int
     REPORT_TEMPLATE_FIELD_NUMBER: builtins.int
+    ALL_APPLICABLE_RULES_FIELD_NUMBER: builtins.int
     ANNOTATION_OPTIONS_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     REPORT_NAME_FIELD_NUMBER: builtins.int
+    all_applicable_rules: builtins.bool
     organization_id: builtins.str
     """Only required if your user belongs to multiple organizations"""
     report_name: builtins.str
@@ -55,16 +57,17 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
         rules: global___EvaluateRulesFromCurrentRuleVersions | None = ...,
         rule_versions: global___EvaluateRulesFromRuleVersions | None = ...,
         report_template: global___EvaluateRulesFromReportTemplate | None = ...,
+        all_applicable_rules: builtins.bool = ...,
         annotation_options: global___EvaluateRulesAnnotationOptions | None = ...,
         organization_id: builtins.str = ...,
         report_name: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_report_name", b"_report_name", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_report_name", b"_report_name", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "organization_id", b"organization_id", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_report_name", b"_report_name", "all_applicable_rules", b"all_applicable_rules", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_report_name", b"_report_name", "all_applicable_rules", b"all_applicable_rules", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "organization_id", b"organization_id", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_report_name", b"_report_name"]) -> typing.Literal["report_name"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["mode", b"mode"]) -> typing.Literal["rules", "rule_versions", "report_template"] | None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["mode", b"mode"]) -> typing.Literal["rules", "rule_versions", "report_template", "all_applicable_rules"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["time", b"time"]) -> typing.Literal["run", "assets", "run_time_range"] | None: ...
 

@@ -37,6 +37,12 @@ class RunServiceStub:
     ]
     """Create a run."""
 
+    CreateAdhocRun: grpc.UnaryUnaryMultiCallable[
+        sift.runs.v2.runs_pb2.CreateAdhocRunRequest,
+        sift.runs.v2.runs_pb2.CreateAdhocRunResponse,
+    ]
+    """Create adhoc run, this is used to create a run after the data has been ingested"""
+
     UpdateRun: grpc.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.UpdateRunRequest,
         sift.runs.v2.runs_pb2.UpdateRunResponse,
@@ -79,6 +85,12 @@ class RunServiceAsyncStub:
         sift.runs.v2.runs_pb2.CreateRunResponse,
     ]
     """Create a run."""
+
+    CreateAdhocRun: grpc.aio.UnaryUnaryMultiCallable[
+        sift.runs.v2.runs_pb2.CreateAdhocRunRequest,
+        sift.runs.v2.runs_pb2.CreateAdhocRunResponse,
+    ]
+    """Create adhoc run, this is used to create a run after the data has been ingested"""
 
     UpdateRun: grpc.aio.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.UpdateRunRequest,
@@ -128,6 +140,14 @@ class RunServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.runs.v2.runs_pb2.CreateRunResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.CreateRunResponse]]:
         """Create a run."""
+
+    @abc.abstractmethod
+    def CreateAdhocRun(
+        self,
+        request: sift.runs.v2.runs_pb2.CreateAdhocRunRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.runs.v2.runs_pb2.CreateAdhocRunResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.CreateAdhocRunResponse]]:
+        """Create adhoc run, this is used to create a run after the data has been ingested"""
 
     @abc.abstractmethod
     def UpdateRun(

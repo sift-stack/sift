@@ -10,6 +10,7 @@ import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.metadata.v1.metadata_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -30,6 +31,7 @@ class ReportTemplate(google.protobuf.message.Message):
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     RULES_FIELD_NUMBER: builtins.int
     TAGS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     report_template_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -47,6 +49,8 @@ class ReportTemplate(google.protobuf.message.Message):
     def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTemplateRule]: ...
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTemplateTag]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -62,9 +66,10 @@ class ReportTemplate(google.protobuf.message.Message):
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         rules: collections.abc.Iterable[global___ReportTemplateRule] | None = ...,
         tags: collections.abc.Iterable[global___ReportTemplateTag] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "description", b"description", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_template_id", b"report_template_id", "rules", b"rules", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_template_id", b"report_template_id", "rules", b"rules", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -172,6 +177,7 @@ class CreateReportTemplateRequest(google.protobuf.message.Message):
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     RULE_IDS_FIELD_NUMBER: builtins.int
     RULE_CLIENT_KEYS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     name: builtins.str
     client_key: builtins.str
     description: builtins.str
@@ -183,6 +189,8 @@ class CreateReportTemplateRequest(google.protobuf.message.Message):
     def rule_ids(self) -> global___CreateReportTemplateRequestRuleIds: ...
     @property
     def rule_client_keys(self) -> global___CreateReportTemplateRequestClientKeys: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -193,9 +201,10 @@ class CreateReportTemplateRequest(google.protobuf.message.Message):
         organization_id: builtins.str = ...,
         rule_ids: global___CreateReportTemplateRequestRuleIds | None = ...,
         rule_client_keys: global___CreateReportTemplateRequestClientKeys | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "description", b"description", "rule_client_keys", b"rule_client_keys", "rule_identifiers", b"rule_identifiers", "rule_ids", b"rule_ids"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "description", b"description", "name", b"name", "organization_id", b"organization_id", "rule_client_keys", b"rule_client_keys", "rule_identifiers", b"rule_identifiers", "rule_ids", b"rule_ids", "tag_names", b"tag_names"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "description", b"description", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_client_keys", b"rule_client_keys", "rule_identifiers", b"rule_identifiers", "rule_ids", b"rule_ids", "tag_names", b"tag_names"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -281,18 +290,18 @@ class ListReportTemplatesRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, and `name`.
+    Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, and `name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/report_templates#report_template). Optional.
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
     include_archived: builtins.bool
-    """If `true` then archived report templates will be included in the query. Defaults to `false`."""
+    """Deprecated. Use `filter` instead."""
     order_by: builtins.str
     """How to order the retrieved report templates. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
     Available fields to order_by are `created_date` and `modified_date`.
-    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
     """
@@ -348,7 +357,7 @@ class UpdateReportTemplateRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, and `rules`."""
+        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, `rules`, and `metadata`."""
 
     def __init__(
         self,

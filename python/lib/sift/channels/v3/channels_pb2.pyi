@@ -6,12 +6,14 @@ isort:skip_file
 import builtins
 import collections.abc
 import google.protobuf.descriptor
+import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
 import sift.common.type.v1.channel_bit_field_element_pb2
 import sift.common.type.v1.channel_data_type_pb2
 import sift.common.type.v1.channel_enum_type_pb2
+import sift.metadata.v1.metadata_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -32,6 +34,9 @@ class Channel(google.protobuf.message.Message):
     DATA_TYPE_FIELD_NUMBER: builtins.int
     ENUM_TYPES_FIELD_NUMBER: builtins.int
     BIT_FIELD_ELEMENTS_FIELD_NUMBER: builtins.int
+    DISPLAY_DESCRIPTION_FIELD_NUMBER: builtins.int
+    DISPLAY_UNIT_ID_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     channel_id: builtins.str
     name: builtins.str
     """The full name of the channel."""
@@ -41,6 +46,8 @@ class Channel(google.protobuf.message.Message):
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
     data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType
+    display_description: builtins.str
+    display_unit_id: builtins.str
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -49,6 +56,8 @@ class Channel(google.protobuf.message.Message):
     def enum_types(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType]: ...
     @property
     def bit_field_elements(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -64,9 +73,12 @@ class Channel(google.protobuf.message.Message):
         data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType = ...,
         enum_types: collections.abc.Iterable[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType] | None = ...,
         bit_field_elements: collections.abc.Iterable[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement] | None = ...,
+        display_description: builtins.str = ...,
+        display_unit_id: builtins.str = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "bit_field_elements", b"bit_field_elements", "channel_id", b"channel_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "data_type", b"data_type", "description", b"description", "enum_types", b"enum_types", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "unit_id", b"unit_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "bit_field_elements", b"bit_field_elements", "channel_id", b"channel_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "data_type", b"data_type", "description", b"description", "display_description", b"display_description", "display_unit_id", b"display_unit_id", "enum_types", b"enum_types", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "unit_id", b"unit_id"]) -> None: ...
 
 global___Channel = Channel
 
@@ -136,7 +148,7 @@ class ListChannelsRequest(google.protobuf.message.Message):
     """
     order_by: builtins.str
     """How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date` and `modified_date`.
+    Available fields to order_by are `name`, `created_date` and `modified_date`.
     If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
@@ -155,7 +167,7 @@ global___ListChannelsRequest = ListChannelsRequest
 
 @typing.final
 class ListChannelsResponse(google.protobuf.message.Message):
-    """The result of a call to `ChannelService_ListChannels`."""
+    """The result of a call to ChannelService_ListChannels."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -173,3 +185,47 @@ class ListChannelsResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["channels", b"channels", "next_page_token", b"next_page_token"]) -> None: ...
 
 global___ListChannelsResponse = ListChannelsResponse
+
+@typing.final
+class UpdateChannelRequest(google.protobuf.message.Message):
+    """The request for a call to ChannelService_UpdateChannel."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_FIELD_NUMBER: builtins.int
+    UPDATE_MASK_FIELD_NUMBER: builtins.int
+    @property
+    def channel(self) -> global___Channel: ...
+    @property
+    def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
+        """The list of fields to be updated. The fields available to be updated are `display_description`, `display_units`, and `metadata`."""
+
+    def __init__(
+        self,
+        *,
+        channel: global___Channel | None = ...,
+        update_mask: google.protobuf.field_mask_pb2.FieldMask | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["channel", b"channel", "update_mask", b"update_mask"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["channel", b"channel", "update_mask", b"update_mask"]) -> None: ...
+
+global___UpdateChannelRequest = UpdateChannelRequest
+
+@typing.final
+class UpdateChannelResponse(google.protobuf.message.Message):
+    """The result of a call to ChannelService_UpdateChannel."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_FIELD_NUMBER: builtins.int
+    @property
+    def channel(self) -> global___Channel: ...
+    def __init__(
+        self,
+        *,
+        channel: global___Channel | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["channel", b"channel"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["channel", b"channel"]) -> None: ...
+
+global___UpdateChannelResponse = UpdateChannelResponse

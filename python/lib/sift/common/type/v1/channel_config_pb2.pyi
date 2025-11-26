@@ -11,6 +11,7 @@ import google.protobuf.message
 import sift.common.type.v1.channel_bit_field_element_pb2
 import sift.common.type.v1.channel_data_type_pb2
 import sift.common.type.v1.channel_enum_type_pb2
+import sift.metadata.v1.metadata_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -25,6 +26,7 @@ class ChannelConfig(google.protobuf.message.Message):
     DATA_TYPE_FIELD_NUMBER: builtins.int
     ENUM_TYPES_FIELD_NUMBER: builtins.int
     BIT_FIELD_ELEMENTS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     name: builtins.str
     units: builtins.str
     description: builtins.str
@@ -33,6 +35,8 @@ class ChannelConfig(google.protobuf.message.Message):
     def enum_types(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType]: ...
     @property
     def bit_field_elements(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -42,7 +46,8 @@ class ChannelConfig(google.protobuf.message.Message):
         data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType = ...,
         enum_types: collections.abc.Iterable[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType] | None = ...,
         bit_field_elements: collections.abc.Iterable[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["bit_field_elements", b"bit_field_elements", "data_type", b"data_type", "description", b"description", "enum_types", b"enum_types", "name", b"name", "units", b"units"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["bit_field_elements", b"bit_field_elements", "data_type", b"data_type", "description", b"description", "enum_types", b"enum_types", "metadata", b"metadata", "name", b"name", "units", b"units"]) -> None: ...
 
 global___ChannelConfig = ChannelConfig

@@ -36,6 +36,7 @@ class Run(google.protobuf.message.Message):
     METADATA_FIELD_NUMBER: builtins.int
     ASSET_IDS_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ADHOC_FIELD_NUMBER: builtins.int
     run_id: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
@@ -45,6 +46,7 @@ class Run(google.protobuf.message.Message):
     description: builtins.str
     default_report_id: builtins.str
     client_key: builtins.str
+    is_adhoc: builtins.bool
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -83,9 +85,10 @@ class Run(google.protobuf.message.Message):
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_adhoc: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "modified_date", b"modified_date", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "default_report_id", b"default_report_id", "description", b"description", "is_pinned", b"is_pinned", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "default_report_id", b"default_report_id", "description", b"description", "is_adhoc", b"is_adhoc", "is_pinned", b"is_pinned", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -158,8 +161,8 @@ class ListRunsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-    `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `asset_name`, `archived_date`,
+    Available fields to filter by are `run_id` `organization_id`, `asset_id`, `asset_name`, `client_key`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
+    `created_date`, `modified_date`, `start_time`, `stop_time`, `tag_id`, `asset_tag_id`, `duration`, `annotation_comments_count`, `annotation_state`, `archived_date`,
     and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/runs#run). Optional.
@@ -269,8 +272,6 @@ global___CreateRunRequest = CreateRunRequest
 
 @typing.final
 class CreateRunResponse(google.protobuf.message.Message):
-    """The response of a call to `RunService_CreateRuns` containing the newly created run."""
-
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RUN_FIELD_NUMBER: builtins.int
@@ -285,6 +286,83 @@ class CreateRunResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["run", b"run"]) -> None: ...
 
 global___CreateRunResponse = CreateRunResponse
+
+@typing.final
+class CreateAdhocRunRequest(google.protobuf.message.Message):
+    """The request for a call to `RunService_CreateAdhocRun` to create an adhoc run."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NAME_FIELD_NUMBER: builtins.int
+    DESCRIPTION_FIELD_NUMBER: builtins.int
+    START_TIME_FIELD_NUMBER: builtins.int
+    STOP_TIME_FIELD_NUMBER: builtins.int
+    ASSET_IDS_FIELD_NUMBER: builtins.int
+    TAGS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
+    CLIENT_KEY_FIELD_NUMBER: builtins.int
+    name: builtins.str
+    """The name that will be assigned to the new run."""
+    description: builtins.str
+    """A description about the new run."""
+    client_key: builtins.str
+    """An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide."""
+    @property
+    def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """The time at which data ingestion began for this new run. It must be before the `stop_time`"""
+
+    @property
+    def stop_time(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """The time at which data ingestion concluded for this new run."""
+
+    @property
+    def asset_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """A list of asset IDs to associate with the new run."""
+
+    @property
+    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Tags to associate with the new run."""
+
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values associated with this run."""
+
+    def __init__(
+        self,
+        *,
+        name: builtins.str = ...,
+        description: builtins.str = ...,
+        start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        stop_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        tags: collections.abc.Iterable[builtins.str] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        client_key: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "client_key", b"client_key", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "asset_ids", b"asset_ids", "client_key", b"client_key", "description", b"description", "metadata", b"metadata", "name", b"name", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
+
+global___CreateAdhocRunRequest = CreateAdhocRunRequest
+
+@typing.final
+class CreateAdhocRunResponse(google.protobuf.message.Message):
+    """The response of a call to `RunService_CreateAdhocRun` containing the newly created adhoc run."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RUN_FIELD_NUMBER: builtins.int
+    @property
+    def run(self) -> global___Run: ...
+    def __init__(
+        self,
+        *,
+        run: global___Run | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["run", b"run"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["run", b"run"]) -> None: ...
+
+global___CreateAdhocRunResponse = CreateAdhocRunResponse
 
 @typing.final
 class UpdateRunRequest(google.protobuf.message.Message):

@@ -242,10 +242,15 @@ class CreateResourceAttributeKeyRequest(google.protobuf.message.Message):
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    RESOURCE_ATTRIBUTE_KEY_FIELD_NUMBER: builtins.int
+    DISPLAY_NAME_FIELD_NUMBER: builtins.int
+    DESCRIPTION_FIELD_NUMBER: builtins.int
+    TYPE_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     INITIAL_ENUM_VALUES_FIELD_NUMBER: builtins.int
-    @property
-    def resource_attribute_key(self) -> global___ResourceAttributeKey: ...
+    display_name: builtins.str
+    description: builtins.str
+    type: global___ResourceAttributeKeyType.ValueType
+    organization_id: builtins.str
     @property
     def initial_enum_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ResourceAttributeEnumValue]:
         """Optional initial enum values to create alongside the key. Only applicable for ENUM type keys.
@@ -255,11 +260,13 @@ class CreateResourceAttributeKeyRequest(google.protobuf.message.Message):
     def __init__(
         self,
         *,
-        resource_attribute_key: global___ResourceAttributeKey | None = ...,
+        display_name: builtins.str = ...,
+        description: builtins.str = ...,
+        type: global___ResourceAttributeKeyType.ValueType = ...,
+        organization_id: builtins.str = ...,
         initial_enum_values: collections.abc.Iterable[global___ResourceAttributeEnumValue] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["resource_attribute_key", b"resource_attribute_key"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["initial_enum_values", b"initial_enum_values", "resource_attribute_key", b"resource_attribute_key"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["description", b"description", "display_name", b"display_name", "initial_enum_values", b"initial_enum_values", "organization_id", b"organization_id", "type", b"type"]) -> None: ...
 
 global___CreateResourceAttributeKeyRequest = CreateResourceAttributeKeyRequest
 

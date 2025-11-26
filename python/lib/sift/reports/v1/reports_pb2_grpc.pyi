@@ -29,7 +29,13 @@ class ReportServiceStub:
         sift.reports.v1.reports_pb2.CreateReportRequest,
         sift.reports.v1.reports_pb2.CreateReportResponse,
     ]
-    """Create a report."""
+    """Deprecated - use RuleEvaluationService instead."""
+
+    UpdateReport: grpc.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.UpdateReportRequest,
+        sift.reports.v1.reports_pb2.UpdateReportResponse,
+    ]
+    """Update a report."""
 
     ListReports: grpc.UnaryUnaryMultiCallable[
         sift.reports.v1.reports_pb2.ListReportsRequest,
@@ -64,7 +70,13 @@ class ReportServiceAsyncStub:
         sift.reports.v1.reports_pb2.CreateReportRequest,
         sift.reports.v1.reports_pb2.CreateReportResponse,
     ]
-    """Create a report."""
+    """Deprecated - use RuleEvaluationService instead."""
+
+    UpdateReport: grpc.aio.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.UpdateReportRequest,
+        sift.reports.v1.reports_pb2.UpdateReportResponse,
+    ]
+    """Update a report."""
 
     ListReports: grpc.aio.UnaryUnaryMultiCallable[
         sift.reports.v1.reports_pb2.ListReportsRequest,
@@ -103,7 +115,15 @@ class ReportServiceServicer(metaclass=abc.ABCMeta):
         request: sift.reports.v1.reports_pb2.CreateReportRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.reports.v1.reports_pb2.CreateReportResponse, collections.abc.Awaitable[sift.reports.v1.reports_pb2.CreateReportResponse]]:
-        """Create a report."""
+        """Deprecated - use RuleEvaluationService instead."""
+
+    @abc.abstractmethod
+    def UpdateReport(
+        self,
+        request: sift.reports.v1.reports_pb2.UpdateReportRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.reports.v1.reports_pb2.UpdateReportResponse, collections.abc.Awaitable[sift.reports.v1.reports_pb2.UpdateReportResponse]]:
+        """Update a report."""
 
     @abc.abstractmethod
     def ListReports(
