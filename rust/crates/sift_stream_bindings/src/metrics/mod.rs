@@ -46,6 +46,12 @@ pub struct BackupMetricsSnapshotPy {
     #[pyo3(get)]
     pub total_messages: u64,
     #[pyo3(get)]
+    pub committed_message_id: u64,
+    #[pyo3(get)]
+    pub queued_checkpoints: u64,
+    #[pyo3(get)]
+    pub queued_file_ctxs: u64,
+    #[pyo3(get)]
     pub files_pending_ingestion: u64,
     #[pyo3(get)]
     pub files_ingested: u64,
@@ -76,7 +82,13 @@ pub struct SiftStreamMetricsSnapshotPy {
     #[pyo3(get)]
     pub messages_sent_to_backup: u64,
     #[pyo3(get)]
+    pub old_messages_dropped_for_ingestion: u64,
+    #[pyo3(get)]
     pub cur_retry_count: u64,
+    #[pyo3(get)]
+    pub ingestion_channel_depth: u64,
+    #[pyo3(get)]
+    pub backup_channel_depth: u64,
     #[pyo3(get)]
     pub checkpoint: CheckpointMetricsSnapshotPy,
     #[pyo3(get)]
@@ -95,7 +107,10 @@ impl From<SiftStreamMetricsSnapshot> for SiftStreamMetricsSnapshotPy {
             bytes_sent: snapshot.bytes_sent,
             byte_rate: snapshot.byte_rate,
             messages_sent_to_backup: snapshot.messages_sent_to_backup,
+            old_messages_dropped_for_ingestion: snapshot.old_messages_dropped_for_ingestion,
             cur_retry_count: snapshot.cur_retry_count,
+            ingestion_channel_depth: snapshot.ingestion_channel_depth,
+            backup_channel_depth: snapshot.backup_channel_depth,
             checkpoint: CheckpointMetricsSnapshotPy {
                 checkpoint_count: snapshot.checkpoint.checkpoint_count,
                 failed_checkpoint_count: snapshot.checkpoint.failed_checkpoint_count,
@@ -117,6 +132,9 @@ impl From<SiftStreamMetricsSnapshot> for SiftStreamMetricsSnapshotPy {
                 total_file_count: snapshot.backups.total_file_count,
                 total_bytes: snapshot.backups.total_bytes,
                 total_messages: snapshot.backups.total_messages,
+                committed_message_id: snapshot.backups.committed_message_id,
+                queued_checkpoints: snapshot.backups.queued_checkpoints,
+                queued_file_ctxs: snapshot.backups.queued_file_ctxs,
                 files_pending_ingestion: snapshot.backups.files_pending_ingestion,
                 files_ingested: snapshot.backups.files_ingested,
                 cur_ingest_retries: snapshot.backups.cur_ingest_retries,

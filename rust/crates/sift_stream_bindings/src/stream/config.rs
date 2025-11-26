@@ -1,12 +1,21 @@
 use crate::{
+    error::SiftErrorWrapper,
     sift::metadata::MetadataPy,
-    stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy},
+    stream::{
+        channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy, ValuePy},
+        request::IngestWithConfigDataStreamRequestWrapperPy,
+        time::TimeValuePy,
+    },
 };
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
-use sift_stream::stream::run::RunSelector;
+use sift_stream::{
+    ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder, stream::run::RunSelector,
+};
 use sift_stream::{IngestionConfigForm, RunForm};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -37,6 +46,37 @@ pub struct FlowConfigPy {
     name: String,
     #[pyo3(get, set)]
     channels: Vec<ChannelConfigPy>,
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct ChannelIndexPy {
+    inner: ChannelIndex,
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+pub struct FlowDescriptorBuilderPy {
+    inner: Option<FlowDescriptorBuilder<String>>,
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct FlowDescriptorPy {
+    // Use Arc to make cloning cheap - cloning Arc just increments a reference count
+    inner: Arc<FlowDescriptor<String>>,
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+pub struct FlowBuilderPy {
+    // We store the descriptor to ensure it lives as long as FlowBuilderPy.
+    // Since FlowDescriptorPy uses Arc internally, cloning is cheap (just increments a reference count).
+    // The field is intentionally unused (we only need it for lifetime management).
+    _descriptor: FlowDescriptorPy,
+    builder: Option<FlowBuilder<'static, String>>,
 }
 
 #[gen_stub_pyclass]
@@ -156,6 +196,26 @@ impl From<ChannelConfig> for ChannelConfigPy {
     }
 }
 
+impl From<FlowDescriptor<String>> for FlowDescriptorPy {
+    fn from(descriptor: FlowDescriptor<String>) -> Self {
+        FlowDescriptorPy {
+            inner: Arc::new(descriptor),
+        }
+    }
+}
+
+impl From<ChannelIndexPy> for ChannelIndex {
+    fn from(index: ChannelIndexPy) -> Self {
+        index.inner
+    }
+}
+
+impl From<ChannelIndex> for ChannelIndexPy {
+    fn from(index: ChannelIndex) -> Self {
+        ChannelIndexPy { inner: index }
+    }
+}
+
 // PyO3 Method Implementations
 #[gen_stub_pymethods]
 #[pymethods]
@@ -257,5 +317,133 @@ impl RunSelectorPy {
             run_id: None,
             run_form: Some(form),
         }
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl FlowDescriptorBuilderPy {
+    #[new]
+    pub fn new(ingestion_config_id: &str, name: &str) -> Self {
+        Self {
+            inner: Some(FlowDescriptorBuilder::new(ingestion_config_id, name)),
+        }
+    }
+
+    /// Adds a new channel to the flow.
+    ///
+    /// This returns the index of the channel in the flow.
+    pub fn add(&mut self, key: &str, field_type: ChannelDataTypePy) -> PyResult<ChannelIndexPy> {
+        let Some(builder) = self.inner.as_mut() else {
+            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Builder has already been consumed",
+            ));
+        };
+        Ok(builder.add(key.to_string(), field_type.into()).into())
+    }
+
+    /// Builds the FlowDescriptor from the builder.
+    pub fn build(&mut self) -> PyResult<FlowDescriptorPy> {
+        let Some(builder) = self.inner.take() else {
+            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Builder has already been consumed",
+            ));
+        };
+        Ok(builder.build().into())
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl FlowDescriptorPy {
+    /// Gets the type of the channel with the given key.
+    pub fn get(&self, key: &str) -> Option<ChannelDataTypePy> {
+        self.inner.as_ref().get(key).map(|dt| dt.into())
+    }
+
+    /// Gets the mapping of keys to channel indices.
+    pub fn mapping(&self) -> HashMap<String, ChannelIndexPy> {
+        self.inner
+            .as_ref()
+            .mapping()
+            .iter()
+            .map(|(k, v)| (k.clone(), (*v).into()))
+            .collect()
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl FlowBuilderPy {
+    #[new]
+    pub fn new(descriptor: FlowDescriptorPy) -> Self {
+        // Since FlowDescriptorPy uses Arc internally, cloning is cheap (just increments a reference count).
+        // We can safely create a 'static reference because:
+        // 1. We store `descriptor` in the same struct, ensuring it lives as long as `FlowBuilderPy`
+        // 2. The `FlowBuilder` only holds a reference and doesn't outlive `FlowBuilderPy`
+        // 3. The reference is never used after `FlowBuilderPy` is dropped
+        // 4. The descriptor's inner `FlowDescriptor<String>` is wrapped in Arc, making it shareable
+        //
+        // SAFETY: We extend the lifetime of the reference to 'static using transmute.
+        // This is safe because the Arc ensures the data lives as long as needed.
+        let descriptor_ref: &'static FlowDescriptor<String> = unsafe {
+            // Get a reference to the inner FlowDescriptor through the Arc
+            std::mem::transmute(&*Arc::as_ptr(&descriptor.inner))
+        };
+        let flow_builder = FlowBuilder::new(descriptor_ref);
+        Self {
+            _descriptor: descriptor,
+            builder: Some(flow_builder),
+        }
+    }
+
+    /// Attaches a run ID to the flow.
+    pub fn attach_run_id(&mut self, run_id: &str) -> PyResult<()> {
+        let Some(builder) = self.builder.as_mut() else {
+            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Builder has already been consumed",
+            ));
+        };
+        builder.attach_run_id(run_id);
+        Ok(())
+    }
+
+    /// Sets the value of the channel with the given index.
+    pub fn set(&mut self, index: ChannelIndexPy, value: ValuePy) -> PyResult<()> {
+        let Some(builder) = self.builder.as_mut() else {
+            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Builder has already been consumed",
+            ));
+        };
+        match builder.set(index.into(), value) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(SiftErrorWrapper(e).into()),
+        }
+    }
+
+    /// Sets the value of the channel with the given key.
+    pub fn set_with_key(&mut self, key: &str, value: ValuePy) -> PyResult<()> {
+        let Some(builder) = self.builder.as_mut() else {
+            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Builder has already been consumed",
+            ));
+        };
+        match builder.set_with_key(key, value) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(SiftErrorWrapper(e).into()),
+        }
+    }
+
+    /// Builds an IngestWithConfigDataStreamRequest, consuming the builder.
+    pub fn request(
+        &mut self,
+        now: TimeValuePy,
+    ) -> PyResult<IngestWithConfigDataStreamRequestWrapperPy> {
+        let Some(builder) = self.builder.take() else {
+            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Builder has already been consumed",
+            ));
+        };
+        Ok(builder.request(now.into()).into())
     }
 }
