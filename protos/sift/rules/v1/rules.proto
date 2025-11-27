@@ -351,7 +351,12 @@ message Rule {
 
   // is_archived is inferred from when archived_date is not null
   bool is_archived = 21 [(google.api.field_behavior) = REQUIRED];
+
+  // If set to `true` then this rule will be evaluated on live data, otherwise live rule evaluation
+  // will be disabled. This rule can still be used, however, in report generation.
+  bool is_live_evaluation_enabled = 22 [(google.api.field_behavior) = OPTIONAL];
 }
+
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
   reserved 4;
@@ -475,7 +480,13 @@ message UpdateRuleRequest {
   bool is_external = 12;
   repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = REQUIRED];
   bool is_archived = 14 [(google.api.field_behavior) = OPTIONAL];
+
+  // If set to `true` then this rule will be evaluated on live data, otherwise live rule evaluation
+  // will be disabled. This rule can still be used, however, in report generation. If this value
+  // is null then the original value is preserved
+  optional bool is_live_evaluation_enabled = 15 [(google.api.field_behavior) = OPTIONAL];
 }
+
 message UpdateConditionRequest {
   // 2 is reserved from old status update support on rule condition directly
   reserved 2;
@@ -685,7 +696,7 @@ message ListRulesRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
-  // `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, and `archived_date`.
+  // `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, `archived_date`, and `is_live_evaluation_enabled`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -814,7 +825,6 @@ message RuleActionConfiguration {
 message NotificationActionConfiguration {
   repeated string recipient_user_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
-
 
 message AnnotationActionConfiguration {
   repeated string tag_ids = 1 [(google.api.field_behavior) = REQUIRED];
