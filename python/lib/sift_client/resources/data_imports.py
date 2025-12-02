@@ -6,15 +6,14 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.data_import import (
+    Ch10Config,
+    CsvConfig,
+    DataImport,
+    ParquetConfig,
+    TDMSConfig,
+)
 from sift_client.sift_types.job import Job
-
-# from sift_client.sift_types.data_import import (
-#     Ch10Config,
-#     CsvConfig,
-#     DataImport,
-#     ParquetConfig,
-#     TDMSConfig,
-# )
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient

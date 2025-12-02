@@ -29,14 +29,13 @@ from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-
-# from sift_client.sift_types.data_import import (
-#     Ch10Config,
-#     CsvConfig,
-#     DataImport,
-#     ParquetConfig,
-#     TDMSConfig,
-# )
+from sift_client.sift_types.data_import import (
+    Ch10Config,
+    CsvConfig,
+    DataImport,
+    ParquetConfig,
+    TDMSConfig,
+)
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 
