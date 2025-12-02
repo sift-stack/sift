@@ -48,8 +48,14 @@ def mock_client():
     client.tags = MagicMock()
     client.test_results = MagicMock()
     client.file_attachments = MagicMock()
+    client.user_attributes = MagicMock()
+    client.resource_attributes = MagicMock()
+    client.policies = MagicMock()
     client.async_ = MagicMock(spec=AsyncAPIs)
     client.async_.ingestion = MagicMock()
+    client.async_.user_attributes = MagicMock()
+    client.async_.resource_attributes = MagicMock()
+    client.async_.policies = MagicMock()
     return client
 
 
