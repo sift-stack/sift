@@ -27,16 +27,26 @@ See the [examples](https://github.com/sift-stack/sift/tree/main/rust/crates/sift
 ### Main Entry Points
 
 - **SiftStreamBuilder**: Configures and builds SiftStream instances with various options
-- **SiftStream<IngestionConfigMode>**: Main streaming interface that users interact with
-- **IngestionConfigMode**: Core streaming implementation that manages the task system
+- **SiftStream<IngestionConfigMode>**: Main streaming interface for real-time streaming to Sift
+- **SiftStream<FileBackupMode>**: Streaming interface for writing data only to backup files (no live streaming)
+
+### Stream Modes
+
+SiftStream supports two different modes of operation:
+
+- **IngestionConfigMode**: The default mode that streams data directly to Sift via gRPC. This mode supports real-time streaming, optional disk backups, checkpointing, and retry policies. Use `SiftStreamBuilder::build()` to create a stream in this mode.
+
+- **FileBackupMode**: A specialized mode that only writes telemetry data to backup files on disk without streaming to Sift. This mode is useful for offline data collection, batch processing, or scenarios with unreliable network connectivity. Use `SiftStreamBuilder::build_file_backup()` to create a stream in this mode. Note that this mode requires a `RecoveryStrategy::RetryWithBackups` configuration.
 
 ### Task System
 
-The SiftStream architecture consists of three main async tasks that work together to provide reliable data streaming:
+The SiftStream architecture when using IngestionConfigMode consists of three main async tasks that work together to provide reliable data streaming:
 
 1. **Backup Manager Task** - Handles backup file creation and management
 2. **Ingestion Task** - Manages gRPC streaming to Sift
 3. **Re-ingestion Task** - Handles re-ingestion of backup files when failures occur
+
+**Note**: FileBackupMode does not use the task system architecture, as it only writes to disk files without streaming to Sift.
 
 ## Control Messages
 

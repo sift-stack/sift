@@ -94,7 +94,7 @@ struct CheckpointInfo {
 }
 
 /// Disk-based backup with async ingestion implementation.
-pub struct AsyncBackupsManager {
+pub(crate) struct AsyncBackupsManager {
     /// Configuration for how to manage backups.
     backup_config: BackupConfig,
 

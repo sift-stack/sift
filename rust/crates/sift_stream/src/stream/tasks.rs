@@ -1,9 +1,9 @@
 use crate::{
-    DiskBackupPolicy, Flow, FlowConfig, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy,
-    RetryPolicy, SiftStream, SiftStreamBuilder, TimeValue,
+    DiskBackupPolicy, Flow, FlowConfig, IngestionConfigForm, RecoveryStrategy, RetryPolicy,
+    SiftStream, SiftStreamBuilder, TimeValue,
     backup::disk::{AsyncBackupsManager, BackupIngestTask},
     metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
-    stream::mode::ingestion_config::DataStream,
+    stream::mode::ingestion_config::{DataStream, IngestionConfigMode},
 };
 use async_channel;
 use sift_connect::SiftChannel;

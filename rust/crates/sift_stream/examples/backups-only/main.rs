@@ -1,11 +1,13 @@
 use sift_rs::metadata;
 use sift_stream::{
-    ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowBuilder, FlowConfig,
-    IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder, TimeValue,
+    ChannelConfig, ChannelDataType, ChannelValue, Credentials, DiskBackupPolicy, Flow, FlowBuilder,
+    FlowConfig, IngestionConfigForm, RecoveryStrategy, RetryPolicy, RunForm, SiftStreamBuilder,
+    TimeValue,
 };
 use std::{
     env,
     error::Error,
+    path::PathBuf,
     process::ExitCode,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -70,15 +72,23 @@ async fn run() -> Result<(), Box<dyn Error>> {
         metadata: Some(metadata),
     };
 
+    let recovery_strategy = RecoveryStrategy::RetryWithBackups {
+        retry_policy: RetryPolicy::default(),
+        disk_backup_policy: DiskBackupPolicy {
+            backups_dir: Some(PathBuf::from("/tmp/sift_backup")),
+            ..Default::default()
+        },
+    };
+
     // Initialize your Sift Stream
     let mut sift_stream = SiftStreamBuilder::new(credentials)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::default())
+        .recovery_strategy(recovery_strategy)
         .attach_run(run)
-        .build()
+        .build_file_backup()
         .await?;
 
-    // Stream telemetry to Sift using the [`SiftStream::send`] method.
+    // Stream telemetry to backup files using the [`SiftStream::send`] method.
     for i in 0..360 {
         let flow = Flow::new(
             "robotic-arm",
@@ -86,14 +96,13 @@ async fn run() -> Result<(), Box<dyn Error>> {
             &[ChannelValue::new("joint-angle-encoder", f64::from(i).sin())],
         );
 
-        // Send telemetry to Sift
         sift_stream.send(flow).await.unwrap();
 
         // For demonstrative purposes, adding a contrived wait to get 10Hz data.
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    // Next, stream telemetry to Sift using the [`SiftStream::send_requests_nonblocking`] method
+    // Next, stream telemetry to backup files using the [`SiftStream::send_requests_nonblocking`] method
     // and the [`FlowBuilder`] to build the flow.
     //
     // This approach is more performant, and also provides methods to set the channel value via
@@ -114,7 +123,6 @@ async fn run() -> Result<(), Box<dyn Error>> {
             .set_with_key("joint-angle-encoder", f64::from(i).sin())
             .unwrap();
 
-        // Send telemetry to Sift.
         sift_stream
             .send_requests_nonblocking(vec![flow_builder.request(TimeValue::now())])
             .unwrap();

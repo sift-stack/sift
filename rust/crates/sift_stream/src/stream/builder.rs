@@ -1,27 +1,27 @@
 use super::{
-    RetryPolicy, SiftStream, SiftStreamMode,
-    flow::validate_flows,
-    mode::ingestion_config::IngestionConfigMode,
+    RetryPolicy, SiftStream, helpers,
+    mode::{file_backup::FileBackupMode, ingestion_config::IngestionConfigMode},
     run::{load_run_by_form, load_run_by_id},
 };
+use std::collections::HashMap;
+
+mod config_loader;
 use crate::{
+    FlowDescriptor,
     backup::{disk::DiskBackupPolicy, sanitize_name},
     metrics::SiftStreamMetrics,
     stream::tasks::{CONTROL_CHANNEL_CAPACITY, DATA_CHANNEL_CAPACITY, RecoveryConfig, TaskConfig},
 };
+use config_loader::load_ingestion_config;
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
 use sift_rs::{
-    assets::v1::Asset,
-    ingestion_configs::v2::{FlowConfig, IngestionConfig as IngestionConfigPb},
+    ingestion_configs::v2::{FlowConfig, IngestionConfig},
     metadata::v1::MetadataValue,
     ping::v1::{PingRequest, ping_service_client::PingServiceClient},
-    wrappers::{
-        assets::{AssetServiceWrapper, new_asset_service},
-        ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
-    },
+    runs::v2::Run,
 };
-use std::{marker::PhantomData, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use uuid::Uuid;
 
 /// The default checkpoint interval (1 minute) to use if left unspecified.
@@ -48,14 +48,13 @@ pub const DEFAULT_METRICS_STREAMING_INTERVAL: Duration = Duration::from_millis(5
 /// Because [tonic](https://docs.rs/tonic/latest/tonic/) is an underlying dependency, the
 /// [tokio](https://docs.rs/tokio/latest/tokio/) asynchronous runtime is required, otherwise
 /// attempts to call [SiftStreamBuilder::build] will panic.
-pub struct SiftStreamBuilder<C> {
+pub struct SiftStreamBuilder {
     credentials: Option<Credentials>,
     channel: Option<SiftChannel>,
     recovery_strategy: Option<RecoveryStrategy>,
     checkpoint_interval: Duration,
     ingestion_config: Option<IngestionConfigForm>,
     enable_tls: bool,
-    kind: PhantomData<C>,
     asset_tags: Option<Vec<String>>,
     asset_metadata: Option<Vec<MetadataValue>>,
     control_channel_capacity: usize,
@@ -130,108 +129,22 @@ impl RecoveryStrategy {
     }
 }
 
-impl<C> SiftStreamBuilder<C>
-where
-    C: SiftStreamMode,
-{
-    /// Sets the interval to stream [`SiftStreamMetrics`] to Sift.
-    ///
-    /// The default interval is [DEFAULT_METRICS_STREAMING_INTERVAL].
-    /// If `None`, metrics streaming will be disabled.
-    pub fn metrics_streaming_interval(
-        mut self,
-        interval: Option<Duration>,
-    ) -> SiftStreamBuilder<C> {
-        self.metrics_streaming_interval = interval;
-        self
-    }
-
-    /// Sets the control channel capacity. See the [top-level documentation](crate#checkpoints)
-    /// for further details.
-    pub fn control_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
-        self.control_channel_capacity = capacity;
-        self
-    }
-
-    /// Sets the ingestion data channel capacity. See the [top-level documentation](crate#checkpoints)
-    /// for further details.
-    pub fn ingestion_data_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
-        self.ingestion_data_channel_capacity = capacity;
-        self
-    }
-
-    /// Sets the backup data channel capacity. See the [top-level documentation](crate#checkpoints)
-    /// for further details.
-    pub fn backup_data_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
-        self.backup_data_channel_capacity = capacity;
-        self
-    }
-
-    /// Sets the recovery strategy to use. See [RecoveryStrategy].
-    pub fn recovery_strategy(mut self, strategy: RecoveryStrategy) -> SiftStreamBuilder<C> {
-        self.recovery_strategy = Some(strategy);
-        self
-    }
-
-    /// Sets the run to use for this period of streaming. Any data sent will be associated with
-    /// this run. If the `run` used is an existing run, then any fields that have been updated will
-    /// also be updated in Sift. Optional fields that are `None` will be ignored when determining
-    /// which fields to update. This method should not be used if [SiftStreamBuilder::attach_run_id]
-    /// is used. If for whatever reason both are used, [SiftStreamBuilder::attach_run_id] will take
-    /// precedent.
-    pub fn attach_run(mut self, run: RunForm) -> SiftStreamBuilder<C> {
-        self.run = Some(run);
-        self
-    }
-
-    // Sets the run based on run ID for this period of streaming. Any data sent will be associated
-    // with this run. This method should not be used if [SiftStreamBuilder::attach_run] is used. If
-    // for whatever reason both are used, this will take precedent.
-    pub fn attach_run_id(mut self, run_id: &str) -> SiftStreamBuilder<C> {
-        self.run_id = Some(run_id.into());
-        self
-    }
-
-    /// Sets whether compression is enabled.
-    ///
-    /// Currently only gzip is supported.
-    ///
-    /// WARNING: Compression adds additional overhead both on the client and server, so can reduce
-    /// the overall throughput of a stream. It is not recommended to enable compression by default.
-    pub fn enable_compression_for_ingestion(mut self, enable: bool) -> SiftStreamBuilder<C> {
-        self.enable_compression_for_ingestion = enable;
-        self
-    }
-
-    /// Disables TLS. Useful for testing. This is ignored if [SiftStreamBuilder::from_channel] is
-    /// used to initialize the builder.
-    pub fn disable_tls(mut self) -> SiftStreamBuilder<C> {
-        self.enable_tls = false;
-        self
-    }
-
-    /// Creates or updates the asset tags. If Some is provided, asset tags will be replaced
-    /// with the tags provided. If None, no update to tags will occur.
-    pub fn add_asset_tags(mut self, tags: Option<Vec<String>>) -> SiftStreamBuilder<C> {
-        self.asset_tags = tags;
-        self
-    }
-
-    /// Creates or updates the asset metadata. If Some is provided, asset metadata will be replaced
-    /// with the key:value pairs provided. If None, no update to metadata will occur.
-    pub fn add_asset_metadata(
-        mut self,
-        metadata: Option<Vec<MetadataValue>>,
-    ) -> SiftStreamBuilder<C> {
-        self.asset_metadata = metadata;
-        self
-    }
+/// Common setup for most implementations of [`SiftStreamMode`].
+#[derive(Clone)]
+struct CommonSetup {
+    setup_channel: SiftChannel,
+    ingestion_channel: SiftChannel,
+    reingestion_channel: SiftChannel,
+    ingestion_config: IngestionConfig,
+    flows_by_name: HashMap<String, FlowDescriptor<String>>,
+    asset_name: String,
+    run: Option<Run>,
+    metrics: Arc<SiftStreamMetrics>,
 }
 
-/// Builds a [SiftStream] specifically for ingestion-config based streaming.
-impl SiftStreamBuilder<IngestionConfigMode> {
+impl SiftStreamBuilder {
     /// Initializes a new builder for ingestion-config-based streaming from [Credentials].
-    pub fn new(credentials: Credentials) -> SiftStreamBuilder<IngestionConfigMode> {
+    pub fn new(credentials: Credentials) -> Self {
         SiftStreamBuilder {
             credentials: Some(credentials),
             channel: None,
@@ -240,7 +153,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             ingestion_config: None,
             run: None,
             run_id: None,
-            kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
             asset_tags: None,
@@ -260,7 +172,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
     /// be created and used. Cloning the channel results in multiplexing the gRPC requests
     /// over a single connection, which is not desirable for backup re-ingestion which may
     /// starve out primary ingestion.
-    pub fn from_channel(channel: SiftChannel) -> SiftStreamBuilder<IngestionConfigMode> {
+    pub fn from_channel(channel: SiftChannel) -> Self {
         SiftStreamBuilder {
             credentials: None,
             channel: Some(channel),
@@ -269,7 +181,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             ingestion_config: None,
             run: None,
             run_id: None,
-            kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
             asset_tags: None,
@@ -281,22 +192,128 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         }
     }
 
-    /// Consume the builder and return a [SiftStream] configured for ingestion-config-based
-    /// streaming.
-    pub async fn build(self) -> Result<SiftStream<IngestionConfigMode>> {
-        let SiftStreamBuilder {
-            checkpoint_interval,
-            channel: grpc_channel,
-            credentials,
-            enable_tls,
-            enable_compression_for_ingestion,
-            ingestion_config,
-            recovery_strategy,
-            run,
-            run_id,
-            ..
-        } = self;
+    /// Sets the ingestion config used for streaming. See the [top-level
+    /// documentation](crate#ingestion-configs) for further details on ingestion configs.
+    pub fn ingestion_config(mut self, ingestion_config: IngestionConfigForm) -> Self {
+        self.ingestion_config = Some(ingestion_config);
+        self
+    }
 
+    /// Sets the interval between checkpoints. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
+    pub fn checkpoint_interval(mut self, duration: Duration) -> Self {
+        self.checkpoint_interval = duration;
+        self
+    }
+
+    /// Sets the interval to stream [`SiftStreamMetrics`] to Sift.
+    ///
+    /// The default interval is [DEFAULT_METRICS_STREAMING_INTERVAL].
+    /// If `None`, metrics streaming will be disabled.
+    pub fn metrics_streaming_interval(mut self, interval: Option<Duration>) -> Self {
+        self.metrics_streaming_interval = interval;
+        self
+    }
+
+    /// Sets the control channel capacity. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
+    pub fn control_channel_capacity(mut self, capacity: usize) -> Self {
+        self.control_channel_capacity = capacity;
+        self
+    }
+
+    /// Sets the ingestion data channel capacity. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
+    pub fn ingestion_data_channel_capacity(mut self, capacity: usize) -> Self {
+        self.ingestion_data_channel_capacity = capacity;
+        self
+    }
+
+    /// Sets the backup data channel capacity. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
+    pub fn backup_data_channel_capacity(mut self, capacity: usize) -> Self {
+        self.backup_data_channel_capacity = capacity;
+        self
+    }
+
+    /// Sets the recovery strategy to use. See [RecoveryStrategy].
+    pub fn recovery_strategy(mut self, strategy: RecoveryStrategy) -> Self {
+        self.recovery_strategy = Some(strategy);
+        self
+    }
+
+    /// Sets the run to use for this period of streaming. Any data sent will be associated with
+    /// this run. If the `run` used is an existing run, then any fields that have been updated will
+    /// also be updated in Sift. Optional fields that are `None` will be ignored when determining
+    /// which fields to update. This method should not be used if [SiftStreamBuilder::attach_run_id]
+    /// is used. If for whatever reason both are used, [SiftStreamBuilder::attach_run_id] will take
+    /// precedent.
+    pub fn attach_run(mut self, run: RunForm) -> Self {
+        self.run = Some(run);
+        self
+    }
+
+    // Sets the run based on run ID for this period of streaming. Any data sent will be associated
+    // with this run. This method should not be used if [SiftStreamBuilder::attach_run] is used. If
+    // for whatever reason both are used, this will take precedent.
+    pub fn attach_run_id(mut self, run_id: &str) -> Self {
+        self.run_id = Some(run_id.into());
+        self
+    }
+
+    /// Sets whether compression is enabled.
+    ///
+    /// Currently only gzip is supported.
+    ///
+    /// WARNING: Compression adds additional overhead both on the client and server, so can reduce
+    /// the overall throughput of a stream. It is not recommended to enable compression by default.
+    pub fn enable_compression_for_ingestion(mut self, enable: bool) -> Self {
+        self.enable_compression_for_ingestion = enable;
+        self
+    }
+
+    /// Disables TLS. Useful for testing. This is ignored if [SiftStreamBuilder::from_channel] is
+    /// used to initialize the builder.
+    pub fn disable_tls(mut self) -> Self {
+        self.enable_tls = false;
+        self
+    }
+
+    /// Creates or updates the asset tags. If Some is provided, asset tags will be replaced
+    /// with the tags provided. If None, no update to tags will occur.
+    pub fn add_asset_tags(mut self, tags: Option<Vec<String>>) -> Self {
+        self.asset_tags = tags;
+        self
+    }
+
+    /// Creates or updates the asset metadata. If Some is provided, asset metadata will be replaced
+    /// with the key:value pairs provided. If None, no update to metadata will occur.
+    pub fn add_asset_metadata(mut self, metadata: Option<Vec<MetadataValue>>) -> Self {
+        self.asset_metadata = metadata;
+        self
+    }
+
+    /// Performs setup steps common to all(or most) [`SiftStreamMode`] implementations.
+    ///
+    /// Steps include:
+    ///
+    /// - Creating a setup channel, an ingestion channel, and a reingestion channel if not provided.
+    /// - Connecting to Sift.
+    /// - Loading the ingestion config.
+    /// - Loading the run.
+    /// - Updating the asset tags and metadata.
+    /// - Creating a metrics object.
+    #[allow(clippy::too_many_arguments)]
+    async fn setup_common(
+        grpc_channel: Option<SiftChannel>,
+        credentials: Option<Credentials>,
+        ingestion_config: Option<IngestionConfigForm>,
+        run: Option<RunForm>,
+        run_id: Option<String>,
+        asset_tags: Option<Vec<String>>,
+        asset_metadata: Option<Vec<MetadataValue>>,
+        enable_tls: bool,
+    ) -> Result<CommonSetup> {
         let Some(ingestion_config) = ingestion_config else {
             return Err(Error::new_arg_error("ingestion_config is required"));
         };
@@ -350,7 +367,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         }
 
         let (ingestion_config, flows, asset) =
-            Self::load_ingestion_config(setup_channel.clone(), ingestion_config).await?;
+            load_ingestion_config(setup_channel.clone(), ingestion_config.clone()).await?;
 
         let run = {
             if let Some(run_id) = run_id.as_ref() {
@@ -365,15 +382,77 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         let asset_name = asset.name.clone();
 
         // Try updating tags or metadata. Update only occurs if either asset_tags or asset_metadata is Some
-        Self::update_asset_tags_and_metadata(
-            asset,
-            self.asset_tags,
-            self.asset_metadata,
+        helpers::update_asset_tags_and_metadata(
+            asset.clone(),
+            asset_tags,
+            asset_metadata,
             setup_channel.clone(),
         )
         .await?;
 
         let metrics = Arc::new(SiftStreamMetrics::new());
+
+        let ingestion_config_id = ingestion_config.ingestion_config_id.clone();
+        let mut flows_by_name = HashMap::with_capacity(flows.len());
+
+        for flow in flows {
+            let flow_name = flow.name.clone();
+            let flow_descriptor = FlowDescriptor::try_from((&ingestion_config_id, flow))?;
+            flows_by_name.insert(flow_name, flow_descriptor);
+        }
+
+        metrics.loaded_flows.add(flows_by_name.len() as u64);
+
+        Ok(CommonSetup {
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
+            ingestion_config,
+            flows_by_name,
+            asset_name,
+            run,
+            metrics,
+        })
+    }
+
+    /// Consume the builder and return a [SiftStream] configured for ingestion-config-based
+    /// streaming.
+    pub async fn build(self) -> Result<SiftStream<IngestionConfigMode>> {
+        let SiftStreamBuilder {
+            checkpoint_interval,
+            channel: grpc_channel,
+            credentials,
+            enable_tls,
+            enable_compression_for_ingestion,
+            ingestion_config,
+            recovery_strategy,
+            run,
+            run_id,
+            asset_tags,
+            asset_metadata,
+            ..
+        } = self;
+
+        let CommonSetup {
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
+            ingestion_config,
+            flows_by_name,
+            asset_name,
+            run,
+            metrics,
+        } = Self::setup_common(
+            grpc_channel,
+            credentials,
+            ingestion_config,
+            run,
+            run_id,
+            asset_tags,
+            asset_metadata,
+            enable_tls,
+        )
+        .await?;
 
         let recovery_config = match recovery_strategy {
             Some(RecoveryStrategy::RetryOnly(retry_policy)) => RecoveryConfig {
@@ -425,228 +504,98 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             metrics_streaming_interval: self.metrics_streaming_interval,
         };
 
-        SiftStream::<IngestionConfigMode>::new(ingestion_config, flows, run, task_config, metrics)
+        SiftStream::<IngestionConfigMode>::new(
+            ingestion_config,
+            flows_by_name,
+            run,
+            task_config,
+            metrics,
+        )
     }
 
-    /// Sets the ingestion config used for streaming. See the [top-level
-    /// documentation](crate#ingestion-configs) for further details on ingestion configs.
-    pub fn ingestion_config(mut self, ingestion_config: IngestionConfigForm) -> Self {
-        self.ingestion_config = Some(ingestion_config);
-        self
-    }
+    /// Builds a [SiftStream] for file-backup mode. All data will be written to files instead of
+    /// being sent to Sift. The files can be uploaded later.
+    ///
+    /// # Arguments
+    ///
+    /// * `output_directory` - Directory where backup files will be written
+    /// * `file_prefix` - Prefix for backup file names
+    /// * `max_file_size` - Maximum size of each backup file in bytes before rotation
+    pub async fn build_file_backup(self) -> Result<SiftStream<FileBackupMode>> {
+        let SiftStreamBuilder {
+            channel: grpc_channel,
+            credentials,
+            enable_tls,
+            ingestion_config,
+            run,
+            run_id,
+            asset_tags,
+            asset_metadata,
+            recovery_strategy,
+            backup_data_channel_capacity,
+            ..
+        } = self;
 
-    /// Sets the interval between checkpoints. See the [top-level documentation](crate#checkpoints)
-    /// for further details.
-    pub fn checkpoint_interval(
-        mut self,
-        duration: Duration,
-    ) -> SiftStreamBuilder<IngestionConfigMode> {
-        self.checkpoint_interval = duration;
-        self
-    }
-
-    async fn load_ingestion_config(
-        grpc_channel: SiftChannel,
-        ingestion_config: IngestionConfigForm,
-    ) -> Result<(IngestionConfigPb, Vec<FlowConfig>, Asset)> {
-        #[cfg(feature = "tracing")]
-        tracing::info_span!("load_ingestion_config");
-
-        let mut ingestion_config_service = new_ingestion_config_service(grpc_channel.clone());
-        let mut asset_service = new_asset_service(grpc_channel);
-
-        let IngestionConfigForm {
+        let CommonSetup {
+            setup_channel,
+            ingestion_config,
+            flows_by_name,
+            run,
+            metrics,
             asset_name,
-            client_key,
-            mut flows,
-        } = ingestion_config;
+            ..
+        } = Self::setup_common(
+            grpc_channel,
+            credentials,
+            ingestion_config,
+            run,
+            run_id,
+            asset_tags,
+            asset_metadata,
+            enable_tls,
+        )
+        .await?;
 
-        match ingestion_config_service
-            .try_get_ingestion_config_by_client_key(&client_key)
+        let Some(RecoveryStrategy::RetryWithBackups {
+            disk_backup_policy, ..
+        }) = recovery_strategy
+        else {
+            return Err(Error::new_arg_error(
+                "recovery_strategy must be RetryWithBackups to build in file backup mode",
+            ));
+        };
+
+        let mut output_directory = sanitize_name(&asset_name);
+        if let Some(run) = run.as_ref() {
+            output_directory.push_str(&format!("/{}", sanitize_name(&run.name)));
+        }
+
+        // Ensure the output directory exists
+        tokio::fs::create_dir_all(&output_directory)
             .await
-        {
-            Err(err) if err.kind() == ErrorKind::NotFoundError => {
-                let ingestion_config = ingestion_config_service
-                    .try_create_ingestion_config(&asset_name, &client_key, &flows)
-                    .await?;
+            .map_err(|e| Error::new(ErrorKind::IoError, e))
+            .context("failed to create output directory")?;
 
-                let new_flows = {
-                    if flows.is_empty() {
-                        Vec::new()
-                    } else {
-                        ingestion_config_service
-                            .try_filter_flows(&ingestion_config.ingestion_config_id, "")
-                            .await?
-                    }
-                };
-
-                let asset = asset_service
-                    .try_get_asset_by_id(&ingestion_config.asset_id)
-                    .await
-                    .context("failed to retrieve asset specified by ingestion config")?;
-
-                #[cfg(feature = "tracing")]
-                {
-                    if !new_flows.is_empty() {
-                        let flow_names = new_flows
-                            .iter()
-                            .map(|f| f.name.as_str())
-                            .collect::<Vec<&str>>()
-                            .join(",");
-                        tracing::info!(
-                            ingestion_config_id = ingestion_config.ingestion_config_id,
-                            flow_names = flow_names,
-                            "created new ingestion config"
-                        );
-                    }
-                }
-                Ok((ingestion_config, flows, asset))
-            }
-            Err(err) => Err(err),
-
-            Ok(ingestion_config) => {
-                #[cfg(feature = "tracing")]
-                tracing::info!(
-                    ingestion_config_id = ingestion_config.ingestion_config_id,
-                    "an existing ingestion config was found with the provided client-key"
-                );
-
-                let asset = asset_service
-                    .try_get_asset_by_id(&ingestion_config.asset_id)
-                    .await
-                    .context("failed to retrieve asset specified by ingestion config")?;
-
-                if asset.name != asset_name {
-                    return Err(Error::new_msg(
-                        ErrorKind::IncompatibleIngestionConfigChange,
-                        format!(
-                            "local ingestion config references asset '{asset_name}' but this existing config in Sift refers to asset '{}'",
-                            asset.name
-                        ),
-                    ));
-                }
-
-                let flow_names = flows
-                    .iter()
-                    .map(|f| format!("'{}'", f.name))
-                    .collect::<Vec<String>>()
-                    .join(",");
-
-                let filter = flow_names
-                    .is_empty()
-                    .then(String::new)
-                    .unwrap_or_else(|| format!("flow_name in [{flow_names}]"));
-
-                let existing_flows = ingestion_config_service
-                    .try_filter_flows(&ingestion_config.ingestion_config_id, &filter)
-                    .await?;
-
-                // If no flows are provided, use the existing flows in Sift to populate the local flow cache.
-                if flows.is_empty() {
-                    #[cfg(feature = "tracing")]
-                    tracing::info!(
-                        ingestion_config_id = ingestion_config.ingestion_config_id,
-                        "no flows provided, using existing flows in Sift to populate the local flow cache"
-                    );
-                    return Ok((ingestion_config, existing_flows, asset));
-                }
-
-                let mut flows_to_create: Vec<FlowConfig> = Vec::new();
-
-                for flow in &flows {
-                    let mut flow_exists = false;
-
-                    for existing_flow in existing_flows.iter().filter(|ef| ef == &flow) {
-                        flow_exists = flow
-                            .channels
-                            .iter()
-                            .zip(existing_flow.channels.iter())
-                            .all(|(lhs, rhs)| lhs == rhs);
-
-                        if flow_exists {
-                            break;
-                        }
-                    }
-
-                    if !flow_exists {
-                        flows_to_create.push(flow.clone());
-                    }
-                }
-
-                if !flows_to_create.is_empty() {
-                    let _ = ingestion_config_service
-                        .try_create_flows(
-                            &ingestion_config.ingestion_config_id,
-                            flows_to_create.as_slice(),
-                        )
-                        .await;
-
-                    #[cfg(feature = "tracing")]
-                    {
-                        let new_flow_names = flows_to_create
-                            .iter()
-                            .map(|f| f.name.as_str())
-                            .collect::<Vec<&str>>()
-                            .join(",");
-                        tracing::info!(
-                            ingestion_config_id = ingestion_config.ingestion_config_id,
-                            new_flows = new_flow_names,
-                            "created new flows for ingestion config"
-                        );
-                    }
-
-                    // All the flows Sift sees with the specified names
-                    let sift_flows = ingestion_config_service
-                        .try_filter_flows(&ingestion_config.ingestion_config_id, &filter)
-                        .await?;
-
-                    validate_flows(&flows, &sift_flows)?;
-
-                    // Validation succeeded... used the flows we got for confidence in correctness.
-                    flows = sift_flows;
-                }
-
-                Ok((ingestion_config, flows, asset))
-            }
-        }
-    }
-
-    async fn update_asset_tags_and_metadata(
-        mut asset: Asset,
-        asset_tags: Option<Vec<String>>,
-        asset_metadata: Option<Vec<MetadataValue>>,
-        channel: SiftChannel,
-    ) -> Result<()> {
-        let mut update_mask = Vec::new();
-
-        if let Some(asset_tags) = asset_tags {
-            asset.tags = asset_tags;
-            update_mask.push("tags".to_string());
-        }
-
-        if let Some(asset_metadata) = asset_metadata {
-            asset.metadata = asset_metadata;
-            update_mask.push("metadata".to_string());
-        }
-
-        if update_mask.is_empty() {
-            return Ok(());
-        }
-
-        let mut asset_service = new_asset_service(channel);
-        let _ = asset_service.try_update_asset(asset, update_mask).await?;
-
-        Ok(())
+        SiftStream::<FileBackupMode>::new_file_backup(
+            setup_channel,
+            ingestion_config,
+            flows_by_name,
+            run,
+            output_directory.into(),
+            disk_backup_policy.max_backup_file_size,
+            backup_data_channel_capacity,
+            metrics,
+        )
     }
 }
 
-impl From<Credentials> for SiftStreamBuilder<IngestionConfigMode> {
+impl From<Credentials> for SiftStreamBuilder {
     fn from(value: Credentials) -> Self {
         Self::new(value)
     }
 }
 
-impl From<SiftChannel> for SiftStreamBuilder<IngestionConfigMode> {
+impl From<SiftChannel> for SiftStreamBuilder {
     fn from(value: SiftChannel) -> Self {
         Self::from_channel(value)
     }
