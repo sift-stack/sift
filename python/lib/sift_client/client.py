@@ -13,8 +13,12 @@ from sift_client.resources import (
     IngestionAPIAsync,
     PingAPI,
     PingAPIAsync,
+    PoliciesAPI,
+    PoliciesAPIAsync,
     ReportsAPI,
     ReportsAPIAsync,
+    ResourceAttributesAPI,
+    ResourceAttributesAPIAsync,
     RulesAPI,
     RulesAPIAsync,
     RunsAPI,
@@ -23,6 +27,8 @@ from sift_client.resources import (
     TagsAPIAsync,
     TestResultsAPI,
     TestResultsAPIAsync,
+    UserAttributesAPI,
+    UserAttributesAPIAsync,
 )
 from sift_client.transport import (
     GrpcClient,
@@ -104,6 +110,12 @@ class SiftClient(
     """Instance of the Tags API for making synchronous requests."""
     test_results: TestResultsAPI
     """Instance of the Test Results API for making synchronous requests."""
+    user_attributes: UserAttributesAPI
+    """Instance of the User Attributes API for making synchronous requests."""
+    resource_attributes: ResourceAttributesAPI
+    """Instance of the Resource Attributes API for making synchronous requests."""
+    policies: PoliciesAPI
+    """Instance of the Policies API for making synchronous requests."""
 
     async_: AsyncAPIs
     """Accessor for the asynchronous APIs. All asynchronous APIs are available as attributes on this accessor."""
@@ -152,6 +164,9 @@ class SiftClient(
         self.runs = RunsAPI(self)
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
+        self.user_attributes = UserAttributesAPI(self)
+        self.resource_attributes = ResourceAttributesAPI(self)
+        self.policies = PoliciesAPI(self)
 
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
@@ -166,6 +181,9 @@ class SiftClient(
             runs=RunsAPIAsync(self),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
+            user_attributes=UserAttributesAPIAsync(self),
+            resource_attributes=ResourceAttributesAPIAsync(self),
+            policies=PoliciesAPIAsync(self),
         )
 
     @property

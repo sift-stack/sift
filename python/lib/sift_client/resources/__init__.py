@@ -156,11 +156,14 @@ from sift_client.resources.channels import ChannelsAPIAsync
 from sift_client.resources.file_attachments import FileAttachmentsAPIAsync
 from sift_client.resources.ingestion import IngestionAPIAsync
 from sift_client.resources.ping import PingAPIAsync
+from sift_client.resources.policies import PoliciesAPIAsync
 from sift_client.resources.reports import ReportsAPIAsync
+from sift_client.resources.resource_attributes import ResourceAttributesAPIAsync
 from sift_client.resources.rules import RulesAPIAsync
 from sift_client.resources.runs import RunsAPIAsync
 from sift_client.resources.tags import TagsAPIAsync
 from sift_client.resources.test_results import TestResultsAPIAsync
+from sift_client.resources.user_attributes import UserAttributesAPIAsync
 
 # ruff: noqa All imports needs to be imported before sync_stubs to avoid circular import
 from sift_client.resources.sync_stubs import (
@@ -168,12 +171,15 @@ from sift_client.resources.sync_stubs import (
     CalculatedChannelsAPI,
     ChannelsAPI,
     PingAPI,
+    PoliciesAPI,
     ReportsAPI,
+    ResourceAttributesAPI,
     RulesAPI,
     RunsAPI,
     TagsAPI,
     TestResultsAPI,
     FileAttachmentsAPI,
+    UserAttributesAPI,
 )
 
 __all__ = [
@@ -199,4 +205,10 @@ __all__ = [
     "TestResultsAPI",
     "TestResultsAPIAsync",
     "TracingConfig",
+    "UserAttributesAPI",
+    "UserAttributesAPIAsync",
+    "ResourceAttributesAPI",
+    "ResourceAttributesAPIAsync",
+    "PoliciesAPI",
+    "PoliciesAPIAsync",
 ]

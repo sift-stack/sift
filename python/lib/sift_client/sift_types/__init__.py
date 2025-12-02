@@ -172,6 +172,24 @@ from sift_client.sift_types.test_report import (
     TestStepCreate,
     TestStepType,
 )
+from sift_client.sift_types.policies import Policy, PolicyCreate, PolicyUpdate
+from sift_client.sift_types.resource_attribute import (
+    ResourceAttribute,
+    ResourceAttributeCreate,
+    ResourceAttributeEnumValue,
+    ResourceAttributeEnumValueCreate,
+    ResourceAttributeEnumValueUpdate,
+    ResourceAttributeKey,
+    ResourceAttributeKeyCreate,
+    ResourceAttributeKeyUpdate,
+)
+from sift_client.sift_types.user_attributes import (
+    UserAttributeKey,
+    UserAttributeKeyCreate,
+    UserAttributeKeyUpdate,
+    UserAttributeValue,
+    UserAttributeValueCreate,
+)
 
 __all__ = [
     "Asset",
@@ -215,4 +233,20 @@ __all__ = [
     "TestStep",
     "TestStepCreate",
     "TestStepType",
+    "Policy",
+    "PolicyCreate",
+    "PolicyUpdate",
+    "ResourceAttribute",
+    "ResourceAttributeCreate",
+    "ResourceAttributeEnumValue",
+    "ResourceAttributeEnumValueCreate",
+    "ResourceAttributeEnumValueUpdate",
+    "ResourceAttributeKey",
+    "ResourceAttributeKeyCreate",
+    "ResourceAttributeKeyUpdate",
+    "UserAttributeKey",
+    "UserAttributeKeyCreate",
+    "UserAttributeKeyUpdate",
+    "UserAttributeValue",
+    "UserAttributeValueCreate",
 ]
