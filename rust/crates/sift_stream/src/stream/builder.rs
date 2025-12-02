@@ -140,6 +140,8 @@ struct CommonSetup {
     asset_name: String,
     run: Option<Run>,
     metrics: Arc<SiftStreamMetrics>,
+    session_name: String,
+    sift_stream_id: Uuid,
 }
 
 impl SiftStreamBuilder {
@@ -403,6 +405,9 @@ impl SiftStreamBuilder {
 
         metrics.loaded_flows.add(flows_by_name.len() as u64);
 
+        let session_name = format!("stream.{}.{}", asset_name, ingestion_config.client_key);
+        let sift_stream_id = Uuid::new_v4();
+
         Ok(CommonSetup {
             setup_channel,
             ingestion_channel,
@@ -412,6 +417,8 @@ impl SiftStreamBuilder {
             asset_name,
             run,
             metrics,
+            session_name,
+            sift_stream_id,
         })
     }
 
@@ -442,6 +449,8 @@ impl SiftStreamBuilder {
             asset_name,
             run,
             metrics,
+            session_name,
+            sift_stream_id,
         } = Self::setup_common(
             grpc_channel,
             credentials,
@@ -489,8 +498,8 @@ impl SiftStreamBuilder {
         };
 
         let task_config = TaskConfig {
-            session_name: format!("stream.{}.{}", asset_name, ingestion_config.client_key),
-            sift_stream_id: Uuid::new_v4(),
+            session_name,
+            sift_stream_id,
             ingestion_channel,
             reingestion_channel,
             setup_channel,
@@ -543,6 +552,8 @@ impl SiftStreamBuilder {
             run,
             metrics,
             asset_name,
+            session_name,
+            sift_stream_id,
             ..
         } = Self::setup_common(
             grpc_channel,
@@ -581,9 +592,14 @@ impl SiftStreamBuilder {
             ingestion_config,
             flows_by_name,
             run,
+            disk_backup_policy.backups_dir.unwrap().to_path_buf(),
             output_directory.into(),
             disk_backup_policy.max_backup_file_size,
             backup_data_channel_capacity,
+            self.control_channel_capacity,
+            self.metrics_streaming_interval,
+            session_name,
+            sift_stream_id,
             metrics,
         )
     }

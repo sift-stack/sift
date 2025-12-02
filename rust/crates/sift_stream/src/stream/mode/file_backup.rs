@@ -1,8 +1,12 @@
 use super::super::{SendContext, SiftStream, SiftStreamMode, private::Sealed};
 use crate::{
-    backup::disk::file_writer::{FileWriter, FileWriterConfig},
+    DiskBackupPolicy, RetryPolicy,
+    backup::disk::{
+        RollingFilePolicy,
+        file_writer::{FileWriter, FileWriterConfig},
+    },
     metrics::SiftStreamMetrics,
-    stream::flow::FlowDescriptor,
+    stream::{flow::FlowDescriptor, tasks::RecoveryConfig},
 };
 use async_channel::{Receiver, Sender};
 use async_trait::async_trait;
@@ -13,8 +17,8 @@ use sift_rs::{
     ingest::v1::IngestWithConfigDataStreamRequest, ingestion_configs::v2::IngestionConfig,
     runs::v2::Run,
 };
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
-use tokio::task::JoinHandle;
+use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
+use tokio::{sync::broadcast, task::JoinHandle};
 use uuid::Uuid;
 
 /// Handles writing backup requests to disk files.
@@ -82,6 +86,8 @@ pub struct FileBackupMode {
     ingestion_config: IngestionConfig,
     write_tx: Sender<Arc<IngestWithConfigDataStreamRequest>>,
     write_task: JoinHandle<Result<()>>,
+    control_tx: broadcast::Sender<crate::stream::tasks::ControlMessage>,
+    metrics_streaming: Option<JoinHandle<Result<()>>>,
 }
 
 // Seal the trait - only this crate can implement SiftStreamMode
@@ -161,6 +167,11 @@ impl SiftStreamMode for FileBackupMode {
 
     /// This will conclude the stream and flush any remaining data to disk.
     async fn finish(self, ctx: &mut SendContext<'_>) -> Result<()> {
+        // Send shutdown signal to metrics streaming task
+        let _ = self
+            .control_tx
+            .send(crate::stream::tasks::ControlMessage::Shutdown);
+
         // Close the channel to signal the background task to finish
         drop(self.write_tx);
 
@@ -171,6 +182,11 @@ impl SiftStreamMode for FileBackupMode {
                 format!("file backup write task panicked: {e}"),
             )
         })??;
+
+        // Wait for metrics streaming task to complete if it exists
+        if let Some(metrics_streaming) = self.metrics_streaming {
+            let _ = metrics_streaming.await;
+        }
 
         #[cfg(feature = "tracing")]
         tracing::info!(
@@ -187,11 +203,18 @@ impl SiftStreamMode for FileBackupMode {
 
 impl FileBackupMode {
     /// Creates a new `FileBackupMode` and spawns the background file-writing task.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        backups_directory: PathBuf,
         file_writer_config: FileWriterConfig,
         channel_capacity: usize,
         ingestion_config: IngestionConfig,
         metrics: Arc<SiftStreamMetrics>,
+        control_channel_capacity: usize,
+        metrics_streaming_interval: Option<Duration>,
+        setup_channel: SiftChannel,
+        session_name: String,
+        sift_stream_id: Uuid,
     ) -> Result<Self> {
         // Create channel for sending requests to the background write task
         let (write_tx, write_rx): (
@@ -205,10 +228,63 @@ impl FileBackupMode {
         // Spawn background task to handle file writing
         let write_task = tokio::spawn(async move { writer.run(write_rx).await });
 
+        // Create control channel for metrics streaming task
+        let (control_tx, _control_rx) = broadcast::channel(control_channel_capacity);
+
+        // Start metrics streaming task if interval is configured
+        let metrics_streaming = if let Some(interval) = metrics_streaming_interval {
+            let control_rx = control_tx.subscribe();
+            let task_config = crate::stream::tasks::TaskConfig {
+                session_name: session_name.clone(),
+                sift_stream_id,
+                setup_channel: setup_channel.clone(),
+                ingestion_channel: setup_channel.clone(),
+                reingestion_channel: setup_channel,
+                metrics: metrics.clone(),
+                checkpoint_interval: Duration::from_secs(60), // Not used for metrics streaming
+                enable_compression_for_ingestion: false,      // Not used for metrics streaming
+                recovery_config: RecoveryConfig {
+                    retry_policy: RetryPolicy::default(),
+                    backups_enabled: true,
+                    backups_directory: String::new(),
+                    backups_prefix: String::new(),
+                    backup_policy: DiskBackupPolicy {
+                        backups_dir: Some(backups_directory),
+                        max_backup_file_size: 1024 * 1024 * 50, // 50MB
+                        rolling_file_policy: RollingFilePolicy::default(),
+                        retain_backups: false,
+                    },
+                },
+                control_channel_capacity,
+                ingestion_data_channel_capacity: 1000,
+                backup_data_channel_capacity: 1000,
+                metrics_streaming_interval: None, // Disable nested metrics streaming
+            };
+            Some(tokio::spawn(async move {
+                let metrics_task = crate::stream::tasks::MetricsStreamingTask::new(
+                    control_rx,
+                    interval,
+                    task_config,
+                )
+                .await?;
+
+                #[cfg(feature = "tracing")]
+                tracing::info!(
+                    sift_stream_id = sift_stream_id.to_string(),
+                    "metrics streaming task started for file backup mode"
+                );
+                metrics_task.run().await
+            }))
+        } else {
+            None
+        };
+
         Ok(Self {
             ingestion_config,
             write_tx,
             write_task,
+            control_tx,
+            metrics_streaming,
         })
     }
 
@@ -264,13 +340,16 @@ impl SiftStream<FileBackupMode> {
         ingestion_config: IngestionConfig,
         flows_by_name: HashMap<String, FlowDescriptor<String>>,
         run: Option<Run>,
+        backups_directory: PathBuf,
         output_directory: PathBuf,
         max_file_size: usize,
         channel_capacity: usize,
+        control_channel_capacity: usize,
+        metrics_streaming_interval: Option<Duration>,
+        session_name: String,
+        sift_stream_id: Uuid,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Result<Self> {
-        let sift_stream_id = Uuid::new_v4();
-
         let file_writer_config = FileWriterConfig {
             directory: output_directory.clone(),
             prefix: ingestion_config.client_key.clone(),
@@ -278,10 +357,16 @@ impl SiftStream<FileBackupMode> {
         };
 
         let mode = FileBackupMode::new(
+            backups_directory,
             file_writer_config,
             channel_capacity,
             ingestion_config,
             metrics.clone(),
+            control_channel_capacity,
+            metrics_streaming_interval,
+            grpc_channel.clone(),
+            session_name,
+            sift_stream_id,
         )?;
 
         Ok(Self {
@@ -333,6 +418,30 @@ mod tests {
 
             tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
         }
+    }
+
+    /// Helper function to create a FileBackupMode for tests
+    async fn create_test_file_backup_mode(
+        backups_directory: PathBuf,
+        file_writer_config: FileWriterConfig,
+        channel_capacity: usize,
+        ingestion_config: IngestionConfig,
+        metrics: Arc<SiftStreamMetrics>,
+    ) -> FileBackupMode {
+        let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
+        FileBackupMode::new(
+            backups_directory,
+            file_writer_config,
+            channel_capacity,
+            ingestion_config,
+            metrics,
+            100,  // control_channel_capacity
+            None, // metrics_streaming_interval - disabled for tests
+            grpc_channel,
+            "test_session".to_string(),
+            Uuid::new_v4(),
+        )
+        .unwrap()
     }
 
     mod file_backup_writer {
@@ -554,13 +663,14 @@ mod tests {
         };
 
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let mode = FileBackupMode::new(
+        let mode = create_test_file_backup_mode(
+            temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
             ingestion_config.clone(),
             metrics,
         )
-        .unwrap();
+        .await;
 
         assert_eq!(
             mode.ingestion_config_id(),
@@ -582,13 +692,14 @@ mod tests {
             max_size: 1024 * 1024, // 1MB
         };
 
-        let mut mode = FileBackupMode::new(
+        let mut mode = create_test_file_backup_mode(
+            temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
             ingestion_config.clone(),
             metrics.clone(),
         )
-        .unwrap();
+        .await;
 
         let request = create_test_request("test_flow", &ingestion_config.ingestion_config_id);
 
@@ -635,13 +746,14 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = FileBackupMode::new(
+        let mut mode = create_test_file_backup_mode(
+            temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
             ingestion_config.clone(),
             metrics.clone(),
         )
-        .unwrap();
+        .await;
 
         // Send requests with different flows
         let request1 = create_test_request("flow1", &ingestion_config.ingestion_config_id);
@@ -693,13 +805,14 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = FileBackupMode::new(
+        let mut mode = create_test_file_backup_mode(
+            temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
             ingestion_config.clone(),
             metrics.clone(),
         )
-        .unwrap();
+        .await;
 
         let requests = vec![
             create_test_request("flow1", &ingestion_config.ingestion_config_id),
@@ -749,13 +862,14 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = FileBackupMode::new(
+        let mut mode = create_test_file_backup_mode(
+            temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
             ingestion_config.clone(),
             metrics.clone(),
         )
-        .unwrap();
+        .await;
 
         let requests = vec![
             create_test_request("flow1", &ingestion_config.ingestion_config_id),
@@ -810,13 +924,14 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = FileBackupMode::new(
+        let mut mode = create_test_file_backup_mode(
+            temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
             ingestion_config,
             metrics.clone(),
         )
-        .unwrap();
+        .await;
 
         let flow = create_test_flow(flow_name);
 
@@ -862,13 +977,14 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = FileBackupMode::new(
+        let mut mode = create_test_file_backup_mode(
+            temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
             ingestion_config,
             metrics.clone(),
         )
-        .unwrap();
+        .await;
 
         let flow = create_test_flow("unknown_flow");
 
@@ -908,14 +1024,21 @@ mod tests {
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
 
+        let session_name = format!("test_stream.{}", ingestion_config.client_key);
+        let sift_stream_id = Uuid::new_v4();
         let stream = SiftStream::new_file_backup(
             grpc_channel,
             ingestion_config.clone(),
             HashMap::new(),
             None,
             temp_dir.path().to_path_buf(),
+            temp_dir.path().to_path_buf(),
             1024 * 1024,
             1024 * 100, // channel_capacity
+            100,        // control_channel_capacity
+            None,       // metrics_streaming_interval
+            session_name,
+            sift_stream_id,
             metrics,
         )
         .unwrap();
@@ -933,14 +1056,21 @@ mod tests {
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
 
+        let session_name = format!("test_stream.{}", ingestion_config.client_key);
+        let sift_stream_id = Uuid::new_v4();
         let stream = SiftStream::new_file_backup(
             grpc_channel,
             ingestion_config,
             HashMap::new(),
             None,
             temp_dir.path().to_path_buf(),
+            temp_dir.path().to_path_buf(),
             1024 * 1024,
             1024 * 100, // channel_capacity
+            100,        // control_channel_capacity
+            None,       // metrics_streaming_interval
+            session_name,
+            sift_stream_id,
             metrics,
         )
         .unwrap();
@@ -956,14 +1086,21 @@ mod tests {
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
 
+        let session_name = format!("test_stream.{}", ingestion_config.client_key);
+        let sift_stream_id = Uuid::new_v4();
         let mut stream = SiftStream::new_file_backup(
             grpc_channel,
             ingestion_config.clone(),
             HashMap::new(),
             None,
             temp_dir.path().to_path_buf(),
+            temp_dir.path().to_path_buf(),
             1024 * 1024,
             1024 * 100, // channel_capacity
+            100,        // control_channel_capacity
+            None,       // metrics_streaming_interval
+            session_name,
+            sift_stream_id,
             metrics,
         )
         .unwrap();
