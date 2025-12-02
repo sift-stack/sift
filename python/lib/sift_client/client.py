@@ -47,6 +47,8 @@ class SiftClient(
     !!! warning
         The Sift Client is experimental and is subject to change.
 
+        To avoid unexpected breaking changes, pin the exact version of the `sift-stack-py` library in your dependencies (for example, in `requirements.txt` or `pyproject.toml`).
+
     Examples:
         from sift_client import SiftClient
         from datetime import datetime
