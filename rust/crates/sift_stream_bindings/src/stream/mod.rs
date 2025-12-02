@@ -8,11 +8,13 @@ pub mod time;
 use crate::error::SiftErrorWrapper;
 use crate::metrics::SiftStreamMetricsSnapshotPy;
 use crate::stream::channel::ChannelValuePy;
-use crate::stream::config::{FlowConfigPy, RunSelectorPy};
+use crate::stream::config::{FlowConfigPy, FlowDescriptorPy, RunSelectorPy};
+use crate::stream::request::IngestWithConfigDataStreamRequestWrapperPy;
 use crate::stream::time::TimeValuePy;
 use pyo3::{prelude::*, types::PyIterator};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
+use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
 use sift_stream::{Flow, FlowConfig, IngestionConfigMode, SiftStream};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -132,6 +134,26 @@ impl SiftStreamPy {
         Ok(awaitable.into())
     }
 
+    pub fn send_requests_nonblocking(&self, flows: &Bound<'_, PyAny>) -> PyResult<()> {
+        let flow_iter = PyIterator::from_object(flows)?;
+        let mut flows_vec: Vec<IngestWithConfigDataStreamRequest> = Vec::new();
+        for item in flow_iter {
+            let request = item?.extract::<IngestWithConfigDataStreamRequestWrapperPy>()?;
+            flows_vec.push(request.into());
+        }
+
+        let mut inner_guard = self.inner.blocking_lock();
+        let stream = inner_guard.as_mut().ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream has been consumed by finish()",
+            )
+        })?;
+
+        stream
+            .send_requests_nonblocking(flows_vec)
+            .map_err(|e| SiftErrorWrapper(e).into())
+    }
+
     pub fn get_metrics_snapshot(&self) -> PyResult<SiftStreamMetricsSnapshotPy> {
         let inner_guard = self.inner.blocking_lock();
         let stream = inner_guard.as_ref().ok_or_else(|| {
@@ -171,7 +193,20 @@ impl SiftStreamPy {
         Ok(awaitable.into())
     }
 
-    pub fn get_flows(&self) -> PyResult<HashMap<String, FlowConfigPy>> {
+    pub fn get_flow_descriptor(&self, flow_name: &str) -> PyResult<FlowDescriptorPy> {
+        let inner_guard = self.inner.blocking_lock();
+        let stream = inner_guard.as_ref().ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream has been consumed by finish()",
+            )
+        })?;
+        match stream.get_flow_descriptor(flow_name) {
+            Ok(descriptor) => Ok(FlowDescriptorPy::from(descriptor)),
+            Err(e) => Err(SiftErrorWrapper(e).into()),
+        }
+    }
+
+    pub fn get_flows(&self) -> PyResult<HashMap<String, FlowDescriptorPy>> {
         let inner_guard = self.inner.blocking_lock();
         let sift_stream = inner_guard.as_ref().ok_or_else(|| {
             PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(

@@ -3,6 +3,20 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.7] - November 26, 2025
+### What's New
+#### SiftStream Internally Uses `FlowBuilder`
+Internally, `SiftStream` now uses the `FlowBuilder` to construct streaming gRPC request messages
+which helps improve performance by avoiding repeated map allocations.
+
+#### SiftStream `add_flow_config` Improvements
+Adding new flows to `SiftStream` should now be more performant, internally performing concurrent
+requests.
+
+### Full Changelog
+- [Update sift-stream-bindings to support FlowDescriptor](https://github.com/sift-stack/sift/commit/ab91090c2dc16df6f7d1c82bddf1d4fd21b953e8f)
+- [Improve add_flow_config, prevent send_impl error](https://github.com/sift-stack/sift/commit/9d7e03e907b9ab22009338f235f52dd8e46f95c9)
+
 ## [v0.7.0-rc.6] - November 24, 2025
 ### What's New
 #### SiftStream APIs to Utilize `FlowDescriptor` and `FlowBuilder`
@@ -10,7 +24,7 @@ Two new APIs have been added to allow use of the `FlowDescriptor` and `FlowBuild
 previously.
 
 ### Full Changelog
-- [Get FlowDescriptor, send_requests_nonblocking]()
+- [Get FlowDescriptor, send_requests_nonblocking](https://github.com/sift-stack/sift/commit/db0fc7c4829fd4e8f4c50573213b6ea9534dc1ff)
 
 
 ## [v0.7.0-rc.5] - November 24, 2025

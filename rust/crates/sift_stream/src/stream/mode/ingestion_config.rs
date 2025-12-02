@@ -1,8 +1,8 @@
 use super::super::{SiftStream, SiftStreamMode, channel::ChannelValue, time::TimeValue};
 use crate::{
-    FlowDescriptor,
     metrics::SiftStreamMetrics,
     stream::{
+        flow::{FlowBuilder, FlowDescriptor},
         run::{RunSelector, load_run_by_form, load_run_by_id},
         tasks::{ControlMessage, DataMessage, StreamSystem, TaskConfig, start_tasks},
     },
@@ -15,10 +15,7 @@ use futures_core::Stream;
 use prost::Message;
 use sift_error::prelude::*;
 use sift_rs::{
-    ingest::v1::{
-        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
-        ingest_with_config_data_channel_value::Type,
-    },
+    ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
     wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
@@ -41,7 +38,7 @@ use uuid::Uuid;
 pub struct IngestionConfigMode {
     pub(crate) run: Option<Run>,
     ingestion_config: IngestionConfig,
-    flows_by_name: HashMap<String, Vec<FlowConfig>>,
+    flows_by_name: HashMap<String, FlowDescriptor<String>>,
     flows_seen: HashSet<String>,
     sift_stream_id: Uuid,
     message_id_counter: u64,
@@ -99,13 +96,14 @@ impl SiftStream<IngestionConfigMode> {
         task_config: TaskConfig,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Result<Self> {
-        let mut flows_by_name = HashMap::<String, Vec<FlowConfig>>::new();
+        let ingestion_config_id = ingestion_config.ingestion_config_id.clone();
+        let mut flows_by_name =
+            HashMap::<String, FlowDescriptor<String>>::with_capacity(flows.len());
 
         for flow in flows {
-            flows_by_name
-                .entry(flow.name.clone())
-                .and_modify(|group| group.push(flow.clone()))
-                .or_insert_with(|| vec![flow]);
+            let flow_name = flow.name.clone();
+            let flow_descriptor = FlowDescriptor::try_from((&ingestion_config_id, flow))?;
+            flows_by_name.insert(flow_name, flow_descriptor);
         }
 
         // Spawn a task to register metrics without blocking
@@ -162,7 +160,6 @@ impl SiftStream<IngestionConfigMode> {
     pub async fn send(&mut self, message: Flow) -> Result<()> {
         self.metrics.messages_received.increment();
 
-        let ingestion_config_id = &self.mode.ingestion_config.ingestion_config_id;
         let run_id = self.mode.run.as_ref().map(|r| r.run_id.clone());
 
         let Some(flows) = self.mode.flows_by_name.get(&message.flow_name) else {
@@ -172,12 +169,15 @@ impl SiftStream<IngestionConfigMode> {
                 "flow '{}' not found in local flow cache - message will still be transmitted but will not show in Sift if the flow was not registered",
                 message.flow_name,
             );
-            let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
+            let req = Self::message_to_ingest_req_direct(
+                &message,
+                &self.mode.ingestion_config.ingestion_config_id,
+                run_id,
+            );
             return self.send_impl(req);
         };
         let Some(req) = Self::message_to_ingest_req(
             &message,
-            &self.mode.ingestion_config.ingestion_config_id,
             self.mode.run.as_ref().map(|r| r.run_id.clone()),
             flows,
         ) else {
@@ -187,7 +187,11 @@ impl SiftStream<IngestionConfigMode> {
                 values = format!("{message:?}"),
                 "encountered a message that doesn't match any cached flows - message will still be transmitted but will not show in Sift if the flow was not registered"
             );
-            let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
+            let req = Self::message_to_ingest_req_direct(
+                &message,
+                &self.mode.ingestion_config.ingestion_config_id,
+                run_id,
+            );
             return self.send_impl(req);
         };
         self.send_impl(req)
@@ -303,12 +307,30 @@ impl SiftStream<IngestionConfigMode> {
 
                 // Re-send the oldest message to the backup to ensure it is re-ingested later despite being
                 // dropped from the ingestion channel.
-                self.mode
+                //
+                // On failure, rely on metrics to track occurences. Logging can quickly become spammy as
+                // the system works through bursts of messages so logs are reduced to the debug level.
+                if let Err(e) = self
+                    .mode
                     .stream_system
                     .backup_tx
                     .try_send(oldest_message)
                     .map_err(|e| Error::new(ErrorKind::StreamError, e))
                     .context("failed to send data to backup task system")
+                {
+                    self.metrics
+                        .old_messages_failed_adding_to_backup
+                        .increment();
+
+                    #[cfg(feature = "tracing")]
+                    tracing::debug!(
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
+                        "failed to send oldest data to backup task system: {e}"
+                    );
+                }
+
+                // Do not interupt ingestion.
+                Ok(())
             }
             Err(e) => Err(Error::new_msg(
                 ErrorKind::StreamError,
@@ -342,74 +364,99 @@ impl SiftStream<IngestionConfigMode> {
             "adding new flows to ingestion config"
         );
 
-        new_ingestion_config_service(self.grpc_channel.clone())
-            .try_create_flows(
-                &self.mode.ingestion_config.ingestion_config_id,
-                filtered
-                    .iter()
-                    .map(|f| (*f).clone())
-                    .collect::<Vec<FlowConfig>>(),
-            )
-            .await
-            .context("SiftStream::add_new_flows")?;
+        let mut calls = Vec::with_capacity(filtered.len());
+        let create_flows = filtered.into_iter().cloned().collect::<Vec<FlowConfig>>();
+        for flow_config in create_flows.iter() {
+            let channel = self.grpc_channel.clone();
+            let ingestion_config_id = self.mode.ingestion_config.ingestion_config_id.clone();
+            let flow_config = flow_config.clone();
 
-        self.metrics.loaded_flows.add(filtered.len() as u64);
+            calls.push(tokio::spawn(async move {
+                new_ingestion_config_service(channel)
+                    .try_create_flows(&ingestion_config_id, vec![flow_config])
+                    .await
+                    .context("SiftStream::add_new_flows")
+            }));
+        }
 
-        for flow_config in filtered {
-            self.mode
-                .flows_by_name
-                .entry(flow_config.name.clone())
-                .and_modify(|flows| flows.push(flow_config.clone()))
-                .or_insert_with(|| vec![flow_config.clone()]);
+        // Wait for all the gRPC calls to complete.
+        let results = futures::future::join_all(calls).await;
+
+        let mut add_config = |config: &FlowConfig| -> Result<()> {
+            let flow_name = config.name.clone();
+            let flow_descriptor = FlowDescriptor::try_from((
+                self.mode.ingestion_config.ingestion_config_id.clone(),
+                config,
+            ))?;
+            self.mode.flows_by_name.insert(flow_name, flow_descriptor);
 
             #[cfg(feature = "tracing")]
             tracing::info!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
-                flow = flow_config.name,
+                flow = config.name,
                 "successfully registered new flow"
             );
+
+            Ok(())
+        };
+
+        // Iterate over the results and update the flow cache for the successfully created flows.
+        for (config, result) in create_flows.iter().zip(results.into_iter()) {
+            match result {
+                Ok(Ok(())) => {
+                    add_config(config)?;
+                }
+                Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError => {
+                    add_config(config)?;
+                }
+                Ok(Err(e)) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!(
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
+                        "failed to create flow {}: {e}",
+                        config.name,
+                    );
+                }
+                Err(e) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!(
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
+                        "failed to create flow {}: {e}",
+                        config.name,
+                    );
+                }
+            }
         }
+
+        self.metrics
+            .loaded_flows
+            .add(self.mode.flows_by_name.len() as u64);
+
         Ok(())
     }
 
-    /// Get a copy of the current flow configs known to SiftStream as a HashMap keyed to the flow name.
+    /// Get a copy of the current flow descriptors known to SiftStream as a HashMap keyed to the flow name.
     /// This includes flows provided at initialization, and any existing configs
     /// previously registered in Sift
-    pub fn get_flows(&self) -> HashMap<String, FlowConfig> {
+    pub fn get_flows(&self) -> HashMap<String, FlowDescriptor<String>> {
         // Currently we get the first FlowConfig provided in the Vec to match how send() validates flows
         self.mode
             .flows_by_name
             .iter()
-            .filter_map(|(k, v)| {
-                if v.is_empty() {
-                    None
-                } else {
-                    Some((k.clone(), v[0].clone()))
-                }
-            })
+            .map(|(k, v)| (k.clone(), v.clone()))
             .collect()
     }
 
     /// Get the flow descriptor for a given flow name.
     pub fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
-        let Some(flow) = self.mode.flows_by_name.get(flow_name) else {
-            return Err(Error::new_msg(
+        self.mode
+            .flows_by_name
+            .get(flow_name)
+            .cloned()
+            .ok_or(Error::new_msg(
                 ErrorKind::NotFoundError,
                 format!("flow '{}' not found", flow_name),
-            ));
-        };
-
-        if flow.is_empty() {
-            return Err(Error::new_msg(
-                ErrorKind::NotFoundError,
-                format!("flow '{}' not found", flow_name),
-            ));
-        }
-
-        FlowDescriptor::try_from((
-            self.mode.ingestion_config.ingestion_config_id.clone(),
-            &flow[0],
-        ))
+            ))
     }
 
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
@@ -477,47 +524,26 @@ impl SiftStream<IngestionConfigMode> {
     /// in which this returns `None` is if there is no [FlowConfig] for the given `message`.
     pub(crate) fn message_to_ingest_req(
         message: &Flow,
-        ingestion_config_id: &str,
         run_id: Option<String>,
-        flows: &[FlowConfig],
+        descriptor: &FlowDescriptor<String>,
     ) -> Option<IngestWithConfigDataStreamRequest> {
-        // Find the flow config for the given flow name.
-        let found_flow = flows.iter().find(|f| f.name == message.flow_name)?;
-
         // Create a vector of empty channel values. If the provided channel values
         // have a matching channel name and data type, the value will be updated.
-        let mut channel_values = found_flow
-            .channels
-            .iter()
-            .map(|_| IngestWithConfigDataChannelValue {
-                r#type: Some(Type::Empty(pbjson_types::Empty {})),
-            })
-            .collect::<Vec<IngestWithConfigDataChannelValue>>();
+        let mut builder = FlowBuilder::new(descriptor);
 
-        // Create a map of channel name and data type to the index of the channel in the vector
-        // so we can update the channel value if it matches.
-        let channel_map: HashMap<(&str, i32), usize> = found_flow
-            .channels
-            .iter()
-            .enumerate()
-            .map(|(i, channel)| ((channel.name.as_str(), channel.data_type), i))
-            .collect();
-
-        for v in &message.values {
-            let i = channel_map.get(&(v.name.as_str(), i32::from(v.value.pb_data_type())))?;
-            channel_values[*i].r#type = Some(v.pb_value());
+        // Update all provided channel values in the flow.
+        for value in message.values.iter() {
+            builder
+                .set_with_key(&value.name, value.value.clone())
+                .ok()?;
         }
 
-        let request = IngestWithConfigDataStreamRequest {
-            flow: message.flow_name.to_string(),
-            ingestion_config_id: ingestion_config_id.to_string(),
-            timestamp: Some(message.timestamp.0),
-            run_id: run_id.unwrap_or_default(),
-            channel_values,
-            ..Default::default()
-        };
+        // Attach the run ID to the flow if it is provided.
+        if let Some(run_id) = run_id.as_ref() {
+            builder.attach_run_id(run_id);
+        }
 
-        Some(request)
+        Some(builder.request(message.timestamp.clone()))
     }
 
     /// Creates an [IngestWithConfigDataStreamRequest] directly without consulting the flow cache.

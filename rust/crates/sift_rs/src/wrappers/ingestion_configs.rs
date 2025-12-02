@@ -129,7 +129,13 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
                 flows: configs.into(),
             })
             .await
-            .map_err(|e| Error::new(ErrorKind::CreateFlowError, e))?;
+            .map_err(|e| {
+                if e.code() == tonic::Code::AlreadyExists {
+                    Error::new(ErrorKind::AlreadyExistsError, e)
+                } else {
+                    Error::new(ErrorKind::CreateFlowError, e)
+                }
+            })?;
         Ok(())
     }
 

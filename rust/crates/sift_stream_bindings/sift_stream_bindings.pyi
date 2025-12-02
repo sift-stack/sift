@@ -7,15 +7,20 @@ __all__ = [
     "ChannelDataTypePy",
     "ChannelEnumPy",
     "ChannelEnumTypePy",
+    "ChannelIndexPy",
     "ChannelValuePy",
     "ChannelValueTypePy",
     "CheckpointMetricsSnapshotPy",
     "DiskBackupPolicyPy",
     "DurationPy",
+    "FlowBuilderPy",
     "FlowConfigPy",
+    "FlowDescriptorBuilderPy",
+    "FlowDescriptorPy",
     "FlowPy",
     "IngestWithConfigDataChannelValuePy",
     "IngestWithConfigDataStreamRequestPy",
+    "IngestWithConfigDataStreamRequestWrapperPy",
     "IngestionConfigFormPy",
     "MetadataPy",
     "MetadataValuePy",
@@ -44,6 +49,9 @@ class BackupMetricsSnapshotPy:
     total_file_count: builtins.int
     total_bytes: builtins.int
     total_messages: builtins.int
+    committed_message_id: builtins.int
+    queued_checkpoints: builtins.int
+    queued_file_ctxs: builtins.int
     files_pending_ingestion: builtins.int
     files_ingested: builtins.int
     cur_ingest_retries: builtins.int
@@ -74,6 +82,10 @@ class ChannelEnumTypePy:
     name: builtins.str
     key: builtins.int
     def __new__(cls, name:builtins.str, key:builtins.int) -> ChannelEnumTypePy: ...
+
+@typing.final
+class ChannelIndexPy:
+    ...
 
 @typing.final
 class ChannelValuePy:
@@ -137,10 +149,55 @@ class DurationPy:
     def __new__(cls, secs:builtins.int, nanos:builtins.int) -> DurationPy: ...
 
 @typing.final
+class FlowBuilderPy:
+    def __new__(cls, descriptor:FlowDescriptorPy) -> FlowBuilderPy: ...
+    def attach_run_id(self, run_id:builtins.str) -> None:
+        r"""
+        Attaches a run ID to the flow.
+        """
+    def set(self, index:ChannelIndexPy, value:ValuePy) -> None:
+        r"""
+        Sets the value of the channel with the given index.
+        """
+    def set_with_key(self, key:builtins.str, value:ValuePy) -> None:
+        r"""
+        Sets the value of the channel with the given key.
+        """
+    def request(self, now:TimeValuePy) -> IngestWithConfigDataStreamRequestWrapperPy:
+        r"""
+        Builds an IngestWithConfigDataStreamRequest, consuming the builder.
+        """
+
+@typing.final
 class FlowConfigPy:
     name: builtins.str
     channels: builtins.list[ChannelConfigPy]
     def __new__(cls, name:builtins.str, channels:typing.Sequence[ChannelConfigPy]) -> FlowConfigPy: ...
+
+@typing.final
+class FlowDescriptorBuilderPy:
+    def __new__(cls, ingestion_config_id:builtins.str, name:builtins.str) -> FlowDescriptorBuilderPy: ...
+    def add(self, key:builtins.str, field_type:ChannelDataTypePy) -> ChannelIndexPy:
+        r"""
+        Adds a new channel to the flow.
+        
+        This returns the index of the channel in the flow.
+        """
+    def build(self) -> FlowDescriptorPy:
+        r"""
+        Builds the FlowDescriptor from the builder.
+        """
+
+@typing.final
+class FlowDescriptorPy:
+    def get(self, key:builtins.str) -> typing.Optional[ChannelDataTypePy]:
+        r"""
+        Gets the type of the channel with the given key.
+        """
+    def mapping(self) -> builtins.dict[builtins.str, ChannelIndexPy]:
+        r"""
+        Gets the mapping of keys to channel indices.
+        """
 
 @typing.final
 class FlowPy:
@@ -182,6 +239,10 @@ class IngestWithConfigDataStreamRequestPy:
     end_stream_on_validation_error: builtins.bool
     organization_id: builtins.str
     def __new__(cls, ingestion_config_id:builtins.str, flow:builtins.str, timestamp:typing.Optional[TimeValuePy], channel_values:typing.Sequence[IngestWithConfigDataChannelValuePy], run_id:builtins.str, end_stream_on_validation_error:builtins.bool, organization_id:builtins.str) -> IngestWithConfigDataStreamRequestPy: ...
+
+@typing.final
+class IngestWithConfigDataStreamRequestWrapperPy:
+    ...
 
 @typing.final
 class IngestionConfigFormPy:
@@ -263,7 +324,10 @@ class SiftStreamMetricsSnapshotPy:
     bytes_sent: builtins.int
     byte_rate: builtins.float
     messages_sent_to_backup: builtins.int
+    old_messages_dropped_for_ingestion: builtins.int
     cur_retry_count: builtins.int
+    ingestion_channel_depth: builtins.int
+    backup_channel_depth: builtins.int
     checkpoint: CheckpointMetricsSnapshotPy
     backups: BackupMetricsSnapshotPy
 
@@ -272,9 +336,11 @@ class SiftStreamPy:
     def send(self, flow:FlowPy) -> typing.Any: ...
     def batch_send(self, flows:typing.Any) -> typing.Any: ...
     def send_requests(self, requests:typing.Sequence[IngestWithConfigDataStreamRequestPy]) -> typing.Any: ...
+    def send_requests_nonblocking(self, flows:typing.Any) -> None: ...
     def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy: ...
     def add_new_flows(self, flow_configs:typing.Sequence[FlowConfigPy]) -> typing.Any: ...
-    def get_flows(self) -> builtins.dict[builtins.str, FlowConfigPy]: ...
+    def get_flow_descriptor(self, flow_name:builtins.str) -> FlowDescriptorPy: ...
+    def get_flows(self) -> builtins.dict[builtins.str, FlowDescriptorPy]: ...
     def attach_run(self, run_selector:RunSelectorPy) -> typing.Any: ...
     def detach_run(self) -> None: ...
     def run(self) -> typing.Optional[builtins.str]: ...

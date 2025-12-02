@@ -149,7 +149,11 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::SiftStreamPy>()?;
     m.add_class::<stream::builder::SiftStreamBuilderPy>()?;
     m.add_class::<stream::config::ChannelConfigPy>()?;
+    m.add_class::<stream::config::ChannelIndexPy>()?;
     m.add_class::<stream::config::FlowConfigPy>()?;
+    m.add_class::<stream::config::FlowDescriptorBuilderPy>()?;
+    m.add_class::<stream::config::FlowDescriptorPy>()?;
+    m.add_class::<stream::config::FlowBuilderPy>()?;
     m.add_class::<stream::config::IngestionConfigFormPy>()?;
     m.add_class::<stream::config::RunFormPy>()?;
     m.add_class::<stream::config::RunSelectorPy>()?;
@@ -167,6 +171,7 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::retry::RollingFilePolicyPy>()?;
     m.add_class::<stream::request::IngestWithConfigDataChannelValuePy>()?;
     m.add_class::<stream::request::IngestWithConfigDataStreamRequestPy>()?;
+    m.add_class::<stream::request::IngestWithConfigDataStreamRequestWrapperPy>()?;
     m.add_class::<stream::time::TimeValuePy>()?;
     m.add_function(wrap_pyfunction!(init_tracing, m)?)?;
     m.add_function(wrap_pyfunction!(init_tracing_with_file, m)?)?;
