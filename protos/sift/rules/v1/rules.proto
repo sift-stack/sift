@@ -808,6 +808,7 @@ message RuleActionConfiguration {
   oneof configuration {
     NotificationActionConfiguration notification = 1;
     AnnotationActionConfiguration annotation = 2;
+    WebhookActionConfiguration webhook = 3;
   }
 }
 
@@ -815,6 +816,9 @@ message NotificationActionConfiguration {
   repeated string recipient_user_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+message WebhookActionConfiguration {
+  string webhook_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
 
 message AnnotationActionConfiguration {
   repeated string tag_ids = 1 [(google.api.field_behavior) = REQUIRED];
