@@ -98,6 +98,8 @@ impl Error {
 /// Various categories of errors that can occur throughout Sift crates.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ErrorKind {
+    /// Indicates that the error is due to a resource already existing.
+    AlreadyExistsError,
     /// Indicates user-error having to do with bad arguments.
     ArgumentValidationError,
     /// Indicates that the program is unable to grab credentials from a user's `sift.toml` file.
@@ -194,6 +196,7 @@ where
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::AlreadyExistsError => write!(f, "AlreadyExistsError"),
             Self::GrpcConnectError => write!(f, "GrpcConnectError"),
             Self::RetriesExhausted => write!(f, "RetriesExhausted"),
             Self::RetrieveAssetError => write!(f, "RetrieveAssetError"),

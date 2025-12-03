@@ -21,6 +21,11 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.file_attachment import (
+        FileAttachment,
+        FileAttachmentUpdate,
+        RemoteFileEntityType,
+    )
     from sift_client.sift_types.report import Report, ReportUpdate
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -432,6 +437,7 @@ class ChannelsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        ignore_cache: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -441,6 +447,7 @@ class ChannelsAPI:
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            ignore_cache: Whether to ignore cached data and fetch fresh data from the server.
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
@@ -455,6 +462,7 @@ class ChannelsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        ignore_cache: bool = False,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
         ...
@@ -503,6 +511,136 @@ class ChannelsAPI:
 
         Returns:
             A list of Channels that matches the filter criteria.
+        """
+        ...
+
+class FileAttachmentsAPI:
+    """Sync counterpart to `FileAttachmentsAPIAsync`.
+
+    High-level API for interacting with file attachments (remote files).
+
+    This class provides a Pythonic interface for managing file attachments
+    on Sift entities like runs, assets, and test reports.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the FileAttachmentsAPIAsync.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def delete(
+        self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str
+    ) -> None:
+        """Batch delete multiple file attachments.
+
+        Args:
+            file_attachments: List of FileAttachments or the IDs of the file attachments to delete (up to 1000).
+        """
+        ...
+
+    def download(self, *, file_attachment: FileAttachment | str, output_path: str | Path) -> None:
+        """Download a file attachment to a local path.
+
+        Args:
+            file_attachment: The FileAttachment or the ID of the file attachment to download.
+            output_path: The path to download the file attachment to.
+        """
+        ...
+
+    def get(self, *, file_attachment_id: str) -> FileAttachment:
+        """Get a file attachment by ID.
+
+        Args:
+            file_attachment_id: The ID of the file attachment to retrieve.
+
+        Returns:
+            The FileAttachment.
+        """
+        ...
+
+    def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
+        """Get a download URL for a file attachment.
+
+        Args:
+            file_attachment: The FileAttachment or the ID of the file attachment.
+
+        Returns:
+            The download URL for the file attachment.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        remote_file_ids: list[str] | None = None,
+        entities: list[Run | Asset | TestReport] | None = None,
+        entity_type: RemoteFileEntityType | None = None,
+        entity_ids: list[str] | None = None,
+        description_contains: str | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[FileAttachment]:
+        """List file attachments with optional filtering.
+
+        Args:
+            name: Exact name of the file attachment.
+            names: List of file attachment names to filter by.
+            name_contains: Partial name of the file attachment.
+            name_regex: Regular expression to filter file attachments by name.
+            remote_file_ids: Filter to file attachments with any of these IDs.
+            entities: Filter to file attachments associated with these entities.
+            entity_type: Filter to file attachments associated with this entity type.
+            entity_ids: Filter to file attachments associated with these entity IDs.
+            description_contains: Partial description of the file attachment.
+            filter_query: Explicit CEL query to filter file attachments.
+            order_by: Field and direction to order results by. Note: Not supported by the backend, but it is here for API consistency.
+            limit: Maximum number of file attachments to return. If None, returns all matches.
+
+        Returns:
+            A list of FileAttachment objects that match the filter criteria.
+        """
+        ...
+
+    def update(self, *, file_attachment: FileAttachmentUpdate | dict) -> FileAttachment:
+        """Update a file attachment.
+
+        Args:
+            file_attachment: The FileAttachmentUpdate with fields to update.
+
+        Returns:
+            The updated FileAttachment.
+        """
+        ...
+
+    def upload(
+        self,
+        *,
+        path: str | Path,
+        entity: Asset | Run | TestReport,
+        metadata: dict[str, Any] | None = None,
+        description: str | None = None,
+        organization_id: str | None = None,
+    ) -> FileAttachment:
+        """Upload a file attachment to a remote file.
+
+        Args:
+            path: The path to the file to upload.
+            entity: The entity that the file is attached to.
+            metadata: Optional metadata for the file (e.g., video/image metadata).
+            description: Optional description of the file.
+            organization_id: Optional organization ID.
+
+        Returns:
+            The uploaded FileAttachment.
         """
         ...
 

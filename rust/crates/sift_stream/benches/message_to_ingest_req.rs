@@ -30,7 +30,7 @@ use std::hint::black_box;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
 use sift_stream::stream::mode::ingestion_config::Flow;
 use sift_stream::{
-    ChannelDataType, ChannelValue, TimeValue, Value,
+    ChannelDataType, ChannelValue, FlowDescriptor, TimeValue, Value,
     stream::mode::bench::{message_to_ingest_req, message_to_ingest_req_direct},
 };
 
@@ -118,11 +118,9 @@ fn flow_randomized(name: &str, flow_config: &FlowConfig) -> Flow {
 }
 
 // Configuration constants - these can be adjusted to test different scenarios
-const NUM_FLOWS: usize = 10; // Number of flow configs to create
 const NUM_CHANNELS_PER_FLOW: usize = 2000; // Number of channels per flow
 const INGESTION_CONFIG_ID: &str = "benchmark-config";
 const RUN_ID: Option<String> = None;
-const FLOW_TO_RANDOMIZE: usize = 8;
 
 fn benchmark_message_to_ingest_req_direct(c: &mut Criterion) {
     // Create a flow with ordered channel values (matching the first flow config)
@@ -140,46 +138,26 @@ fn benchmark_message_to_ingest_req_direct(c: &mut Criterion) {
 }
 
 fn benchmark_message_to_ingest_req_ordered(c: &mut Criterion) {
-    // Create flow configs
-    let mut flow_configs = Vec::with_capacity(NUM_FLOWS);
-    for i in 0..NUM_FLOWS {
-        flow_configs.push(flow_config(&format!("flow_{i}"), NUM_CHANNELS_PER_FLOW));
-    }
+    // Create a flow with ordered channel values.
+    let flow = flow_config("my_benchmark_flow", NUM_CHANNELS_PER_FLOW);
+    let message = flow_ordered("my_benchmark_flow", &flow);
 
-    // Create a flow with ordered channel values (matching the first flow config)
-    let message = flow_ordered("flow_0", &flow_configs[FLOW_TO_RANDOMIZE]);
+    let descriptor = FlowDescriptor::try_from((INGESTION_CONFIG_ID, flow)).unwrap();
 
     c.bench_function("message_to_ingest_req_ordered", |b| {
-        b.iter(|| {
-            black_box(message_to_ingest_req(
-                &message,
-                INGESTION_CONFIG_ID,
-                RUN_ID.clone(),
-                &flow_configs,
-            ))
-        })
+        b.iter(|| black_box(message_to_ingest_req(&message, RUN_ID.clone(), &descriptor)))
     });
 }
 
 fn benchmark_message_to_ingest_req_randomized(c: &mut Criterion) {
-    // Create flow configs
-    let mut flow_configs = Vec::with_capacity(NUM_FLOWS);
-    for i in 0..NUM_FLOWS {
-        flow_configs.push(flow_config(&format!("flow_{i}"), NUM_CHANNELS_PER_FLOW));
-    }
+    // Create a flow with randomized channel values.
+    let flow = flow_config("my_benchmark_flow", NUM_CHANNELS_PER_FLOW);
+    let message = flow_randomized("my_benchmark_flow", &flow);
 
-    // Create a flow with randomized channel values (matching the first flow config)
-    let message = flow_randomized("flow_0", &flow_configs[FLOW_TO_RANDOMIZE]);
+    let descriptor = FlowDescriptor::try_from((INGESTION_CONFIG_ID, flow)).unwrap();
 
     c.bench_function("message_to_ingest_req_randomized", |b| {
-        b.iter(|| {
-            black_box(message_to_ingest_req(
-                &message,
-                INGESTION_CONFIG_ID,
-                RUN_ID.clone(),
-                &flow_configs,
-            ))
-        })
+        b.iter(|| black_box(message_to_ingest_req(&message, RUN_ID.clone(), &descriptor)))
     });
 }
 
@@ -187,14 +165,15 @@ fn benchmark_message_to_ingest_req_varying_sizes(c: &mut Criterion) {
     let mut group = c.benchmark_group("message_to_ingest_req_varying_sizes");
 
     for &num_channels in &[5, 10, 100, 1000, 5000] {
+        let flow_name = format!("flow_{num_channels}");
+
         // Create flow configs with varying channel counts
-        let mut flow_configs = Vec::with_capacity(NUM_FLOWS);
-        for i in 0..NUM_FLOWS {
-            flow_configs.push(flow_config(&format!("flow_{i}"), num_channels));
-        }
+        let flow = flow_config(&flow_name, num_channels);
+        let message_ordered = flow_ordered(&flow_name, &flow);
+        let message_randomized = flow_randomized(&flow_name, &flow);
+        let descriptor = FlowDescriptor::try_from((INGESTION_CONFIG_ID, flow)).unwrap();
 
         // Test direct scenario
-        let message_ordered = flow_ordered("flow_0", &flow_configs[FLOW_TO_RANDOMIZE]);
         group.bench_function(&format!("direct_{num_channels}_channels"), |b| {
             b.iter(|| {
                 black_box(message_to_ingest_req_direct(
@@ -209,22 +188,19 @@ fn benchmark_message_to_ingest_req_varying_sizes(c: &mut Criterion) {
             b.iter(|| {
                 black_box(message_to_ingest_req(
                     &message_ordered,
-                    INGESTION_CONFIG_ID,
                     RUN_ID.clone(),
-                    &flow_configs,
+                    &descriptor,
                 ))
             })
         });
 
         // Test randomized scenario
-        let message_randomized = flow_randomized("flow_0", &flow_configs[FLOW_TO_RANDOMIZE]);
         group.bench_function(&format!("randomized_{num_channels}_channels"), |b| {
             b.iter(|| {
                 black_box(message_to_ingest_req(
                     &message_randomized,
-                    INGESTION_CONFIG_ID,
                     RUN_ID.clone(),
-                    &flow_configs,
+                    &descriptor,
                 ))
             })
         });

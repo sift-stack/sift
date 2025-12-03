@@ -19,13 +19,15 @@ def sift_client() -> SiftClient:
     grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
     rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
     api_key = os.getenv("SIFT_API_KEY", "")
+    # If the URL contains localhost, don't use SSL.  Most likely running tests or local development.
+    use_ssl = not ("localhost" in grpc_url or "localhost" in rest_url)
 
     client = SiftClient(
         connection_config=SiftConnectionConfig(
             api_key=api_key,
             grpc_url=grpc_url,
             rest_url=rest_url,
-            use_ssl=True,
+            use_ssl=use_ssl,
         )
     )
 
@@ -45,6 +47,7 @@ def mock_client():
     client.rules = MagicMock()
     client.tags = MagicMock()
     client.test_results = MagicMock()
+    client.file_attachments = MagicMock()
     client.async_ = MagicMock(spec=AsyncAPIs)
     client.async_.ingestion = MagicMock()
     return client
