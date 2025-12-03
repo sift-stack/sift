@@ -166,7 +166,7 @@ from sift_client.resources.test_results import TestResultsAPIAsync
 from sift_client.resources.user_attributes import UserAttributesAPIAsync
 
 # ruff: noqa All imports needs to be imported before sync_stubs to avoid circular import
-from sift_client.resources.sync_stubs import (
+from sift_client.resources.sync_stubs import (  # type: ignore[attr-defined]
     AssetsAPI,
     CalculatedChannelsAPI,
     ChannelsAPI,

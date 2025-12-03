@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from google.protobuf import field_mask_pb2
+
 from sift.policies.v1.policies_pb2 import (
     CreatePolicyRequest as CreatePolicyRequestProto,
 )
@@ -100,7 +102,7 @@ class PolicyUpdate(ModelUpdate[PolicyProto]):
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.policy_id = self._resource_id
 
-    def to_proto_with_mask(self) -> tuple[PolicyProto, any]:
+    def to_proto_with_mask(self) -> tuple[PolicyProto, field_mask_pb2.FieldMask]:
         """Convert to proto with field mask, handling policy configuration."""
         proto, mask = super().to_proto_with_mask()
         # If cedar_policy is being updated, set it in the configuration

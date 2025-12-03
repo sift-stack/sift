@@ -703,7 +703,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             A tuple of (attributes, next_page_token).
         """
-        entity = ResourceAttributeEntityIdentifier(entity_id=entity_id, entity_type=entity_type)
+        entity = ResourceAttributeEntityIdentifier(entity_id=entity_id, entity_type=entity_type)  # type: ignore[arg-type]
         request_kwargs: dict[str, Any] = {
             "entity": entity,
             "include_archived": include_archived,

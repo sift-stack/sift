@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sift.resource_attribute.v1.resource_attribute_pb2 import ResourceAttributeEntityIdentifier
 
@@ -367,20 +367,22 @@ class ResourceAttributesAPIAsync(ResourceBase):
                 # List of entity IDs
                 if entity_type is None:
                     raise ValueError("entity_type is required when entities is a list of strings")
+                entity_ids: list[str] = entities  # type: ignore[assignment]
                 entity_identifiers = [
-                    ResourceAttributeEntityIdentifier(entity_id=eid, entity_type=entity_type)
-                    for eid in entities
+                    ResourceAttributeEntityIdentifier(entity_id=eid, entity_type=entity_type)  # type: ignore[arg-type]
+                    for eid in entity_ids
                 ]
             else:
                 # List of entity dicts
+                entity_dicts: list[dict[str, Any]] = entities  # type: ignore[assignment]
                 entity_identifiers = [
                     ResourceAttributeEntityIdentifier(
-                        entity_id=e["entity_id"],
-                        entity_type=e.get("entity_type", entity_type) or 0,
+                        entity_id=str(e["entity_id"]),
+                        entity_type=int(e.get("entity_type", entity_type) or 0),  # type: ignore[arg-type]
                     )
-                    for e in entities
+                    for e in entity_dicts
                 ]
-                if entity_type is None and any(e.get("entity_type") is None for e in entities):
+                if entity_type is None and any(e.get("entity_type") is None for e in entity_dicts):
                     raise ValueError(
                         "entity_type must be provided in each entity dict or as parameter"
                     )
@@ -472,7 +474,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         """
         await self._low_level_client.unarchive_resource_attribute(attribute_id)
 
-    async def batch_archive(self, attribute_ids: list[str]) -> None:
+    async def batch_archive(self, attribute_ids: list[str]) -> None:  # type: ignore[valid-type]
         """Archive multiple resource attributes.
 
         Args:
@@ -480,7 +482,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         """
         await self._low_level_client.batch_archive_resource_attributes(attribute_ids)
 
-    async def batch_unarchive(self, attribute_ids: list[str]) -> None:
+    async def batch_unarchive(self, attribute_ids: list[str]) -> None:  # type: ignore[valid-type]
         """Unarchive multiple resource attributes.
 
         Args:

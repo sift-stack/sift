@@ -73,7 +73,7 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The created UserAttributeKey.
         """
-        request = CreateUserAttributeKeyRequest(name=name, type=value_type)
+        request = CreateUserAttributeKeyRequest(name=name, type=value_type)  # type: ignore[arg-type]
         if description is not None:
             request.description = description
 

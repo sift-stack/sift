@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from sift.user_attributes.v1.user_attributes_pb2 import (
     CreateUserAttributeKeyRequest as CreateUserAttributeKeyRequestProto,
@@ -112,7 +112,7 @@ class UserAttributeKeyCreate(ModelCreate[CreateUserAttributeKeyRequestProto]):
     description: str | None = None
     type: int  # UserAttributeValueType enum value
 
-    def _get_proto_class(self) -> type[CreateUserAttributeKeyRequestProto]:
+    def _get_proto_class(self) -> Type[CreateUserAttributeKeyRequestProto]:
         return CreateUserAttributeKeyRequestProto
 
 

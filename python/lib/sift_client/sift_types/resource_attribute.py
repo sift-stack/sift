@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from sift.resource_attribute.v1.resource_attribute_pb2 import (
     CreateResourceAttributeEnumValueRequest as CreateResourceAttributeEnumValueRequestProto,
@@ -168,7 +168,7 @@ class ResourceAttributeKeyCreate(ModelCreate[CreateResourceAttributeKeyRequestPr
     type: int  # ResourceAttributeKeyType enum value
     initial_enum_values: list[dict] | None = None  # [{display_name: str, description: str}]
 
-    def _get_proto_class(self) -> type[CreateResourceAttributeKeyRequestProto]:
+    def _get_proto_class(self) -> Type[CreateResourceAttributeKeyRequestProto]:
         return CreateResourceAttributeKeyRequestProto
 
     def to_proto(self) -> CreateResourceAttributeKeyRequestProto:
@@ -178,7 +178,7 @@ class ResourceAttributeKeyCreate(ModelCreate[CreateResourceAttributeKeyRequestPr
             for enum_val in self.initial_enum_values:
                 initial_enum_value = CreateResourceAttributeKeyRequestProto.InitialEnumValue(
                     display_name=enum_val["display_name"],
-                    description=enum_val.get("description"),
+                    description=enum_val.get("description") or "",
                 )
                 proto.initial_enum_values.append(initial_enum_value)
         return proto
@@ -205,7 +205,7 @@ class ResourceAttributeCreate(ModelCreate[CreateResourceAttributeRequestProto]):
     boolean_value: bool | None = None
     number_value: float | None = None
 
-    def _get_proto_class(self) -> type[CreateResourceAttributeRequestProto]:
+    def _get_proto_class(self) -> Type[CreateResourceAttributeRequestProto]:
         return CreateResourceAttributeRequestProto
 
     def to_proto(self) -> CreateResourceAttributeRequestProto:
@@ -213,7 +213,7 @@ class ResourceAttributeCreate(ModelCreate[CreateResourceAttributeRequestProto]):
         proto = super().to_proto()
         # Set entity
         proto.entity.entity_id = self.entity_id
-        proto.entity.entity_type = self.entity_type
+        proto.entity.entity_type = self.entity_type  # type: ignore[assignment]
         return proto
 
 

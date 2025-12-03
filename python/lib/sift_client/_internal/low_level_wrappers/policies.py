@@ -177,12 +177,12 @@ class PoliciesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         proto, mask = update.to_proto_with_mask()
 
         # Copy current values for fields not being updated
-        if "name" not in mask.paths:
+        if "name" not in mask.paths:  # type: ignore[attr-defined]
             proto.name = current_policy.name
-        if "description" not in mask.paths:
+        if "description" not in mask.paths:  # type: ignore[attr-defined]
             if current_policy.description:
                 proto.description = current_policy.description
-        if "configuration.cedar_policy" not in mask.paths:
+        if "configuration.cedar_policy" not in mask.paths:  # type: ignore[attr-defined]
             proto.configuration.cedar_policy = current_policy.cedar_policy
 
         request = UpdatePolicyRequest(policy=proto, update_mask=mask)
