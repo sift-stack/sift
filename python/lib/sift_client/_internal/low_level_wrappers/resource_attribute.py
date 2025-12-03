@@ -690,6 +690,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = None,
         page_token: str | None = None,
         include_archived: bool = False,
+        order_by: str | None = None,  # Not supported by ListResourceAttributesByEntityRequest proto/service
     ) -> tuple[list[ResourceAttribute], str]:
         """List resource attributes for a specific entity.
 
@@ -748,6 +749,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 "entity_type": entity_type,
                 "include_archived": include_archived,
             },
+            order_by=None,  # order_by is accepted but not used by this method
             max_results=max_results,
         )
 

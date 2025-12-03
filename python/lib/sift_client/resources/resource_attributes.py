@@ -435,18 +435,33 @@ class ResourceAttributesAPIAsync(ResourceBase):
         Returns:
             A list of ResourceAttributes that match the filter.
         """
+        # Use dedicated entity endpoint only for simple case: entity filtering with no other filters
+        # (CEL filters don't support entity.entity_id, and the entity endpoint doesn't support order_by/filter_query)
+        use_entity_endpoint = (
+            entity_id is not None
+            and entity_type is not None
+            and not key_id
+            and not filter_query
+            and not order_by
+        )
+
+        if use_entity_endpoint:
+            attrs = await self._low_level_client.list_all_resource_attributes_by_entity(
+                entity_id=entity_id,
+                entity_type=entity_type,
+                include_archived=include_archived,
+                max_results=limit,
+            )
+            return self._apply_client_to_instances(attrs)
+
+        # Otherwise, use CEL filter approach and filter entity in memory if needed
         filter_parts = []
-        if entity_id:
-            filter_parts.append(cel.equals("entity.entity_id", entity_id))
-        if entity_type is not None:
-            filter_parts.append(cel.equals("entity.entity_type", entity_type))
         if key_id:
             filter_parts.append(cel.equals("resource_attribute_key_id", key_id))
         if not include_archived:
             filter_parts.append(cel.equals("is_archived", False))
-
         if filter_query:
-            filter_parts.append(filter_query)  # filter_query is already a CEL expression string
+            filter_parts.append(filter_query)
 
         query_filter = cel.and_(*filter_parts) if filter_parts else None
 
@@ -456,6 +471,14 @@ class ResourceAttributesAPIAsync(ResourceBase):
             include_archived=include_archived,
             max_results=limit,
         )
+
+        # Filter by entity in memory (CEL doesn't support entity.entity_id)
+        if entity_id is not None or entity_type is not None:
+            if entity_id is not None:
+                attrs = [attr for attr in attrs if attr.entity_id == entity_id]
+            if entity_type is not None:
+                attrs = [attr for attr in attrs if attr.entity_type == entity_type]
+
         return self._apply_client_to_instances(attrs)
 
     async def archive(self, attribute_id: str) -> None:

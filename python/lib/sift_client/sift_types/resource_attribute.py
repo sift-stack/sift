@@ -173,15 +173,24 @@ class ResourceAttributeKeyCreate(ModelCreate[CreateResourceAttributeKeyRequestPr
 
     def to_proto(self) -> CreateResourceAttributeKeyRequestProto:
         """Convert to proto, handling initial_enum_values."""
-        proto = super().to_proto()
+        # Get the corresponding proto class
+        proto_cls = self._get_proto_class()
+        proto_msg = proto_cls()
+
+        # Get all fields except initial_enum_values (we'll handle it manually)
+        data = self.model_dump(exclude_unset=True, exclude_none=True, exclude={"initial_enum_values"})
+        self._build_proto_and_paths(proto_msg, data)
+
+        # Handle initial_enum_values manually
         if self.initial_enum_values:
             for enum_val in self.initial_enum_values:
                 initial_enum_value = CreateResourceAttributeKeyRequestProto.InitialEnumValue(
                     display_name=enum_val["display_name"],
                     description=enum_val.get("description") or "",
                 )
-                proto.initial_enum_values.append(initial_enum_value)
-        return proto
+                proto_msg.initial_enum_values.append(initial_enum_value)
+
+        return proto_msg
 
 
 class ResourceAttributeEnumValueCreate(ModelCreate[CreateResourceAttributeEnumValueRequestProto]):
@@ -210,11 +219,21 @@ class ResourceAttributeCreate(ModelCreate[CreateResourceAttributeRequestProto]):
 
     def to_proto(self) -> CreateResourceAttributeRequestProto:
         """Convert to proto, handling entity."""
-        proto = super().to_proto()
-        # Set entity
-        proto.entity.entity_id = self.entity_id
-        proto.entity.entity_type = self.entity_type  # type: ignore[assignment]
-        return proto
+        # Get the corresponding proto class
+        proto_cls = self._get_proto_class()
+        proto_msg = proto_cls()
+
+        # Get all fields except entity_id and entity_type (we'll handle them manually)
+        data = self.model_dump(
+            exclude_unset=True, exclude_none=True, exclude={"entity_id", "entity_type"}
+        )
+        self._build_proto_and_paths(proto_msg, data)
+
+        # Set entity manually
+        proto_msg.entity.entity_id = self.entity_id
+        proto_msg.entity.entity_type = self.entity_type  # type: ignore[assignment]
+
+        return proto_msg
 
 
 class ResourceAttributeKeyUpdate(ModelUpdate[ResourceAttributeKeyProto]):
