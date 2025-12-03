@@ -178,7 +178,9 @@ class ResourceAttributeKeyCreate(ModelCreate[CreateResourceAttributeKeyRequestPr
         proto_msg = proto_cls()
 
         # Get all fields except initial_enum_values (we'll handle it manually)
-        data = self.model_dump(exclude_unset=True, exclude_none=True, exclude={"initial_enum_values"})
+        data = self.model_dump(
+            exclude_unset=True, exclude_none=True, exclude={"initial_enum_values"}
+        )
         self._build_proto_and_paths(proto_msg, data)
 
         # Handle initial_enum_values manually

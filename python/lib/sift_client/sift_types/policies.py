@@ -84,9 +84,7 @@ class PolicyCreate(ModelCreate[CreatePolicyRequestProto]):
         proto_msg = proto_cls()
 
         # Get all fields except cedar_policy (we'll handle it manually)
-        data = self.model_dump(
-            exclude_unset=True, exclude_none=True, exclude={"cedar_policy"}
-        )
+        data = self.model_dump(exclude_unset=True, exclude_none=True, exclude={"cedar_policy"})
         self._build_proto_and_paths(proto_msg, data)
 
         # Set policy configuration manually
@@ -118,9 +116,7 @@ class PolicyUpdate(ModelUpdate[PolicyProto]):
         proto_msg = proto_cls()
 
         # Get all fields except cedar_policy (we'll handle it manually)
-        data = self.model_dump(
-            exclude_unset=True, exclude_none=True, exclude={"cedar_policy"}
-        )
+        data = self.model_dump(exclude_unset=True, exclude_none=True, exclude={"cedar_policy"})
         paths = self._build_proto_and_paths(proto_msg, data)
 
         # Set resource ID

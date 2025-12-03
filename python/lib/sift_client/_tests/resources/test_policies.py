@@ -158,7 +158,7 @@ def test_complete_policy_workflow(sift_client, test_timestamp_str):
         # 2. Create second policy
         policy2 = sift_client.policies.create(
             name=f"workflow_policy2_{test_timestamp_str}",
-            cedar_policy='permit(principal, action, resource) when { principal.level >= 5 };',
+            cedar_policy="permit(principal, action, resource) when { principal.level >= 5 };",
             description="Senior level policy",
         )
         created_policies.append(policy2)
@@ -204,7 +204,10 @@ def test_complete_policy_workflow(sift_client, test_timestamp_str):
                 version_notes="Updated Cedar policy",
             )
             # Verify the update was applied (either policy changed or version incremented)
-            assert "level >= 3" in updated_policy2.cedar_policy or updated_policy2.version > updated_policy.version
+            assert (
+                "level >= 3" in updated_policy2.cedar_policy
+                or updated_policy2.version > updated_policy.version
+            )
         except Exception:
             # If Cedar policy updates aren't supported or fail, skip this assertion
             # but continue with the rest of the test
@@ -219,9 +222,7 @@ def test_complete_policy_workflow(sift_client, test_timestamp_str):
         assert all(not p.is_archived for p in active_policies)
 
         # 10. List policies including archived
-        all_policies_including_archived = sift_client.policies.list(
-            include_archived=True, limit=10
-        )
+        all_policies_including_archived = sift_client.policies.list(include_archived=True, limit=10)
         archived_count = sum(1 for p in all_policies_including_archived if p.is_archived)
         assert archived_count >= 1
 
@@ -245,9 +246,7 @@ class TestPolicyErrors:
     def test_update_nonexistent_policy(self, sift_client, test_timestamp_str):
         """Test updating a non-existent policy raises an error."""
         with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
-            sift_client.policies.update(
-                "nonexistent-policy-id-12345", {"name": "updated"}
-            )
+            sift_client.policies.update("nonexistent-policy-id-12345", {"name": "updated"})
 
     def test_archive_nonexistent_policy(self, sift_client):
         """Test archiving a non-existent policy raises an error."""

@@ -380,7 +380,9 @@ def test_complete_resource_attribute_workflow(sift_client, test_timestamp_str):
             resource_attribute_enum_value_id=new_enum_value.id_,
         )
         assert isinstance(batch_attrs, list)
-        assert len(batch_attrs) == len(asset_ids) - 1  # Should have 2 attributes (for asset_ids[1] and asset_ids[2])
+        assert (
+            len(batch_attrs) == len(asset_ids) - 1
+        )  # Should have 2 attributes (for asset_ids[1] and asset_ids[2])
         created_attributes.extend(batch_attrs)
         for attr in batch_attrs:
             assert attr.resource_attribute_enum_value_id == new_enum_value.id_
@@ -444,9 +446,7 @@ def test_complete_resource_attribute_workflow(sift_client, test_timestamp_str):
 
         # 15. Unarchive enum value
         sift_client.resource_attributes.unarchive_enum_value(new_enum_value.id_)
-        unarchived_enum_value = sift_client.resource_attributes.get_enum_value(
-            new_enum_value.id_
-        )
+        unarchived_enum_value = sift_client.resource_attributes.get_enum_value(new_enum_value.id_)
         assert unarchived_enum_value.archived_date is None
 
         # 16. Archive attributes

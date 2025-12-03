@@ -214,9 +214,7 @@ class TestUserAttributeValues:
         # Cleanup
         sift_client.user_attributes.archive_value(value.id_)
 
-    def test_archive_unarchive_value(
-        self, sift_client, test_user_attribute_key, test_user_id
-    ):
+    def test_archive_unarchive_value(self, sift_client, test_user_attribute_key, test_user_id):
         """Test archiving and unarchiving a user attribute value."""
         value = sift_client.user_attributes.create_value(
             key_id=test_user_attribute_key.id_,
@@ -394,6 +392,4 @@ class TestUserAttributeErrors:
     def test_update_nonexistent_key(self, sift_client, test_timestamp_str):
         """Test updating a non-existent key raises an error."""
         with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
-            sift_client.user_attributes.update_key(
-                "nonexistent-key-id-12345", {"name": "updated"}
-            )
+            sift_client.user_attributes.update_key("nonexistent-key-id-12345", {"name": "updated"})
