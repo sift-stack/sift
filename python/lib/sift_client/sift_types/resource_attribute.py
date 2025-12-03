@@ -184,9 +184,7 @@ class ResourceAttributeKeyCreate(ModelCreate[CreateResourceAttributeKeyRequestPr
         return proto
 
 
-class ResourceAttributeEnumValueCreate(
-    ModelCreate[CreateResourceAttributeEnumValueRequestProto]
-):
+class ResourceAttributeEnumValueCreate(ModelCreate[CreateResourceAttributeEnumValueRequestProto]):
     """Create model for Resource Attribute Enum Value."""
 
     resource_attribute_key_id: str
@@ -247,4 +245,3 @@ class ResourceAttributeEnumValueUpdate(ModelUpdate[ResourceAttributeEnumValuePro
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.resource_attribute_enum_value_id = self._resource_id
-

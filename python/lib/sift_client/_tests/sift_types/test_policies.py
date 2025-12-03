@@ -96,7 +96,7 @@ class TestPolicyUpdate:
         update = PolicyUpdate(
             name="New Name",
             description="New description",
-            cedar_policy='permit(principal, action, resource);',
+            cedar_policy="permit(principal, action, resource);",
         )
         update.resource_id = "test_policy_id"
         proto, mask = update.to_proto_with_mask()
@@ -170,4 +170,3 @@ class TestPolicy:
 
         with pytest.raises(AttributeError, match="Sift client not set"):
             _ = policy.client
-

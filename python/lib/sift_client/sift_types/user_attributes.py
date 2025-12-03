@@ -98,7 +98,9 @@ class UserAttributeValue(BaseType[UserAttributeValueProto, "UserAttributeValue"]
                 else None
             ),
             is_archived=proto.is_archived,
-            key=UserAttributeKey._from_proto(proto.key, sift_client) if proto.HasField("key") else None,
+            key=UserAttributeKey._from_proto(proto.key, sift_client)
+            if proto.HasField("key")
+            else None,
             _client=sift_client,
         )
 
@@ -140,4 +142,3 @@ class UserAttributeKeyUpdate(ModelUpdate[UserAttributeKeyProto]):
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.user_attribute_key_id = self._resource_id
-

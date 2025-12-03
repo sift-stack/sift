@@ -171,7 +171,13 @@ class TestResourceAttributeEnumValues:
 class TestResourceAttributes:
     """Tests for Resource Attributes API."""
 
-    def test_create_single(self, sift_client, test_resource_attribute_key, test_resource_attribute_enum_value, test_timestamp_str):
+    def test_create_single(
+        self,
+        sift_client,
+        test_resource_attribute_key,
+        test_resource_attribute_enum_value,
+        test_timestamp_str,
+    ):
         """Test creating a single resource attribute."""
         # Need a real asset ID - using a test asset if available, otherwise skip
         # For now, we'll test the structure but may need to skip if no assets exist
@@ -197,7 +203,13 @@ class TestResourceAttributes:
         except Exception as e:
             pytest.skip(f"Could not create resource attribute: {e}")
 
-    def test_create_batch(self, sift_client, test_resource_attribute_key, test_resource_attribute_enum_value, test_timestamp_str):
+    def test_create_batch(
+        self,
+        sift_client,
+        test_resource_attribute_key,
+        test_resource_attribute_enum_value,
+        test_timestamp_str,
+    ):
         """Test creating multiple resource attributes in batch."""
         try:
             assets = sift_client.assets.list_(limit=2)
@@ -223,8 +235,9 @@ class TestResourceAttributes:
 
     def test_list(self, sift_client, test_resource_attribute_key):
         """Test listing resource attributes."""
-        attrs = sift_client.resource_attributes.list(key_id=test_resource_attribute_key.id_, limit=10)
+        attrs = sift_client.resource_attributes.list(
+            key_id=test_resource_attribute_key.id_, limit=10
+        )
 
         assert isinstance(attrs, list)
         assert all(isinstance(a, ResourceAttribute) for a in attrs)
-

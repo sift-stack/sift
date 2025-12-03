@@ -265,9 +265,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(updated_enum_value)
 
-    async def archive_enum_value(
-        self, enum_value_id: str, replacement_enum_value_id: str
-    ) -> int:
+    async def archive_enum_value(self, enum_value_id: str, replacement_enum_value_id: str) -> int:
         """Archive a resource attribute enum value and migrate attributes.
 
         Args:
@@ -308,9 +306,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         Args:
             enum_value_ids: List of resource attribute enum value IDs to unarchive.
         """
-        await self._low_level_client.batch_unarchive_resource_attribute_enum_values(
-            enum_value_ids
-        )
+        await self._low_level_client.batch_unarchive_resource_attribute_enum_values(enum_value_ids)
 
     # Resource Attribute methods
 
@@ -384,9 +380,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
                     )
                     for e in entities
                 ]
-                if entity_type is None and any(
-                    e.get("entity_type") is None for e in entities
-                ):
+                if entity_type is None and any(e.get("entity_type") is None for e in entities):
                     raise ValueError(
                         "entity_type must be provided in each entity dict or as parameter"
                     )
@@ -493,4 +487,3 @@ class ResourceAttributesAPIAsync(ResourceBase):
             attribute_ids: List of resource attribute IDs to unarchive.
         """
         await self._low_level_client.batch_unarchive_resource_attributes(attribute_ids)
-

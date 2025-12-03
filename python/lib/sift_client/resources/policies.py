@@ -139,4 +139,3 @@ class PoliciesAPIAsync(ResourceBase):
         """
         policy = await self._low_level_client.archive_policy(policy_id)
         return self._apply_client_to_instance(policy)
-

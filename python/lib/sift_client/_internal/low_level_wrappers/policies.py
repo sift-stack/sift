@@ -206,4 +206,3 @@ class PoliciesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(PolicyServiceStub).ArchivePolicy(request)
         grpc_policy = cast("ArchivePolicyResponse", response).policy
         return Policy._from_proto(grpc_policy)
-

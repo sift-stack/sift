@@ -60,7 +60,7 @@ class TestPolicies:
         """Test creating a policy."""
         policy = sift_client.policies.create(
             name=f"test_create_{test_timestamp_str}",
-            cedar_policy='permit(principal, action, resource);',
+            cedar_policy="permit(principal, action, resource);",
             description="Test policy",
         )
 
@@ -98,7 +98,7 @@ class TestPolicies:
         """Test updating a policy."""
         policy = sift_client.policies.create(
             name=f"test_update_{test_timestamp_str}",
-            cedar_policy='permit(principal, action, resource);',
+            cedar_policy="permit(principal, action, resource);",
         )
 
         updated_policy = sift_client.policies.update(
@@ -119,10 +119,9 @@ class TestPolicies:
         """Test archiving a policy."""
         policy = sift_client.policies.create(
             name=f"test_archive_{test_timestamp_str}",
-            cedar_policy='permit(principal, action, resource);',
+            cedar_policy="permit(principal, action, resource);",
         )
 
         archived_policy = sift_client.policies.archive(policy.id_)
 
         assert archived_policy.is_archived is True
-

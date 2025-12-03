@@ -109,4 +109,3 @@ class PolicyUpdate(ModelUpdate[PolicyProto]):
             if "configuration.cedar_policy" not in mask.paths:
                 mask.paths.append("configuration.cedar_policy")
         return proto, mask
-

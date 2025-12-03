@@ -168,9 +168,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).ListResourceAttributeKeys(request)
         response = cast("ListResourceAttributeKeysResponse", response)
 
-        keys = [
-            ResourceAttributeKey._from_proto(key) for key in response.resource_attribute_keys
-        ]
+        keys = [ResourceAttributeKey._from_proto(key) for key in response.resource_attribute_keys]
         return keys, response.next_page_token
 
     async def list_all_resource_attribute_keys(
@@ -238,9 +236,9 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
             key_id: The resource attribute key ID to archive.
         """
         request = ArchiveResourceAttributeKeyRequest(resource_attribute_key_id=key_id)
-        await self._grpc_client.get_stub(
-            ResourceAttributeServiceStub
-        ).ArchiveResourceAttributeKey(request)
+        await self._grpc_client.get_stub(ResourceAttributeServiceStub).ArchiveResourceAttributeKey(
+            request
+        )
 
     async def unarchive_resource_attribute_key(self, key_id: str) -> None:
         """Unarchive a resource attribute key.
@@ -259,9 +257,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Args:
             key_ids: List of resource attribute key IDs to archive.
         """
-        request = BatchArchiveResourceAttributeKeysRequest(
-            resource_attribute_key_ids=key_ids
-        )
+        request = BatchArchiveResourceAttributeKeysRequest(resource_attribute_key_ids=key_ids)
         await self._grpc_client.get_stub(
             ResourceAttributeServiceStub
         ).BatchArchiveResourceAttributeKeys(request)
@@ -272,9 +268,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Args:
             key_ids: List of resource attribute key IDs to unarchive.
         """
-        request = BatchUnarchiveResourceAttributeKeysRequest(
-            resource_attribute_key_ids=key_ids
-        )
+        request = BatchUnarchiveResourceAttributeKeysRequest(resource_attribute_key_ids=key_ids)
         await self._grpc_client.get_stub(
             ResourceAttributeServiceStub
         ).BatchUnarchiveResourceAttributeKeys(request)
@@ -426,7 +420,9 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The updated ResourceAttributeEnumValue.
         """
         enum_value_id = (
-            enum_value._id_or_error if isinstance(enum_value, ResourceAttributeEnumValue) else enum_value
+            enum_value._id_or_error
+            if isinstance(enum_value, ResourceAttributeEnumValue)
+            else enum_value
         )
         if isinstance(update, dict):
             update = ResourceAttributeEnumValueUpdate.model_validate(update)
@@ -468,7 +464,9 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(
             ResourceAttributeServiceStub
         ).ArchiveResourceAttributeEnumValue(request)
-        return cast("ArchiveResourceAttributeEnumValueResponse", response).resource_attributes_migrated
+        return cast(
+            "ArchiveResourceAttributeEnumValueResponse", response
+        ).resource_attributes_migrated
 
     async def unarchive_resource_attribute_enum_value(self, enum_value_id: str) -> None:
         """Unarchive a resource attribute enum value.
@@ -655,9 +653,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).ListResourceAttributes(request)
         response = cast("ListResourceAttributesResponse", response)
 
-        attrs = [
-            ResourceAttribute._from_proto(attr) for attr in response.resource_attributes
-        ]
+        attrs = [ResourceAttribute._from_proto(attr) for attr in response.resource_attributes]
         return attrs, response.next_page_token
 
     async def list_all_resource_attributes(
@@ -723,9 +719,7 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).ListResourceAttributesByEntity(request)
         response = cast("ListResourceAttributesByEntityResponse", response)
 
-        attrs = [
-            ResourceAttribute._from_proto(attr) for attr in response.resource_attributes
-        ]
+        attrs = [ResourceAttribute._from_proto(attr) for attr in response.resource_attributes]
         return attrs, response.next_page_token
 
     async def list_all_resource_attributes_by_entity(
@@ -764,9 +758,9 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
             attribute_id: The resource attribute ID to archive.
         """
         request = ArchiveResourceAttributeRequest(resource_attribute_id=attribute_id)
-        await self._grpc_client.get_stub(
-            ResourceAttributeServiceStub
-        ).ArchiveResourceAttribute(request)
+        await self._grpc_client.get_stub(ResourceAttributeServiceStub).ArchiveResourceAttribute(
+            request
+        )
 
     async def unarchive_resource_attribute(self, attribute_id: str) -> None:
         """Unarchive a resource attribute.
@@ -775,9 +769,9 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
             attribute_id: The resource attribute ID to unarchive.
         """
         request = UnarchiveResourceAttributeRequest(resource_attribute_id=attribute_id)
-        await self._grpc_client.get_stub(
-            ResourceAttributeServiceStub
-        ).UnarchiveResourceAttribute(request)
+        await self._grpc_client.get_stub(ResourceAttributeServiceStub).UnarchiveResourceAttribute(
+            request
+        )
 
     async def batch_archive_resource_attributes(self, attribute_ids: list[str]) -> None:
         """Archive multiple resource attributes.
@@ -800,4 +794,3 @@ class ResourceAttributeLowLevelClient(LowLevelClientBase, WithGrpcClient):
         await self._grpc_client.get_stub(
             ResourceAttributeServiceStub
         ).BatchUnarchiveResourceAttributes(request)
-

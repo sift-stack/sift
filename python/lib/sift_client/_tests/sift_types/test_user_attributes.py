@@ -143,7 +143,9 @@ class TestUserAttributeKey:
         assert mock_user_attribute_key.name == "department"
         assert mock_user_attribute_key.organization_id == "test_org_id"
         assert mock_user_attribute_key.description == "User department"
-        assert mock_user_attribute_key.type == UserAttributeValueType.USER_ATTRIBUTE_VALUE_TYPE_STRING
+        assert (
+            mock_user_attribute_key.type == UserAttributeValueType.USER_ATTRIBUTE_VALUE_TYPE_STRING
+        )
         assert mock_user_attribute_key.created_by_user_id == "user1"
         assert mock_user_attribute_key.created_date is not None
         assert mock_user_attribute_key.created_date.tzinfo == timezone.utc
@@ -309,4 +311,3 @@ class TestUserAttributeValue:
 
         with pytest.raises(AttributeError, match="Sift client not set"):
             _ = value.client
-

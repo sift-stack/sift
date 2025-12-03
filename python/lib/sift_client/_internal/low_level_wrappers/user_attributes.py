@@ -77,9 +77,9 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if description is not None:
             request.description = description
 
-        response = await self._grpc_client.get_stub(UserAttributesServiceStub).CreateUserAttributeKey(
-            request
-        )
+        response = await self._grpc_client.get_stub(
+            UserAttributesServiceStub
+        ).CreateUserAttributeKey(request)
         grpc_key = cast("CreateUserAttributeKeyResponse", response).user_attribute_key
         return UserAttributeKey._from_proto(grpc_key)
 
@@ -195,9 +195,7 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         update.resource_id = key_id
 
         proto, mask = update.to_proto_with_mask()
-        request = UpdateUserAttributeKeyRequest(
-            user_attribute_key_id=key_id, update_mask=mask
-        )
+        request = UpdateUserAttributeKeyRequest(user_attribute_key_id=key_id, update_mask=mask)
         if update.name is not None:
             request.name = update.name
         if update.description is not None:
@@ -227,9 +225,9 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             key_ids: List of user attribute key IDs to unarchive.
         """
         request = UnarchiveUserAttributeKeysRequest(user_attribute_key_ids=key_ids)
-        await self._grpc_client.get_stub(
-            UserAttributesServiceStub
-        ).UnarchiveUserAttributeKeys(request)
+        await self._grpc_client.get_stub(UserAttributesServiceStub).UnarchiveUserAttributeKeys(
+            request
+        )
 
     # User Attribute Value methods
 
@@ -253,9 +251,7 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The created UserAttributeValue.
         """
-        request = CreateUserAttributeValueRequest(
-            user_attribute_key_id=key_id, user_id=user_id
-        )
+        request = CreateUserAttributeValueRequest(user_attribute_key_id=key_id, user_id=user_id)
         if string_value is not None:
             request.string_value = string_value
         elif number_value is not None:
@@ -356,9 +352,7 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).ListUserAttributeValues(request)
         response = cast("ListUserAttributeValuesResponse", response)
 
-        values = [
-            UserAttributeValue._from_proto(val) for val in response.user_attribute_values
-        ]
+        values = [UserAttributeValue._from_proto(val) for val in response.user_attribute_values]
         return values, response.next_page_token
 
     async def list_all_user_attribute_values(
@@ -427,9 +421,7 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).ListUserAttributeKeyValues(request)
         response = cast("ListUserAttributeKeyValuesResponse", response)
 
-        values = [
-            UserAttributeValue._from_proto(val) for val in response.user_attribute_values
-        ]
+        values = [UserAttributeValue._from_proto(val) for val in response.user_attribute_values]
         return values, response.next_page_token
 
     async def list_all_user_attribute_key_values(
@@ -471,9 +463,9 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             value_ids: List of user attribute value IDs to archive.
         """
         request = ArchiveUserAttributeValuesRequest(user_attribute_value_ids=value_ids)
-        await self._grpc_client.get_stub(
-            UserAttributesServiceStub
-        ).ArchiveUserAttributeValues(request)
+        await self._grpc_client.get_stub(UserAttributesServiceStub).ArchiveUserAttributeValues(
+            request
+        )
 
     async def unarchive_user_attribute_values(self, value_ids: list[str]) -> None:
         """Unarchive user attribute values.
@@ -482,7 +474,6 @@ class UserAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             value_ids: List of user attribute value IDs to unarchive.
         """
         request = UnarchiveUserAttributeValuesRequest(user_attribute_value_ids=value_ids)
-        await self._grpc_client.get_stub(
-            UserAttributesServiceStub
-        ).UnarchiveUserAttributeValues(request)
-
+        await self._grpc_client.get_stub(UserAttributesServiceStub).UnarchiveUserAttributeValues(
+            request
+        )

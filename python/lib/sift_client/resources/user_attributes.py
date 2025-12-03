@@ -7,7 +7,6 @@ from sift_client.resources._base import ResourceBase
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
-
     from sift_client.client import SiftClient
     from sift_client.sift_types.user_attributes import (
         UserAttributeKey,
@@ -295,4 +294,3 @@ class UserAttributesAPIAsync(ResourceBase):
             value_ids: List of user attribute value IDs to unarchive.
         """
         await self._low_level_client.unarchive_user_attribute_values(value_ids)
-

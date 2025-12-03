@@ -73,7 +73,8 @@ def mock_resource_attribute(mock_client):
     """Create a mock ResourceAttribute instance for testing."""
     now = datetime.now(timezone.utc)
     entity = ResourceAttributeEntityIdentifier(
-        entity_id="asset123", entity_type=ResourceAttributeEntityType.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
+        entity_id="asset123",
+        entity_type=ResourceAttributeEntityType.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET,
     )
     proto = ResourceAttributeProto(
         resource_attribute_id="test_attr_id",
@@ -258,7 +259,9 @@ class TestResourceAttributeCreate:
         )
 
         assert create.entity_id == "asset123"
-        assert create.entity_type == ResourceAttributeEntityType.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
+        assert (
+            create.entity_type == ResourceAttributeEntityType.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
+        )
         assert create.resource_attribute_enum_value_id == "test_enum_value_id"
 
     def test_resource_attribute_create_boolean_value(self):
@@ -283,7 +286,10 @@ class TestResourceAttributeCreate:
         proto = create.to_proto()
 
         assert proto.entity.entity_id == "asset123"
-        assert proto.entity.entity_type == ResourceAttributeEntityType.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
+        assert (
+            proto.entity.entity_type
+            == ResourceAttributeEntityType.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
+        )
         assert proto.resource_attribute_key_id == "test_key_id"
         assert proto.resource_attribute_enum_value_id == "test_enum_value_id"
 
@@ -348,4 +354,3 @@ class TestResourceAttribute:
 
         with pytest.raises(AttributeError, match="Sift client not set"):
             _ = attr.client
-

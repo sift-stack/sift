@@ -92,9 +92,7 @@ class TestUserAttributeKeys:
 
     def test_list_keys_with_filter(self, sift_client, test_user_attribute_key):
         """Test listing user attribute keys with filtering."""
-        keys = sift_client.user_attributes.list_keys(
-            name=test_user_attribute_key.name, limit=10
-        )
+        keys = sift_client.user_attributes.list_keys(name=test_user_attribute_key.name, limit=10)
 
         assert len(keys) >= 1
         assert keys[0].id_ == test_user_attribute_key.id_
@@ -108,7 +106,8 @@ class TestUserAttributeKeys:
         )
 
         updated_key = sift_client.user_attributes.update_key(
-            key, {"name": f"test_updated_{test_timestamp_str}", "description": "Updated description"}
+            key,
+            {"name": f"test_updated_{test_timestamp_str}", "description": "Updated description"},
         )
 
         assert updated_key.name == f"test_updated_{test_timestamp_str}"
@@ -210,7 +209,9 @@ class TestUserAttributeValues:
         # Cleanup
         sift_client.user_attributes.archive_value(value.id_)
 
-    def test_archive_unarchive_value(self, sift_client, test_user_attribute_key, test_timestamp_str):
+    def test_archive_unarchive_value(
+        self, sift_client, test_user_attribute_key, test_timestamp_str
+    ):
         """Test archiving and unarchiving a user attribute value."""
         value = sift_client.user_attributes.create_value(
             key_id=test_user_attribute_key.id_,
@@ -230,4 +231,3 @@ class TestUserAttributeValues:
 
         # Cleanup
         sift_client.user_attributes.archive_value(value.id_)
-
