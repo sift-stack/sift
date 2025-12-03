@@ -7,7 +7,6 @@ from sift_client.resources._base import ResourceBase
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
-    import re
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.user_attributes import (
@@ -35,7 +34,7 @@ class UserAttributesAPIAsync(ResourceBase):
         self,
         name: str,
         description: str | None = None,
-        value_type: int = None,  # UserAttributeValueType enum value
+        value_type: int | None = None,  # UserAttributeValueType enum value
     ) -> UserAttributeKey:
         """Create a new user attribute key.
 

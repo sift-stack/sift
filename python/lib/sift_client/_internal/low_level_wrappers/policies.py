@@ -5,10 +5,14 @@ from typing import TYPE_CHECKING, Any, cast
 
 from sift.policies.v1.policies_pb2 import (
     ArchivePolicyRequest,
-    CreatePolicyRequest,
+    ArchivePolicyResponse,
+    CreatePolicyResponse,
     GetPolicyRequest,
+    GetPolicyResponse,
     ListPoliciesRequest,
+    ListPoliciesResponse,
     UpdatePolicyRequest,
+    UpdatePolicyResponse,
 )
 from sift.policies.v1.policies_pb2_grpc import PolicyServiceStub
 

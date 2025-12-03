@@ -7,26 +7,33 @@ from sift.user_attributes.v1.user_attributes_pb2 import (
     ArchiveUserAttributeKeysRequest,
     ArchiveUserAttributeValuesRequest,
     BatchCreateUserAttributeValueRequest,
+    BatchCreateUserAttributeValueResponse,
     CreateUserAttributeKeyRequest,
+    CreateUserAttributeKeyResponse,
     CreateUserAttributeValueRequest,
+    CreateUserAttributeValueResponse,
     GetUserAttributeKeyRequest,
+    GetUserAttributeKeyResponse,
     GetUserAttributeValueRequest,
-    ListUserAttributeKeyValuesRequest,
+    GetUserAttributeValueResponse,
     ListUserAttributeKeysRequest,
+    ListUserAttributeKeysResponse,
+    ListUserAttributeKeyValuesRequest,
+    ListUserAttributeKeyValuesResponse,
     ListUserAttributeValuesRequest,
+    ListUserAttributeValuesResponse,
     UnarchiveUserAttributeKeysRequest,
     UnarchiveUserAttributeValuesRequest,
     UpdateUserAttributeKeyRequest,
+    UpdateUserAttributeKeyResponse,
 )
 from sift.user_attributes.v1.user_attributes_pb2_grpc import UserAttributesServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.user_attributes import (
     UserAttributeKey,
-    UserAttributeKeyCreate,
     UserAttributeKeyUpdate,
     UserAttributeValue,
-    UserAttributeValueCreate,
 )
 from sift_client.transport import WithGrpcClient
 

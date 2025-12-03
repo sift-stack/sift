@@ -41,7 +41,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         self,
         display_name: str,
         description: str | None = None,
-        key_type: int = None,  # ResourceAttributeKeyType enum value
+        key_type: int | None = None,  # ResourceAttributeKeyType enum value
         initial_enum_values: list[dict] | None = None,
     ) -> ResourceAttributeKey:
         """Create a new resource attribute key.

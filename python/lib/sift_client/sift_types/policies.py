@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 
 from sift.policies.v1.policies_pb2 import (
     CreatePolicyRequest as CreatePolicyRequestProto,
+)
+from sift.policies.v1.policies_pb2 import (
     Policy as PolicyProto,
-    PolicyConfiguration,
 )
 
 from sift_client.sift_types._base import BaseType, ModelCreate, ModelUpdate

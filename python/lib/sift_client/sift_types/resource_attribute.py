@@ -5,14 +5,21 @@ from typing import TYPE_CHECKING
 
 from sift.resource_attribute.v1.resource_attribute_pb2 import (
     CreateResourceAttributeEnumValueRequest as CreateResourceAttributeEnumValueRequestProto,
+)
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
     CreateResourceAttributeKeyRequest as CreateResourceAttributeKeyRequestProto,
+)
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
     CreateResourceAttributeRequest as CreateResourceAttributeRequestProto,
+)
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
     ResourceAttribute as ResourceAttributeProto,
+)
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
     ResourceAttributeEnumValue as ResourceAttributeEnumValueProto,
-    ResourceAttributeEntityIdentifier,
-    ResourceAttributeEntityType,
+)
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
     ResourceAttributeKey as ResourceAttributeKeyProto,
-    ResourceAttributeKeyType,
 )
 
 from sift_client.sift_types._base import BaseType, ModelCreate, ModelUpdate

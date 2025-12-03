@@ -5,10 +5,15 @@ from typing import TYPE_CHECKING
 
 from sift.user_attributes.v1.user_attributes_pb2 import (
     CreateUserAttributeKeyRequest as CreateUserAttributeKeyRequestProto,
+)
+from sift.user_attributes.v1.user_attributes_pb2 import (
     CreateUserAttributeValueRequest as CreateUserAttributeValueRequestProto,
+)
+from sift.user_attributes.v1.user_attributes_pb2 import (
     UserAttributeKey as UserAttributeKeyProto,
+)
+from sift.user_attributes.v1.user_attributes_pb2 import (
     UserAttributeValue as UserAttributeValueProto,
-    UserAttributeValueType,
 )
 
 from sift_client.sift_types._base import BaseType, ModelCreate, ModelUpdate

@@ -148,7 +148,18 @@ from sift_client.sift_types.ingestion import (
     IngestionConfig,
     IngestionConfigCreate,
 )
+from sift_client.sift_types.policies import Policy, PolicyCreate, PolicyUpdate
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
+from sift_client.sift_types.resource_attribute import (
+    ResourceAttribute,
+    ResourceAttributeCreate,
+    ResourceAttributeEnumValue,
+    ResourceAttributeEnumValueCreate,
+    ResourceAttributeEnumValueUpdate,
+    ResourceAttributeKey,
+    ResourceAttributeKeyCreate,
+    ResourceAttributeKeyUpdate,
+)
 from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
@@ -171,17 +182,6 @@ from sift_client.sift_types.test_report import (
     TestStep,
     TestStepCreate,
     TestStepType,
-)
-from sift_client.sift_types.policies import Policy, PolicyCreate, PolicyUpdate
-from sift_client.sift_types.resource_attribute import (
-    ResourceAttribute,
-    ResourceAttributeCreate,
-    ResourceAttributeEnumValue,
-    ResourceAttributeEnumValueCreate,
-    ResourceAttributeEnumValueUpdate,
-    ResourceAttributeKey,
-    ResourceAttributeKeyCreate,
-    ResourceAttributeKeyUpdate,
 )
 from sift_client.sift_types.user_attributes import (
     UserAttributeKey,
@@ -206,10 +206,21 @@ __all__ = [
     "FlowConfig",
     "IngestionConfig",
     "IngestionConfigCreate",
+    "Policy",
+    "PolicyCreate",
+    "PolicyUpdate",
     "Report",
     "ReportRuleStatus",
     "ReportRuleSummary",
     "ReportUpdate",
+    "ResourceAttribute",
+    "ResourceAttributeCreate",
+    "ResourceAttributeEnumValue",
+    "ResourceAttributeEnumValueCreate",
+    "ResourceAttributeEnumValueUpdate",
+    "ResourceAttributeKey",
+    "ResourceAttributeKeyCreate",
+    "ResourceAttributeKeyUpdate",
     "Rule",
     "RuleAction",
     "RuleActionType",
@@ -233,17 +244,6 @@ __all__ = [
     "TestStep",
     "TestStepCreate",
     "TestStepType",
-    "Policy",
-    "PolicyCreate",
-    "PolicyUpdate",
-    "ResourceAttribute",
-    "ResourceAttributeCreate",
-    "ResourceAttributeEnumValue",
-    "ResourceAttributeEnumValueCreate",
-    "ResourceAttributeEnumValueUpdate",
-    "ResourceAttributeKey",
-    "ResourceAttributeKeyCreate",
-    "ResourceAttributeKeyUpdate",
     "UserAttributeKey",
     "UserAttributeKeyCreate",
     "UserAttributeKeyUpdate",
