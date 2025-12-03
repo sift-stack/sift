@@ -280,7 +280,6 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated Rule.
         """
-
         should_update_archive = "is_archived" in update.model_fields_set
 
         update.resource_id = rule.id_

@@ -10,11 +10,14 @@ if TYPE_CHECKING:
         FileAttachmentsAPIAsync,
         IngestionAPIAsync,
         PingAPIAsync,
+        PoliciesAPIAsync,
         ReportsAPIAsync,
+        ResourceAttributesAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
         TagsAPIAsync,
         TestResultsAPIAsync,
+        UserAttributesAPIAsync,
     )
 
 
@@ -53,6 +56,15 @@ class AsyncAPIs(NamedTuple):
 
     test_results: TestResultsAPIAsync
     """Instance of the Test Results API for making asynchronous requests."""
+
+    user_attributes: UserAttributesAPIAsync
+    """Instance of the User Attributes API for making asynchronous requests."""
+
+    resource_attributes: ResourceAttributesAPIAsync
+    """Instance of the Resource Attributes API for making asynchronous requests."""
+
+    policies: PoliciesAPIAsync
+    """Instance of the Policies API for making asynchronous requests."""
 
 
 def count_non_none(*args: Any) -> int:
