@@ -104,8 +104,6 @@ class UserAttributesAPIAsync(ResourceBase):
             filter_parts.append(cel.equals("user_attribute_key_id", key_id))
         if organization_id:
             filter_parts.append(cel.equals("organization_id", organization_id))
-        if not include_archived:
-            filter_parts.append(cel.equals("is_archived", False))
 
         query_filter = cel.and_(*filter_parts) if filter_parts else None
 
@@ -248,8 +246,6 @@ class UserAttributesAPIAsync(ResourceBase):
             filter_parts.append(cel.equals("user_attribute_key_id", key_id))
         if user_id:
             filter_parts.append(cel.equals("user_id", user_id))
-        if not include_archived:
-            filter_parts.append(cel.equals("is_archived", False))
 
         if filter_query:
             filter_parts.append(filter_query)  # filter_query is already a CEL expression string

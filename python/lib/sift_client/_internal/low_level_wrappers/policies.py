@@ -185,6 +185,14 @@ class PoliciesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if "configuration.cedar_policy" not in mask.paths:  # type: ignore[attr-defined]
             proto.configuration.cedar_policy = current_policy.cedar_policy
 
+        # Copy read-only fields from current policy (required by backend validation)
+        proto.organization_id = current_policy.organization_id
+        proto.created_by_user_id = current_policy.created_by_user_id
+        proto.modified_by_user_id = current_policy.modified_by_user_id
+        proto.policy_version_id = current_policy.policy_version_id
+        proto.created_date.CopyFrom(current_policy.proto.created_date)  # type: ignore[attr-defined]
+        proto.modified_date.CopyFrom(current_policy.proto.modified_date)  # type: ignore[attr-defined]
+
         request = UpdatePolicyRequest(policy=proto, update_mask=mask)
         if version_notes is not None:
             request.version_notes = version_notes

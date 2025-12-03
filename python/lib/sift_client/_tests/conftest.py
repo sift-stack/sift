@@ -83,6 +83,19 @@ def ci_pytest_tag(sift_client):
     return tag
 
 
+@pytest.fixture(scope="session")
+def test_user_id(sift_client):
+    """Get a valid user ID from an existing resource (the authenticated user).
+
+    This fixture retrieves the user ID of the authenticated test runner by
+    getting it from an existing tag. This user ID can be used in tests that
+    require a valid user ID, such as user attribute tests.
+    """
+    # Get the user ID from an existing tag (tags are always available and have created_by_user_id)
+    tag = sift_client.tags.find_or_create(names=["test"])[0]
+    return tag.created_by_user_id
+
+
 from sift_client.util.test_results import (
     client_has_connection,  # noqa: F401
     pytest_runtest_makereport,  # noqa: F401

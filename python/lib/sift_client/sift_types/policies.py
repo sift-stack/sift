@@ -80,10 +80,20 @@ class PolicyCreate(ModelCreate[CreatePolicyRequestProto]):
 
     def to_proto(self) -> CreatePolicyRequestProto:
         """Convert to proto, handling policy configuration."""
-        proto = super().to_proto()
-        # Set policy configuration
-        proto.configuration.cedar_policy = self.cedar_policy
-        return proto
+        # Get the corresponding proto class
+        proto_cls = self._get_proto_class()
+        proto_msg = proto_cls()
+
+        # Get all fields except cedar_policy (we'll handle it manually)
+        data = self.model_dump(
+            exclude_unset=True, exclude_none=True, exclude={"cedar_policy"}
+        )
+        self._build_proto_and_paths(proto_msg, data)
+
+        # Set policy configuration manually
+        proto_msg.configuration.cedar_policy = self.cedar_policy
+
+        return proto_msg
 
 
 class PolicyUpdate(ModelUpdate[PolicyProto]):
@@ -104,10 +114,24 @@ class PolicyUpdate(ModelUpdate[PolicyProto]):
 
     def to_proto_with_mask(self) -> tuple[PolicyProto, field_mask_pb2.FieldMask]:
         """Convert to proto with field mask, handling policy configuration."""
-        proto, mask = super().to_proto_with_mask()
+        # Get the corresponding proto class
+        proto_cls = self._get_proto_class()
+        proto_msg = proto_cls()
+
+        # Get all fields except cedar_policy (we'll handle it manually)
+        data = self.model_dump(
+            exclude_unset=True, exclude_none=True, exclude={"cedar_policy"}
+        )
+        paths = self._build_proto_and_paths(proto_msg, data)
+
+        # Set resource ID
+        self._add_resource_id_to_proto(proto_msg)
+
         # If cedar_policy is being updated, set it in the configuration
         if self.cedar_policy is not None:
-            proto.configuration.cedar_policy = self.cedar_policy
-            if "configuration.cedar_policy" not in mask.paths:
-                mask.paths.append("configuration.cedar_policy")
-        return proto, mask
+            proto_msg.configuration.cedar_policy = self.cedar_policy
+            if "configuration.cedar_policy" not in paths:
+                paths.append("configuration.cedar_policy")
+
+        mask = field_mask_pb2.FieldMask(paths=paths)
+        return proto_msg, mask
