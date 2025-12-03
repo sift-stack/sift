@@ -112,7 +112,7 @@ class UserAttributeKeyCreate(ModelCreate[CreateUserAttributeKeyRequestProto]):
     description: str | None = None
     type: int  # UserAttributeValueType enum value
 
-    def _get_proto_class(self) -> Type[CreateUserAttributeKeyRequestProto]:
+    def _get_proto_class(self) -> Type[CreateUserAttributeKeyRequestProto]:  # noqa: UP006
         return CreateUserAttributeKeyRequestProto
 
 

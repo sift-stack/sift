@@ -168,7 +168,7 @@ class ResourceAttributeKeyCreate(ModelCreate[CreateResourceAttributeKeyRequestPr
     type: int  # ResourceAttributeKeyType enum value
     initial_enum_values: list[dict] | None = None  # [{display_name: str, description: str}]
 
-    def _get_proto_class(self) -> Type[CreateResourceAttributeKeyRequestProto]:
+    def _get_proto_class(self) -> Type[CreateResourceAttributeKeyRequestProto]:  # noqa: UP006
         return CreateResourceAttributeKeyRequestProto
 
     def to_proto(self) -> CreateResourceAttributeKeyRequestProto:
@@ -214,7 +214,7 @@ class ResourceAttributeCreate(ModelCreate[CreateResourceAttributeRequestProto]):
     boolean_value: bool | None = None
     number_value: float | None = None
 
-    def _get_proto_class(self) -> Type[CreateResourceAttributeRequestProto]:
+    def _get_proto_class(self) -> Type[CreateResourceAttributeRequestProto]:  # noqa: UP006
         return CreateResourceAttributeRequestProto
 
     def to_proto(self) -> CreateResourceAttributeRequestProto:

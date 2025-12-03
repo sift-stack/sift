@@ -446,6 +446,9 @@ class ResourceAttributesAPIAsync(ResourceBase):
         )
 
         if use_entity_endpoint:
+            # Type narrowing: entity_id and entity_type are guaranteed to be non-None here
+            assert entity_id is not None
+            assert entity_type is not None
             attrs = await self._low_level_client.list_all_resource_attributes_by_entity(
                 entity_id=entity_id,
                 entity_type=entity_type,

@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from google.protobuf import field_mask_pb2
-
 from sift.policies.v1.policies_pb2 import (
     CreatePolicyRequest as CreatePolicyRequestProto,
 )

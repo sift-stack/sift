@@ -190,8 +190,9 @@ class PoliciesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         proto.created_by_user_id = current_policy.created_by_user_id
         proto.modified_by_user_id = current_policy.modified_by_user_id
         proto.policy_version_id = current_policy.policy_version_id
-        proto.created_date.CopyFrom(current_policy.proto.created_date)  # type: ignore[attr-defined]
-        proto.modified_date.CopyFrom(current_policy.proto.modified_date)  # type: ignore[attr-defined]
+        if current_policy.proto is not None:
+            proto.created_date.CopyFrom(current_policy.proto.created_date)  # type: ignore[attr-defined]
+            proto.modified_date.CopyFrom(current_policy.proto.modified_date)  # type: ignore[attr-defined]
 
         request = UpdatePolicyRequest(policy=proto, update_mask=mask)
         if version_notes is not None:
