@@ -1,5 +1,4 @@
-"""
-`sift_py` is a Python module built on top of Sift's protocol buffers to ergonomically interface with
+"""`sift_py` is a Python module built on top of Sift's protocol buffers to ergonomically interface with
 Sift's gRPC API, especially with regard to data ingestion and and rule evaluation. If there are any
 words or concepts that you find yourself needing to familiarize yourself with, be sure to visit the
 official [Sift documentation](https://docs.siftstack.com/glossary).
