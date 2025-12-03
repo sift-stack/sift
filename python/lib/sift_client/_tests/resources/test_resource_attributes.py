@@ -11,11 +11,11 @@ These tests demonstrate and validate the usage of the Resource Attributes API in
 from datetime import datetime, timezone
 
 import pytest
-
 from sift.resource_attribute.v1.resource_attribute_pb2 import (
     ResourceAttributeEntityType,
     ResourceAttributeKeyType,
 )
+
 from sift_client.resources import ResourceAttributesAPI, ResourceAttributesAPIAsync
 from sift_client.sift_types import (
     ResourceAttribute,
@@ -71,7 +71,7 @@ def test_resource_attribute_enum_value(sift_client, test_resource_attribute_key)
         display_name="production",
         description="Production environment",
     )
-    yield enum_value
+    return enum_value
     # Cleanup handled by key cleanup
 
 
@@ -179,7 +179,7 @@ class TestResourceAttributes:
             assets = sift_client.assets.list_(limit=1)
             if not assets:
                 pytest.skip("No assets available for testing")
-            
+
             asset_id = assets[0].id_
             attr = sift_client.resource_attributes.create(
                 key_id=test_resource_attribute_key.id_,
@@ -203,7 +203,7 @@ class TestResourceAttributes:
             assets = sift_client.assets.list_(limit=2)
             if len(assets) < 2:
                 pytest.skip("Need at least 2 assets for batch test")
-            
+
             asset_ids = [assets[0].id_, assets[1].id_]
             attrs = sift_client.resource_attributes.create(
                 key_id=test_resource_attribute_key.id_,

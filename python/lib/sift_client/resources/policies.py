@@ -88,16 +88,16 @@ class PoliciesAPIAsync(ResourceBase):
         """
         filter_parts = []
         if name:
-            filter_parts.append(cel.eq("name", name))
+            filter_parts.append(cel.equals("name", name))
         if name_contains:
             filter_parts.append(cel.contains("name", name_contains))
         if organization_id:
-            filter_parts.append(cel.eq("organization_id", organization_id))
+            filter_parts.append(cel.equals("organization_id", organization_id))
         if not include_archived:
-            filter_parts.append(cel.eq("is_archived", False))
+            filter_parts.append(cel.equals("is_archived", False))
 
         if filter_query:
-            filter_parts.append(cel.raw(filter_query))
+            filter_parts.append(filter_query)  # filter_query is already a CEL expression string
 
         query_filter = cel.and_(*filter_parts) if filter_parts else None
 

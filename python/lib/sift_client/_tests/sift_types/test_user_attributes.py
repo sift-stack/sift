@@ -1,16 +1,18 @@
 """Tests for sift_types.user_attributes models."""
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 
 import pytest
-from google.protobuf.timestamp_pb2 import Timestamp
-
 from sift.user_attributes.v1.user_attributes_pb2 import (
     UserAttributeKey as UserAttributeKeyProto,
+)
+from sift.user_attributes.v1.user_attributes_pb2 import (
     UserAttributeValue as UserAttributeValueProto,
+)
+from sift.user_attributes.v1.user_attributes_pb2 import (
     UserAttributeValueType,
 )
+
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.user_attributes import (
     UserAttributeKey,

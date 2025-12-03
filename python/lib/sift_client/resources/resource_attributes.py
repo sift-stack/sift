@@ -104,16 +104,16 @@ class ResourceAttributesAPIAsync(ResourceBase):
         """
         filter_parts = []
         if key_id:
-            filter_parts.append(cel.eq("resource_attribute_key_id", key_id))
+            filter_parts.append(cel.equals("resource_attribute_key_id", key_id))
         if name_contains:
             filter_parts.append(cel.contains("display_name", name_contains))
         if key_type is not None:
-            filter_parts.append(cel.eq("type", key_type))
+            filter_parts.append(cel.equals("type", key_type))
         if not include_archived:
-            filter_parts.append(cel.eq("is_archived", False))
+            filter_parts.append(cel.equals("is_archived", False))
 
         if filter_query:
-            filter_parts.append(cel.raw(filter_query))
+            filter_parts.append(filter_query)  # filter_query is already a CEL expression string
 
         query_filter = cel.and_(*filter_parts) if filter_parts else None
 
@@ -230,10 +230,10 @@ class ResourceAttributesAPIAsync(ResourceBase):
         """
         filter_parts = []
         if not include_archived:
-            filter_parts.append(cel.eq("is_archived", False))
+            filter_parts.append(cel.equals("is_archived", False))
 
         if filter_query:
-            filter_parts.append(cel.raw(filter_query))
+            filter_parts.append(filter_query)  # filter_query is already a CEL expression string
 
         query_filter = cel.and_(*filter_parts) if filter_parts else None
 
@@ -441,16 +441,16 @@ class ResourceAttributesAPIAsync(ResourceBase):
         """
         filter_parts = []
         if entity_id:
-            filter_parts.append(cel.eq("entity.entity_id", entity_id))
+            filter_parts.append(cel.equals("entity.entity_id", entity_id))
         if entity_type is not None:
-            filter_parts.append(cel.eq("entity.entity_type", entity_type))
+            filter_parts.append(cel.equals("entity.entity_type", entity_type))
         if key_id:
-            filter_parts.append(cel.eq("resource_attribute_key_id", key_id))
+            filter_parts.append(cel.equals("resource_attribute_key_id", key_id))
         if not include_archived:
-            filter_parts.append(cel.eq("is_archived", False))
+            filter_parts.append(cel.equals("is_archived", False))
 
         if filter_query:
-            filter_parts.append(cel.raw(filter_query))
+            filter_parts.append(filter_query)  # filter_query is already a CEL expression string
 
         query_filter = cel.and_(*filter_parts) if filter_parts else None
 

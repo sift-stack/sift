@@ -1,11 +1,11 @@
 """Tests for sift_types.policies models."""
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 
 import pytest
+from sift.policies.v1.policies_pb2 import Policy as PolicyProto
+from sift.policies.v1.policies_pb2 import PolicyConfiguration
 
-from sift.policies.v1.policies_pb2 import Policy as PolicyProto, PolicyConfiguration
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.policies import Policy, PolicyCreate, PolicyUpdate
 

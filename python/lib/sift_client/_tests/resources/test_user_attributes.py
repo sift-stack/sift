@@ -10,8 +10,8 @@ These tests demonstrate and validate the usage of the User Attributes API includ
 from datetime import datetime, timezone
 
 import pytest
-
 from sift.user_attributes.v1.user_attributes_pb2 import UserAttributeValueType
+
 from sift_client.resources import UserAttributesAPI, UserAttributesAPIAsync
 from sift_client.sift_types import UserAttributeKey, UserAttributeValue
 

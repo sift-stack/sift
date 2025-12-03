@@ -1,18 +1,23 @@
 """Tests for sift_types.resource_attribute models."""
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 
 import pytest
-
 from sift.resource_attribute.v1.resource_attribute_pb2 import (
     ResourceAttribute as ResourceAttributeProto,
-    ResourceAttributeEnumValue as ResourceAttributeEnumValueProto,
+)
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
     ResourceAttributeEntityIdentifier,
     ResourceAttributeEntityType,
-    ResourceAttributeKey as ResourceAttributeKeyProto,
     ResourceAttributeKeyType,
 )
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
+    ResourceAttributeEnumValue as ResourceAttributeEnumValueProto,
+)
+from sift.resource_attribute.v1.resource_attribute_pb2 import (
+    ResourceAttributeKey as ResourceAttributeKeyProto,
+)
+
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.resource_attribute import (
     ResourceAttribute,
