@@ -230,7 +230,7 @@ def test_complete_policy_workflow(sift_client, test_timestamp_str):
         for policy in created_policies:
             try:
                 sift_client.policies.archive(policy.id_)
-            except Exception:
+            except Exception:  # noqa: PERF203  # Cleanup in finally block
                 pass
 
 
@@ -239,17 +239,17 @@ class TestPolicyErrors:
 
     def test_get_nonexistent_policy(self, sift_client):
         """Test getting a non-existent policy raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.policies.get("nonexistent-policy-id-12345")
 
     def test_update_nonexistent_policy(self, sift_client, test_timestamp_str):
         """Test updating a non-existent policy raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.policies.update(
                 "nonexistent-policy-id-12345", {"name": "updated"}
             )
 
     def test_archive_nonexistent_policy(self, sift_client):
         """Test archiving a non-existent policy raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.policies.archive("nonexistent-policy-id-12345")

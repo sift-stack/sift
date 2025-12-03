@@ -158,13 +158,12 @@ class TestUserAttributeValues:
 
     def test_create_value_batch(self, sift_client, test_user_attribute_key, test_user_id):
         """Test creating multiple user attribute values in batch.
-        
+
         Note: Since we only have one test user ID, we test batch creation
         with a single user_id. The batch API should still work correctly.
         """
         # Use a single user ID for batch test (batch API works with one or more user IDs)
         user_ids = [test_user_id]
-        
         values = sift_client.user_attributes.create_value(
             key_id=test_user_attribute_key.id_,
             user_ids=user_ids,
@@ -361,12 +360,12 @@ def test_complete_user_attribute_workflow(sift_client, test_timestamp_str, test_
         for value in created_values:
             try:
                 sift_client.user_attributes.archive_value(value.id_)
-            except Exception:
+            except Exception:  # noqa: PERF203  # Cleanup in finally block
                 pass
         for key in created_keys:
             try:
                 sift_client.user_attributes.archive_key(key.id_)
-            except Exception:
+            except Exception:  # noqa: PERF203  # Cleanup in finally block
                 pass
 
 
@@ -375,7 +374,7 @@ class TestUserAttributeErrors:
 
     def test_create_value_with_nonexistent_key(self, sift_client, test_user_id):
         """Test creating a value with a non-existent key raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.user_attributes.create_value(
                 key_id="nonexistent-key-id-12345",
                 user_ids=test_user_id,
@@ -384,17 +383,17 @@ class TestUserAttributeErrors:
 
     def test_get_nonexistent_key(self, sift_client):
         """Test getting a non-existent key raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.user_attributes.get_key("nonexistent-key-id-12345")
 
     def test_get_nonexistent_value(self, sift_client):
         """Test getting a non-existent value raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.user_attributes.get_value("nonexistent-value-id-12345")
 
     def test_update_nonexistent_key(self, sift_client, test_timestamp_str):
         """Test updating a non-existent key raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.user_attributes.update_key(
                 "nonexistent-key-id-12345", {"name": "updated"}
             )

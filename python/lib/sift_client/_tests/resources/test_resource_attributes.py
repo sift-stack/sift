@@ -467,17 +467,17 @@ def test_complete_resource_attribute_workflow(sift_client, test_timestamp_str):
             archived_key = sift_client.resource_attributes.get_key(key_to_archive.id_)
             assert archived_key.archived_date is not None
 
-    except Exception as e:
+    except Exception:
         # Cleanup on failure
         for attr in created_attributes:
             try:
                 sift_client.resource_attributes.archive(attr.id_)
-            except Exception:
+            except Exception:  # noqa: PERF203  # Cleanup in finally block
                 pass
         for key in created_keys:
             try:
                 sift_client.resource_attributes.archive_key(key.id_)
-            except Exception:
+            except Exception:  # noqa: PERF203  # Cleanup in finally block
                 pass
         raise
 
@@ -493,7 +493,7 @@ class TestResourceAttributeErrors:
                 pytest.skip("No assets available for testing")
             asset_id = assets[0].id_
 
-            with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+            with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
                 sift_client.resource_attributes.create(
                     key_id="nonexistent-key-id-12345",
                     entities=asset_id,
@@ -518,7 +518,7 @@ class TestResourceAttributeErrors:
             )
 
             try:
-                with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+                with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
                     sift_client.resource_attributes.create(
                         key_id=key.id_,
                         entities=asset_id,
@@ -532,7 +532,7 @@ class TestResourceAttributeErrors:
 
     def test_create_enum_value_for_nonexistent_key(self, sift_client, test_timestamp_str):
         """Test creating an enum value for a non-existent key raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.resource_attributes.create_enum_value(
                 key_id="nonexistent-key-id-12345",
                 display_name="test_enum",
@@ -554,7 +554,7 @@ class TestResourceAttributeErrors:
             try:
                 # Archive enum value without replacement should raise an error
                 # Note: The API might require replacement, check actual behavior
-                with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+                with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
                     sift_client.resource_attributes.archive_enum_value(
                         enum_value.id_, "nonexistent-replacement-id"
                     )
@@ -565,29 +565,29 @@ class TestResourceAttributeErrors:
 
     def test_get_nonexistent_key(self, sift_client):
         """Test getting a non-existent key raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.resource_attributes.get_key("nonexistent-key-id-12345")
 
     def test_get_nonexistent_enum_value(self, sift_client):
         """Test getting a non-existent enum value raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.resource_attributes.get_enum_value("nonexistent-enum-value-id-12345")
 
     def test_get_nonexistent_attribute(self, sift_client):
         """Test getting a non-existent attribute raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.resource_attributes.get("nonexistent-attribute-id-12345")
 
     def test_update_nonexistent_key(self, sift_client, test_timestamp_str):
         """Test updating a non-existent key raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.resource_attributes.update_key(
                 "nonexistent-key-id-12345", {"display_name": "updated"}
             )
 
     def test_update_nonexistent_enum_value(self, sift_client, test_timestamp_str):
         """Test updating a non-existent enum value raises an error."""
-        with pytest.raises(Exception):  # Should raise ValueError or gRPC error
+        with pytest.raises(Exception):  # noqa: B017, PT011  # Should raise ValueError or gRPC error
             sift_client.resource_attributes.update_enum_value(
                 "nonexistent-enum-value-id-12345", {"display_name": "updated"}
             )
