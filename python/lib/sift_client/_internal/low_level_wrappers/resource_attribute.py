@@ -11,7 +11,6 @@ from sift.resource_attribute.v1.resource_attribute_pb2 import (
     BatchArchiveResourceAttributeEnumValuesRequest,
     BatchArchiveResourceAttributeEnumValuesResponse,
     BatchArchiveResourceAttributeKeysRequest,
-    BatchArchiveResourceAttributeKeysRequest,
     BatchArchiveResourceAttributesRequest,
     BatchCreateResourceAttributesRequest,
     BatchCreateResourceAttributesResponse,
