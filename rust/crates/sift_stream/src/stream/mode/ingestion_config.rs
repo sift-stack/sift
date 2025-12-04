@@ -26,6 +26,7 @@ use sift_rs::{
     ingest::v1::IngestWithConfigDataStreamRequest, ingestion_configs::v2::IngestionConfig,
     runs::v2::Run,
 };
+use std::collections::HashSet;
 use std::{
     collections::HashMap,
     pin::Pin,
@@ -47,6 +48,7 @@ pub struct LiveStreaming {
     // Task-based architecture components for non-blocking operation
     stream_system: StreamSystem,
 
+    flows_seen: HashSet<String>,
     metrics: Arc<SiftStreamMetrics>,
 }
 
@@ -60,6 +62,19 @@ impl Transport for LiveStreaming {
 
     /// Sends the message to Sift for live ingestion, while in parallel also sends a backup of the message to a file.
     fn send(&mut self, stream_id: &Uuid, message: Self::Message) -> Result<()> {
+        #[cfg(feature = "tracing")]
+        {
+            if !self.flows_seen.contains(&message.flow) {
+                self.metrics.unique_flows_received.increment();
+                self.flows_seen.insert(message.flow.clone());
+                tracing::info!(
+                    sift_stream_id = %stream_id,
+                    "flow '{}' being ingested for the first time",
+                    &message.flow,
+                );
+            }
+        }
+
         // Track the channel depths.
         self.metrics
             .ingestion_channel_depth
@@ -87,7 +102,7 @@ impl Transport for LiveStreaming {
         if let Err(e) = self.stream_system.backup_tx.try_send(data_msg.clone()) {
             #[cfg(feature = "tracing")]
             tracing::warn!(
-                sift_stream_id = stream_id.to_string(),
+                sift_stream_id = %stream_id,
                 "failed to send data to backup system, data will still be streamed to Sift: {e}"
             );
         }
@@ -103,7 +118,7 @@ impl Transport for LiveStreaming {
             Ok(Some(mut oldest_message)) => {
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
-                    sift_stream_id = stream_id.to_string(),
+                    sift_stream_id = %stream_id,
                     "data channel full, dropping oldest message"
                 );
 
@@ -130,7 +145,7 @@ impl Transport for LiveStreaming {
 
                     #[cfg(feature = "tracing")]
                     tracing::debug!(
-                        sift_stream_id = stream_id.to_string(),
+                        sift_stream_id = %stream_id,
                         "failed to send oldest data to backup task system: {e}"
                     );
                 }
@@ -185,7 +200,7 @@ impl Transport for LiveStreaming {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = stream_id.to_string(),
+            sift_stream_id = %stream_id,
             "successfully shutdown streaming system"
         );
 
@@ -346,7 +361,7 @@ impl Encodeable for Flow {
             } else {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
-                    sift_stream_id = stream_id.to_string(),
+                    sift_stream_id = %stream_id,
                     values = format!("{:?}", self.flow_name),
                     "encountered a message that doesn't match any cached flows - message will still be written to file"
                 );
@@ -359,7 +374,7 @@ impl Encodeable for Flow {
         } else {
             #[cfg(feature = "tracing")]
             tracing::warn!(
-                sift_stream_id = stream_id.to_string(),
+                sift_stream_id = %stream_id,
                 "flow '{}' not found in local flow cache - message will still be written to file",
                 self.flow_name,
             );
@@ -462,6 +477,7 @@ impl SiftStream<IngestionConfigEncoder, LiveStreaming> {
             transport: LiveStreaming {
                 message_id_counter: 0,
                 stream_system,
+                flows_seen: HashSet::new(),
                 metrics,
             },
             run,
@@ -530,7 +546,7 @@ impl Stream for DataStream {
                 // All senders dropped.. conclude stream
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
-                    sift_stream_id = self.sift_stream_id.to_string(),
+                    sift_stream_id = %self.sift_stream_id,
                     "received signal to conclude SiftStream"
                 );
                 Poll::Ready(None)

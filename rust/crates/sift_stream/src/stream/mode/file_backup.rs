@@ -18,6 +18,7 @@ use sift_rs::{
     ingest::v1::IngestWithConfigDataStreamRequest, ingestion_configs::v2::IngestionConfig,
     runs::v2::Run,
 };
+use std::collections::HashSet;
 use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
 use tokio::{sync::broadcast, task::JoinHandle};
 use uuid::Uuid;
@@ -88,6 +89,7 @@ pub struct FileBackup {
     write_task: JoinHandle<Result<()>>,
     control_tx: broadcast::Sender<crate::stream::tasks::ControlMessage>,
     metrics_streaming: Option<JoinHandle<Result<()>>>,
+    flows_seen: HashSet<String>,
     metrics: Arc<SiftStreamMetrics>,
 }
 
@@ -99,8 +101,21 @@ impl Transport for FileBackup {
     type Encoder = IngestionConfigEncoder;
     type Message = IngestWithConfigDataStreamRequest;
 
-    fn send(&mut self, _: &Uuid, message: Self::Message) -> Result<()> {
+    fn send(&mut self, stream_id: &Uuid, message: Self::Message) -> Result<()> {
         self.metrics.messages_received.increment();
+
+        #[cfg(feature = "tracing")]
+        {
+            if !self.flows_seen.contains(&message.flow) {
+                self.metrics.unique_flows_received.increment();
+                self.flows_seen.insert(message.flow.clone());
+                tracing::info!(
+                    sift_stream_id = %stream_id,
+                    "flow '{}' being ingested for the first time",
+                    &message.flow,
+                );
+            }
+        }
 
         // Track the backup channel depth.
         self.metrics
@@ -160,7 +175,7 @@ impl Transport for FileBackup {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = stream_id.to_string(),
+            sift_stream_id = %stream_id,
             "successfully finished file backup stream"
         );
 
@@ -236,7 +251,7 @@ impl FileBackup {
 
                 #[cfg(feature = "tracing")]
                 tracing::info!(
-                    sift_stream_id = sift_stream_id.to_string(),
+                    sift_stream_id = %sift_stream_id,
                     "metrics streaming task started for file backup mode"
                 );
                 metrics_task.run().await
@@ -250,6 +265,7 @@ impl FileBackup {
             write_task,
             control_tx,
             metrics_streaming,
+            flows_seen: HashSet::new(),
             metrics,
         })
     }
@@ -637,6 +653,7 @@ mod tests {
         wait_for_backup_metrics(&metrics, 3, 1000).await;
 
         // Should have tracked 2 unique flows
+        assert_eq!(metrics.unique_flows_received.get(), 2);
         assert_eq!(metrics.messages_sent.get(), 3);
         assert_eq!(metrics.backups.total_messages.get(), 3);
 
