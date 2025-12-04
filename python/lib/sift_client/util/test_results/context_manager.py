@@ -3,6 +3,7 @@ from __future__ import annotations
 import getpass
 import os
 import socket
+import sys
 import traceback
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
@@ -234,6 +235,8 @@ class NewStep(AbstractContextManager):
                 error_code=1,
                 error_message=trace,
             )
+            # Print the stack to stderr for debugging since it's not being thrown.
+            print("".join(stack), file=sys.stderr)
         assert self.current_step is not None
 
         # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
@@ -268,7 +271,7 @@ class NewStep(AbstractContextManager):
         self,
         *,
         name: str,
-        value: float | str | bool,
+        value: float | str | bool | int,
         bounds: dict[str, float] | NumericBounds | str | None = None,
         timestamp: datetime | None = None,
         unit: str | None = None,

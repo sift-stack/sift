@@ -207,6 +207,9 @@ class TestBounds:
         assign_value_to_measurement(measurement, True)
         assert measurement.boolean_value == True
 
+        with pytest.raises(ValueError, match="Invalid value type: <class 'NoneType'>"):
+            assign_value_to_measurement(measurement, None)
+
     def test_evaluate_measurement_bounds(self):
         measurement = TestMeasurementUpdate(
             measurement_type=TestMeasurementType.DOUBLE,
