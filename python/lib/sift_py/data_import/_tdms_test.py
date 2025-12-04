@@ -2,18 +2,22 @@ import io
 import json
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import pandas as pd
 import pytest
-from nptdms import TdmsFile, types, TdmsWriter, RootObject, GroupObject, ChannelObject  # type: ignore
+from nptdms import (  # type: ignore
+    ChannelObject,
+    GroupObject,
+    RootObject,
+    TdmsFile,
+    TdmsWriter,
+    types,
+)
 from pytest_mock import MockFixture
 from sift.metadata.v1.metadata_pb2 import MetadataKeyType
 
 from sift_py.data_import.tdms import TdmsTimeFormat, TdmsUploadService, sanitize_string
 from sift_py.rest import SiftRestConfig
-
-import numpy as np
-import pandas as pd
-import io
 
 
 class MockTdmsChannel:
@@ -122,7 +126,7 @@ def waveform_tdms_file_with_scaling():
     group = GroupObject("Group 0")
     valid_channels = [
         ChannelObject(
-            group=f"Group 0",
+            group="Group 0",
             channel=f"Test/channel_{c}",
             data=[1, 2, 3],
             properties={
