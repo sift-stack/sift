@@ -27,26 +27,47 @@ See the [examples](https://github.com/sift-stack/sift/tree/main/rust/crates/sift
 ### Main Entry Points
 
 - **SiftStreamBuilder**: Configures and builds SiftStream instances with various options
-- **SiftStream<IngestionConfigMode>**: Main streaming interface for real-time streaming to Sift
-- **SiftStream<FileBackupMode>**: Streaming interface for writing data only to backup files (no live streaming)
+- **SiftStream<E, T>**: Generic streaming interface where `E: Encoder` (encodes data) and `T: Transport` (transmits data)
+- **SiftStream<IngestionConfigEncoder, LiveStreaming>**: Main streaming interface for real-time streaming to Sift (default)
+- **SiftStream<IngestionConfigEncoder, FileBackup>**: Streaming interface for writing data only to backup files (no live streaming)
 
-### Stream Modes
+### Architecture Overview
 
-SiftStream supports two different modes of operation:
+SiftStream uses a separation of concerns between **encoding** (how data is structured) and **transport** (how data is transmitted):
 
-- **IngestionConfigMode**: The default mode that streams data directly to Sift via gRPC. This mode supports real-time streaming, optional disk backups, checkpointing, and retry policies. Use `SiftStreamBuilder::build()` to create a stream in this mode.
+- **Encoder** trait: Defines how data is encoded/structured. The encoder is responsible for:
+  - Converting user-provided data (e.g., `Flow` messages) into the appropriate message format
+  - Managing flow descriptors and ingestion configuration
+  - Providing metrics snapshots
+  - Currently implemented by `IngestionConfigEncoder` for ingestion-config-based encoding
 
-- **FileBackupMode**: A specialized mode that only writes telemetry data to backup files on disk without streaming to Sift. This mode is useful for offline data collection, batch processing, or scenarios with unreliable network connectivity. Use `SiftStreamBuilder::build_file_backup()` to create a stream in this mode. Note that this mode requires a `RecoveryStrategy::RetryWithBackups` configuration.
+- **Transport** trait: Defines how encoded messages are transmitted. The transport is responsible for:
+  - Sending encoded messages to their destination
+  - Managing the transmission mechanism (gRPC streams, file writing, etc.)
+  - Handling cleanup and shutdown
+  - Currently implemented by `LiveStreaming` (gRPC streaming) and `FileBackup` (file writing)
+
+- **Encodeable** trait: Types that can be encoded by an encoder (e.g., `Flow`, `FlowBuilder`)
+
+This design allows for future extensibility: new encoding schemes or transport mechanisms can be added independently without affecting the other component.
+
+### Transport Modes
+
+SiftStream supports two different transport modes:
+
+- **LiveStreaming**: The default transport that streams data directly to Sift via gRPC. This transport supports real-time streaming, optional disk backups, checkpointing, and retry policies. Use `SiftStreamBuilder::build()` to create a stream with this transport.
+
+- **FileBackup**: A specialized transport that only writes telemetry data to backup files on disk without streaming to Sift. This transport is useful for offline data collection, batch processing, or scenarios with unreliable network connectivity. Use `SiftStreamBuilder::build_file_backup()` to create a stream with this transport. Note that this transport requires a `RecoveryStrategy::RetryWithBackups` configuration.
 
 ### Task System
 
-The SiftStream architecture when using IngestionConfigMode consists of three main async tasks that work together to provide reliable data streaming:
+The SiftStream architecture when using `LiveStreaming` transport consists of three main async tasks that work together to provide reliable data streaming:
 
 1. **Backup Manager Task** - Handles backup file creation and management
 2. **Ingestion Task** - Manages gRPC streaming to Sift
 3. **Re-ingestion Task** - Handles re-ingestion of backup files when failures occur
 
-**Note**: FileBackupMode does not use the task system architecture, as it only writes to disk files without streaming to Sift.
+**Note**: `FileBackup` transport does not use the task system architecture, as it only writes to disk files without streaming to Sift.
 
 ## Control Messages
 
@@ -264,14 +285,15 @@ otherwise data loss may occur.
 
 ### Normal Operation Flow
 
-1. **User sends data** → `SiftStream::send()`
-2. **Data validation** → Flow cache lookup
-3. **Message ID assignment** → Each message receives a unique, monotonically increasing ID
-4. **Dual routing** → Both `ingestion_tx` and `backup_tx` channels
-5. **Parallel processing**:
+1. **User sends data** → `SiftStream::send()` with an `Encodeable` type (e.g., `Flow`)
+2. **Encoding** → `Encoder` converts the data to the appropriate message format
+3. **Transport** → `Transport` sends the encoded message
+   - For `LiveStreaming`: Message ID assignment → Dual routing to `ingestion_tx` and `backup_tx` channels
+   - For `FileBackup`: Direct writing to backup files
+4. **Parallel processing** (LiveStreaming only):
    - Ingestion task → gRPC stream → Sift
    - Backup task → Backup files
-6. **Checkpoint completion** → Cleanup or re-ingestion
+5. **Checkpoint completion** → Cleanup or re-ingestion (LiveStreaming only)
 
 ### Failure Recovery Flow
 
