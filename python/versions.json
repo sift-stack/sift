@@ -138,6 +138,14 @@
     }
   },
   {
+    "version": "v0.9.3",
+    "title": "v0.9.3",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v0.9.2",
     "title": "v0.9.2",
     "aliases": [],
