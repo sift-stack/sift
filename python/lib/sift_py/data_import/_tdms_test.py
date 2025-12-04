@@ -1,14 +1,19 @@
+import io
 import json
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import pytest
-from nptdms import TdmsFile, types  # type: ignore
+from nptdms import TdmsFile, types, TdmsWriter, RootObject, GroupObject, ChannelObject  # type: ignore
 from pytest_mock import MockFixture
 from sift.metadata.v1.metadata_pb2 import MetadataKeyType
 
 from sift_py.data_import.tdms import TdmsTimeFormat, TdmsUploadService, sanitize_string
 from sift_py.rest import SiftRestConfig
+
+import numpy as np
+import pandas as pd
+import io
 
 
 class MockTdmsChannel:
@@ -24,7 +29,27 @@ class MockTdmsChannel:
         self.group_name: str = group_name
         self.properties: Optional[Dict[str, str]] = properties or {}
         self.data: Optional[List[int]] = data or []
+        self.raw_data = self.data
         self.data_type: type = data_type
+
+        tdms_to_numpy = {
+            types.Int8: np.dtype(np.int8),
+            types.Int16: np.dtype(np.int16),
+            types.Int32: np.dtype(np.int32),
+            types.Int64: np.dtype(np.int64),
+            types.Uint8: np.dtype(np.uint8),
+            types.Uint16: np.dtype(np.uint16),
+            types.Uint32: np.dtype(np.uint32),
+            types.Uint64: np.dtype(np.uint64),
+            types.SingleFloat: np.dtype(np.float32),
+            types.DoubleFloat: np.dtype(np.float64),
+            types.Boolean: np.dtype(np.bool_),
+            types.String: np.dtype(np.str_),
+            types.TimeStamp: None,
+            types.ComplexSingleFloat: np.dtype(np.complex64),
+            types.ComplexDoubleFloat: np.dtype(np.complex128),
+        }
+        self.dtype = tdms_to_numpy[self.data_type]
 
 
 class MockTdmsGroup:
@@ -90,6 +115,39 @@ def mock_waveform_tdms_file():
     ]
 
     return MockTdmsFile(mock_tdms_groups)
+
+
+@pytest.fixture
+def waveform_tdms_file_with_scaling():
+    group = GroupObject("Group 0")
+    valid_channels = [
+        ChannelObject(
+            group=f"Group 0",
+            channel=f"Test/channel_{c}",
+            data=[1, 2, 3],
+            properties={
+                "wf_start_time": np.datetime64("2025-10-19T00:00:00.000000"),
+                "wf_increment": 0.1,
+                "wf_start_offset": 0,
+                "extra": "info",
+                "NI_Scaling_Status": "scaled" if c == 0 else "unscaled",
+                "NI_Number_Of_Scales": 1,
+                "NI_Scale[0]_Scale_Type": "Linear",
+                "NI_Scale[0]_Linear_Slope": 1.5,
+                "NI_Scale[0]_Linear_Y_Intercept": 10,
+                "NI_Scale[0]_Linear_Input_Source": 0xFFFFFFFF,
+            },
+        )
+        for c in range(3)
+    ]
+
+    file_bytes = io.BytesIO()
+    with TdmsWriter(file_bytes) as tdms_writer:
+        root_object = RootObject({})
+        tdms_writer.write_segment([root_object] + [group] + valid_channels)
+
+    file_bytes.seek(0)
+    return TdmsFile(file_bytes)
 
 
 @pytest.fixture
@@ -586,6 +644,7 @@ def test_tdms_upload_unknown_data_type(mocker: MockFixture, mock_waveform_tdms_f
     mock_requests_post.return_value = MockResponse()
 
     mock_waveform_tdms_file.groups()[0].channels()[0].data_type = types.ComplexDoubleFloat
+    mock_waveform_tdms_file.groups()[0].channels()[0].dtype = np.dtype(np.complex128)
     mocker.patch("sift_py.data_import.tdms.TdmsFile").return_value = mock_waveform_tdms_file
 
     svc = TdmsUploadService(rest_config)
@@ -887,3 +946,111 @@ def test_tdms_upload_service_upload_with_metadata_run_id(
     # Metadata keys should match those in the mock_tdms_file properties
     keys = [md["key"]["name"] for md in patch_data["run"]["metadata"]]
     assert set(keys) == set(mock_waveform_tdms_file.properties.keys())
+
+
+def test_waveform_tdms_with_scaling_upload_success(
+    mocker: MockFixture, waveform_tdms_file_with_scaling: MockTdmsFile
+):
+    mock_path_is_file = mocker.patch("sift_py.data_import.tdms.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 10
+
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
+    mock_requests_post.return_value = MockResponse()
+
+    def mock_tdms_file_constructor(path):
+        """The first call should always return the mocked object since
+        it is mocking a call to open the orignal tdms file.
+
+        The second call should return a real TdmsFile since the unit
+        test will actually create one with filtered channels.
+        """
+        if path == "some_tdms.tdms":
+            return waveform_tdms_file_with_scaling
+        else:
+            return TdmsFile(path)
+
+    mocker.patch("sift_py.data_import.tdms.TdmsFile", mock_tdms_file_constructor)
+
+    # Create a mock file so we can cpature the data that's written
+    class MockNamedTemporaryFile:
+        def __init__(self, **kwargs):
+            self.data = ""
+            self.name = "filename.csv"
+
+        def write(self, data: str):
+            self.data += data
+            return len(data)
+
+        def close(self):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    mock_temp_files = []
+
+    def mock_temp_file_constructor(**kwargs):
+        mf = MockNamedTemporaryFile(**kwargs)
+        mock_temp_files.append(mf)
+        return mf
+
+    mocker.patch("sift_py.data_import.tdms.NamedTemporaryFile", mock_temp_file_constructor)
+
+    svc = TdmsUploadService(rest_config)
+
+    def get_csv_config(mock, n):
+        """Return the CSV config that was created and uploaded under the hood."""
+        return json.loads(mock_requests_post.call_args_list[n].kwargs["data"])["csv_config"]
+
+    # Test without grouping
+    svc.upload("some_tdms.tdms", "asset_name")
+    config = get_csv_config(mock_requests_post, 0)
+    expected_config: Dict[str, Any] = {
+        "asset_name": "asset_name",
+        "run_name": "",
+        "run_id": "",
+        "first_data_row": 2,
+        "time_column": {
+            "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
+            "column_number": 1,
+            "relative_start_time": None,
+        },
+        "data_columns": {},
+    }
+    for i in range(3):
+        expected_config["data_columns"][str(2 + i)] = {
+            "name": f"Test/channel_{i}",
+            "data_type": "CHANNEL_DATA_TYPE_INT_32" if i == 0 else "CHANNEL_DATA_TYPE_DOUBLE",
+            "units": "",
+            "description": "",
+            "enum_types": [],
+            "bit_field_elements": [],
+        }
+    assert config == expected_config
+
+    # Create a pandas DataFrame with the expected resulting CSV data
+    # Values should be scaled correctly.
+    df = pd.DataFrame(
+        {
+            "": [
+                np.datetime64("2025-10-19T00:00:00.000000"),
+                np.datetime64("2025-10-19T00:00:00.100000"),
+                np.datetime64("2025-10-19T00:00:00.200000"),
+            ],
+            "/'Group 0'/'Test/channel_0'": [1, 2, 3],
+            "/'Group 0'/'Test/channel_1'": [11.5, 13.0, 14.5],
+            "/'Group 0'/'Test/channel_2'": [11.5, 13.0, 14.5],
+        }
+    )
+
+    csv_buffer = io.StringIO()
+    df.to_csv(csv_buffer, index=False)
+    csv_content = csv_buffer.getvalue()
+
+    assert mock_temp_files[0].data == csv_content

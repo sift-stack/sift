@@ -36,19 +36,21 @@ from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig
 
-TDMS_TO_SIFT_TYPES = {
-    types.Boolean: ChannelDataType.BOOL,
-    types.Int8: ChannelDataType.INT_32,
-    types.Int16: ChannelDataType.INT_32,
-    types.Int32: ChannelDataType.INT_32,
-    types.Int64: ChannelDataType.INT_64,
-    types.Uint8: ChannelDataType.UINT_32,
-    types.Uint16: ChannelDataType.UINT_32,
-    types.Uint32: ChannelDataType.UINT_32,
-    types.Uint64: ChannelDataType.UINT_64,
-    types.SingleFloat: ChannelDataType.FLOAT,
-    types.DoubleFloat: ChannelDataType.DOUBLE,
-    types.String: ChannelDataType.STRING,
+# Mapping from numpy data types to Sift ChannelDataType
+NUMPY_TO_SIFT_TYPES = {
+    np.bool_: ChannelDataType.BOOL,
+    np.int8: ChannelDataType.INT_32,
+    np.int16: ChannelDataType.INT_32,
+    np.int32: ChannelDataType.INT_32,
+    np.int64: ChannelDataType.INT_64,
+    np.uint8: ChannelDataType.UINT_32,
+    np.uint16: ChannelDataType.UINT_32,
+    np.uint32: ChannelDataType.UINT_32,
+    np.uint64: ChannelDataType.UINT_64,
+    np.float32: ChannelDataType.FLOAT,
+    np.float64: ChannelDataType.DOUBLE,
+    np.str_: ChannelDataType.STRING,
+    np.object_: ChannelDataType.STRING,
 }
 
 
@@ -65,7 +67,9 @@ TIME_CHANNEL_NAME = "Time"
 # Implements the same interface as TdmsChannel. Allows us to create
 # TdmsChannel like objects without having to save and read the channels to
 # a file.
-_TdmsChannel = namedtuple("_TdmsChannel", ["group_name", "name", "data_type", "data", "properties"])
+_TdmsChannel = namedtuple(
+    "_TdmsChannel", ["group_name", "name", "data_type", "data", "properties", "dtype"]
+)
 
 
 CHARACTER_REPLACEMENTS = {
@@ -282,7 +286,7 @@ class TdmsUploadService:
                     new_channel = ChannelObject(
                         group=sanitize_string(channel.group_name),
                         channel=sanitize_string(channel.name),
-                        data=channel.data,
+                        data=channel.raw_data,
                         properties=channel.properties,
                     )
                     valid_channels.append(new_channel)
@@ -407,6 +411,7 @@ class TdmsUploadService:
                     group_name=updated_group_name,
                     name=updated_channel_name,
                     data_type=channel.data_type,
+                    dtype=channel.dtype,
                     data=data,
                     properties=channel.properties,
                 )
@@ -485,12 +490,12 @@ class TdmsUploadService:
         first_data_column = 2
         for i, channel in enumerate(channels):
             try:
-                data_type = TDMS_TO_SIFT_TYPES[channel.data_type].as_human_str(api_format=True)
+                data_type = NUMPY_TO_SIFT_TYPES[channel.dtype.type].as_human_str(api_format=True)
             except KeyError:
                 data_type = None
 
             if data_type is None:
-                raise Exception(f"{channel.name} data type not supported: {channel.data_type}")
+                raise Exception(f"{channel.name} data type not supported: {channel.dtype}")
 
             channel_config = DataColumn(
                 name=_channel_fqn(name=channel.name, component=channel.group_name)
