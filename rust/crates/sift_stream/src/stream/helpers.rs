@@ -2,6 +2,7 @@ use crate::stream::flow::{FlowBuilder, FlowDescriptor};
 use crate::stream::mode::ingestion_config::Flow;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
+use sift_rs::runs::v2::Run;
 use sift_rs::{
     assets::v1::Asset,
     ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
@@ -13,7 +14,7 @@ use sift_rs::{
 /// in which this returns `None` is if there is no [FlowConfig] for the given `message`.
 pub(crate) fn message_to_ingest_req(
     message: &Flow,
-    run_id: Option<String>,
+    run: Option<&Run>,
     descriptor: &FlowDescriptor<String>,
 ) -> Option<IngestWithConfigDataStreamRequest> {
     // Create a vector of empty channel values. If the provided channel values
@@ -28,8 +29,8 @@ pub(crate) fn message_to_ingest_req(
     }
 
     // Attach the run ID to the flow if it is provided.
-    if let Some(run_id) = run_id.as_ref() {
-        builder.attach_run_id(run_id);
+    if let Some(run) = run {
+        builder.attach_run_id(run.run_id.clone());
     }
 
     Some(builder.request(message.timestamp.clone()))
@@ -39,7 +40,7 @@ pub(crate) fn message_to_ingest_req(
 pub(crate) fn message_to_ingest_req_direct(
     message: &Flow,
     ingestion_config_id: &str,
-    run_id: Option<String>,
+    run: Option<&Run>,
 ) -> IngestWithConfigDataStreamRequest {
     let channel_values = message
         .values
@@ -54,7 +55,7 @@ pub(crate) fn message_to_ingest_req_direct(
         flow: message.flow_name.to_string(),
         ingestion_config_id: ingestion_config_id.to_string(),
         timestamp: Some(message.timestamp.0),
-        run_id: run_id.unwrap_or_default(),
+        run_id: run.map(|r| r.run_id.clone()).unwrap_or_default(),
         ..Default::default()
     }
 }

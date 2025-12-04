@@ -116,6 +116,8 @@ pub enum ErrorKind {
     UpdateRunError,
     /// Indicates that the program was unable to retrieve the ingestion config being requested.
     RetrieveIngestionConfigError,
+    /// Indicates that the program was unable to encode the message being requested.
+    EncodeMessageError,
     /// Indicates a failure to create a run.
     CreateRunError,
     /// Indicates a failure to create an ingestion config.
@@ -203,6 +205,7 @@ impl fmt::Display for ErrorKind {
             Self::UpdateAssetError => write!(f, "UpdateAssetError"),
             Self::RetrieveRunError => write!(f, "RetrieveRunError"),
             Self::RetrieveIngestionConfigError => write!(f, "RetrieveIngestionConfigError"),
+            Self::EncodeMessageError => write!(f, "EncodeMessageError"),
             Self::EmptyResponseError => write!(f, "EmptyResponseError"),
             Self::NotFoundError => write!(f, "NotFoundError"),
             Self::CreateRunError => write!(f, "CreateRunError"),

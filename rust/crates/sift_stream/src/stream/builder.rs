@@ -1,6 +1,6 @@
 use super::{
     RetryPolicy, SiftStream, helpers,
-    mode::{file_backup::FileBackupMode, ingestion_config::IngestionConfigMode},
+    mode::{file_backup::FileBackup, ingestion_config::LiveStreaming},
     run::{load_run_by_form, load_run_by_id},
 };
 use std::collections::HashMap;
@@ -10,7 +10,10 @@ use crate::{
     FlowDescriptor,
     backup::{disk::DiskBackupPolicy, sanitize_name},
     metrics::SiftStreamMetrics,
-    stream::tasks::{CONTROL_CHANNEL_CAPACITY, DATA_CHANNEL_CAPACITY, RecoveryConfig, TaskConfig},
+    stream::{
+        mode::ingestion_config::IngestionConfigEncoder,
+        tasks::{CONTROL_CHANNEL_CAPACITY, DATA_CHANNEL_CAPACITY, RecoveryConfig, TaskConfig},
+    },
 };
 use config_loader::load_ingestion_config;
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
@@ -424,7 +427,7 @@ impl SiftStreamBuilder {
 
     /// Consume the builder and return a [SiftStream] configured for ingestion-config-based
     /// streaming.
-    pub async fn build(self) -> Result<SiftStream<IngestionConfigMode>> {
+    pub async fn build(self) -> Result<SiftStream<IngestionConfigEncoder, LiveStreaming>> {
         let SiftStreamBuilder {
             checkpoint_interval,
             channel: grpc_channel,
@@ -513,13 +516,7 @@ impl SiftStreamBuilder {
             metrics_streaming_interval: self.metrics_streaming_interval,
         };
 
-        SiftStream::<IngestionConfigMode>::new(
-            ingestion_config,
-            flows_by_name,
-            run,
-            task_config,
-            metrics,
-        )
+        SiftStream::new(ingestion_config, flows_by_name, run, task_config, metrics)
     }
 
     /// Builds a [SiftStream] for file-backup mode. All data will be written to files instead of
@@ -530,7 +527,7 @@ impl SiftStreamBuilder {
     /// * `output_directory` - Directory where backup files will be written
     /// * `file_prefix` - Prefix for backup file names
     /// * `max_file_size` - Maximum size of each backup file in bytes before rotation
-    pub async fn build_file_backup(self) -> Result<SiftStream<FileBackupMode>> {
+    pub async fn build_file_backup(self) -> Result<SiftStream<IngestionConfigEncoder, FileBackup>> {
         let SiftStreamBuilder {
             channel: grpc_channel,
             credentials,
@@ -587,7 +584,7 @@ impl SiftStreamBuilder {
             .map_err(|e| Error::new(ErrorKind::IoError, e))
             .context("failed to create output directory")?;
 
-        SiftStream::<FileBackupMode>::new_file_backup(
+        SiftStream::new_file_backup(
             setup_channel,
             ingestion_config,
             flows_by_name,

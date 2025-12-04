@@ -1,20 +1,11 @@
-use crate::metrics::SiftStreamMetrics;
-use crate::stream::flow::FlowDescriptor;
+use crate::stream::mode::ingestion_config::LiveStreaming;
 use crate::stream::run::{RunSelector, load_run_by_form, load_run_by_id};
 use async_trait::async_trait;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
-use sift_rs::{
-    ingest::v1::IngestWithConfigDataStreamRequest,
-    ingestion_configs::v2::FlowConfig,
-    runs::v2::Run,
-    wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
-};
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use sift_rs::runs::v2::Run;
 use uuid::Uuid;
 
-#[cfg(feature = "metrics-unstable")]
 use crate::metrics::SiftStreamMetricsSnapshot;
 
 /// Concerned with building and configuring and instance of [SiftStream].
@@ -49,6 +40,61 @@ pub mod tasks;
 #[cfg(test)]
 mod test;
 
+/// A trait that how metrics are accessed.
+pub trait MetricsSnapshot: private::Sealed {
+    fn snapshot(&self) -> SiftStreamMetricsSnapshot;
+}
+
+pub trait Encodeable {
+    type Output: Send + Sync;
+    type Encoder: Encoder<Message = Self::Output>;
+
+    fn encode(
+        self,
+        encoder: &mut Self::Encoder,
+        stream_id: &Uuid,
+        run: Option<&Run>,
+    ) -> Option<Self::Output>;
+}
+
+/// A trait that indicates that a type can be encoded by it.
+///
+/// This trait is used to tie an [`Encoder`] to the [`Encodeable`]s that
+/// it can encode.
+pub trait Encoder: private::Sealed {
+    type Message: Send + Sync;
+}
+
+/// A trait that defines how data is transmitted, or streamed.
+///
+/// For example, a live streaming implementation might use a
+/// gRPC stream to transmit data in real-time to Sift, while
+/// an alternative implementation might write data to a file
+/// for a more "offline" use-case.
+#[async_trait]
+pub trait Transport: private::Sealed {
+    type Message: Send + Sync;
+    type Encoder: Encoder<Message = Self::Message>;
+
+    /// Send a [`Self::Message`].
+    fn send(&mut self, stream_id: &Uuid, message: Self::Message) -> Result<()>;
+
+    /// Send a batch of messages via an iterator.
+    ///
+    /// This method is used as a more performant way to send a batch of messages, assuming
+    /// the iterator itself is not performing substantial work.
+    ///
+    /// However, this is less convenient since the caller will need to ensure the
+    /// resulting [`Self::Message`]s are properly created.
+    fn send_requests<I>(&mut self, stream_id: &Uuid, requests: I) -> Result<()>
+    where
+        I: IntoIterator<Item = Self::Message> + Send,
+        I::IntoIter: Send;
+
+    /// Finish the stream. The mode implementation handles the actual cleanup logic.
+    async fn finish(self, stream_id: &Uuid) -> Result<()>;
+}
+
 /// [SiftStream] is a smart wrapper over an actual gRPC stream that makes it robust and more
 /// ergonomic to work with. Some additional behaviors that [SiftStream] supports are:
 /// - Checkpointing
@@ -58,124 +104,23 @@ mod test;
 ///
 /// To initialize a [SiftStream] users will use [builder::SiftStreamBuilder]. Refer to the
 /// [crate-level documentation](crate) for further details and examples.
-pub struct SiftStream<M: SiftStreamMode> {
+pub struct SiftStream<E, T = LiveStreaming> {
     grpc_channel: SiftChannel,
-    mode: M,
-    metrics: Arc<SiftStreamMetrics>,
-    flows_by_name: HashMap<String, FlowDescriptor<String>>,
+    encoder: E,
+    transport: T,
     run: Option<Run>,
-    flows_seen: HashSet<String>,
     sift_stream_id: Uuid,
 }
 
-impl<M: SiftStreamMode> SiftStream<M> {
+impl<E, T> SiftStream<E, T>
+where
+    E: Encoder + MetricsSnapshot,
+    T: Transport<Encoder = E>,
+{
     #[cfg(feature = "metrics-unstable")]
     /// Retrieve a snapshot of the current metrics for this stream.
     pub fn get_metrics_snapshot(&self) -> SiftStreamMetricsSnapshot {
-        self.metrics.snapshot()
-    }
-
-    /// Modify the existing ingestion config by adding new flows that weren't accounted for during
-    /// initialization. This will register the flows with Sift.
-    pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
-        // Filter out flows that already exist.
-        let filtered = flow_configs
-            .iter()
-            .filter(|f| !self.flows_by_name.contains_key(&f.name))
-            .collect::<Vec<_>>();
-
-        // If no new flows are provided, return early.
-        if filtered.is_empty() {
-            return Ok(());
-        }
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            ingestion_config_id = self.mode.ingestion_config_id(),
-            new_flows = filtered
-                .iter()
-                .map(|f| f.name.as_str())
-                .collect::<Vec<&str>>()
-                .join(","),
-            "adding new flows to ingestion config"
-        );
-
-        let mut calls = Vec::with_capacity(filtered.len());
-        let create_flows = filtered.into_iter().cloned().collect::<Vec<FlowConfig>>();
-        let ingestion_config_id = self.mode.ingestion_config_id().to_string();
-
-        for flow_config in create_flows.iter() {
-            let channel = self.grpc_channel.clone();
-            let config_id = ingestion_config_id.clone();
-            let flow_config = flow_config.clone();
-
-            calls.push(tokio::spawn(async move {
-                new_ingestion_config_service(channel)
-                    .try_create_flows(&config_id, vec![flow_config])
-                    .await
-                    .context("SiftStream::add_new_flows")
-            }));
-        }
-
-        // Wait for all the gRPC calls to complete.
-        let results = futures::future::join_all(calls).await;
-
-        let mut add_config = |config: &FlowConfig| -> Result<()> {
-            let flow_name = config.name.clone();
-            let flow_descriptor =
-                FlowDescriptor::try_from((self.mode.ingestion_config_id(), config))?;
-            self.flows_by_name.insert(flow_name, flow_descriptor);
-
-            #[cfg(feature = "tracing")]
-            tracing::info!(flow = config.name, "successfully registered new flow");
-
-            Ok(())
-        };
-
-        // Iterate over the results and update the flow cache for the successfully created flows.
-        for (config, result) in create_flows.iter().zip(results.into_iter()) {
-            match result {
-                Ok(Ok(())) => {
-                    add_config(config)?;
-                }
-                Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError => {
-                    add_config(config)?;
-                }
-                Ok(Err(e)) => {
-                    #[cfg(feature = "tracing")]
-                    tracing::error!("failed to create flow {}: {e}", config.name,);
-                }
-                Err(e) => {
-                    #[cfg(feature = "tracing")]
-                    tracing::error!("failed to create flow {}: {e}", config.name,);
-                }
-            }
-        }
-
-        self.metrics
-            .loaded_flows
-            .add(self.flows_by_name.len() as u64);
-
-        Ok(())
-    }
-
-    /// Get a copy of the current flow descriptors known to SiftStream as a HashMap keyed to the flow name.
-    pub fn get_flows(&self) -> HashMap<String, FlowDescriptor<String>> {
-        self.flows_by_name
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect()
-    }
-
-    /// Get the flow descriptor for a given flow name.
-    pub fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
-        self.flows_by_name
-            .get(flow_name)
-            .cloned()
-            .ok_or(Error::new_msg(
-                ErrorKind::NotFoundError,
-                format!("flow '{}' not found", flow_name),
-            ))
+        self.encoder.snapshot()
     }
 
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
@@ -205,15 +150,18 @@ impl<M: SiftStreamMode> SiftStream<M> {
     }
 
     /// The entry-point to send actual telemetry to Sift in the form of [Flow]s.
-    pub async fn send(&mut self, message: mode::ingestion_config::Flow) -> Result<()> {
-        let mut ctx = SendContext {
-            metrics: &self.metrics,
-            run: &self.run,
-            flows_by_name: &self.flows_by_name,
-            flows_seen: &mut self.flows_seen,
-            sift_stream_id: &self.sift_stream_id,
-        };
-        self.mode.send(&mut ctx, message).await
+    pub async fn send<M>(&mut self, message: M) -> Result<()>
+    where
+        M: Encodeable<Encoder = E, Output = <T as Transport>::Message> + Send + Sync,
+    {
+        let encoded = message
+            .encode(&mut self.encoder, &self.sift_stream_id, self.run.as_ref())
+            .ok_or(Error::new_msg(
+                ErrorKind::EncodeMessageError,
+                "Failed to encode message",
+            ))?;
+
+        self.transport.send(&self.sift_stream_id, encoded)
     }
 
     /// This method offers a way to send data in a manner that's identical to the raw
@@ -222,17 +170,10 @@ impl<M: SiftStreamMode> SiftStream<M> {
     /// [`gRPC service`]: https://github.com/sift-stack/sift/blob/main/protos/sift/ingest/v1/ingest.proto#L11
     pub async fn send_requests<I>(&mut self, requests: I) -> Result<()>
     where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
+        I: IntoIterator<Item = <T as Transport>::Message> + Send,
         I::IntoIter: Send,
     {
-        let mut ctx = SendContext {
-            metrics: &self.metrics,
-            run: &self.run,
-            flows_by_name: &self.flows_by_name,
-            flows_seen: &mut self.flows_seen,
-            sift_stream_id: &self.sift_stream_id,
-        };
-        self.mode.send_requests(&mut ctx, requests).await
+        self.transport.send_requests(&self.sift_stream_id, requests)
     }
 
     /// This method offers a way to send data in a manner that's identical to the raw
@@ -241,48 +182,40 @@ impl<M: SiftStreamMode> SiftStream<M> {
     /// [`gRPC service`]: https://github.com/sift-stack/sift/blob/main/protos/sift/ingest/v1/ingest.proto#L11
     pub fn send_requests_nonblocking<I>(&mut self, requests: I) -> Result<()>
     where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
+        I: IntoIterator<Item = <T as Transport>::Message> + Send,
         I::IntoIter: Send,
     {
-        let mut ctx = SendContext {
-            metrics: &self.metrics,
-            run: &self.run,
-            flows_by_name: &self.flows_by_name,
-            flows_seen: &mut self.flows_seen,
-            sift_stream_id: &self.sift_stream_id,
-        };
-        self.mode.send_requests_nonblocking(&mut ctx, requests)
+        self.transport.send_requests(&self.sift_stream_id, requests)
     }
 
     /// Gracefully finish the stream, draining any remaining data before returning.
     ///
     /// It is important to always call this method when you are done sending data and
     /// before the object is dropped.
-    pub async fn finish(mut self) -> Result<()> {
-        let mut ctx = SendContext {
-            metrics: &self.metrics,
-            run: &self.run,
-            flows_by_name: &self.flows_by_name,
-            flows_seen: &mut self.flows_seen,
-            sift_stream_id: &self.sift_stream_id,
-        };
-
-        self.mode.finish(&mut ctx).await
+    pub async fn finish(self) -> Result<()> {
+        self.transport.finish(&self.sift_stream_id).await
     }
 }
 
-/// Context passed to mode implementations for send operations.
-///
-/// This is an internal implementation detail and should not be used directly.
-/// It is only visible in the trait signature because it's used by [`SiftStreamMode`],
-/// which is sealed and cannot be implemented by external code.
-#[doc(hidden)]
-pub struct SendContext<'a> {
-    pub(crate) metrics: &'a Arc<SiftStreamMetrics>,
-    pub(crate) run: &'a Option<Run>,
-    pub(crate) flows_by_name: &'a HashMap<String, FlowDescriptor<String>>,
-    pub(crate) flows_seen: &'a mut HashSet<String>,
-    pub(crate) sift_stream_id: &'a Uuid,
+impl<E, T> std::ops::Deref for SiftStream<E, T>
+where
+    E: Encoder + MetricsSnapshot,
+    T: Transport<Encoder = E>,
+{
+    type Target = E;
+    fn deref(&self) -> &Self::Target {
+        &self.encoder
+    }
+}
+
+impl<E, T> std::ops::DerefMut for SiftStream<E, T>
+where
+    E: Encoder + MetricsSnapshot,
+    T: Transport<Encoder = E>,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.encoder
+    }
 }
 
 /// Sealed trait to prevent external implementations of `SiftStreamMode`.
@@ -292,45 +225,4 @@ mod private {
     /// It is public so it can be used as a supertrait, but the module is private,
     /// preventing external code from implementing it.
     pub trait Sealed {}
-}
-
-/// A trait that defines a particular mode of streaming. Modes must implement the send APIs
-/// to handle data transmission in their specific way.
-///
-/// This trait is sealed and cannot be implemented by external code. Only the crate's
-/// internal mode implementations (`IngestionConfigMode` and `FileBackupMode`) can implement it.
-///
-/// The `private_in_public` warnings are suppressed at the module level because
-/// `SendContext` is intentionally private - external code cannot implement this trait
-/// (it's sealed), so they will never need to use it.
-#[async_trait]
-pub trait SiftStreamMode: private::Sealed {
-    /// Returns the ingestion config ID for this mode.
-    fn ingestion_config_id(&self) -> &str;
-
-    /// Send a flow message. The mode implementation handles the actual transmission logic.
-    async fn send(
-        &mut self,
-        ctx: &mut SendContext<'_>,
-        message: mode::ingestion_config::Flow,
-    ) -> Result<()>;
-
-    /// Send multiple requests. The mode implementation handles the actual transmission logic.
-    async fn send_requests<I>(&mut self, ctx: &mut SendContext<'_>, requests: I) -> Result<()>
-    where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
-        I::IntoIter: Send;
-
-    /// Send multiple requests in a non-blocking manner. The mode implementation handles the actual transmission logic.
-    fn send_requests_nonblocking<I>(
-        &mut self,
-        ctx: &mut SendContext<'_>,
-        requests: I,
-    ) -> Result<()>
-    where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
-        I::IntoIter: Send;
-
-    /// Finish the stream. The mode implementation handles the actual cleanup logic.
-    async fn finish(self, ctx: &mut SendContext<'_>) -> Result<()>;
 }

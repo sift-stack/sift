@@ -1,9 +1,10 @@
-use crate::metrics::SiftStreamMetrics;
+use crate::FlowBuilder;
+use crate::metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot};
+use crate::stream::{Encodeable, Encoder, MetricsSnapshot, Transport};
 use crate::stream::{
-    SendContext, SiftStream, SiftStreamMode,
+    SiftStream,
     channel::ChannelValue,
     flow::FlowDescriptor,
-    helpers,
     private::Sealed,
     tasks::{ControlMessage, DataMessage, StreamSystem, TaskConfig, start_tasks},
     time::TimeValue,
@@ -16,12 +17,17 @@ use async_trait::async_trait;
 use futures_core::Stream;
 use prost::Message;
 use sift_error::prelude::*;
+use sift_rs::SiftChannel;
+use sift_rs::ingestion_configs::v2::FlowConfig;
+use sift_rs::wrappers::ingestion_configs::{
+    IngestionConfigServiceWrapper, new_ingestion_config_service,
+};
 use sift_rs::{
     ingest::v1::IngestWithConfigDataStreamRequest, ingestion_configs::v2::IngestionConfig,
     runs::v2::Run,
 };
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     pin::Pin,
     sync::{
         Arc,
@@ -35,83 +41,117 @@ use uuid::Uuid;
 
 /// Dependencies specifically for ingestion-config based streaming. Users shouldn't have to
 /// interact with this directly.
-pub struct IngestionConfigMode {
-    ingestion_config: IngestionConfig,
+pub struct LiveStreaming {
     message_id_counter: u64,
 
     // Task-based architecture components for non-blocking operation
     stream_system: StreamSystem,
+
+    metrics: Arc<SiftStreamMetrics>,
 }
 
 // Seal the trait - only this crate can implement SiftStreamMode
-impl Sealed for IngestionConfigMode {}
+impl Sealed for LiveStreaming {}
 
 #[async_trait]
-impl SiftStreamMode for IngestionConfigMode {
-    fn ingestion_config_id(&self) -> &str {
-        &self.ingestion_config.ingestion_config_id
-    }
+impl Transport for LiveStreaming {
+    type Encoder = IngestionConfigEncoder;
+    type Message = IngestWithConfigDataStreamRequest;
 
-    async fn send(&mut self, ctx: &mut SendContext<'_>, message: Flow) -> Result<()> {
-        ctx.metrics.messages_received.increment();
+    /// Sends the message to Sift for live ingestion, while in parallel also sends a backup of the message to a file.
+    fn send(&mut self, stream_id: &Uuid, message: Self::Message) -> Result<()> {
+        // Track the channel depths.
+        self.metrics
+            .ingestion_channel_depth
+            .set(self.stream_system.ingestion_tx.len() as u64);
+        self.metrics
+            .backup_channel_depth
+            .set(self.stream_system.backup_tx.len() as u64);
 
-        let run_id = ctx.run.as_ref().map(|r| r.run_id.clone());
+        self.metrics.messages_received.increment();
 
-        let Some(flows) = ctx.flows_by_name.get(&message.flow_name) else {
+        let data_msg = DataMessage {
+            message_id: self.message_id_counter,
+            request: Arc::new(message),
+            dropped_for_ingestion: false,
+        };
+
+        self.message_id_counter += 1;
+
+        // Send the message for backup first. If this fails, log an error and continue.
+        //
+        // Failure to backup can lead to data loss though it is preferable to attempt
+        // to stream the message to Sift rather than return the error and prevent both.
+        //
+        // TODO(tsift): Make this behavior optional via a builder arg.
+        if let Err(e) = self.stream_system.backup_tx.try_send(data_msg.clone()) {
             #[cfg(feature = "tracing")]
             tracing::warn!(
-                sift_stream_id = ctx.sift_stream_id.to_string(),
-                "flow '{}' not found in local flow cache - message will still be transmitted but will not show in Sift if the flow was not registered",
-                message.flow_name,
+                sift_stream_id = stream_id.to_string(),
+                "failed to send data to backup system, data will still be streamed to Sift: {e}"
             );
-            let req = helpers::message_to_ingest_req_direct(
-                &message,
-                &self.ingestion_config.ingestion_config_id,
-                run_id,
-            );
-            return self.send_impl(ctx, req);
-        };
-        let Some(req) = helpers::message_to_ingest_req(
-            &message,
-            ctx.run.as_ref().map(|r| r.run_id.clone()),
-            flows,
-        ) else {
-            #[cfg(feature = "tracing")]
-            tracing::warn!(
-                sift_stream_id = ctx.sift_stream_id.to_string(),
-                values = format!("{message:?}"),
-                "encountered a message that doesn't match any cached flows - message will still be transmitted but will not show in Sift if the flow was not registered"
-            );
-            let req = helpers::message_to_ingest_req_direct(
-                &message,
-                &self.ingestion_config.ingestion_config_id,
-                run_id,
-            );
-            return self.send_impl(ctx, req);
-        };
-        self.send_impl(ctx, req)
-    }
-
-    async fn send_requests<I>(&mut self, ctx: &mut SendContext<'_>, requests: I) -> Result<()>
-    where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
-        I::IntoIter: Send,
-    {
-        for req in requests {
-            ctx.metrics.messages_received.increment();
-            self.send_impl(ctx, req)?;
         }
-        Ok(())
+
+        self.metrics.messages_sent_to_backup.increment();
+
+        // Send the message for ingestion.
+        //
+        // If the channel is full, the oldest message will be removed in order to create space for the newer message.
+        // For ingestion, newer data is preferred over older data.
+        match self.stream_system.ingestion_tx.force_send(data_msg) {
+            Ok(None) => Ok(()),
+            Ok(Some(mut oldest_message)) => {
+                #[cfg(feature = "tracing")]
+                tracing::debug!(
+                    sift_stream_id = stream_id.to_string(),
+                    "data channel full, dropping oldest message"
+                );
+
+                oldest_message.dropped_for_ingestion = true;
+                self.metrics.old_messages_dropped_for_ingestion.increment();
+                self.metrics.messages_sent_to_backup.increment();
+                self.metrics.checkpoint.failed_checkpoint_count.increment();
+
+                // Re-send the oldest message to the backup to ensure it is re-ingested later despite being
+                // dropped from the ingestion channel.
+                //
+                // On failure, rely on metrics to track occurences. Logging can quickly become spammy as
+                // the system works through bursts of messages so logs are reduced to the debug level.
+                if let Err(e) = self
+                    .stream_system
+                    .backup_tx
+                    .try_send(oldest_message)
+                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
+                    .context("failed to send data to backup task system")
+                {
+                    self.metrics
+                        .old_messages_failed_adding_to_backup
+                        .increment();
+
+                    #[cfg(feature = "tracing")]
+                    tracing::debug!(
+                        sift_stream_id = stream_id.to_string(),
+                        "failed to send oldest data to backup task system: {e}"
+                    );
+                }
+
+                // Do not interupt ingestion.
+                Ok(())
+            }
+            Err(e) => Err(Error::new_msg(
+                ErrorKind::StreamError,
+                format!("queueing data for ingestion failed: {e}"),
+            )),
+        }
     }
 
-    fn send_requests_nonblocking<I>(&mut self, ctx: &mut SendContext<'_>, requests: I) -> Result<()>
+    fn send_requests<I>(&mut self, stream_id: &Uuid, requests: I) -> Result<()>
     where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
+        I: IntoIterator<Item = Self::Message> + Send,
         I::IntoIter: Send,
     {
         for req in requests {
-            ctx.metrics.messages_received.increment();
-            self.send_impl(ctx, req)?;
+            self.send(stream_id, req)?;
         }
         Ok(())
     }
@@ -119,7 +159,7 @@ impl SiftStreamMode for IngestionConfigMode {
     /// This will conclude the stream and return when Sift has sent its final response. It is
     /// important that this method be called in order to obtain the final checkpoint
     /// acknowledgement from Sift, otherwise some tail-end data may fail to send.
-    async fn finish(self, ctx: &mut SendContext<'_>) -> Result<()> {
+    async fn finish(self, stream_id: &Uuid) -> Result<()> {
         // Close the data channels.
         drop(self.stream_system.ingestion_tx);
         drop(self.stream_system.backup_tx);
@@ -145,10 +185,7 @@ impl SiftStreamMode for IngestionConfigMode {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = ctx.sift_stream_id.to_string(),
-            asset_id = self.ingestion_config.asset_id,
-            ingestion_config_id = self.ingestion_config.ingestion_config_id,
-            run = ctx.run.as_ref().map(|r| r.name.clone()).unwrap_or_default(),
+            sift_stream_id = stream_id.to_string(),
             "successfully shutdown streaming system"
         );
 
@@ -156,106 +193,130 @@ impl SiftStreamMode for IngestionConfigMode {
     }
 }
 
-impl IngestionConfigMode {
-    /// Concerned with sending the actual ingest request to [DataStream] which will then write it
-    /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
-    fn send_impl(
-        &mut self,
-        ctx: &mut SendContext<'_>,
-        request: IngestWithConfigDataStreamRequest,
-    ) -> Result<()> {
-        #[cfg(feature = "tracing")]
-        {
-            if !ctx.flows_seen.contains(&request.flow) {
-                ctx.metrics.unique_flows_received.increment();
-                ctx.flows_seen.insert(request.flow.clone());
-                tracing::info!(
-                    sift_stream_id = ctx.sift_stream_id.to_string(),
-                    "flow '{}' being ingested for the first time",
-                    &request.flow,
-                );
-            }
+pub struct IngestionConfigEncoder {
+    pub(crate) grpc_channel: SiftChannel,
+    pub(crate) flows_by_name: HashMap<String, FlowDescriptor<String>>,
+    pub(crate) ingestion_config: IngestionConfig,
+    pub(crate) metrics: Arc<SiftStreamMetrics>,
+}
+
+impl Encoder for IngestionConfigEncoder {
+    type Message = IngestWithConfigDataStreamRequest;
+}
+
+impl MetricsSnapshot for IngestionConfigEncoder {
+    fn snapshot(&self) -> SiftStreamMetricsSnapshot {
+        self.metrics.snapshot()
+    }
+}
+
+impl Sealed for IngestionConfigEncoder {}
+
+impl IngestionConfigEncoder {
+    fn ingestion_config_id(&self) -> &str {
+        &self.ingestion_config.ingestion_config_id
+    }
+
+    /// Modify the existing ingestion config by adding new flows that weren't accounted for during
+    /// initialization. This will register the flows with Sift.
+    pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
+        // Filter out flows that already exist.
+        let filtered = flow_configs
+            .iter()
+            .filter(|f| !self.flows_by_name.contains_key(&f.name))
+            .collect::<Vec<_>>();
+
+        // If no new flows are provided, return early.
+        if filtered.is_empty() {
+            return Ok(());
         }
 
-        // Track the channel depths.
-        ctx.metrics
-            .ingestion_channel_depth
-            .set(self.stream_system.ingestion_tx.len() as u64);
-        ctx.metrics
-            .backup_channel_depth
-            .set(self.stream_system.backup_tx.len() as u64);
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            ingestion_config_id = self.ingestion_config_id(),
+            new_flows = filtered
+                .iter()
+                .map(|f| f.name.as_str())
+                .collect::<Vec<&str>>()
+                .join(","),
+            "adding new flows to ingestion config"
+        );
 
-        let data_msg = DataMessage {
-            message_id: self.message_id_counter,
-            request: Arc::new(request),
-            dropped_for_ingestion: false,
+        let mut calls = Vec::with_capacity(filtered.len());
+        let create_flows = filtered.into_iter().cloned().collect::<Vec<FlowConfig>>();
+        let ingestion_config_id = self.ingestion_config_id().to_string();
+
+        for flow_config in create_flows.iter() {
+            let channel = self.grpc_channel.clone();
+            let config_id = ingestion_config_id.clone();
+            let flow_config = flow_config.clone();
+
+            calls.push(tokio::spawn(async move {
+                new_ingestion_config_service(channel)
+                    .try_create_flows(&config_id, vec![flow_config])
+                    .await
+                    .context("SiftStream::add_new_flows")
+            }));
+        }
+
+        // Wait for all the gRPC calls to complete.
+        let results = futures::future::join_all(calls).await;
+
+        let mut add_config = |config: &FlowConfig| -> Result<()> {
+            let flow_name = config.name.clone();
+            let flow_descriptor = FlowDescriptor::try_from((self.ingestion_config_id(), config))?;
+            self.flows_by_name.insert(flow_name, flow_descriptor);
+
+            #[cfg(feature = "tracing")]
+            tracing::info!(flow = config.name, "successfully registered new flow");
+
+            Ok(())
         };
 
-        self.message_id_counter += 1;
-
-        // Send the message for backup first. If this fails, log an error and continue.
-        //
-        // Failure to backup can lead to data loss though it is preferable to attempt
-        // to stream the message to Sift rather than return the error and prevent both.
-        //
-        // TODO(tsift): Make this behavior optional via a builder arg.
-        if let Err(e) = self.stream_system.backup_tx.try_send(data_msg.clone()) {
-            #[cfg(feature = "tracing")]
-            tracing::warn!(
-                sift_stream_id = ctx.sift_stream_id.to_string(),
-                "failed to send data to backup system, data will still be streamed to Sift: {e}"
-            );
-        }
-
-        ctx.metrics.messages_sent_to_backup.increment();
-
-        // Send the message for ingestion.
-        //
-        // If the channel is full, the oldest message will be removed in order to create space for the newer message.
-        // For ingestion, newer data is preferred over older data.
-        match self.stream_system.ingestion_tx.force_send(data_msg) {
-            Ok(None) => Ok(()),
-            Ok(Some(mut oldest_message)) => {
-                #[cfg(feature = "tracing")]
-                tracing::debug!(
-                    sift_stream_id = ctx.sift_stream_id.to_string(),
-                    "data channel full, dropping oldest message"
-                );
-
-                oldest_message.dropped_for_ingestion = true;
-                ctx.metrics.old_messages_dropped_for_ingestion.increment();
-                ctx.metrics.messages_sent_to_backup.increment();
-                ctx.metrics.checkpoint.failed_checkpoint_count.increment();
-
-                // Re-send the oldest message to the backup to ensure it is re-ingested later despite being
-                // dropped from the ingestion channel.
-                //
-                // On failure, rely on metrics to track occurences. Logging can quickly become spammy as
-                // the system works through bursts of messages so logs are reduced to the debug level.
-                if let Err(e) = self
-                    .stream_system
-                    .backup_tx
-                    .try_send(oldest_message)
-                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
-                    .context("failed to send data to backup task system")
-                {
-                    ctx.metrics.old_messages_failed_adding_to_backup.increment();
-
-                    #[cfg(feature = "tracing")]
-                    tracing::debug!(
-                        sift_stream_id = ctx.sift_stream_id.to_string(),
-                        "failed to send oldest data to backup task system: {e}"
-                    );
+        // Iterate over the results and update the flow cache for the successfully created flows.
+        for (config, result) in create_flows.iter().zip(results.into_iter()) {
+            match result {
+                Ok(Ok(())) => {
+                    add_config(config)?;
                 }
-
-                // Do not interupt ingestion.
-                Ok(())
+                Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError => {
+                    add_config(config)?;
+                }
+                Ok(Err(e)) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!("failed to create flow {}: {e}", config.name,);
+                }
+                Err(e) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!("failed to create flow {}: {e}", config.name,);
+                }
             }
-            Err(e) => Err(Error::new_msg(
-                ErrorKind::StreamError,
-                format!("queueing data for ingestion failed: {e}"),
-            )),
         }
+
+        self.metrics
+            .loaded_flows
+            .add(self.flows_by_name.len() as u64);
+
+        Ok(())
+    }
+
+    /// Get a copy of the current flow descriptors known to SiftStream as a HashMap keyed to the flow name.
+    pub fn get_flows(&self) -> HashMap<String, FlowDescriptor<String>> {
+        self.flows_by_name
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
+    }
+
+    /// Get the flow descriptor for a given flow name.
+    pub fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
+        self.flows_by_name
+            .get(flow_name)
+            .cloned()
+            .ok_or(Error::new_msg(
+                ErrorKind::NotFoundError,
+                format!("flow '{}' not found", flow_name),
+            ))
     }
 }
 
@@ -269,6 +330,70 @@ pub struct Flow {
     pub values: Vec<ChannelValue>,
 }
 
+impl Encodeable for Flow {
+    type Output = IngestWithConfigDataStreamRequest;
+    type Encoder = IngestionConfigEncoder;
+
+    fn encode(
+        self,
+        encoder: &mut Self::Encoder,
+        stream_id: &Uuid,
+        run: Option<&Run>,
+    ) -> Option<Self::Output> {
+        let req = if let Some(flows) = encoder.flows_by_name.get(&self.flow_name) {
+            if let Some(req) = super::super::helpers::message_to_ingest_req(&self, run, flows) {
+                req
+            } else {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    sift_stream_id = stream_id.to_string(),
+                    values = format!("{:?}", self.flow_name),
+                    "encountered a message that doesn't match any cached flows - message will still be written to file"
+                );
+                super::super::helpers::message_to_ingest_req_direct(
+                    &self,
+                    encoder.ingestion_config_id(),
+                    run,
+                )
+            }
+        } else {
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                sift_stream_id = stream_id.to_string(),
+                "flow '{}' not found in local flow cache - message will still be written to file",
+                self.flow_name,
+            );
+            super::super::helpers::message_to_ingest_req_direct(
+                &self,
+                encoder.ingestion_config_id(),
+                run,
+            )
+        };
+
+        Some(req)
+    }
+}
+
+impl<K> Encodeable for FlowBuilder<'_, K>
+where
+    K: Eq + core::hash::Hash,
+{
+    type Output = IngestWithConfigDataStreamRequest;
+    type Encoder = IngestionConfigEncoder;
+
+    fn encode(
+        mut self,
+        _: &mut Self::Encoder,
+        _: &Uuid,
+        run: Option<&Run>,
+    ) -> Option<Self::Output> {
+        if let Some(run) = run {
+            self.attach_run_id(run.run_id.clone());
+        }
+
+        Some(self.request(TimeValue::now()))
+    }
+}
 /// Dependencies used in the Tokio task that actually sends the data to Sift.
 pub(crate) struct DataStream {
     data_rx: Pin<Box<async_channel::Receiver<DataMessage>>>,
@@ -295,7 +420,7 @@ impl Flow {
     }
 }
 
-impl SiftStream<IngestionConfigMode> {
+impl SiftStream<IngestionConfigEncoder, LiveStreaming> {
     /// Initializes a new [SiftStream]. Users should instead use [`SiftStreamBuilder`].
     ///
     /// [`SiftStreamBuilder`]: crate::stream::builder::SiftStreamBuilder
@@ -327,16 +452,19 @@ impl SiftStream<IngestionConfigMode> {
             start_tasks(task_config).context("failed to start task-based architecture")?;
 
         Ok(Self {
-            grpc_channel,
-            mode: IngestionConfigMode {
+            grpc_channel: grpc_channel.clone(),
+            encoder: IngestionConfigEncoder {
+                grpc_channel,
+                flows_by_name,
                 ingestion_config,
-                stream_system,
-                message_id_counter: 0,
+                metrics: metrics.clone(),
             },
-            metrics,
-            flows_by_name,
+            transport: LiveStreaming {
+                message_id_counter: 0,
+                stream_system,
+                metrics,
+            },
             run,
-            flows_seen: HashSet::new(),
             sift_stream_id,
         })
     }

@@ -453,8 +453,8 @@ pub use stream::{
     channel::{ChannelValue, Value},
     flow::{ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder},
     mode::{
-        file_backup::FileBackupMode,
-        ingestion_config::{Flow, IngestionConfigMode},
+        file_backup::FileBackup,
+        ingestion_config::{Flow, IngestionConfigEncoder, LiveStreaming},
     },
     time::TimeValue,
 };

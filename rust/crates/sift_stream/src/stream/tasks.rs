@@ -3,7 +3,7 @@ use crate::{
     SiftStream, SiftStreamBuilder, TimeValue,
     backup::disk::{AsyncBackupsManager, BackupIngestTask},
     metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
-    stream::mode::ingestion_config::{DataStream, IngestionConfigMode},
+    stream::mode::ingestion_config::{DataStream, IngestionConfigEncoder},
 };
 use async_channel;
 use sift_connect::SiftChannel;
@@ -510,7 +510,7 @@ const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics
 const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
 
 pub(crate) struct MetricsStreamingTask {
-    stream: SiftStream<IngestionConfigMode>,
+    stream: SiftStream<IngestionConfigEncoder>,
     control_rx: broadcast::Receiver<ControlMessage>,
     session_name: String,
     interval: Duration,

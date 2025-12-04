@@ -1,4 +1,5 @@
-use super::super::{SendContext, SiftStream, SiftStreamMode, private::Sealed};
+use crate::stream::mode::ingestion_config::IngestionConfigEncoder;
+use crate::stream::{SiftStream, Transport, private::Sealed};
 use crate::{
     DiskBackupPolicy, RetryPolicy,
     backup::disk::{
@@ -82,91 +83,60 @@ impl FileBackupWriter {
 
 /// Dependencies specifically for file-backup based streaming. Users shouldn't have to
 /// interact with this directly.
-pub struct FileBackupMode {
-    ingestion_config: IngestionConfig,
+pub struct FileBackup {
     write_tx: Sender<Arc<IngestWithConfigDataStreamRequest>>,
     write_task: JoinHandle<Result<()>>,
     control_tx: broadcast::Sender<crate::stream::tasks::ControlMessage>,
     metrics_streaming: Option<JoinHandle<Result<()>>>,
+    metrics: Arc<SiftStreamMetrics>,
 }
 
 // Seal the trait - only this crate can implement SiftStreamMode
-impl Sealed for FileBackupMode {}
+impl Sealed for FileBackup {}
 
 #[async_trait]
-impl SiftStreamMode for FileBackupMode {
-    fn ingestion_config_id(&self) -> &str {
-        &self.ingestion_config.ingestion_config_id
-    }
+impl Transport for FileBackup {
+    type Encoder = IngestionConfigEncoder;
+    type Message = IngestWithConfigDataStreamRequest;
 
-    async fn send(&mut self, ctx: &mut SendContext<'_>, message: Flow) -> Result<()> {
-        ctx.metrics.messages_received.increment();
+    fn send(&mut self, _: &Uuid, message: Self::Message) -> Result<()> {
+        self.metrics.messages_received.increment();
 
-        let run_id = ctx.run.as_ref().map(|r| r.run_id.clone());
+        // Track the backup channel depth.
+        self.metrics
+            .backup_channel_depth
+            .set(self.write_tx.len() as u64);
 
-        let req = if let Some(flows) = ctx.flows_by_name.get(&message.flow_name) {
-            if let Some(req) = super::super::helpers::message_to_ingest_req(
-                &message,
-                ctx.run.as_ref().map(|r| r.run_id.clone()),
-                flows,
-            ) {
-                req
+        // Send the request to the background write task (non-blocking)
+        let request_arc = Arc::new(message);
+        self.write_tx.try_send(request_arc).map_err(|e| {
+            if e.is_full() {
+                Error::new_msg(ErrorKind::StreamError, "file backup write channel is full")
             } else {
-                #[cfg(feature = "tracing")]
-                tracing::warn!(
-                    sift_stream_id = ctx.sift_stream_id.to_string(),
-                    values = format!("{message:?}"),
-                    "encountered a message that doesn't match any cached flows - message will still be written to file"
-                );
-                super::super::helpers::message_to_ingest_req_direct(
-                    &message,
-                    &self.ingestion_config.ingestion_config_id,
-                    run_id,
+                Error::new_msg(
+                    ErrorKind::StreamError,
+                    format!("file backup write channel is closed: {e}"),
                 )
             }
-        } else {
-            #[cfg(feature = "tracing")]
-            tracing::warn!(
-                sift_stream_id = ctx.sift_stream_id.to_string(),
-                "flow '{}' not found in local flow cache - message will still be written to file",
-                message.flow_name,
-            );
-            super::super::helpers::message_to_ingest_req_direct(
-                &message,
-                &self.ingestion_config.ingestion_config_id,
-                run_id,
-            )
-        };
+        })?;
 
-        self.send_impl(ctx, req)
-    }
-
-    async fn send_requests<I>(&mut self, ctx: &mut SendContext<'_>, requests: I) -> Result<()>
-    where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
-        I::IntoIter: Send,
-    {
-        for req in requests {
-            ctx.metrics.messages_received.increment();
-            self.send_impl(ctx, req)?;
-        }
+        self.metrics.messages_sent.increment();
         Ok(())
     }
 
-    fn send_requests_nonblocking<I>(&mut self, ctx: &mut SendContext<'_>, requests: I) -> Result<()>
+    fn send_requests<I>(&mut self, stream_id: &Uuid, requests: I) -> Result<()>
     where
         I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
         I::IntoIter: Send,
     {
         for req in requests {
-            ctx.metrics.messages_received.increment();
-            self.send_impl(ctx, req)?;
+            self.send(stream_id, req)?;
         }
         Ok(())
     }
 
     /// This will conclude the stream and flush any remaining data to disk.
-    async fn finish(self, ctx: &mut SendContext<'_>) -> Result<()> {
+    async fn finish(self, stream_id: &Uuid) -> Result<()> {
         // Send shutdown signal to metrics streaming task
         let _ = self
             .control_tx
@@ -190,10 +160,7 @@ impl SiftStreamMode for FileBackupMode {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = ctx.sift_stream_id.to_string(),
-            asset_id = self.ingestion_config.asset_id,
-            ingestion_config_id = self.ingestion_config.ingestion_config_id,
-            run = ctx.run.as_ref().map(|r| r.name.clone()).unwrap_or_default(),
+            sift_stream_id = stream_id.to_string(),
             "successfully finished file backup stream"
         );
 
@@ -201,14 +168,13 @@ impl SiftStreamMode for FileBackupMode {
     }
 }
 
-impl FileBackupMode {
-    /// Creates a new `FileBackupMode` and spawns the background file-writing task.
+impl FileBackup {
+    /// Creates a new [`FileBackup`] and spawns the background file-writing task.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         backups_directory: PathBuf,
         file_writer_config: FileWriterConfig,
         channel_capacity: usize,
-        ingestion_config: IngestionConfig,
         metrics: Arc<SiftStreamMetrics>,
         control_channel_capacity: usize,
         metrics_streaming_interval: Option<Duration>,
@@ -280,57 +246,16 @@ impl FileBackupMode {
         };
 
         Ok(Self {
-            ingestion_config,
             write_tx,
             write_task,
             control_tx,
             metrics_streaming,
+            metrics,
         })
-    }
-
-    /// Sends the request to the background write task.
-    pub(crate) fn send_impl(
-        &mut self,
-        ctx: &mut SendContext<'_>,
-        request: IngestWithConfigDataStreamRequest,
-    ) -> Result<()> {
-        #[cfg(feature = "tracing")]
-        {
-            if !ctx.flows_seen.contains(&request.flow) {
-                ctx.metrics.unique_flows_received.increment();
-                ctx.flows_seen.insert(request.flow.clone());
-                tracing::info!(
-                    sift_stream_id = ctx.sift_stream_id.to_string(),
-                    "flow '{}' being written for the first time",
-                    &request.flow,
-                );
-            }
-        }
-
-        // Track the backup channel depth.
-        ctx.metrics
-            .backup_channel_depth
-            .set(self.write_tx.len() as u64);
-
-        // Send the request to the background write task (non-blocking)
-        let request_arc = Arc::new(request);
-        self.write_tx.try_send(request_arc).map_err(|e| {
-            if e.is_full() {
-                Error::new_msg(ErrorKind::StreamError, "file backup write channel is full")
-            } else {
-                Error::new_msg(
-                    ErrorKind::StreamError,
-                    format!("file backup write channel is closed: {e}"),
-                )
-            }
-        })?;
-
-        ctx.metrics.messages_sent.increment();
-        Ok(())
     }
 }
 
-impl SiftStream<FileBackupMode> {
+impl SiftStream<IngestionConfigEncoder, FileBackup> {
     /// Initializes a new [SiftStream] for file backup mode. Users should instead use [`SiftStreamBuilder`].
     ///
     /// [`SiftStreamBuilder`]: crate::stream::builder::SiftStreamBuilder
@@ -356,11 +281,10 @@ impl SiftStream<FileBackupMode> {
             max_size: max_file_size,
         };
 
-        let mode = FileBackupMode::new(
+        let file_backup = FileBackup::new(
             backups_directory,
             file_writer_config,
             channel_capacity,
-            ingestion_config,
             metrics.clone(),
             control_channel_capacity,
             metrics_streaming_interval,
@@ -370,12 +294,15 @@ impl SiftStream<FileBackupMode> {
         )?;
 
         Ok(Self {
-            grpc_channel,
-            mode,
-            metrics,
-            flows_by_name,
+            grpc_channel: grpc_channel.clone(),
+            encoder: IngestionConfigEncoder {
+                grpc_channel,
+                flows_by_name,
+                ingestion_config,
+                metrics,
+            },
+            transport: file_backup,
             run,
-            flows_seen: std::collections::HashSet::new(),
             sift_stream_id,
         })
     }
@@ -388,7 +315,7 @@ pub use super::ingestion_config::Flow;
 mod tests {
     use super::*;
     use crate::test::create_mock_grpc_channel_with_service;
-    use crate::{ChannelValue, TimeValue};
+    use crate::{FlowBuilder, TimeValue};
     use sift_rs::common::r#type::v1::ChannelDataType;
     use std::collections::HashMap;
     use tempdir::TempDir;
@@ -425,15 +352,13 @@ mod tests {
         backups_directory: PathBuf,
         file_writer_config: FileWriterConfig,
         channel_capacity: usize,
-        ingestion_config: IngestionConfig,
         metrics: Arc<SiftStreamMetrics>,
-    ) -> FileBackupMode {
+    ) -> FileBackup {
         let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
-        FileBackupMode::new(
+        FileBackup::new(
             backups_directory,
             file_writer_config,
             channel_capacity,
-            ingestion_config,
             metrics,
             100,  // control_channel_capacity
             None, // metrics_streaming_interval - disabled for tests
@@ -626,17 +551,6 @@ mod tests {
         builder.build()
     }
 
-    fn create_test_flow(flow_name: &str) -> Flow {
-        Flow::new(
-            flow_name,
-            TimeValue::now(),
-            &[
-                ChannelValue::new("channel1", 1.0_f64),
-                ChannelValue::new("channel2", 42_i32),
-            ],
-        )
-    }
-
     fn create_test_request(
         flow: &str,
         ingestion_config_id: &str,
@@ -653,37 +567,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_file_backup_mode_ingestion_config_id() {
-        let ingestion_config = create_test_ingestion_config();
-        let temp_dir = TempDir::new("test_file_backup").unwrap();
-        let file_writer_config = FileWriterConfig {
-            directory: temp_dir.path().to_path_buf(),
-            prefix: ingestion_config.client_key.clone(),
-            max_size: 1024,
-        };
-
-        let metrics = Arc::new(SiftStreamMetrics::default());
-        let mode = create_test_file_backup_mode(
-            temp_dir.path().to_path_buf(),
-            file_writer_config,
-            1024 * 100,
-            ingestion_config.clone(),
-            metrics,
-        )
-        .await;
-
-        assert_eq!(
-            mode.ingestion_config_id(),
-            &ingestion_config.ingestion_config_id
-        );
-    }
-
-    #[tokio::test]
     async fn test_file_backup_mode_send_impl() {
         let ingestion_config = create_test_ingestion_config();
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let mut flows_seen = std::collections::HashSet::new();
         let sift_stream_id = Uuid::new_v4();
 
         let file_writer_config = FileWriterConfig {
@@ -696,23 +583,14 @@ mod tests {
             temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
-            ingestion_config.clone(),
             metrics.clone(),
         )
         .await;
 
         let request = create_test_request("test_flow", &ingestion_config.ingestion_config_id);
 
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-
         // Send the request
-        mode.send_impl(&mut ctx, request).unwrap();
+        mode.send(&sift_stream_id, request).unwrap();
 
         // Wait for the background task to process the message
         wait_for_backup_metrics(&metrics, 1, 1000).await;
@@ -722,14 +600,7 @@ mod tests {
         assert_eq!(metrics.backups.total_messages.get(), 1);
 
         // Finish to ensure all data is written
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-        mode.finish(&mut ctx).await.unwrap();
+        mode.finish(&sift_stream_id).await.unwrap();
     }
 
     #[tokio::test]
@@ -737,7 +608,6 @@ mod tests {
         let ingestion_config = create_test_ingestion_config();
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let mut flows_seen = std::collections::HashSet::new();
         let sift_stream_id = Uuid::new_v4();
 
         let file_writer_config = FileWriterConfig {
@@ -750,7 +620,6 @@ mod tests {
             temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
-            ingestion_config.clone(),
             metrics.clone(),
         )
         .await;
@@ -760,35 +629,19 @@ mod tests {
         let request2 = create_test_request("flow2", &ingestion_config.ingestion_config_id);
         let request3 = create_test_request("flow1", &ingestion_config.ingestion_config_id); // Duplicate
 
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-
-        mode.send_impl(&mut ctx, request1).unwrap();
-        mode.send_impl(&mut ctx, request2).unwrap();
-        mode.send_impl(&mut ctx, request3).unwrap();
+        mode.send(&sift_stream_id, request1).unwrap();
+        mode.send(&sift_stream_id, request2).unwrap();
+        mode.send(&sift_stream_id, request3).unwrap();
 
         // Wait for the background task to process all messages
         wait_for_backup_metrics(&metrics, 3, 1000).await;
 
         // Should have tracked 2 unique flows
-        assert_eq!(metrics.unique_flows_received.get(), 2);
         assert_eq!(metrics.messages_sent.get(), 3);
         assert_eq!(metrics.backups.total_messages.get(), 3);
 
         // Finish to ensure all data is written
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-        mode.finish(&mut ctx).await.unwrap();
+        mode.finish(&sift_stream_id).await.unwrap();
     }
 
     #[tokio::test]
@@ -796,7 +649,6 @@ mod tests {
         let ingestion_config = create_test_ingestion_config();
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let mut flows_seen = std::collections::HashSet::new();
         let sift_stream_id = Uuid::new_v4();
 
         let file_writer_config = FileWriterConfig {
@@ -809,7 +661,6 @@ mod tests {
             temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
-            ingestion_config.clone(),
             metrics.clone(),
         )
         .await;
@@ -820,15 +671,7 @@ mod tests {
             create_test_request("flow3", &ingestion_config.ingestion_config_id),
         ];
 
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-
-        mode.send_requests(&mut ctx, requests).await.unwrap();
+        mode.send_requests(&sift_stream_id, requests).unwrap();
 
         // Wait for the background task to process all messages
         wait_for_backup_metrics(&metrics, 3, 1000).await;
@@ -838,14 +681,7 @@ mod tests {
         assert_eq!(metrics.backups.total_messages.get(), 3);
 
         // Finish to ensure all data is written
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-        mode.finish(&mut ctx).await.unwrap();
+        mode.finish(&sift_stream_id).await.unwrap();
     }
 
     #[tokio::test]
@@ -853,7 +689,6 @@ mod tests {
         let ingestion_config = create_test_ingestion_config();
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let mut flows_seen = std::collections::HashSet::new();
         let sift_stream_id = Uuid::new_v4();
 
         let file_writer_config = FileWriterConfig {
@@ -866,7 +701,6 @@ mod tests {
             temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
-            ingestion_config.clone(),
             metrics.clone(),
         )
         .await;
@@ -876,15 +710,7 @@ mod tests {
             create_test_request("flow2", &ingestion_config.ingestion_config_id),
         ];
 
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-
-        mode.send_requests_nonblocking(&mut ctx, requests).unwrap();
+        mode.send_requests(&sift_stream_id, requests).unwrap();
 
         // Wait for the background task to process all messages
         wait_for_backup_metrics(&metrics, 2, 1000).await;
@@ -894,14 +720,7 @@ mod tests {
         assert_eq!(metrics.backups.total_messages.get(), 2);
 
         // Finish to ensure all data is written
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-        mode.finish(&mut ctx).await.unwrap();
+        mode.finish(&sift_stream_id).await.unwrap();
     }
 
     #[tokio::test]
@@ -909,7 +728,6 @@ mod tests {
         let ingestion_config = create_test_ingestion_config();
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let mut flows_seen = std::collections::HashSet::new();
         let sift_stream_id = Uuid::new_v4();
 
         let flow_name = "test_flow";
@@ -928,22 +746,19 @@ mod tests {
             temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
-            ingestion_config,
             metrics.clone(),
         )
         .await;
 
-        let flow = create_test_flow(flow_name);
+        let descriptor =
+            create_test_flow_descriptor(flow_name, &ingestion_config.ingestion_config_id);
+        let mut builder = FlowBuilder::new(&descriptor);
+        assert!(builder.set_with_key("channel1", 1.0_f64).is_ok());
+        assert!(builder.set_with_key("channel2", 42_i32).is_ok());
 
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &flows_by_name,
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
+        let request = builder.request(TimeValue::now());
 
-        mode.send(&mut ctx, flow).await.unwrap();
+        mode.send(&sift_stream_id, request).unwrap();
 
         // Wait for the background task to process the message
         wait_for_backup_metrics(&metrics, 1, 1000).await;
@@ -953,14 +768,7 @@ mod tests {
         assert_eq!(metrics.backups.total_messages.get(), 1);
 
         // Finish to ensure all data is written
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &flows_by_name,
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-        mode.finish(&mut ctx).await.unwrap();
+        mode.finish(&sift_stream_id).await.unwrap();
     }
 
     #[tokio::test]
@@ -968,7 +776,6 @@ mod tests {
         let ingestion_config = create_test_ingestion_config();
         let temp_dir = TempDir::new("test_file_backup").unwrap();
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let mut flows_seen = std::collections::HashSet::new();
         let sift_stream_id = Uuid::new_v4();
 
         let file_writer_config = FileWriterConfig {
@@ -981,23 +788,20 @@ mod tests {
             temp_dir.path().to_path_buf(),
             file_writer_config,
             1024 * 100,
-            ingestion_config,
             metrics.clone(),
         )
         .await;
 
-        let flow = create_test_flow("unknown_flow");
+        let descriptor =
+            create_test_flow_descriptor("unknown_flow", &ingestion_config.ingestion_config_id);
+        let mut builder = FlowBuilder::new(&descriptor);
+        assert!(builder.set_with_key("channel1", 1.0_f64).is_ok());
+        assert!(builder.set_with_key("channel2", 42_i32).is_ok());
 
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(), // Empty flows map
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
+        let request = builder.request(TimeValue::now());
 
         // Should still succeed even without flow descriptor
-        mode.send(&mut ctx, flow).await.unwrap();
+        mode.send(&sift_stream_id, request).unwrap();
 
         // Wait for the background task to process the message
         wait_for_backup_metrics(&metrics, 1, 1000).await;
@@ -1007,46 +811,7 @@ mod tests {
         assert_eq!(metrics.backups.total_messages.get(), 1);
 
         // Finish to ensure all data is written
-        let mut ctx = SendContext {
-            metrics: &metrics,
-            run: &None,
-            flows_by_name: &HashMap::new(),
-            flows_seen: &mut flows_seen,
-            sift_stream_id: &sift_stream_id,
-        };
-        mode.finish(&mut ctx).await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_sift_stream_new_file_backup() {
-        let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
-        let ingestion_config = create_test_ingestion_config();
-        let temp_dir = TempDir::new("test_file_backup").unwrap();
-        let metrics = Arc::new(SiftStreamMetrics::default());
-
-        let session_name = format!("test_stream.{}", ingestion_config.client_key);
-        let sift_stream_id = Uuid::new_v4();
-        let stream = SiftStream::new_file_backup(
-            grpc_channel,
-            ingestion_config.clone(),
-            HashMap::new(),
-            None,
-            temp_dir.path().to_path_buf(),
-            temp_dir.path().to_path_buf(),
-            1024 * 1024,
-            1024 * 100, // channel_capacity
-            100,        // control_channel_capacity
-            None,       // metrics_streaming_interval
-            session_name,
-            sift_stream_id,
-            metrics,
-        )
-        .unwrap();
-
-        assert_eq!(
-            stream.mode.ingestion_config_id(),
-            &ingestion_config.ingestion_config_id
-        );
+        mode.finish(&sift_stream_id).await.unwrap();
     }
 
     #[tokio::test]
