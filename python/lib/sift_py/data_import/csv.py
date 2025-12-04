@@ -75,6 +75,7 @@ class CsvUploadService(_RestService):
         with _ProgressFile(path, disable=not show_progress) as f:
             headers = {
                 "Content-Encoding": content_encoding,
+                "Content-Disposition": f'attachment; filename="{os.path.basename(path)}"',
             }
 
             response = self._session.post(
