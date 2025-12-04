@@ -459,6 +459,9 @@ pub use stream::{
     time::TimeValue,
 };
 
+/// Re-export IngestionConfigEncoder as IngestionConfigMode for backwards compatibility.
+pub use IngestionConfigEncoder as IngestionConfigMode;
+
 /// Concerned with backing up data as its streamed to Sift and backups accessible.
 pub mod backup;
 pub use backup::DiskBackupPolicy;
