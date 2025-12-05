@@ -54,6 +54,8 @@ func (m *Rule) CloneVT() *Rule {
 	r.IsExternal = m.IsExternal
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsArchived = m.IsArchived
+	r.IsLiveEvaluationEnabled = m.IsLiveEvaluationEnabled
+	r.CurrentVersionId = m.CurrentVersionId
 	if rhs := m.Conditions; rhs != nil {
 		tmpContainer := make([]*RuleCondition, len(rhs))
 		for k, v := range rhs {
@@ -443,6 +445,10 @@ func (m *UpdateRuleRequest) CloneVT() *UpdateRuleRequest {
 			}
 		}
 		r.Metadata = tmpContainer
+	}
+	if rhs := m.IsLiveEvaluationEnabled; rhs != nil {
+		tmpVal := *rhs
+		r.IsLiveEvaluationEnabled = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -1546,6 +1552,15 @@ func (m *RuleActionConfiguration_Annotation) CloneVT() isRuleActionConfiguration
 	return r
 }
 
+func (m *RuleActionConfiguration_Webhook) CloneVT() isRuleActionConfiguration_Configuration {
+	if m == nil {
+		return (*RuleActionConfiguration_Webhook)(nil)
+	}
+	r := new(RuleActionConfiguration_Webhook)
+	r.Webhook = m.Webhook.CloneVT()
+	return r
+}
+
 func (m *NotificationActionConfiguration) CloneVT() *NotificationActionConfiguration {
 	if m == nil {
 		return (*NotificationActionConfiguration)(nil)
@@ -1564,6 +1579,23 @@ func (m *NotificationActionConfiguration) CloneVT() *NotificationActionConfigura
 }
 
 func (m *NotificationActionConfiguration) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *WebhookActionConfiguration) CloneVT() *WebhookActionConfiguration {
+	if m == nil {
+		return (*WebhookActionConfiguration)(nil)
+	}
+	r := new(WebhookActionConfiguration)
+	r.WebhookId = m.WebhookId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *WebhookActionConfiguration) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -1838,6 +1870,12 @@ func (this *Rule) EqualVT(that *Rule) bool {
 		return false
 	}
 	if this.IsArchived != that.IsArchived {
+		return false
+	}
+	if this.IsLiveEvaluationEnabled != that.IsLiveEvaluationEnabled {
+		return false
+	}
+	if this.CurrentVersionId != that.CurrentVersionId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2372,6 +2410,9 @@ func (this *UpdateRuleRequest) EqualVT(that *UpdateRuleRequest) bool {
 		}
 	}
 	if this.IsArchived != that.IsArchived {
+		return false
+	}
+	if p, q := this.IsLiveEvaluationEnabled, that.IsLiveEvaluationEnabled; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3870,6 +3911,31 @@ func (this *RuleActionConfiguration_Annotation) EqualVT(thatIface isRuleActionCo
 	return true
 }
 
+func (this *RuleActionConfiguration_Webhook) EqualVT(thatIface isRuleActionConfiguration_Configuration) bool {
+	that, ok := thatIface.(*RuleActionConfiguration_Webhook)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Webhook, that.Webhook; p != q {
+		if p == nil {
+			p = &WebhookActionConfiguration{}
+		}
+		if q == nil {
+			q = &WebhookActionConfiguration{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
 func (this *NotificationActionConfiguration) EqualVT(that *NotificationActionConfiguration) bool {
 	if this == that {
 		return true
@@ -3890,6 +3956,25 @@ func (this *NotificationActionConfiguration) EqualVT(that *NotificationActionCon
 
 func (this *NotificationActionConfiguration) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*NotificationActionConfiguration)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *WebhookActionConfiguration) EqualVT(that *WebhookActionConfiguration) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.WebhookId != that.WebhookId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WebhookActionConfiguration) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*WebhookActionConfiguration)
 	if !ok {
 		return false
 	}
@@ -5186,6 +5271,27 @@ func (m *Rule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CurrentVersionId) > 0 {
+		i -= len(m.CurrentVersionId)
+		copy(dAtA[i:], m.CurrentVersionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CurrentVersionId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	if m.IsLiveEvaluationEnabled {
+		i--
+		if m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -6243,6 +6349,16 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsLiveEvaluationEnabled != nil {
+		i--
+		if *m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x78
 	}
 	if m.IsArchived {
 		i--
@@ -8972,6 +9088,25 @@ func (m *RuleActionConfiguration_Annotation) MarshalToSizedBufferVT(dAtA []byte)
 	}
 	return len(dAtA) - i, nil
 }
+func (m *RuleActionConfiguration_Webhook) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RuleActionConfiguration_Webhook) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Webhook != nil {
+		size, err := m.Webhook.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
 func (m *NotificationActionConfiguration) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -9010,6 +9145,46 @@ func (m *NotificationActionConfiguration) MarshalToSizedBufferVT(dAtA []byte) (i
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WebhookActionConfiguration) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebhookActionConfiguration) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WebhookActionConfiguration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WebhookId) > 0 {
+		i -= len(m.WebhookId)
+		copy(dAtA[i:], m.WebhookId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.WebhookId)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -9458,6 +9633,27 @@ func (m *Rule) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CurrentVersionId) > 0 {
+		i -= len(m.CurrentVersionId)
+		copy(dAtA[i:], m.CurrentVersionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CurrentVersionId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	if m.IsLiveEvaluationEnabled {
+		i--
+		if m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
 	}
 	if m.IsArchived {
 		i--
@@ -10516,6 +10712,16 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsLiveEvaluationEnabled != nil {
+		i--
+		if *m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x78
 	}
 	if m.IsArchived {
 		i--
@@ -13212,6 +13418,13 @@ func (m *RuleActionConfiguration) MarshalToSizedBufferVTStrict(dAtA []byte) (int
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if msg, ok := m.Configuration.(*RuleActionConfiguration_Webhook); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if msg, ok := m.Configuration.(*RuleActionConfiguration_Annotation); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -13267,6 +13480,25 @@ func (m *RuleActionConfiguration_Annotation) MarshalToSizedBufferVTStrict(dAtA [
 	}
 	return len(dAtA) - i, nil
 }
+func (m *RuleActionConfiguration_Webhook) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *RuleActionConfiguration_Webhook) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Webhook != nil {
+		size, err := m.Webhook.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
 func (m *NotificationActionConfiguration) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -13305,6 +13537,46 @@ func (m *NotificationActionConfiguration) MarshalToSizedBufferVTStrict(dAtA []by
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WebhookActionConfiguration) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WebhookActionConfiguration) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *WebhookActionConfiguration) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.WebhookId) > 0 {
+		i -= len(m.WebhookId)
+		copy(dAtA[i:], m.WebhookId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.WebhookId)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -13822,6 +14094,13 @@ func (m *Rule) SizeVT() (n int) {
 	if m.IsArchived {
 		n += 3
 	}
+	if m.IsLiveEvaluationEnabled {
+		n += 3
+	}
+	l = len(m.CurrentVersionId)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -14225,6 +14504,9 @@ func (m *UpdateRuleRequest) SizeVT() (n int) {
 		}
 	}
 	if m.IsArchived {
+		n += 2
+	}
+	if m.IsLiveEvaluationEnabled != nil {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -15236,6 +15518,18 @@ func (m *RuleActionConfiguration_Annotation) SizeVT() (n int) {
 	}
 	return n
 }
+func (m *RuleActionConfiguration_Webhook) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Webhook != nil {
+		l = m.Webhook.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
 func (m *NotificationActionConfiguration) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15247,6 +15541,20 @@ func (m *NotificationActionConfiguration) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WebhookActionConfiguration) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.WebhookId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -16099,6 +16407,58 @@ func (m *Rule) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsLiveEvaluationEnabled = bool(v != 0)
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CurrentVersionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CurrentVersionId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18674,6 +19034,27 @@ func (m *UpdateRuleRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsLiveEvaluationEnabled = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -24485,6 +24866,47 @@ func (m *RuleActionConfiguration) UnmarshalVT(dAtA []byte) error {
 				m.Configuration = &RuleActionConfiguration_Annotation{Annotation: v}
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Webhook", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Configuration.(*RuleActionConfiguration_Webhook); ok {
+				if err := oneof.Webhook.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &WebhookActionConfiguration{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Configuration = &RuleActionConfiguration_Webhook{Webhook: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -24567,6 +24989,89 @@ func (m *NotificationActionConfiguration) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.RecipientUserIds = append(m.RecipientUserIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WebhookActionConfiguration) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WebhookActionConfiguration: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WebhookActionConfiguration: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebhookId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebhookId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -26279,6 +26784,62 @@ func (m *Rule) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsLiveEvaluationEnabled = bool(v != 0)
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CurrentVersionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.CurrentVersionId = stringValue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -28982,6 +29543,27 @@ func (m *UpdateRuleRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsLiveEvaluationEnabled = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -35033,6 +35615,47 @@ func (m *RuleActionConfiguration) UnmarshalVTUnsafe(dAtA []byte) error {
 				m.Configuration = &RuleActionConfiguration_Annotation{Annotation: v}
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Webhook", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Configuration.(*RuleActionConfiguration_Webhook); ok {
+				if err := oneof.Webhook.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &WebhookActionConfiguration{}
+				if err := v.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Configuration = &RuleActionConfiguration_Webhook{Webhook: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -35119,6 +35742,93 @@ func (m *NotificationActionConfiguration) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.RecipientUserIds = append(m.RecipientUserIds, stringValue)
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WebhookActionConfiguration) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WebhookActionConfiguration: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WebhookActionConfiguration: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebhookId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.WebhookId = stringValue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

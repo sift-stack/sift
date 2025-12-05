@@ -4886,6 +4886,12 @@ impl serde::Serialize for Rule {
         if self.is_archived {
             len += 1;
         }
+        if self.is_live_evaluation_enabled {
+            len += 1;
+        }
+        if !self.current_version_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.Rule", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -4947,6 +4953,12 @@ impl serde::Serialize for Rule {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if self.is_live_evaluation_enabled {
+            struct_ser.serialize_field("isLiveEvaluationEnabled", &self.is_live_evaluation_enabled)?;
+        }
+        if !self.current_version_id.is_empty() {
+            struct_ser.serialize_field("currentVersionId", &self.current_version_id)?;
+        }
         struct_ser.end()
     }
 }
@@ -4993,6 +5005,10 @@ impl<'de> serde::Deserialize<'de> for Rule {
             "archivedDate",
             "is_archived",
             "isArchived",
+            "is_live_evaluation_enabled",
+            "isLiveEvaluationEnabled",
+            "current_version_id",
+            "currentVersionId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5017,6 +5033,8 @@ impl<'de> serde::Deserialize<'de> for Rule {
             Metadata,
             ArchivedDate,
             IsArchived,
+            IsLiveEvaluationEnabled,
+            CurrentVersionId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -5058,6 +5076,8 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "isLiveEvaluationEnabled" | "is_live_evaluation_enabled" => Ok(GeneratedField::IsLiveEvaluationEnabled),
+                            "currentVersionId" | "current_version_id" => Ok(GeneratedField::CurrentVersionId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -5097,6 +5117,8 @@ impl<'de> serde::Deserialize<'de> for Rule {
                 let mut metadata__ = None;
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
+                let mut is_live_evaluation_enabled__ = None;
+                let mut current_version_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -5219,6 +5241,18 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IsLiveEvaluationEnabled => {
+                            if is_live_evaluation_enabled__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isLiveEvaluationEnabled"));
+                            }
+                            is_live_evaluation_enabled__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::CurrentVersionId => {
+                            if current_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("currentVersionId"));
+                            }
+                            current_version_id__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Rule {
@@ -5242,6 +5276,8 @@ impl<'de> serde::Deserialize<'de> for Rule {
                     metadata: metadata__.unwrap_or_default(),
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
+                    is_live_evaluation_enabled: is_live_evaluation_enabled__.unwrap_or_default(),
+                    current_version_id: current_version_id__.unwrap_or_default(),
                 })
             }
         }
@@ -5505,6 +5541,9 @@ impl serde::Serialize for RuleActionConfiguration {
                 rule_action_configuration::Configuration::Annotation(v) => {
                     struct_ser.serialize_field("annotation", v)?;
                 }
+                rule_action_configuration::Configuration::Webhook(v) => {
+                    struct_ser.serialize_field("webhook", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -5519,12 +5558,14 @@ impl<'de> serde::Deserialize<'de> for RuleActionConfiguration {
         const FIELDS: &[&str] = &[
             "notification",
             "annotation",
+            "webhook",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Notification,
             Annotation,
+            Webhook,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -5548,6 +5589,7 @@ impl<'de> serde::Deserialize<'de> for RuleActionConfiguration {
                         match value {
                             "notification" => Ok(GeneratedField::Notification),
                             "annotation" => Ok(GeneratedField::Annotation),
+                            "webhook" => Ok(GeneratedField::Webhook),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -5582,6 +5624,13 @@ impl<'de> serde::Deserialize<'de> for RuleActionConfiguration {
                                 return Err(serde::de::Error::duplicate_field("annotation"));
                             }
                             configuration__ = map_.next_value::<::std::option::Option<_>>()?.map(rule_action_configuration::Configuration::Annotation)
+;
+                        }
+                        GeneratedField::Webhook => {
+                            if configuration__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("webhook"));
+                            }
+                            configuration__ = map_.next_value::<::std::option::Option<_>>()?.map(rule_action_configuration::Configuration::Webhook)
 ;
                         }
                     }
@@ -8151,6 +8200,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if self.is_archived {
             len += 1;
         }
+        if self.is_live_evaluation_enabled.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateRuleRequest", len)?;
         if let Some(v) = self.rule_id.as_ref() {
             struct_ser.serialize_field("ruleId", v)?;
@@ -8194,6 +8246,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if let Some(v) = self.is_live_evaluation_enabled.as_ref() {
+            struct_ser.serialize_field("isLiveEvaluationEnabled", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -8228,6 +8283,8 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             "metadata",
             "is_archived",
             "isArchived",
+            "is_live_evaluation_enabled",
+            "isLiveEvaluationEnabled",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -8246,6 +8303,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             IsExternal,
             Metadata,
             IsArchived,
+            IsLiveEvaluationEnabled,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -8281,6 +8339,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             "isExternal" | "is_external" => Ok(GeneratedField::IsExternal),
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "isLiveEvaluationEnabled" | "is_live_evaluation_enabled" => Ok(GeneratedField::IsLiveEvaluationEnabled),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -8314,6 +8373,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                 let mut is_external__ = None;
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
+                let mut is_live_evaluation_enabled__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -8400,6 +8460,12 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IsLiveEvaluationEnabled => {
+                            if is_live_evaluation_enabled__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isLiveEvaluationEnabled"));
+                            }
+                            is_live_evaluation_enabled__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(UpdateRuleRequest {
@@ -8417,6 +8483,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                     is_external: is_external__.unwrap_or_default(),
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
+                    is_live_evaluation_enabled: is_live_evaluation_enabled__,
                 })
             }
         }
@@ -9208,5 +9275,97 @@ impl<'de> serde::Deserialize<'de> for ViewJsonRulesResponse {
             }
         }
         deserializer.deserialize_struct("sift.rules.v1.ViewJsonRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for WebhookActionConfiguration {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.webhook_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.WebhookActionConfiguration", len)?;
+        if !self.webhook_id.is_empty() {
+            struct_ser.serialize_field("webhookId", &self.webhook_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for WebhookActionConfiguration {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "webhook_id",
+            "webhookId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            WebhookId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "webhookId" | "webhook_id" => Ok(GeneratedField::WebhookId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = WebhookActionConfiguration;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.WebhookActionConfiguration")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<WebhookActionConfiguration, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut webhook_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::WebhookId => {
+                            if webhook_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("webhookId"));
+                            }
+                            webhook_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(WebhookActionConfiguration {
+                    webhook_id: webhook_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.WebhookActionConfiguration", FIELDS, GeneratedVisitor)
     }
 }
