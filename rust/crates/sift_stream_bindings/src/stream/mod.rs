@@ -15,7 +15,7 @@ use pyo3::{prelude::*, types::PyIterator};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
-use sift_stream::{Flow, FlowConfig, IngestionConfigMode, SiftStream};
+use sift_stream::{Flow, FlowConfig, IngestionConfigEncoder, LiveStreaming, SiftStream};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -24,7 +24,7 @@ use tokio::sync::Mutex;
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct SiftStreamPy {
-    inner: Arc<Mutex<Option<SiftStream<IngestionConfigMode>>>>,
+    inner: Arc<Mutex<Option<SiftStream<IngestionConfigEncoder, LiveStreaming>>>>,
 }
 
 #[gen_stub_pyclass]
@@ -35,8 +35,8 @@ pub struct FlowPy {
 }
 
 // Trait Implementations
-impl From<SiftStream<IngestionConfigMode>> for SiftStreamPy {
-    fn from(stream: SiftStream<IngestionConfigMode>) -> Self {
+impl From<SiftStream<IngestionConfigEncoder, LiveStreaming>> for SiftStreamPy {
+    fn from(stream: SiftStream<IngestionConfigEncoder, LiveStreaming>) -> Self {
         Self {
             inner: Arc::new(Mutex::new(Some(stream))),
         }
@@ -64,7 +64,8 @@ impl SiftStreamPy {
                 )
             })?;
 
-            match stream.send(flow.into()).await {
+            let flow_rs: Flow = flow.into();
+            match stream.send(flow_rs).await {
                 Ok(_) => Ok(()),
                 Err(e) => Err(SiftErrorWrapper(e).into()),
             }
@@ -97,7 +98,8 @@ impl SiftStreamPy {
             })?;
 
             for flow in flows_vec {
-                match stream.send(flow.into()).await {
+                let flow_rs: Flow = flow.into();
+                match stream.send(flow_rs).await {
                     Ok(_) => (),
                     Err(e) => return Err(SiftErrorWrapper(e).into()),
                 }

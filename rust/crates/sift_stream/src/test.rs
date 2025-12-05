@@ -148,11 +148,13 @@ impl IngestionConfigService for MockIngestionConfigService {
     ) -> Result<Response<CreateIngestionConfigFlowsResponse>, Status> {
         let create_flows = request.into_inner();
 
-        let existing_flows = self.existing_flows.lock().unwrap();
+        let mut existing_flows = self.existing_flows.lock().unwrap();
         for flow in create_flows.flows.iter() {
             if existing_flows.iter().any(|f| f.name == flow.name) {
                 return Err(Status::already_exists("flow already exists"));
             }
+
+            existing_flows.push(flow.clone());
         }
 
         Ok(Response::new(CreateIngestionConfigFlowsResponse {}))

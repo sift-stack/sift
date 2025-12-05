@@ -1,9 +1,9 @@
 use crate::{
-    DiskBackupPolicy, Flow, FlowConfig, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy,
-    RetryPolicy, SiftStream, SiftStreamBuilder, TimeValue,
+    DiskBackupPolicy, Flow, FlowConfig, IngestionConfigForm, RecoveryStrategy, RetryPolicy,
+    SiftStream, SiftStreamBuilder, TimeValue,
     backup::disk::{AsyncBackupsManager, BackupIngestTask},
     metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
-    stream::mode::ingestion_config::DataStream,
+    stream::mode::ingestion_config::{DataStream, IngestionConfigEncoder},
 };
 use async_channel;
 use sift_connect::SiftChannel;
@@ -130,7 +130,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let backup_manager = tokio::spawn(async move {
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = config.sift_stream_id.to_string(),
+            sift_stream_id = %config.sift_stream_id,
             "backup manager task started"
         );
 
@@ -157,7 +157,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let ingestion = tokio::spawn(async move {
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = config.sift_stream_id.to_string(),
+            sift_stream_id = %config.sift_stream_id,
             "ingestion task started"
         );
         ingestion_task.run().await
@@ -186,7 +186,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let reingestion = tokio::spawn(async move {
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = config.sift_stream_id.to_string(),
+            sift_stream_id = %config.sift_stream_id,
             "backup re-ingestion task started"
         );
         reingestion_task.run().await
@@ -202,7 +202,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
 
             #[cfg(feature = "tracing")]
             tracing::info!(
-                sift_stream_id = config.sift_stream_id.to_string(),
+                sift_stream_id = %config.sift_stream_id,
                 "metrics streaming task started"
             );
             metrics_task.run().await
@@ -211,7 +211,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
 
     #[cfg(feature = "tracing")]
     tracing::info!(
-        sift_stream_id = config.sift_stream_id.to_string(),
+        sift_stream_id = %config.sift_stream_id,
         "Sift streaming successfully initialized"
     );
 
@@ -269,7 +269,7 @@ impl IngestionTask {
             if stream.is_none() {
                 #[cfg(feature = "tracing")]
                 tracing::info!(
-                    sift_stream_id = self.config.sift_stream_id.to_string(),
+                    sift_stream_id = %self.config.sift_stream_id,
                     "creating new stream"
                 );
 
@@ -310,7 +310,7 @@ impl IngestionTask {
 
                 #[cfg(feature = "tracing")]
                 tracing::info!(
-                    sift_stream_id = self.config.sift_stream_id.to_string(),
+                    sift_stream_id = %self.config.sift_stream_id,
                     "successfully initialized a new stream to Sift"
                 );
             }
@@ -337,7 +337,7 @@ impl IngestionTask {
                 _ = timer.tick() => {
                     #[cfg(feature = "tracing")]
                     tracing::info!(
-                        sift_stream_id = self.config.sift_stream_id.to_string(),
+                        sift_stream_id = %self.config.sift_stream_id,
                         "checkpoint expired"
                     );
 
@@ -350,7 +350,7 @@ impl IngestionTask {
                         Ok(Ok(_)) => {
                             #[cfg(feature = "tracing")]
                             tracing::info!(
-                                sift_stream_id = self.config.sift_stream_id.to_string(),
+                                sift_stream_id = %self.config.sift_stream_id,
                                 "checkpoint succeeded - data streamed to Sift successfully"
                             );
                             self.config.metrics.cur_retry_count.set(0);
@@ -361,7 +361,7 @@ impl IngestionTask {
                         Err(elapsed) => {
                             #[cfg(feature = "tracing")]
                             tracing::error!(
-                                sift_stream_id = self.config.sift_stream_id.to_string(),
+                                sift_stream_id = %self.config.sift_stream_id,
                                 error = %elapsed,
                                 "timed out waiting for checkpoint completion from Sift"
                             );
@@ -378,7 +378,7 @@ impl IngestionTask {
                         Ok(ControlMessage::BackupFull) => {
                             #[cfg(feature = "tracing")]
                             tracing::info!(
-                                sift_stream_id = self.config.sift_stream_id.to_string(),
+                                sift_stream_id = %self.config.sift_stream_id,
                                 "backup full"
                             );
 
@@ -412,7 +412,7 @@ impl IngestionTask {
     ) -> Result<Duration> {
         #[cfg(feature = "tracing")]
         tracing::error!(
-            sift_stream_id = self.config.sift_stream_id.to_string(),
+            sift_stream_id = %self.config.sift_stream_id,
             retry_counter = self.config.metrics.cur_retry_count.get(),
             error = %e,
             "stream failed - failed to ingest data to Sift - if backups are enabled, backup files will be re-ingested"
@@ -456,7 +456,7 @@ impl IngestionTask {
     ) -> Result<()> {
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = self.config.sift_stream_id.to_string(),
+            sift_stream_id = %self.config.sift_stream_id,
             "ingestion task shutting down"
         );
 
@@ -467,14 +467,14 @@ impl IngestionTask {
                 Ok(_) => {
                     #[cfg(feature = "tracing")]
                     tracing::info!(
-                        sift_stream_id = self.config.sift_stream_id.to_string(),
+                        sift_stream_id = %self.config.sift_stream_id,
                         "final stream completed successfully"
                     );
                 }
                 Err(e) => {
                     #[cfg(feature = "tracing")]
                     tracing::error!(
-                        sift_stream_id = self.config.sift_stream_id.to_string(),
+                        sift_stream_id = %self.config.sift_stream_id,
                         error = %e,
                         "final stream failed"
                     );
@@ -510,7 +510,7 @@ const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics
 const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
 
 pub(crate) struct MetricsStreamingTask {
-    stream: SiftStream<IngestionConfigMode>,
+    stream: SiftStream<IngestionConfigEncoder>,
     control_rx: broadcast::Receiver<ControlMessage>,
     session_name: String,
     interval: Duration,
