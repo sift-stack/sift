@@ -45,6 +45,10 @@ pub struct Rule {
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="21")]
     pub is_archived: bool,
+    #[prost(bool, tag="22")]
+    pub is_live_evaluation_enabled: bool,
+    #[prost(string, tag="23")]
+    pub current_version_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -223,6 +227,8 @@ pub struct UpdateRuleRequest {
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
     #[prost(bool, tag="14")]
     pub is_archived: bool,
+    #[prost(bool, optional, tag="15")]
+    pub is_live_evaluation_enabled: ::core::option::Option<bool>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -647,7 +653,7 @@ pub struct ChannelReference {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RuleActionConfiguration {
-    #[prost(oneof="rule_action_configuration::Configuration", tags="1, 2")]
+    #[prost(oneof="rule_action_configuration::Configuration", tags="1, 2, 3")]
     pub configuration: ::core::option::Option<rule_action_configuration::Configuration>,
 }
 /// Nested message and enum types in `RuleActionConfiguration`.
@@ -659,6 +665,8 @@ pub mod rule_action_configuration {
         Notification(super::NotificationActionConfiguration),
         #[prost(message, tag="2")]
         Annotation(super::AnnotationActionConfiguration),
+        #[prost(message, tag="3")]
+        Webhook(super::WebhookActionConfiguration),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -666,6 +674,12 @@ pub mod rule_action_configuration {
 pub struct NotificationActionConfiguration {
     #[prost(string, repeated, tag="1")]
     pub recipient_user_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WebhookActionConfiguration {
+    #[prost(string, tag="1")]
+    pub webhook_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
