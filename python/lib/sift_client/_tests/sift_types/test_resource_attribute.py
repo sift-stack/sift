@@ -113,6 +113,7 @@ class TestResourceAttributeKeyCreate:
             ],
         )
 
+        assert create.initial_enum_values is not None
         assert len(create.initial_enum_values) == 2
         assert create.initial_enum_values[0]["display_name"] == "production"
 
