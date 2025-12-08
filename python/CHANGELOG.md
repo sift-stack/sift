@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.3] - December 4, 2025
+- [Fix scaling issues with TDMS imports](https://github.com/sift-stack/sift/pull/422)
+
+## [v0.9.2] - December 3, 2025
+- [Set Content-Disposition on data imports](https://github.com/sift-stack/sift/pull/420)
+- [Show validation errors in External Rules](https://github.com/sift-stack/sift/pull/369)
+- [Use faster yaml loading for telemtery configs](https://github.com/sift-stack/sift/pull/322)
+
 ## [v0.9.1] - August 18, 2025
 - [Allow importing TDMS metadata to existing Runs](https://github.com/sift-stack/sift/pull/320)
 

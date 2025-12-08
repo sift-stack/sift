@@ -36,9 +36,9 @@
 //!     }],
 //! };
 //!
-//! // Initialize your Sift Stream
+//! // Initialize your Sift Stream (IngestionConfigMode - streams to Sift)
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
-//!     .ingestion_config(ingestion_config)
+//!     .ingestion_config(ingestion_config.clone())
 //!     .build()
 //!     .await?;
 //!
@@ -52,16 +52,58 @@
 //! sift_stream.send(flow).await?;
 //!
 //! // Gracefully terminate your stream
-//! sift_stream.finish().await?
+//! sift_stream.finish().await?;
+//!
+//! // Alternatively, initialize in FileBackupMode (only writes to backup files)
+//! use sift_stream::stream::builder::RecoveryStrategy;
+//! let mut backup_stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .recovery_strategy(RecoveryStrategy::default_retry_policy_with_backups())
+//!     .build_file_backup()
+//!     .await?;
+//!
+//! // Send telemetry to backup files (not to Sift)
+//! backup_stream.send(flow).await?;
+//!
+//! // Gracefully terminate and flush backup files
+//! backup_stream.finish().await?
 //! ```
+//!
+//! ## Stream Modes
+//!
+//! SiftStream supports two different modes of operation, each with different use cases:
+//!
+//! ### IngestionConfigMode
+//!
+//! [IngestionConfigMode] is the default streaming mode that sends telemetry data directly to Sift
+//! via gRPC streams. This mode supports:
+//! - Real-time streaming to Sift
+//! - Optional disk backups for data recovery
+//! - Checkpointing to confirm data receipt
+//! - Retry policies for handling network outages
+//!
+//! This mode is used when you call [SiftStreamBuilder::build] and is suitable for most use cases
+//! where you want to stream data to Sift in real-time.
+//!
+//! ### FileBackupMode
+//!
+//! [FileBackupMode] is a specialized mode that only writes telemetry data to backup files on disk
+//! without streaming to Sift. This mode is useful for:
+//! - CI/CD workflows where data is only needed/uploaded to Sift if a test fails
+//! - Situations where network connectivity is unreliable
+//! - Creating backup files for later ingestion
+//!
+//! This mode is used when you call [SiftStreamBuilder::build_file_backup]. Data written in this
+//! mode can be ingested into Sift later using separate tooling.
+//!
+//! **Note**: When using `FileBackupMode`, you must configure a [RecoveryStrategy::RetryWithBackups]
+//! recovery strategy, as the backup policy configuration is required for file management.
 //!
 //! ## Ingestion Configs
 //!
-//! Sift supports multiple modes of streaming telemetry, however, at the time of writing
-//! this, the only mode supported in this crate is [ingestion-config-based streaming](https://docs.siftstack.com/docs/ingestion/ingestion-config-based-streaming).
-//!
-//! In ingestion-config-based streaming, users will have to define the schema of their telemetry
-//! before they start telemetering data. The key parts of an ingestion config are:
+//! Both stream modes use [ingestion-config-based streaming](https://docs.siftstack.com/docs/ingestion/ingestion-config-based-streaming),
+//! which requires users to define the schema of their telemetry before they start telemetering data.
+//! The key parts of an ingestion config are:
 //! - **Asset name**: The name of the asset associated with the data that will be streamed.
 //! - **Client key**: An arbitrary user-sourced identifier that uniquely identifies the ingestion
 //!   config; this can be used to achieve client-side versioning e.g. `mars-rover0-sim-v1`.
@@ -410,9 +452,15 @@ pub use stream::{
     builder::{IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder},
     channel::{ChannelValue, Value},
     flow::{ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder},
-    mode::ingestion_config::{Flow, IngestionConfigMode},
+    mode::{
+        file_backup::FileBackup,
+        ingestion_config::{Flow, IngestionConfigEncoder, LiveStreaming},
+    },
     time::TimeValue,
 };
+
+/// Re-export IngestionConfigEncoder as IngestionConfigMode for backwards compatibility.
+pub use IngestionConfigEncoder as IngestionConfigMode;
 
 /// Concerned with backing up data as its streamed to Sift and backups accessible.
 pub mod backup;

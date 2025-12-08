@@ -299,7 +299,10 @@ mod test;
 /// equivalent flow in `sift_flows`. If there is no corresponding flow then it either doesn't exist
 /// in Sift (this would be a bug) or a user made a backwards incompatible change to their ingestion
 /// config.
-pub fn validate_flows(user_specified: &[FlowConfig], sift_flows: &[FlowConfig]) -> Result<()> {
+pub(crate) fn validate_flows(
+    user_specified: &[FlowConfig],
+    sift_flows: &[FlowConfig],
+) -> Result<()> {
     for user_flow in user_specified {
         let num_matches_by_name = sift_flows
             .iter()
