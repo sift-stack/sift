@@ -26,7 +26,15 @@ if TYPE_CHECKING:
         FileAttachmentUpdate,
         RemoteFileEntityType,
     )
+    from sift_client.sift_types.policies import Policy, PolicyUpdate
     from sift_client.sift_types.report import Report, ReportUpdate
+    from sift_client.sift_types.resource_attribute import (
+        ResourceAttribute,
+        ResourceAttributeEnumValue,
+        ResourceAttributeEnumValueUpdate,
+        ResourceAttributeKey,
+        ResourceAttributeKeyUpdate,
+    )
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
     from sift_client.sift_types.tag import Tag, TagUpdate
@@ -43,6 +51,11 @@ if TYPE_CHECKING:
         TestStepCreate,
         TestStepType,
         TestStepUpdate,
+    )
+    from sift_client.sift_types.user_attributes import (
+        UserAttributeKey,
+        UserAttributeKeyUpdate,
+        UserAttributeValue,
     )
 
 class AssetsAPI:
@@ -667,6 +680,105 @@ class PingAPI:
         """
         ...
 
+class PoliciesAPI:
+    """Sync counterpart to `PoliciesAPIAsync`.
+
+    High-level API for interacting with policies.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PoliciesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, policy_id: str) -> Policy:
+        """Archive a policy.
+
+        Args:
+            policy_id: The policy ID to archive.
+
+        Returns:
+            The archived Policy.
+        """
+        ...
+
+    def create(
+        self,
+        name: str,
+        cedar_policy: str,
+        description: str | None = None,
+        version_notes: str | None = None,
+    ) -> Policy:
+        """Create a new policy.
+
+        Args:
+            name: The name of the policy.
+            cedar_policy: The Cedar policy string.
+            description: Optional description.
+            version_notes: Optional version notes.
+
+        Returns:
+            The created Policy.
+        """
+        ...
+
+    def get(self, policy_id: str) -> Policy:
+        """Get a policy by ID.
+
+        Args:
+            policy_id: The policy ID.
+
+        Returns:
+            The Policy.
+        """
+        ...
+
+    def list(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        organization_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[Policy]:
+        """List policies with optional filtering.
+
+        Args:
+            name: Exact name of the policy.
+            name_contains: Partial name of the policy.
+            organization_id: Filter by organization ID.
+            include_archived: If True, include archived policies in results.
+            filter_query: Explicit CEL query to filter policies.
+            order_by: How to order the retrieved policies.
+            limit: How many policies to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Policies that match the filter.
+        """
+        ...
+
+    def update(
+        self, policy: str | Policy, update: PolicyUpdate | dict, version_notes: str | None = None
+    ) -> Policy:
+        """Update a policy.
+
+        Args:
+            policy: The Policy or policy ID to update.
+            update: Updates to apply to the policy.
+            version_notes: Optional version notes for the update.
+
+        Returns:
+            The updated Policy.
+        """
+        ...
+
 class ReportsAPI:
     """Sync counterpart to `ReportsAPIAsync`.
 
@@ -859,6 +971,324 @@ class ReportsAPI:
         Args:
             report: The Report or report ID to update.
             update: The updates to apply.
+        """
+        ...
+
+class ResourceAttributesAPI:
+    """Sync counterpart to `ResourceAttributesAPIAsync`.
+
+    High-level API for interacting with resource attributes.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, attribute_id: str) -> None:
+        """Archive a resource attribute.
+
+        Args:
+            attribute_id: The resource attribute ID to archive.
+        """
+        ...
+
+    def archive_enum_value(self, enum_value_id: str, replacement_enum_value_id: str) -> int:
+        """Archive a resource attribute enum value and migrate attributes.
+
+        Args:
+            enum_value_id: The enum value ID to archive.
+            replacement_enum_value_id: The enum value ID to migrate attributes to.
+
+        Returns:
+            The number of resource attributes migrated.
+        """
+        ...
+
+    def archive_key(self, key_id: str) -> None:
+        """Archive a resource attribute key.
+
+        Args:
+            key_id: The resource attribute key ID to archive.
+        """
+        ...
+
+    def batch_archive(self, attribute_ids: list[str]) -> None:
+        """Archive multiple resource attributes.
+
+        Args:
+            attribute_ids: List of resource attribute IDs to archive.
+        """
+        ...
+
+    def batch_archive_enum_values(self, archival_requests: list[dict]) -> int:
+        """Archive multiple resource attribute enum values and migrate attributes.
+
+        Args:
+            archival_requests: List of dicts with 'archived_id' and 'replacement_id' keys.
+
+        Returns:
+            Total number of resource attributes migrated.
+        """
+        ...
+
+    def batch_archive_keys(self, key_ids: list[str]) -> None:
+        """Archive multiple resource attribute keys.
+
+        Args:
+            key_ids: List of resource attribute key IDs to archive.
+        """
+        ...
+
+    def batch_unarchive(self, attribute_ids: list[str]) -> None:
+        """Unarchive multiple resource attributes.
+
+        Args:
+            attribute_ids: List of resource attribute IDs to unarchive.
+        """
+        ...
+
+    def batch_unarchive_enum_values(self, enum_value_ids: list[str]) -> None:
+        """Unarchive multiple resource attribute enum values.
+
+        Args:
+            enum_value_ids: List of resource attribute enum value IDs to unarchive.
+        """
+        ...
+
+    def batch_unarchive_keys(self, key_ids: list[str]) -> None:
+        """Unarchive multiple resource attribute keys.
+
+        Args:
+            key_ids: List of resource attribute key IDs to unarchive.
+        """
+        ...
+
+    def create(
+        self,
+        key_id: str,
+        entities: str | dict | list[str] | list[dict],
+        entity_type: int | None = None,
+        resource_attribute_enum_value_id: str | None = None,
+        boolean_value: bool | None = None,
+        number_value: float | None = None,
+    ) -> ResourceAttribute | list[ResourceAttribute]:
+        """Create a resource attribute for one or more entities.
+
+        Args:
+            key_id: The resource attribute key ID.
+            entities: Single entity_id (str), single entity dict ({entity_id: str, entity_type: int}),
+                     list of entity_ids (list[str]), or list of entity dicts (list[dict]).
+            entity_type: Required if entities is str or list[str]. The ResourceAttributeEntityType enum value.
+            resource_attribute_enum_value_id: Enum value ID (if applicable).
+            boolean_value: Boolean value (if applicable).
+            number_value: Number value (if applicable).
+
+        Returns:
+            Single ResourceAttribute if entities is a single value, list of ResourceAttributes if it's a list.
+        """
+        ...
+
+    def create_enum_value(
+        self, key_id: str, display_name: str, description: str | None = None
+    ) -> ResourceAttributeEnumValue:
+        """Create a new resource attribute enum value.
+
+        Args:
+            key_id: The resource attribute key ID.
+            display_name: The display name of the enum value.
+            description: Optional description.
+
+        Returns:
+            The created ResourceAttributeEnumValue.
+        """
+        ...
+
+    def create_key(
+        self,
+        display_name: str,
+        description: str | None = None,
+        key_type: int | None = None,
+        initial_enum_values: list[dict] | None = None,
+    ) -> ResourceAttributeKey:
+        """Create a new resource attribute key.
+
+        Args:
+            display_name: The display name of the key.
+            description: Optional description.
+            key_type: The ResourceAttributeKeyType enum value.
+            initial_enum_values: Optional list of initial enum values [{display_name: str, description: str}].
+
+        Returns:
+            The created ResourceAttributeKey.
+        """
+        ...
+
+    def get(self, attribute_id: str) -> ResourceAttribute:
+        """Get a resource attribute by ID.
+
+        Args:
+            attribute_id: The resource attribute ID.
+
+        Returns:
+            The ResourceAttribute.
+        """
+        ...
+
+    def get_enum_value(self, enum_value_id: str) -> ResourceAttributeEnumValue:
+        """Get a resource attribute enum value by ID.
+
+        Args:
+            enum_value_id: The resource attribute enum value ID.
+
+        Returns:
+            The ResourceAttributeEnumValue.
+        """
+        ...
+
+    def get_key(self, key_id: str) -> ResourceAttributeKey:
+        """Get a resource attribute key by ID.
+
+        Args:
+            key_id: The resource attribute key ID.
+
+        Returns:
+            The ResourceAttributeKey.
+        """
+        ...
+
+    def list(
+        self,
+        *,
+        entity_id: str | None = None,
+        entity_type: int | None = None,
+        key_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[ResourceAttribute]:
+        """List resource attributes with optional filtering.
+
+        Args:
+            entity_id: Filter by entity ID.
+            entity_type: Filter by ResourceAttributeEntityType enum value.
+            key_id: Filter by resource attribute key ID.
+            include_archived: If True, include archived attributes in results.
+            filter_query: Explicit CEL query to filter attributes.
+            order_by: How to order the retrieved attributes.
+            limit: How many attributes to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of ResourceAttributes that match the filter.
+        """
+        ...
+
+    def list_enum_values(
+        self,
+        key_id: str,
+        *,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[ResourceAttributeEnumValue]:
+        """List resource attribute enum values for a key with optional filtering.
+
+        Args:
+            key_id: The resource attribute key ID.
+            include_archived: If True, include archived enum values in results.
+            filter_query: Explicit CEL query to filter enum values.
+            order_by: How to order the retrieved enum values.
+            limit: How many enum values to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of ResourceAttributeEnumValues that match the filter.
+        """
+        ...
+
+    def list_keys(
+        self,
+        *,
+        key_id: str | None = None,
+        name_contains: str | None = None,
+        key_type: int | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[ResourceAttributeKey]:
+        """List resource attribute keys with optional filtering.
+
+        Args:
+            key_id: Filter by key ID.
+            name_contains: Partial display name of the key.
+            key_type: Filter by ResourceAttributeKeyType enum value.
+            include_archived: If True, include archived keys in results.
+            filter_query: Explicit CEL query to filter keys.
+            order_by: How to order the retrieved keys.
+            limit: How many keys to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of ResourceAttributeKeys that match the filter.
+        """
+        ...
+
+    def unarchive(self, attribute_id: str) -> None:
+        """Unarchive a resource attribute.
+
+        Args:
+            attribute_id: The resource attribute ID to unarchive.
+        """
+        ...
+
+    def unarchive_enum_value(self, enum_value_id: str) -> None:
+        """Unarchive a resource attribute enum value.
+
+        Args:
+            enum_value_id: The resource attribute enum value ID to unarchive.
+        """
+        ...
+
+    def unarchive_key(self, key_id: str) -> None:
+        """Unarchive a resource attribute key.
+
+        Args:
+            key_id: The resource attribute key ID to unarchive.
+        """
+        ...
+
+    def update_enum_value(
+        self,
+        enum_value: str | ResourceAttributeEnumValue,
+        update: ResourceAttributeEnumValueUpdate | dict,
+    ) -> ResourceAttributeEnumValue:
+        """Update a resource attribute enum value.
+
+        Args:
+            enum_value: The ResourceAttributeEnumValue or enum value ID to update.
+            update: Updates to apply to the enum value.
+
+        Returns:
+            The updated ResourceAttributeEnumValue.
+        """
+        ...
+
+    def update_key(
+        self, key: str | ResourceAttributeKey, update: ResourceAttributeKeyUpdate | dict
+    ) -> ResourceAttributeKey:
+        """Update a resource attribute key.
+
+        Args:
+            key: The ResourceAttributeKey or key ID to update.
+            update: Updates to apply to the key.
+
+        Returns:
+            The updated ResourceAttributeKey.
         """
         ...
 
@@ -1591,5 +2021,211 @@ class TestResultsAPI:
 
         Returns:
             The updated TestStep.
+        """
+        ...
+
+class UserAttributesAPI:
+    """Sync counterpart to `UserAttributesAPIAsync`.
+
+    High-level API for interacting with user attributes.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the UserAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive_key(self, key_id: str) -> None:
+        """Archive a user attribute key.
+
+        Args:
+            key_id: The user attribute key ID to archive.
+        """
+        ...
+
+    def archive_value(self, value_id: str) -> None:
+        """Archive a user attribute value.
+
+        Args:
+            value_id: The user attribute value ID to archive.
+        """
+        ...
+
+    def batch_archive_keys(self, key_ids: list[str]) -> None:
+        """Archive multiple user attribute keys.
+
+        Args:
+            key_ids: List of user attribute key IDs to archive.
+        """
+        ...
+
+    def batch_archive_values(self, value_ids: list[str]) -> None:
+        """Archive multiple user attribute values.
+
+        Args:
+            value_ids: List of user attribute value IDs to archive.
+        """
+        ...
+
+    def batch_unarchive_keys(self, key_ids: list[str]) -> None:
+        """Unarchive multiple user attribute keys.
+
+        Args:
+            key_ids: List of user attribute key IDs to unarchive.
+        """
+        ...
+
+    def batch_unarchive_values(self, value_ids: list[str]) -> None:
+        """Unarchive multiple user attribute values.
+
+        Args:
+            value_ids: List of user attribute value IDs to unarchive.
+        """
+        ...
+
+    def create_key(
+        self, name: str, description: str | None = None, value_type: int | None = None
+    ) -> UserAttributeKey:
+        """Create a new user attribute key.
+
+        Args:
+            name: The name of the user attribute key.
+            description: Optional description.
+            value_type: The UserAttributeValueType enum value.
+
+        Returns:
+            The created UserAttributeKey.
+        """
+        ...
+
+    def create_value(
+        self,
+        key_id: str,
+        user_ids: str | list[str],
+        string_value: str | None = None,
+        number_value: float | None = None,
+        boolean_value: bool | None = None,
+    ) -> UserAttributeValue | list[UserAttributeValue]:
+        """Create a user attribute value for one or more users.
+
+        Args:
+            key_id: The user attribute key ID.
+            user_ids: Single user ID (str) or list of user IDs (list[str]).
+            string_value: String value (if applicable).
+            number_value: Number value (if applicable).
+            boolean_value: Boolean value (if applicable).
+
+        Returns:
+            Single UserAttributeValue if user_ids is a string, list of UserAttributeValues if it's a list.
+        """
+        ...
+
+    def get_key(self, key_id: str) -> UserAttributeKey:
+        """Get a user attribute key by ID.
+
+        Args:
+            key_id: The user attribute key ID.
+
+        Returns:
+            The UserAttributeKey.
+        """
+        ...
+
+    def get_value(self, value_id: str) -> UserAttributeValue:
+        """Get a user attribute value by ID.
+
+        Args:
+            value_id: The user attribute value ID.
+
+        Returns:
+            The UserAttributeValue.
+        """
+        ...
+
+    def list_keys(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        key_id: str | None = None,
+        organization_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[UserAttributeKey]:
+        """List user attribute keys with optional filtering.
+
+        Args:
+            name: Exact name of the key.
+            name_contains: Partial name of the key.
+            key_id: Filter by key ID.
+            organization_id: Filter by organization ID.
+            include_archived: If True, include archived keys in results.
+            filter_query: Explicit CEL query to filter keys.
+            order_by: How to order the retrieved keys.
+            limit: How many keys to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of UserAttributeKeys that match the filter.
+        """
+        ...
+
+    def list_values(
+        self,
+        *,
+        key_id: str | None = None,
+        user_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[UserAttributeValue]:
+        """List user attribute values with optional filtering.
+
+        Args:
+            key_id: Filter by user attribute key ID.
+            user_id: Filter by user ID.
+            include_archived: If True, include archived values in results.
+            filter_query: Explicit CEL query to filter values.
+            order_by: How to order the retrieved values.
+            limit: How many values to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of UserAttributeValues that match the filter.
+        """
+        ...
+
+    def unarchive_key(self, key_id: str) -> None:
+        """Unarchive a user attribute key.
+
+        Args:
+            key_id: The user attribute key ID to unarchive.
+        """
+        ...
+
+    def unarchive_value(self, value_id: str) -> None:
+        """Unarchive a user attribute value.
+
+        Args:
+            value_id: The user attribute value ID to unarchive.
+        """
+        ...
+
+    def update_key(
+        self, key: str | UserAttributeKey, update: UserAttributeKeyUpdate | dict
+    ) -> UserAttributeKey:
+        """Update a user attribute key.
+
+        Args:
+            key: The UserAttributeKey or key ID to update.
+            update: Updates to apply to the key.
+
+        Returns:
+            The updated UserAttributeKey.
         """
         ...
