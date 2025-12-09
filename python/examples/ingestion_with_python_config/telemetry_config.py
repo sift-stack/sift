@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
     ChannelConfig,
