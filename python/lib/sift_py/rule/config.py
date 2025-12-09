@@ -27,6 +27,8 @@ class RuleConfig(AsJson):
     - `tag_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `contextual_channels`: A list of channel names that provide context but aren't directly used in the expression.
     - `is_external`: If this is an external rule.
+    - `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled. 
+            This rule can still be used, however, in report generation.
     """
 
     name: str
@@ -38,6 +40,7 @@ class RuleConfig(AsJson):
     asset_names: List[str]
     contextual_channels: List[str]
     is_external: bool
+    is_live: bool
     _rule_id: Optional[str]  # Allow passing of rule_id when existing config retrieved from API
 
     def __init__(
@@ -55,6 +58,7 @@ class RuleConfig(AsJson):
         sub_expressions: Dict[str, Any] = {},
         contextual_channels: Optional[List[str]] = None,
         is_external: bool = False,
+        is_live: bool = False,
     ):
         self.channel_references = _channel_references_from_dicts(channel_references)
         self.contextual_channels = contextual_channels or []
@@ -66,6 +70,7 @@ class RuleConfig(AsJson):
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
         self.is_external = is_external
+        self.is_live = is_live
         self._rule_id = None
 
     def as_json(self) -> Any:
@@ -83,6 +88,7 @@ class RuleConfig(AsJson):
             "description": self.description,
             "expression": self.expression,
             "is_external": self.is_external,
+            "is_live": self.is_live,
         }
 
         hash_map["expression_channel_references"] = self.channel_references

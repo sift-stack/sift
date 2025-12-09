@@ -1,3 +1,4 @@
+# Example rules configs. Add 'is_live: true' if you want these rules to run on live data.
 rules:
   - name: overvoltage
     description: Checks for overvoltage while accelerating

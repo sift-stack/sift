@@ -98,6 +98,7 @@ class RuleService:
         """
         Creates external rules from a YAML spec in the Sift API.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+        If is_external is set in the YAML, this overrides that.
 
         Args:
             paths: The list of YAML paths to load.
@@ -229,6 +230,8 @@ class RuleService:
                     contextual_channels=contextual_channels,
                     asset_names=rule_yaml.get("asset_names", []),
                     sub_expressions=subexpr,
+                    is_external=rule_yaml.get("is_external", False),
+                    is_live=rule_yaml.get("is_live", False),
                 )
             )
 
@@ -510,6 +513,7 @@ class RuleService:
             ),
             contextual_channels=ContextualChannels(channels=contextual_channel_names),
             is_external=config.is_external,
+            is_live_evaluation_enabled=config.is_live,
         )
 
     def get_rule(self, rule: str) -> Optional[RuleConfig]:
