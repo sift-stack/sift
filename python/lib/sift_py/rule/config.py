@@ -27,7 +27,7 @@ class RuleConfig(AsJson):
     - `tag_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `contextual_channels`: A list of channel names that provide context but aren't directly used in the expression.
     - `is_external`: If this is an external rule.
-    - `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled. 
+    - `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
             This rule can still be used, however, in report generation.
     """
 
