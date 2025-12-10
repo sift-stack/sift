@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
     ChannelConfig,
@@ -11,8 +9,6 @@ from sift_py.ingestion.rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleConfig,
 )
-
-RULE_NAMESPACES_DIR = Path().joinpath("rule_modules")
 
 
 def nostromos_lv_426() -> TelemetryConfig:
@@ -85,6 +81,7 @@ def nostromos_lv_426() -> TelemetryConfig:
             FlowConfig(name="logs", channels=[log_channel]),
         ],
         rules=[
+            # Add `is_live=True` if you want these rules to run on live data.
             RuleConfig(
                 name="overheating",
                 description="Checks for vehicle overheating",
