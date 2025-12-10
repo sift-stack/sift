@@ -791,8 +791,6 @@ impl BackupIngestTask {
                                 "encountered error from sift ingesting backup file: {:?}",
                                 e
                             );
-                        } else {
-                            tracing::info!("ingested message from backup file",);
                         }
                         res.ok()
                     });

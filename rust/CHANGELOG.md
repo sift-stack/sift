@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.8] - December 5, 2025
+### What's New
+#### SiftStream Support for File-Backup Only Mode
+`SiftStream` has a new "mode" of operation where data will _only_ be written to backup files. This
+can be useful in a few different situations, such as more "offline" environments with limited network
+bandwidth, as well as scenarios where uploading data after recording is preferred (ex: CI systems
+where data is only needed/desired if a testcase fails). Though this mode of operation does require
+connectivity to Sift in order to synchronize ingestion configurations to ensure backed up data can
+be re-ingested later.
+
+This new mode of operation can be selected through `SiftStreamBuilder` calls. And re-upload can be
+performed with the latest release of `sift-cli` [Releases](https://github.com/sift-stack/sift/releases).
+
+### Full Changelog
+- [Adds a new SiftStream mode for only backup file writes](https://github.com/sift-stack/sift/commit/b8f13b273e37939530109c531d9f8a2953ae868b)
+
 ## [v0.7.0-rc.7] - November 26, 2025
 ### What's New
 #### SiftStream Internally Uses `FlowBuilder`
