@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.4] - December 10, 2025
+- [Add support for is_live to rules in sift_py](https://github.com/sift-stack/sift/pull/427)
+
 ## [v0.9.3] - December 4, 2025
 - [Fix scaling issues with TDMS imports](https://github.com/sift-stack/sift/pull/422)
 
