@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from sift_client._internal.low_level_wrappers.user_attributes import UserAttributesLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -267,13 +267,16 @@ class UserAttributesAPIAsync(ResourceBase):
             return existing_values[0]
 
         # Value doesn't exist, create it
-        return await self.create_value(
+        # Since user_id is a string (not a list), create_value will return a single UserAttributeValue
+        result = await self.create_value(
             key_id=key_id,
             user_ids=user_id,
             string_value=string_value,
             number_value=number_value,
             boolean_value=boolean_value,
         )
+        # Type narrowing: when user_ids is a string, create_value returns UserAttributeValue, not list
+        return cast("UserAttributeValue", result)
 
     async def get_value(self, value_id: str) -> UserAttributeValue:
         """Get a user attribute value by ID.
