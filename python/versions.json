@@ -130,6 +130,14 @@
     }
   },
   {
+    "version": "v0.9.4",
+    "title": "v0.9.4",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v0.9.3",
     "title": "v0.9.3",
     "aliases": [],
