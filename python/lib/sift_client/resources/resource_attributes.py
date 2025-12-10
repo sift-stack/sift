@@ -65,6 +65,43 @@ class ResourceAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(key)
 
+    async def create_or_get_key(
+        self,
+        display_name: str,
+        description: str | None = None,
+        key_type: int | None = None,  # ResourceAttributeKeyType enum value
+        initial_enum_values: list[dict] | None = None,
+    ) -> ResourceAttributeKey:
+        """Create a new resource attribute key or get an existing one with the same display name.
+
+        First checks if a key with the given display_name exists. If found, returns the existing key.
+        Otherwise, creates a new key with the provided parameters.
+
+        Args:
+            display_name: The display name of the key.
+            description: Optional description (only used when creating a new key).
+            key_type: The ResourceAttributeKeyType enum value (required when creating a new key).
+            initial_enum_values: Optional list of initial enum values (only used when creating a new key).
+
+        Returns:
+            The existing or newly created ResourceAttributeKey.
+        """
+        # Search for existing key with the same display_name using exact match filter
+        filter_query = cel.equals("display_name", display_name)
+        existing_keys = await self.list_keys(filter_query=filter_query, limit=1)
+        if existing_keys:
+            return existing_keys[0]
+
+        # Key doesn't exist, create it
+        if key_type is None:
+            raise ValueError("key_type is required when creating a new key")
+        return await self.create_key(
+            display_name=display_name,
+            description=description,
+            key_type=key_type,
+            initial_enum_values=initial_enum_values,
+        )
+
     async def get_key(self, key_id: str) -> ResourceAttributeKey:
         """Get a resource attribute key by ID.
 
@@ -194,6 +231,36 @@ class ResourceAttributesAPIAsync(ResourceBase):
             key_id=key_id, display_name=display_name, description=description
         )
         return self._apply_client_to_instance(enum_value)
+
+    async def create_or_get_enum_value(
+        self,
+        key_id: str,
+        display_name: str,
+        description: str | None = None,
+    ) -> ResourceAttributeEnumValue:
+        """Create a new resource attribute enum value or get an existing one with the same key and display name.
+
+        First checks if an enum value with the given key_id and display_name exists. If found,
+        returns the existing enum value. Otherwise, creates a new enum value with the provided parameters.
+
+        Args:
+            key_id: The resource attribute key ID.
+            display_name: The display name of the enum value.
+            description: Optional description (only used when creating a new enum value).
+
+        Returns:
+            The existing or newly created ResourceAttributeEnumValue.
+        """
+        # Search for existing enum value with the same key_id and display_name using exact match filter
+        filter_query = cel.equals("display_name", display_name)
+        existing_enum_values = await self.list_enum_values(key_id=key_id, filter_query=filter_query, limit=1)
+        if existing_enum_values:
+            return existing_enum_values[0]
+
+        # Enum value doesn't exist, create it
+        return await self.create_enum_value(
+            key_id=key_id, display_name=display_name, description=description
+        )
 
     async def get_enum_value(self, enum_value_id: str) -> ResourceAttributeEnumValue:
         """Get a resource attribute enum value by ID.

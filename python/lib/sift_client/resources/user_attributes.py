@@ -52,6 +52,39 @@ class UserAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(key)
 
+    async def create_or_get_key(
+        self,
+        name: str,
+        description: str | None = None,
+        value_type: int | None = None,  # UserAttributeValueType enum value
+        organization_id: str | None = None,
+    ) -> UserAttributeKey:
+        """Create a new user attribute key or get an existing one with the same name.
+
+        First checks if a key with the given name exists in the organization (or all accessible
+        organizations if organization_id is not provided). If found, returns the existing key.
+        Otherwise, creates a new key with the provided parameters.
+
+        Args:
+            name: The name of the user attribute key.
+            description: Optional description (only used when creating a new key).
+            value_type: The UserAttributeValueType enum value (required when creating a new key).
+            organization_id: Optional organization ID to filter the search. If not provided,
+                           searches across all accessible organizations.
+
+        Returns:
+            The existing or newly created UserAttributeKey.
+        """
+        # Search for existing key with the same name
+        existing_keys = await self.list_keys(name=name, organization_id=organization_id, limit=1)
+        if existing_keys:
+            return existing_keys[0]
+
+        # Key doesn't exist, create it
+        if value_type is None:
+            raise ValueError("value_type is required when creating a new key")
+        return await self.create_key(name=name, description=description, value_type=value_type)
+
     async def get_key(self, key_id: str) -> UserAttributeKey:
         """Get a user attribute key by ID.
 
@@ -205,6 +238,43 @@ class UserAttributesAPIAsync(ResourceBase):
                 boolean_value=boolean_value,
             )
             return self._apply_client_to_instances(values)
+
+    async def create_or_get_value(
+        self,
+        key_id: str,
+        user_id: str,
+        string_value: str | None = None,
+        number_value: float | None = None,
+        boolean_value: bool | None = None,
+    ) -> UserAttributeValue:
+        """Create a user attribute value or get an existing one for the given key and user.
+
+        First checks if a value with the given key_id and user_id exists. If found, returns the
+        existing value. Otherwise, creates a new value with the provided parameters.
+
+        Args:
+            key_id: The user attribute key ID.
+            user_id: The user ID.
+            string_value: String value (if applicable, only used when creating a new value).
+            number_value: Number value (if applicable, only used when creating a new value).
+            boolean_value: Boolean value (if applicable, only used when creating a new value).
+
+        Returns:
+            The existing or newly created UserAttributeValue.
+        """
+        # Search for existing value with the same key_id and user_id
+        existing_values = await self.list_values(key_id=key_id, user_id=user_id, limit=1)
+        if existing_values:
+            return existing_values[0]
+
+        # Value doesn't exist, create it
+        return await self.create_value(
+            key_id=key_id,
+            user_ids=user_id,
+            string_value=string_value,
+            number_value=number_value,
+            boolean_value=boolean_value,
+        )
 
     async def get_value(self, value_id: str) -> UserAttributeValue:
         """Get a user attribute value by ID.
