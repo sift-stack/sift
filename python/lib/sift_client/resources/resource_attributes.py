@@ -87,7 +87,8 @@ class ResourceAttributesAPIAsync(ResourceBase):
             The existing or newly created ResourceAttributeKey.
         """
         # Search for existing key with the same display_name using exact match filter
-        filter_query = cel.equals("display_name", display_name)
+        # Note: CEL filter uses 'name' field, not 'display_name'
+        filter_query = cel.equals("name", display_name)
         existing_keys = await self.list_keys(filter_query=filter_query, limit=1)
         if existing_keys:
             return existing_keys[0]
@@ -252,7 +253,8 @@ class ResourceAttributesAPIAsync(ResourceBase):
             The existing or newly created ResourceAttributeEnumValue.
         """
         # Search for existing enum value with the same key_id and display_name using exact match filter
-        filter_query = cel.equals("display_name", display_name)
+        # Note: CEL filter uses 'name' field, not 'display_name'
+        filter_query = cel.equals("name", display_name)
         existing_enum_values = await self.list_enum_values(key_id=key_id, filter_query=filter_query, limit=1)
         if existing_enum_values:
             return existing_enum_values[0]

@@ -135,8 +135,7 @@ class UserAttributesAPIAsync(ResourceBase):
 
         if key_id:
             filter_parts.append(cel.equals("user_attribute_key_id", key_id))
-        if organization_id:
-            filter_parts.append(cel.equals("organization_id", organization_id))
+        # Note: organization_id is NOT a CEL filter field - it's passed as a separate parameter
 
         query_filter = cel.and_(*filter_parts) if filter_parts else None
 
