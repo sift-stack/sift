@@ -1641,6 +1641,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_py.rule.config.RuleConfig.is_live" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_live
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_py.rule.config.RuleConfig.name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2371,6 +2382,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_external
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_py.rule.config.RuleConfig.is_live" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_live
       
     </span>
   </a>
@@ -3883,7 +3905,8 @@ You're not viewing the latest version.
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">sub_expressions</span><span class="p">:</span> <span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">contextual_channels</span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="typing.List">List</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">is_external</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">is_live</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3905,6 +3928,8 @@ a specific action will take place as specified by the <code>kind</code> attribut
 <li><code>tag_names</code>: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.</li>
 <li><code>contextual_channels</code>: A list of channel names that provide context but aren't directly used in the expression.</li>
 <li><code>is_external</code>: If this is an external rule.</li>
+<li><code>is_live</code>: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
+        This rule can still be used, however, in report generation.</li>
 </ul>
 
 
@@ -4082,6 +4107,25 @@ a specific action will take place as specified by the <code>kind</code> attribut
   
       instance-attribute
    (sift_py.rule.config.RuleConfig.is_external)" href="#sift_py.rule.config.RuleConfig.is_external">is_external</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            is_live
+
+
+  
+      instance-attribute
+   (sift_py.rule.config.RuleConfig.is_live)" href="#sift_py.rule.config.RuleConfig.is_live">is_live</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
                 
@@ -4296,6 +4340,28 @@ a specific action will take place as specified by the <code>kind</code> attribut
 
 <a href="#sift_py.rule.config.RuleConfig.is_external" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_external</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="n"><span title="sift_py.rule.config.RuleConfig(is_external)">is_external</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_py.rule.config.RuleConfig.is_live" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">is_live</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_py.rule.config.RuleConfig.is_live" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_live</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="n"><span title="sift_py.rule.config.RuleConfig(is_live)">is_live</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
