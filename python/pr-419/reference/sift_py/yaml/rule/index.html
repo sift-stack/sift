@@ -1479,6 +1479,28 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_py.yaml.rule.RuleYamlSpec.is_external" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_external
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_py.yaml.rule.RuleYamlSpec.is_live" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_live
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_py.yaml.rule.RuleYamlSpec.name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1899,6 +1921,28 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_py.yaml.rule.RuleYamlSpec.is_external" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_external
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_py.yaml.rule.RuleYamlSpec.is_live" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_live
       
     </span>
   </a>
@@ -2365,7 +2409,10 @@ and channel identifiers.</p>
 <code>contextual_channels</code>: A list of channel configs that provide context but aren't directly used in the expression.
 <code>sub_expressions</code>: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
 <code>asset_names</code>: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
-<code>tag_names</code>: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.</p>
+<code>tag_names</code>: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+<code>is_external</code>: If this is an external rule.
+<code>is_live</code>: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
+        This rule can still be used, however, in report generation.</p>
 <p>Channel references:
 A channel reference is a string containing a numerical value prefixed with "$". Examples include "$1", "$2", "$11", and so on.
 The channel reference is mapped to an actual channel config. In YAML it would look something like this:</p>
@@ -2531,6 +2578,44 @@ and the equation you're interested in using looks like the following:</p>
                   <span class="doc-attribute-annotation">
                     <b>TYPE:</b>
                       <code><span title="typing.Union">Union</span>[<span title="str">str</span>, <a class="autorefs autorefs-internal" title="            NamedExpressionYamlSpec (sift_py.yaml.rule.NamedExpressionYamlSpec)" href="#sift_py.yaml.rule.NamedExpressionYamlSpec">NamedExpressionYamlSpec</a>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            is_external
+
+
+  
+      instance-attribute
+   (sift_py.yaml.rule.RuleYamlSpec.is_external)" href="#sift_py.yaml.rule.RuleYamlSpec.is_external">is_external</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="typing_extensions.NotRequired">NotRequired</span>[<span title="bool">bool</span>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            is_live
+
+
+  
+      instance-attribute
+   (sift_py.yaml.rule.RuleYamlSpec.is_live)" href="#sift_py.yaml.rule.RuleYamlSpec.is_live">is_live</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="typing_extensions.NotRequired">NotRequired</span>[<span title="bool">bool</span>]</code>
                   </span>
               </p>
             </td>
@@ -2789,6 +2874,50 @@ and the equation you're interested in using looks like the following:</p>
 
 <a href="#sift_py.yaml.rule.RuleYamlSpec.expression" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">expression</span><span class="p">:</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            NamedExpressionYamlSpec (sift_py.yaml.rule.NamedExpressionYamlSpec)" href="#sift_py.yaml.rule.NamedExpressionYamlSpec">NamedExpressionYamlSpec</a></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_py.yaml.rule.RuleYamlSpec.is_external" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">is_external</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_py.yaml.rule.RuleYamlSpec.is_external" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_external</span><span class="p">:</span> <span class="n"><span title="typing_extensions.NotRequired">NotRequired</span></span><span class="p">[</span><span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_py.yaml.rule.RuleYamlSpec.is_live" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">is_live</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_py.yaml.rule.RuleYamlSpec.is_live" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_live</span><span class="p">:</span> <span class="n"><span title="typing_extensions.NotRequired">NotRequired</span></span><span class="p">[</span><span class="n"><span title="bool">bool</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
