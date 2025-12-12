@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.assets.v1.assets_pb2 import Asset
@@ -262,7 +263,7 @@ class RuleService:
     def _attach_or_detach_asset(
         self, rule: Union[str, RuleConfig], asset_names: List[str], attach: bool
     ) -> RuleConfig:
-        assets = self._get_assets(names=asset_names)
+        assets = self._get_assets(names=tuple(sorted(asset_names)))
         if not assets:
             raise ValueError(
                 f"Cannot find all assets in list '{asset_names}'. One of these assets does not exist."
@@ -388,7 +389,11 @@ class RuleService:
             )
 
         # TODO: once we have TagService_ListTags we can do asset-agnostic rules via tags
-        assets = self._get_assets(names=config.asset_names) if config.asset_names else None
+        assets = (
+            self._get_assets(names=tuple(sorted(config.asset_names)))
+            if config.asset_names
+            else None
+        )
 
         actions = []
         if config.action.kind() == RuleActionKind.NOTIFICATION:
@@ -557,7 +562,7 @@ class RuleService:
                     )
 
         assets = self._get_assets(
-            ids=[asset_id for asset_id in rule_pb.asset_configuration.asset_ids]
+            ids=tuple(sorted([asset_id for asset_id in rule_pb.asset_configuration.asset_ids]))
         )
         asset_names = [asset.name for asset in assets]
 
@@ -597,7 +602,8 @@ class RuleService:
         except:
             return None
 
-    def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
+    @functools.cache
+    def _get_assets(self, names: Tuple[str] = [], ids: Tuple[str] = []) -> List[Asset]:
         return list_assets_impl(self._asset_service_stub, names, ids)
 
 

@@ -1,3 +1,4 @@
+import functools
 from typing import List, cast
 
 from sift.common.type.v1.user_pb2 import User
@@ -5,6 +6,7 @@ from sift.users.v2.users_pb2 import ListActiveUsersRequest, ListActiveUsersRespo
 from sift.users.v2.users_pb2_grpc import UserServiceStub
 
 
+@functools.cache
 def get_active_users(
     user_service: UserServiceStub,
     filter: str,
