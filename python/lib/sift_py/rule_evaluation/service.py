@@ -43,7 +43,11 @@ class RuleEvaluationService:
     def __init__(self, channel: SiftChannel):
         self._channel = channel
         self._rule_evaluation_stub = RuleEvaluationServiceStub(channel)
-        self._rule_service = RuleService(channel)
+
+        # Enable caching during rule evaluation. This service is typically
+        # short lived in a workflow so assets, channels, and users are unlikely
+        # to change during its lifetime to invalidate caches.
+        self._rule_service = RuleService(channel, enable_caching=True)
 
     def evaluate_against_run(
         self,
