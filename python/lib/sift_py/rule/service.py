@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import cache
+
+try:
+    from functools import cache
+except ImportError:
+    from functools import lru_cache as cache
+
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
