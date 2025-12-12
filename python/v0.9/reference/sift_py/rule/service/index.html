@@ -2245,7 +2245,7 @@ when creating rules from yaml.</p>
 
   
       module-attribute
-   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">)</span>
+   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">,</span> <span class="n">enable_caching</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2253,6 +2253,56 @@ when creating rules from yaml.</p>
 
 
         <p>A service for managing rules. Allows for loading rules from YAML and creating or updating them in the Sift API.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>channel</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The configured Sift channel.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            SiftChannel
+
+
+  
+      module-attribute
+   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>enable_caching</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Enable caching on various API calls to speed up rule creation. Use this for short lived
+instantiations of the RuleService where assets, channels, users are unlikely to change.</p>
+              </div>
+              <p>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
 
