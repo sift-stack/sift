@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
@@ -239,8 +240,12 @@ class RuleService:
         Create or update a list of rules via a list of RuleConfigs.
         See `sift_py.rule.config.RuleConfig` for more information on configuation parameters for rules.
         """
-        for config in rule_configs:
+        print(f"[SERVICE] create_or_update_rules: Processing {len(rule_configs)} rules...")
+        for idx, config in enumerate(rule_configs, 1):
+            if idx % 50 == 0 or idx == 1:
+                print(f"[SERVICE] Processing rule {idx}/{len(rule_configs)}: {config.name}")
             self.create_or_update_rule(config)
+        print(f"[SERVICE] create_or_update_rules: Completed processing {len(rule_configs)} rules")
 
     def attach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]) -> RuleConfig:
         """
@@ -398,10 +403,15 @@ class RuleService:
                 assignee = config.action.assignee
                 user_id = None
                 if assignee:
+                    print(f"[SERVICE] Calling get_active_users for assignee: {assignee} (rule: {config.name})")
+                    get_users_start = time.perf_counter()
                     users = get_active_users(
                         user_service=self._user_service_stub,
                         filter=f"name=='{assignee}'",
                     )
+                    get_users_end = time.perf_counter()
+                    get_users_duration = get_users_end - get_users_start
+                    print(f"[SERVICE] get_active_users returned {len(users)} user(s) for assignee: {assignee} (took {get_users_duration:.3f} seconds)")
                     if not users:
                         raise ValueError(f"Cannot find user '{assignee}'.")
                     if len(users) > 1:

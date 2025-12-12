@@ -62,7 +62,7 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
                     name=f"overheating_rule_{rule_num:03d}",
                     description=f"Checks for vehicle overheating (rule {rule_num})",
                     expression=f'$1 == "{state}" && $2 > {threshold}',
-                    rule_client_key=f"overheating-rule-{rule_num}",
+                    # Note: External rules don't use rule_client_key
                     asset_names=["NostromoLV426"],
                     channel_references=[
                         {
@@ -89,7 +89,7 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
                     name=f"kinetic_energy_rule_{rule_num:03d}",
                     description=f"Tracks high energy output while in motion (rule {rule_num})",
                     expression="0.5 * $mass * $1 * $1 > $threshold",
-                    rule_client_key=f"kinetic-energy-rule-{rule_num}",
+                    # Note: External rules don't use rule_client_key
                     asset_names=["NostromoLV426"],
                     channel_references=[
                         {
@@ -116,7 +116,7 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
                     name=f"failure_rule_{rule_num:03d}",
                     description=f"Checks for {search_string} reported by logs (rule {rule_num})",
                     expression="contains($1, $sub_string)",
-                    rule_client_key=f"failure-rule-{rule_num}",
+                    # Note: External rules don't use rule_client_key
                     asset_names=["NostromoLV426"],
                     contextual_channels=[vehicle_state_channel.name],
                     channel_references=[
@@ -144,7 +144,7 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
                     name=f"voltage_rule_{rule_num:03d}",
                     description=f"Monitors voltage levels (rule {rule_num})",
                     expression=f"$1 {op} {threshold}",
-                    rule_client_key=f"voltage-rule-{rule_num}",
+                    # Note: External rules don't use rule_client_key
                     asset_names=["NostromoLV426"],
                     channel_references=[
                         {
@@ -159,4 +159,9 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
                 )
             )
 
+    # Set these as external rules (required for batch API)
+    for rule_config in rule_configs:
+        rule_config.is_external = True
+
     return rule_configs
+
