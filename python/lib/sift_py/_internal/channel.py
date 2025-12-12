@@ -1,3 +1,4 @@
+import functools
 import warnings
 from typing import List, Optional, cast
 
@@ -15,6 +16,7 @@ def channel_fqn(name: str, component: Optional[str] = None) -> str:
     return name if component is None or len(component) == 0 else f"{component}.{name}"
 
 
+@functools.cache
 def get_channels(
     channel_service: ChannelServiceStub,
     filter: str,
