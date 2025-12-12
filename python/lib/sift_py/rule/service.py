@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+try:
+    from functools import cache
+except ImportError:
+    from functools import lru_cache as cache
+
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.assets.v1.assets_pb2 import Asset
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
+from sift.channels.v3.channels_pb2 import Channel as ChannelPb
 from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
+from sift.common.type.v1.user_pb2 import User as UserPb
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
     AnnotationActionConfiguration,
@@ -53,18 +61,25 @@ from sift_py.yaml.rule import load_rule_modules
 class RuleService:
     """
     A service for managing rules. Allows for loading rules from YAML and creating or updating them in the Sift API.
+
+    Args:
+        channel: The configured Sift channel.
+        enable_caching: Enable caching on various API calls to speed up rule creation. Use this for short lived
+            instantiations of the RuleService where assets, channels, users are unlikely to change.
     """
 
     _asset_service_stub: AssetServiceStub
     _channel_service_stub: ChannelServiceStub
     _rule_service_stub: RuleServiceStub
     _user_service_stub: UserServiceStub
+    _enable_caching: bool
 
-    def __init__(self, channel: SiftChannel):
+    def __init__(self, channel: SiftChannel, enable_caching=False):
         self._asset_service_stub = AssetServiceStub(channel)
         self._channel_service_stub = ChannelServiceStub(channel)
         self._rule_service_stub = RuleServiceStub(channel)
         self._user_service_stub = UserServiceStub(channel)
+        self._enable_caching = enable_caching
 
     def load_rules_from_yaml(
         self,
@@ -401,8 +416,7 @@ class RuleService:
                 assignee = config.action.assignee
                 user_id = None
                 if assignee:
-                    users = get_active_users(
-                        user_service=self._user_service_stub,
+                    users = self._get_active_users(
                         filter=f"name=='{assignee}'",
                     )
                     if not users:
@@ -453,8 +467,7 @@ class RuleService:
 
             # Validate channels are present within each asset
             for asset in assets:
-                found_channels = get_channels(
-                    channel_service=self._channel_service_stub,
+                found_channels = self._get_channels(
                     filter=f"asset_id == '{asset.asset_id}' && {name_in}",
                 )
                 found_channels_names = [channel.name for channel in found_channels]
@@ -598,7 +611,34 @@ class RuleService:
             return None
 
     def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
+        if self._enable_caching:
+            return self._get_assets_cached(tuple(sorted(names)), tuple(sorted(ids)))
+        else:
+            return list_assets_impl(self._asset_service_stub, names, ids)
+
+    def _get_channels(self, filter: str) -> List[ChannelPb]:
+        if self._enable_caching:
+            return self._get_channels_cached(filter)
+        else:
+            return get_channels(channel_service=self._channel_service_stub, filter=filter)
+
+    def _get_active_users(self, filter: str) -> List[UserPb]:
+        if self._enable_caching:
+            return self._get_active_users_cached(filter)
+        else:
+            return get_active_users(user_service=self._user_service_stub, filter=filter)
+
+    @cache
+    def _get_assets_cached(self, names: Tuple[str], ids: Tuple[str]) -> List[Asset]:
         return list_assets_impl(self._asset_service_stub, names, ids)
+
+    @cache
+    def _get_channels_cached(self, filter: str) -> List[ChannelPb]:
+        return get_channels(channel_service=self._channel_service_stub, filter=filter)
+
+    @cache
+    def _get_active_users_cached(self, filter: str) -> List[UserPb]:
+        return get_active_users(user_service=self._user_service_stub, filter=filter)
 
 
 @dataclass
