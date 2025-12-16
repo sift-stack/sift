@@ -291,8 +291,9 @@ impl SiftStream<IngestionConfigEncoder, FileBackup> {
         sift_stream_id: Uuid,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Result<Self> {
+        let full_backup_path = backups_directory.join(output_directory);
         let file_writer_config = FileWriterConfig {
-            directory: output_directory.clone(),
+            directory: full_backup_path,
             prefix: ingestion_config.client_key.clone(),
             max_size: max_file_size,
         };
