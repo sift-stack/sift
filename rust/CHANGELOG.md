@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.9] - December 16, 2025
+### What's New
+#### SiftStream File-Backup Only Mode Directory Bug Fix
+A minor fix to save the backup files in the specified directory.
+
+### Full Changelog
+- []()
+
 ## [v0.7.0-rc.8] - December 5, 2025
 ### What's New
 #### SiftStream Support for File-Backup Only Mode
