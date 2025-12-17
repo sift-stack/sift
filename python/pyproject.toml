@@ -199,7 +199,8 @@ development = [
     "pytest-mock==3.14.0",
     "pytest-dotenv==0.5.2",
     "ruff~=0.12.10",
-    "tomlkit~=0.13.3"
+    "tomlkit~=0.13.3",
+    "ty~=0.0.2"
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 docs = ["mkdocs",
@@ -315,6 +316,9 @@ where = ["lib"]
 sift_grafana = ["py.typed"]
 sift_py = ["py.typed"]
 sift_client = ["py.typed", "resources/sync_stubs/*.pyi"]
+
+[tool.ty.src]
+include = ["lib/sift_client"]
 
 [tool.ruff]
 line-length = 100

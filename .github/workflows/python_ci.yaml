@@ -40,6 +40,10 @@ jobs:
         run: |
           ruff format --check
 
+      - name: Type Check
+        run: |
+          ty check
+
       - name: MyPy
         run: |
           mypy lib
