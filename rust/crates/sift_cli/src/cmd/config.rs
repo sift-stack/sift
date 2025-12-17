@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow};
 use crossterm::style::Stylize;
 use std::{
-    fs::{File, OpenOptions, metadata, read_to_string},
+    fs::{File, OpenOptions, create_dir_all, metadata, read_to_string},
     io::Write,
     path::PathBuf,
     process::ExitCode,
@@ -122,6 +122,11 @@ pub(super) fn get_config_file_path() -> Result<PathBuf> {
 
 fn create_config_file() -> Result<(File, PathBuf)> {
     let path = get_config_file_path()?;
+
+    // Create the parent directories if they don't exist.
+    if let Some(parent_dir) = path.parent() {
+        create_dir_all(parent_dir).context("failed to create parent directories")?;
+    }
 
     let config_file = File::create_new(&path).context("failed to create config file")?;
 
