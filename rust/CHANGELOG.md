@@ -3,13 +3,22 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.10] - December 16, 2025
+### What's New
+#### SiftStream File-Backup Only Mode Create Parent Directories
+A minor fix to create all parent directories for file-backup only mode, as well as ignoring
+any "already exists" errors.
+
+### Full Changelog
+- [Create file-backup mode directories, ignore exists error]()
+
 ## [v0.7.0-rc.9] - December 16, 2025
 ### What's New
 #### SiftStream File-Backup Only Mode Directory Bug Fix
 A minor fix to save the backup files in the specified directory.
 
 ### Full Changelog
-- []()
+- [Fix SiftStream file-backup mode directory](https://github.com/sift-stack/sift/commit/fe041085243ca27601b327b5fd2235b6f8399d5a)
 
 ## [v0.7.0-rc.8] - December 5, 2025
 ### What's New

@@ -19,7 +19,9 @@ use sift_rs::{
     runs::v2::Run,
 };
 use std::collections::HashSet;
+use std::io::ErrorKind as IoErrorKind;
 use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
+use tokio::fs;
 use tokio::{sync::broadcast, task::JoinHandle};
 use uuid::Uuid;
 
@@ -276,7 +278,7 @@ impl SiftStream<IngestionConfigEncoder, FileBackup> {
     ///
     /// [`SiftStreamBuilder`]: crate::stream::builder::SiftStreamBuilder
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new_file_backup(
+    pub(crate) async fn new_file_backup(
         grpc_channel: SiftChannel,
         ingestion_config: IngestionConfig,
         flows_by_name: HashMap<String, FlowDescriptor<String>>,
@@ -292,6 +294,16 @@ impl SiftStream<IngestionConfigEncoder, FileBackup> {
         metrics: Arc<SiftStreamMetrics>,
     ) -> Result<Self> {
         let full_backup_path = backups_directory.join(output_directory);
+
+        // Ensure the output directory exists
+        if let Err(err) = fs::create_dir_all(&full_backup_path).await
+            && err.kind() != IoErrorKind::AlreadyExists
+        {
+            return Err(Error::new(ErrorKind::BackupsError, err))
+                .with_context(|| format!("failed to create directory for backups at {}", full_backup_path.display()))
+                .help("if using a custom path for backups directory ensure that it's valid with proper permissions, otherwise contact Sift");
+        }
+
         let file_writer_config = FileWriterConfig {
             directory: full_backup_path,
             prefix: ingestion_config.client_key.clone(),
@@ -856,7 +868,8 @@ mod tests {
             sift_stream_id,
             metrics,
         )
-        .unwrap();
+        .await
+        .expect("failed to create file backup stream");
 
         // Finish should succeed
         stream.finish().await.unwrap();
@@ -886,7 +899,8 @@ mod tests {
             sift_stream_id,
             metrics,
         )
-        .unwrap();
+        .await
+        .expect("failed to create file backup stream");
 
         // Write some data first
         let request = create_test_request("test_flow", &ingestion_config.ingestion_config_id);

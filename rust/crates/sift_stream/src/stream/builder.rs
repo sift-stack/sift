@@ -578,12 +578,6 @@ impl SiftStreamBuilder {
             output_directory.push_str(&format!("/{}", sanitize_name(&run.name)));
         }
 
-        // Ensure the output directory exists
-        tokio::fs::create_dir_all(&output_directory)
-            .await
-            .map_err(|e| Error::new(ErrorKind::IoError, e))
-            .context("failed to create output directory")?;
-
         SiftStream::new_file_backup(
             setup_channel,
             ingestion_config,
@@ -599,6 +593,7 @@ impl SiftStreamBuilder {
             sift_stream_id,
             metrics,
         )
+        .await
     }
 }
 
