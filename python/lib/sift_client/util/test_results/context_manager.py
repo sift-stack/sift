@@ -162,6 +162,7 @@ class ReportContext(AbstractContextManager):
         # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
         if not result:
             self.any_failures = True
+            self.open_step_results[step.step_path] = False
             path_parts = step.step_path.split(".")
             if len(path_parts) > 1:
                 parent_step_path = ".".join(path_parts[:-1])
@@ -217,13 +218,15 @@ class NewStep(AbstractContextManager):
         exc: type[Exception] | None,
         exc_value: Exception | None,
         tb: traceback.TracebackException | None,
-    ):
+    ) -> bool:
         """Update the step based on its substeps and if there was an exception while executing the step.
 
         Args:
             exc: The class of Exception that was raised.
             exc_value: The exception value.
             tb: The traceback object.
+
+        returns: The false if step failed or errored, true otherwise.
         """
         error_info = None
         if exc:
@@ -256,19 +259,25 @@ class NewStep(AbstractContextManager):
             }
         )
 
+        return result
+
     def __exit__(self, exc, exc_value, tb):
-        self.update_step_from_result(exc, exc_value, tb)
+        result = self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
         self.report_context.exit_step(self.current_step)
 
-        return True
+        # Test only attribute (hence not public class variable)
+        if hasattr(self, "force_result"):
+            result = self.force_result
+
+        return result
 
     def measure(
         self,
         *,
         name: str,
-        value: float | str | bool,
+        value: float | str | bool | int,
         bounds: dict[str, float] | NumericBounds | str | None = None,
         timestamp: datetime | None = None,
         unit: str | None = None,
