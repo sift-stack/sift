@@ -135,6 +135,8 @@ class RuleConfig(AsJson):
 
 
 class RuleAction(ABC):
+    tags: Optional[List[str]]
+
     @abstractmethod
     def kind(self) -> RuleActionKind:
         pass

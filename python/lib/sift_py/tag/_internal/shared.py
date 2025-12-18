@@ -9,7 +9,7 @@ def list_tags_impl(
     tag_service_stub: TagServiceStub,
     names: Optional[Union[Tuple[str], List[str]]] = None,
     ids: Optional[Union[Tuple[str], List[str]]] = None,
-    tag_type: Optional[TagType] = None,
+    tag_type: TagType.ValueType = TagType.TAG_TYPE_UNSPECIFIED,
 ) -> List[Tag]:
     """
     Lists tags in an organization.
@@ -25,19 +25,19 @@ def list_tags_impl(
     """
 
     def get_tags_with_filter(
-        tag_service_stub: TagServiceStub, cel_filter: str, tag_type: Optional[TagType]
+        tag_service_stub: TagServiceStub,
+        cel_filter: str,
+        tag_type: TagType.ValueType,
     ) -> List[Tag]:
         tags: List[Tag] = []
         next_page_token = ""
         while True:
-            req_kwargs = {
-                "filter": cel_filter,
-                "page_size": 1_000,
-                "page_token": next_page_token,
-            }
-            if tag_type is not None:
-                req_kwargs["tag_type"] = tag_type
-            req = ListTagsRequest(**req_kwargs)
+            req = ListTagsRequest(
+                filter=cel_filter,
+                page_size=1_000,
+                page_token=next_page_token,
+                tag_type=tag_type,
+            )
             res = cast(ListTagsResponse, tag_service_stub.ListTags(req))
             tags.extend(res.tags)
 
@@ -55,13 +55,13 @@ def list_tags_impl(
     results: List[Tag] = []
     if names:
         names_cel = cel_in("name", names)
-        results.append(get_tags_with_filter(tag_service_stub, names_cel, tag_type))
+        results.extend(get_tags_with_filter(tag_service_stub, names_cel, tag_type))
     if ids:
         ids_cel = cel_in("tag_id", ids)
-        results.append(get_tags_with_filter(tag_service_stub, ids_cel, tag_type))
+        results.extend(get_tags_with_filter(tag_service_stub, ids_cel, tag_type))
     if not names and not ids:
         # If no filter, but tag_type is specified, fetch all tags of that type
         if tag_type is not None:
-            results.append(get_tags_with_filter(tag_service_stub, "", tag_type))
+            results.extend(get_tags_with_filter(tag_service_stub, "", tag_type))
 
     return results

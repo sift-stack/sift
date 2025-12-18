@@ -414,10 +414,14 @@ class RuleService:
             if config.tag_names
             else None
         )
-        annotation_tags = list_tags_impl(
-            self._tag_service_stub,
-            names=[tag for tag in config.action.tags],
-            tag_type=TagType.TAG_TYPE_ANNOTATION,
+        annotation_tags = (
+            list_tags_impl(
+                self._tag_service_stub,
+                names=[tag for tag in config.action.tags],
+                tag_type=TagType.TAG_TYPE_ANNOTATION,
+            )
+            if config.action.tags
+            else None
         )
 
         actions = []
@@ -427,6 +431,10 @@ class RuleService:
                 "Please contact the Sift team for assistance."
             )
         elif config.action.kind() == RuleActionKind.ANNOTATION:
+            annotation_tag_ids = (
+                [tag.tag_id for tag in annotation_tags] if annotation_tags else None
+            )
+
             if isinstance(config.action, RuleActionCreateDataReviewAnnotation):
                 assignee = config.action.assignee
                 user_id = None
@@ -446,7 +454,7 @@ class RuleService:
                         annotation=AnnotationActionConfiguration(
                             assigned_to_user_id=user_id,
                             annotation_type=AnnotationType.ANNOTATION_TYPE_DATA_REVIEW,
-                            tag_ids=annotation_tags,
+                            tag_ids=annotation_tag_ids,
                         )
                     ),
                 )
@@ -457,7 +465,7 @@ class RuleService:
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
                             annotation_type=AnnotationType.ANNOTATION_TYPE_PHASE,
-                            tag_ids=annotation_tags,
+                            tag_ids=annotation_tag_ids,
                         )
                     ),
                 )
@@ -640,7 +648,10 @@ class RuleService:
             return list_assets_impl(self._asset_service_stub, names, ids)
 
     def _get_tags(
-        self, names: List[str] = [], ids: List[str] = [], tag_type: Optional[TagType] = None
+        self,
+        names: List[str] = [],
+        ids: List[str] = [],
+        tag_type: TagType.ValueType = TagType.TAG_TYPE_UNSPECIFIED,
     ) -> List[Tag]:
         if self._enable_caching:
             return self._get_tags_cached(tuple(sorted(names)), tuple(sorted(ids)), tag_type)
@@ -665,8 +676,11 @@ class RuleService:
 
     @cache
     def _get_tags_cached(
-        self, names: Tuple[str], ids: Tuple[str], tag_type: Optional[TagType] = None
-    ) -> List[Asset]:
+        self,
+        names: Tuple[str],
+        ids: Tuple[str],
+        tag_type: TagType.ValueType = TagType.TAG_TYPE_UNSPECIFIED,
+    ) -> List[Tag]:
         return list_tags_impl(self._tag_service_stub, names, ids, tag_type)
 
     @cache
