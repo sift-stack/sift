@@ -138,10 +138,10 @@ class ReportContext(AbstractContextManager):
 
         return step
 
-    def report_measurement(self, measurement: TestMeasurement, step: TestStep):
+    def report_outcome(self, outcome: bool, step: TestStep):
         """Report a failure to the report context."""
         # Failures will be propogated when the step exits.
-        if not measurement.passed:
+        if not outcome:
             self.open_step_results[step.step_path] = False
             self.any_failures = True
 
@@ -303,9 +303,23 @@ class NewStep(AbstractContextManager):
         )
         evaluate_measurement_bounds(create, value, bounds)
         measurement = self.client.test_results.create_measurement(create)
-        self.report_context.report_measurement(measurement, self.current_step)
+        self.report_context.report_outcome(measurement.passed, self.current_step)
 
         return measurement.passed
+
+    def report_outcome(self, name: str, result: bool, reason: str | None = None) -> bool:
+        """Report an outcome from some action or measurement. Creates a substep that is pass/fail with the optional reason as the description.
+
+        Args:
+            name: The name of the substep.
+            result: True if the action or measurement passed, False otherwise.
+            reason: [Optional] The context to include in the description of the substep.
+
+        returns: The given result so the function can be used in line.
+        """
+        with self.substep(name=name, description=reason) as substep:
+            self.report_context.report_outcome(result, substep.current_step)
+        return result
 
     def substep(self, name: str, description: str | None = None) -> NewStep:
         """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps."""

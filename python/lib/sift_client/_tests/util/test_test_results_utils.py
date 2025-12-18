@@ -152,6 +152,19 @@ class TestContextManager:
         assert test_step.measurements[2].boolean_value == True
         assert test_step.measurements[2].measurement_type == TestMeasurementType.BOOLEAN
 
+    def test_report_outcome(self, report_context, step):
+        # Capture current state of report context's failures so we can keep things passed at a high level if the test's induced failures happen as expected.
+        current_step_path = step.current_step.step_path
+        initial_open_step_result = report_context.open_step_results.get(current_step_path, True)
+        initial_any_failures = report_context.any_failures
+        assert step.report_outcome("Test Pass Outcome", True, "Test Pass Description") == True
+        assert step.report_outcome("Test Fail Outcome", False, "Test Failure Description") == False
+        # If this test was successful, mark that at a high level.
+        if initial_open_step_result:
+            report_context.open_step_results[current_step_path] = True
+        if not initial_any_failures:
+            report_context.any_failures = False
+
     def test_bad_assert(self, report_context, step):
         # Capture current state of report context's failures so we can keep things passed at a high level if the test's induced failures happen as expected.
         current_step_path = step.current_step.step_path
