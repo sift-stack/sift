@@ -3,7 +3,6 @@ from __future__ import annotations
 import getpass
 import os
 import socket
-import sys
 import traceback
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
@@ -163,6 +162,7 @@ class ReportContext(AbstractContextManager):
         # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
         if not result:
             self.any_failures = True
+            self.open_step_results[step.step_path] = False
             path_parts = step.step_path.split(".")
             if len(path_parts) > 1:
                 parent_step_path = ".".join(path_parts[:-1])
@@ -218,13 +218,15 @@ class NewStep(AbstractContextManager):
         exc: type[Exception] | None,
         exc_value: Exception | None,
         tb: traceback.TracebackException | None,
-    ):
+    ) -> bool:
         """Update the step based on its substeps and if there was an exception while executing the step.
 
         Args:
             exc: The class of Exception that was raised.
             exc_value: The exception value.
             tb: The traceback object.
+
+        returns: The false if step failed or errored, true otherwise.
         """
         error_info = None
         if exc:
@@ -235,8 +237,6 @@ class NewStep(AbstractContextManager):
                 error_code=1,
                 error_message=trace,
             )
-            # Print the stack to stderr for debugging since it's not being thrown.
-            print("".join(stack), file=sys.stderr)
         assert self.current_step is not None
 
         # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
@@ -259,13 +259,19 @@ class NewStep(AbstractContextManager):
             }
         )
 
+        return result
+
     def __exit__(self, exc, exc_value, tb):
-        self.update_step_from_result(exc, exc_value, tb)
+        result = self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
         self.report_context.exit_step(self.current_step)
 
-        return True
+        # Test only attribute (hence not public class variable)
+        if hasattr(self, "force_result"):
+            result = self.force_result
+
+        return result
 
     def measure(
         self,

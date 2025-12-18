@@ -170,6 +170,7 @@ class TestContextManager:
                     "Nested Substep", "Has a bad assert"
                 ) as nested_substep_context:
                     nested_substep = nested_substep_context.current_step
+                    nested_substep_context.force_result = True
                     assert False == True
                 with substep_context.substep(
                     "Sibling Substep", "Should pass"
