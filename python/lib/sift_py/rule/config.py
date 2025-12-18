@@ -24,7 +24,7 @@ class RuleConfig(AsJson):
     - `channel_references`: Reference to channel. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
     - `rule_client_key`: User defined unique string that uniquely identifies this rule.
     - `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
-    - `tag_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+    - `tag_names`: A list of asset tags that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `contextual_channels`: A list of channel names that provide context but aren't directly used in the expression.
     - `is_external`: If this is an external rule.
     - `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
@@ -38,6 +38,7 @@ class RuleConfig(AsJson):
     channel_references: List[ExpressionChannelReference]
     rule_client_key: Optional[str]
     asset_names: List[str]
+    tag_names: List[str]
     contextual_channels: List[str]
     is_external: bool
     is_live: bool
@@ -65,6 +66,7 @@ class RuleConfig(AsJson):
 
         self.name = name
         self.asset_names = asset_names or []
+        self.tag_names = tag_names or []
         self.action = action
         self.rule_client_key = rule_client_key
         self.description = description

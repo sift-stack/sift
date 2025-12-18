@@ -35,6 +35,8 @@ from sift.rules.v1.rules_pb2 import (
     UpdateRuleRequest,
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
+from sift.tags.v2.tags_pb2 import Tag, TagType
+from sift.tags.v2.tags_pb2_grpc import TagServiceStub
 from sift.users.v2.users_pb2_grpc import UserServiceStub
 
 from sift_py._internal.cel import cel_in
@@ -55,6 +57,7 @@ from sift_py.rule.config import (
     RuleActionKind,
     RuleConfig,
 )
+from sift_py.tag._internal.shared import list_tags_impl
 from sift_py.yaml.rule import load_rule_modules
 
 
@@ -72,6 +75,7 @@ class RuleService:
     _channel_service_stub: ChannelServiceStub
     _rule_service_stub: RuleServiceStub
     _user_service_stub: UserServiceStub
+    _tag_service_stub: TagServiceStub
     _enable_caching: bool
 
     def __init__(self, channel: SiftChannel, enable_caching=False):
@@ -79,6 +83,7 @@ class RuleService:
         self._channel_service_stub = ChannelServiceStub(channel)
         self._rule_service_stub = RuleServiceStub(channel)
         self._user_service_stub = UserServiceStub(channel)
+        self._tag_service_stub = TagServiceStub(channel)
         self._enable_caching = enable_caching
 
     def load_rules_from_yaml(
@@ -244,6 +249,7 @@ class RuleService:
                     channel_references=rule_channel_references,
                     contextual_channels=contextual_channels,
                     asset_names=rule_yaml.get("asset_names", []),
+                    tag_names=rule_yaml.get("tag_names", []),
                     sub_expressions=subexpr,
                     is_external=rule_yaml.get("is_external", False),
                     is_live=rule_yaml.get("is_live", False),
@@ -402,8 +408,17 @@ class RuleService:
                 "See `sift_py.rule.config.RuleAction` for available actions."
             )
 
-        # TODO: once we have TagService_ListTags we can do asset-agnostic rules via tags
         assets = self._get_assets(names=config.asset_names) if config.asset_names else None
+        asset_tags = (
+            self._get_tags(names=config.tag_names, tag_type=TagType.TAG_TYPE_ASSET)
+            if config.tag_names
+            else None
+        )
+        annotation_tags = list_tags_impl(
+            self._tag_service_stub,
+            names=[tag for tag in config.action.tags],
+            tag_type=TagType.TAG_TYPE_ANNOTATION,
+        )
 
         actions = []
         if config.action.kind() == RuleActionKind.NOTIFICATION:
@@ -431,7 +446,7 @@ class RuleService:
                         annotation=AnnotationActionConfiguration(
                             assigned_to_user_id=user_id,
                             annotation_type=AnnotationType.ANNOTATION_TYPE_DATA_REVIEW,
-                            # tag_ids=config.action.tags,  # TODO: Requires TagService
+                            tag_ids=annotation_tags,
                         )
                     ),
                 )
@@ -442,7 +457,7 @@ class RuleService:
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
                             annotation_type=AnnotationType.ANNOTATION_TYPE_PHASE,
-                            # tag_ids=config.action.tags,  # TODO: Requires TagService
+                            tag_ids=annotation_tags,
                         )
                     ),
                 )
@@ -523,6 +538,7 @@ class RuleService:
             ],
             asset_configuration=RuleAssetConfiguration(
                 asset_ids=[asset.asset_id for asset in assets] if assets else None,
+                tag_ids=[tag.tag_id for tag in asset_tags] if asset_tags else None,
             ),
             contextual_channels=ContextualChannels(channels=contextual_channel_names),
             is_external=config.is_external,
@@ -574,6 +590,12 @@ class RuleService:
         )
         asset_names = [asset.name for asset in assets]
 
+        asset_tags = self._get_tags(
+            ids=[tag_id for tag_id in rule_pb.asset_configuration.tag_ids],
+            tag_type=TagType.TAG_TYPE_ASSET,
+        )
+        asset_tag_names = [tag.name for tag in asset_tags]
+
         contextual_channels = []
         for channel_ref in rule_pb.contextual_channels.channels:
             contextual_channels.append(channel_ref.name)
@@ -585,6 +607,7 @@ class RuleService:
             channel_references=channel_references,  # type: ignore
             contextual_channels=contextual_channels,
             asset_names=asset_names,
+            tag_names=asset_tag_names,
             action=action,
             expression=expression,
         )
@@ -616,6 +639,14 @@ class RuleService:
         else:
             return list_assets_impl(self._asset_service_stub, names, ids)
 
+    def _get_tags(
+        self, names: List[str] = [], ids: List[str] = [], tag_type: Optional[TagType] = None
+    ) -> List[Tag]:
+        if self._enable_caching:
+            return self._get_tags_cached(tuple(sorted(names)), tuple(sorted(ids)), tag_type)
+        else:
+            return list_tags_impl(self._tag_service_stub, names, ids, tag_type)
+
     def _get_channels(self, filter: str) -> List[ChannelPb]:
         if self._enable_caching:
             return self._get_channels_cached(filter)
@@ -631,6 +662,12 @@ class RuleService:
     @cache
     def _get_assets_cached(self, names: Tuple[str], ids: Tuple[str]) -> List[Asset]:
         return list_assets_impl(self._asset_service_stub, names, ids)
+
+    @cache
+    def _get_tags_cached(
+        self, names: Tuple[str], ids: Tuple[str], tag_type: Optional[TagType] = None
+    ) -> List[Asset]:
+        return list_tags_impl(self._tag_service_stub, names, ids, tag_type)
 
     @cache
     def _get_channels_cached(self, filter: str) -> List[ChannelPb]:
