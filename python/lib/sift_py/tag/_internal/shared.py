@@ -59,9 +59,5 @@ def list_tags_impl(
     if ids:
         ids_cel = cel_in("tag_id", ids)
         results.extend(get_tags_with_filter(tag_service_stub, ids_cel, tag_type))
-    if not names and not ids:
-        # If no filter, but tag_type is specified, fetch all tags of that type
-        if tag_type is not None:
-            results.extend(get_tags_with_filter(tag_service_stub, "", tag_type))
 
     return results

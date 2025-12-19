@@ -415,8 +415,7 @@ class RuleService:
             else None
         )
         annotation_tags = (
-            list_tags_impl(
-                self._tag_service_stub,
+            self._get_tags(
                 names=[tag for tag in config.action.tags],
                 tag_type=TagType.TAG_TYPE_ANNOTATION,
             )

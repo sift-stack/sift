@@ -116,7 +116,7 @@ def test_rule_service_load_rules_from_yaml(rule_service):
             assert rule_config.expression == rule_yaml["expression"]
             assert rule_config.action.assignee == rule_yaml["assignee"]
             assert rule_config.asset_names == rule_yaml["asset_names"]
-            assert rule_config.tag_names == rule_yaml["tag1"]
+            assert rule_config.tag_names == rule_yaml["tag_names"]
             assert isinstance(rule_config.action, RuleActionCreateDataReviewAnnotation)
 
 
