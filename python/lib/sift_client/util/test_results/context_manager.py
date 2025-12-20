@@ -260,7 +260,8 @@ class NewStep(AbstractContextManager):
         self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
-        self.report_context.exit_step(self.current_step)
+        if self.current_step:
+            self.report_context.exit_step(self.current_step)
 
         return True
 

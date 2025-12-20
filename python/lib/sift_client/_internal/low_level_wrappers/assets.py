@@ -97,8 +97,8 @@ class AssetsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         updated_grpc_asset = cast("UpdateAssetResponse", response).asset
         return Asset._from_proto(updated_grpc_asset)
 
-    async def archive_asset(self, asset_id: str, archive_runs: bool = False) -> list[str] | None:
+    async def archive_asset(self, asset_id: str, archive_runs: bool = False) -> list[str]:
         request = ArchiveAssetRequest(asset_id=asset_id, archive_runs=archive_runs)
         response = await self._grpc_client.get_stub(AssetServiceStub).ArchiveAsset(request)
         response = cast("ArchiveAssetResponse", response)
-        return response.archived_runs
+        return list(response.archived_run_ids)

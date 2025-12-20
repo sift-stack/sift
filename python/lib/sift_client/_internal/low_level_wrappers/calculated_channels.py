@@ -4,7 +4,6 @@ import logging
 from typing import Any, cast
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
-    CalculatedChannelValidationResult,
     CreateCalculatedChannelResponse,
     GetCalculatedChannelRequest,
     GetCalculatedChannelResponse,
@@ -185,12 +184,8 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("UpdateCalculatedChannelResponse", response)
 
         updated_calculated_channel = CalculatedChannel._from_proto(response.calculated_channel)
-        inapplicable_assets = [
-            cast("CalculatedChannelValidationResult", asset)
-            for asset in response.inapplicable_assets
-        ]
 
-        return updated_calculated_channel, inapplicable_assets
+        return updated_calculated_channel, list(response.inapplicable_assets)
 
     async def list_calculated_channel_versions(
         self,
