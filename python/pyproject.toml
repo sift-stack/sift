@@ -80,7 +80,7 @@ dev = [
     'pytest==8.2.2',
     'ruff~=0.12.10',
     'tomlkit~=0.13.3',
-    'ty~=0.0.2',
+    'ty~=0.0.4',
 ]
 dev-all = [
     'build==1.2.1',
@@ -104,7 +104,7 @@ dev-all = [
     'sift-stream-bindings>=0.2.0-rc4',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
-    'ty~=0.0.2',
+    'ty~=0.0.4',
 ]
 development = [
     'grpcio-testing~=1.13',
@@ -117,7 +117,7 @@ development = [
     'pytest==8.2.2',
     'ruff~=0.12.10',
     'tomlkit~=0.13.3',
-    'ty~=0.0.2',
+    'ty~=0.0.4',
 ]
 docs = [
     'griffe-pydantic',
@@ -159,7 +159,7 @@ docs-build = [
     'sift-stream-bindings>=0.2.0-rc4',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
-    'ty~=0.0.2',
+    'ty~=0.0.4',
 ]
 file-imports = [
     'h5py~=3.11',
