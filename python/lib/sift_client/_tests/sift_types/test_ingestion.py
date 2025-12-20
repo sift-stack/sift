@@ -61,6 +61,7 @@ class TestChannelConfig:
             ],
         )
         assert channel.data_type == ChannelDataType.BIT_FIELD
+        assert channel.bit_field_elements
         assert len(channel.bit_field_elements) == 2
 
     def test_other_data_types_dont_require_special_fields(self):
