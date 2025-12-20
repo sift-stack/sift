@@ -12,7 +12,7 @@ class MockClassAsync(ResourceBase):
     """Mock async class docstring."""
 
     def __init__(self, client=None):
-        super().__init__(client)
+        super().__init__(client) # ty: ignore[invalid-argument-type]
 
     async def async_method(self, param1: str, *, param2: int = 0) -> str:
         """Mock async method docstring.

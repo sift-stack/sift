@@ -46,7 +46,7 @@ class MockResourceAsync(ResourceBase):
     """Mock async resource class for testing the sync wrapper."""
 
     def __init__(self, client=None, value: str = "default"):
-        super().__init__(client)
+        super().__init__(client) # ty: ignore[invalid-argument-type]
         self._value = value
         self._calls: dict[str, int] = {}
 
