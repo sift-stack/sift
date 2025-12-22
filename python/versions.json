@@ -154,6 +154,14 @@
     }
   },
   {
+    "version": "v0.9.6",
+    "title": "v0.9.6",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v0.9.5",
     "title": "v0.9.5",
     "aliases": [],
