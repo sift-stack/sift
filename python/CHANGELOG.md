@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.6] - December 22, 2025
+- [Add support for tags in RuleConfigs](https://github.com/sift-stack/sift/pull/438)
+
 ## [v0.9.5] - December 12, 2025
 - [Reduce API calls when creating rules with caching](https://github.com/sift-stack/sift/pull/430)
 
