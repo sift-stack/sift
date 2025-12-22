@@ -27,8 +27,9 @@ from sift_client.util.test_results.bounds import (
 )
 
 if TYPE_CHECKING:
-    from sift_client.client import SiftClient
     from numpy.typing import NDArray
+
+    from sift_client.client import SiftClient
 
 
 class ReportContext(AbstractContextManager):
@@ -319,7 +320,7 @@ class NewStep(AbstractContextManager):
         timestamp: datetime | None = None,
         unit: str | None = None,
     ) -> bool:
-        """Measure the average of a list of values and return the result.
+        """Calculate the average of a list of values, measure the average against given bounds, and return the result.
 
         Args:
             name: The name of the measurement.
@@ -358,6 +359,8 @@ class NewStep(AbstractContextManager):
     ) -> bool:
         """Ensure that all values in a list are within bounds and return the result.
 
+        Note: Measurements will only be recorded for values outside the bounds. To record measurements for all values, just call measure for each value.
+
         Args:
             name: The name of the measurement.
             values: The list of values to measure the average of.
@@ -380,7 +383,7 @@ class NewStep(AbstractContextManager):
 
         numeric_bounds = bounds
         if isinstance(numeric_bounds, dict):
-            numeric_bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max")) # type: ignore
+            numeric_bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))  # type: ignore
 
         # Construct a mask of the values that are outside the bounds.
         mask = None
