@@ -42,7 +42,7 @@ jobs:
 
       - name: Type Check
         run: |
-          ty check
+          ty check --python $(which python)
 
       - name: MyPy
         run: |
