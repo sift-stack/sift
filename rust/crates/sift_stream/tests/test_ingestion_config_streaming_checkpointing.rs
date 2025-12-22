@@ -100,15 +100,17 @@ async fn test_sending_data() {
 
     assert!(sift_stream.finish().await.is_ok());
 
+    // Since sift-stream metrics also creates a stream, we expect two checkpoints.
     assert_eq!(
-        1,
+        2,
         num_checkpoints.load(Ordering::Relaxed),
         "always at least 1 checkpoint due to call to finish"
     );
 
-    assert_eq!(
-        num_messages,
-        messages_received.load(Ordering::Relaxed),
+    // Since sift-stream metrics also creates a stream and sends metrics, we expect more than just the messages
+    // send directly by the test.
+    assert!(
+        num_messages <= messages_received.load(Ordering::Relaxed),
         "messages sent and received don't match",
     );
 
@@ -197,9 +199,10 @@ async fn test_checkpointing() {
         "with a checkpoint interval of 1 second, a sleep of 3.5 seconds, and a call to finish, we should have gotten 4 checkpoints"
     );
 
-    assert_eq!(
-        messages_sent,
-        messages_received.load(Ordering::Relaxed),
+    // Since sift-stream metrics also creates a stream and sends metrics, we expect more than just the messages
+    // send directly by the test.
+    assert!(
+        messages_sent <= messages_received.load(Ordering::Relaxed),
         "messages sent and received don't match",
     );
 

@@ -109,7 +109,7 @@ pub(crate) struct StreamSystem {
 }
 
 /// Creates and starts all three tasks
-pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
+pub(crate) async fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     // Create broadcast channel for control messages (low frequency)
     let (control_tx, _control_rx) = broadcast::channel(config.control_channel_capacity);
 
@@ -127,6 +127,19 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let backup_config = config.clone();
     let backup_control_rx = backup_control_tx.subscribe();
     let backup_data_rx = backup_rx.clone();
+
+    let mut backup_manager = AsyncBackupsManager::new(
+        backup_config.recovery_config.backups_enabled,
+        &backup_config.recovery_config.backups_directory,
+        &backup_config.recovery_config.backups_prefix,
+        backup_config.recovery_config.backup_policy,
+        backup_control_tx,
+        backup_control_rx,
+        backup_data_rx,
+        backup_config.metrics.clone(),
+    )
+    .await?;
+
     let backup_manager = tokio::spawn(async move {
         #[cfg(feature = "tracing")]
         tracing::info!(
@@ -134,19 +147,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
             "backup manager task started"
         );
 
-        AsyncBackupsManager::new(
-            backup_config.recovery_config.backups_enabled,
-            &backup_config.recovery_config.backups_directory,
-            &backup_config.recovery_config.backups_prefix,
-            backup_config.recovery_config.backup_policy,
-            backup_control_tx,
-            backup_control_rx,
-            backup_data_rx,
-            backup_config.metrics.clone(),
-        )
-        .await?
-        .run()
-        .await
+        backup_manager.run().await
     });
 
     // Start gRPC client task
@@ -195,19 +196,21 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     // Start metrics streaming task if an interval is configured.
     let metrics_config = config.clone();
     let metrics_control_rx = control_tx.subscribe();
-    let metrics_streaming = config.metrics_streaming_interval.map(|interval| {
-        tokio::spawn(async move {
-            let metrics_task =
-                MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
-
+    let metrics_streaming = if let Some(interval) = config.metrics_streaming_interval {
+        let metrics_task =
+            MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
+        Some(tokio::spawn(async move {
             #[cfg(feature = "tracing")]
             tracing::info!(
                 sift_stream_id = %config.sift_stream_id,
                 "metrics streaming task started"
             );
+
             metrics_task.run().await
-        })
-    });
+        }))
+    } else {
+        None
+    };
 
     #[cfg(feature = "tracing")]
     tracing::info!(
@@ -561,18 +564,26 @@ impl MetricsStreamingTask {
         // - Metrics streaming interval is set to `None` to disable streaming.
         // - The `setup-channel` is used for all gRPC channels in this stream since they are less
         //   critical and thus can be multiplexed over a single connection.
-        let stream = SiftStreamBuilder::from_channel(config.setup_channel.clone())
-            .metrics_streaming_interval(None)
-            .ingestion_config(ingestion_config)
-            .control_channel_capacity(100)
-            .ingestion_data_channel_capacity(1000)
-            .backup_data_channel_capacity(1000)
-            .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-                retry_policy: config.recovery_config.retry_policy,
-                disk_backup_policy: config.recovery_config.backup_policy,
-            })
-            .build()
-            .await?;
+        //
+        // NOTE: The build future is boxed/pinned due to async recursion -- generally a sift-stream
+        // instance will be spawning a second sift-stream instance for streaming it's own metrics though
+        // the limit of recursion here is 2 since the metrics-streaming sift-stream doesn't itself
+        // spawn another sift-stream instance. Since this is only done during initialization, it is fine.
+        let stream_fut = Box::pin(
+            SiftStreamBuilder::from_channel(config.setup_channel.clone())
+                .metrics_streaming_interval(None)
+                .ingestion_config(ingestion_config)
+                .control_channel_capacity(100)
+                .ingestion_data_channel_capacity(1000)
+                .backup_data_channel_capacity(1000)
+                .recovery_strategy(RecoveryStrategy::RetryWithBackups {
+                    retry_policy: config.recovery_config.retry_policy,
+                    disk_backup_policy: config.recovery_config.backup_policy,
+                })
+                .build(),
+        );
+
+        let stream = stream_fut.await?;
 
         Ok(Self {
             stream,

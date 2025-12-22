@@ -99,6 +99,7 @@ async fn test_retries_succeed() {
             },
             disk_backup_policy,
         })
+        .metrics_streaming_interval(None)
         .build()
         .await
         .expect("failed to build sift stream");

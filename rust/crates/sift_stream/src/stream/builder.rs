@@ -516,7 +516,7 @@ impl SiftStreamBuilder {
             metrics_streaming_interval: self.metrics_streaming_interval,
         };
 
-        SiftStream::new(ingestion_config, flows_by_name, run, task_config, metrics)
+        SiftStream::new(ingestion_config, flows_by_name, run, task_config, metrics).await
     }
 
     /// Builds a [SiftStream] for file-backup mode. All data will be written to files instead of
