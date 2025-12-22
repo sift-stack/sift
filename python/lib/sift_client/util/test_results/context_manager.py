@@ -240,7 +240,6 @@ class NewStep(AbstractContextManager):
                 error_code=1,
                 error_message=trace,
             )
-            # print("".join(stack))
         assert self.current_step is not None
 
         # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
