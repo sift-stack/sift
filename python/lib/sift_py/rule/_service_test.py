@@ -93,6 +93,7 @@ def test_rule_service_load_rules_from_yaml(rule_service):
         "assignee": "assignee@abc.com",
         "type": "review",
         "asset_names": ["asset"],
+        "tag_names": ["tag1"],
     }
     with mock.patch.object(RuleService, "create_or_update_rule"):
         with mock.patch(
@@ -115,6 +116,7 @@ def test_rule_service_load_rules_from_yaml(rule_service):
             assert rule_config.expression == rule_yaml["expression"]
             assert rule_config.action.assignee == rule_yaml["assignee"]
             assert rule_config.asset_names == rule_yaml["asset_names"]
+            assert rule_config.tag_names == rule_yaml["tag_names"]
             assert isinstance(rule_config.action, RuleActionCreateDataReviewAnnotation)
 
 
