@@ -2187,7 +2187,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            measure_avg (sift_client.util.test_results.context_manager.NewStep.measure_avg)" href="#sift_client.util.test_results.context_manager.NewStep.measure_avg">measure_avg</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Measure the average of a list of values and return the result.</p>
+                  <p>Calculate the average of a list of values, measure the average against given bounds, and return the result.</p>
                 </div>
               </td>
             </tr>
@@ -2595,6 +2595,7 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>Ensure that all values in a list are within bounds and return the result.</p>
+<p>Note: Measurements will only be recorded for values outside the bounds. To record measurements for all values, just call measure for each value.</p>
 
 
 <table>
@@ -2734,7 +2735,7 @@ You're not viewing the latest version.
 
     <div class="doc doc-contents ">
 
-        <p>Measure the average of a list of values and return the result.</p>
+        <p>Calculate the average of a list of values, measure the average against given bounds, and return the result.</p>
 
 
 <table>
