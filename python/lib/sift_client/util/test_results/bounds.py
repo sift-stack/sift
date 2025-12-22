@@ -29,7 +29,7 @@ def assign_value_to_measurement(
         measurement.string_value = value
         measurement.measurement_type = TestMeasurementType.STRING
     else:
-        raise ValueError("Invalid value type")
+        raise ValueError(f"Invalid value type: {type(value)}")
 
 
 def evaluate_measurement_bounds(

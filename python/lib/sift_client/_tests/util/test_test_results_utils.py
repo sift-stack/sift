@@ -23,6 +23,31 @@ class TestContextManager:
         report_context.report.update({"run_id": nostromo_run.id_})
         assert report_context.report.run_id == nostromo_run.id_
 
+    def test_docstring_description_setup(self, step):
+        """Test that the description of a step is set to the docstring of the test function.
+
+        Args:
+            step: The step to test.
+        """
+        expected_description = self.test_docstring_description_setup.__doc__
+        assert step.current_step.description == expected_description
+
+        def helper_function(_step: NewStep):
+            """Helper function description."""
+            with _step.substep("Helper Substep") as helper_substep:
+                # This test is more of an example to indicate that only top level functions collected by pytest receive function's docstring.
+                assert helper_substep.current_step.description == None
+
+        helper_function(step)
+
+    def test_docstring_description_override(self, step):
+        """This description can still be overridden."""
+        current_desc = self.test_docstring_description_override.__doc__
+        assert step.current_step.description == current_desc
+        new_desc = "Manually updated description."
+        step.current_step.update({"description": new_desc})
+        assert step.current_step.description == new_desc
+
     def test_new_step(self, report_context):
         initial_end_time = report_context.report.end_time
         first_step_path = report_context.get_next_step_path()
@@ -145,6 +170,7 @@ class TestContextManager:
                     "Nested Substep", "Has a bad assert"
                 ) as nested_substep_context:
                     nested_substep = nested_substep_context.current_step
+                    nested_substep_context.force_result = True
                     assert False == True
                 with substep_context.substep(
                     "Sibling Substep", "Should pass"
@@ -206,6 +232,9 @@ class TestBounds:
         measurement = TestMeasurementUpdate()
         assign_value_to_measurement(measurement, True)
         assert measurement.boolean_value == True
+
+        with pytest.raises(ValueError, match="Invalid value type: <class 'NoneType'>"):
+            assign_value_to_measurement(measurement, None)
 
     def test_evaluate_measurement_bounds(self):
         measurement = TestMeasurementUpdate(
