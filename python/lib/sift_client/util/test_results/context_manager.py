@@ -8,10 +8,12 @@ from contextlib import AbstractContextManager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+import numpy as np
+import pandas as pd
+
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
-    TestMeasurement,
     TestMeasurementCreate,
     TestReport,
     TestReportCreate,
@@ -25,6 +27,8 @@ from sift_client.util.test_results.bounds import (
 )
 
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
     from sift_client.client import SiftClient
 
 
@@ -138,10 +142,10 @@ class ReportContext(AbstractContextManager):
 
         return step
 
-    def report_measurement(self, measurement: TestMeasurement, step: TestStep):
+    def record_step_outcome(self, outcome: bool, step: TestStep):
         """Report a failure to the report context."""
         # Failures will be propogated when the step exits.
-        if not measurement.passed:
+        if not outcome:
             self.open_step_results[step.step_path] = False
             self.any_failures = True
 
@@ -303,9 +307,117 @@ class NewStep(AbstractContextManager):
         )
         evaluate_measurement_bounds(create, value, bounds)
         measurement = self.client.test_results.create_measurement(create)
-        self.report_context.report_measurement(measurement, self.current_step)
+        self.report_context.record_step_outcome(measurement.passed, self.current_step)
 
         return measurement.passed
+
+    def measure_avg(
+        self,
+        *,
+        name: str,
+        values: list[float | int] | NDArray[np.float64] | pd.Series,
+        bounds: dict[str, float] | NumericBounds,
+        timestamp: datetime | None = None,
+        unit: str | None = None,
+    ) -> bool:
+        """Calculate the average of a list of values, measure the average against given bounds, and return the result.
+
+        Args:
+            name: The name of the measurement.
+            values: The list of values to measure the average of.
+            bounds: The bounds to compare the value to.
+            timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
+            unit: [Optional] The unit of the measurement.
+
+        returns: The true if the average of the values is within the bounds, false otherwise.
+        """
+        timestamp = timestamp if timestamp else datetime.now(timezone.utc)
+        np_array = None
+        if isinstance(values, list):
+            np_array = np.array(values)
+        elif isinstance(values, np.ndarray):
+            np_array = values
+        elif isinstance(values, pd.Series):
+            np_array = values.to_numpy()
+        else:
+            raise ValueError(f"Invalid value type: {type(values)}")
+        avg = float(np.mean(np_array))
+        result = self.measure(name=name, value=avg, bounds=bounds, timestamp=timestamp, unit=unit)
+        assert self.current_step is not None
+        self.report_context.record_step_outcome(result, self.current_step)
+
+        return result
+
+    def measure_all(
+        self,
+        *,
+        name: str,
+        values: list[float | int] | NDArray[np.float64] | pd.Series,
+        bounds: dict[str, float] | NumericBounds,
+        timestamp: datetime | None = None,
+        unit: str | None = None,
+    ) -> bool:
+        """Ensure that all values in a list are within bounds and return the result. Records measurements for all values outside the bounds.
+
+        Note: Measurements will only be recorded for values outside the bounds. To record measurements for all values, just call measure for each value.
+
+        Args:
+            name: The name of the measurement.
+            values: The list of values to measure the average of.
+            bounds: The bounds to compare the value to.
+            timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
+            unit: [Optional] The unit of the measurement.
+
+        returns: The true if all values are within the bounds, false otherwise.
+        """
+        timestamp = timestamp if timestamp else datetime.now(timezone.utc)
+        np_array = None
+        if isinstance(values, list):
+            np_array = np.array(values)
+        elif isinstance(values, np.ndarray):
+            np_array = values
+        elif isinstance(values, pd.Series):
+            np_array = values.to_numpy()
+        else:
+            raise ValueError(f"Invalid value type: {type(values)}")
+
+        numeric_bounds = bounds
+        if isinstance(numeric_bounds, dict):
+            numeric_bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))  # type: ignore
+
+        # Construct a mask of the values that are outside the bounds.
+        mask = None
+        if numeric_bounds.min is not None:
+            mask = np_array < numeric_bounds.min
+        if numeric_bounds.max is not None:
+            val_above_max = np_array > numeric_bounds.max
+            mask = mask | val_above_max if mask is not None else val_above_max
+        if mask is None:
+            raise ValueError("No bounds provided")
+
+        rows_outside_bounds = np_array[mask]
+        for row in rows_outside_bounds:
+            self.measure(name=name, value=row, bounds=bounds, timestamp=timestamp, unit=unit)
+
+        result = rows_outside_bounds.size == 0
+        assert self.current_step is not None
+        self.report_context.record_step_outcome(result, self.current_step)
+
+        return result
+
+    def report_outcome(self, name: str, result: bool, reason: str | None = None) -> bool:
+        """Report an outcome from some action or measurement. Creates a substep that is pass/fail with the optional reason as the description.
+
+        Args:
+            name: The name of the substep.
+            result: True if the action or measurement passed, False otherwise.
+            reason: [Optional] The context to include in the description of the substep.
+
+        returns: The given result so the function can be used in line.
+        """
+        with self.substep(name=name, description=reason) as substep:
+            self.report_context.record_step_outcome(result, substep.current_step)
+        return result
 
     def substep(self, name: str, description: str | None = None) -> NewStep:
         """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps."""
