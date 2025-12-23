@@ -315,7 +315,7 @@ class NewStep(AbstractContextManager):
         self,
         *,
         name: str,
-        values: list[float | int] | NDArray[np.float64] | pd.DataFrame,
+        values: list[float | int] | NDArray[np.float64] | pd.Series,
         bounds: dict[str, float] | NumericBounds,
         timestamp: datetime | None = None,
         unit: str | None = None,
@@ -337,8 +337,8 @@ class NewStep(AbstractContextManager):
             np_array = np.array(values)
         elif isinstance(values, np.ndarray):
             np_array = values
-        elif isinstance(values, pd.DataFrame):
-            np_array = values.values
+        elif isinstance(values, pd.Series):
+            np_array = values.to_numpy()
         else:
             raise ValueError(f"Invalid value type: {type(values)}")
         avg = float(np.mean(np_array))
@@ -352,12 +352,12 @@ class NewStep(AbstractContextManager):
         self,
         *,
         name: str,
-        values: list[float | int] | NDArray[np.float64] | pd.DataFrame,
+        values: list[float | int] | NDArray[np.float64] | pd.Series,
         bounds: dict[str, float] | NumericBounds,
         timestamp: datetime | None = None,
         unit: str | None = None,
     ) -> bool:
-        """Ensure that all values in a list are within bounds and return the result.
+        """Ensure that all values in a list are within bounds and return the result. Records measurements for all values outside the bounds.
 
         Note: Measurements will only be recorded for values outside the bounds. To record measurements for all values, just call measure for each value.
 
@@ -376,8 +376,8 @@ class NewStep(AbstractContextManager):
             np_array = np.array(values)
         elif isinstance(values, np.ndarray):
             np_array = values
-        elif isinstance(values, pd.DataFrame):
-            np_array = values.values
+        elif isinstance(values, pd.Series):
+            np_array = values.to_numpy()
         else:
             raise ValueError(f"Invalid value type: {type(values)}")
 

@@ -201,12 +201,12 @@ class TestContextManager:
         assert step.current_step.measurements[0].numeric_value == 200.0
         assert step.current_step.measurements[0].passed == True
 
-    def test_measure_avg_pandas_dataframe(self, step):
-        """Test measure_avg with a pandas DataFrame."""
-        df = pd.DataFrame({"values": [5.0, 10.0, 15.0]})  # avg = 10.0
+    def test_measure_avg_pandas_series(self, step):
+        """Test measure_avg with a pandas Series."""
+        series = pd.Series([5.0, 10.0, 15.0])  # avg = 10.0
         result = step.measure_avg(
             name="Avg Voltage",
-            values=df,
+            values=series,
             bounds={"min": 5.0, "max": 15.0},
         )
         assert result == True
@@ -291,12 +291,12 @@ class TestContextManager:
         )
         assert result == True
 
-    def test_measure_all_pandas_dataframe(self, step):
-        """Test measure_all with a pandas DataFrame."""
-        df = pd.DataFrame({"values": [5.0, 10.0, 15.0]})
+    def test_measure_all_pandas_series(self, step):
+        """Test measure_all with a pandas Series."""
+        series = pd.Series([5.0, 10.0, 15.0])
         result = step.measure_all(
             name="All Voltages",
-            values=df,
+            values=series,
             bounds={"min": 0.0, "max": 20.0},
         )
         assert result == True
