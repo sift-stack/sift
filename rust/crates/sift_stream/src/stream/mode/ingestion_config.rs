@@ -439,7 +439,7 @@ impl SiftStream<IngestionConfigEncoder, LiveStreaming> {
     /// Initializes a new [SiftStream]. Users should instead use [`SiftStreamBuilder`].
     ///
     /// [`SiftStreamBuilder`]: crate::stream::builder::SiftStreamBuilder
-    pub(crate) fn new(
+    pub(crate) async fn new(
         ingestion_config: IngestionConfig,
         flows_by_name: HashMap<String, FlowDescriptor<String>>,
         run: Option<Run>,
@@ -463,8 +463,9 @@ impl SiftStream<IngestionConfigEncoder, LiveStreaming> {
         // on the ingestion channel and potentially starving out ingestion.
         let grpc_channel = task_config.setup_channel.clone();
 
-        let stream_system =
-            start_tasks(task_config).context("failed to start task-based architecture")?;
+        let stream_system = start_tasks(task_config)
+            .await
+            .context("failed to start task-based architecture")?;
 
         Ok(Self {
             grpc_channel: grpc_channel.clone(),
