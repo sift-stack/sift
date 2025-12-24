@@ -1,6 +1,9 @@
 use sift_rs::{
     Credentials, RetryConfig, RetryExt, SiftChannelBuilder,
-    wrappers::{assets::{AssetServiceWrapper, new_asset_service}, ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service}},
+    wrappers::{
+        assets::{AssetServiceWrapper, new_asset_service},
+        ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
+    },
 };
 use std::env;
 use std::time::Duration;
