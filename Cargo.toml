@@ -13,7 +13,7 @@ members = [
 
 [workspace.package]
 authors = ["Sift Software Engineers <engineering@siftstack.com>"]
-version = "0.7.0-rc.10"
+version = "0.7.0-rc.11"
 edition = "2024"
 categories = ["aerospace", "science::robotics"]
 homepage = "https://github.com/sift-stack/sift"
@@ -27,11 +27,11 @@ chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
 pbjson-types = "^0.7"
 tonic = { version = "^0.12", features = ["gzip"] }
 
-sift_connect = { version = "0.7.0-rc.10", path = "rust/crates/sift_connect" }
-sift_rs = { version = "0.7.0-rc.10", path = "rust/crates/sift_rs" }
-sift_error = { version = "0.7.0-rc.10", path = "rust/crates/sift_error" }
-sift_stream = { version = "0.7.0-rc.10", path = "rust/crates/sift_stream" }
-sift_pbfs = { version = "0.7.0-rc.10", path = "rust/crates/sift_pbfs" }
+sift_connect = { version = "0.7.0-rc.11", path = "rust/crates/sift_connect" }
+sift_rs = { version = "0.7.0-rc.11", path = "rust/crates/sift_rs" }
+sift_error = { version = "0.7.0-rc.11", path = "rust/crates/sift_error" }
+sift_stream = { version = "0.7.0-rc.11", path = "rust/crates/sift_stream" }
+sift_pbfs = { version = "0.7.0-rc.11", path = "rust/crates/sift_pbfs" }
 
 sift_stream_bindings = { version = "0.1.0", path = "rust/crates/sift_stream_bindings" }
 

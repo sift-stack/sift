@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.11] - December 23, 2025
+### What's New
+#### Improved SiftStream File Path Verification
+A minor fix improves how and where SiftStream verifies paths exist, allowing errors
+or directory creation errors to be returned when building SiftStream.
+
+### Full Changelog
+- [Improve file path validation for spawned tasks on init](https://github.com/sift-stack/sift/commit/6da335e9b3a5d1a8f797cdeee648edd8ebbb7a1a)
+
 ## [v0.7.0-rc.10] - December 16, 2025
 ### What's New
 #### SiftStream File-Backup Only Mode Create Parent Directories
@@ -10,7 +19,7 @@ A minor fix to create all parent directories for file-backup only mode, as well 
 any "already exists" errors.
 
 ### Full Changelog
-- [Create file-backup mode directories, ignore exists error]()
+- [Create file-backup mode directories, ignore exists error](https://github.com/sift-stack/sift/commit/b69fb1c6491c65be8bc5409d9c3ce15769a981d9)
 
 ## [v0.7.0-rc.9] - December 16, 2025
 ### What's New
