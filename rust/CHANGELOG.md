@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.12] - December 24, 2025
+### What's New
+#### New "Retry" Capabilities for Unary Sift gRPC Calls
+A new struct `Retrying` has been added that provides convenient retry capabilities
+to Sift Unary gRPC calls. This new retry capability has also been added internally
+to `SiftStream`'s Unary gRPC calls, improving behavior when transient errors are
+returned during setup, adding new flows, or attaching new runs to `SiftStream`.
+
+### Full Changelog
+- [Add generic gRPC retry wrapper, use in sift_stream](https://github.com/sift-stack/sift/commit/cf08dac2b9c4f246bf11ec543f5eda33010f8578)
+
 ## [v0.7.0-rc.11] - December 23, 2025
 ### What's New
 #### Improved SiftStream File Path Verification
