@@ -49,5 +49,9 @@ pub use r#gen::sift::*;
 /// Utility wrappers for select gRPC services.
 pub mod wrappers;
 
+/// Generic retry extension for gRPC wrapper services.
+pub mod retry;
+
+pub use retry::{DefaultGrpcRetry, RetryConfig, RetryDecider, RetryExt, Retrying};
 pub use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 pub use tonic::codec::CompressionEncoding;

@@ -20,7 +20,9 @@ pub fn new_run_service(grpc_channel: SiftChannel) -> impl RunServiceWrapper {
 
 /// Convenience methods over [RunServiceClient].
 #[async_trait]
-pub trait RunServiceWrapper: Deref<Target = RunServiceClient<SiftChannel>> + DerefMut {
+pub trait RunServiceWrapper:
+    Clone + Deref<Target = RunServiceClient<SiftChannel>> + DerefMut
+{
     /// Creates a run.
     async fn try_create_run(
         &mut self,
@@ -48,6 +50,7 @@ pub trait RunServiceWrapper: Deref<Target = RunServiceClient<SiftChannel>> + Der
 }
 
 /// A convience wrapper around [RunServiceClient].
+#[derive(Clone)]
 struct RunServiceWrapperImpl(RunServiceClient<SiftChannel>);
 
 impl RunServiceWrapperImpl {
