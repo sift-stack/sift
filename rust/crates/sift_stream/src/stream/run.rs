@@ -3,6 +3,7 @@ use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{
     metadata::v1::metadata_value::Value,
+    retry::{RetryConfig, RetryExt},
     runs::v2::Run,
     wrappers::runs::{RunServiceWrapper, new_run_service},
 };
@@ -15,8 +16,11 @@ pub enum RunSelector {
 
 /// Retrieves a run by run ID.
 pub(super) async fn load_run_by_id(grpc_channel: SiftChannel, run_id: &str) -> Result<Run> {
-    let mut run_service = new_run_service(grpc_channel);
-    let run = run_service.try_get_run_by_id(run_id).await?;
+    let run_service_wrapper = new_run_service(grpc_channel);
+    let retrying_run = run_service_wrapper.retrying(RetryConfig::default());
+    let run = retrying_run
+        .call(|mut w| async move { w.try_get_run_by_id(run_id).await })
+        .await?;
 
     #[cfg(feature = "tracing")]
     tracing::info!(
@@ -34,7 +38,8 @@ pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunFor
     #[cfg(feature = "tracing")]
     tracing::info_span!("load_run_by_form");
 
-    let mut run_service = new_run_service(grpc_channel);
+    let run_service_wrapper = new_run_service(grpc_channel);
+    let retrying_run = run_service_wrapper.retrying(RetryConfig::default());
 
     let RunForm {
         name,
@@ -44,16 +49,38 @@ pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunFor
         client_key,
     } = run_form;
 
-    match run_service.try_get_run_by_client_key(&client_key).await {
+    let client_key_clone = client_key.clone();
+    match retrying_run
+        .call(|mut w| {
+            let client_key = client_key_clone.clone();
+            async move { w.try_get_run_by_client_key(&client_key).await }
+        })
+        .await
+    {
         Err(e) if e.kind() == ErrorKind::NotFoundError => {
-            let run = run_service
-                .try_create_run(
-                    &name,
-                    &client_key,
-                    &description.unwrap_or_default(),
-                    tags.unwrap_or_default().as_slice(),
-                    metadata.unwrap_or_default().as_slice(),
-                )
+            let description_str = description.unwrap_or_default();
+            let tags_vec = tags.unwrap_or_default();
+            let metadata_vec = metadata.unwrap_or_default();
+            let name_clone = name.clone();
+            let client_key_clone2 = client_key.clone();
+            let run = retrying_run
+                .call(|mut w| {
+                    let name = name_clone.clone();
+                    let client_key = client_key_clone2.clone();
+                    let description_str = description_str.clone();
+                    let tags = tags_vec.clone();
+                    let metadata = metadata_vec.clone();
+                    async move {
+                        w.try_create_run(
+                            &name,
+                            &client_key,
+                            &description_str,
+                            tags.as_slice(),
+                            metadata.as_slice(),
+                        )
+                        .await
+                    }
+                })
                 .await?;
 
             #[cfg(feature = "tracing")]
@@ -154,7 +181,15 @@ pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunFor
                 update_mask.join(", ")
             );
 
-            let updated_run = run_service.try_update_run(run, &update_mask).await?;
+            let update_mask_clone = update_mask.clone();
+            let run_clone = run.clone();
+            let updated_run = retrying_run
+                .call(|mut w| {
+                    let run = run_clone.clone();
+                    let update_mask = update_mask_clone.clone();
+                    async move { w.try_update_run(run, update_mask.as_slice()).await }
+                })
+                .await?;
 
             #[cfg(feature = "tracing")]
             tracing::info!("successfully updated run");
