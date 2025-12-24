@@ -21,7 +21,7 @@ pub fn new_ingestion_config_service(
 /// Convenience methods on top of [IngestionConfigServiceClient].
 #[async_trait]
 pub trait IngestionConfigServiceWrapper:
-    Deref<Target = IngestionConfigServiceClient<SiftChannel>> + DerefMut
+    Clone + Deref<Target = IngestionConfigServiceClient<SiftChannel>> + DerefMut
 {
     /// Create an ingestion config.
     async fn try_create_ingestion_config(
@@ -55,6 +55,7 @@ pub trait IngestionConfigServiceWrapper:
 }
 
 /// A convience wrapper around [IngestionConfigServiceClient].
+#[derive(Clone)]
 struct IngestionConfigServiceImpl(IngestionConfigServiceClient<SiftChannel>);
 
 #[async_trait]

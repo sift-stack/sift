@@ -19,6 +19,7 @@ use prost::Message;
 use sift_error::prelude::*;
 use sift_rs::SiftChannel;
 use sift_rs::ingestion_configs::v2::FlowConfig;
+use sift_rs::retry::{RetryConfig, RetryExt};
 use sift_rs::wrappers::ingestion_configs::{
     IngestionConfigServiceWrapper, new_ingestion_config_service,
 };
@@ -267,8 +268,14 @@ impl IngestionConfigEncoder {
             let flow_config = flow_config.clone();
 
             calls.push(tokio::spawn(async move {
-                new_ingestion_config_service(channel)
-                    .try_create_flows(&config_id, vec![flow_config])
+                let wrapper = new_ingestion_config_service(channel);
+                let retrying = wrapper.retrying(RetryConfig::default());
+                retrying
+                    .call(|mut w| {
+                        let config_id = config_id.clone();
+                        let flow_config = flow_config.clone();
+                        async move { w.try_create_flows(&config_id, vec![flow_config]).await }
+                    })
                     .await
                     .context("SiftStream::add_new_flows")
             }));

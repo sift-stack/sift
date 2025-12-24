@@ -17,7 +17,9 @@ pub fn new_asset_service(grpc_channel: SiftChannel) -> impl AssetServiceWrapper 
 
 /// Convenience methods
 #[async_trait]
-pub trait AssetServiceWrapper: Deref<Target = AssetServiceClient<SiftChannel>> + DerefMut {
+pub trait AssetServiceWrapper:
+    Clone + Deref<Target = AssetServiceClient<SiftChannel>> + DerefMut
+{
     /// Retrieves an asset by ID
     async fn try_get_asset_by_id(&mut self, asset_id: &str) -> Result<Asset>;
 
@@ -26,6 +28,7 @@ pub trait AssetServiceWrapper: Deref<Target = AssetServiceClient<SiftChannel>> +
 }
 
 /// A convenience wrapper around [AssetServiceClient].
+#[derive(Clone)]
 struct AssetServiceImpl(AssetServiceClient<SiftChannel>);
 
 #[async_trait]

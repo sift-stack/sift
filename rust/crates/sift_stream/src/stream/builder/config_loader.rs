@@ -5,6 +5,7 @@ use sift_error::prelude::*;
 use sift_rs::{
     assets::v1::Asset,
     ingestion_configs::v2::{FlowConfig, IngestionConfig as IngestionConfigPb},
+    retry::{RetryConfig, RetryExt},
     wrappers::{
         assets::{AssetServiceWrapper, new_asset_service},
         ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
@@ -20,36 +21,62 @@ pub async fn load_ingestion_config(
     #[cfg(feature = "tracing")]
     tracing::info_span!("load_ingestion_config");
 
-    let mut ingestion_config_service = new_ingestion_config_service(grpc_channel.clone());
-    let mut asset_service = new_asset_service(grpc_channel);
-
     let IngestionConfigForm {
         asset_name,
         client_key,
         flows,
     } = ingestion_config;
 
-    match ingestion_config_service
-        .try_get_ingestion_config_by_client_key(&client_key)
+    let ingestion_config_service_wrapper = new_ingestion_config_service(grpc_channel.clone());
+    let retrying_ingestion_config =
+        ingestion_config_service_wrapper.retrying(RetryConfig::default());
+
+    let client_key_clone = client_key.clone();
+    match retrying_ingestion_config
+        .call(|mut w| {
+            let client_key = client_key_clone.clone();
+            async move { w.try_get_ingestion_config_by_client_key(&client_key).await }
+        })
         .await
     {
         Err(err) if err.kind() == ErrorKind::NotFoundError => {
-            let ingestion_config = ingestion_config_service
-                .try_create_ingestion_config(&asset_name, &client_key, &flows)
+            let asset_name_clone = asset_name.clone();
+            let client_key_clone = client_key.clone();
+            let flows_clone = flows.clone();
+            let ingestion_config = retrying_ingestion_config
+                .call(|mut w| {
+                    let asset_name = asset_name_clone.clone();
+                    let client_key = client_key_clone.clone();
+                    let flows = flows_clone.clone();
+                    async move {
+                        w.try_create_ingestion_config(&asset_name, &client_key, &flows)
+                            .await
+                    }
+                })
                 .await?;
 
             let new_flows = {
                 if flows.is_empty() {
                     Vec::new()
                 } else {
-                    ingestion_config_service
-                        .try_filter_flows(&ingestion_config.ingestion_config_id, "")
+                    let ingestion_config_id_clone = ingestion_config.ingestion_config_id.clone();
+                    retrying_ingestion_config
+                        .call(|mut w| {
+                            let ingestion_config_id = ingestion_config_id_clone.clone();
+                            async move { w.try_filter_flows(&ingestion_config_id, "").await }
+                        })
                         .await?
                 }
             };
 
-            let asset = asset_service
-                .try_get_asset_by_id(&ingestion_config.asset_id)
+            let asset_service_wrapper = new_asset_service(grpc_channel.clone());
+            let retrying_asset = asset_service_wrapper.retrying(RetryConfig::default());
+            let asset_id_clone = ingestion_config.asset_id.clone();
+            let asset = retrying_asset
+                .call(|mut w| {
+                    let asset_id = asset_id_clone.clone();
+                    async move { w.try_get_asset_by_id(&asset_id).await }
+                })
                 .await
                 .context("failed to retrieve asset specified by ingestion config")?;
 
@@ -79,8 +106,14 @@ pub async fn load_ingestion_config(
                 "an existing ingestion config was found with the provided client-key"
             );
 
-            let asset = asset_service
-                .try_get_asset_by_id(&ingestion_config.asset_id)
+            let asset_service_wrapper = new_asset_service(grpc_channel.clone());
+            let retrying_asset = asset_service_wrapper.retrying(RetryConfig::default());
+            let asset_id_clone2 = ingestion_config.asset_id.clone();
+            let asset = retrying_asset
+                .call(|mut w| {
+                    let asset_id = asset_id_clone2.clone();
+                    async move { w.try_get_asset_by_id(&asset_id).await }
+                })
                 .await
                 .context("failed to retrieve asset specified by ingestion config")?;
 
@@ -105,8 +138,14 @@ pub async fn load_ingestion_config(
                 .then(String::new)
                 .unwrap_or_else(|| format!("flow_name in [{flow_names}]"));
 
-            let existing_flows = ingestion_config_service
-                .try_filter_flows(&ingestion_config.ingestion_config_id, &filter)
+            let ingestion_config_id_clone = ingestion_config.ingestion_config_id.clone();
+            let filter_clone = filter.clone();
+            let existing_flows = retrying_ingestion_config
+                .call(|mut w| {
+                    let ingestion_config_id = ingestion_config_id_clone.clone();
+                    let filter = filter_clone.clone();
+                    async move { w.try_filter_flows(&ingestion_config_id, &filter).await }
+                })
                 .await?;
 
             // If no flows are provided, use the existing flows in Sift to populate the local flow cache.
@@ -142,11 +181,17 @@ pub async fn load_ingestion_config(
             }
 
             if !flows_to_create.is_empty() {
-                let _ = ingestion_config_service
-                    .try_create_flows(
-                        &ingestion_config.ingestion_config_id,
-                        flows_to_create.as_slice(),
-                    )
+                let flows_to_create_clone = flows_to_create.clone();
+                let ingestion_config_id_clone = ingestion_config.ingestion_config_id.clone();
+                let _ = retrying_ingestion_config
+                    .call(|mut w| {
+                        let ingestion_config_id = ingestion_config_id_clone.clone();
+                        let flows = flows_to_create_clone.clone();
+                        async move {
+                            w.try_create_flows(&ingestion_config_id, flows.as_slice())
+                                .await
+                        }
+                    })
                     .await;
 
                 #[cfg(feature = "tracing")]
@@ -164,8 +209,14 @@ pub async fn load_ingestion_config(
                 }
 
                 // All the flows Sift sees with the specified names
-                let sift_flows = ingestion_config_service
-                    .try_filter_flows(&ingestion_config.ingestion_config_id, &filter)
+                let ingestion_config_id_clone2 = ingestion_config.ingestion_config_id.clone();
+                let filter_clone2 = filter.clone();
+                let sift_flows = retrying_ingestion_config
+                    .call(|mut w| {
+                        let ingestion_config_id = ingestion_config_id_clone2.clone();
+                        let filter = filter_clone2.clone();
+                        async move { w.try_filter_flows(&ingestion_config_id, &filter).await }
+                    })
                     .await?;
 
                 validate_flows(&flows, &sift_flows)?;

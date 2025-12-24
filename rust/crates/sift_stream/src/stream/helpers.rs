@@ -7,6 +7,7 @@ use sift_rs::{
     assets::v1::Asset,
     ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
     metadata::v1::MetadataValue,
+    retry::{RetryConfig, RetryExt},
     wrappers::assets::{AssetServiceWrapper, new_asset_service},
 };
 
@@ -83,8 +84,17 @@ pub(crate) async fn update_asset_tags_and_metadata(
         return Ok(());
     }
 
-    let mut asset_service = new_asset_service(channel);
-    let _ = asset_service.try_update_asset(asset, update_mask).await?;
+    let asset_service_wrapper = new_asset_service(channel);
+    let retrying_asset = asset_service_wrapper.retrying(RetryConfig::default());
+    let asset_clone = asset.clone();
+    let update_mask_clone = update_mask.clone();
+    let _ = retrying_asset
+        .call(|mut w| {
+            let asset = asset_clone.clone();
+            let update_mask = update_mask_clone.clone();
+            async move { w.try_update_asset(asset, update_mask).await }
+        })
+        .await?;
 
     Ok(())
 }
