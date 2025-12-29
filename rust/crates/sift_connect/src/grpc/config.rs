@@ -4,13 +4,62 @@ use toml::{Table, Value};
 /// The expected name of the config file.
 pub const SIFT_CONFIG_NAME: &str = "sift.toml";
 
-/// Specifies source of credentials. If `Profile` is used, then the provided string will be used to
-/// query the corresponding table from [`SIFT_CONFIG_NAME`] located at
-/// [these locations](https://docs.rs/dirs/6.0.0/dirs/fn.config_local_dir.html)
-/// depending on your operating system. If `None` is provided, then the top-level table is used.
+/// Specifies the source of credentials for connecting to Sift.
+///
+/// Credentials can be provided either directly via `Config` or loaded from a
+/// configuration file using `Profile`.
+///
+/// # Profile-based Credentials
+///
+/// If `Profile` is used, the provided string will be used to query the corresponding
+/// table from [`SIFT_CONFIG_NAME`] located at [these locations](https://docs.rs/dirs/6.0.0/dirs/fn.config_local_dir.html)
+/// depending on your operating system. If `None` is provided, then the top-level
+/// table is used.
+///
+/// Example `sift.toml` file:
+///
+/// ```toml
+/// uri = "https://api.siftstack.com"
+/// apikey = "default-api-key"
+///
+/// [production]
+/// uri = "https://api.siftstack.com"
+/// apikey = "production-api-key"
+/// ```
+///
+/// # Direct Credentials
+///
+/// The `Config` variant allows you to provide credentials directly without
+/// requiring a configuration file.
+///
+/// # Example
+///
+/// ```no_run
+/// use sift_connect::Credentials;
+///
+/// // Direct credentials
+/// let creds = Credentials::Config {
+///     uri: "https://api.siftstack.com".to_string(),
+///     apikey: "your-api-key".to_string(),
+/// };
+///
+/// // Profile-based credentials (default profile)
+/// let default_profile = Credentials::Profile(None);
+///
+/// // Profile-based credentials (named profile)
+/// let prod_profile = Credentials::Profile(Some("production".to_string()));
+/// ```
 #[derive(Debug, Clone)]
 pub enum Credentials {
+    /// Load credentials from a named profile in the configuration file.
+    ///
+    /// If `None`, uses the default (top-level) profile.
     Profile(Option<String>),
+    /// Provide credentials directly.
+    ///
+    /// Fields:
+    /// - `uri`: The Sift API endpoint URI
+    /// - `apikey`: The API key for authentication
     Config { uri: String, apikey: String },
 }
 

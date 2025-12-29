@@ -21,12 +21,26 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 // Type Definitions
+/// Python binding for [`SiftStream`](sift_stream::SiftStream).
+///
+/// This is a thin wrapper around the Rust `SiftStream` type. For detailed documentation,
+/// see [`SiftStream`](sift_stream::SiftStream).
+///
+/// The Python binding provides the same functionality as the Rust type, with methods
+/// adapted for Python's async/await syntax.
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct SiftStreamPy {
     inner: Arc<Mutex<Option<SiftStream<IngestionConfigEncoder, LiveStreaming>>>>,
 }
 
+/// Python binding for [`Flow`](sift_stream::Flow).
+///
+/// This is a thin wrapper around the Rust `Flow` type. For detailed documentation,
+/// see [`Flow`](sift_stream::Flow).
+///
+/// A `Flow` represents a single telemetry message containing channel values that share
+/// a common timestamp.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone, Debug)]

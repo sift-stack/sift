@@ -1,18 +1,50 @@
 use std::time::Duration;
 
-/// A retry policy that is used to configure the retry behavior of a Sift stream. Most users should
-/// opt to use the default retry policy provided by [RetryPolicy::default], however, they are able
-/// to completely configure their own.
+/// A retry policy that configures the stream retry behavior of a Sift stream
+/// instance.
+///
+/// Most users should opt to use the default retry policy provided by [`RetryPolicy::default`].
+///
+/// The retry policy uses exponential backoff with configurable parameters. When a retryable
+/// error occurs, the stream will wait for the calculated backoff duration before retrying.
+///
+/// # Example
+///
+/// ```
+/// use sift_stream::RetryPolicy;
+/// use std::time::Duration;
+///
+/// // Use default policy
+/// let default_policy = RetryPolicy::default();
+///
+/// // Create custom policy
+/// let custom_policy = RetryPolicy {
+///     max_attempts: 10,
+///     initial_backoff: Duration::from_millis(100),
+///     max_backoff: Duration::from_secs(10),
+///     backoff_multiplier: 2,
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct RetryPolicy {
+    /// Maximum number of retry attempts (including the initial attempt).
     pub max_attempts: u8,
+    /// Initial backoff duration for the first retry.
     pub initial_backoff: Duration,
+    /// Maximum backoff duration cap.
     pub max_backoff: Duration,
+    /// Multiplier for exponential backoff (applied to current wait time).
     pub backoff_multiplier: u8,
 }
 
 impl Default for RetryPolicy {
-    /// The default [RetryPolicy] that is configured to retry 5 times with exponential backoff.
+    /// The default [`RetryPolicy`] configured to retry 5 times with exponential backoff.
+    ///
+    /// Default settings:
+    /// - `max_attempts`: 5
+    /// - `initial_backoff`: 50ms
+    /// - `max_backoff`: 5s
+    /// - `backoff_multiplier`: 5
     fn default() -> Self {
         Self {
             max_attempts: 5,
@@ -24,6 +56,30 @@ impl Default for RetryPolicy {
 }
 
 impl RetryPolicy {
+    /// Calculates the next backoff duration based on the current wait time.
+    ///
+    /// The backoff calculation:
+    /// - If `current_wait` is zero, returns `initial_backoff`
+    /// - Otherwise, multiplies `current_wait` by `backoff_multiplier` and caps at `max_backoff`
+    ///
+    /// # Arguments
+    ///
+    /// * `current_wait` - The current wait duration (use `Duration::ZERO` for the first retry)
+    ///
+    /// # Returns
+    ///
+    /// The calculated backoff duration.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sift_stream::RetryPolicy;
+    /// use std::time::Duration;
+    ///
+    /// let policy = RetryPolicy::default();
+    /// let first_backoff = policy.backoff(Duration::ZERO);
+    /// let second_backoff = policy.backoff(first_backoff);
+    /// ```
     pub fn backoff(&self, current_wait: Duration) -> Duration {
         if current_wait == Duration::ZERO {
             return self.initial_backoff;

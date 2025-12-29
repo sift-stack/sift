@@ -149,7 +149,7 @@ where
         self.run.as_ref()
     }
 
-    /// The entry-point to send actual telemetry to Sift in the form of [Flow]s.
+    /// The entry-point to send actual telemetry to Sift in the form of [`Flow`](mode::ingestion_config::Flow)s.
     pub async fn send<M>(&mut self, message: M) -> Result<()>
     where
         M: Encodeable<Encoder = E, Output = <T as Transport>::Message> + Send + Sync,

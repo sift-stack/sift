@@ -417,11 +417,11 @@
 //! Metrics are currently considered an unstable feature, and future updates may break the existing metrics API.
 //!
 //! When the `metrics-unstable` feature flag is enabled, users may currently access metrics through one of two methods:
-//! - [SiftStream::get_metrics_snapshot] returns a [SiftStreamMetricsSnapshot]
+//! - [`SiftStream::get_metrics_snapshot`](stream::SiftStream::get_metrics_snapshot) returns a [SiftStreamMetricsSnapshot]
 //! - Enable the light weight HTTP metrics server using [metrics::start_metrics_server], which exposes the `/` and `/metrics`
 //!   endpoints, providing a JSON formatted struct of each sift-stream-id and its [SiftStreamMetricsSnapshot]
 //!
-//! Snapshots of the metrics are taken at any time the user calls [SiftStream::get_metrics_snapshot] or sends a GET request to the metrics
+//! Snapshots of the metrics are taken at any time the user calls [`SiftStream::get_metrics_snapshot`](stream::SiftStream::get_metrics_snapshot) or sends a GET request to the metrics
 //! server endpoints. Metrics are internally updated atomically, and calls to get metric snapshots are non-blocking to SiftStream
 //! operaration.
 //!
@@ -450,7 +450,7 @@ pub use sift_rs::{
 pub use stream::{
     RetryPolicy, SiftStream,
     builder::{IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder},
-    channel::{ChannelValue, Value},
+    channel::{ChannelEnum, ChannelValue, Value},
     flow::{ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder},
     mode::{
         file_backup::FileBackup,
@@ -472,7 +472,7 @@ pub use sift_connect::grpc::{Credentials, SiftChannel};
 pub mod metrics;
 
 #[cfg(feature = "metrics-unstable")]
-pub use metrics::SiftStreamMetricsSnapshot;
+pub use metrics::{MetricsServerBuilder, SiftStreamMetricsSnapshot};
 
 #[cfg(test)]
 mod test;

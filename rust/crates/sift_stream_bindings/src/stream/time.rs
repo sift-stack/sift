@@ -3,6 +3,14 @@ use pyo3_stub_gen::derive::*;
 use sift_stream::stream::time::TimeValue;
 
 // Type Definitions
+/// Python binding for [`TimeValue`](sift_stream::stream::time::TimeValue).
+///
+/// This is a thin wrapper around the Rust `TimeValue` type. For detailed documentation,
+/// see [`TimeValue`](sift_stream::stream::time::TimeValue).
+///
+/// `TimeValue` represents a timestamp that can be constructed from various time
+/// representations (Unix timestamps, RFC3339 strings, etc.). All times are stored
+/// and transmitted as UTC.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]

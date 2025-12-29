@@ -18,6 +18,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 // Type Definitions
+/// Python binding for [`ChannelConfig`](sift_rs::ingestion_configs::v2::ChannelConfig).
+///
+/// This is a thin wrapper around the Rust `ChannelConfig` type. For detailed documentation,
+/// see [`ChannelConfig`](sift_rs::ingestion_configs::v2::ChannelConfig).
+///
+/// A `ChannelConfig` defines the schema for a single telemetry channel, including its
+/// name, data type, unit, and description.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
@@ -37,6 +44,13 @@ pub struct ChannelConfigPy {
     bit_field_elements: Vec<ChannelBitFieldElementPy>,
 }
 
+/// Python binding for [`FlowConfig`](sift_rs::ingestion_configs::v2::FlowConfig).
+///
+/// This is a thin wrapper around the Rust `FlowConfig` type. For detailed documentation,
+/// see [`FlowConfig`](sift_rs::ingestion_configs::v2::FlowConfig).
+///
+/// A `FlowConfig` defines the schema for a flow, which is a named group of channels
+/// that are often telemetered together.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
@@ -79,6 +93,13 @@ pub struct FlowBuilderPy {
     builder: Option<FlowBuilder<'static, String>>,
 }
 
+/// Python binding for [`IngestionConfigForm`](sift_stream::stream::builder::IngestionConfigForm).
+///
+/// This is a thin wrapper around the Rust `IngestionConfigForm` type. For detailed documentation,
+/// see [`IngestionConfigForm`](sift_stream::stream::builder::IngestionConfigForm).
+///
+/// An `IngestionConfigForm` is used to create a new ingestion config or retrieve an existing
+/// one based on the `client_key`. It defines the schema of an asset's telemetry.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
@@ -91,6 +112,14 @@ pub struct IngestionConfigFormPy {
     client_key: String,
 }
 
+/// Python binding for [`RunForm`](sift_stream::stream::builder::RunForm).
+///
+/// This is a thin wrapper around the Rust `RunForm` type. For detailed documentation,
+/// see [`RunForm`](sift_stream::stream::builder::RunForm).
+///
+/// A `RunForm` is used to create a new run or retrieve an existing run based on the
+/// `client_key`. If a run with the given `client_key` exists, it will be updated
+/// with any changed fields.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]

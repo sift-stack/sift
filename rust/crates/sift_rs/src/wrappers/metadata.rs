@@ -59,17 +59,29 @@ impl<T: Into<MetadataEnumValue>> From<(&str, T)> for MetadataValue {
 }
 
 /// A macro for easily creating an array of metadata to be provided to Sift.
-/// Returns a Vec<[MetadataValue]>
 ///
-///  # Example
+/// Returns a `Vec<[MetadataValue]>` from a list of key-value pairs.
+///
+/// # Arguments
+///
+/// The macro takes a comma-separated list of `(key, value)` tuples where:
+/// - `key` is a string (or string literal)
+/// - `value` can be a number (`f64`), boolean, or string
+///
+/// # Returns
+///
+/// A `Vec<MetadataValue>` containing the metadata entries.
+///
+/// # Example
+///
 /// ```
 /// # #[macro_use] extern crate sift_rs;
 /// # use sift_rs::metadata::v1::MetadataValue;
 /// # fn main() {
 /// let metadata: Vec<MetadataValue> = metadata![
-///        ("test_number", 5.0),
-///        ("is_simulation", true),
-///        ("location", "SiftHQ"),
+///     ("test_number", 5.0),
+///     ("is_simulation", true),
+///     ("location", "SiftHQ"),
 /// ];
 /// # }
 /// ```
