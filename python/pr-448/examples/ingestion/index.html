@@ -1411,14 +1411,12 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 
     <span class="c1"># Define your telemetry schema using an flow config and ingestion config</span>
     <span class="n">flow_config</span> <span class="o">=</span> <span class="n">FlowConfig</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
-                <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
-                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
-                    <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
-                    <span class="p">),</span>
-                <span class="p">],</span>
-            <span class="p">)</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
+        <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
+            <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
 
     <span class="n">ingestion_config</span> <span class="o">=</span> <span class="n">IngestionConfigCreate</span><span class="p">(</span>
         <span class="n">asset_name</span><span class="o">=</span><span class="s2">"sift_rover_1"</span><span class="p">,</span>
@@ -1481,14 +1479,12 @@ async def basic_example():
 
     # Define your telemetry schema using an flow config and ingestion config
     flow_config = FlowConfig(
-                name="onboard_sensors",
-                channels=[
-                    ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
-                    ChannelConfig(
-                        name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE
-                    ),
-                ],
-            )
+        name="onboard_sensors",
+        channels=[
+            ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
+            ChannelConfig(name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE),
+        ],
+    )
 
     ingestion_config = IngestionConfigCreate(
         asset_name="sift_rover_1",
@@ -1648,7 +1644,9 @@ async def basic_example():
             <span class="c1"># flow_builder.set_with_key("motor_temp", motor_temp_value)</span>
             <span class="c1"># flow_builder.set_with_key("tank_pressure", tank_pressure_value)</span>
             <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">motor_temp_value</span><span class="p">,</span> <span class="n">tank_pressure_value</span><span class="p">]</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">),</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">channel_indices_and_methods</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">),</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">channel_indices_and_methods</span><span class="p">,</span> <span class="n">values</span>
+            <span class="p">):</span>
                 <span class="n">flow_builder</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
 
             <span class="c1"># Build the request with current timestamp</span>
@@ -1743,7 +1741,9 @@ async def basic_example():
             # flow_builder.set_with_key("motor_temp", motor_temp_value)
             # flow_builder.set_with_key("tank_pressure", tank_pressure_value)
             values = [motor_temp_value, tank_pressure_value]
-            for (channel_index, conversion_method), value in zip(channel_indices_and_methods, values):
+            for (channel_index, conversion_method), value in zip(
+                channel_indices_and_methods, values
+            ):
                 flow_builder.set(channel_index, conversion_method(value))
 
             # Build the request with current timestamp
@@ -1872,7 +1872,9 @@ async def basic_example():
 
             <span class="c1"># Use indices directly - no hash operations!</span>
             <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">motor_temp_value</span><span class="p">,</span> <span class="n">tank_pressure_value</span><span class="p">]</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">),</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">channel_indices_and_methods</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">),</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">channel_indices_and_methods</span><span class="p">,</span> <span class="n">values</span>
+            <span class="p">):</span>
                 <span class="n">flow_builder</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
 
             <span class="n">request</span> <span class="o">=</span> <span class="n">flow_builder</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
@@ -1960,7 +1962,9 @@ async def basic_example():
 
             # Use indices directly - no hash operations!
             values = [motor_temp_value, tank_pressure_value]
-            for (channel_index, conversion_method), value in zip(channel_indices_and_methods, values):
+            for (channel_index, conversion_method), value in zip(
+                channel_indices_and_methods, values
+            ):
                 flow_builder.set(channel_index, conversion_method(value))
 
             request = flow_builder.request(timestamp)
@@ -2028,6 +2032,7 @@ async def basic_example():
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RawDataMessage</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Represents raw data that needs to be decoded and sent."""</span>
+
     <span class="n">flow_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
     <span class="n">channel_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>  <span class="c1"># Raw channel name -&gt; value mapping</span>
@@ -2139,7 +2144,6 @@ async def basic_example():
 
                 <span class="c1"># Check if descriptor is cached</span>
                 <span class="k">if</span> <span class="n">flow_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">descriptor_cache</span><span class="p">:</span>
-
                     <span class="c1"># For this example, the flow configs are pre-defined above.</span>
                     <span class="c1">#</span>
                     <span class="c1"># Though in practice, these would often be dynamically generated based on</span>
@@ -2159,7 +2163,9 @@ async def basic_example():
                     <span class="n">channel_configs_py</span> <span class="o">=</span> <span class="p">[</span>
                         <span class="n">ChannelConfigPy</span><span class="p">(</span>
                             <span class="n">name</span><span class="o">=</span><span class="n">ch</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                            <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataTypePy</span><span class="o">.</span><span class="n">Double</span> <span class="k">if</span> <span class="n">ch</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span> <span class="k">else</span> <span class="n">ChannelDataTypePy</span><span class="o">.</span><span class="n">Double</span><span class="p">,</span>
+                            <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataTypePy</span><span class="o">.</span><span class="n">Double</span>
+                            <span class="k">if</span> <span class="n">ch</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
+                            <span class="k">else</span> <span class="n">ChannelDataTypePy</span><span class="o">.</span><span class="n">Double</span><span class="p">,</span>
                             <span class="n">unit</span><span class="o">=</span><span class="n">ch</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span>
                             <span class="n">description</span><span class="o">=</span><span class="n">ch</span><span class="o">.</span><span class="n">description</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
                             <span class="n">enum_types</span><span class="o">=</span><span class="p">[],</span>
@@ -2231,6 +2237,7 @@ from sift_stream_bindings import FlowBuilderPy, FlowDescriptorPy, TimeValuePy
 @dataclass
 class RawDataMessage:
     """Represents raw data that needs to be decoded and sent."""
+
     flow_name: str
     timestamp: datetime
     channel_values: dict[str, float]  # Raw channel name -&gt; value mapping
@@ -2342,7 +2349,6 @@ async def queue_based_lazy_flow_example():
 
                 # Check if descriptor is cached
                 if flow_name not in descriptor_cache:
-
                     # For this example, the flow configs are pre-defined above.
                     #
                     # Though in practice, these would often be dynamically generated based on
@@ -2362,7 +2368,9 @@ async def queue_based_lazy_flow_example():
                     channel_configs_py = [
                         ChannelConfigPy(
                             name=ch.name,
-                            data_type=ChannelDataTypePy.Double if ch.data_type == ChannelDataType.DOUBLE else ChannelDataTypePy.Double,
+                            data_type=ChannelDataTypePy.Double
+                            if ch.data_type == ChannelDataType.DOUBLE
+                            else ChannelDataTypePy.Double,
                             unit=ch.unit,
                             description=ch.description or "",
                             enum_types=[],
@@ -2424,8 +2432,7 @@ async def queue_based_lazy_flow_example():
 
 
 # Uncomment to run:
-# asyncio.run(queue_based_lazy_flow_example())
-</div>
+# asyncio.run(queue_based_lazy_flow_example())</div>
 </div>
 </div>
 </div>
