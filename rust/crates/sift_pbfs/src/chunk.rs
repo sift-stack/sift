@@ -2,13 +2,22 @@ use prost::Message;
 use sift_error::prelude::*;
 use std::{marker::PhantomData, ops::Deref};
 
-/// Length of the checksum byte-header length.
+/// Length of the checksum byte-header in bytes.
+///
+/// This is the size of a `u32` (4 bytes), which stores the CRC32 checksum
+/// of the chunk data.
 pub const CHECKSUM_HEADER_LEN: usize = std::mem::size_of::<u32>();
 
-/// Length of the header that indicates the total byte-length of all protobuf messages.
+/// Length of the batch size header in bytes.
+///
+/// This is the size of a `u64` (8 bytes), which stores the total byte-length
+/// of all protobuf messages in the chunk.
 pub const BATCH_SIZE_LEN: usize = std::mem::size_of::<u64>();
 
-/// Length of the length prefix of the individual protobuf message.
+/// Length of the length prefix for individual protobuf messages in bytes.
+///
+/// This is the size of a `u32` (4 bytes), which precedes each protobuf message
+/// to indicate its length.
 pub const MESSAGE_LENGTH_PREFIX_LEN: usize = std::mem::size_of::<u32>();
 
 /// Represents a chunk of protobuf messages that is written to and read from disk.
@@ -36,6 +45,36 @@ where
     message_type: PhantomData<M>,
 }
 
+/// Iterator over protobuf messages within a [`PbfsChunk`].
+///
+/// This iterator decodes and yields individual protobuf messages from a chunk.
+/// If an error is encountered during decoding, it will return `Some(Err(...))`
+/// and subsequent calls to `next()` will return `None`.
+///
+/// # Type Parameters
+///
+/// * `M` - The protobuf message type to decode (must implement `Message + Default`)
+///
+/// # Example
+///
+/// ```
+/// use sift_pbfs::PbfsChunk;
+/// use prost::Message;
+/// # use prost::Message as _;
+///
+/// # #[derive(Clone, PartialEq, Message)]
+/// # struct MyMessage { }
+///
+/// # let messages = vec![MyMessage {}, MyMessage {}];
+/// # let chunk = PbfsChunk::new(&messages).unwrap();
+/// // Iterate over messages in a chunk
+/// for result in chunk {
+///     match result {
+///         Ok(message) => println!("Decoded: {:?}", message),
+///         Err(e) => eprintln!("Error: {}", e),
+///     }
+/// }
+/// ```
 pub struct PbfsMessageIter<M>
 where
     M: Message + Default + 'static,
@@ -51,11 +90,40 @@ where
     M: Message + Default + 'static,
 {
     /// Encodes `messages` into the provided `buffer`, reusing its capacity.
-    /// The buffer is cleared before encoding, and the encoded data is written to it.
-    /// Returns a slice of the encoded data.
+    ///
+    /// The buffer is assumed to be cleared before encoding, and the encoded
+    /// data is written to it.
     ///
     /// This method is more efficient than `new()` when encoding many small messages,
     /// as it avoids allocating a new vector for each chunk.
+    ///
+    /// # Arguments
+    ///
+    /// * `messages` - Slice of protobuf messages to encode
+    /// * `buffer` - Buffer to encode into (will be cleared and reused)
+    ///
+    /// # Returns
+    ///
+    /// A slice of the encoded chunk data, including checksum and headers.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encoding fails or if the total message size exceeds `u64::MAX`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sift_pbfs::PbfsChunk;
+    /// use prost::Message;
+    /// # use prost::Message as _;
+    ///
+    /// # #[derive(Clone, PartialEq, Message)]
+    /// # struct MyMessage { }
+    ///
+    /// let messages = vec![MyMessage {}, MyMessage {}];
+    /// let mut buffer = Vec::new();
+    /// let encoded = PbfsChunk::encode_into(&messages, &mut buffer).unwrap();
+    /// ```
     pub fn encode_into<'a>(messages: &[M], buffer: &'a mut Vec<u8>) -> Result<&'a [u8]> {
         // Calculate total encoded message length
         let mut encoded_message_len = 0;
@@ -97,6 +165,32 @@ where
     }
 
     /// Encodes `messages` and returns a [PbfsChunk] which wraps around the encoded messages.
+    ///
+    /// # Arguments
+    ///
+    /// * `messages` - Slice of protobuf messages to encode
+    ///
+    /// # Returns
+    ///
+    /// A `PbfsChunk` containing the encoded messages with checksum validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encoding fails or if the total message size exceeds `u64::MAX`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sift_pbfs::PbfsChunk;
+    /// use prost::Message;
+    /// # use prost::Message as _;
+    ///
+    /// # #[derive(Clone, PartialEq, Message)]
+    /// # struct MyMessage { }
+    ///
+    /// let messages = vec![MyMessage {}, MyMessage {}];
+    /// let chunk = PbfsChunk::new(&messages).unwrap();
+    /// ```
     pub fn new(messages: &[M]) -> Result<Self> {
         let mut data = Vec::new();
         Self::encode_into(messages, &mut data)?;
@@ -119,8 +213,33 @@ where
         u32::from_le_bytes(checksum_le)
     }
 
-    /// Returns the byte length of all length-prefixed protobuf messages from the byte headers of
-    /// the chunk.
+    /// Returns the byte length of all length-prefixed protobuf messages from the byte headers.
+    ///
+    /// This reads the batch size header from the chunk without fully decoding it.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The chunk bytes to read the header from
+    ///
+    /// # Returns
+    ///
+    /// The total byte length of all protobuf messages in the chunk.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sift_pbfs::{PbfsChunk, BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN};
+    /// use prost::Message;
+    /// # use prost::Message as _;
+    ///
+    /// # #[derive(Clone, PartialEq, Message)]
+    /// # struct MyMessage { }
+    ///
+    /// # let messages = vec![MyMessage {}];
+    /// # let chunk = PbfsChunk::new(&messages).unwrap();
+    /// let bytes: &[u8] = &chunk;
+    /// let messages_len = PbfsChunk::<MyMessage>::messages_len_from_header(bytes);
+    /// ```
     #[allow(dead_code)]
     pub fn messages_len_from_header(bytes: &[u8]) -> u64 {
         let mut messages_len_le = [0_u8; BATCH_SIZE_LEN];

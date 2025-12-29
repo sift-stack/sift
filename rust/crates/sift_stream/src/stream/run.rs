@@ -9,8 +9,36 @@ use sift_rs::{
 };
 use std::collections::{HashMap, HashSet};
 
+/// Selector for identifying a run when attaching to a stream.
+///
+/// This enum allows you to specify a run either by its ID (if it already exists)
+/// or by providing a [`RunForm`] to create or retrieve a run by client key.
+///
+/// # Example
+///
+/// ```no_run
+/// use sift_stream::stream::run::RunSelector;
+/// use sift_stream::RunForm;
+///
+/// // Select by ID
+/// let selector = RunSelector::ById("run-123".to_string());
+///
+/// // Select by form (creates if doesn't exist)
+/// let selector = RunSelector::ByForm(RunForm {
+///     name: "My Run".to_string(),
+///     client_key: "run-v1".to_string(),
+///     ..Default::default()
+/// });
+/// ```
 pub enum RunSelector {
+    /// Select a run by its ID.
+    ///
+    /// The run must already exist. If it doesn't exist, an error will be returned.
     ById(String),
+    /// Select a run by providing a [`RunForm`].
+    ///
+    /// If a run with the given `client_key` exists, it will be retrieved and
+    /// updated if any fields have changed. If no run exists, a new one will be created.
     ByForm(RunForm),
 }
 

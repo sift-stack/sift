@@ -9,6 +9,13 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 // Type Definitions
+/// Python binding for [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
+///
+/// This is a thin wrapper around the Rust `SiftStreamBuilder` type. For detailed documentation,
+/// see [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
+///
+/// The builder provides a fluent API for configuring and creating a [`SiftStreamPy`] instance
+/// with various options including ingestion configs, retry policies, checkpoint intervals, and more.
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct SiftStreamBuilderPy {

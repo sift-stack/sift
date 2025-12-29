@@ -5,6 +5,13 @@ use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, Chann
 use sift_rs::ingest::v1::ingest_with_config_data_channel_value::Type as ChannelValueType;
 use sift_stream::stream::channel::{ChannelValue, Value};
 
+/// Python binding for [`ChannelValue`](sift_stream::ChannelValue).
+///
+/// This is a thin wrapper around the Rust `ChannelValue` type. For detailed documentation,
+/// see [`ChannelValue`](sift_stream::ChannelValue).
+///
+/// A `ChannelValue` pairs a channel name with its typed value, used when constructing
+/// [`Flow`](sift_stream::Flow) instances.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
@@ -15,11 +22,22 @@ pub struct ChannelValuePy {
     value: ValuePy,
 }
 
+/// Python binding for channel enum values.
+///
+/// Represents a specific enumeration value for an enum channel. Enum channels use
+/// numeric values to represent discrete states.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelEnumPy(pub u32);
 
+/// Python binding for [`Value`](sift_stream::Value).
+///
+/// This is a thin wrapper around the Rust `Value` enum. For detailed documentation,
+/// see [`Value`](sift_stream::Value).
+///
+/// `Value` represents a typed value emitted by a channel, supporting all standard
+/// telemetry data types (bool, numbers, strings, enums, bitfields).
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]

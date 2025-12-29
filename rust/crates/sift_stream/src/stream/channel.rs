@@ -3,17 +3,55 @@ use sift_rs::{
 };
 
 /// Represents the value emitted by a named channel.
+///
+/// A `ChannelValue` pairs a channel name with its typed value. This is used
+/// when constructing [`Flow`](crate::Flow) instances to send telemetry data.
+///
+/// # Example
+///
+/// ```
+/// use sift_stream::ChannelValue;
+///
+/// let value = ChannelValue::new("temperature", 72.5_f64);
+/// let string_value = ChannelValue::new("status", "operational");
+/// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChannelValue {
+    /// The name of the channel.
     pub name: String,
+    /// The value emitted by the channel.
     pub value: Value,
 }
 
-/// Represents a specific enumeration of an enum channel.
+/// Represents a specific enumeration value for an enum channel.
+///
+/// Enum channels use numeric values to represent discrete states. This wrapper
+/// type makes it clear when a value represents an enum variant.
+///
+/// # Example
+///
+/// ```
+/// use sift_stream::{ChannelValue, ChannelEnum};
+///
+/// let enum_value = ChannelValue::new("state", ChannelEnum(0));
+/// ```
 #[derive(Debug, PartialEq)]
 pub struct ChannelEnum(pub u32);
 
-/// Represents a typed-value emitted by a channel.
+/// Represents a typed value emitted by a channel.
+///
+/// This enum covers all supported data types for telemetry channels. Values can
+/// be created from various Rust types using the `From` trait implementations.
+///
+/// # Example
+///
+/// ```
+/// use sift_stream::Value;
+///
+/// let bool_val: Value = true.into();
+/// let float_val: Value = 3.14_f32.into();
+/// let string_val: Value = "text".into();
+/// ```
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Bool(bool),
@@ -61,12 +99,29 @@ impl Value {
 }
 
 impl ChannelValue {
-    /// Creates a [ChannelValue] for a channel of name `name`.
+    /// Creates a [`ChannelValue`] for a channel with the given name.
     ///
-    /// Example:
-    /// ```ignore
-    /// ChannelValue::new("arm-joint", 3_i32);
-    /// ChannelValue::new("navigation", 3.14_f32);
+    /// The value type is inferred from the provided value, which can be any type
+    /// that implements `Into<Value>` (including `bool`, numeric types, strings, etc.).
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the channel
+    /// * `val` - The value to associate with the channel (any type that converts to `Value`)
+    ///
+    /// # Returns
+    ///
+    /// A new `ChannelValue` instance.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use sift_stream::ChannelValue;
+    ///
+    /// let int_value = ChannelValue::new("arm-joint", 3_i32);
+    /// let float_value = ChannelValue::new("navigation", 3.14_f32);
+    /// let bool_value = ChannelValue::new("enabled", true);
+    /// let string_value = ChannelValue::new("status", "operational");
     /// ```
     pub fn new<T: Into<Value>>(name: &str, val: T) -> Self {
         Self {
