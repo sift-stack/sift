@@ -65,6 +65,15 @@ class ChannelBitFieldElementPy:
 
 @typing.final
 class ChannelConfigPy:
+    r"""
+    Python binding for [`ChannelConfig`](sift_rs::ingestion_configs::v2::ChannelConfig).
+    
+    This is a thin wrapper around the Rust `ChannelConfig` type. For detailed documentation,
+    see [`ChannelConfig`](sift_rs::ingestion_configs::v2::ChannelConfig).
+    
+    A `ChannelConfig` defines the schema for a single telemetry channel, including its
+    name, data type, unit, and description.
+    """
     name: builtins.str
     unit: builtins.str
     description: builtins.str
@@ -75,6 +84,12 @@ class ChannelConfigPy:
 
 @typing.final
 class ChannelEnumPy:
+    r"""
+    Python binding for channel enum values.
+    
+    Represents a specific enumeration value for an enum channel. Enum channels use
+    numeric values to represent discrete states.
+    """
     def __new__(cls, val:builtins.int) -> ChannelEnumPy: ...
 
 @typing.final
@@ -89,6 +104,15 @@ class ChannelIndexPy:
 
 @typing.final
 class ChannelValuePy:
+    r"""
+    Python binding for [`ChannelValue`](sift_stream::ChannelValue).
+    
+    This is a thin wrapper around the Rust `ChannelValue` type. For detailed documentation,
+    see [`ChannelValue`](sift_stream::ChannelValue).
+    
+    A `ChannelValue` pairs a channel name with its typed value, used when constructing
+    [`Flow`](sift_stream::Flow) instances.
+    """
     name: builtins.str
     value: ValuePy
     def __new__(cls, name:builtins.str, value:ValuePy) -> ChannelValuePy: ...
@@ -134,6 +158,15 @@ class CheckpointMetricsSnapshotPy:
 
 @typing.final
 class DiskBackupPolicyPy:
+    r"""
+    Python binding for [`DiskBackupPolicy`](sift_stream::backup::DiskBackupPolicy).
+    
+    This is a thin wrapper around the Rust `DiskBackupPolicy` type. For detailed documentation,
+    see [`DiskBackupPolicy`](sift_stream::backup::DiskBackupPolicy).
+    
+    A disk backup policy configures how telemetry data is backed up to disk, including
+    backup directory, file size limits, and retention policies.
+    """
     backups_dir: typing.Optional[builtins.str]
     max_backup_file_size: builtins.int
     rolling_file_policy: RollingFilePolicyPy
@@ -170,6 +203,15 @@ class FlowBuilderPy:
 
 @typing.final
 class FlowConfigPy:
+    r"""
+    Python binding for [`FlowConfig`](sift_rs::ingestion_configs::v2::FlowConfig).
+    
+    This is a thin wrapper around the Rust `FlowConfig` type. For detailed documentation,
+    see [`FlowConfig`](sift_rs::ingestion_configs::v2::FlowConfig).
+    
+    A `FlowConfig` defines the schema for a flow, which is a named group of channels
+    that are often telemetered together.
+    """
     name: builtins.str
     channels: builtins.list[ChannelConfigPy]
     def __new__(cls, name:builtins.str, channels:typing.Sequence[ChannelConfigPy]) -> FlowConfigPy: ...
@@ -201,6 +243,15 @@ class FlowDescriptorPy:
 
 @typing.final
 class FlowPy:
+    r"""
+    Python binding for [`Flow`](sift_stream::Flow).
+    
+    This is a thin wrapper around the Rust `Flow` type. For detailed documentation,
+    see [`Flow`](sift_stream::Flow).
+    
+    A `Flow` represents a single telemetry message containing channel values that share
+    a common timestamp.
+    """
     def __new__(cls, flow_name:builtins.str, timestamp:TimeValuePy, values:typing.Sequence[ChannelValuePy]) -> FlowPy: ...
 
 @typing.final
@@ -246,6 +297,15 @@ class IngestWithConfigDataStreamRequestWrapperPy:
 
 @typing.final
 class IngestionConfigFormPy:
+    r"""
+    Python binding for [`IngestionConfigForm`](sift_stream::stream::builder::IngestionConfigForm).
+    
+    This is a thin wrapper around the Rust `IngestionConfigForm` type. For detailed documentation,
+    see [`IngestionConfigForm`](sift_stream::stream::builder::IngestionConfigForm).
+    
+    An `IngestionConfigForm` is used to create a new ingestion config or retrieve an existing
+    one based on the `client_key`. It defines the schema of an asset's telemetry.
+    """
     asset_name: builtins.str
     flows: builtins.list[FlowConfigPy]
     client_key: builtins.str
@@ -259,6 +319,17 @@ class MetadataPy:
 
 @typing.final
 class RecoveryStrategyPy:
+    r"""
+    Python binding for [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
+    
+    This is a thin wrapper around the Rust `RecoveryStrategy` enum. For detailed documentation,
+    see [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
+    
+    A recovery strategy defines how the stream handles errors and failures, including
+    retry policies and optional disk backups.
+    
+    Note: PyO3 doesn't support nested enums, so this is implemented as a struct wrapper.
+    """
     @staticmethod
     def retry_only(retry_policy:RetryPolicyPy) -> RecoveryStrategyPy: ...
     @staticmethod
@@ -268,6 +339,15 @@ class RecoveryStrategyPy:
 
 @typing.final
 class RetryPolicyPy:
+    r"""
+    Python binding for [`RetryPolicy`](sift_stream::RetryPolicy).
+    
+    This is a thin wrapper around the Rust `RetryPolicy` type. For detailed documentation,
+    see [`RetryPolicy`](sift_stream::RetryPolicy).
+    
+    A retry policy configures the retry behavior of a Sift stream, including the number
+    of attempts and exponential backoff parameters.
+    """
     max_attempts: builtins.int
     initial_backoff: DurationPy
     max_backoff: DurationPy
@@ -284,6 +364,16 @@ class RollingFilePolicyPy:
 
 @typing.final
 class RunFormPy:
+    r"""
+    Python binding for [`RunForm`](sift_stream::stream::builder::RunForm).
+    
+    This is a thin wrapper around the Rust `RunForm` type. For detailed documentation,
+    see [`RunForm`](sift_stream::stream::builder::RunForm).
+    
+    A `RunForm` is used to create a new run or retrieve an existing run based on the
+    `client_key`. If a run with the given `client_key` exists, it will be updated
+    with any changed fields.
+    """
     name: builtins.str
     client_key: builtins.str
     description: typing.Optional[builtins.str]
@@ -300,6 +390,15 @@ class RunSelectorPy:
 
 @typing.final
 class SiftStreamBuilderPy:
+    r"""
+    Python binding for [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
+    
+    This is a thin wrapper around the Rust `SiftStreamBuilder` type. For detailed documentation,
+    see [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
+    
+    The builder provides a fluent API for configuring and creating a [`SiftStreamPy`] instance
+    with various options including ingestion configs, retry policies, checkpoint intervals, and more.
+    """
     uri: builtins.str
     apikey: builtins.str
     enable_tls: builtins.bool
@@ -333,6 +432,15 @@ class SiftStreamMetricsSnapshotPy:
 
 @typing.final
 class SiftStreamPy:
+    r"""
+    Python binding for [`SiftStream`](sift_stream::SiftStream).
+    
+    This is a thin wrapper around the Rust `SiftStream` type. For detailed documentation,
+    see [`SiftStream`](sift_stream::SiftStream).
+    
+    The Python binding provides the same functionality as the Rust type, with methods
+    adapted for Python's async/await syntax.
+    """
     def send(self, flow:FlowPy) -> typing.Any: ...
     def batch_send(self, flows:typing.Any) -> typing.Any: ...
     def send_requests(self, requests:typing.Sequence[IngestWithConfigDataStreamRequestPy]) -> typing.Any: ...
@@ -348,6 +456,16 @@ class SiftStreamPy:
 
 @typing.final
 class TimeValuePy:
+    r"""
+    Python binding for [`TimeValue`](sift_stream::stream::time::TimeValue).
+    
+    This is a thin wrapper around the Rust `TimeValue` type. For detailed documentation,
+    see [`TimeValue`](sift_stream::stream::time::TimeValue).
+    
+    `TimeValue` represents a timestamp that can be constructed from various time
+    representations (Unix timestamps, RFC3339 strings, etc.). All times are stored
+    and transmitted as UTC.
+    """
     def __new__(cls) -> TimeValuePy: ...
     @staticmethod
     def from_timestamp(secs:builtins.int, nsecs:builtins.int) -> TimeValuePy: ...
@@ -362,26 +480,38 @@ class TimeValuePy:
 
 @typing.final
 class ValuePy:
+    r"""
+    Python binding for [`Value`](sift_stream::Value).
+    
+    This is a thin wrapper around the Rust `Value` enum. For detailed documentation,
+    see [`Value`](sift_stream::Value).
+    
+    `Value` represents a typed value emitted by a channel, supporting all standard
+    telemetry data types (bool, numbers, strings, enums, bitfields).
+    """
     @staticmethod
-    def Bool(value:builtins.bool) -> ValuePy: ...
+    def Empty() -> ValuePy: ...
     @staticmethod
-    def String(value:builtins.str) -> ValuePy: ...
+    def Bool(value:typing.Optional[builtins.bool]) -> ValuePy: ...
     @staticmethod
-    def Float(value:builtins.float) -> ValuePy: ...
+    def String(value:typing.Optional[builtins.str]) -> ValuePy: ...
     @staticmethod
-    def Double(value:builtins.float) -> ValuePy: ...
+    def Float(value:typing.Optional[builtins.float]) -> ValuePy: ...
     @staticmethod
-    def Int32(value:builtins.int) -> ValuePy: ...
+    def Double(value:typing.Optional[builtins.float]) -> ValuePy: ...
     @staticmethod
-    def Int64(value:builtins.int) -> ValuePy: ...
+    def Int32(value:typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def Uint32(value:builtins.int) -> ValuePy: ...
+    def Int64(value:typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def Uint64(value:builtins.int) -> ValuePy: ...
+    def Uint32(value:typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def Enum(value:builtins.int) -> ValuePy: ...
+    def Uint64(value:typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def BitField(value:typing.Sequence[builtins.int]) -> ValuePy: ...
+    def Enum(value:typing.Optional[builtins.int]) -> ValuePy: ...
+    @staticmethod
+    def BitField(value:typing.Optional[typing.Sequence[builtins.int]]) -> ValuePy: ...
+    def is_empty(self) -> builtins.bool: ...
     def is_bool(self) -> builtins.bool: ...
     def is_string(self) -> builtins.bool: ...
     def is_float(self) -> builtins.bool: ...
