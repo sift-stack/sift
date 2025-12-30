@@ -184,6 +184,7 @@ impl From<ValuePy> for Value {
 impl From<Value> for ChannelValueTypePy {
     fn from(value: Value) -> Self {
         match value {
+            Value::Empty => Self::empty(),
             Value::Bool(val) => Self::bool(val),
             Value::String(val) => Self::string(val),
             Value::Float(val) => Self::float(val),
@@ -210,82 +211,124 @@ impl From<ChannelValueTypePy> for ChannelValueType {
 impl ValuePy {
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Bool(value: bool) -> Self {
+    pub fn Empty() -> Self {
         Self {
-            inner: Value::Bool(value),
+            inner: Value::Empty,
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn String(value: String) -> Self {
-        Self {
-            inner: Value::String(value),
+    pub fn Bool(value: Option<bool>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Bool(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Float(value: f32) -> Self {
-        Self {
-            inner: Value::Float(value),
+    pub fn String(value: Option<String>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::String(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Double(value: f64) -> Self {
-        Self {
-            inner: Value::Double(value),
+    pub fn Float(value: Option<f32>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Float(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Int32(value: i32) -> Self {
-        Self {
-            inner: Value::Int32(value),
+    pub fn Double(value: Option<f64>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Double(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Int64(value: i64) -> Self {
-        Self {
-            inner: Value::Int64(value),
+    pub fn Int32(value: Option<i32>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Int32(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Uint32(value: u32) -> Self {
-        Self {
-            inner: Value::Uint32(value),
+    pub fn Int64(value: Option<i64>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Int64(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Uint64(value: u64) -> Self {
-        Self {
-            inner: Value::Uint64(value),
+    pub fn Uint32(value: Option<u32>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Uint32(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn Enum(value: u32) -> Self {
-        Self {
-            inner: Value::Enum(value),
+    pub fn Uint64(value: Option<u64>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Uint64(value),
+            },
+            None => Self::Empty(),
         }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    pub fn BitField(value: Vec<u8>) -> Self {
-        Self {
-            inner: Value::BitField(value),
+    pub fn Enum(value: Option<u32>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Enum(value),
+            },
+            None => Self::Empty(),
         }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn BitField(value: Option<Vec<u8>>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::BitField(value),
+            },
+            None => Self::Empty(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self.inner, Value::Empty)
     }
 
     pub fn is_bool(&self) -> bool {

@@ -54,6 +54,7 @@ pub struct ChannelEnum(pub u32);
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
+    Empty,
     Bool(bool),
     String(String),
     Float(f32),
@@ -69,6 +70,7 @@ pub enum Value {
 impl Value {
     pub(crate) fn pb_data_type(&self) -> ChannelDataType {
         match self {
+            Value::Empty => ChannelDataType::Unspecified,
             Value::Bool(_) => ChannelDataType::Bool,
             Value::String(_) => ChannelDataType::String,
             Value::Double(_) => ChannelDataType::Double,
@@ -84,6 +86,7 @@ impl Value {
 
     pub(crate) fn pb_value(&self) -> Type {
         match self {
+            Value::Empty => Type::Empty(pbjson_types::Empty {}),
             Value::Bool(val) => Type::Bool(*val),
             Value::String(val) => Type::String(val.clone()),
             Value::Double(val) => Type::Double(*val),
@@ -132,6 +135,12 @@ impl ChannelValue {
 
     pub(crate) fn pb_value(&self) -> Type {
         self.value.pb_value()
+    }
+}
+
+impl From<()> for Value {
+    fn from(_: ()) -> Self {
+        Value::Empty
     }
 }
 
@@ -209,6 +218,15 @@ impl From<&[u8]> for Value {
 
 #[test]
 fn test_channel_value_conversion() {
+    let empty_value = ChannelValue::new("channel", ());
+    assert_eq!(
+        ChannelValue {
+            name: String::from("channel"),
+            value: Value::Empty
+        },
+        empty_value
+    );
+
     let bool_value = ChannelValue::new("channel", true);
     assert_eq!(
         ChannelValue {
