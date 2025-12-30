@@ -48,6 +48,10 @@ pub enum Cmd {
     /// Import time series files into Sift
     #[command(subcommand)]
     Import(ImportCmd),
+
+    /// Start a test gRPC server for streaming.
+    #[command(subcommand)]
+    TestServer(TestServerCmd),
 }
 
 #[derive(Subcommand)]
@@ -162,6 +166,27 @@ pub enum ConfigCmd {
 
     /// Update fields in the existing config file
     Update(ConfigUpdateArgs),
+}
+
+#[derive(Subcommand)]
+pub enum TestServerCmd {
+    /// Start a test ingestion server.
+    Run(TestServerArgs),
+}
+
+#[derive(clap::Args)]
+pub struct TestServerArgs {
+    /// The address to serve gRPC server. Default is 127.0.0.1:50051.
+    #[arg(short, long)]
+    pub local_address: Option<String>,
+
+    /// Whether to stream metrics to Sift.
+    #[arg(short, long)]
+    pub stream_metrics: Option<bool>,
+
+    /// The asset name to use when streaming server ingestion metrics.
+    #[arg(short, long)]
+    pub metrics_asset_name: Option<String>,
 }
 
 #[derive(clap::Args)]
