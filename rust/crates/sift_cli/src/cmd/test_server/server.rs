@@ -58,6 +58,8 @@ impl TestServer {
         metrics_tx: Sender<Metrics>,
         streaming_enabled: bool,
     ) {
+        let mut stdout = stdout();
+
         let mut last_total_num_bytes_read: u64 = 0;
         let mut last_total_num_messages: u64 = 0;
 
@@ -79,12 +81,12 @@ impl TestServer {
                     last_total_num_messages = current_total_num_messages;
 
                     // Clear terminal and print metrics.
-                    stdout()
+                    stdout
                         .execute(terminal::Clear(terminal::ClearType::All))
                         .expect("");
-                    stdout().execute(cursor::MoveTo(0, 0)).expect("msg");
-                    stdout().execute(cursor::MoveUp(5)).expect("terminal error");
-                    stdout().execute(terminal::Clear(terminal::ClearType::FromCursorDown)).expect("msg");
+                    stdout.execute(cursor::MoveTo(0, 0)).expect("msg");
+                    stdout.execute(cursor::MoveUp(5)).expect("terminal error");
+                    stdout.execute(terminal::Clear(terminal::ClearType::FromCursorDown)).expect("msg");
 
                     Output::new().line(format!("Total num streams:  {current_total_num_streams}")).print();
                     Output::new().line(format!("Total num bytes:    {current_total_num_bytes_read}")).print();
@@ -115,11 +117,7 @@ impl TestServer {
 #[tonic::async_trait]
 impl PingService for TestServer {
     async fn ping(&self, _request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
-        let resp = PingResponse {
-            response: "".into(),
-        };
-
-        Ok(Response::new(resp))
+        Ok(Response::new(PingResponse::default()))
     }
 }
 
