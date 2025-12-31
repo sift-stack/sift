@@ -13,6 +13,8 @@ pub struct Rule {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MessageRules {
+    #[prost(string, repeated, tag="5")]
+    pub cel_expression: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag="3")]
     pub cel: ::prost::alloc::vec::Vec<Rule>,
     #[prost(message, repeated, tag="4")]
@@ -35,13 +37,15 @@ pub struct OneofRules {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FieldRules {
+    #[prost(string, repeated, tag="29")]
+    pub cel_expression: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag="23")]
     pub cel: ::prost::alloc::vec::Vec<Rule>,
     #[prost(bool, optional, tag="25")]
     pub required: ::core::option::Option<bool>,
     #[prost(enumeration="Ignore", optional, tag="27")]
     pub ignore: ::core::option::Option<i32>,
-    #[prost(oneof="field_rules::Type", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22")]
+    #[prost(oneof="field_rules::Type", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 28, 22")]
     pub r#type: ::core::option::Option<field_rules::Type>,
 }
 /// Nested message and enum types in `FieldRules`.
@@ -89,6 +93,8 @@ pub mod field_rules {
         Any(super::AnyRules),
         #[prost(message, tag="21")]
         Duration(super::DurationRules),
+        #[prost(message, tag="28")]
+        FieldMask(super::FieldMaskRules),
         #[prost(message, tag="22")]
         Timestamp(super::TimestampRules),
     }
@@ -566,7 +572,7 @@ pub struct StringRules {
     pub strict: ::core::option::Option<bool>,
     #[prost(string, repeated, tag="34")]
     pub example: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(oneof="string_rules::WellKnown", tags="12, 13, 14, 15, 16, 17, 18, 21, 22, 33, 26, 27, 28, 29, 30, 31, 32, 24")]
+    #[prost(oneof="string_rules::WellKnown", tags="12, 13, 14, 15, 16, 17, 18, 21, 22, 33, 26, 27, 28, 29, 30, 31, 32, 35, 24")]
     pub well_known: ::core::option::Option<string_rules::WellKnown>,
 }
 /// Nested message and enum types in `StringRules`.
@@ -608,6 +614,8 @@ pub mod string_rules {
         Ipv6Prefix(bool),
         #[prost(bool, tag="32")]
         HostAndPort(bool),
+        #[prost(bool, tag="35")]
+        Ulid(bool),
         #[prost(enumeration="super::KnownRegex", tag="24")]
         WellKnownRegex(i32),
     }
@@ -637,7 +645,7 @@ pub struct BytesRules {
     pub not_in: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     #[prost(bytes="vec", repeated, tag="14")]
     pub example: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
-    #[prost(oneof="bytes_rules::WellKnown", tags="10, 11, 12")]
+    #[prost(oneof="bytes_rules::WellKnown", tags="10, 11, 12, 15")]
     pub well_known: ::core::option::Option<bytes_rules::WellKnown>,
 }
 /// Nested message and enum types in `BytesRules`.
@@ -651,6 +659,8 @@ pub mod bytes_rules {
         Ipv4(bool),
         #[prost(bool, tag="12")]
         Ipv6(bool),
+        #[prost(bool, tag="15")]
+        Uuid(bool),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -733,6 +743,18 @@ pub mod duration_rules {
         #[prost(message, tag="6")]
         Gte(::pbjson_types::Duration),
     }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FieldMaskRules {
+    #[prost(message, optional, tag="1")]
+    pub r#const: ::core::option::Option<::pbjson_types::FieldMask>,
+    #[prost(string, repeated, tag="2")]
+    pub r#in: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="3")]
+    pub not_in: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="4")]
+    pub example: ::prost::alloc::vec::Vec<::pbjson_types::FieldMask>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

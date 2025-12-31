@@ -103,6 +103,7 @@ gen_protos() {
         rm -rf "$lang/crates/sift_rs/src/gen"
       fi
       buf generate "$OUTPUT_PROTOS" --template "$lang/crates/sift_rs/buf.gen.yaml" --output "$lang/crates/sift_rs"
+      buf build "$OUTPUT_PROTOS" --as-file-descriptor-set --output "$lang/crates/sift_rs/descriptor_set.bin"
     elif [[ "$lang" == "go" ]]; then
       # Clean old generated files to avoid stale code
       if [[ -d "$lang/gen" ]]; then
