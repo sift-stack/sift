@@ -2,9 +2,9 @@ use super::Context;
 use anyhow::{Ok, anyhow};
 use crossterm::style::Stylize;
 use sift_stream::{
-    ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowBuilder, FlowConfig,
-    IngestionConfigEncoder, IngestionConfigForm, RecoveryStrategy, RetryPolicy, RunForm,
-    SiftStream, SiftStreamBuilder, TimeValue,
+    ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
+    IngestionConfigEncoder, IngestionConfigForm, RecoveryStrategy, RetryPolicy, SiftStream,
+    SiftStreamBuilder, TimeValue,
 };
 
 /// Streams metrics to Sift.
@@ -32,7 +32,7 @@ impl MetricsStreamingClient {
         };
 
         Ok(Some(MetricsStreamingClient {
-            ctx: ctx,
+            ctx,
             asset_name: asset_name.clone(),
             sift_stream: None,
         }))
