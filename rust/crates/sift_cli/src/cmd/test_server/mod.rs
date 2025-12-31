@@ -14,7 +14,7 @@ use tokio::sync::watch;
 use tonic::transport::Server;
 use tonic_reflection::server::Builder;
 
-pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("../../../descriptor.bin");
+pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("../../../../sift_rs/descriptor_set.bin");
 pub mod metrics_streaming_client;
 pub mod server;
 use crate::cmd::test_server::metrics_streaming_client::Metrics;
