@@ -14,6 +14,7 @@ use sift_rs::ingest::v1::{
 use sift_rs::ingestion_configs::v2::{ingestion_config_service_server::IngestionConfigService, *};
 use sift_rs::ping::v1::{PingRequest, PingResponse, ping_service_server::PingService};
 use std::io::stdout;
+use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use std::{
     collections::HashMap,
@@ -30,6 +31,9 @@ use uuid::Uuid;
 
 #[derive(Default)]
 pub struct TestServer {
+    /// Whether the server is done processing streams.
+    done: AtomicBool,
+
     /// Total number of streams created.
     total_num_streams: AtomicU32,
 
@@ -66,6 +70,7 @@ impl TestServer {
         loop {
             tokio::select! {
                 _ = shutdown.changed() => {
+                    self.done.fetch_or(true, Relaxed);
                     Output::new().line("Metrics task shutting down").print();
                     break;
                 }
@@ -289,6 +294,10 @@ impl IngestService for TestServer {
             let inner = msg?;
             self.total_num_bytes_read
                 .fetch_add(inner.encoded_len() as u64, Relaxed);
+
+            if self.done.load(Relaxed) {
+                break;
+            }
         }
 
         Ok(Response::new(IngestWithConfigDataStreamResponse::default()))
