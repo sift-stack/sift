@@ -1,6 +1,6 @@
 use crate::cmd::test_server::metrics_streaming_client::Metrics;
 use crate::util::tty::Output;
-use anyhow::Result;
+use anyhow::{Context, Ok as AnyhowOk, Result as AnyhowResult};
 use crossterm::{ExecutableCommand, cursor, terminal};
 use prost::Message;
 use sift_rs::assets::v1::{
@@ -61,7 +61,7 @@ impl TestServer {
         shutdown: &mut watch::Receiver<bool>,
         metrics_tx: Sender<Metrics>,
         streaming_enabled: bool,
-    ) {
+    ) -> AnyhowResult<()> {
         let mut stdout = stdout();
 
         let mut last_total_num_bytes_read: u64 = 0;
@@ -72,10 +72,10 @@ impl TestServer {
                 _ = shutdown.changed() => {
                     self.done.fetch_or(true, Relaxed);
                     Output::new().line("Metrics task shutting down").print();
-                    break;
+                    return AnyhowOk(());
                 }
 
-                _ = tokio::time::sleep(Duration::from_millis(100)) => {
+                _ = tokio::time::sleep(Duration::from_secs(1)) => {
                     let current_total_num_bytes_read = self.total_num_bytes_read.load(Relaxed);
                     let current_total_num_messages = self.total_num_messages.load(Relaxed);
                     let current_total_num_streams = self.total_num_streams.load(Relaxed);
@@ -88,10 +88,13 @@ impl TestServer {
                     // Clear terminal and print metrics.
                     stdout
                         .execute(terminal::Clear(terminal::ClearType::All))
-                        .expect("");
-                    stdout.execute(cursor::MoveTo(0, 0)).expect("msg");
-                    stdout.execute(cursor::MoveUp(5)).expect("terminal error");
-                    stdout.execute(terminal::Clear(terminal::ClearType::FromCursorDown)).expect("msg");
+                        .context("failed to clear terminal")?;
+                    stdout.execute(cursor::MoveTo(0, 0))
+                        .context("failed to move terminal cursor")?;
+                    stdout.execute(cursor::MoveUp(5))
+                        .context("failed to move terminal cursor")?;
+                    stdout.execute(terminal::Clear(terminal::ClearType::FromCursorDown))
+                        .context("failed to move terminal cursor")?;
 
                     Output::new().line(format!("Total num streams:  {current_total_num_streams}")).print();
                     Output::new().line(format!("Total num bytes:    {current_total_num_bytes_read}")).print();
@@ -105,8 +108,8 @@ impl TestServer {
                             total_num_streams: current_total_num_streams,
                             total_num_bytes_read: current_total_num_bytes_read,
                             total_num_messages: current_total_num_messages,
-                            bytes_per_s: (10 * bytes_per_s )as f64,
-                            messages_per_s: (10 * messages_per_s) as f64,
+                            bytes_per_s: bytes_per_s as f64,
+                            messages_per_s: messages_per_s as f64,
                         });
 
                         if e.is_err() {

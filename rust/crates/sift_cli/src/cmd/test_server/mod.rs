@@ -58,7 +58,9 @@ pub async fn run(ctx: Context, args: TestServerArgs) -> Result<ExitCode> {
                 metrics_tx,
                 args.stream_metrics.unwrap_or(false),
             )
-            .await;
+            .await
+            .context("calculate metrics task failed")
+            .unwrap();
     });
 
     // Start task to ingest metrics to Sift.
