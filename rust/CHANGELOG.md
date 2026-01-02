@@ -3,6 +3,23 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0] - January 2, 2026
+### What's New
+#### SiftStream ergonomic, performance, and more!
+The v0.7.0 release includes all changes included in the RC releases. Noteable
+changes are listed here; for full details see all 0.7.0 RC releases below.
+
+* Removal of Deprecated Recovery Strategies
+* Backup Directory Structure Improvements
+* Optimizations and performance improvements
+* Independent gRPC Connections for Streaming
+* SiftStream will stream it's own metrics to Sift for improved visibility
+* Improved Checkpoint Message Tracking
+* Added FlowDescriptors and FlowBuilders for a new/higher-performance approach to build streaming requests.
+* Support for File-Backup Only Mode
+* New "Retry" Capabilities for Unary Sift gRPC Calls
+
+
 ## [v0.7.0-rc.12] - December 24, 2025
 ### What's New
 #### New "Retry" Capabilities for Unary Sift gRPC Calls

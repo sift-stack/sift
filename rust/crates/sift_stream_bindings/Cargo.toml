@@ -1,6 +1,6 @@
 [package]
 name = "sift-stream-bindings"
-version = "0.2.0-rc.6"
+version = "0.2.0-rc.7"
 edition = { workspace = true }
 authors = { workspace = true }
 homepage = { workspace = true }
