@@ -48,8 +48,14 @@ def mock_client():
     client.tags = MagicMock()
     client.test_results = MagicMock()
     client.file_attachments = MagicMock()
+    client.user_attributes = MagicMock()
+    client.resource_attributes = MagicMock()
+    client.policies = MagicMock()
     client.async_ = MagicMock(spec=AsyncAPIs)
     client.async_.ingestion = MagicMock()
+    client.async_.user_attributes = MagicMock()
+    client.async_.resource_attributes = MagicMock()
+    client.async_.policies = MagicMock()
     return client
 
 
@@ -75,6 +81,19 @@ def ci_pytest_tag(sift_client):
     tag = sift_client.tags.find_or_create(names=["sift-client-pytest"])[0]
     assert tag is not None
     return tag
+
+
+@pytest.fixture(scope="session")
+def test_user_id(sift_client):
+    """Get a valid user ID from an existing resource (the authenticated user).
+
+    This fixture retrieves the user ID of the authenticated test runner by
+    getting it from an existing tag. This user ID can be used in tests that
+    require a valid user ID, such as user attribute tests.
+    """
+    # Get the user ID from an existing tag (tags are always available and have created_by_user_id)
+    tag = sift_client.tags.find_or_create(names=["test"])[0]
+    return tag.created_by_user_id
 
 
 from sift_client.util.test_results import (
