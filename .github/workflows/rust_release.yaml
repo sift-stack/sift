@@ -34,7 +34,7 @@ jobs:
       - name: Build exclude flags
         id: excludes
         run: |
-          EXCLUDE_FLAGS="--exclude sift_stream_bindings --exclude sift_cli"
+          EXCLUDE_FLAGS="--exclude sift-stream-bindings --exclude sift_cli"
           if [ -n "${{ inputs.exclude_crates }}" ]; then
             IFS=',' read -ra CRATES <<< "${{ inputs.exclude_crates }}"
             for crate in "${CRATES[@]}"; do
