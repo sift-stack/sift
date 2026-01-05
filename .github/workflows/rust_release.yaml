@@ -7,6 +7,10 @@ on:
         description: "Optional git tag or commit SHA to publish from"
         type: string
         required: false
+      exclude_crates:
+        description: "Optional comma-separated list of crates to exclude (e.g., 'sift_error,sift_connect')"
+        type: string
+        required: false
 
 jobs:
   rust-ci:
@@ -27,7 +31,21 @@ jobs:
           ref: ${{ github.event.inputs.ref || github.sha }}
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Build exclude flags
+        id: excludes
+        run: |
+          EXCLUDE_FLAGS="--exclude sift_stream_bindings --exclude sift_cli"
+          if [ -n "${{ inputs.exclude_crates }}" ]; then
+            IFS=',' read -ra CRATES <<< "${{ inputs.exclude_crates }}"
+            for crate in "${CRATES[@]}"; do
+              crate=$(echo "$crate" | xargs)
+              if [ -n "$crate" ]; then
+                EXCLUDE_FLAGS="$EXCLUDE_FLAGS --exclude $crate"
+              fi
+            done
+          fi
+          echo "flags=$EXCLUDE_FLAGS" >> $GITHUB_OUTPUT
       - name: Publish crates
-        run: cargo publish --workspace --exclude sift-stream-bindings --exclude sift_cli --manifest-path ./Cargo.toml --locked --token ${CARGO_REGISTRY_TOKEN}
+        run: cargo publish --workspace ${{ steps.excludes.outputs.flags }} --manifest-path ./Cargo.toml --locked --token ${CARGO_REGISTRY_TOKEN}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
