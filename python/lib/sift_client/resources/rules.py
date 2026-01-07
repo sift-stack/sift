@@ -168,11 +168,14 @@ class RulesAPIAsync(ResourceBase):
     async def create(
         self,
         create: RuleCreate | dict | Sequence[RuleCreate | dict],
+        *,
+        override_expression_validation: bool = True,
     ) -> Rule | list[Rule]:
         """Create a new rule.
 
         Args:
             create: A RuleCreate object, a dictionary with configuration for the new rule, or a list of the previously mentioned objects.
+            override_expression_validation: When true, the rule will be created even if the expression is invalid.
 
         Returns:
             The created Rule (if a single dictionary or RuleCreate was provided) otherwise a list of the created rules.
@@ -189,7 +192,9 @@ class RulesAPIAsync(ResourceBase):
         else:
             rules.append(create)
 
-        created_rules = await self.batch_update_rules(rules=rules)
+        created_rules = await self.batch_update_rules(
+            rules=rules, override_expression_validation=override_expression_validation
+        )
         if len(created_rules) != len(rules):
             raise ValueError(
                 f"Failed to create all rules: got {len(created_rules)} but expected {len(rules)}"
@@ -258,11 +263,14 @@ class RulesAPIAsync(ResourceBase):
     async def batch_update_rules(
         self,
         rules: Sequence[RuleCreate | RuleUpdate],
+        *,
+        override_expression_validation: bool = False,
     ) -> list[Rule]:
         """Batch update or create multiple rules.
 
         Args:
             rules: List of rule creates or updates to apply. RuleUpdate objects must have resource_id set.
+            override_expression_validation: When true, the rules will be created even if the expressions are invalid.
 
         Returns:
             List of updated or created Rules.
@@ -283,7 +291,9 @@ class RulesAPIAsync(ResourceBase):
                 rule_ids.append(None)
 
         # Update/create the rules.
-        response = await self._low_level_client.batch_update_rules(rules=rules)
+        response = await self._low_level_client.batch_update_rules(
+            rules=rules, override_expression_validation=override_expression_validation
+        )
 
         if not response.success:
             raise ValueError(f"Failed to update/create rules {response.validation_results}")

@@ -894,11 +894,17 @@ class RulesAPI:
         """
         ...
 
-    def batch_update_rules(self, rules: Sequence[RuleCreate | RuleUpdate]) -> list[Rule]:
+    def batch_update_rules(
+        self,
+        rules: Sequence[RuleCreate | RuleUpdate],
+        *,
+        override_expression_validation: bool = False,
+    ) -> list[Rule]:
         """Batch update or create multiple rules.
 
         Args:
             rules: List of rule creates or updates to apply. RuleUpdate objects must have resource_id set.
+            override_expression_validation: When true, the rules will be created even if the expressions are invalid.
 
         Returns:
             List of updated or created Rules.
@@ -908,11 +914,17 @@ class RulesAPI:
         """
         ...
 
-    def create(self, create: RuleCreate | dict | Sequence[RuleCreate | dict]) -> Rule | list[Rule]:
+    def create(
+        self,
+        create: RuleCreate | dict | Sequence[RuleCreate | dict],
+        *,
+        override_expression_validation: bool = True,
+    ) -> Rule | list[Rule]:
         """Create a new rule.
 
         Args:
             create: A RuleCreate object, a dictionary with configuration for the new rule, or a list of the previously mentioned objects.
+            override_expression_validation: When true, the rule will be created even if the expression is invalid.
 
         Returns:
             The created Rule (if a single dictionary or RuleCreate was provided) otherwise a list of the created rules.

@@ -312,7 +312,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return await self.get_rule(rule_id=rule.id_)
 
     async def batch_update_rules(
-        self, rules: Sequence[RuleCreate | RuleUpdate]
+        self,
+        rules: Sequence[RuleCreate | RuleUpdate],
+        validate_only: bool = False,
+        override_expression_validation: bool = False,
     ) -> BatchUpdateRulesResponse:
         """Batch update or create rules.
 
@@ -356,7 +359,11 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 update_requests.append(update_request)
 
         # Call the batch update request
-        request = BatchUpdateRulesRequest(rules=update_requests)  # type: ignore
+        request = BatchUpdateRulesRequest(
+            rules=update_requests,
+            validate_only=validate_only,
+            override_expression_validation=override_expression_validation,
+        )  # type: ignore
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchUpdateRules(request)
         return cast("BatchUpdateRulesResponse", response)
 

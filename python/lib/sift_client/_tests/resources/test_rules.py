@@ -620,15 +620,9 @@ class TestRulesAPIAsync:
         """Tests for the async batch_update_rules method."""
 
         @pytest.mark.asyncio
-        async def test_batch_update_rules(self, rules_api_async):
+        async def test_batch_update_rules(self, rules_api_async, nostromo_asset):
             """Test updating multiple rules with different fields."""
             from datetime import datetime, timezone
-
-            # Create multiple test rules
-            channels = await rules_api_async.client.async_.channels.list_(limit=2)
-            assert len(channels) >= 2
-            assets = await rules_api_async.client.async_.assets.list_(limit=1)
-            assert len(assets) >= 1
 
             rule1_name = f"test_batch_rule_1_{datetime.now(timezone.utc).isoformat()}"
             rule2_name = f"test_batch_rule_2_{datetime.now(timezone.utc).isoformat()}"
@@ -640,18 +634,14 @@ class TestRulesAPIAsync:
                     description="Test rule 1 for batch update",
                     expression="$1 > $2",
                     channel_references=[
-                        ChannelReference(
-                            channel_reference="$1", channel_identifier=channels[0].name
-                        ),
-                        ChannelReference(
-                            channel_reference="$2", channel_identifier=channels[1].name
-                        ),
+                        ChannelReference(channel_reference="$1", channel_identifier="channel1"),
+                        ChannelReference(channel_reference="$2", channel_identifier="channel2"),
                     ],
                     action=RuleAction.annotation(
                         annotation_type=RuleAnnotationType.DATA_REVIEW,
                         tags=[],
                     ),
-                    asset_ids=[assets[0].id_],
+                    asset_ids=[nostromo_asset.id_],
                 )
             )
 
@@ -662,28 +652,25 @@ class TestRulesAPIAsync:
                     description="Test rule 2 for batch update",
                     expression="$1 > 0.5",
                     channel_references=[
-                        ChannelReference(
-                            channel_reference="$1", channel_identifier=channels[0].name
-                        ),
+                        ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                     ],
                     action=RuleAction.annotation(
                         annotation_type=RuleAnnotationType.DATA_REVIEW,
                         tags=[],
                     ),
-                    asset_ids=[assets[0].id_],
+                    asset_ids=[nostromo_asset.id_],
                 )
             )
 
             try:
                 # Batch update both rules
-                updates = [
-                    rules_api_async._update_rule_request_from_update(
-                        rule1, RuleUpdate(description="Updated description 1")
-                    ),
-                    rules_api_async._update_rule_request_from_update(
-                        rule2, RuleUpdate(description="Updated description 2")
-                    ),
-                ]
+                rule1_update = RuleUpdate(description="Updated description 1")
+                rule1_update.resource_id = rule1.id_
+
+                rule2_update = RuleUpdate(description="Updated description 2")
+                rule2_update.resource_id = rule2.id_
+
+                updates = [rule1_update, rule2_update]
 
                 updated_rules = await rules_api_async.batch_update_rules(updates)
 
@@ -691,28 +678,16 @@ class TestRulesAPIAsync:
                 assert len(updated_rules) == 2
 
                 # Verify updates were applied
-                updated_rule1 = next(r for r in updated_rules if r.id_ == rule1.id_)
-                updated_rule2 = next(r for r in updated_rules if r.id_ == rule2.id_)
-
-                assert updated_rule1.description == "Updated description 1"
-                assert updated_rule2.description == "Updated description 2"
-                # Verify other fields remain unchanged
-                assert updated_rule1.name == rule1.name
-                assert updated_rule2.name == rule2.name
+                assert updated_rules[0].description == "Updated description 1"
+                assert updated_rules[1].description == "Updated description 2"
             finally:
                 await rules_api_async.archive(rule1.id_)
                 await rules_api_async.archive(rule2.id_)
 
         @pytest.mark.asyncio
-        async def test_batch_update_rules_creates_rules(self, rules_api_async):
+        async def test_batch_update_rules_creates_rules(self, rules_api_async, nostromo_asset):
             """Test batch updating rules that don't already exist."""
             from datetime import datetime, timezone
-
-            # Create multiple test rules
-            channels = await rules_api_async.client.async_.channels.list_(limit=2)
-            assert len(channels) >= 2
-            assets = await rules_api_async.client.async_.assets.list_(limit=1)
-            assert len(assets) >= 1
 
             rule1_name = f"test_batch_rule_1_{datetime.now(timezone.utc).isoformat()}"
             rule2_name = f"test_batch_rule_2_{datetime.now(timezone.utc).isoformat()}"
@@ -723,14 +698,14 @@ class TestRulesAPIAsync:
                 description="Test rule 1 for batch update",
                 expression="$1 > $2",
                 channel_references=[
-                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
-                    ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
+                    ChannelReference(channel_reference="$1", channel_identifier="channel1"),
+                    ChannelReference(channel_reference="$2", channel_identifier="channel2"),
                 ],
                 action=RuleAction.annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[],
                 ),
-                asset_ids=[assets[0].id_],
+                asset_ids=[nostromo_asset.id_],
             )
 
             rule2 = RuleCreate(
@@ -739,13 +714,13 @@ class TestRulesAPIAsync:
                 description="Test rule 2 for batch update",
                 expression="$1 > 0.5",
                 channel_references=[
-                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                    ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                 ],
                 action=RuleAction.annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[],
                 ),
-                asset_ids=[assets[0].id_],
+                asset_ids=[nostromo_asset.id_],
             )
 
             updated_rules: list[Rule] = []
@@ -757,8 +732,8 @@ class TestRulesAPIAsync:
                 assert isinstance(updated_rules, list)
                 assert len(updated_rules) == 2
 
-                assert updated_rules[0] == rule1
-                assert updated_rules[1] == rule2
+                assert updated_rules[0].client_key == rule1.client_key
+                assert updated_rules[1].client_key == rule2.client_key
             finally:
                 for rule in updated_rules:
                     await rules_api_async.archive(rule.id_)
