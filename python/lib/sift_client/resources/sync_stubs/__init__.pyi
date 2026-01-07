@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     import re
     from datetime import datetime, timedelta
     from pathlib import Path
-    from typing import TYPE_CHECKING, Any
+    from typing import TYPE_CHECKING, Any, Sequence
 
     import pandas as pd
     import pyarrow as pa
@@ -894,14 +894,28 @@ class RulesAPI:
         """
         ...
 
-    def create(self, create: RuleCreate | dict) -> Rule:
+    def batch_update_rules(self, rules: Sequence[RuleCreate | RuleUpdate]) -> list[Rule]:
+        """Batch update or create multiple rules.
+
+        Args:
+            rules: List of rule creates or updates to apply. RuleUpdate objects must have resource_id set.
+
+        Returns:
+            List of updated or created Rules.
+
+        Raises:
+            ValueError: If the update/create fails or if not all rules were updated/created.
+        """
+        ...
+
+    def create(self, create: RuleCreate | dict | Sequence[RuleCreate | dict]) -> Rule | list[Rule]:
         """Create a new rule.
 
         Args:
-            create: A RuleCreate object or dictionary with configuration for the new rule.
+            create: A RuleCreate object, a dictionary with configuration for the new rule, or a list of the previously mentioned objects.
 
         Returns:
-            The created Rule.
+            The created Rule (if a single dictionary or RuleCreate was provided) otherwise a list of the created rules.
         """
         ...
 
