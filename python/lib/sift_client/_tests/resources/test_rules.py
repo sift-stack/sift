@@ -616,6 +616,161 @@ class TestRulesAPIAsync:
             finally:
                 await rules_api_async.archive(new_rule.id_)
 
+    class TestBatchUpdate:
+        """Tests for the async batch_update_rules method."""
+
+        @pytest.mark.asyncio
+        async def test_batch_update_rules(self, rules_api_async):
+            """Test updating multiple rules with different fields."""
+            from datetime import datetime, timezone
+
+            # Create multiple test rules
+            channels = await rules_api_async.client.async_.channels.list_(limit=2)
+            assert len(channels) >= 2
+            assets = await rules_api_async.client.async_.assets.list_(limit=1)
+            assert len(assets) >= 1
+
+            rule1_name = f"test_batch_rule_1_{datetime.now(timezone.utc).isoformat()}"
+            rule2_name = f"test_batch_rule_2_{datetime.now(timezone.utc).isoformat()}"
+
+            rule1 = await rules_api_async.create(
+                RuleCreate(
+                    name=rule1_name,
+                    client_key=f"test_batch_1_{str(uuid.uuid4())[-8:]}",
+                    description="Test rule 1 for batch update",
+                    expression="$1 > $2",
+                    channel_references=[
+                        ChannelReference(
+                            channel_reference="$1", channel_identifier=channels[0].name
+                        ),
+                        ChannelReference(
+                            channel_reference="$2", channel_identifier=channels[1].name
+                        ),
+                    ],
+                    action=RuleAction.annotation(
+                        annotation_type=RuleAnnotationType.DATA_REVIEW,
+                        tags=[],
+                    ),
+                    asset_ids=[assets[0].id_],
+                )
+            )
+
+            rule2 = await rules_api_async.create(
+                RuleCreate(
+                    name=rule2_name,
+                    client_key=f"test_batch_2_{str(uuid.uuid4())[-8:]}",
+                    description="Test rule 2 for batch update",
+                    expression="$1 > 0.5",
+                    channel_references=[
+                        ChannelReference(
+                            channel_reference="$1", channel_identifier=channels[0].name
+                        ),
+                    ],
+                    action=RuleAction.annotation(
+                        annotation_type=RuleAnnotationType.DATA_REVIEW,
+                        tags=[],
+                    ),
+                    asset_ids=[assets[0].id_],
+                )
+            )
+
+            try:
+                # Batch update both rules
+                updates = [
+                    rules_api_async._update_rule_request_from_update(
+                        rule1, RuleUpdate(description="Updated description 1")
+                    ),
+                    rules_api_async._update_rule_request_from_update(
+                        rule2, RuleUpdate(description="Updated description 2")
+                    ),
+                ]
+
+                updated_rules = await rules_api_async.batch_update_rules(updates)
+
+                assert isinstance(updated_rules, list)
+                assert len(updated_rules) == 2
+
+                # Verify updates were applied
+                updated_rule1 = next(r for r in updated_rules if r.id_ == rule1.id_)
+                updated_rule2 = next(r for r in updated_rules if r.id_ == rule2.id_)
+
+                assert updated_rule1.description == "Updated description 1"
+                assert updated_rule2.description == "Updated description 2"
+                # Verify other fields remain unchanged
+                assert updated_rule1.name == rule1.name
+                assert updated_rule2.name == rule2.name
+            finally:
+                await rules_api_async.archive(rule1.id_)
+                await rules_api_async.archive(rule2.id_)
+
+        @pytest.mark.asyncio
+        async def test_batch_update_rules_creates_rules(self, rules_api_async):
+            """Test batch updating rules that don't already exist."""
+            from datetime import datetime, timezone
+
+            # Create multiple test rules
+            channels = await rules_api_async.client.async_.channels.list_(limit=2)
+            assert len(channels) >= 2
+            assets = await rules_api_async.client.async_.assets.list_(limit=1)
+            assert len(assets) >= 1
+
+            rule1_name = f"test_batch_rule_1_{datetime.now(timezone.utc).isoformat()}"
+            rule2_name = f"test_batch_rule_2_{datetime.now(timezone.utc).isoformat()}"
+
+            rule1 = RuleCreate(
+                name=rule1_name,
+                client_key=f"test_batch_1_{str(uuid.uuid4())[-8:]}",
+                description="Test rule 1 for batch update",
+                expression="$1 > $2",
+                channel_references=[
+                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                    ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
+                ],
+                action=RuleAction.annotation(
+                    annotation_type=RuleAnnotationType.DATA_REVIEW,
+                    tags=[],
+                ),
+                asset_ids=[assets[0].id_],
+            )
+
+            rule2 = RuleCreate(
+                name=rule2_name,
+                client_key=f"test_batch_2_{str(uuid.uuid4())[-8:]}",
+                description="Test rule 2 for batch update",
+                expression="$1 > 0.5",
+                channel_references=[
+                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                ],
+                action=RuleAction.annotation(
+                    annotation_type=RuleAnnotationType.DATA_REVIEW,
+                    tags=[],
+                ),
+                asset_ids=[assets[0].id_],
+            )
+
+            updated_rules: list[Rule] = []
+            try:
+                # Batch update (actually create) both rules
+                updates = [rule1, rule2]
+                updated_rules = await rules_api_async.batch_update_rules(updates)
+
+                assert isinstance(updated_rules, list)
+                assert len(updated_rules) == 2
+
+                assert updated_rules[0] == rule1
+                assert updated_rules[1] == rule2
+            finally:
+                for rule in updated_rules:
+                    await rules_api_async.archive(rule.id_)
+
+        @pytest.mark.asyncio
+        async def test_batch_update_rules_empty_list(self, rules_api_async):
+            """Test handling empty list."""
+            updated_rules = await rules_api_async.batch_update_rules([])
+
+            assert isinstance(updated_rules, list)
+            assert len(updated_rules) == 0
+
 
 class TestRulesAPISync:
     """Test suite for the synchronous Rules API functionality."""

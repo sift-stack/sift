@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Sequence
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -167,21 +167,40 @@ class RulesAPIAsync(ResourceBase):
 
     async def create(
         self,
-        create: RuleCreate | dict,
-    ) -> Rule:
+        create: RuleCreate | dict | Sequence[RuleCreate | dict],
+    ) -> Rule | list[Rule]:
         """Create a new rule.
 
         Args:
-            create: A RuleCreate object or dictionary with configuration for the new rule.
+            create: A RuleCreate object, a dictionary with configuration for the new rule, or a list of the previously mentioned objects.
 
         Returns:
-            The created Rule.
+            The created Rule (if a single dictionary or RuleCreate was provided) otherwise a list of the created rules.
         """
-        if isinstance(create, dict):
-            create = RuleCreate.model_validate(create)
+        rules: list[RuleCreate | RuleUpdate] = []
+        if isinstance(create, Sequence):
+            for c in create:
+                if isinstance(c, dict):
+                    rules.append(RuleCreate.model_validate(c))
+                else:
+                    rules.append(c)
+        elif isinstance(create, dict):
+            rules.append(RuleCreate.model_validate(create))
+        else:
+            rules.append(create)
 
-        created_rule = await self._low_level_client.create_rule(create=create)
-        return self._apply_client_to_instance(created_rule)
+        created_rules = await self.batch_update_rules(rules=rules)
+        if len(created_rules) != len(rules):
+            raise ValueError(
+                f"Failed to create all rules: got {len(created_rules)} but expected {len(rules)}"
+            )
+
+        # If there is only one rule to create provided as a dict or RuleCreate, return the single rule.
+        if len(created_rules) == 1 and not isinstance(create, list):
+            return created_rules[0]
+
+        # Otherwise, return the list of created rules.
+        return created_rules
 
     async def update(
         self,
@@ -235,3 +254,56 @@ class RulesAPIAsync(ResourceBase):
             The unarchived Rule.
         """
         return await self.update(rule=rule, update=RuleUpdate(is_archived=False))
+
+    async def batch_update_rules(
+        self,
+        rules: Sequence[RuleCreate | RuleUpdate],
+    ) -> list[Rule]:
+        """Batch update or create multiple rules.
+
+        Args:
+            rules: List of rule creates or updates to apply. RuleUpdate objects must have resource_id set.
+
+        Returns:
+            List of updated or created Rules.
+
+        Raises:
+            ValueError: If the update/create fails or if not all rules were updated/created.
+        """
+        # If there are no rules to update/create, return an empty list immediately
+        # to avoid unnecessary RPC calls.
+        if not rules:
+            return []
+
+        rule_ids: list[str | None] = []
+        for rule in rules:
+            if isinstance(rule, RuleUpdate):
+                rule_ids.append(rule.resource_id)
+            else:
+                rule_ids.append(None)
+
+        # Update/create the rules.
+        response = await self._low_level_client.batch_update_rules(rules=rules)
+
+        if not response.success:
+            raise ValueError(f"Failed to update/create rules {response.validation_results}")
+
+        # Ensure all rules were updated/created.
+        if response.rules_created_count + response.rules_updated_count != len(rules):
+            raise ValueError(
+                f"Not all rules were updated/created: got {response.rules_created_count + response.rules_updated_count} "
+                f"but expected {len(rules)}"
+            )
+
+        # Collect rule IDs from the response
+        final_rule_ids: list[str] = []
+        for rule_id in rule_ids:
+            if rule_id is not None:
+                # RuleUpdate: use the existing resource_id
+                final_rule_ids.append(rule_id)
+            else:
+                final_rule_ids.append(response.created_rule_identifiers.pop(0).rule_id)
+
+        # Fetch the rules.
+        updated_rules = await self._low_level_client.batch_get_rules(rule_ids=final_rule_ids)
+        return self._apply_client_to_instances(updated_rules)
