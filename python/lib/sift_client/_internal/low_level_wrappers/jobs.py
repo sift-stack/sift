@@ -46,7 +46,7 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         organization_id: str | None = None,
         order_by: str | None = None,
-    ) ->  tuple[list[Job], str]:
+    ) -> tuple[list[Job], str]:
         """List jobs with pagination.
 
         Args:
@@ -73,7 +73,7 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ListJobsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(JobServiceStub).ListJobs(request)
-        response =  cast("ListJobsResponse", response)
+        response = cast("ListJobsResponse", response)
         jobs = [Job._from_proto(job) for job in response.jobs]
         return jobs, response.next_page_token
 

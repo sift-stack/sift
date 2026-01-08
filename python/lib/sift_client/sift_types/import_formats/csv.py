@@ -103,8 +103,6 @@ class CsvConfig(DataImportConfigBase):
             run_id=proto.run_id if proto.run_id else None,
             first_data_row=proto.first_data_row,
             time_column=CsvTimeColumn.from_proto(proto.time_column),
-            data_columns={
-                k: ChannelConfig._from_proto(v) for k, v in proto.data_columns.items()
-            },
+            data_columns={k: ChannelConfig._from_proto(v) for k, v in proto.data_columns.items()},
             num_rows=proto.num_rows if proto.HasField("num_rows") else None,
         )

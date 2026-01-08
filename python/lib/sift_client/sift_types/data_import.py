@@ -290,9 +290,7 @@ class CsvConfig(DataImportConfigBase):
             run_id=proto.run_id if proto.run_id else None,
             first_data_row=proto.first_data_row,
             time_column=CsvTimeColumn.from_proto(proto.time_column),
-            data_columns={
-                k: ChannelConfig._from_proto(v) for k, v in proto.data_columns.items()
-            },
+            data_columns={k: ChannelConfig._from_proto(v) for k, v in proto.data_columns.items()},
             num_rows=proto.num_rows if proto.HasField("num_rows") else None,
         )
 
@@ -442,7 +440,9 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
     data_stop_time: datetime | None = None
 
     @classmethod
-    def _from_proto(cls, proto: DataImportProto, sift_client: SiftClient | None = None) -> DataImport:
+    def _from_proto(
+        cls, proto: DataImportProto, sift_client: SiftClient | None = None
+    ) -> DataImport:
         """Create from proto."""
         return cls(
             proto=proto,
@@ -456,14 +456,10 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
                 CsvConfig.from_proto(proto.csv_config) if proto.HasField("csv_config") else None
             ),
             ch10_config=(
-                Ch10Config.from_proto(proto.ch10_config)
-                if proto.HasField("ch10_config")
-                else None
+                Ch10Config.from_proto(proto.ch10_config) if proto.HasField("ch10_config") else None
             ),
             tdms_config=(
-                TDMSConfig.from_proto(proto.tdms_config)
-                if proto.HasField("tdms_config")
-                else None
+                TDMSConfig.from_proto(proto.tdms_config) if proto.HasField("tdms_config") else None
             ),
             parquet_config=(
                 ParquetConfig.from_proto(proto.parquet_config)

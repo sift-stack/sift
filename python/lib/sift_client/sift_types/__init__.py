@@ -159,7 +159,8 @@ from sift_client.sift_types.ingestion import (
     FlowConfig,
     IngestionConfig,
     IngestionConfigCreate,
-)from sift_client.sift_types.job import (
+)
+from sift_client.sift_types.job import (
     Job,
     JobDetails,
     JobStatus,

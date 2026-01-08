@@ -206,9 +206,7 @@ class TestJobsAPIAsync:
         async def test_cancel_finished_job_no_effect(self, jobs_api_async):
             """Test that cancelling a finished job has no effect."""
             # Find a finished job
-            finished_jobs = await jobs_api_async.list_(
-                job_status=JobStatus.FINISHED, limit=1
-            )
+            finished_jobs = await jobs_api_async.list_(job_status=JobStatus.FINISHED, limit=1)
 
             if finished_jobs:
                 job = finished_jobs[0]
@@ -225,9 +223,7 @@ class TestJobsAPIAsync:
         async def test_cancel_with_job_id_string(self, jobs_api_async):
             """Test cancelling a job by passing job ID as string."""
             # Find a finished job to safely test with
-            finished_jobs = await jobs_api_async.list_(
-                job_status=JobStatus.FINISHED, limit=1
-            )
+            finished_jobs = await jobs_api_async.list_(job_status=JobStatus.FINISHED, limit=1)
 
             if finished_jobs:
                 job = finished_jobs[0]
@@ -279,9 +275,7 @@ class TestJobsAPIAsync:
         async def test_retry_finished_job_no_effect(self, jobs_api_async):
             """Test that retrying a finished job has no effect."""
             # Find a finished job
-            finished_jobs = await jobs_api_async.list_(
-                job_status=JobStatus.FINISHED, limit=1
-            )
+            finished_jobs = await jobs_api_async.list_(job_status=JobStatus.FINISHED, limit=1)
 
             if finished_jobs:
                 job = finished_jobs[0]
@@ -291,7 +285,6 @@ class TestJobsAPIAsync:
                 with pytest.raises(AioRpcError, match="job cannot be retried"):
                     retried_job = await jobs_api_async.retry(job)
 
-
     class TestJobProperties:
         """Tests for job property methods."""
 
@@ -299,9 +292,7 @@ class TestJobsAPIAsync:
         async def test_job_status_properties(self, jobs_api_async):
             """Test job status property methods."""
             # Test with different job statuses
-            finished_jobs = await jobs_api_async.list_(
-                job_status=JobStatus.FINISHED, limit=1
-            )
+            finished_jobs = await jobs_api_async.list_(job_status=JobStatus.FINISHED, limit=1)
             if finished_jobs:
                 job = finished_jobs[0]
                 assert job.is_finished is True
@@ -317,9 +308,7 @@ class TestJobsAPIAsync:
                 assert job.is_cancelled is False
                 assert job.is_in_progress is False
 
-            running_jobs = await jobs_api_async.list_(
-                job_status=JobStatus.RUNNING, limit=1
-            )
+            running_jobs = await jobs_api_async.list_(job_status=JobStatus.RUNNING, limit=1)
             if running_jobs:
                 job = running_jobs[0]
                 assert job.is_in_progress is True
@@ -327,9 +316,7 @@ class TestJobsAPIAsync:
                 assert job.is_failed is False
                 assert job.is_cancelled is False
 
-            cancelled_jobs = await jobs_api_async.list_(
-                job_status=JobStatus.CANCELLED, limit=1
-            )
+            cancelled_jobs = await jobs_api_async.list_(job_status=JobStatus.CANCELLED, limit=1)
             if cancelled_jobs:
                 job = cancelled_jobs[0]
                 assert job.is_cancelled is True
@@ -341,27 +328,21 @@ class TestJobsAPIAsync:
         async def test_job_details_by_type(self, jobs_api_async):
             """Test that job details are populated correctly based on job type."""
             # Test DATA_IMPORT jobs
-            import_jobs = await jobs_api_async.list_(
-                job_type=JobType.DATA_IMPORT, limit=1
-            )
+            import_jobs = await jobs_api_async.list_(job_type=JobType.DATA_IMPORT, limit=1)
             if import_jobs:
                 job = import_jobs[0]
                 if job.job_details:
                     assert job.job_details.data_import_id is not None
 
             # Test RULE_EVALUATION jobs
-            rule_eval_jobs = await jobs_api_async.list_(
-                job_type=JobType.RULE_EVALUATION, limit=1
-            )
+            rule_eval_jobs = await jobs_api_async.list_(job_type=JobType.RULE_EVALUATION, limit=1)
             if rule_eval_jobs:
                 job = rule_eval_jobs[0]
                 if job.job_details:
                     assert job.job_details.report_id is not None
 
             # Test DATA_EXPORT jobs
-            export_jobs = await jobs_api_async.list_(
-                job_type=JobType.DATA_EXPORT, limit=1
-            )
+            export_jobs = await jobs_api_async.list_(job_type=JobType.DATA_EXPORT, limit=1)
             if export_jobs:
                 job = export_jobs[0]
                 if job.job_details:

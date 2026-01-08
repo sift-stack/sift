@@ -112,7 +112,10 @@ class DataImportsAPIAsync(ResourceBase):
                 raise ValueError(f"Path is not a file: {path}")
 
             # Get upload URL and data import ID
-            upload_url, data_import_id = await self._low_level_client.create_data_import_from_upload(
+            (
+                upload_url,
+                data_import_id,
+            ) = await self._low_level_client.create_data_import_from_upload(
                 csv_config=csv_config,
                 ch10_config=ch10_config,
                 tdms_config=tdms_config,
@@ -159,7 +162,7 @@ class DataImportsAPIAsync(ResourceBase):
         """Synchronous helper to upload the file to a presigned URL.
 
         This is called from a thread pool to avoid blocking the async event loop.
-        
+
         Args:
             path: Path to the file to upload.
             upload_url: The presigned URL to upload to.

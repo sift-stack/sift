@@ -112,7 +112,9 @@ class JobStatusDetails(BaseModel):
             )
         elif status_field == "data_export":
             return cls(
-                error_message=proto.data_export.error_message if proto.data_export.error_message else None
+                error_message=proto.data_export.error_message
+                if proto.data_export.error_message
+                else None
             )
         elif status_field == "rule_evaluation":
             return cls()
@@ -203,9 +205,7 @@ class Job(BaseType[JobProto, "Job"]):
                 else None
             ),
             job_details=(
-                JobDetails.from_proto(proto.job_details)
-                if proto.HasField("job_details")
-                else None
+                JobDetails.from_proto(proto.job_details) if proto.HasField("job_details") else None
             ),
             _client=sift_client,
         )
