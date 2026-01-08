@@ -149,11 +149,17 @@ from sift_client.sift_types.ingestion import (
     IngestionConfigCreate,
 )
 from sift_client.sift_types.job import (
+    DataExportDetails,
+    DataExportStatusDetails,
+    DataImportDetails,
+    DataImportStatusDetails,
     Job,
     JobDetails,
     JobStatus,
     JobStatusDetails,
     JobType,
+    RuleEvaluationDetails,
+    RuleEvaluationStatusDetails,
 )
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
 from sift_client.sift_types.rule import (
@@ -195,11 +201,17 @@ __all__ = [
     "FlowConfig",
     "IngestionConfig",
     "IngestionConfigCreate",
+    "DataExportDetails",
+    "DataExportStatusDetails",
+    "DataImportDetails",
+    "DataImportStatusDetails",
     "Job",
     "JobDetails",
     "JobStatus",
     "JobStatusDetails",
     "JobType",
+    "RuleEvaluationDetails",
+    "RuleEvaluationStatusDetails",
     "Report",
     "ReportRuleStatus",
     "ReportRuleSummary",

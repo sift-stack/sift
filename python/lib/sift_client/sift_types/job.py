@@ -81,77 +81,84 @@ class JobStatus(str, Enum):
         return mapping[proto_value]
 
 
-class JobStatusDetails(BaseModel):
-    """Status details for a job.
+class DataImportStatusDetails(BaseModel):
+    """Status details for a data import job."""
 
-    Fields are populated based on job_type:
-    - DATA_IMPORT: points_processed, points_total
-    - DATA_EXPORT: error_message
-    - RULE_EVALUATION: (no additional fields)
-    """
+    points_processed: int
+    points_total: int
 
-    # Data import fields
-    points_processed: int | None = None
-    points_total: int | None = None
 
-    # Data export fields
+class DataExportStatusDetails(BaseModel):
+    """Status details for a data export job."""
+
     error_message: str | None = None
 
-    @classmethod
-    def from_proto(cls, proto: JobStatusDetailsProto) -> JobStatusDetails | None:
-        """Create from proto."""
-        if not proto.HasField("status"):
-            return None
 
-        status_field = proto.WhichOneof("status")
-        if status_field == "data_import":
-            return cls(
-                points_processed=proto.data_import.points_processed,
-                points_total=proto.data_import.points_total,
-            )
-        elif status_field == "data_export":
-            return cls(
-                error_message=proto.data_export.error_message
-                if proto.data_export.error_message
-                else None
-            )
-        elif status_field == "rule_evaluation":
-            return cls()
+class RuleEvaluationStatusDetails(BaseModel):
+    """Status details for a rule evaluation job."""
+
+    pass
+
+
+JobStatusDetails = DataImportStatusDetails | DataExportStatusDetails | RuleEvaluationStatusDetails
+
+
+def _job_status_details_from_proto(
+    proto: JobStatusDetailsProto,
+) -> JobStatusDetails | None:
+    """Create JobStatusDetails from proto."""
+    if not proto.HasField("status"):
         return None
 
+    status_field = proto.WhichOneof("status")
+    if status_field == "data_import":
+        return DataImportStatusDetails(
+            points_processed=proto.data_import.points_processed,
+            points_total=proto.data_import.points_total,
+        )
+    elif status_field == "data_export":
+        return DataExportStatusDetails(
+            error_message=proto.data_export.error_message or None
+        )
+    elif status_field == "rule_evaluation":
+        return RuleEvaluationStatusDetails()
+    return None
 
-class JobDetails(BaseModel):
-    """Job details for a job.
 
-    Fields are populated based on job_type:
-    - RULE_EVALUATION: report_id
-    - DATA_IMPORT: data_import_id
-    - DATA_EXPORT: storage_key
-    """
+class DataImportDetails(BaseModel):
+    """Details for a data import job."""
 
-    # Rule evaluation fields
-    report_id: str | None = None
+    data_import_id: str
 
-    # Data import fields
-    data_import_id: str | None = None
 
-    # Data export fields
-    storage_key: str | None = None
+class DataExportDetails(BaseModel):
+    """Details for a data export job."""
 
-    @classmethod
-    def from_proto(cls, proto: JobDetailsProto) -> JobDetails | None:
-        """Create from proto."""
-        if not proto.HasField("details"):
-            return None
+    storage_key: str
 
-        details_field = proto.WhichOneof("details")
-        if details_field == "rule_evaluation":
-            return cls(report_id=proto.rule_evaluation.report_id)
-        elif details_field == "data_import":
-            return cls(data_import_id=proto.data_import.data_import_id)
-        elif details_field == "data_export":
-            return cls(storage_key=proto.data_export.storage_key)
+
+class RuleEvaluationDetails(BaseModel):
+    """Details for a rule evaluation job."""
+
+    report_id: str
+
+
+JobDetails = DataImportDetails | DataExportDetails | RuleEvaluationDetails
+
+
+def _job_details_from_proto(proto: JobDetailsProto) -> JobDetails | None:
+    """Create JobDetails from proto."""
+    if not proto.HasField("details"):
         return None
+
+    details_field = proto.WhichOneof("details")
+    if details_field == "rule_evaluation":
+        return RuleEvaluationDetails(report_id=proto.rule_evaluation.report_id)
+    elif details_field == "data_import":
+        return DataImportDetails(data_import_id=proto.data_import.data_import_id)
+    elif details_field == "data_export":
+        return DataExportDetails(storage_key=proto.data_export.storage_key)
+    return None
 
 
 class Job(BaseType[JobProto, "Job"]):
@@ -199,12 +206,14 @@ class Job(BaseType[JobProto, "Job"]):
             job_type=JobType.from_proto(proto.job_type),
             job_status=JobStatus.from_proto(proto.job_status),
             job_status_details=(
-                JobStatusDetails.from_proto(proto.job_status_details)
+                _job_status_details_from_proto(proto.job_status_details)
                 if proto.HasField("job_status_details")
                 else None
             ),
             job_details=(
-                JobDetails.from_proto(proto.job_details) if proto.HasField("job_details") else None
+                _job_details_from_proto(proto.job_details)
+                if proto.HasField("job_details")
+                else None
             ),
             _client=sift_client,
         )

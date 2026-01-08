@@ -15,7 +15,14 @@ from grpc.aio import AioRpcError
 from sift_client import SiftClient
 from sift_client.resources import JobsAPI, JobsAPIAsync
 from sift_client.sift_types import Job
-from sift_client.sift_types.job import JobStatus, JobType
+from sift_client.sift_types.job import (
+    DataExportDetails,
+    DataImportDetails,
+    DataImportStatusDetails,
+    JobStatus,
+    JobType,
+    RuleEvaluationDetails,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -331,6 +338,7 @@ class TestJobsAPIAsync:
             if import_jobs:
                 job = import_jobs[0]
                 if job.job_details:
+                    assert isinstance(job.job_details, DataImportDetails)
                     assert job.job_details.data_import_id is not None
 
             # Test RULE_EVALUATION jobs
@@ -338,6 +346,7 @@ class TestJobsAPIAsync:
             if rule_eval_jobs:
                 job = rule_eval_jobs[0]
                 if job.job_details:
+                    assert isinstance(job.job_details, RuleEvaluationDetails)
                     assert job.job_details.report_id is not None
 
             # Test DATA_EXPORT jobs
@@ -345,6 +354,7 @@ class TestJobsAPIAsync:
             if export_jobs:
                 job = export_jobs[0]
                 if job.job_details:
+                    assert isinstance(job.job_details, DataExportDetails)
                     assert job.job_details.storage_key is not None
 
         @pytest.mark.asyncio
@@ -360,6 +370,7 @@ class TestJobsAPIAsync:
                 # Find a job with status details
                 for job in import_jobs:
                     if job.job_status_details:
+                        assert isinstance(job.job_status_details, DataImportStatusDetails)
                         assert job.job_status_details.points_processed is not None
                         assert job.job_status_details.points_total is not None
                         break
