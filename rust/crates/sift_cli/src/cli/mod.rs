@@ -182,11 +182,15 @@ pub struct TestServerArgs {
 
     /// Whether to stream metrics to Sift.
     #[arg(short, long)]
-    pub stream_metrics: Option<bool>,
+    pub stream_metrics: bool,
 
     /// The asset name to use when streaming server ingestion metrics.
     #[arg(short, long)]
     pub metrics_asset_name: Option<String>,
+
+    /// Include to use plain output.
+    #[arg(short, long)]
+    pub plain_output: bool,
 }
 
 #[derive(clap::Args)]

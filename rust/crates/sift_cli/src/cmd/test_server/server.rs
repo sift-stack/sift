@@ -15,7 +15,6 @@ use sift_rs::ingestion_configs::v2::{ingestion_config_service_server::IngestionC
 use sift_rs::ping::v1::{PingRequest, PingResponse, ping_service_server::PingService};
 use std::io::stdout;
 use std::sync::atomic::AtomicBool;
-use std::time::Duration;
 use std::{
     collections::HashMap,
     sync::{
@@ -25,6 +24,7 @@ use std::{
 };
 use tokio::sync::mpsc::Sender;
 use tokio::sync::watch;
+use tokio::time::Duration;
 use tokio_stream::StreamExt;
 use tonic::{Request, Response, Status, Streaming};
 use uuid::Uuid;
@@ -61,7 +61,9 @@ impl TestServer {
         shutdown: &mut watch::Receiver<bool>,
         metrics_tx: Sender<Metrics>,
         streaming_enabled: bool,
+        plain_output: bool,
     ) -> AnyhowResult<()> {
+        let mut interval = tokio::time::interval(Duration::from_secs(1));
         let mut stdout = stdout();
 
         let mut last_total_num_bytes_read: u64 = 0;
@@ -75,7 +77,7 @@ impl TestServer {
                     return AnyhowOk(());
                 }
 
-                _ = tokio::time::sleep(Duration::from_secs(1)) => {
+                _ = interval.tick() => {
                     let current_total_num_bytes_read = self.total_num_bytes_read.load(Relaxed);
                     let current_total_num_messages = self.total_num_messages.load(Relaxed);
                     let current_total_num_streams = self.total_num_streams.load(Relaxed);
@@ -85,16 +87,21 @@ impl TestServer {
                     last_total_num_bytes_read = current_total_num_bytes_read;
                     last_total_num_messages = current_total_num_messages;
 
-                    // Clear terminal and print metrics.
-                    stdout
-                        .execute(terminal::Clear(terminal::ClearType::All))
-                        .context("failed to clear terminal")?;
-                    stdout.execute(cursor::MoveTo(0, 0))
-                        .context("failed to move terminal cursor")?;
-                    stdout.execute(cursor::MoveUp(5))
-                        .context("failed to move terminal cursor")?;
-                    stdout.execute(terminal::Clear(terminal::ClearType::FromCursorDown))
-                        .context("failed to move terminal cursor")?;
+                    if !plain_output {
+                        // Clear terminal and print metrics.
+                        stdout
+                            .execute(terminal::Clear(terminal::ClearType::All))
+                            .context("failed to clear terminal")?;
+                        stdout.execute(cursor::MoveTo(0, 0))
+                            .context("failed to move terminal cursor")?;
+                        stdout.execute(cursor::MoveUp(5))
+                            .context("failed to move terminal cursor")?;
+                        stdout.execute(terminal::Clear(terminal::ClearType::FromCursorDown))
+                            .context("failed to move terminal cursor")?;
+                    } else {
+                        Output::new().line(format!("-----")).print();
+                        Output::new().line(format!("{}", chrono::Local::now().to_rfc3339())).print();
+                    }
 
                     Output::new().line(format!("Total num streams:  {current_total_num_streams}")).print();
                     Output::new().line(format!("Total num bytes:    {current_total_num_bytes_read}")).print();
@@ -159,9 +166,7 @@ impl AssetService for TestServer {
         &self,
         _request: Request<sift_rs::assets::v1::DeleteAssetRequest>,
     ) -> Result<Response<sift_rs::assets::v1::DeleteAssetResponse>, Status> {
-        Ok(Response::new(
-            sift_rs::assets::v1::DeleteAssetResponse::default(),
-        ))
+        unimplemented!()
     }
 
     /// No-op.
@@ -179,9 +184,7 @@ impl AssetService for TestServer {
         &self,
         _request: Request<sift_rs::assets::v1::UpdateAssetRequest>,
     ) -> Result<Response<sift_rs::assets::v1::UpdateAssetResponse>, Status> {
-        Ok(Response::new(
-            sift_rs::assets::v1::UpdateAssetResponse::default(),
-        ))
+        unimplemented!()
     }
 
     /// No-op.
@@ -189,9 +192,7 @@ impl AssetService for TestServer {
         &self,
         _request: Request<sift_rs::assets::v1::ArchiveAssetRequest>,
     ) -> Result<Response<sift_rs::assets::v1::ArchiveAssetResponse>, Status> {
-        Ok(Response::new(
-            sift_rs::assets::v1::ArchiveAssetResponse::default(),
-        ))
+        unimplemented!()
     }
 }
 
@@ -209,11 +210,7 @@ impl IngestionConfigService for TestServer {
             .ok_or(Status::not_found("ingestion config not found"))?;
 
         Ok(Response::new(GetIngestionConfigResponse {
-            ingestion_config: Some(IngestionConfig {
-                ingestion_config_id: ingestion_config.ingestion_config_id.clone(),
-                asset_id: ingestion_config.asset_id.clone(),
-                client_key: ingestion_config.client_key.clone(),
-            }),
+            ingestion_config: Some(ingestion_config.clone()),
         }))
     }
 

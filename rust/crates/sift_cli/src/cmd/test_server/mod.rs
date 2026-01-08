@@ -14,7 +14,6 @@ use tokio::sync::watch;
 use tonic::transport::Server;
 use tonic_reflection::server::Builder;
 
-pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("../../../../sift_rs/descriptor_set.bin");
 pub mod metrics_streaming_client;
 pub mod server;
 use crate::cmd::test_server::metrics_streaming_client::Metrics;
@@ -56,7 +55,8 @@ pub async fn run(ctx: Context, args: TestServerArgs) -> Result<ExitCode> {
             .calculate_metrics(
                 &mut shutdown_rx,
                 metrics_tx,
-                args.stream_metrics.unwrap_or(false),
+                args.stream_metrics,
+                args.plain_output,
             )
             .await
             .context("calculate metrics task failed")
@@ -81,7 +81,10 @@ pub async fn run(ctx: Context, args: TestServerArgs) -> Result<ExitCode> {
     });
 
     let reflection_service = Builder::configure()
-        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .register_encoded_file_descriptor_set(sift_rs::assets::v1::FILE_DESCRIPTOR_SET)
+        .register_encoded_file_descriptor_set(sift_rs::ingest::v1::FILE_DESCRIPTOR_SET)
+        .register_encoded_file_descriptor_set(sift_rs::ingestion_configs::v2::FILE_DESCRIPTOR_SET)
+        .register_encoded_file_descriptor_set(sift_rs::ping::v1::FILE_DESCRIPTOR_SET)
         .build_v1()
         .context("failed to create gRPC reflection service")?;
 

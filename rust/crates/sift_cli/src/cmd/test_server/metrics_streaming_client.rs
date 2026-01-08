@@ -17,10 +17,10 @@ pub struct MetricsStreamingClient {
 impl MetricsStreamingClient {
     pub fn build(
         ctx: Context,
-        stream_metrics: &Option<bool>,
+        stream_metrics: &bool,
         asset_name: &Option<String>,
     ) -> Result<Option<MetricsStreamingClient>, anyhow::Error> {
-        if !stream_metrics.unwrap_or(false) {
+        if !stream_metrics {
             return Ok(None);
         }
 
