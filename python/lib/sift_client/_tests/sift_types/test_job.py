@@ -6,7 +6,16 @@ from unittest.mock import MagicMock
 import pytest
 
 from sift_client.sift_types import Job
-from sift_client.sift_types.job import JobDetails, JobStatus, JobStatusDetails, JobType
+from sift_client.sift_types.job import (
+    DataExportDetails,
+    DataExportStatusDetails,
+    DataImportDetails,
+    DataImportStatusDetails,
+    JobStatus,
+    JobType,
+    RuleEvaluationDetails,
+    RuleEvaluationStatusDetails,
+)
 
 
 @pytest.fixture
@@ -24,8 +33,8 @@ def mock_job(mock_client):
         completed_date=None,
         job_type=JobType.DATA_IMPORT,
         job_status=JobStatus.RUNNING,
-        job_status_details=JobStatusDetails(points_processed=100, points_total=1000),
-        job_details=JobDetails(data_import_id="import123"),
+        job_status_details=DataImportStatusDetails(points_processed=100, points_total=1000),
+        job_details=DataImportDetails(data_import_id="import123"),
     )
     job._apply_client_to_instance(mock_client)
     return job
@@ -46,8 +55,8 @@ def mock_finished_job(mock_client):
         completed_date=datetime.now(timezone.utc),
         job_type=JobType.DATA_IMPORT,
         job_status=JobStatus.FINISHED,
-        job_status_details=JobStatusDetails(points_processed=1000, points_total=1000),
-        job_details=JobDetails(data_import_id="import123"),
+        job_status_details=DataImportStatusDetails(points_processed=1000, points_total=1000),
+        job_details=DataImportDetails(data_import_id="import123"),
     )
     job._apply_client_to_instance(mock_client)
     return job
@@ -68,8 +77,8 @@ def mock_failed_job(mock_client):
         completed_date=datetime.now(timezone.utc),
         job_type=JobType.DATA_EXPORT,
         job_status=JobStatus.FAILED,
-        job_status_details=JobStatusDetails(error_message="Export failed"),
-        job_details=JobDetails(storage_key="exports/failed.csv"),
+        job_status_details=DataExportStatusDetails(error_message="Export failed"),
+        job_details=DataExportDetails(storage_key="exports/failed.csv"),
     )
     job._apply_client_to_instance(mock_client)
     return job
@@ -91,7 +100,7 @@ def mock_cancelled_job(mock_client):
         job_type=JobType.RULE_EVALUATION,
         job_status=JobStatus.CANCELLED,
         job_status_details=None,
-        job_details=JobDetails(report_id="report123"),
+        job_details=RuleEvaluationDetails(report_id="report123"),
     )
     job._apply_client_to_instance(mock_client)
     return job
@@ -221,57 +230,44 @@ class TestJobStatus:
 
 
 class TestJobStatusDetails:
-    """Unit tests for JobStatusDetails model."""
+    """Unit tests for JobStatusDetails types."""
 
     def test_data_import_status_details(self):
-        """Test JobStatusDetails for data import jobs."""
-        details = JobStatusDetails(points_processed=500, points_total=1000)
+        """Test DataImportStatusDetails for data import jobs."""
+        details = DataImportStatusDetails(points_processed=500, points_total=1000)
         assert details.points_processed == 500
         assert details.points_total == 1000
-        assert details.error_message is None
 
     def test_data_export_status_details(self):
-        """Test JobStatusDetails for data export jobs."""
-        details = JobStatusDetails(error_message="Export failed due to timeout")
+        """Test DataExportStatusDetails for data export jobs."""
+        details = DataExportStatusDetails(error_message="Export failed due to timeout")
         assert details.error_message == "Export failed due to timeout"
-        assert details.points_processed is None
-        assert details.points_total is None
 
-    def test_empty_status_details(self):
-        """Test JobStatusDetails with no fields set."""
-        details = JobStatusDetails()
-        assert details.points_processed is None
-        assert details.points_total is None
+    def test_data_export_status_details_empty_error(self):
+        """Test DataExportStatusDetails with no error message."""
+        details = DataExportStatusDetails()
         assert details.error_message is None
+
+    def test_rule_evaluation_status_details(self):
+        """Test RuleEvaluationStatusDetails for rule evaluation jobs."""
+        details = RuleEvaluationStatusDetails()
+        assert details is not None
 
 
 class TestJobDetails:
-    """Unit tests for JobDetails model."""
+    """Unit tests for JobDetails types."""
 
     def test_rule_evaluation_details(self):
-        """Test JobDetails for rule evaluation jobs."""
-        details = JobDetails(report_id="report123")
+        """Test RuleEvaluationDetails for rule evaluation jobs."""
+        details = RuleEvaluationDetails(report_id="report123")
         assert details.report_id == "report123"
-        assert details.data_import_id is None
-        assert details.storage_key is None
 
     def test_data_import_details(self):
-        """Test JobDetails for data import jobs."""
-        details = JobDetails(data_import_id="import456")
+        """Test DataImportDetails for data import jobs."""
+        details = DataImportDetails(data_import_id="import456")
         assert details.data_import_id == "import456"
-        assert details.report_id is None
-        assert details.storage_key is None
 
     def test_data_export_details(self):
-        """Test JobDetails for data export jobs."""
-        details = JobDetails(storage_key="exports/data.csv")
+        """Test DataExportDetails for data export jobs."""
+        details = DataExportDetails(storage_key="exports/data.csv")
         assert details.storage_key == "exports/data.csv"
-        assert details.report_id is None
-        assert details.data_import_id is None
-
-    def test_empty_details(self):
-        """Test JobDetails with no fields set."""
-        details = JobDetails()
-        assert details.report_id is None
-        assert details.data_import_id is None
-        assert details.storage_key is None
