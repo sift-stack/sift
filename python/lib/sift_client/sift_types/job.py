@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from pydantic import BaseModel
 from sift.jobs.v1.jobs_pb2 import Job as JobProto
@@ -101,8 +101,6 @@ class RuleEvaluationStatusDetails(BaseModel):
     pass
 
 
-JobStatusDetails = DataImportStatusDetails | DataExportStatusDetails | RuleEvaluationStatusDetails
-
 
 def _job_status_details_from_proto(
     proto: JobStatusDetailsProto,
@@ -142,7 +140,11 @@ class RuleEvaluationDetails(BaseModel):
     report_id: str
 
 
-JobDetails = DataImportDetails | DataExportDetails | RuleEvaluationDetails
+# Note: Using Union instead of | syntax for Python 3.9 compatibility at module level.
+# While `from __future__ import annotations` allows | in type hints (they're strings),
+# module-level type aliases are evaluated at runtime and require Union in Python <3.10.
+JobStatusDetails = Union[DataImportStatusDetails, DataExportStatusDetails, RuleEvaluationStatusDetails]
+JobDetails = Union[DataImportDetails, DataExportDetails, RuleEvaluationDetails]
 
 
 def _job_details_from_proto(proto: JobDetailsProto) -> JobDetails | None:
