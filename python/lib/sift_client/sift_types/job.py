@@ -51,6 +51,7 @@ class JobType(str, Enum):
             raise ValueError(f"Unknown JobType proto value: {proto_value}")
         return mapping[proto_value]
 
+
 class JobStatus(str, Enum):
     """Status of a job."""
 
@@ -117,9 +118,7 @@ def _job_status_details_from_proto(
             points_total=proto.data_import.points_total,
         )
     elif status_field == "data_export":
-        return DataExportStatusDetails(
-            error_message=proto.data_export.error_message or None
-        )
+        return DataExportStatusDetails(error_message=proto.data_export.error_message or None)
     elif status_field == "rule_evaluation":
         return RuleEvaluationStatusDetails()
     return None
