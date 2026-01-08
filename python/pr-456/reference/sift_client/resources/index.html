@@ -2416,10 +2416,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.RulesAPIAsync.batch_update_rules" class="md-nav__link">
+  <a href="#sift_client.resources.RulesAPIAsync.batch_update_or_create_rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch_update_rules
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch_update_or_create_rules
       
     </span>
   </a>
@@ -5624,10 +5624,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.RulesAPIAsync.batch_update_rules" class="md-nav__link">
+  <a href="#sift_client.resources.RulesAPIAsync.batch_update_or_create_rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch_update_rules
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch_update_or_create_rules
       
     </span>
   </a>
@@ -24113,12 +24113,12 @@ representation of a rule using standard Python data structures and types.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            batch_update_rules
+              <td><code><a class="autorefs autorefs-internal" title="            batch_update_or_create_rules
 
 
   
       async
-   (sift_client.resources.RulesAPIAsync.batch_update_rules)" href="#sift_client.resources.RulesAPIAsync.batch_update_rules">batch_update_rules</a></code></td>
+   (sift_client.resources.RulesAPIAsync.batch_update_or_create_rules)" href="#sift_client.resources.RulesAPIAsync.batch_update_or_create_rules">batch_update_or_create_rules</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Batch update or create multiple rules.</p>
@@ -24456,16 +24456,16 @@ representation of a rule using standard Python data structures and types.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="sift_client.resources.RulesAPIAsync.batch_update_rules" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">batch_update_rules</span>
+<h3 id="sift_client.resources.RulesAPIAsync.batch_update_or_create_rules" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">batch_update_or_create_rules</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-async"><code>async</code></small>
   </span>
 
-<a href="#sift_client.resources.RulesAPIAsync.batch_update_rules" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">batch_update_rules</span><span class="p">(</span>
+<a href="#sift_client.resources.RulesAPIAsync.batch_update_or_create_rules" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">batch_update_or_create_rules</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">rules</span><span class="p">:</span> <span class="n"><span title="typing.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            RuleCreate
 
 
@@ -24544,6 +24544,30 @@ representation of a rule using standard Python data structures and types.</p>
                       <code>False</code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">WARNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-warns-annotation">
+                  <code>UserWarning</code>
+              </span>
+            </td>
+            <td class="doc-warns-details">
+              <div class="doc-md-description">
+                <p>If not all rules are created or updated.</p>
+              </div>
             </td>
           </tr>
       </tbody>
@@ -24703,6 +24727,30 @@ representation of a rule using standard Python data structures and types.</p>
                       <code>True</code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">WARNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-warns-annotation">
+                  <code>SiftWarning</code>
+              </span>
+            </td>
+            <td class="doc-warns-details">
+              <div class="doc-md-description">
+                <p>If not all rules are created.</p>
+              </div>
             </td>
           </tr>
       </tbody>
