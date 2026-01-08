@@ -42,7 +42,7 @@ class JobType(str, Enum):
     @classmethod
     def from_proto(cls, proto_value: int) -> JobType:
         """Create from proto enum value."""
-        mapping = {
+        mapping: dict[int, JobType] = {
             JobTypeProto.JOB_TYPE_RULE_EVALUATION: JobType.RULE_EVALUATION,
             JobTypeProto.JOB_TYPE_DATA_IMPORT: JobType.DATA_IMPORT,
             JobTypeProto.JOB_TYPE_DATA_EXPORT: JobType.DATA_EXPORT,
@@ -50,7 +50,6 @@ class JobType(str, Enum):
         if proto_value not in mapping:
             raise ValueError(f"Unknown JobType proto value: {proto_value}")
         return mapping[proto_value]
-
 
 class JobStatus(str, Enum):
     """Status of a job."""
@@ -69,7 +68,7 @@ class JobStatus(str, Enum):
     @classmethod
     def from_proto(cls, proto_value: int) -> JobStatus:
         """Create from proto enum value."""
-        mapping = {
+        mapping: dict[int, JobStatus] = {
             JobStatusProto.JOB_STATUS_CREATED: JobStatus.CREATED,
             JobStatusProto.JOB_STATUS_RUNNING: JobStatus.RUNNING,
             JobStatusProto.JOB_STATUS_FINISHED: JobStatus.FINISHED,

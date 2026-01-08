@@ -279,11 +279,10 @@ class TestJobsAPIAsync:
 
             if finished_jobs:
                 job = finished_jobs[0]
-                original_status = job.job_status
 
                 # Retry should not raise an error but won't change status
                 with pytest.raises(AioRpcError, match="job cannot be retried"):
-                    retried_job = await jobs_api_async.retry(job)
+                    await jobs_api_async.retry(job)
 
     class TestJobProperties:
         """Tests for job property methods."""
