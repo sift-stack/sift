@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.1] - January 8, 2026
+### What's New
+#### Sift proto file descriptors now included
+The v0.7.1 release includes proto descriptors in generated code.
+
 ## [v0.7.0] - January 2, 2026
 ### What's New
 #### SiftStream ergonomic, performance, and more!
