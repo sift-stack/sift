@@ -1,35 +1,73 @@
 # Auto-generated stub
 
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import re
-    from datetime import datetime, timedelta
-    from pathlib import Path
     from typing import TYPE_CHECKING, Any
-
-    import pandas as pd
-    import pyarrow as pa
-
-    from sift_client.client import SiftClient
+    from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
+    from sift_client.resources._base import ResourceBase
     from sift_client.sift_types.asset import Asset, AssetUpdate
+    from sift_client.util import cel_utils as cel
+    import re
+    from datetime import datetime
+    from sift_client.client import SiftClient
+    from sift_client.sift_types.tag import Tag
+    from sift_client._internal.low_level_wrappers.calculated_channels import (
+        CalculatedChannelsLowLevelClient,
+    )
+    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.calculated_channel import (
         CalculatedChannel,
         CalculatedChannelCreate,
         CalculatedChannelUpdate,
     )
+    from sift_client.sift_types.run import Run
+    from typing import TYPE_CHECKING
+    from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
+    import pandas as pd
+    import pyarrow as pa
     from sift_client.sift_types.channel import Channel
+    from pyarrow import Table as ArrowTable
+    from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
+    from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
+    from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
+    from pathlib import Path
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
         FileAttachmentUpdate,
         RemoteFileEntityType,
     )
+    from sift_client.sift_types.test_report import TestReport
+    from sift_client.sift_types.file_attachment import FileAttachmentUpdate
+    from sift_client.sift_types.file_attachment import FileAttachment
+    from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
+    from sift_client._internal.low_level_wrappers.policies import PoliciesLowLevelClient
+    from sift_client.sift_types.policies import Policy, PolicyUpdate
+    from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
+    from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
     from sift_client.sift_types.report import Report, ReportUpdate
+    from sift_client.sift_types.rule import Rule
+    from sift.resource_attribute.v1.resource_attribute_pb2 import ResourceAttributeEntityIdentifier
+    from sift_client._internal.low_level_wrappers.resource_attribute import (
+        ResourceAttributeLowLevelClient,
+    )
+    from sift_client.sift_types.resource_attribute import (
+        ResourceAttribute,
+        ResourceAttributeEnumValue,
+        ResourceAttributeEnumValueUpdate,
+        ResourceAttributeKey,
+        ResourceAttributeKeyUpdate,
+    )
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
+    from typing import TYPE_CHECKING, Any, cast
+    from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+    from datetime import datetime, timedelta
+    from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
     from sift_client.sift_types.tag import Tag, TagUpdate
+    import uuid
+    from sift_client._internal.low_level_wrappers.test_results import TestResultsLowLevelClient
     from sift_client.sift_types.test_report import (
         TestMeasurement,
         TestMeasurementCreate,
@@ -44,9 +82,20 @@ if TYPE_CHECKING:
         TestStepType,
         TestStepUpdate,
     )
+    from sift_client.util.cel_utils import and_, equals, in_
+    from sift_client._internal.low_level_wrappers.user_attributes import (
+        UserAttributesLowLevelClient,
+    )
+    from sift_client.sift_types.user_attributes import (
+        UserAttributeKey,
+        UserAttributeKeyUpdate,
+        UserAttributeValue,
+    )
+    import builtins
 
 class AssetsAPI:
-    """Sync counterpart to `AssetsAPIAsync`.
+    """
+    Sync counterpart to `AssetsAPIAsync`.
 
     High-level API for interacting with assets.
 
@@ -58,16 +107,19 @@ class AssetsAPI:
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the AssetsAPI.
+        """
+        Initialize the AssetsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
-        """Archive an asset.
+        """
+        Archive an asset.
 
         Args:
              asset: The Asset or asset ID to archive.
@@ -76,10 +128,12 @@ class AssetsAPI:
         Returns:
              The archived Asset.
         """
+
         ...
 
     def find(self, **kwargs) -> Asset | None:
-        """Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
+        """
+        Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
         raises an error.
 
         Args:
@@ -88,10 +142,12 @@ class AssetsAPI:
         Returns:
             The Asset found or None.
         """
+
         ...
 
     def get(self, *, asset_id: str | None = None, name: str | None = None) -> Asset:
-        """Get an Asset.
+        """
+        Get an Asset.
 
         Args:
             asset_id: The ID of the asset.
@@ -100,6 +156,7 @@ class AssetsAPI:
         Returns:
             The Asset.
         """
+
         ...
 
     def list_(
@@ -124,7 +181,8 @@ class AssetsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Asset]:
-        """List assets with optional filtering.
+        """
+        List assets with optional filtering.
 
         Args:
             name: Exact name of the asset.
@@ -149,10 +207,12 @@ class AssetsAPI:
         Returns:
             A list of Asset objects that match the filter criteria.
         """
+
         ...
 
     def unarchive(self, asset: str | Asset) -> Asset:
-        """Unarchive an asset.
+        """
+        Unarchive an asset.
 
         Args:
              asset: The Asset or asset ID to unarchive.
@@ -160,10 +220,12 @@ class AssetsAPI:
         Returns:
              The unarchived Asset.
         """
+
         ...
 
     def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
-        """Update an Asset.
+        """
+        Update an Asset.
 
         Args:
             asset: The Asset or asset ID to update.
@@ -172,10 +234,12 @@ class AssetsAPI:
         Returns:
             The updated Asset.
         """
+
         ...
 
 class CalculatedChannelsAPI:
-    """Sync counterpart to `CalculatedChannelsAPIAsync`.
+    """
+    Sync counterpart to `CalculatedChannelsAPIAsync`.
 
     High-level API for interacting with calculated channels.
 
@@ -187,16 +251,19 @@ class CalculatedChannelsAPI:
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the CalculatedChannelsAPI.
+        """
+        Initialize the CalculatedChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def archive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
-        """Archive a calculated channel.
+        """
+        Archive a calculated channel.
 
         Args:
             calculated_channel: The id or CalculatedChannel object of the calculated channel to archive.
@@ -204,10 +271,12 @@ class CalculatedChannelsAPI:
         Returns:
             The archived CalculatedChannel.
         """
+
         ...
 
     def create(self, create: CalculatedChannelCreate | dict) -> CalculatedChannel:
-        """Create a calculated channel.
+        """
+        Create a calculated channel.
 
         Args:
             create: A CalculatedChannelCreate object or dictionary with configuration for the new calculated channel.
@@ -216,10 +285,12 @@ class CalculatedChannelsAPI:
         Returns:
             The created CalculatedChannel.
         """
+
         ...
 
     def find(self, **kwargs) -> CalculatedChannel | None:
-        """Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
+        """
+        Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
         Will raise an error if multiple calculated channels are found.
 
         Args:
@@ -228,12 +299,14 @@ class CalculatedChannelsAPI:
         Returns:
             The CalculatedChannel found or None.
         """
+
         ...
 
     def get(
         self, *, calculated_channel_id: str | None = None, client_key: str | None = None
     ) -> CalculatedChannel:
-        """Get a Calculated Channel.
+        """
+        Get a Calculated Channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.
@@ -245,6 +318,7 @@ class CalculatedChannelsAPI:
         Raises:
             ValueError: If neither calculated_channel_id nor client_key is provided.
         """
+
         ...
 
     def list_(
@@ -273,7 +347,8 @@ class CalculatedChannelsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[CalculatedChannel]:
-        """List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
+        """
+        List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
 
         Args:
             name: Exact name of the calculated channel.
@@ -302,6 +377,7 @@ class CalculatedChannelsAPI:
         Returns:
             A list of CalculatedChannels that matches the filter.
         """
+
         ...
 
     def list_versions(
@@ -327,7 +403,8 @@ class CalculatedChannelsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[CalculatedChannel]:
-        """List versions of a calculated channel.
+        """
+        List versions of a calculated channel.
 
         Args:
             calculated_channel: The CalculatedChannel or ID of the calculated channel to get versions for.
@@ -353,10 +430,12 @@ class CalculatedChannelsAPI:
         Returns:
             A list of CalculatedChannel versions that match the filter criteria.
         """
+
         ...
 
     def unarchive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
-        """Unarchive a calculated channel.
+        """
+        Unarchive a calculated channel.
 
         Args:
             calculated_channel: The id or CalculatedChannel object of the calculated channel to unarchive.
@@ -364,6 +443,7 @@ class CalculatedChannelsAPI:
         Returns:
             The unarchived CalculatedChannel.
         """
+
         ...
 
     def update(
@@ -373,7 +453,8 @@ class CalculatedChannelsAPI:
         *,
         user_notes: str | None = None,
     ) -> CalculatedChannel:
-        """Update a Calculated Channel.
+        """
+        Update a Calculated Channel.
 
         Args:
             calculated_channel: The CalculatedChannel or id of the CalculatedChannel to update.
@@ -383,10 +464,12 @@ class CalculatedChannelsAPI:
         Returns:
             The updated CalculatedChannel.
         """
+
         ...
 
 class ChannelsAPI:
-    """Sync counterpart to `ChannelsAPIAsync`.
+    """
+    Sync counterpart to `ChannelsAPIAsync`.
 
     High-level API for interacting with channels.
 
@@ -398,16 +481,19 @@ class ChannelsAPI:
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the ChannelsAPI.
+        """
+        Initialize the ChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def find(self, **kwargs) -> Channel | None:
-        """Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
+        """
+        Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
         raises an error.
 
         Args:
@@ -416,10 +502,12 @@ class ChannelsAPI:
         Returns:
             The Channel found or None.
         """
+
         ...
 
     def get(self, *, channel_id: str) -> Channel:
-        """Get a Channel.
+        """
+        Get a Channel.
 
         Args:
             channel_id: The ID of the channel.
@@ -427,6 +515,7 @@ class ChannelsAPI:
         Returns:
             The Channel.
         """
+
         ...
 
     def get_data(
@@ -439,7 +528,8 @@ class ChannelsAPI:
         limit: int | None = None,
         ignore_cache: bool = False,
     ) -> dict[str, pd.DataFrame]:
-        """Get data for one or more channels.
+        """
+        Get data for one or more channels.
 
         Args:
             channels: The channels to get data for.
@@ -452,6 +542,7 @@ class ChannelsAPI:
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
+
         ...
 
     def get_data_as_arrow(
@@ -464,7 +555,10 @@ class ChannelsAPI:
         limit: int | None = None,
         ignore_cache: bool = False,
     ) -> dict[str, pa.Table]:
-        """Get data for one or more channels as pyarrow tables."""
+        """
+        Get data for one or more channels as pyarrow tables.
+        """
+
         ...
 
     def list_(
@@ -488,7 +582,8 @@ class ChannelsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Channel]:
-        """List channels with optional filtering.
+        """
+        List channels with optional filtering.
 
         Args:
             name: Exact name of the channel.
@@ -512,10 +607,12 @@ class ChannelsAPI:
         Returns:
             A list of Channels that matches the filter criteria.
         """
+
         ...
 
 class FileAttachmentsAPI:
-    """Sync counterpart to `FileAttachmentsAPIAsync`.
+    """
+    Sync counterpart to `FileAttachmentsAPIAsync`.
 
     High-level API for interacting with file attachments (remote files).
 
@@ -524,35 +621,42 @@ class FileAttachmentsAPI:
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the FileAttachmentsAPIAsync.
+        """
+        Initialize the FileAttachmentsAPIAsync.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def delete(
         self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str
     ) -> None:
-        """Batch delete multiple file attachments.
+        """
+        Batch delete multiple file attachments.
 
         Args:
             file_attachments: List of FileAttachments or the IDs of the file attachments to delete (up to 1000).
         """
+
         ...
 
     def download(self, *, file_attachment: FileAttachment | str, output_path: str | Path) -> None:
-        """Download a file attachment to a local path.
+        """
+        Download a file attachment to a local path.
 
         Args:
             file_attachment: The FileAttachment or the ID of the file attachment to download.
             output_path: The path to download the file attachment to.
         """
+
         ...
 
     def get(self, *, file_attachment_id: str) -> FileAttachment:
-        """Get a file attachment by ID.
+        """
+        Get a file attachment by ID.
 
         Args:
             file_attachment_id: The ID of the file attachment to retrieve.
@@ -560,10 +664,12 @@ class FileAttachmentsAPI:
         Returns:
             The FileAttachment.
         """
+
         ...
 
     def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
-        """Get a download URL for a file attachment.
+        """
+        Get a download URL for a file attachment.
 
         Args:
             file_attachment: The FileAttachment or the ID of the file attachment.
@@ -571,6 +677,7 @@ class FileAttachmentsAPI:
         Returns:
             The download URL for the file attachment.
         """
+
         ...
 
     def list_(
@@ -589,7 +696,8 @@ class FileAttachmentsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[FileAttachment]:
-        """List file attachments with optional filtering.
+        """
+        List file attachments with optional filtering.
 
         Args:
             name: Exact name of the file attachment.
@@ -608,10 +716,12 @@ class FileAttachmentsAPI:
         Returns:
             A list of FileAttachment objects that match the filter criteria.
         """
+
         ...
 
     def update(self, *, file_attachment: FileAttachmentUpdate | dict) -> FileAttachment:
-        """Update a file attachment.
+        """
+        Update a file attachment.
 
         Args:
             file_attachment: The FileAttachmentUpdate with fields to update.
@@ -619,6 +729,7 @@ class FileAttachmentsAPI:
         Returns:
             The updated FileAttachment.
         """
+
         ...
 
     def upload(
@@ -630,7 +741,8 @@ class FileAttachmentsAPI:
         description: str | None = None,
         organization_id: str | None = None,
     ) -> FileAttachment:
-        """Upload a file attachment to a remote file.
+        """
+        Upload a file attachment to a remote file.
 
         Args:
             path: The path to the file to upload.
@@ -642,56 +754,182 @@ class FileAttachmentsAPI:
         Returns:
             The uploaded FileAttachment.
         """
+
         ...
 
 class PingAPI:
-    """Sync counterpart to `PingAPIAsync`.
+    """
+    Sync counterpart to `PingAPIAsync`.
 
     High-level API for performing health checks.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the AssetsAPI.
+        """
+        Initialize the AssetsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def ping(self) -> str:
-        """Send a ping request to the server.
+        """
+        Send a ping request to the server.
 
         Returns:
             The response from the server.
         """
+
+        ...
+
+class PoliciesAPI:
+    """
+    Sync counterpart to `PoliciesAPIAsync`.
+
+    High-level API for interacting with policies.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """
+        Initialize the PoliciesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, policy_id: str) -> Policy:
+        """
+        Archive a policy.
+
+        Args:
+            policy_id: The policy ID to archive.
+
+        Returns:
+            The archived Policy.
+        """
+
+        ...
+
+    def create(
+        self,
+        name: str,
+        cedar_policy: str,
+        description: str | None = None,
+        version_notes: str | None = None,
+    ) -> Policy:
+        """
+        Create a new policy.
+
+        Args:
+            name: The name of the policy.
+            cedar_policy: The Cedar policy string.
+            description: Optional description.
+            version_notes: Optional version notes.
+
+        Returns:
+            The created Policy.
+        """
+
+        ...
+
+    def get(self, policy_id: str) -> Policy:
+        """
+        Get a policy by ID.
+
+        Args:
+            policy_id: The policy ID.
+
+        Returns:
+            The Policy.
+        """
+
+        ...
+
+    def list(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        organization_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[Policy]:
+        """
+        List policies with optional filtering.
+
+        Args:
+            name: Exact name of the policy.
+            name_contains: Partial name of the policy.
+            organization_id: Filter by organization ID.
+            include_archived: If True, include archived policies in results.
+            filter_query: Explicit CEL query to filter policies.
+            order_by: How to order the retrieved policies.
+            limit: How many policies to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Policies that match the filter.
+        """
+
+        ...
+
+    def update(
+        self, policy: str | Policy, update: PolicyUpdate | dict, version_notes: str | None = None
+    ) -> Policy:
+        """
+        Update a policy.
+
+        Args:
+            policy: The Policy or policy ID to update.
+            update: Updates to apply to the policy.
+            version_notes: Optional version notes for the update.
+
+        Returns:
+            The updated Policy.
+        """
+
         ...
 
 class ReportsAPI:
-    """Sync counterpart to `ReportsAPIAsync`.
+    """
+    Sync counterpart to `ReportsAPIAsync`.
 
     High-level API for interacting with reports.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the ReportsAPI.
+        """
+        Initialize the ReportsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def archive(self, *, report: str | Report) -> Report:
-        """Archive a report."""
+        """
+        Archive a report.
+        """
+
         ...
 
     def cancel(self, *, report: str | Report) -> None:
-        """Cancel a report.
+        """
+        Cancel a report.
 
         Args:
             report: The Report or report ID to cancel.
         """
+
         ...
 
     def create_from_applicable_rules(
@@ -703,7 +941,8 @@ class ReportsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
     ) -> Report | None:
-        """Create a new report from applicable rules based on a run.
+        """
+        Create a new report from applicable rules based on a run.
         If you want to evaluate against assets, use the rules client instead since no report is created in that case.
 
         Args:
@@ -716,6 +955,7 @@ class ReportsAPI:
         Returns:
             The created Report or None if no report was created.
         """
+
         ...
 
     def create_from_rules(
@@ -726,7 +966,8 @@ class ReportsAPI:
         organization_id: str | None = None,
         rules: list[Rule] | list[str],
     ) -> Report | None:
-        """Create a new report from rules.
+        """
+        Create a new report from rules.
 
         Args:
             name: The name of the report.
@@ -737,6 +978,7 @@ class ReportsAPI:
         Returns:
             The created Report or None if no report was created.
         """
+
         ...
 
     def create_from_template(
@@ -747,7 +989,8 @@ class ReportsAPI:
         organization_id: str | None = None,
         name: str | None = None,
     ) -> Report | None:
-        """Create a new report from a report template.
+        """
+        Create a new report from a report template.
 
         Args:
             report_template_id: The ID of the report template to use.
@@ -758,10 +1001,12 @@ class ReportsAPI:
         Returns:
             The created Report or None if no report was created.
         """
+
         ...
 
     def find(self, **kwargs) -> Report | None:
-        """Find a single report matching the given query. Takes the same arguments as `list`. If more than one report is found,
+        """
+        Find a single report matching the given query. Takes the same arguments as `list`. If more than one report is found,
         raises an error.
 
         Args:
@@ -770,10 +1015,12 @@ class ReportsAPI:
         Returns:
             The Report found or None.
         """
+
         ...
 
     def get(self, *, report_id: str) -> Report:
-        """Get a Report.
+        """
+        Get a Report.
 
         Args:
             report_id: The ID of the report.
@@ -781,6 +1028,7 @@ class ReportsAPI:
         Returns:
             The Report.
         """
+
         ...
 
     def list_(
@@ -808,7 +1056,8 @@ class ReportsAPI:
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
     ) -> list[Report]:
-        """List reports with optional filtering.
+        """
+        List reports with optional filtering.
 
         Args:
             name: Exact name of the report.
@@ -836,10 +1085,12 @@ class ReportsAPI:
         Returns:
             A list of Reports that matches the filter.
         """
+
         ...
 
     def rerun(self, *, report: str | Report) -> tuple[str, str]:
-        """Rerun a report.
+        """
+        Rerun a report.
 
         Args:
             report: The Report or report ID to rerun.
@@ -847,23 +1098,397 @@ class ReportsAPI:
         Returns:
             A tuple of (job_id, new_report_id).
         """
+
         ...
 
     def unarchive(self, *, report: str | Report) -> Report:
-        """Unarchive a report."""
+        """
+        Unarchive a report.
+        """
+
         ...
 
     def update(self, report: str | Report, update: ReportUpdate | dict) -> Report:
-        """Update a report.
+        """
+        Update a report.
 
         Args:
             report: The Report or report ID to update.
             update: The updates to apply.
         """
+
+        ...
+
+class ResourceAttributesAPI:
+    """
+    Sync counterpart to `ResourceAttributesAPIAsync`.
+
+    High-level API for interacting with resource attributes.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """
+        Initialize the ResourceAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, attribute_id: str) -> None:
+        """
+        Archive a resource attribute.
+
+        Args:
+            attribute_id: The resource attribute ID to archive.
+        """
+
+        ...
+
+    def archive_enum_value(self, enum_value_id: str, replacement_enum_value_id: str) -> int:
+        """
+        Archive a resource attribute enum value and migrate attributes.
+
+        Args:
+            enum_value_id: The enum value ID to archive.
+            replacement_enum_value_id: The enum value ID to migrate attributes to.
+
+        Returns:
+            The number of resource attributes migrated.
+        """
+
+        ...
+
+    def archive_key(self, key_id: str) -> None:
+        """
+        Archive a resource attribute key.
+
+        Args:
+            key_id: The resource attribute key ID to archive.
+        """
+
+        ...
+
+    def batch_archive(self, attribute_ids: list[str]) -> None:
+        """
+        Archive multiple resource attributes.
+
+        Args:
+            attribute_ids: List of resource attribute IDs to archive.
+        """
+
+        ...
+
+    def batch_archive_enum_values(self, archival_requests: list[dict]) -> int:
+        """
+        Archive multiple resource attribute enum values and migrate attributes.
+
+        Args:
+            archival_requests: List of dicts with 'archived_id' and 'replacement_id' keys.
+
+        Returns:
+            Total number of resource attributes migrated.
+        """
+
+        ...
+
+    def batch_archive_keys(self, key_ids: list[str]) -> None:
+        """
+        Archive multiple resource attribute keys.
+
+        Args:
+            key_ids: List of resource attribute key IDs to archive.
+        """
+
+        ...
+
+    def batch_unarchive(self, attribute_ids: list[str]) -> None:
+        """
+        Unarchive multiple resource attributes.
+
+        Args:
+            attribute_ids: List of resource attribute IDs to unarchive.
+        """
+
+        ...
+
+    def batch_unarchive_enum_values(self, enum_value_ids: list[str]) -> None:
+        """
+        Unarchive multiple resource attribute enum values.
+
+        Args:
+            enum_value_ids: List of resource attribute enum value IDs to unarchive.
+        """
+
+        ...
+
+    def batch_unarchive_keys(self, key_ids: list[str]) -> None:
+        """
+        Unarchive multiple resource attribute keys.
+
+        Args:
+            key_ids: List of resource attribute key IDs to unarchive.
+        """
+
+        ...
+
+    def create(
+        self,
+        key_id: str,
+        entities: str | dict | list[str] | list[dict],
+        entity_type: int | None = None,
+        resource_attribute_enum_value_id: str | None = None,
+        boolean_value: bool | None = None,
+        number_value: float | None = None,
+    ) -> ResourceAttribute | builtins.list[ResourceAttribute]:
+        """
+        Create a resource attribute for one or more entities.
+
+        Args:
+            key_id: The resource attribute key ID.
+            entities: Single entity_id (str), single entity dict ({entity_id: str, entity_type: int}),
+                     list of entity_ids (list[str]), or list of entity dicts (list[dict]).
+            entity_type: Required if entities is str or list[str]. The ResourceAttributeEntityType enum value.
+            resource_attribute_enum_value_id: Enum value ID (if applicable).
+            boolean_value: Boolean value (if applicable).
+            number_value: Number value (if applicable).
+
+        Returns:
+            Single ResourceAttribute if entities is a single value, list of ResourceAttributes if it's a list.
+        """
+
+        ...
+
+    def create_enum_value(
+        self, key_id: str, display_name: str, description: str | None = None
+    ) -> ResourceAttributeEnumValue:
+        """
+        Create a new resource attribute enum value.
+
+        Args:
+            key_id: The resource attribute key ID.
+            display_name: The display name of the enum value.
+            description: Optional description.
+
+        Returns:
+            The created ResourceAttributeEnumValue.
+        """
+
+        ...
+
+    def create_key(
+        self,
+        display_name: str,
+        description: str | None = None,
+        key_type: int | None = None,
+        initial_enum_values: list[dict] | None = None,
+    ) -> ResourceAttributeKey:
+        """
+        Create a new resource attribute key.
+
+        Args:
+            display_name: The display name of the key.
+            description: Optional description.
+            key_type: The ResourceAttributeKeyType enum value.
+            initial_enum_values: Optional list of initial enum values [{display_name: str, description: str}].
+
+        Returns:
+            The created ResourceAttributeKey.
+        """
+
+        ...
+
+    def get(self, attribute_id: str) -> ResourceAttribute:
+        """
+        Get a resource attribute by ID.
+
+        Args:
+            attribute_id: The resource attribute ID.
+
+        Returns:
+            The ResourceAttribute.
+        """
+
+        ...
+
+    def get_enum_value(self, enum_value_id: str) -> ResourceAttributeEnumValue:
+        """
+        Get a resource attribute enum value by ID.
+
+        Args:
+            enum_value_id: The resource attribute enum value ID.
+
+        Returns:
+            The ResourceAttributeEnumValue.
+        """
+
+        ...
+
+    def get_key(self, key_id: str) -> ResourceAttributeKey:
+        """
+        Get a resource attribute key by ID.
+
+        Args:
+            key_id: The resource attribute key ID.
+
+        Returns:
+            The ResourceAttributeKey.
+        """
+
+        ...
+
+    def list(
+        self,
+        *,
+        entity_id: str | None = None,
+        entity_type: int | None = None,
+        key_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[ResourceAttribute]:
+        """
+        List resource attributes with optional filtering.
+
+        Args:
+            entity_id: Filter by entity ID.
+            entity_type: Filter by ResourceAttributeEntityType enum value.
+            key_id: Filter by resource attribute key ID.
+            include_archived: If True, include archived attributes in results.
+            filter_query: Explicit CEL query to filter attributes.
+            order_by: How to order the retrieved attributes.
+            limit: How many attributes to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of ResourceAttributes that match the filter.
+        """
+
+        ...
+
+    def list_enum_values(
+        self,
+        key_id: str,
+        *,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[ResourceAttributeEnumValue]:
+        """
+        List resource attribute enum values for a key with optional filtering.
+
+        Args:
+            key_id: The resource attribute key ID.
+            include_archived: If True, include archived enum values in results.
+            filter_query: Explicit CEL query to filter enum values.
+            order_by: How to order the retrieved enum values.
+            limit: How many enum values to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of ResourceAttributeEnumValues that match the filter.
+        """
+
+        ...
+
+    def list_keys(
+        self,
+        *,
+        key_id: str | None = None,
+        name_contains: str | None = None,
+        key_type: int | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[ResourceAttributeKey]:
+        """
+        List resource attribute keys with optional filtering.
+
+        Args:
+            key_id: Filter by key ID.
+            name_contains: Partial display name of the key.
+            key_type: Filter by ResourceAttributeKeyType enum value.
+            include_archived: If True, include archived keys in results.
+            filter_query: Explicit CEL query to filter keys.
+            order_by: How to order the retrieved keys.
+            limit: How many keys to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of ResourceAttributeKeys that match the filter.
+        """
+
+        ...
+
+    def unarchive(self, attribute_id: str) -> None:
+        """
+        Unarchive a resource attribute.
+
+        Args:
+            attribute_id: The resource attribute ID to unarchive.
+        """
+
+        ...
+
+    def unarchive_enum_value(self, enum_value_id: str) -> None:
+        """
+        Unarchive a resource attribute enum value.
+
+        Args:
+            enum_value_id: The resource attribute enum value ID to unarchive.
+        """
+
+        ...
+
+    def unarchive_key(self, key_id: str) -> None:
+        """
+        Unarchive a resource attribute key.
+
+        Args:
+            key_id: The resource attribute key ID to unarchive.
+        """
+
+        ...
+
+    def update_enum_value(
+        self,
+        enum_value: str | ResourceAttributeEnumValue,
+        update: ResourceAttributeEnumValueUpdate | dict,
+    ) -> ResourceAttributeEnumValue:
+        """
+        Update a resource attribute enum value.
+
+        Args:
+            enum_value: The ResourceAttributeEnumValue or enum value ID to update.
+            update: Updates to apply to the enum value.
+
+        Returns:
+            The updated ResourceAttributeEnumValue.
+        """
+
+        ...
+
+    def update_key(
+        self, key: str | ResourceAttributeKey, update: ResourceAttributeKeyUpdate | dict
+    ) -> ResourceAttributeKey:
+        """
+        Update a resource attribute key.
+
+        Args:
+            key: The ResourceAttributeKey or key ID to update.
+            update: Updates to apply to the key.
+
+        Returns:
+            The updated ResourceAttributeKey.
+        """
+
         ...
 
 class RulesAPI:
-    """Sync counterpart to `RulesAPIAsync`.
+    """
+    Sync counterpart to `RulesAPIAsync`.
 
     High-level API for interacting with rules.
 
@@ -875,16 +1500,19 @@ class RulesAPI:
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the RulesAPI.
+        """
+        Initialize the RulesAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def archive(self, rule: str | Rule) -> Rule:
-        """Archive a rule.
+        """
+        Archive a rule.
 
         Args:
             rule: The id or Rule object of the rule to archive.
@@ -892,10 +1520,12 @@ class RulesAPI:
         Returns:
             The archived Rule.
         """
+
         ...
 
     def create(self, create: RuleCreate | dict) -> Rule:
-        """Create a new rule.
+        """
+        Create a new rule.
 
         Args:
             create: A RuleCreate object or dictionary with configuration for the new rule.
@@ -903,10 +1533,12 @@ class RulesAPI:
         Returns:
             The created Rule.
         """
+
         ...
 
     def find(self, **kwargs) -> Rule | None:
-        """Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
+        """
+        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
 
         Args:
@@ -915,10 +1547,12 @@ class RulesAPI:
         Returns:
             The Rule found or None.
         """
+
         ...
 
     def get(self, *, rule_id: str | None = None, client_key: str | None = None) -> Rule:
-        """Get a Rule.
+        """
+        Get a Rule.
 
         Args:
             rule_id: The ID of the rule.
@@ -927,6 +1561,7 @@ class RulesAPI:
         Returns:
             The Rule.
         """
+
         ...
 
     def list_(
@@ -953,7 +1588,8 @@ class RulesAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Rule]:
-        """List rules with optional filtering.
+        """
+        List rules with optional filtering.
 
         Args:
             name: Exact name of the rule.
@@ -980,10 +1616,12 @@ class RulesAPI:
         Returns:
             A list of Rules that matches the filter.
         """
+
         ...
 
     def unarchive(self, rule: str | Rule) -> Rule:
-        """Unarchive a rule.
+        """
+        Unarchive a rule.
 
         Args:
             rule: The id or Rule object of the rule to unarchive.
@@ -991,12 +1629,14 @@ class RulesAPI:
         Returns:
             The unarchived Rule.
         """
+
         ...
 
     def update(
         self, rule: Rule | str, update: RuleUpdate | dict, *, version_notes: str | None = None
     ) -> Rule:
-        """Update a Rule.
+        """
+        Update a Rule.
 
         Args:
             rule: The Rule or rule ID to update.
@@ -1006,10 +1646,12 @@ class RulesAPI:
         Returns:
             The updated Rule.
         """
+
         ...
 
 class RunsAPI:
-    """Sync counterpart to `RunsAPIAsync`.
+    """
+    Sync counterpart to `RunsAPIAsync`.
 
     High-level API for interacting with runs.
 
@@ -1021,20 +1663,24 @@ class RunsAPI:
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the RunsAPI.
+        """
+        Initialize the RunsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def archive(self, run: str | Run) -> Run:
-        """Archive a run.
+        """
+        Archive a run.
 
         Args:
             run: The Run or run ID to archive.
         """
+
         ...
 
     def create(
@@ -1043,7 +1689,8 @@ class RunsAPI:
         assets: list[str | Asset] | None = None,
         associate_new_data: bool = False,
     ) -> Run:
-        """Create a new run.
+        """
+        Create a new run.
 
         Note on assets: You do not need to provide asset info when creating a run.
         If you pass a Run to future ingestion configs associated with assets, the association will happen automatically then.
@@ -1058,10 +1705,12 @@ class RunsAPI:
         Returns:
             The created Run.
         """
+
         ...
 
     def find(self, **kwargs) -> Run | None:
-        """Find a single run matching the given query. Takes the same arguments as `list_`. If more than one run is found,
+        """
+        Find a single run matching the given query. Takes the same arguments as `list_`. If more than one run is found,
         raises an error.
 
         Args:
@@ -1070,10 +1719,12 @@ class RunsAPI:
         Returns:
             The Run found or None.
         """
+
         ...
 
     def get(self, *, run_id: str | None = None, client_key: str | None = None) -> Run:
-        """Get a Run.
+        """
+        Get a Run.
 
         Args:
             run_id: The ID of the run.
@@ -1082,6 +1733,7 @@ class RunsAPI:
         Returns:
             The Run.
         """
+
         ...
 
     def list_(
@@ -1116,7 +1768,8 @@ class RunsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Run]:
-        """List runs with optional filtering.
+        """
+        List runs with optional filtering.
 
         Args:
             name: Exact name of the run.
@@ -1151,26 +1804,32 @@ class RunsAPI:
         Returns:
             A list of Run objects that match the filter criteria.
         """
+
         ...
 
     def stop(self, run: str | Run) -> Run:
-        """Stop a run by setting its stop time to the current time.
+        """
+        Stop a run by setting its stop time to the current time.
 
         Args:
             run: The Run or run ID to stop.
         """
+
         ...
 
     def unarchive(self, run: str | Run) -> Run:
-        """Unarchive a run.
+        """
+        Unarchive a run.
 
         Args:
             run: The Run or run ID to unarchive.
         """
+
         ...
 
     def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
-        """Update a Run.
+        """
+        Update a Run.
 
         Args:
             run: The Run or run ID to update.
@@ -1179,25 +1838,30 @@ class RunsAPI:
         Returns:
             The updated Run.
         """
+
         ...
 
 class TagsAPI:
-    """Sync counterpart to `TagsAPIAsync`.
+    """
+    Sync counterpart to `TagsAPIAsync`.
 
     High-level API for interacting with tags.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the TagsAPI.
+        """
+        Initialize the TagsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def create(self, name: str) -> Tag:
-        """Create a new tag.
+        """
+        Create a new tag.
 
         Args:
             name: The name of the tag.
@@ -1205,10 +1869,12 @@ class TagsAPI:
         Returns:
             The created Tag.
         """
+
         ...
 
     def find(self, **kwargs) -> Tag | None:
-        """Find a single tag matching the given query. Takes the same arguments as `list`. If more than one tag is found,
+        """
+        Find a single tag matching the given query. Takes the same arguments as `list`. If more than one tag is found,
         raises an error.
 
         Args:
@@ -1217,10 +1883,12 @@ class TagsAPI:
         Returns:
             The Tag found or None.
         """
+
         ...
 
     def find_or_create(self, names: list[str]) -> list[Tag]:
-        """Find tags by name or create them if they don't exist.
+        """
+        Find tags by name or create them if they don't exist.
 
         Args:
             names: List of tag names to find or create.
@@ -1228,6 +1896,7 @@ class TagsAPI:
         Returns:
             List of Tags that were found or created.
         """
+
         ...
 
     def list_(
@@ -1242,7 +1911,8 @@ class TagsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Tag]:
-        """List tags with optional filtering.
+        """
+        List tags with optional filtering.
 
         Args:
             name: Exact name of the tag.
@@ -1257,10 +1927,12 @@ class TagsAPI:
         Returns:
             A list of Tags that matches the filter.
         """
+
         ...
 
     def update(self, tag: str | Tag, update: TagUpdate | dict) -> Tag:
-        """Update a Tag.
+        """
+        Update a Tag.
 
         Args:
             tag: The Tag or tag ID to update.
@@ -1273,33 +1945,40 @@ class TagsAPI:
             The tags API doesn't have an update method in the proto,
             so this would need to be implemented if the API supports it.
         """
+
         ...
 
 class TestResultsAPI:
-    """Sync counterpart to `TestResultsAPIAsync`.
+    """
+    Sync counterpart to `TestResultsAPIAsync`.
 
     High-level API for interacting with test reports, steps, and measurements.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the TestResultsAPI.
+        """
+        Initialize the TestResultsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
+
         ...
 
     def _run(self, coro): ...
     def archive(self, *, test_report: str | TestReport) -> TestReport:
-        """Archive a test report.
+        """
+        Archive a test report.
 
         Args:
             test_report: The TestReport or test report ID to archive.
         """
+
         ...
 
     def create(self, test_report: TestReportCreate | dict) -> TestReport:
-        """Create a new test report.
+        """
+        Create a new test report.
 
         Args:
             test_report: The test report to create (can be TestReport or TestReportCreate).
@@ -1307,12 +1986,14 @@ class TestResultsAPI:
         Returns:
             The created TestReport.
         """
+
         ...
 
     def create_measurement(
         self, test_measurement: TestMeasurementCreate | dict, update_step: bool = False
     ) -> TestMeasurement:
-        """Create a new test measurement.
+        """
+        Create a new test measurement.
 
         Args:
             test_measurement: The test measurement to create (can be TestMeasurement or TestMeasurementCreate).
@@ -1321,12 +2002,14 @@ class TestResultsAPI:
         Returns:
             The created TestMeasurement.
         """
+
         ...
 
     def create_measurements(
         self, test_measurements: list[TestMeasurementCreate]
     ) -> tuple[int, list[str]]:
-        """Create multiple test measurements in a single request.
+        """
+        Create multiple test measurements in a single request.
 
         Args:
             test_measurements: The test measurements to create.
@@ -1334,10 +2017,12 @@ class TestResultsAPI:
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
         """
+
         ...
 
     def create_step(self, test_step: TestStepCreate | dict) -> TestStep:
-        """Create a new test step.
+        """
+        Create a new test step.
 
         Args:
             test_step: The test step to create (can be TestStep or TestStepCreate).
@@ -1345,34 +2030,42 @@ class TestResultsAPI:
         Returns:
             The created TestStep.
         """
+
         ...
 
     def delete(self, *, test_report: str | TestReport) -> None:
-        """Delete a test report.
+        """
+        Delete a test report.
 
         Args:
             test_report: The TestReport or test report ID to delete.
         """
+
         ...
 
     def delete_measurement(self, *, test_measurement: str | TestMeasurement) -> None:
-        """Delete a test measurement.
+        """
+        Delete a test measurement.
 
         Args:
             test_measurement: The TestMeasurement or measurement ID to delete.
         """
+
         ...
 
     def delete_step(self, *, test_step: str | TestStep) -> None:
-        """Delete a test step.
+        """
+        Delete a test step.
 
         Args:
             test_step: The TestStep or test step ID to delete.
         """
+
         ...
 
     def find(self, **kwargs) -> TestReport | None:
-        """Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
+        """
+        Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
         raises an error.
 
         Args:
@@ -1381,10 +2074,12 @@ class TestResultsAPI:
         Returns:
             The TestReport found or None.
         """
+
         ...
 
     def get(self, *, test_report_id: str) -> TestReport:
-        """Get a TestReport.
+        """
+        Get a TestReport.
 
         Args:
             test_report_id: The ID of the test report.
@@ -1392,18 +2087,22 @@ class TestResultsAPI:
         Returns:
             The TestReport.
         """
+
         ...
 
     def get_step(self, test_step: str | TestStep) -> TestStep:
-        """Get a TestStep.
+        """
+        Get a TestStep.
 
         Args:
             test_step: The TestStep or test step ID to get.
         """
+
         ...
 
     def import_(self, test_file: str | Path) -> TestReport:
-        """Import a test report from an already-uploaded file.
+        """
+        Import a test report from an already-uploaded file.
 
         Args:
             test_file: The path to the test report file to import. We currently only support XML files exported from NI TestStand.
@@ -1411,6 +2110,7 @@ class TestResultsAPI:
         Returns:
             The imported TestReport.
         """
+
         ...
 
     def list_(
@@ -1439,7 +2139,8 @@ class TestResultsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestReport]:
-        """List test reports with optional filtering.
+        """
+        List test reports with optional filtering.
 
         Args:
             name: Exact name of the test report.
@@ -1468,6 +2169,7 @@ class TestResultsAPI:
         Returns:
             A list of TestReports that matches the filter.
         """
+
         ...
 
     def list_measurements(
@@ -1486,7 +2188,8 @@ class TestResultsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestMeasurement]:
-        """List test measurements with optional filtering.
+        """
+        List test measurements with optional filtering.
 
         Args:
             measurements: Measurements to filter by.
@@ -1505,6 +2208,7 @@ class TestResultsAPI:
         Returns:
             A list of TestMeasurements that matches the filter.
         """
+
         ...
 
     def list_steps(
@@ -1523,7 +2227,8 @@ class TestResultsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestStep]:
-        """List test steps with optional filtering.
+        """
+        List test steps with optional filtering.
 
         Args:
             test_steps: Test steps to filter by.
@@ -1542,18 +2247,22 @@ class TestResultsAPI:
         Returns:
             A list of TestSteps that matches the filter.
         """
+
         ...
 
     def unarchive(self, *, test_report: str | TestReport) -> TestReport:
-        """Unarchive a test report.
+        """
+        Unarchive a test report.
 
         Args:
             test_report: The TestReport or test report ID to unarchive.
         """
+
         ...
 
     def update(self, test_report: str | TestReport, update: TestReportUpdate | dict) -> TestReport:
-        """Update a TestReport.
+        """
+        Update a TestReport.
 
         Args:
             test_report: The TestReport or test report ID to update.
@@ -1562,6 +2271,7 @@ class TestResultsAPI:
         Returns:
             The updated TestReport.
         """
+
         ...
 
     def update_measurement(
@@ -1570,7 +2280,8 @@ class TestResultsAPI:
         update: TestMeasurementUpdate | dict,
         update_step: bool = False,
     ) -> TestMeasurement:
-        """Update a TestMeasurement.
+        """
+        Update a TestMeasurement.
 
         Args:
             test_measurement: The TestMeasurement or measurement ID to update.
@@ -1580,10 +2291,12 @@ class TestResultsAPI:
         Returns:
             The updated TestMeasurement.
         """
+
         ...
 
     def update_step(self, test_step: str | TestStep, update: TestStepUpdate | dict) -> TestStep:
-        """Update a TestStep.
+        """
+        Update a TestStep.
 
         Args:
             test_step: The TestStep or test step ID to update.
@@ -1592,4 +2305,244 @@ class TestResultsAPI:
         Returns:
             The updated TestStep.
         """
+
+        ...
+
+class UserAttributesAPI:
+    """
+    Sync counterpart to `UserAttributesAPIAsync`.
+
+    High-level API for interacting with user attributes.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """
+        Initialize the UserAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+
+        ...
+
+    def _run(self, coro): ...
+    def archive_key(self, key_id: str) -> None:
+        """
+        Archive a user attribute key.
+
+        Args:
+            key_id: The user attribute key ID to archive.
+        """
+
+        ...
+
+    def archive_value(self, value_id: str) -> None:
+        """
+        Archive a user attribute value.
+
+        Args:
+            value_id: The user attribute value ID to archive.
+        """
+
+        ...
+
+    def batch_archive_keys(self, key_ids: list[str]) -> None:
+        """
+        Archive multiple user attribute keys.
+
+        Args:
+            key_ids: List of user attribute key IDs to archive.
+        """
+
+        ...
+
+    def batch_archive_values(self, value_ids: list[str]) -> None:
+        """
+        Archive multiple user attribute values.
+
+        Args:
+            value_ids: List of user attribute value IDs to archive.
+        """
+
+        ...
+
+    def batch_unarchive_keys(self, key_ids: list[str]) -> None:
+        """
+        Unarchive multiple user attribute keys.
+
+        Args:
+            key_ids: List of user attribute key IDs to unarchive.
+        """
+
+        ...
+
+    def batch_unarchive_values(self, value_ids: list[str]) -> None:
+        """
+        Unarchive multiple user attribute values.
+
+        Args:
+            value_ids: List of user attribute value IDs to unarchive.
+        """
+
+        ...
+
+    def create_key(
+        self, name: str, description: str | None = None, value_type: int | None = None
+    ) -> UserAttributeKey:
+        """
+        Create a new user attribute key.
+
+        Args:
+            name: The name of the user attribute key.
+            description: Optional description.
+            value_type: The UserAttributeValueType enum value.
+
+        Returns:
+            The created UserAttributeKey.
+        """
+
+        ...
+
+    def create_value(
+        self,
+        key_id: str,
+        user_ids: str | list[str],
+        string_value: str | None = None,
+        number_value: float | None = None,
+        boolean_value: bool | None = None,
+    ) -> UserAttributeValue | list[UserAttributeValue]:
+        """
+        Create a user attribute value for one or more users.
+
+        Args:
+            key_id: The user attribute key ID.
+            user_ids: Single user ID (str) or list of user IDs (list[str]).
+            string_value: String value (if applicable).
+            number_value: Number value (if applicable).
+            boolean_value: Boolean value (if applicable).
+
+        Returns:
+            Single UserAttributeValue if user_ids is a string, list of UserAttributeValues if it's a list.
+        """
+
+        ...
+
+    def get_key(self, key_id: str) -> UserAttributeKey:
+        """
+        Get a user attribute key by ID.
+
+        Args:
+            key_id: The user attribute key ID.
+
+        Returns:
+            The UserAttributeKey.
+        """
+
+        ...
+
+    def get_value(self, value_id: str) -> UserAttributeValue:
+        """
+        Get a user attribute value by ID.
+
+        Args:
+            value_id: The user attribute value ID.
+
+        Returns:
+            The UserAttributeValue.
+        """
+
+        ...
+
+    def list_keys(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        key_id: str | None = None,
+        organization_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[UserAttributeKey]:
+        """
+        List user attribute keys with optional filtering.
+
+        Args:
+            name: Exact name of the key.
+            name_contains: Partial name of the key.
+            key_id: Filter by key ID.
+            organization_id: Filter by organization ID.
+            include_archived: If True, include archived keys in results.
+            filter_query: Explicit CEL query to filter keys.
+            order_by: How to order the retrieved keys.
+            limit: How many keys to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of UserAttributeKeys that match the filter.
+        """
+
+        ...
+
+    def list_values(
+        self,
+        *,
+        key_id: str | None = None,
+        user_id: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[UserAttributeValue]:
+        """
+        List user attribute values with optional filtering.
+
+        Args:
+            key_id: Filter by user attribute key ID.
+            user_id: Filter by user ID.
+            include_archived: If True, include archived values in results.
+            filter_query: Explicit CEL query to filter values.
+            order_by: How to order the retrieved values.
+            limit: How many values to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of UserAttributeValues that match the filter.
+        """
+
+        ...
+
+    def unarchive_key(self, key_id: str) -> None:
+        """
+        Unarchive a user attribute key.
+
+        Args:
+            key_id: The user attribute key ID to unarchive.
+        """
+
+        ...
+
+    def unarchive_value(self, value_id: str) -> None:
+        """
+        Unarchive a user attribute value.
+
+        Args:
+            value_id: The user attribute value ID to unarchive.
+        """
+
+        ...
+
+    def update_key(
+        self, key: str | UserAttributeKey, update: UserAttributeKeyUpdate | dict
+    ) -> UserAttributeKey:
+        """
+        Update a user attribute key.
+
+        Args:
+            key: The UserAttributeKey or key ID to update.
+            update: Updates to apply to the key.
+
+        Returns:
+            The updated UserAttributeKey.
+        """
+
         ...

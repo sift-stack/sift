@@ -9,11 +9,14 @@ from sift_client.resources import (
     ChannelsAPIAsync,
     FileAttachmentsAPIAsync,
     PingAPIAsync,
+    PoliciesAPIAsync,
     ReportsAPIAsync,
+    ResourceAttributesAPIAsync,
     RulesAPIAsync,
     RunsAPIAsync,
     TagsAPIAsync,
     TestResultsAPIAsync,
+    UserAttributesAPIAsync,
 )
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
@@ -26,6 +29,9 @@ RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
 ReportsAPI = generate_sync_api(ReportsAPIAsync, "ReportsAPI")
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
+UserAttributesAPI = generate_sync_api(UserAttributesAPIAsync, "UserAttributesAPI")
+ResourceAttributesAPI = generate_sync_api(ResourceAttributesAPIAsync, "ResourceAttributesAPI")
+PoliciesAPI = generate_sync_api(PoliciesAPIAsync, "PoliciesAPI")
 
 __all__ = [
     "AssetsAPI",
@@ -33,9 +39,12 @@ __all__ = [
     "ChannelsAPI",
     "FileAttachmentsAPI",
     "PingAPI",
+    "PoliciesAPI",
     "ReportsAPI",
+    "ResourceAttributesAPI",
     "RulesAPI",
     "RunsAPI",
     "TagsAPI",
     "TestResultsAPI",
+    "UserAttributesAPI",
 ]
