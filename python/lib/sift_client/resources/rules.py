@@ -280,7 +280,7 @@ class RulesAPIAsync(ResourceBase):
             override_expression_validation: When true, the rules will be created even if the expressions are invalid.
 
         Warnings:
-            UserWarning: If not all rules are created or updated.
+            SiftWarning: If not all rules are created or updated.
 
         Returns:
             List of updated or created Rules.
