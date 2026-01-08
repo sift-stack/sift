@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Any, Sequence
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
+from sift_client.errors import SiftWarning
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
@@ -177,10 +179,13 @@ class RulesAPIAsync(ResourceBase):
             create: A RuleCreate object, a dictionary with configuration for the new rule, or a list of the previously mentioned objects.
             override_expression_validation: When true, the rule will be created even if the expression is invalid.
 
+        Warnings:
+            SiftWarning: If not all rules are created.
+
         Returns:
             The created Rule (if a single dictionary or RuleCreate was provided) otherwise a list of the created rules.
         """
-        rules: list[RuleCreate | RuleUpdate] = []
+        rules: list[RuleCreate] = []
         if isinstance(create, Sequence):
             for c in create:
                 if isinstance(c, dict):
@@ -192,16 +197,18 @@ class RulesAPIAsync(ResourceBase):
         else:
             rules.append(create)
 
-        created_rules = await self.batch_update_rules(
+        created_rules = await self.batch_update_or_create_rules(
             rules=rules, override_expression_validation=override_expression_validation
         )
         if len(created_rules) != len(rules):
-            raise ValueError(
-                f"Failed to create all rules: got {len(created_rules)} but expected {len(rules)}"
+            warnings.warn(
+                f"Failed to create all rules: got {len(created_rules)} but expected {len(rules)}",
+                SiftWarning,
+                stacklevel=2,
             )
 
         # If there is only one rule to create provided as a dict or RuleCreate, return the single rule.
-        if len(created_rules) == 1 and not isinstance(create, list):
+        if len(created_rules) == 1 and not isinstance(create, Sequence):
             return created_rules[0]
 
         # Otherwise, return the list of created rules.
@@ -260,7 +267,7 @@ class RulesAPIAsync(ResourceBase):
         """
         return await self.update(rule=rule, update=RuleUpdate(is_archived=False))
 
-    async def batch_update_rules(
+    async def batch_update_or_create_rules(
         self,
         rules: Sequence[RuleCreate | RuleUpdate],
         *,
@@ -271,6 +278,9 @@ class RulesAPIAsync(ResourceBase):
         Args:
             rules: List of rule creates or updates to apply. RuleUpdate objects must have resource_id set.
             override_expression_validation: When true, the rules will be created even if the expressions are invalid.
+
+        Warnings:
+            UserWarning: If not all rules are created or updated.
 
         Returns:
             List of updated or created Rules.
@@ -300,9 +310,10 @@ class RulesAPIAsync(ResourceBase):
 
         # Ensure all rules were updated/created.
         if response.rules_created_count + response.rules_updated_count != len(rules):
-            raise ValueError(
-                f"Not all rules were updated/created: got {response.rules_created_count + response.rules_updated_count} "
-                f"but expected {len(rules)}"
+            warnings.warn(
+                f"Not all rules were updated/created: got {response.rules_created_count + response.rules_updated_count} but expected {len(rules)}",
+                SiftWarning,
+                stacklevel=2,
             )
 
         # Collect rule IDs from the response

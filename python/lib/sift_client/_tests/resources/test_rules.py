@@ -620,7 +620,7 @@ class TestRulesAPIAsync:
         """Tests for the async batch_update_rules method."""
 
         @pytest.mark.asyncio
-        async def test_batch_update_rules(self, rules_api_async, nostromo_asset):
+        async def test_batch_update_or_create_rules(self, rules_api_async, nostromo_asset):
             """Test updating multiple rules with different fields."""
             from datetime import datetime, timezone
 
@@ -672,7 +672,7 @@ class TestRulesAPIAsync:
 
                 updates = [rule1_update, rule2_update]
 
-                updated_rules = await rules_api_async.batch_update_rules(updates)
+                updated_rules = await rules_api_async.batch_update_or_create_rules(updates)
 
                 assert isinstance(updated_rules, list)
                 assert len(updated_rules) == 2
@@ -727,7 +727,7 @@ class TestRulesAPIAsync:
             try:
                 # Batch update (actually create) both rules
                 updates = [rule1, rule2]
-                updated_rules = await rules_api_async.batch_update_rules(updates)
+                updated_rules = await rules_api_async.batch_update_or_create_rules(updates)
 
                 assert isinstance(updated_rules, list)
                 assert len(updated_rules) == 2
@@ -741,7 +741,7 @@ class TestRulesAPIAsync:
         @pytest.mark.asyncio
         async def test_batch_update_rules_empty_list(self, rules_api_async):
             """Test handling empty list."""
-            updated_rules = await rules_api_async.batch_update_rules([])
+            updated_rules = await rules_api_async.batch_update_or_create_rules([])
 
             assert isinstance(updated_rules, list)
             assert len(updated_rules) == 0
