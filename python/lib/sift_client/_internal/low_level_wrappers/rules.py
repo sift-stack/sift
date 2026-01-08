@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Sequence, cast
 
 from sift.common.type.v1.resource_identifier_pb2 import ResourceIdentifier, ResourceIdentifiers
 from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
@@ -97,6 +97,48 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         grpc_rule = cast("GetRuleResponse", response).rule
         return Rule._from_proto(grpc_rule)
 
+    def _update_rule_request_from_create(self, create: RuleCreate) -> UpdateRuleRequest:
+        """Create an UpdateRuleRequest from a RuleCreate object.
+
+        Args:
+            create: The RuleCreate model with the rule configuration.
+
+        Returns:
+            The UpdateRuleRequest proto message.
+        """
+        expression_proto = RuleConditionExpression(
+            calculated_channel=CalculatedChannelConfig(
+                expression=create.expression,
+                channel_references={
+                    c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
+                    for c in create.channel_references
+                },
+            )
+        )
+        conditions_request = [
+            UpdateConditionRequest(
+                expression=expression_proto,
+                actions=[create.action._to_update_request()],
+            )
+        ]
+        update_request = UpdateRuleRequest(
+            name=create.name,
+            description=create.description,
+            is_enabled=True,
+            organization_id=create.organization_id or "",
+            client_key=create.client_key,
+            is_external=create.is_external,
+            conditions=conditions_request,
+            asset_configuration=RuleAssetConfiguration(
+                asset_ids=create.asset_ids or [],
+                tag_ids=create.asset_tag_ids or [],
+            ),
+            contextual_channels=ContextualChannels(
+                channels=[ChannelReferenceProto(name=c) for c in create.contextual_channels or []]
+            ),  # type: ignore
+        )
+        return update_request
+
     async def batch_get_rules(
         self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
     ) -> list[Rule]:
@@ -138,39 +180,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The created Rule.
         """
-        # Convert rule to UpdateRuleRequest
-        expression_proto = RuleConditionExpression(
-            calculated_channel=CalculatedChannelConfig(
-                expression=create.expression,
-                channel_references={
-                    c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
-                    for c in create.channel_references
-                },
-            )
-        )
-        conditions_request = [
-            UpdateConditionRequest(
-                expression=expression_proto,
-                actions=[create.action._to_update_request()],
-            )
-        ]
-        update_request = UpdateRuleRequest(
-            name=create.name,
-            description=create.description,
-            is_enabled=True,
-            organization_id=create.organization_id or "",
-            client_key=create.client_key,
-            is_external=create.is_external,
-            conditions=conditions_request,
-            asset_configuration=RuleAssetConfiguration(
-                asset_ids=create.asset_ids or [],
-                tag_ids=create.asset_tag_ids or [],
-            ),
-            contextual_channels=ContextualChannels(
-                channels=[ChannelReferenceProto(name=c) for c in create.contextual_channels or []]
-            ),  # type: ignore
-        )
-
+        update_request = self._update_rule_request_from_create(create)
         request = CreateRuleRequest(update=update_request)
         created_rule = cast(
             "CreateRuleResponse",
@@ -301,22 +311,59 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # Get the updated rule
         return await self.get_rule(rule_id=rule.id_)
 
-    async def batch_update_rules(self, rules: list[RuleUpdate]) -> BatchUpdateRulesResponse:
-        """Batch update rules.
+    async def batch_update_rules(
+        self,
+        rules: Sequence[RuleCreate | RuleUpdate],
+        validate_only: bool = False,
+        override_expression_validation: bool = False,
+    ) -> BatchUpdateRulesResponse:
+        """Batch update or create rules.
 
         Args:
-            rules: List of rule updates to apply.
+            rules: List of rule creates or updates to apply. RuleUpdate objects must have
+                resource_id set.
 
         Returns:
             The batch update response.
-        """
-        update_requests = []
-        for rule_update in rules:
-            rule = await self.get_rule(rule_id=rule_update.resource_id)
-            request = self._update_rule_request_from_update(rule, rule_update)
-            update_requests.append(request)
 
-        request = BatchUpdateRulesRequest(rules=update_requests)  # type: ignore
+        Raises:
+            ValueError: If any RuleUpdate objects are missing resource_id or the rule is not found for updating.
+        """
+        # Collect resource_ids from only RuleUpdate objects
+        rule_ids: list[str] = []
+        for rule in rules:
+            if isinstance(rule, RuleUpdate):
+                if rule.resource_id is None:
+                    raise ValueError("RuleUpdate objects must have resource_id set")
+                rule_ids.append(rule.resource_id)
+
+        # Fetch existing rules for updates
+        existing_rules = await self.batch_get_rules(rule_ids=rule_ids) if rule_ids else []
+        existing_rules_by_id = {rule.id_: rule for rule in existing_rules}
+
+        # Build update requests maintaining the input order
+        update_requests: list[UpdateRuleRequest] = []
+        for rule in rules:
+            if isinstance(rule, RuleCreate):
+                # Convert RuleCreate to UpdateRuleRequest
+                update_request = self._update_rule_request_from_create(rule)
+                update_requests.append(update_request)
+            elif isinstance(rule, RuleUpdate):
+                # Use existing rule + update to create request
+                existing_rule = existing_rules_by_id.get(rule.resource_id)
+                if existing_rule is None:
+                    raise ValueError(
+                        f"Rule with resource_id {rule.resource_id} not found for update"
+                    )
+                update_request = self._update_rule_request_from_update(existing_rule, rule)
+                update_requests.append(update_request)
+
+        # Call the batch update request
+        request = BatchUpdateRulesRequest(
+            rules=update_requests,
+            validate_only=validate_only,
+            override_expression_validation=override_expression_validation,
+        )  # type: ignore
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchUpdateRules(request)
         return cast("BatchUpdateRulesResponse", response)
 
