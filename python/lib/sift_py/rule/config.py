@@ -24,9 +24,11 @@ class RuleConfig(AsJson):
     - `channel_references`: Reference to channel. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
     - `rule_client_key`: User defined unique string that uniquely identifies this rule.
     - `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
-    - `tag_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+    - `tag_names`: A list of asset tags that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `contextual_channels`: A list of channel names that provide context but aren't directly used in the expression.
     - `is_external`: If this is an external rule.
+    - `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
+            This rule can still be used, however, in report generation.
     """
 
     name: str
@@ -36,8 +38,10 @@ class RuleConfig(AsJson):
     channel_references: List[ExpressionChannelReference]
     rule_client_key: Optional[str]
     asset_names: List[str]
+    tag_names: List[str]
     contextual_channels: List[str]
     is_external: bool
+    is_live: bool
     _rule_id: Optional[str]  # Allow passing of rule_id when existing config retrieved from API
 
     def __init__(
@@ -55,17 +59,20 @@ class RuleConfig(AsJson):
         sub_expressions: Dict[str, Any] = {},
         contextual_channels: Optional[List[str]] = None,
         is_external: bool = False,
+        is_live: bool = False,
     ):
         self.channel_references = _channel_references_from_dicts(channel_references)
         self.contextual_channels = contextual_channels or []
 
         self.name = name
         self.asset_names = asset_names or []
+        self.tag_names = tag_names or []
         self.action = action
         self.rule_client_key = rule_client_key
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
         self.is_external = is_external
+        self.is_live = is_live
         self._rule_id = None
 
     def as_json(self) -> Any:
@@ -83,6 +90,7 @@ class RuleConfig(AsJson):
             "description": self.description,
             "expression": self.expression,
             "is_external": self.is_external,
+            "is_live": self.is_live,
         }
 
         hash_map["expression_channel_references"] = self.channel_references
@@ -127,6 +135,8 @@ class RuleConfig(AsJson):
 
 
 class RuleAction(ABC):
+    tags: Optional[List[str]]
+
     @abstractmethod
     def kind(self) -> RuleActionKind:
         pass

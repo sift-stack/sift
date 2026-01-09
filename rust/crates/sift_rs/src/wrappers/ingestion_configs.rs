@@ -10,20 +10,77 @@ use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use std::ops::{Deref, DerefMut};
 
-/// Return an implementation of [IngestionConfigServiceWrapper] which also exposes methods from the
-/// raw [IngestionConfigServiceClient].
+/// Creates a new ingestion config service wrapper.
+///
+/// Returns an implementation of [`IngestionConfigServiceWrapper`] which also exposes
+/// methods from the raw [`IngestionConfigServiceClient`] via `Deref` and `DerefMut`.
+///
+/// # Arguments
+///
+/// * `grpc_channel` - The gRPC channel to use for communication
+///
+/// # Example
+///
+/// ```no_run
+/// use sift_rs::wrappers::ingestion_configs::{new_ingestion_config_service, IngestionConfigServiceWrapper};
+/// use sift_connect::{Credentials, SiftChannelBuilder};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let credentials = Credentials::Config {
+///     uri: "https://api.siftstack.com".to_string(),
+///     apikey: "your-api-key".to_string(),
+/// };
+/// let channel = SiftChannelBuilder::new(credentials).build()?;
+/// let mut service = new_ingestion_config_service(channel);
+///
+/// let config = service.try_get_ingestion_config_by_client_key("my-config").await?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn new_ingestion_config_service(
     grpc_channel: SiftChannel,
 ) -> impl IngestionConfigServiceWrapper {
     IngestionConfigServiceImpl(IngestionConfigServiceClient::new(grpc_channel))
 }
 
-/// Convenience methods on top of [IngestionConfigServiceClient].
+/// Convenience methods for working with Sift's IngestionConfig service.
+///
+/// This trait provides simplified methods that return [`sift_error::Result`] instead
+/// of raw gRPC responses. The underlying [`IngestionConfigServiceClient`] is accessible
+/// via `Deref` and `DerefMut` for advanced use cases.
 #[async_trait]
 pub trait IngestionConfigServiceWrapper:
-    Deref<Target = IngestionConfigServiceClient<SiftChannel>> + DerefMut
+    Clone + Deref<Target = IngestionConfigServiceClient<SiftChannel>> + DerefMut
 {
-    /// Create an ingestion config.
+    /// Creates an ingestion config.
+    ///
+    /// # Arguments
+    ///
+    /// * `asset_name` - The name of the asset this config is for
+    /// * `client_key` - A unique identifier for this ingestion config
+    /// * `flows` - The flow configurations to include
+    ///
+    /// # Returns
+    ///
+    /// The created ingestion config, or an error if creation fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::ArgumentValidationError`] if `asset_name` or `client_key`
+    /// is empty. Returns [`ErrorKind::CreateIngestionConfigError`] if creation fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use sift_rs::wrappers::ingestion_configs::IngestionConfigServiceWrapper;
+    /// use sift_rs::ingestion_configs::v2::FlowConfig;
+    ///
+    /// # async fn example(mut service: impl IngestionConfigServiceWrapper) -> Result<(), Box<dyn std::error::Error>> {
+    /// let flows = vec![/* FlowConfig instances */];
+    /// let config = service.try_create_ingestion_config("MyAsset", "config-v1", &flows).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     async fn try_create_ingestion_config(
         &mut self,
         asset_name: &str,
@@ -31,22 +88,80 @@ pub trait IngestionConfigServiceWrapper:
         flows: &[FlowConfig],
     ) -> Result<IngestionConfig>;
 
-    /// Retrieve ingestion config by ID.
+    /// Retrieves an ingestion config by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the ingestion config to retrieve
+    ///
+    /// # Returns
+    ///
+    /// The requested ingestion config, or an error if it doesn't exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::ArgumentValidationError`] if `id` is empty.
+    /// Returns [`ErrorKind::RetrieveIngestionConfigError`] if retrieval fails.
     async fn try_get_ingestion_config_by_id(&mut self, id: &str) -> Result<IngestionConfig>;
 
-    /// Retrieve ingestion config by client key.
+    /// Retrieves an ingestion config by client key.
+    ///
+    /// # Arguments
+    ///
+    /// * `client_key` - The client key of the ingestion config to retrieve
+    ///
+    /// # Returns
+    ///
+    /// The requested ingestion config, or an error if it doesn't exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::ArgumentValidationError`] if `client_key` is empty.
+    /// Returns [`ErrorKind::RetrieveIngestionConfigError`] if retrieval fails.
+    /// Returns [`ErrorKind::NotFoundError`] if no config with the given client key exists.
     async fn try_get_ingestion_config_by_client_key(
         &mut self,
         client_key: &str,
     ) -> Result<IngestionConfig>;
 
-    /// Create [FlowConfig]s for a given ingestion config. If this function does not return an
-    /// error, then it is safe to assume that all [FlowConfig]s in `configs` was created.
+    /// Creates flow configs for a given ingestion config.
+    ///
+    /// If this function does not return an error, then it is safe to assume that
+    /// all [`FlowConfig`]s in `configs` were created.
+    ///
+    /// # Arguments
+    ///
+    /// * `ingestion_config_id` - The ID of the ingestion config to add flows to
+    /// * `configs` - The flow configs to create (can be any type that converts to `Vec<FlowConfig>`)
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` if all flows were created successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::AlreadyExistsError`] if a flow with the same name already exists.
+    /// Returns [`ErrorKind::CreateFlowError`] if creation fails for other reasons.
     async fn try_create_flows<I>(&mut self, ingestion_config_id: &str, configs: I) -> Result<()>
     where
         I: Into<Vec<FlowConfig>> + Send;
 
-    /// Retrieve all flows that satisfy the provided filter.
+    /// Retrieves all flows that satisfy the provided filter.
+    ///
+    /// This method handles pagination automatically and returns all matching flows.
+    ///
+    /// # Arguments
+    ///
+    /// * `ingestion_config_id` - The ID of the ingestion config to filter flows from
+    /// * `filter` - A filter expression (e.g., `"name == 'my-flow'"`)
+    ///
+    /// # Returns
+    ///
+    /// A vector of all flows matching the filter, or an error if retrieval fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::RetrieveIngestionConfigError`] if retrieval fails.
     async fn try_filter_flows(
         &mut self,
         ingestion_config_id: &str,
@@ -55,6 +170,7 @@ pub trait IngestionConfigServiceWrapper:
 }
 
 /// A convience wrapper around [IngestionConfigServiceClient].
+#[derive(Clone)]
 struct IngestionConfigServiceImpl(IngestionConfigServiceClient<SiftChannel>);
 
 #[async_trait]

@@ -12,16 +12,81 @@ use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use std::ops::{Deref, DerefMut};
 
-/// Return an implementation of [RunServiceWrapper] which also exposes methods from the
-/// raw [RunServiceClient].
+/// Creates a new run service wrapper.
+///
+/// Returns an implementation of [`RunServiceWrapper`] which also exposes methods
+/// from the raw [`RunServiceClient`] via `Deref` and `DerefMut`.
+///
+/// # Arguments
+///
+/// * `grpc_channel` - The gRPC channel to use for communication
+///
+/// # Example
+///
+/// ```no_run
+/// use sift_rs::wrappers::runs::{new_run_service, RunServiceWrapper};
+/// use sift_connect::{Credentials, SiftChannelBuilder};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let credentials = Credentials::Config {
+///     uri: "https://api.siftstack.com".to_string(),
+///     apikey: "your-api-key".to_string(),
+/// };
+/// let channel = SiftChannelBuilder::new(credentials).build()?;
+/// let mut service = new_run_service(channel);
+///
+/// let run = service.try_get_run_by_id("run-123").await?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn new_run_service(grpc_channel: SiftChannel) -> impl RunServiceWrapper {
     RunServiceWrapperImpl(RunServiceClient::new(grpc_channel))
 }
 
-/// Convenience methods over [RunServiceClient].
+/// Convenience methods for working with Sift's Run service.
+///
+/// This trait provides simplified methods that return [`sift_error::Result`] instead
+/// of raw gRPC responses. The underlying [`RunServiceClient`] is accessible via
+/// `Deref` and `DerefMut` for advanced use cases.
 #[async_trait]
-pub trait RunServiceWrapper: Deref<Target = RunServiceClient<SiftChannel>> + DerefMut {
+pub trait RunServiceWrapper:
+    Clone + Deref<Target = RunServiceClient<SiftChannel>> + DerefMut
+{
     /// Creates a run.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the run
+    /// * `client_key` - A unique identifier for this run
+    /// * `description` - A description of the run
+    /// * `tags` - Tags to associate with the run
+    /// * `metadata` - Metadata key-value pairs to associate with the run
+    ///
+    /// # Returns
+    ///
+    /// The created run, or an error if creation fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::ArgumentValidationError`] if `name` or `client_key`
+    /// is empty. Returns [`ErrorKind::CreateRunError`] if creation fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use sift_rs::wrappers::runs::RunServiceWrapper;
+    ///
+    /// # async fn example(mut service: impl RunServiceWrapper) -> Result<(), Box<dyn std::error::Error>> {
+    /// let run = service.try_create_run(
+    ///     "My Run",
+    ///     "run-v1",
+    ///     "Test run",
+    ///     &["test".to_string()],
+    ///     &[],
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     async fn try_create_run(
         &mut self,
         name: &str,
@@ -31,23 +96,76 @@ pub trait RunServiceWrapper: Deref<Target = RunServiceClient<SiftChannel>> + Der
         metadata: &[MetadataValue],
     ) -> Result<Run>;
 
-    /// Update a run. The `updated_run` is expected to contain the `run_id` or `client_key` used to
-    /// identify the run to update. The `update_mask` is a list of snake_cased field names used to
-    /// indicate which fields should actually be updated. A list of valid field names can be found
-    /// at [`this link`]. The [Run] returned is the updated run. If `update_mask` is empty, then no
-    /// update is required and the `updated_run` is simply returned.
+    /// Updates a run.
     ///
-    /// [`this link`]: https://docs.siftstack.com/docs/api/grpc/protocol-buffers/runs#updaterunrequest
+    /// The `updated_run` is expected to contain the `run_id` or `client_key` used to
+    /// identify the run to update. The `update_mask` is a list of snake_cased field names
+    /// used to indicate which fields should actually be updated. A list of valid field names
+    /// can be found at [this link](https://docs.siftstack.com/docs/api/grpc/protocol-buffers/runs#updaterunrequest).
+    ///
+    /// If `update_mask` is empty, then no update is required and the `updated_run` is
+    /// simply returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `updated_run` - The run with updated fields (must include `run_id` or `client_key`)
+    /// * `update_mask` - List of snake_cased field names to update
+    ///
+    /// # Returns
+    ///
+    /// The updated run, or an error if the update fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::UpdateRunError`] if the update fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use sift_rs::wrappers::runs::RunServiceWrapper;
+    ///
+    /// # async fn example(mut service: impl RunServiceWrapper, mut run: sift_rs::runs::v2::Run) -> Result<(), Box<dyn std::error::Error>> {
+    /// run.name = "Updated Name".to_string();
+    /// let updated = service.try_update_run(run, &["name".to_string()]).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     async fn try_update_run(&mut self, updated_run: Run, update_mask: &[String]) -> Result<Run>;
 
-    /// Retrieve a run by ID.
+    /// Retrieves a run by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `run_id` - The ID of the run to retrieve
+    ///
+    /// # Returns
+    ///
+    /// The requested run, or an error if it doesn't exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::RetrieveRunError`] if retrieval fails.
     async fn try_get_run_by_id(&mut self, run_id: &str) -> Result<Run>;
 
-    /// Retrieve a run by client key.
+    /// Retrieves a run by client key.
+    ///
+    /// # Arguments
+    ///
+    /// * `client_key` - The client key of the run to retrieve
+    ///
+    /// # Returns
+    ///
+    /// The requested run, or an error if it doesn't exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorKind::RetrieveRunError`] if retrieval fails.
+    /// Returns [`ErrorKind::NotFoundError`] if no run with the given client key exists.
     async fn try_get_run_by_client_key(&mut self, client_key: &str) -> Result<Run>;
 }
 
 /// A convience wrapper around [RunServiceClient].
+#[derive(Clone)]
 struct RunServiceWrapperImpl(RunServiceClient<SiftChannel>);
 
 impl RunServiceWrapperImpl {

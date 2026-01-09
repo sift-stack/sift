@@ -1,4 +1,4 @@
-from typing import List, Optional, cast
+from typing import List, Optional, Tuple, Union, cast
 
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
@@ -7,16 +7,16 @@ from sift_py._internal.cel import cel_in
 
 def list_assets_impl(
     _asset_service_stub: AssetServiceStub,
-    names: Optional[List[str]] = None,
-    ids: Optional[List[str]] = None,
+    names: Optional[Union[Tuple[str], List[str]]] = None,
+    ids: Optional[Union[Tuple[str], List[str]]] = None,
 ) -> List[Asset]:
     """
     Lists assets in an organization.
 
     Args:
         _asset_service_stub: The asset service stub to use.
-        names: Optional list of names to filter by.
-        ids: Optional list of IDs to filter by.
+        names: Optional collection of names to filter by.
+        ids: Optional collection of IDs to filter by.
 
     Returns:
         A list of assets matching the criteria.

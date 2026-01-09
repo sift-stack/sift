@@ -270,6 +270,9 @@ class RuleYamlSpec(TypedDict):
     `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
     `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     `tag_names`: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+    `is_external`: If this is an external rule.
+    `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
+            This rule can still be used, however, in report generation.
 
     Channel references:
     A channel reference is a string containing a numerical value prefixed with "$". Examples include "$1", "$2", "$11", and so on.
@@ -326,6 +329,8 @@ class RuleYamlSpec(TypedDict):
     sub_expressions: NotRequired[List[Dict[str, str]]]
     asset_names: NotRequired[List[str]]
     tag_names: NotRequired[List[str]]
+    is_external: NotRequired[bool]
+    is_live: NotRequired[bool]
 
 
 class NamedExpressionYamlSpec(TypedDict):

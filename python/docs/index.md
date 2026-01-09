@@ -34,6 +34,8 @@ Browse the [**Sift Py API**][sift_py] section for complete reference documentati
 !!! warning
     The Sift Client is experimental and is subject to change.
 
+    To avoid unexpected breaking changes, pin the exact version of the `sift-stack-py` library in your dependencies (for example, in `requirements.txt` or `pyproject.toml`).
+
 
 The modern, high-level client library that provides all the ergonomic features missing from the original API. This new client offers intuitive Python interfaces, strong type safety, automatic connection management, and both synchronous and asynchronous support. 
 

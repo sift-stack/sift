@@ -15,7 +15,15 @@ pub struct DurationPy {
     nanos: u32,
 }
 
-// Pyo3 doesn't support nested enums, so we need to build RecoveryStrategy differently
+/// Python binding for [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
+///
+/// This is a thin wrapper around the Rust `RecoveryStrategy` enum. For detailed documentation,
+/// see [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
+///
+/// A recovery strategy defines how the stream handles errors and failures, including
+/// retry policies and optional disk backups.
+///
+/// Note: PyO3 doesn't support nested enums, so this is implemented as a struct wrapper.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -23,6 +31,13 @@ pub struct RecoveryStrategyPy {
     inner: RecoveryStrategy,
 }
 
+/// Python binding for [`RetryPolicy`](sift_stream::RetryPolicy).
+///
+/// This is a thin wrapper around the Rust `RetryPolicy` type. For detailed documentation,
+/// see [`RetryPolicy`](sift_stream::RetryPolicy).
+///
+/// A retry policy configures the retry behavior of a Sift stream, including the number
+/// of attempts and exponential backoff parameters.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -37,6 +52,13 @@ pub struct RetryPolicyPy {
     backoff_multiplier: u8,
 }
 
+/// Python binding for [`DiskBackupPolicy`](sift_stream::backup::DiskBackupPolicy).
+///
+/// This is a thin wrapper around the Rust `DiskBackupPolicy` type. For detailed documentation,
+/// see [`DiskBackupPolicy`](sift_stream::backup::DiskBackupPolicy).
+///
+/// A disk backup policy configures how telemetry data is backed up to disk, including
+/// backup directory, file size limits, and retention policies.
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone, Debug)]

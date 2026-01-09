@@ -3,6 +3,81 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.1] - January 8, 2026
+### What's New
+#### Sift proto file descriptors now included
+The v0.7.1 release includes proto descriptors in generated code.
+
+## [v0.7.0] - January 2, 2026
+### What's New
+#### SiftStream ergonomic, performance, and more!
+The v0.7.0 release includes all changes included in the RC releases. Noteable
+changes are listed here; for full details see all 0.7.0 RC releases below.
+
+* Removal of Deprecated Recovery Strategies
+* Backup Directory Structure Improvements
+* Optimizations and performance improvements
+* Independent gRPC Connections for Streaming
+* SiftStream will stream it's own metrics to Sift for improved visibility
+* Improved Checkpoint Message Tracking
+* Added FlowDescriptors and FlowBuilders for a new/higher-performance approach to build streaming requests.
+* Support for File-Backup Only Mode
+* New "Retry" Capabilities for Unary Sift gRPC Calls
+
+
+## [v0.7.0-rc.12] - December 24, 2025
+### What's New
+#### New "Retry" Capabilities for Unary Sift gRPC Calls
+A new struct `Retrying` has been added that provides convenient retry capabilities
+to Sift Unary gRPC calls. This new retry capability has also been added internally
+to `SiftStream`'s Unary gRPC calls, improving behavior when transient errors are
+returned during setup, adding new flows, or attaching new runs to `SiftStream`.
+
+### Full Changelog
+- [Add generic gRPC retry wrapper, use in sift_stream](https://github.com/sift-stack/sift/commit/cf08dac2b9c4f246bf11ec543f5eda33010f8578)
+
+## [v0.7.0-rc.11] - December 23, 2025
+### What's New
+#### Improved SiftStream File Path Verification
+A minor fix improves how and where SiftStream verifies paths exist, allowing errors
+or directory creation errors to be returned when building SiftStream.
+
+### Full Changelog
+- [Improve file path validation for spawned tasks on init](https://github.com/sift-stack/sift/commit/6da335e9b3a5d1a8f797cdeee648edd8ebbb7a1a)
+
+## [v0.7.0-rc.10] - December 16, 2025
+### What's New
+#### SiftStream File-Backup Only Mode Create Parent Directories
+A minor fix to create all parent directories for file-backup only mode, as well as ignoring
+any "already exists" errors.
+
+### Full Changelog
+- [Create file-backup mode directories, ignore exists error](https://github.com/sift-stack/sift/commit/b69fb1c6491c65be8bc5409d9c3ce15769a981d9)
+
+## [v0.7.0-rc.9] - December 16, 2025
+### What's New
+#### SiftStream File-Backup Only Mode Directory Bug Fix
+A minor fix to save the backup files in the specified directory.
+
+### Full Changelog
+- [Fix SiftStream file-backup mode directory](https://github.com/sift-stack/sift/commit/fe041085243ca27601b327b5fd2235b6f8399d5a)
+
+## [v0.7.0-rc.8] - December 5, 2025
+### What's New
+#### SiftStream Support for File-Backup Only Mode
+`SiftStream` has a new "mode" of operation where data will _only_ be written to backup files. This
+can be useful in a few different situations, such as more "offline" environments with limited network
+bandwidth, as well as scenarios where uploading data after recording is preferred (ex: CI systems
+where data is only needed/desired if a testcase fails). Though this mode of operation does require
+connectivity to Sift in order to synchronize ingestion configurations to ensure backed up data can
+be re-ingested later.
+
+This new mode of operation can be selected through `SiftStreamBuilder` calls. And re-upload can be
+performed with the latest release of `sift-cli` [Releases](https://github.com/sift-stack/sift/releases).
+
+### Full Changelog
+- [Adds a new SiftStream mode for only backup file writes](https://github.com/sift-stack/sift/commit/b8f13b273e37939530109c531d9f8a2953ae868b)
+
 ## [v0.7.0-rc.7] - November 26, 2025
 ### What's New
 #### SiftStream Internally Uses `FlowBuilder`

@@ -1,6 +1,6 @@
 use sift_rs::metadata;
 use sift_stream::{
-    ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
+    ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowBuilder, FlowConfig,
     IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder, TimeValue,
 };
 use std::{
@@ -78,7 +78,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
         .build()
         .await?;
 
-    // Stream telemetry to Sift
+    // Stream telemetry to Sift using the [`SiftStream::send`] method.
     for i in 0..360 {
         let flow = Flow::new(
             "robotic-arm",
@@ -88,6 +88,36 @@ async fn run() -> Result<(), Box<dyn Error>> {
 
         // Send telemetry to Sift
         sift_stream.send(flow).await.unwrap();
+
+        // For demonstrative purposes, adding a contrived wait to get 10Hz data.
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    // Next, stream telemetry to Sift using the [`SiftStream::send_requests_nonblocking`] method
+    // and the [`FlowBuilder`] to build the flow.
+    //
+    // This approach is more performant, and also provides methods to set the channel value via
+    // the channel index instead of the key, which further improves performance by avoiding
+    // hashing operations on the channel key.
+    //
+    // However, this approach does require setting the run ID on the flow builder instead of
+    // letting the [`SiftStream`] handle it. Though this can be useful if using a single [`SiftStream`]
+    // to send data for multiple runs/assets at one time.
+    let descriptor = sift_stream.get_flow_descriptor("robotic-arm").unwrap();
+    let run_id = sift_stream.run().unwrap().run_id.clone();
+    for i in 0..360 {
+        // Build the flow using the [`FlowBuilder`] and send it to
+        // Sift using the [`SiftStream::send_requests_nonblocking`] method.
+        let mut flow_builder = FlowBuilder::new(&descriptor);
+        flow_builder.attach_run_id(&run_id);
+        flow_builder
+            .set_with_key("joint-angle-encoder", f64::from(i).sin())
+            .unwrap();
+
+        // Send telemetry to Sift.
+        sift_stream
+            .send_requests_nonblocking(vec![flow_builder.request(TimeValue::now())])
+            .unwrap();
 
         // For demonstrative purposes, adding a contrived wait to get 10Hz data.
         tokio::time::sleep(Duration::from_millis(100)).await;

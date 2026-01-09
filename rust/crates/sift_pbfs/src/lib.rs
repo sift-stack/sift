@@ -13,10 +13,38 @@ pub use chunk::{
 #[cfg(test)]
 mod test;
 
+/// Decoder for backup files containing protobuf messages.
+///
 /// Takes a `reader` to the backup file containing the backed up protobuf messages and offers
 /// functionality to iterate over all protobuf messages in the file. Each chunk of protobuf
 /// messages will be validated by having its checksum computed and compared against the checksum
 /// that stored in its byte-header.
+///
+/// # Type Parameters
+///
+/// * `M` - The protobuf message type to decode (must implement `Message + Default`)
+/// * `R` - The reader type (must implement `Read`)
+///
+/// # Example
+///
+/// ```no_run
+/// use sift_pbfs::BackupsDecoder;
+/// use prost::Message;
+/// # use prost::Message as _;
+///
+/// # #[derive(Clone, PartialEq, Message)]
+/// # struct MyMessage { }
+///
+/// let file = std::fs::File::open("backup.pbfs").unwrap();
+/// let decoder = BackupsDecoder::<MyMessage, _>::new(file);
+///
+/// for result in decoder {
+///     match result {
+///         Ok(message) => println!("Decoded message: {:?}", message),
+///         Err(e) => eprintln!("Error: {}", e),
+///     }
+/// }
+/// ```
 pub struct BackupsDecoder<M, R>
 where
     M: Message + Default + 'static,
@@ -33,6 +61,25 @@ where
     M: Message + Default + 'static,
     R: Read,
 {
+    /// Creates a new `BackupsDecoder` from a reader.
+    ///
+    /// # Arguments
+    ///
+    /// * `reader` - The reader to read backup data from
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use sift_pbfs::BackupsDecoder;
+    /// use prost::Message;
+    /// # use prost::Message as _;
+    ///
+    /// # #[derive(Clone, PartialEq, Message)]
+    /// # struct MyMessage { }
+    ///
+    /// let file = std::fs::File::open("backup.pbfs").unwrap();
+    /// let decoder = BackupsDecoder::<MyMessage, _>::new(file);
+    /// ```
     pub fn new(reader: R) -> Self {
         Self {
             reader,

@@ -312,6 +312,9 @@ impl serde::Serialize for BytesRules {
                 bytes_rules::WellKnown::Ipv6(v) => {
                     struct_ser.serialize_field("ipv6", v)?;
                 }
+                bytes_rules::WellKnown::Uuid(v) => {
+                    struct_ser.serialize_field("uuid", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -341,6 +344,7 @@ impl<'de> serde::Deserialize<'de> for BytesRules {
             "ip",
             "ipv4",
             "ipv6",
+            "uuid",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -359,6 +363,7 @@ impl<'de> serde::Deserialize<'de> for BytesRules {
             Ip,
             Ipv4,
             Ipv6,
+            Uuid,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -394,6 +399,7 @@ impl<'de> serde::Deserialize<'de> for BytesRules {
                             "ip" => Ok(GeneratedField::Ip),
                             "ipv4" => Ok(GeneratedField::Ipv4),
                             "ipv6" => Ok(GeneratedField::Ipv6),
+                            "uuid" => Ok(GeneratedField::Uuid),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -533,6 +539,12 @@ impl<'de> serde::Deserialize<'de> for BytesRules {
                                 return Err(serde::de::Error::duplicate_field("ipv6"));
                             }
                             well_known__ = map_.next_value::<::std::option::Option<_>>()?.map(bytes_rules::WellKnown::Ipv6);
+                        }
+                        GeneratedField::Uuid => {
+                            if well_known__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("uuid"));
+                            }
+                            well_known__ = map_.next_value::<::std::option::Option<_>>()?.map(bytes_rules::WellKnown::Uuid);
                         }
                     }
                 }
@@ -1177,6 +1189,149 @@ impl<'de> serde::Deserialize<'de> for EnumRules {
         deserializer.deserialize_struct("buf.validate.EnumRules", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for FieldMaskRules {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.r#const.is_some() {
+            len += 1;
+        }
+        if !self.r#in.is_empty() {
+            len += 1;
+        }
+        if !self.not_in.is_empty() {
+            len += 1;
+        }
+        if !self.example.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("buf.validate.FieldMaskRules", len)?;
+        if let Some(v) = self.r#const.as_ref() {
+            struct_ser.serialize_field("const", v)?;
+        }
+        if !self.r#in.is_empty() {
+            struct_ser.serialize_field("in", &self.r#in)?;
+        }
+        if !self.not_in.is_empty() {
+            struct_ser.serialize_field("notIn", &self.not_in)?;
+        }
+        if !self.example.is_empty() {
+            struct_ser.serialize_field("example", &self.example)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FieldMaskRules {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "const",
+            "in",
+            "not_in",
+            "notIn",
+            "example",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Const,
+            In,
+            NotIn,
+            Example,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "const" => Ok(GeneratedField::Const),
+                            "in" => Ok(GeneratedField::In),
+                            "notIn" | "not_in" => Ok(GeneratedField::NotIn),
+                            "example" => Ok(GeneratedField::Example),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FieldMaskRules;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct buf.validate.FieldMaskRules")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FieldMaskRules, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut r#const__ = None;
+                let mut r#in__ = None;
+                let mut not_in__ = None;
+                let mut example__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Const => {
+                            if r#const__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("const"));
+                            }
+                            r#const__ = map_.next_value()?;
+                        }
+                        GeneratedField::In => {
+                            if r#in__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("in"));
+                            }
+                            r#in__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NotIn => {
+                            if not_in__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("notIn"));
+                            }
+                            not_in__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Example => {
+                            if example__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("example"));
+                            }
+                            example__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(FieldMaskRules {
+                    r#const: r#const__,
+                    r#in: r#in__.unwrap_or_default(),
+                    not_in: not_in__.unwrap_or_default(),
+                    example: example__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("buf.validate.FieldMaskRules", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for FieldPath {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1524,6 +1679,9 @@ impl serde::Serialize for FieldRules {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if !self.cel_expression.is_empty() {
+            len += 1;
+        }
         if !self.cel.is_empty() {
             len += 1;
         }
@@ -1537,6 +1695,9 @@ impl serde::Serialize for FieldRules {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("buf.validate.FieldRules", len)?;
+        if !self.cel_expression.is_empty() {
+            struct_ser.serialize_field("celExpression", &self.cel_expression)?;
+        }
         if !self.cel.is_empty() {
             struct_ser.serialize_field("cel", &self.cel)?;
         }
@@ -1610,6 +1771,9 @@ impl serde::Serialize for FieldRules {
                 field_rules::Type::Duration(v) => {
                     struct_ser.serialize_field("duration", v)?;
                 }
+                field_rules::Type::FieldMask(v) => {
+                    struct_ser.serialize_field("fieldMask", v)?;
+                }
                 field_rules::Type::Timestamp(v) => {
                     struct_ser.serialize_field("timestamp", v)?;
                 }
@@ -1625,6 +1789,8 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "cel_expression",
+            "celExpression",
             "cel",
             "required",
             "ignore",
@@ -1648,11 +1814,14 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
             "map",
             "any",
             "duration",
+            "field_mask",
+            "fieldMask",
             "timestamp",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            CelExpression,
             Cel,
             Required,
             Ignore,
@@ -1676,6 +1845,7 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
             Map,
             Any,
             Duration,
+            FieldMask,
             Timestamp,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -1698,6 +1868,7 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
                         E: serde::de::Error,
                     {
                         match value {
+                            "celExpression" | "cel_expression" => Ok(GeneratedField::CelExpression),
                             "cel" => Ok(GeneratedField::Cel),
                             "required" => Ok(GeneratedField::Required),
                             "ignore" => Ok(GeneratedField::Ignore),
@@ -1721,6 +1892,7 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
                             "map" => Ok(GeneratedField::Map),
                             "any" => Ok(GeneratedField::Any),
                             "duration" => Ok(GeneratedField::Duration),
+                            "fieldMask" | "field_mask" => Ok(GeneratedField::FieldMask),
                             "timestamp" => Ok(GeneratedField::Timestamp),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
@@ -1741,12 +1913,19 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut cel_expression__ = None;
                 let mut cel__ = None;
                 let mut required__ = None;
                 let mut ignore__ = None;
                 let mut r#type__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::CelExpression => {
+                            if cel_expression__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("celExpression"));
+                            }
+                            cel_expression__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::Cel => {
                             if cel__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("cel"));
@@ -1905,6 +2084,13 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
                             r#type__ = map_.next_value::<::std::option::Option<_>>()?.map(field_rules::Type::Duration)
 ;
                         }
+                        GeneratedField::FieldMask => {
+                            if r#type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fieldMask"));
+                            }
+                            r#type__ = map_.next_value::<::std::option::Option<_>>()?.map(field_rules::Type::FieldMask)
+;
+                        }
                         GeneratedField::Timestamp => {
                             if r#type__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("timestamp"));
@@ -1915,6 +2101,7 @@ impl<'de> serde::Deserialize<'de> for FieldRules {
                     }
                 }
                 Ok(FieldRules {
+                    cel_expression: cel_expression__.unwrap_or_default(),
                     cel: cel__.unwrap_or_default(),
                     required: required__,
                     ignore: ignore__,
@@ -3466,6 +3653,9 @@ impl serde::Serialize for MessageRules {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if !self.cel_expression.is_empty() {
+            len += 1;
+        }
         if !self.cel.is_empty() {
             len += 1;
         }
@@ -3473,6 +3663,9 @@ impl serde::Serialize for MessageRules {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("buf.validate.MessageRules", len)?;
+        if !self.cel_expression.is_empty() {
+            struct_ser.serialize_field("celExpression", &self.cel_expression)?;
+        }
         if !self.cel.is_empty() {
             struct_ser.serialize_field("cel", &self.cel)?;
         }
@@ -3489,12 +3682,15 @@ impl<'de> serde::Deserialize<'de> for MessageRules {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "cel_expression",
+            "celExpression",
             "cel",
             "oneof",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            CelExpression,
             Cel,
             Oneof,
         }
@@ -3518,6 +3714,7 @@ impl<'de> serde::Deserialize<'de> for MessageRules {
                         E: serde::de::Error,
                     {
                         match value {
+                            "celExpression" | "cel_expression" => Ok(GeneratedField::CelExpression),
                             "cel" => Ok(GeneratedField::Cel),
                             "oneof" => Ok(GeneratedField::Oneof),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
@@ -3539,10 +3736,17 @@ impl<'de> serde::Deserialize<'de> for MessageRules {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut cel_expression__ = None;
                 let mut cel__ = None;
                 let mut oneof__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::CelExpression => {
+                            if cel_expression__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("celExpression"));
+                            }
+                            cel_expression__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::Cel => {
                             if cel__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("cel"));
@@ -3558,6 +3762,7 @@ impl<'de> serde::Deserialize<'de> for MessageRules {
                     }
                 }
                 Ok(MessageRules {
+                    cel_expression: cel_expression__.unwrap_or_default(),
                     cel: cel__.unwrap_or_default(),
                     oneof: oneof__.unwrap_or_default(),
                 })
@@ -5080,6 +5285,9 @@ impl serde::Serialize for StringRules {
                 string_rules::WellKnown::HostAndPort(v) => {
                     struct_ser.serialize_field("hostAndPort", v)?;
                 }
+                string_rules::WellKnown::Ulid(v) => {
+                    struct_ser.serialize_field("ulid", v)?;
+                }
                 string_rules::WellKnown::WellKnownRegex(v) => {
                     let v = KnownRegex::try_from(*v)
                         .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
@@ -5145,6 +5353,7 @@ impl<'de> serde::Deserialize<'de> for StringRules {
             "ipv6Prefix",
             "host_and_port",
             "hostAndPort",
+            "ulid",
             "well_known_regex",
             "wellKnownRegex",
         ];
@@ -5184,6 +5393,7 @@ impl<'de> serde::Deserialize<'de> for StringRules {
             Ipv4Prefix,
             Ipv6Prefix,
             HostAndPort,
+            Ulid,
             WellKnownRegex,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -5239,6 +5449,7 @@ impl<'de> serde::Deserialize<'de> for StringRules {
                             "ipv4Prefix" | "ipv4_prefix" => Ok(GeneratedField::Ipv4Prefix),
                             "ipv6Prefix" | "ipv6_prefix" => Ok(GeneratedField::Ipv6Prefix),
                             "hostAndPort" | "host_and_port" => Ok(GeneratedField::HostAndPort),
+                            "ulid" => Ok(GeneratedField::Ulid),
                             "wellKnownRegex" | "well_known_regex" => Ok(GeneratedField::WellKnownRegex),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
@@ -5487,6 +5698,12 @@ impl<'de> serde::Deserialize<'de> for StringRules {
                                 return Err(serde::de::Error::duplicate_field("hostAndPort"));
                             }
                             well_known__ = map_.next_value::<::std::option::Option<_>>()?.map(string_rules::WellKnown::HostAndPort);
+                        }
+                        GeneratedField::Ulid => {
+                            if well_known__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ulid"));
+                            }
+                            well_known__ = map_.next_value::<::std::option::Option<_>>()?.map(string_rules::WellKnown::Ulid);
                         }
                         GeneratedField::WellKnownRegex => {
                             if well_known__.is_some() {

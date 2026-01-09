@@ -10,23 +10,100 @@ pub mod prelude {
 }
 
 /// A `Result` that returns [Error] as the error-type.
+///
+/// This is a convenience type alias for `std::result::Result<T, Error>`.
+/// It's used throughout Sift crates as the standard error handling type.
+///
+/// # Example
+///
+/// ```rust
+/// use sift_error::{Error, ErrorKind, Result};
+///
+/// fn might_fail() -> Result<String> {
+///     Ok("success".to_string())
+/// }
+///
+/// fn handle_error() -> Result<()> {
+///     might_fail()?;
+///     Ok(())
+/// }
+/// ```
 pub type Result<T> = StdResult<T, Error>;
 pub type BoxedError = Box<dyn std::error::Error + Send + Sync>;
 
 /// Trait that defines the behavior of errors that Sift manages.
+///
+/// This trait provides methods for adding context and help text to errors,
+/// allowing for rich error messages that guide users toward resolution.
+///
+/// # Example
+///
+/// ```rust
+/// use sift_error::prelude::*;
+/// use std::io;
+///
+/// fn read_config() -> Result<String> {
+///     std::fs::read_to_string("config.toml")
+///         .map_err(|e| Error::new(ErrorKind::IoError, e))
+///         .context("failed to read configuration file")
+///         .help("ensure the config.toml file exists and is readable")
+/// }
+/// ```
 pub trait SiftError<T, C>
 where
     C: fmt::Display + Send + Sync + 'static,
 {
     /// Adds context that is printed with the error.
+    ///
+    /// Context is displayed as the most recent error message, with previous
+    /// context forming a chain of causes.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::prelude::*;
+    ///
+    /// fn example() -> Result<()> {
+    ///     let err = Error::new_msg(ErrorKind::IoError, "file not found");
+    ///     Err(err).context("failed to load user data")
+    /// }
+    /// ```
     fn context(self, ctx: C) -> Result<T>;
 
     /// Like `context` but takes in a closure.
+    ///
+    /// This is useful when constructing the context string is expensive,
+    /// as the closure is only called if there's an error.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::prelude::*;
+    ///
+    /// fn example(user_id: &str) -> Result<()> {
+    ///     let err = Error::new_msg(ErrorKind::NotFoundError, "resource missing");
+    ///     Err(err).with_context(|| format!("user {} not found", user_id))
+    /// }
+    /// ```
     fn with_context<F>(self, op: F) -> Result<T>
     where
         F: Fn() -> C;
 
     /// User-help text.
+    ///
+    /// Help text provides actionable guidance to users on how to resolve
+    /// the error. It's displayed separately from the error context.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::prelude::*;
+    ///
+    /// fn example() -> Result<()> {
+    ///     let err = Error::new_msg(ErrorKind::ConfigError, "invalid config");
+    ///     Err(err).help("check your sift.toml file for syntax errors")
+    /// }
+    /// ```
     fn help(self, txt: C) -> Result<T>;
 }
 
@@ -42,7 +119,25 @@ pub struct Error {
 impl StdError for Error {}
 
 impl Error {
-    /// Initializes an [Error].
+    /// Initializes an [Error] from a standard error type.
+    ///
+    /// This constructor wraps a standard library error (or any type implementing
+    /// `std::error::Error`) into a Sift error with the specified [ErrorKind].
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - The category of error that occurred
+    /// * `err` - The underlying error to wrap
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::{Error, ErrorKind};
+    /// use std::io;
+    ///
+    /// let io_error = io::Error::new(io::ErrorKind::NotFound, "file not found");
+    /// let sift_error = Error::new(ErrorKind::IoError, io_error);
+    /// ```
     pub fn new<E>(kind: ErrorKind, err: E) -> Self
     where
         E: StdError + Send + Sync + 'static,
@@ -56,7 +151,23 @@ impl Error {
         }
     }
 
-    /// Initializes an [Error] with a generic message.
+    /// Initializes an [Error] with a generic message string.
+    ///
+    /// This constructor creates an error from a string message without
+    /// wrapping an underlying error type.
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - The category of error that occurred
+    /// * `msg` - A string message describing the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::{Error, ErrorKind};
+    ///
+    /// let error = Error::new_msg(ErrorKind::NotFoundError, "resource not found");
+    /// ```
     pub fn new_msg<S: AsRef<str>>(kind: ErrorKind, msg: S) -> Self {
         Self {
             inner: None,
@@ -66,20 +177,68 @@ impl Error {
         }
     }
 
-    /// Initializes a general catch-all type of [Error]. Contributors should be careful not to use
-    /// this unless strictly necessary.
+    /// Initializes a general catch-all type of [Error].
+    ///
+    /// Contributors should be careful not to use this unless strictly necessary.
+    /// Prefer more specific [ErrorKind] variants when possible.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - A string message describing the error
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::Error;
+    ///
+    /// let error = Error::new_general("unexpected condition occurred");
+    /// ```
     pub fn new_general<S: AsRef<str>>(msg: S) -> Self {
         Self::new_msg(ErrorKind::GeneralError, msg)
     }
 
     /// Used for user-errors that have to do with bad arguments.
+    ///
+    /// This is a convenience constructor for argument validation errors.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - A string message describing the argument validation failure
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::Error;
+    ///
+    /// fn validate_age(age: i32) -> Result<(), Error> {
+    ///     if age < 0 {
+    ///         return Err(Error::new_arg_error("age must be non-negative"));
+    ///     }
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn new_arg_error<S: AsRef<str>>(msg: S) -> Self {
         Self::new_msg(ErrorKind::ArgumentValidationError, msg)
     }
 
-    /// Tonic response types usually return optional types that we need to handle; if responses are
-    /// empty then this is the appropriate way to initialize an [Error] for that situation, though
-    /// this has never been observed.
+    /// Creates an error for empty gRPC responses.
+    ///
+    /// Tonic response types usually return optional types that we need to handle;
+    /// if responses are empty then this is the appropriate way to initialize an
+    /// [Error] for that situation, though this has never been observed in practice.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - A string message describing the empty response situation
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::Error;
+    ///
+    /// // This would typically be used when a gRPC response is unexpectedly empty
+    /// let error = Error::new_empty_response("asset response was empty");
+    /// ```
     pub fn new_empty_response<S: AsRef<str>>(msg: S) -> Self {
         Self {
             inner: None,
@@ -90,12 +249,42 @@ impl Error {
     }
 
     /// Get the underlying error kind.
+    ///
+    /// # Returns
+    ///
+    /// The [ErrorKind] that categorizes this error.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::{Error, ErrorKind};
+    ///
+    /// let error = Error::new_msg(ErrorKind::NotFoundError, "resource missing");
+    /// assert_eq!(error.kind(), ErrorKind::NotFoundError);
+    /// ```
     pub fn kind(&self) -> ErrorKind {
         self.kind
     }
 }
 
 /// Various categories of errors that can occur throughout Sift crates.
+///
+/// Each variant represents a different category of error that can occur when
+/// interacting with Sift services or processing data. Error kinds help categorize
+/// errors for better error handling and user feedback.
+///
+/// # Example
+///
+/// ```rust
+/// use sift_error::{Error, ErrorKind};
+///
+/// let error = Error::new_msg(ErrorKind::NotFoundError, "asset not found");
+/// match error.kind() {
+///     ErrorKind::NotFoundError => println!("Resource was not found"),
+///     ErrorKind::IoError => println!("I/O error occurred"),
+///     _ => println!("Other error"),
+/// }
+/// ```
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ErrorKind {
     /// Indicates that the error is due to a resource already existing.
@@ -104,7 +293,10 @@ pub enum ErrorKind {
     ArgumentValidationError,
     /// Indicates that the program is unable to grab credentials from a user's `sift.toml` file.
     ConfigError,
-    /// Inidicates that the program was unable to connect to Sift.
+    /// Indicates that the program was unable to connect to Sift.
+    ///
+    /// This occurs when there are network issues, invalid URIs, TLS problems,
+    /// or other connection-related failures when attempting to reach Sift services.
     GrpcConnectError,
     /// Indicates that the program was unable to retrieve the run being requested.
     RetrieveRunError,
@@ -116,6 +308,8 @@ pub enum ErrorKind {
     UpdateRunError,
     /// Indicates that the program was unable to retrieve the ingestion config being requested.
     RetrieveIngestionConfigError,
+    /// Indicates that the program was unable to encode the message being requested.
+    EncodeMessageError,
     /// Indicates a failure to create a run.
     CreateRunError,
     /// Indicates a failure to create an ingestion config.
@@ -128,11 +322,15 @@ pub enum ErrorKind {
     IoError,
     /// Indicates that there was a conversion between numeric times.
     NumberConversionError,
-    /// Indicates a failure to generated a particular time-type from arguments.
+    /// Indicates a failure to generate a particular time-type from arguments.
     TimeConversionError,
     /// General errors that can occur while streaming telemetry i.e. data ingestion.
+    ///
+    /// This is a catch-all for streaming-related errors that don't fit into more
+    /// specific categories, such as stream initialization failures or unexpected
+    /// stream state errors.
     StreamError,
-    /// Indicates that all retries were exhausted in the configure retry policy.
+    /// Indicates that all retries were exhausted in the configured retry policy.
     RetriesExhausted,
     /// General errors that can occur while processing backups during streaming.
     BackupsError,
@@ -142,7 +340,10 @@ pub enum ErrorKind {
     /// Indicates that a user provided a flow-name that doesn't match any configured flow in the
     /// parent ingestion config.
     UnknownFlow,
-    /// This really shouldn't happen.
+    /// Indicates an empty response from a gRPC service.
+    ///
+    /// This really shouldn't happen in normal operation. It occurs when a gRPC
+    /// response is unexpectedly empty.
     EmptyResponseError,
     /// When failing to decode protobuf from its wire format.
     ProtobufDecodeError,
@@ -150,9 +351,12 @@ pub enum ErrorKind {
     BackupIntegrityError,
     /// When backup file/buffer limit has been reached.
     BackupLimitReached,
-    /// Errors with the SiftStream Metrics Server
+    /// Errors with the SiftStream Metrics Server.
     SiftStreamMetricsServerError,
     /// General errors that are rarely returned.
+    ///
+    /// This is a catch-all error kind for unexpected or unclassified errors.
+    /// Contributors should prefer more specific error kinds when possible.
     GeneralError,
 }
 
@@ -203,6 +407,7 @@ impl fmt::Display for ErrorKind {
             Self::UpdateAssetError => write!(f, "UpdateAssetError"),
             Self::RetrieveRunError => write!(f, "RetrieveRunError"),
             Self::RetrieveIngestionConfigError => write!(f, "RetrieveIngestionConfigError"),
+            Self::EncodeMessageError => write!(f, "EncodeMessageError"),
             Self::EmptyResponseError => write!(f, "EmptyResponseError"),
             Self::NotFoundError => write!(f, "NotFoundError"),
             Self::CreateRunError => write!(f, "CreateRunError"),

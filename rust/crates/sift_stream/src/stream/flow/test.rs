@@ -451,6 +451,30 @@ fn test_flow_builder_set_wrong_type() {
 }
 
 #[test]
+fn test_flow_builder_set_empty_value() {
+    let mut builder = FlowDescriptorBuilder::new("config_id", "test_flow");
+    let temp_idx = builder.add("temperature", ChannelDataType::Double);
+
+    let descriptor = builder.build();
+    let mut flow_builder = FlowBuilder::new(&descriptor);
+
+    // First set to a non-empty value.
+    assert!(flow_builder.set(temp_idx, 23.0_f64).is_ok());
+
+    // Try to set back to an empty value.
+    assert!(flow_builder.set(temp_idx, ()).is_ok());
+
+    // Verify the value was set correctly by building a request
+    let now = TimeValue::now();
+    let request = flow_builder.request(now);
+    assert_eq!(request.channel_values.len(), 1);
+    assert_eq!(
+        request.channel_values[0].r#type,
+        Some(Type::Empty(pbjson_types::Empty {}))
+    );
+}
+
+#[test]
 fn test_flow_builder_all_value_types() {
     let mut builder = FlowDescriptorBuilder::new("config_id", "all_types_flow");
     let bool_idx = builder.add("bool_field", ChannelDataType::Bool);

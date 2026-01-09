@@ -75,6 +75,7 @@ class ParquetUploadService(_RestService):
         with ProgressFile(path, disable=not show_progress) as f:
             headers = {
                 "Content-Encoding": "application/octet-stream",
+                "Content-Disposition": f'attachment; filename="{os.path.basename(path)}"',
             }
 
             response = self._session.post(

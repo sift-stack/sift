@@ -250,21 +250,25 @@ where
         V: Into<Value>,
     {
         let value = value.into();
-        let pb_data_type = value.pb_data_type();
         let pb_value = value.pb_value();
 
-        // Since the [ChannelIndex] is only created by the [FlowDescriptor], we can safely
-        // assume that the index is valid and index directly into the `field_types` vector.
-        let expected_data_type = self.flow_descriptor.field_types[index.0];
+        // If the value is not empty, validate that the value has the correct data type.
+        if !matches!(value, Value::Empty) {
+            let pb_data_type = value.pb_data_type();
 
-        // Validate that the value has the correct data type.
-        if expected_data_type != pb_data_type {
-            return Err(Error::new_msg(
-                ErrorKind::ArgumentValidationError,
-                format!(
-                    "value has incorrect data type, expected {expected_data_type:?}, got {pb_data_type:?}"
-                ),
-            ));
+            // Since the [ChannelIndex] is only created by the [FlowDescriptor], we can safely
+            // assume that the index is valid and index directly into the `field_types` vector.
+            let expected_data_type = self.flow_descriptor.field_types[index.0];
+
+            // Validate that the value has the correct data type.
+            if expected_data_type != pb_data_type {
+                return Err(Error::new_msg(
+                    ErrorKind::ArgumentValidationError,
+                    format!(
+                        "value has incorrect data type, expected {expected_data_type:?}, got {pb_data_type:?}"
+                    ),
+                ));
+            }
         }
 
         // Update the value.
@@ -299,7 +303,10 @@ mod test;
 /// equivalent flow in `sift_flows`. If there is no corresponding flow then it either doesn't exist
 /// in Sift (this would be a bug) or a user made a backwards incompatible change to their ingestion
 /// config.
-pub fn validate_flows(user_specified: &[FlowConfig], sift_flows: &[FlowConfig]) -> Result<()> {
+pub(crate) fn validate_flows(
+    user_specified: &[FlowConfig],
+    sift_flows: &[FlowConfig],
+) -> Result<()> {
     for user_flow in user_specified {
         let num_matches_by_name = sift_flows
             .iter()

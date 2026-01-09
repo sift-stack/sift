@@ -6,6 +6,8 @@ use std::{fs::File, io::BufReader, path::Path};
 mod async_manager;
 pub(crate) use async_manager::{AsyncBackupsManager, BackupIngestTask};
 
+pub(crate) mod file_writer;
+
 mod policy;
 pub use policy::{DiskBackupPolicy, RollingFilePolicy};
 
@@ -13,7 +15,7 @@ pub use policy::{DiskBackupPolicy, RollingFilePolicy};
 /// iterator over the protobuf messages found in the backup file. The iterator will terminate when
 /// reaching an EOF or it hits a corrupt message; in this case the error returned by the item will
 /// be an `Err` whose kind if [ErrorKind::BackupIntegrityError].
-pub fn decode_backup<P, M>(path: P) -> Result<BackupsDecoder<M, BufReader<File>>>
+pub(crate) fn decode_backup<P, M>(path: P) -> Result<BackupsDecoder<M, BufReader<File>>>
 where
     P: AsRef<Path>,
     M: PbMessage + Default + 'static,

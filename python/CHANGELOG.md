@@ -7,6 +7,23 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Initial stable release of sift_client
 - Test results context managers
 
+## [v0.9.6] - December 22, 2025
+- [Add support for tags in RuleConfigs](https://github.com/sift-stack/sift/pull/438)
+
+## [v0.9.5] - December 12, 2025
+- [Reduce API calls when creating rules with caching](https://github.com/sift-stack/sift/pull/430)
+
+## [v0.9.4] - December 10, 2025
+- [Add support for is_live to rules in sift_py](https://github.com/sift-stack/sift/pull/427)
+
+## [v0.9.3] - December 4, 2025
+- [Fix scaling issues with TDMS imports](https://github.com/sift-stack/sift/pull/422)
+
+## [v0.9.2] - December 3, 2025
+- [Set Content-Disposition on data imports](https://github.com/sift-stack/sift/pull/420)
+- [Show validation errors in External Rules](https://github.com/sift-stack/sift/pull/369)
+- [Use faster yaml loading for telemtery configs](https://github.com/sift-stack/sift/pull/322)
+
 ## [v0.9.1] - August 18, 2025
 - [Allow importing TDMS metadata to existing Runs](https://github.com/sift-stack/sift/pull/320)
 

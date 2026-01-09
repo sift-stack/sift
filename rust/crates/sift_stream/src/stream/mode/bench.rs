@@ -1,27 +1,24 @@
 use crate::stream::flow::FlowDescriptor;
+use crate::stream::helpers;
 use crate::stream::mode::ingestion_config::Flow;
-use crate::{IngestionConfigMode, SiftStream};
+use sift_rs::runs::v2::Run;
 
-/// Unstable wrapper around [SiftStream::message_to_ingest_req] used for benchmarking purposes.
+/// Unstable wrapper around [helpers::message_to_ingest_req] used for benchmarking purposes.
 #[inline]
 pub fn message_to_ingest_req(
     message: &Flow,
-    run_id: Option<String>,
+    run: Option<&Run>,
     descriptor: &FlowDescriptor<String>,
 ) -> Option<sift_rs::ingest::v1::IngestWithConfigDataStreamRequest> {
-    SiftStream::<IngestionConfigMode>::message_to_ingest_req(message, run_id, descriptor)
+    helpers::message_to_ingest_req(message, run, descriptor)
 }
 
-/// Unstable wrapper around [SiftStream::message_to_ingest_req_direct] used for benchmarking purposes.
+/// Unstable wrapper around [helpers::message_to_ingest_req_direct] used for benchmarking purposes.
 #[inline]
 pub fn message_to_ingest_req_direct(
     message: &Flow,
     ingestion_config_id: &str,
-    run_id: Option<String>,
+    run: Option<&Run>,
 ) -> sift_rs::ingest::v1::IngestWithConfigDataStreamRequest {
-    SiftStream::<IngestionConfigMode>::message_to_ingest_req_direct(
-        message,
-        ingestion_config_id,
-        run_id,
-    )
+    helpers::message_to_ingest_req_direct(message, ingestion_config_id, run)
 }

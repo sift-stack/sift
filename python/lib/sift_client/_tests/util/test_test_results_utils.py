@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from sift_client.sift_types.test_report import (
+    NumericBounds,
     TestMeasurementCreate,
     TestMeasurementType,
     TestMeasurementUpdate,
@@ -22,6 +25,31 @@ class TestContextManager:
     def test_link_run_to_report(self, report_context, nostromo_run):
         report_context.report.update({"run_id": nostromo_run.id_})
         assert report_context.report.run_id == nostromo_run.id_
+
+    def test_docstring_description_setup(self, step):
+        """Test that the description of a step is set to the docstring of the test function.
+
+        Args:
+            step: The step to test.
+        """
+        expected_description = self.test_docstring_description_setup.__doc__
+        assert step.current_step.description == expected_description
+
+        def helper_function(_step: NewStep):
+            """Helper function description."""
+            with _step.substep("Helper Substep") as helper_substep:
+                # This test is more of an example to indicate that only top level functions collected by pytest receive function's docstring.
+                assert helper_substep.current_step.description == None
+
+        helper_function(step)
+
+    def test_docstring_description_override(self, step):
+        """This description can still be overridden."""
+        current_desc = self.test_docstring_description_override.__doc__
+        assert step.current_step.description == current_desc
+        new_desc = "Manually updated description."
+        step.current_step.update({"description": new_desc})
+        assert step.current_step.description == new_desc
 
     def test_new_step(self, report_context):
         initial_end_time = report_context.report.end_time
@@ -116,16 +144,220 @@ class TestContextManager:
             new_step.measure(name="Test Measurement 2", value="string value", bounds="string value")
             new_step.measure(name="Test Measurement 3", value=True, bounds="true")
 
-        assert len(test_step.measurements) == 3
-        assert test_step.measurements[0].name == "Test Measurement"
-        assert test_step.measurements[0].numeric_value == 10
-        assert test_step.measurements[0].measurement_type == TestMeasurementType.DOUBLE
-        assert test_step.measurements[1].name == "Test Measurement 2"
-        assert test_step.measurements[1].string_value == "string value"
-        assert test_step.measurements[1].measurement_type == TestMeasurementType.STRING
-        assert test_step.measurements[2].name == "Test Measurement 3"
-        assert test_step.measurements[2].boolean_value == True
-        assert test_step.measurements[2].measurement_type == TestMeasurementType.BOOLEAN
+        measurements = test_step.measurements
+        assert len(measurements) == 3
+        assert measurements[0].name == "Test Measurement"
+        assert measurements[0].numeric_value == 10
+        assert measurements[0].measurement_type == TestMeasurementType.DOUBLE
+        assert measurements[1].name == "Test Measurement 2"
+        assert measurements[1].string_value == "string value"
+        assert measurements[1].measurement_type == TestMeasurementType.STRING
+        assert measurements[2].name == "Test Measurement 3"
+        assert measurements[2].boolean_value == True
+        assert measurements[2].measurement_type == TestMeasurementType.BOOLEAN
+
+    def test_measure_avg_list_within_bounds(self, step):
+        """Test measure_avg with a list of values where average is within bounds."""
+        result = step.measure_avg(
+            name="Avg Temperature",
+            values=[10.0, 20.0, 30.0],  # avg = 20.0
+            bounds={"min": 15.0, "max": 25.0},
+        )
+        assert result == True
+        assert step.current_step.measurements[0].name == "Avg Temperature"
+        assert step.current_step.measurements[0].numeric_value == 20.0
+        assert step.current_step.measurements[0].passed == True
+
+    def test_measure_avg_list_outside_bounds(self, report_context, step):
+        """Test measure_avg with a list where average is outside bounds."""
+        # Capture initial state to restore after test
+        current_step_path = step.current_step.step_path
+        initial_open_step_result = report_context.open_step_results.get(current_step_path, True)
+        initial_any_failures = report_context.any_failures
+
+        result = step.measure_avg(
+            name="Avg Temperature Fail",
+            values=[50.0, 60.0, 70.0],  # avg = 60.0
+            bounds={"min": 15.0, "max": 25.0},
+        )
+        assert result == False
+        assert step.current_step.measurements[0].numeric_value == 60.0
+        assert step.current_step.measurements[0].passed == False
+
+        # Restore state
+        if initial_open_step_result:
+            report_context.open_step_results[current_step_path] = True
+        if not initial_any_failures:
+            report_context.any_failures = False
+
+    def test_measure_avg_numpy_array(self, step):
+        """Test measure_avg with a numpy array."""
+        result = step.measure_avg(
+            name="Avg Pressure",
+            values=np.array([100.0, 200.0, 300.0]),  # avg = 200.0
+            bounds={"min": 150.0, "max": 250.0},
+        )
+        assert result == True
+        assert step.current_step.measurements[0].numeric_value == 200.0
+        assert step.current_step.measurements[0].passed == True
+
+    def test_measure_avg_pandas_series(self, step):
+        """Test measure_avg with a pandas Series."""
+        series = pd.Series([5.0, 10.0, 15.0])  # avg = 10.0
+        result = step.measure_avg(
+            name="Avg Voltage",
+            values=series,
+            bounds={"min": 5.0, "max": 15.0},
+        )
+        assert result == True
+        assert step.current_step.measurements[0].numeric_value == 10.0
+        assert step.current_step.measurements[0].passed == True
+
+    def test_measure_avg_with_numeric_bounds_object(self, step):
+        """Test measure_avg with NumericBounds object instead of dict."""
+        result = step.measure_avg(
+            name="Avg Current",
+            values=[1.0, 2.0, 3.0],  # avg = 2.0
+            bounds=NumericBounds(min=1.0, max=3.0),
+        )
+        assert result == True
+        assert step.current_step.measurements[0].numeric_value == 2.0
+        assert step.current_step.measurements[0].passed == True
+
+    def test_measure_avg_invalid_type(self, step):
+        """Test measure_avg raises ValueError for invalid value type."""
+        with pytest.raises(ValueError, match="Invalid value type"):
+            step.measure_avg(
+                name="Invalid",
+                values="not a list",  # type: ignore
+                bounds={"min": 0.0, "max": 10.0},
+            )
+
+    def test_measure_avg_with_integers(self, step):
+        """Test measure_avg with integer values in list."""
+        result = step.measure_avg(
+            name="Avg Count",
+            values=[1, 2, 3, 4, 5],  # avg = 3.0
+            bounds={"min": 2.0, "max": 4.0},
+        )
+        assert result == True
+        assert step.current_step.measurements[0].numeric_value == 3.0
+        assert step.current_step.measurements[0].passed == True
+
+    def test_measure_all_list_within_bounds(self, step):
+        """Test measure_all with a list of values all within bounds."""
+        result = step.measure_all(
+            name="All Temperatures",
+            values=[10.0, 15.0, 20.0],
+            bounds={"min": 5.0, "max": 25.0},
+        )
+        assert result == True
+
+    def test_measure_all_list_some_outside_bounds(self, report_context, step):
+        """Test measure_all with a list where some values are outside bounds."""
+        # Capture initial state to restore after test
+        current_step_path = step.current_step.step_path
+        initial_open_step_result = report_context.open_step_results.get(current_step_path, True)
+        initial_any_failures = report_context.any_failures
+
+        result = step.measure_all(
+            name="temp",
+            values=[10.0, 50.0, 20.0, -1.0],  # 50.0 and -1.0 are outside
+            bounds={"min": 5.0, "max": 25.0},
+            unit="C",
+        )
+        assert result == False
+        test_step = step.current_step
+        measurements = test_step.measurements
+        measurements.sort(key=lambda x: x.numeric_value)
+        assert len(measurements) == 2
+        assert measurements[0].numeric_value == -1.0
+        assert measurements[0].passed == False
+        assert measurements[1].numeric_value == 50.0
+        assert measurements[1].passed == False
+
+        # Restore state
+        if initial_open_step_result:
+            report_context.open_step_results[current_step_path] = True
+        if not initial_any_failures:
+            report_context.any_failures = False
+
+    def test_measure_all_numpy_array(self, step):
+        """Test measure_all with a numpy array."""
+        result = step.measure_all(
+            name="All Pressures",
+            values=np.array([100.0, 150.0, 200.0]),
+            bounds={"min": 50.0, "max": 250.0},
+        )
+        assert result == True
+
+    def test_measure_all_pandas_series(self, step):
+        """Test measure_all with a pandas Series."""
+        series = pd.Series([5.0, 10.0, 15.0])
+        result = step.measure_all(
+            name="All Voltages",
+            values=series,
+            bounds={"min": 0.0, "max": 20.0},
+        )
+        assert result == True
+
+    def test_measure_all_with_numeric_bounds_object(self, step):
+        """Test measure_all with NumericBounds object instead of dict."""
+        result = step.measure_all(
+            name="All Currents",
+            values=[1.0, 2.0, 3.0],
+            bounds=NumericBounds(min=0.0, max=5.0),
+        )
+        assert result == True
+
+    def test_measure_all_invalid_type(self, step):
+        """Test measure_all raises ValueError for invalid value type."""
+        with pytest.raises(ValueError, match="Invalid value type"):
+            step.measure_all(
+                name="Invalid",
+                values="not a list",  # type: ignore
+                bounds={"min": 0.0, "max": 10.0},
+            )
+
+    def test_measure_all_no_bounds(self, step):
+        """Test measure_all raises ValueError when no bounds provided."""
+        with pytest.raises(ValueError, match="No bounds provided"):
+            step.measure_all(
+                name="No Bounds",
+                values=[1.0, 2.0, 3.0],
+                bounds={},  # Empty bounds dict
+            )
+
+    def test_measure_all_min_only(self, step):
+        """Test measure_all with only minimum bound."""
+        result = step.measure_all(
+            name="Min Only",
+            values=[10.0, 20.0, 30.0],
+            bounds={"min": 5.0},
+        )
+        assert result == True
+
+    def test_measure_all_max_only(self, step):
+        """Test measure_all with only maximum bound."""
+        result = step.measure_all(
+            name="Max Only",
+            values=[10.0, 20.0, 30.0],
+            bounds={"max": 50.0},
+        )
+        assert result == True
+
+    def test_report_outcome(self, report_context, step):
+        # Capture current state of report context's failures so we can keep things passed at a high level if the test's induced failures happen as expected.
+        current_step_path = step.current_step.step_path
+        initial_open_step_result = report_context.open_step_results.get(current_step_path, True)
+        initial_any_failures = report_context.any_failures
+        assert step.report_outcome("Test Pass Outcome", True, "Test Pass Description") == True
+        assert step.report_outcome("Test Fail Outcome", False, "Test Failure Description") == False
+        # If this test was successful, mark that at a high level.
+        if initial_open_step_result:
+            report_context.open_step_results[current_step_path] = True
+        if not initial_any_failures:
+            report_context.any_failures = False
 
     def test_bad_assert(self, report_context, step):
         # Capture current state of report context's failures so we can keep things passed at a high level if the test's induced failures happen as expected.
@@ -145,6 +377,7 @@ class TestContextManager:
                     "Nested Substep", "Has a bad assert"
                 ) as nested_substep_context:
                     nested_substep = nested_substep_context.current_step
+                    nested_substep_context.force_result = True
                     assert False == True
                 with substep_context.substep(
                     "Sibling Substep", "Should pass"
@@ -206,6 +439,9 @@ class TestBounds:
         measurement = TestMeasurementUpdate()
         assign_value_to_measurement(measurement, True)
         assert measurement.boolean_value == True
+
+        with pytest.raises(ValueError, match="Invalid value type: <class 'NoneType'>"):
+            assign_value_to_measurement(measurement, None)
 
     def test_evaluate_measurement_bounds(self):
         measurement = TestMeasurementUpdate(

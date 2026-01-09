@@ -28,10 +28,12 @@ use sift_rs::runs::v2::{
 };
 use sift_stream::{ChannelConfig, ChannelDataType, FlowConfig};
 use std::io::Error as IoError;
+use std::sync::{Arc, Mutex};
 use tokio::task::JoinHandle;
 use tonic::transport::{Endpoint, Server, Uri};
 use tonic::{Request, Response, Status};
 use tower::{ServiceBuilder, service_fn};
+use uuid::Uuid;
 
 /// re-exports everything needed to implement an [IngestService].
 pub mod prelude;
@@ -47,66 +49,131 @@ impl PingService for MockPingService {
     }
 }
 
-pub(crate) struct MockIngestionConfigService;
+pub(crate) struct MockIngestionConfigService {
+    existing_flows: Arc<Mutex<Vec<FlowConfig>>>,
+    existing_ingestion_configs: Arc<Mutex<Vec<IngestionConfig>>>,
+}
+
+impl Default for MockIngestionConfigService {
+    fn default() -> Self {
+        let existing_flow = FlowConfig {
+            name: "flow-0".to_string(),
+            channels: vec![ChannelConfig {
+                name: "generator".to_string(),
+                data_type: ChannelDataType::Double.into(),
+                ..Default::default()
+            }],
+        };
+        let existing_ingestion_config = IngestionConfig {
+            ingestion_config_id: Uuid::new_v4().to_string(),
+            asset_id: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+        };
+        Self {
+            existing_flows: Arc::new(Mutex::new(vec![existing_flow])),
+            existing_ingestion_configs: Arc::new(Mutex::new(vec![existing_ingestion_config])),
+        }
+    }
+}
 
 #[tonic::async_trait]
 impl IngestionConfigService for MockIngestionConfigService {
     async fn get_ingestion_config(
         &self,
-        _: Request<GetIngestionConfigRequest>,
+        request: Request<GetIngestionConfigRequest>,
     ) -> Result<Response<GetIngestionConfigResponse>, Status> {
-        Ok(Response::new(GetIngestionConfigResponse {
-            ingestion_config: Some(IngestionConfig {
-                ingestion_config_id: "ingestion-config-0".to_string(),
-                asset_id: "asset-0".to_string(),
-                client_key: "test_client_key".to_string(),
-            }),
-        }))
+        let get_ingestion_config = request.into_inner();
+        let existing_ingestion_configs = self.existing_ingestion_configs.lock().unwrap();
+        let ingestion_config = existing_ingestion_configs
+            .iter()
+            .find(|ic| ic.ingestion_config_id == get_ingestion_config.ingestion_config_id);
+        if let Some(ingestion_config) = ingestion_config {
+            return Ok(Response::new(GetIngestionConfigResponse {
+                ingestion_config: Some(ingestion_config.clone()),
+            }));
+        }
+
+        Err(Status::not_found("ingestion config not found"))
     }
     async fn create_ingestion_config(
         &self,
-        _: Request<CreateIngestionConfigRequest>,
+        request: Request<CreateIngestionConfigRequest>,
     ) -> Result<Response<CreateIngestionConfigResponse>, Status> {
+        let create_ingestion_config = request.into_inner();
+
+        let mut existing_ingestion_configs = self.existing_ingestion_configs.lock().unwrap();
+        for config in existing_ingestion_configs.iter() {
+            if config.client_key == create_ingestion_config.client_key {
+                return Err(Status::already_exists("ingestion config already exists"));
+            }
+        }
+
+        let new_config = IngestionConfig {
+            ingestion_config_id: Uuid::new_v4().to_string(),
+            asset_id: create_ingestion_config.asset_name.clone(),
+            client_key: create_ingestion_config.client_key.clone(),
+        };
+
+        existing_ingestion_configs.push(new_config.clone());
+
         Ok(Response::new(CreateIngestionConfigResponse {
-            ingestion_config: Some(IngestionConfig {
-                ingestion_config_id: "ingestion-config-0".to_string(),
-                asset_id: "asset-0".to_string(),
-                client_key: "test_client_key".to_string(),
-            }),
+            ingestion_config: Some(new_config),
         }))
     }
     async fn list_ingestion_configs(
         &self,
-        _: Request<ListIngestionConfigsRequest>,
+        request: Request<ListIngestionConfigsRequest>,
     ) -> Result<Response<ListIngestionConfigsResponse>, Status> {
+        let list_configs: ListIngestionConfigsRequest = request.into_inner();
+
+        let existing_ingestion_configs = self.existing_ingestion_configs.lock().unwrap();
+
+        let mut ingestion_configs = Vec::new();
+        for config in existing_ingestion_configs.iter() {
+            if list_configs.filter.is_empty() || list_configs.filter.contains(&config.client_key) {
+                ingestion_configs.push(config.clone());
+            }
+        }
+
         Ok(Response::new(ListIngestionConfigsResponse {
-            ingestion_configs: vec![IngestionConfig {
-                ingestion_config_id: "ingestion-config-0".to_string(),
-                asset_id: "asset-0".to_string(),
-                client_key: "test_client_key".to_string(),
-            }],
+            ingestion_configs: ingestion_configs,
             next_page_token: "".to_string(),
         }))
     }
     async fn create_ingestion_config_flows(
         &self,
-        _: Request<CreateIngestionConfigFlowsRequest>,
+        request: Request<CreateIngestionConfigFlowsRequest>,
     ) -> Result<Response<CreateIngestionConfigFlowsResponse>, Status> {
+        let create_flows = request.into_inner();
+
+        let mut existing_flows = self.existing_flows.lock().unwrap();
+        for flow in create_flows.flows.iter() {
+            if existing_flows.iter().any(|f| f.name == flow.name) {
+                return Err(Status::already_exists("flow already exists"));
+            }
+
+            existing_flows.push(flow.clone());
+        }
+
         Ok(Response::new(CreateIngestionConfigFlowsResponse {}))
     }
     async fn list_ingestion_config_flows(
         &self,
-        _: Request<ListIngestionConfigFlowsRequest>,
+        request: Request<ListIngestionConfigFlowsRequest>,
     ) -> Result<Response<ListIngestionConfigFlowsResponse>, Status> {
+        let list_flows: ListIngestionConfigFlowsRequest = request.into_inner();
+        let existing_flows = self.existing_flows.lock().unwrap();
+
+        // If the filter contains "already_exists_flow" or is empty, return the existing flow.
+        let mut flows = Vec::new();
+        for flow in existing_flows.iter() {
+            if list_flows.filter.is_empty() || list_flows.filter.contains(&flow.name) {
+                flows.push(flow.clone());
+            }
+        }
+
         Ok(Response::new(ListIngestionConfigFlowsResponse {
-            flows: vec![FlowConfig {
-                name: "flow-0".to_string(),
-                channels: vec![ChannelConfig {
-                    name: "generator".to_string(),
-                    data_type: ChannelDataType::Double.into(),
-                    ..Default::default()
-                }],
-            }],
+            flows,
             next_page_token: "".to_string(),
         }))
     }
@@ -270,7 +337,7 @@ pub async fn start_test_ingest_server<I: IngestService>(
             .add_service(IngestServiceServer::new(ingest_service))
             .add_service(PingServiceServer::new(MockPingService))
             .add_service(IngestionConfigServiceServer::new(
-                MockIngestionConfigService,
+                MockIngestionConfigService::default(),
             ))
             .add_service(AssetServiceServer::new(MockAssetService))
             .add_service(RunServiceServer::new(MockRunService))

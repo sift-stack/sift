@@ -1,0 +1,457 @@
+syntax = "proto3";
+
+package sift.user_attributes.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "User attributes service"}
+};
+
+service UserAttributesService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to manage ABAC user attributes (principal attributes)."};
+
+  // Creates a user attribute key.
+  rpc CreateUserAttributeKey(CreateUserAttributeKeyRequest) returns (CreateUserAttributeKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-attribute-keys"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateUserAttributeKey",
+      description: "Create a user attribute key."
+    };
+  }
+
+  // Retrieves a user attribute key.
+  rpc GetUserAttributeKey(GetUserAttributeKeyRequest) returns (GetUserAttributeKeyResponse) {
+    option (google.api.http) = {get: "/api/v1/user-attribute-keys/{user_attribute_key_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserAttributeKey",
+      description: "Retrieves a user attribute key."
+    };
+  }
+
+  // Lists user attribute keys, respecting the provided filter.
+  rpc ListUserAttributeKeys(ListUserAttributeKeysRequest) returns (ListUserAttributeKeysResponse) {
+    option (google.api.http) = {get: "/api/v1/user-attribute-keys"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListUserAttributeKeys",
+      description: "Lists user attribute keys."
+    };
+  }
+
+  // Updates an existing user attribute key.
+  rpc UpdateUserAttributeKey(UpdateUserAttributeKeyRequest) returns (UpdateUserAttributeKeyResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/user-attribute-keys/{user_attribute_key_id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateUserAttributeKey",
+      description: "Updates an existing user attribute key."
+    };
+  }
+
+  // Batch archives user attribute keys AND all their associated user attribute values.
+  rpc ArchiveUserAttributeKeys(ArchiveUserAttributeKeysRequest) returns (ArchiveUserAttributeKeysResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-attribute-keys/archive",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchiveUserAttributeKeys",
+      description: "Archive user attribute keys."
+    };
+  }
+
+  // Batch unarchives user attribute keys.
+  rpc UnarchiveUserAttributeKeys(UnarchiveUserAttributeKeysRequest) returns (UnarchiveUserAttributeKeysResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-attribute-keys/unarchive",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchiveUserAttributeKeys",
+      description: "Unarchive user attribute keys."
+    };
+  }
+
+  // Creates a user attribute value.
+  rpc CreateUserAttributeValue(CreateUserAttributeValueRequest) returns (CreateUserAttributeValueResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-attribute-values"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateUserAttributeValue",
+      description: "Create a user attribute value."
+    };
+  }
+
+  // Creates a user attribute value for multiple users in a single operation.
+  rpc BatchCreateUserAttributeValue(BatchCreateUserAttributeValueRequest) returns (BatchCreateUserAttributeValueResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-attribute-values/batch"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchCreateUserAttributeValue",
+      description: "Creates a user attribute value for multiple users in a single operation."
+    };
+  }
+
+  // Retrieves a user attribute value.
+  rpc GetUserAttributeValue(GetUserAttributeValueRequest) returns (GetUserAttributeValueResponse) {
+    option (google.api.http) = {get: "/api/v1/user-attribute-values/{user_attribute_value_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserAttributeValue",
+      description: "Retrieves a user attribute value."
+    };
+  }
+
+  // Lists user attribute values for a given user attribute key, respecting the provided filter.
+  rpc ListUserAttributeKeyValues(ListUserAttributeKeyValuesRequest) returns (ListUserAttributeKeyValuesResponse) {
+    option (google.api.http) = {get: "/api/v1/user-attribute-keys/{user_attribute_key_id}/user-attribute-values"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListUserAttributeKeyValues",
+      description: "Lists user attribute values for a given user attribute key."
+    };
+  }
+
+  // List user attributes values, respecting the provided filter.
+  rpc ListUserAttributeValues(ListUserAttributeValuesRequest) returns (ListUserAttributeValuesResponse) {
+    option (google.api.http) = {get: "/api/v1/user-attribute-values"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListUserAttributeValues",
+      description: "Lists user attribute values."
+    };
+  }
+
+  // Batch archives user attribute values.
+  rpc ArchiveUserAttributeValues(ArchiveUserAttributeValuesRequest) returns (ArchiveUserAttributeValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-attribute-values/archive",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchiveUserAttributeValues",
+      description: "Archive user attribute values."
+    };
+  }
+
+  // Batch unarchives user attribute values.
+  rpc UnarchiveUserAttributeValues(UnarchiveUserAttributeValuesRequest) returns (UnarchiveUserAttributeValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-attribute-values/unarchive",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchiveUserAttributeValues",
+      description: "Unarchive user attribute values."
+    };
+  }
+}
+
+// UserAttributeValueType enumerates the supported value types for a user attribute key.
+enum UserAttributeValueType {
+  USER_ATTRIBUTE_VALUE_TYPE_UNSPECIFIED = 0;
+  USER_ATTRIBUTE_VALUE_TYPE_STRING = 1;
+  USER_ATTRIBUTE_VALUE_TYPE_BOOLEAN = 2;
+  USER_ATTRIBUTE_VALUE_TYPE_NUMBER = 3;
+  USER_ATTRIBUTE_VALUE_TYPE_SET_OF_STRING = 4;
+}
+
+message UserAttributeKey {
+  string user_attribute_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string organization_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  UserAttributeValueType type = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 7 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 9 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  google.protobuf.Timestamp archived_date = 10 [(google.api.field_behavior) = OPTIONAL];
+  // Whether or not the user attribute key is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 11 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// CreateUserAttributeKeyRequest is used to create a new user attribute key.
+message CreateUserAttributeKeyRequest {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  string description = 2 [(google.api.field_behavior) = OPTIONAL];
+  UserAttributeValueType type = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+// CreateUserAttributeKeyResponse returns the user attribute key from a CreateUserAttributeKey call.
+message CreateUserAttributeKeyResponse {
+  UserAttributeKey user_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// UpdateUserAttributeKeyRequest is used to update an existing user attribute key.
+message UpdateUserAttributeKeyRequest {
+  string user_attribute_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string name = 2 [(google.api.field_behavior) = OPTIONAL];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+  // The list of fields to be updated. The fields available to be updated are `name` and 'description'.
+  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+// UpdateUserAttributeKeyResponse returns the user attribute key from a UpdateUserAttributeKey call.
+message UpdateUserAttributeKeyResponse {
+  UserAttributeKey user_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetUserAttributeKeyRequest is used to retrieve a user attribute key.
+message GetUserAttributeKeyRequest {
+  string user_attribute_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetUserAttributeKeyResponse returns a user attribute key from a GetUserAttributeKey call.
+message GetUserAttributeKeyResponse {
+  UserAttributeKey user_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListUserAttributeKeysRequest is used to list user attribute keys with the provided filter.
+message ListUserAttributeKeysRequest {
+  // The maximum number of user attribute keys to return. The service may return fewer than this value.
+  // If unspecified, at most 50 user attribute keys will be returned. The maximum value is 1000. Values
+  // above 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  // A page token, received from a previous `ListUserAttributeKeys` call.
+  // Provide this to retrieve a subsequent page of user attribute keys.
+  // When paginating, all other parameters provided to `ListUserAttributeKeys` must match the previous call
+  // that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // 'user_attribute_key_id', 'name', 'value_type', 'created_by_user_id', 'created_date', 'modified_by_user_id, 'modified_date'
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+  // How to order the retrieved user attribute keys. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, 'modified_date', 'name', 'user_attribute_key_id', 'value_type', 'description'
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+  string organization_id = 5 [(google.api.field_behavior) = OPTIONAL];
+  // If true, includes archived keys. Defaulta to false. Optional.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// ListUserAttributeKeysResponse returns the list of user attribute keys from a ListUserAttributeKeys call.
+message ListUserAttributeKeysResponse {
+  repeated UserAttributeKey user_attribute_keys = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+// ArchiveUserAttributeKeysRequest is used to batch archive user attribute keys by id.
+message ArchiveUserAttributeKeysRequest {
+  repeated string user_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveUserAttributeKeysResponse {}
+
+// UnarchiveUserAttributeKeysRequest is used to batch unarchive user attribute keys by id.
+message UnarchiveUserAttributeKeysRequest {
+  repeated string user_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchiveUserAttributeKeysResponse {}
+
+message UserAttributeValue {
+  string user_attribute_value_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string user_attribute_key_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string user_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string organization_id = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  oneof value {
+    string string_value = 5;
+    double number_value = 6;
+    bool boolean_value = 7;
+  }
+  string created_by_user_id = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp archived_date = 10 [(google.api.field_behavior) = OPTIONAL];
+  // Whether or not the user attribute value is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 11 [(google.api.field_behavior) = OPTIONAL];
+  // The full user attribute key is populated in the response.
+  UserAttributeKey key = 12 [(google.api.field_behavior) = REQUIRED];
+}
+
+// CreateUserAttributeValueRequest is used to create a new user attribute value.
+message CreateUserAttributeValueRequest {
+  string user_attribute_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string user_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  oneof value {
+    string string_value = 4;
+    double number_value = 5;
+    bool boolean_value = 6;
+  }
+}
+
+// CreateUserAttributeValueResponse returns the user attribute value from a CreateUserAttributeValue call.
+message CreateUserAttributeValueResponse {
+  UserAttributeValue user_attribute_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// BatchCreateUserAttributeValueRequest is used to batch create new user attribute values.
+message BatchCreateUserAttributeValueRequest {
+  string user_attribute_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  repeated string user_ids = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.max_items = 5000
+  ];
+  oneof value {
+    string string_value = 3;
+    double number_value = 4;
+    bool boolean_value = 5;
+  }
+}
+
+//
+// BatchCreateUserAttributeValueResponse returns the user attribute value from a BatchCreateUserAttributeValue call.
+message BatchCreateUserAttributeValueResponse {
+  repeated UserAttributeValue user_attribute_values = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListUserAttributeKeyValues is used to list user attribute values for a given user attribute key with the provided filter.
+message ListUserAttributeKeyValuesRequest {
+  // The id of the user attribute key to list values for.
+  string user_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // The maximum number of user attribute values to return. The service may return fewer than this value.
+  // If unspecified, at most 50 user attribute values will be returned. The maximum value is 1000. Values
+  // above 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+  // A page token, received from a previous `ListUserAttributeKeyValues` call.
+  // Provide this to retrieve a subsequent page of user attribute values.
+  // When paginating, all other parameters provided to `ListUserAttributeValues` must match the previous call
+  // that provided the page token. Optional.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // 'user_attribute_value_id', 'user_attribute_key_id', 'string_value', 'number_value', 'boolean_value', 'created_date', 'created_by_user_id' and 'user_id'
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+  // How to order the retrieved user attribute values. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
+  // If true, include archived values. Defaults to false. Optional.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// ListUserAttributeKeyValuesResponse returns the list of user attribute values from a ListUserAttributeKeyValues call.
+message ListUserAttributeKeyValuesResponse {
+  repeated UserAttributeValue user_attribute_values = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+message ListUserAttributeValuesRequest {
+  // The maximum number of user attribute values to return. The service may return fewer than this value.
+  // If unspecified, at most 50 user attribute values will be returned. The maximum value is 1000. Values
+  // above 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  // A page token, received from a previous `ListUserAttributeValues` call.
+  // Provide this to retrieve a subsequent page of user attribute values.
+  // When paginating, all other parameters provided to `ListUserAttributeValues` must match the previous call
+  // that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // 'user_attribute_value_id', 'user_attribute_key_id', 'string_value', 'number_value', 'boolean_value', 'created_date', 'created_by_user_id', 'archived_date' and 'user_id'
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+  // How to order the retrieved user attribute values. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListUserAttributeValuesResponse {
+  repeated UserAttributeValue user_attribute_values = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+// GetUserAttributeValueRequest is used to retrieve a user attribute value.
+message GetUserAttributeValueRequest {
+  string user_attribute_value_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetUserAttributeValueResponse returns a user attribute value from a GetUserAttributeValue call.
+message GetUserAttributeValueResponse {
+  UserAttributeValue user_attribute_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ArchiveUserAttributeValuesRequest is used to batch archive user attribute values by id.
+message ArchiveUserAttributeValuesRequest {
+  repeated string user_attribute_value_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveUserAttributeValuesResponse {}
+
+// UnarchiveUserAttributeValuesRequest is used to batch unarchive user attribute values by id.
+message UnarchiveUserAttributeValuesRequest {
+  repeated string user_attribute_value_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchiveUserAttributeValuesResponse {}
+

@@ -1,3 +1,5 @@
+# Example rules configs. Add 'is_live' if you want these rules to run on live data.
+
 rules:
   - name: overheating
     description: Checks for vehicle overheating

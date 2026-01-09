@@ -34,16 +34,21 @@ from sift_py.rule.service import RuleIdentifier, RuleService
 class RuleEvaluationService:
     """
     A service for evaluating rules. Provides methods to evaluate rules and perform dry-run evaluations.
+
+    Args:
+        enable_caching: Enable caching during rule evaluation. This is enabled by default.
+            This service is typically short lived in a workflows so assets, channels, and
+            users are unlikely to change during its lifetime to invalidate caches.
     """
 
     _channel: SiftChannel
     _rule_evaluation_stub: RuleEvaluationServiceStub
     _rule_service: RuleService
 
-    def __init__(self, channel: SiftChannel):
+    def __init__(self, channel: SiftChannel, enable_caching: bool = True):
         self._channel = channel
         self._rule_evaluation_stub = RuleEvaluationServiceStub(channel)
-        self._rule_service = RuleService(channel)
+        self._rule_service = RuleService(channel, enable_caching=enable_caching)
 
     def evaluate_against_run(
         self,

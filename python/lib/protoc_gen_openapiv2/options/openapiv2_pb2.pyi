@@ -1084,18 +1084,24 @@ class JSONSchema(google.protobuf.message.Message):
         DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
         PATH_PARAM_NAME_FIELD_NUMBER: builtins.int
+        DEPRECATED_FIELD_NUMBER: builtins.int
         path_param_name: builtins.str
         """Alternative parameter name when used as path parameter. If set, this will
         be used as the complete parameter name when this field is used as a path
         parameter. Use this to avoid having auto generated path parameter names
         for overlapping paths.
         """
+        deprecated: builtins.bool
+        """Declares this field to be deprecated. Allows for the generated OpenAPI
+        parameter to be marked as deprecated without affecting the proto field.
+        """
         def __init__(
             self,
             *,
             path_param_name: builtins.str = ...,
+            deprecated: builtins.bool = ...,
         ) -> None: ...
-        def ClearField(self, field_name: typing.Literal["path_param_name", b"path_param_name"]) -> None: ...
+        def ClearField(self, field_name: typing.Literal["deprecated", b"deprecated", "path_param_name", b"path_param_name"]) -> None: ...
 
     @typing.final
     class ExtensionsEntry(google.protobuf.message.Message):

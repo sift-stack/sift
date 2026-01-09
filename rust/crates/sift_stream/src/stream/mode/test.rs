@@ -1,6 +1,6 @@
-use super::super::SiftStream;
-use super::ingestion_config::{Flow, IngestionConfigMode};
+use super::ingestion_config::Flow;
 use crate::stream::flow::FlowDescriptor;
+use crate::stream::helpers;
 use crate::{ChannelValue, TimeValue};
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
@@ -48,9 +48,8 @@ fn validate_handling_empty_values() {
         ],
     );
 
-    let req =
-        SiftStream::<IngestionConfigMode>::message_to_ingest_req(&flow, None, &flow_descriptor)
-            .expect("request should have been generated");
+    let req = helpers::message_to_ingest_req(&flow, None, &flow_descriptor)
+        .expect("request should have been generated");
 
     assert!(
         req.channel_values.len() == 4,
@@ -113,8 +112,7 @@ fn validate_handling_no_matches_based_on_name() {
         ],
     );
 
-    let req =
-        SiftStream::<IngestionConfigMode>::message_to_ingest_req(&flow, None, &flow_descriptor);
+    let req = helpers::message_to_ingest_req(&flow, None, &flow_descriptor);
 
     assert!(
         req.is_none(),
@@ -162,8 +160,7 @@ fn validate_handling_no_matches_based_on_type() {
         ],
     );
 
-    let req =
-        SiftStream::<IngestionConfigMode>::message_to_ingest_req(&flow, None, &flow_descriptor);
+    let req = helpers::message_to_ingest_req(&flow, None, &flow_descriptor);
 
     assert!(
         req.is_none(),

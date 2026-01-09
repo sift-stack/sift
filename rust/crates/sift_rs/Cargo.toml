@@ -20,6 +20,7 @@ prost-types = "^0.13"
 serde = { version = "^1.0" }
 sift_connect = { workspace = true }
 sift_error = { workspace = true }
+tokio = { version = "1", features = ["time"] }
 tonic = { workspace = true }
 
 [dev-dependencies]

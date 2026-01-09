@@ -398,6 +398,7 @@ func (m *JSONSchema_FieldConfiguration) CloneVT() *JSONSchema_FieldConfiguration
 	}
 	r := new(JSONSchema_FieldConfiguration)
 	r.PathParamName = m.PathParamName
+	r.Deprecated = m.Deprecated
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1272,6 +1273,9 @@ func (this *JSONSchema_FieldConfiguration) EqualVT(that *JSONSchema_FieldConfigu
 		return false
 	}
 	if this.PathParamName != that.PathParamName {
+		return false
+	}
+	if this.Deprecated != that.Deprecated {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2800,6 +2804,18 @@ func (m *JSONSchema_FieldConfiguration) MarshalToSizedBufferVT(dAtA []byte) (int
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Deprecated {
+		i--
+		if m.Deprecated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0x88
 	}
 	if len(m.PathParamName) > 0 {
 		i -= len(m.PathParamName)
@@ -4634,6 +4650,18 @@ func (m *JSONSchema_FieldConfiguration) MarshalToSizedBufferVTStrict(dAtA []byte
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Deprecated {
+		i--
+		if m.Deprecated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0x88
+	}
 	if len(m.PathParamName) > 0 {
 		i -= len(m.PathParamName)
 		copy(dAtA[i:], m.PathParamName)
@@ -5818,6 +5846,9 @@ func (m *JSONSchema_FieldConfiguration) SizeVT() (n int) {
 	l = len(m.PathParamName)
 	if l > 0 {
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Deprecated {
+		n += 3
 	}
 	n += len(m.unknownFields)
 	return n
@@ -9946,6 +9977,26 @@ func (m *JSONSchema_FieldConfiguration) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PathParamName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 49:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deprecated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Deprecated = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -16135,6 +16186,26 @@ func (m *JSONSchema_FieldConfiguration) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.PathParamName = stringValue
 			iNdEx = postIndex
+		case 49:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deprecated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Deprecated = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

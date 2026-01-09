@@ -29,6 +29,7 @@ chrono = { workspace = true }
 futures-core = "0.3.31"
 tokio-stream = { version = "0.1.17", features = ["sync"] }
 async-channel = "2.2"
+async-trait = "^0.1"
 prost = "^0.13"
 dirs = "6.0.0"
 uuid = { version = "1.16.0", features = ["v4"] }
@@ -51,7 +52,7 @@ tokio-stream = "0.1.17"
 tonic = { workspace = true }
 tower = { version = "0.5.2", features = ["util"] }
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
-tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "sync", "time", "signal"] }
 uuid = { version = "1.16.0", features = ["v4"] }
 tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -61,3 +62,21 @@ rand = "0.8"
 name = "message_to_ingest_req"
 harness = false
 required-features = ["unstable"]
+
+[[example]]
+name = "backups-only"
+path = "examples/backups-only/main.rs"
+
+[[example]]
+name = "quick-start"
+path = "examples/quick-start/main.rs"
+
+[[example]]
+name = "direct-metrics"
+path = "examples/metrics/direct_metrics.rs"
+required-features = ["metrics-unstable"]
+
+[[example]]
+name = "http-server-metrics"
+path = "examples/metrics/http_server.rs"
+required-features = ["metrics-unstable"]
