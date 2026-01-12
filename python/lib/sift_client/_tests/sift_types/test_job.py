@@ -37,6 +37,8 @@ def mock_job(mock_client):
         job_details=DataImportDetails(data_import_id="import123"),
     )
     job._apply_client_to_instance(mock_client)
+    # Configure mock to return the job itself when refresh is called
+    mock_client.jobs.get.return_value = job
     return job
 
 
@@ -59,6 +61,8 @@ def mock_finished_job(mock_client):
         job_details=DataImportDetails(data_import_id="import123"),
     )
     job._apply_client_to_instance(mock_client)
+    # Configure mock to return the job itself when refresh is called
+    mock_client.jobs.get.return_value = job
     return job
 
 
@@ -81,6 +85,8 @@ def mock_failed_job(mock_client):
         job_details=DataExportDetails(storage_key="exports/failed.csv"),
     )
     job._apply_client_to_instance(mock_client)
+    # Configure mock to return the job itself when refresh is called
+    mock_client.jobs.get.return_value = job
     return job
 
 
@@ -103,6 +109,8 @@ def mock_cancelled_job(mock_client):
         job_details=RuleEvaluationDetails(report_id="report123"),
     )
     job._apply_client_to_instance(mock_client)
+    # Configure mock to return the job itself when refresh is called
+    mock_client.jobs.get.return_value = job
     return job
 
 
