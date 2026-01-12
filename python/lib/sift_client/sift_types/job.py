@@ -226,6 +226,7 @@ class Job(BaseType[JobProto, "Job"]):
 
         A job is in progress if its status is RUNNING.
         """
+        self.refresh()
         return self.job_status == JobStatus.RUNNING
 
     @property
@@ -234,6 +235,7 @@ class Job(BaseType[JobProto, "Job"]):
 
         A job has failed if its status is FAILED.
         """
+        self.refresh()
         return self.job_status == JobStatus.FAILED
 
     @property
@@ -242,6 +244,7 @@ class Job(BaseType[JobProto, "Job"]):
 
         A job has finished if its status is FINISHED.
         """
+        self.refresh()
         return self.job_status == JobStatus.FINISHED
 
     @property
@@ -250,6 +253,7 @@ class Job(BaseType[JobProto, "Job"]):
 
         A job has been cancelled if its status is CANCELLED.
         """
+        self.refresh()
         return self.job_status == JobStatus.CANCELLED
 
     def refresh(self) -> Job:
