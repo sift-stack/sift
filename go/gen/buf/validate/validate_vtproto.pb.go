@@ -9,11 +9,13 @@ import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	durationpb1 "github.com/planetscale/vtprotobuf/types/known/durationpb"
+	fieldmaskpb1 "github.com/planetscale/vtprotobuf/types/known/fieldmaskpb"
 	timestamppb1 "github.com/planetscale/vtprotobuf/types/known/timestamppb"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
 	math "math"
@@ -60,6 +62,11 @@ func (m *MessageRules) CloneVT() *MessageRules {
 		return (*MessageRules)(nil)
 	}
 	r := new(MessageRules)
+	if rhs := m.CelExpression; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.CelExpression = tmpContainer
+	}
 	if rhs := m.Cel; rhs != nil {
 		tmpContainer := make([]*Rule, len(rhs))
 		for k, v := range rhs {
@@ -135,6 +142,11 @@ func (m *FieldRules) CloneVT() *FieldRules {
 		return (*FieldRules)(nil)
 	}
 	r := new(FieldRules)
+	if rhs := m.CelExpression; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.CelExpression = tmpContainer
+	}
 	if rhs := m.Cel; rhs != nil {
 		tmpContainer := make([]*Rule, len(rhs))
 		for k, v := range rhs {
@@ -341,6 +353,15 @@ func (m *FieldRules_Duration) CloneVT() isFieldRules_Type {
 	}
 	r := new(FieldRules_Duration)
 	r.Duration = m.Duration.CloneVT()
+	return r
+}
+
+func (m *FieldRules_FieldMask) CloneVT() isFieldRules_Type {
+	if m == nil {
+		return (*FieldRules_FieldMask)(nil)
+	}
+	r := new(FieldRules_FieldMask)
+	r.FieldMask = m.FieldMask.CloneVT()
 	return r
 }
 
@@ -1606,6 +1627,15 @@ func (m *StringRules_HostAndPort) CloneVT() isStringRules_WellKnown {
 	return r
 }
 
+func (m *StringRules_Ulid) CloneVT() isStringRules_WellKnown {
+	if m == nil {
+		return (*StringRules_Ulid)(nil)
+	}
+	r := new(StringRules_Ulid)
+	r.Ulid = m.Ulid
+	return r
+}
+
 func (m *StringRules_WellKnownRegex) CloneVT() isStringRules_WellKnown {
 	if m == nil {
 		return (*StringRules_WellKnownRegex)(nil)
@@ -1721,6 +1751,15 @@ func (m *BytesRules_Ipv6) CloneVT() isBytesRules_WellKnown {
 	}
 	r := new(BytesRules_Ipv6)
 	r.Ipv6 = m.Ipv6
+	return r
+}
+
+func (m *BytesRules_Uuid) CloneVT() isBytesRules_WellKnown {
+	if m == nil {
+		return (*BytesRules_Uuid)(nil)
+	}
+	r := new(BytesRules_Uuid)
+	r.Uuid = m.Uuid
 	return r
 }
 
@@ -1926,6 +1965,40 @@ func (m *DurationRules_Gte) CloneVT() isDurationRules_GreaterThan {
 	r := new(DurationRules_Gte)
 	r.Gte = (*durationpb.Duration)((*durationpb1.Duration)(m.Gte).CloneVT())
 	return r
+}
+
+func (m *FieldMaskRules) CloneVT() *FieldMaskRules {
+	if m == nil {
+		return (*FieldMaskRules)(nil)
+	}
+	r := new(FieldMaskRules)
+	r.Const = (*fieldmaskpb.FieldMask)((*fieldmaskpb1.FieldMask)(m.Const).CloneVT())
+	if rhs := m.In; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.In = tmpContainer
+	}
+	if rhs := m.NotIn; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.NotIn = tmpContainer
+	}
+	if rhs := m.Example; rhs != nil {
+		tmpContainer := make([]*fieldmaskpb.FieldMask, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = (*fieldmaskpb.FieldMask)((*fieldmaskpb1.FieldMask)(v).CloneVT())
+		}
+		r.Example = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *FieldMaskRules) CloneMessageVT() proto.Message {
+	return m.CloneVT()
 }
 
 func (m *TimestampRules) CloneVT() *TimestampRules {
@@ -2244,6 +2317,15 @@ func (this *MessageRules) EqualVT(that *MessageRules) bool {
 			}
 		}
 	}
+	if len(this.CelExpression) != len(that.CelExpression) {
+		return false
+	}
+	for i, vx := range this.CelExpression {
+		vy := that.CelExpression[i]
+		if vx != vy {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2339,6 +2421,15 @@ func (this *FieldRules) EqualVT(that *FieldRules) bool {
 	}
 	if p, q := this.Ignore, that.Ignore; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
+	}
+	if len(this.CelExpression) != len(that.CelExpression) {
+		return false
+	}
+	for i, vx := range this.CelExpression {
+		vy := that.CelExpression[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -2867,6 +2958,31 @@ func (this *FieldRules_Timestamp) EqualVT(thatIface isFieldRules_Type) bool {
 		}
 		if q == nil {
 			q = &TimestampRules{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *FieldRules_FieldMask) EqualVT(thatIface isFieldRules_Type) bool {
+	that, ok := thatIface.(*FieldRules_FieldMask)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.FieldMask, that.FieldMask; p != q {
+		if p == nil {
+			p = &FieldMaskRules{}
+		}
+		if q == nil {
+			q = &FieldMaskRules{}
 		}
 		if !p.EqualVT(q) {
 			return false
@@ -4998,6 +5114,23 @@ func (this *StringRules_Tuuid) EqualVT(thatIface isStringRules_WellKnown) bool {
 	return true
 }
 
+func (this *StringRules_Ulid) EqualVT(thatIface isStringRules_WellKnown) bool {
+	that, ok := thatIface.(*StringRules_Ulid)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Ulid != that.Ulid {
+		return false
+	}
+	return true
+}
+
 func (this *BytesRules) EqualVT(that *BytesRules) bool {
 	if this == that {
 		return true
@@ -5123,6 +5256,23 @@ func (this *BytesRules_Ipv6) EqualVT(thatIface isBytesRules_WellKnown) bool {
 		return false
 	}
 	if this.Ipv6 != that.Ipv6 {
+		return false
+	}
+	return true
+}
+
+func (this *BytesRules_Uuid) EqualVT(thatIface isBytesRules_WellKnown) bool {
+	that, ok := thatIface.(*BytesRules_Uuid)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.Uuid != that.Uuid {
 		return false
 	}
 	return true
@@ -5461,6 +5611,60 @@ func (this *DurationRules_Gte) EqualVT(thatIface isDurationRules_GreaterThan) bo
 	return true
 }
 
+func (this *FieldMaskRules) EqualVT(that *FieldMaskRules) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !(*fieldmaskpb1.FieldMask)(this.Const).EqualVT((*fieldmaskpb1.FieldMask)(that.Const)) {
+		return false
+	}
+	if len(this.In) != len(that.In) {
+		return false
+	}
+	for i, vx := range this.In {
+		vy := that.In[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.NotIn) != len(that.NotIn) {
+		return false
+	}
+	for i, vx := range this.NotIn {
+		vy := that.NotIn[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Example) != len(that.Example) {
+		return false
+	}
+	for i, vx := range this.Example {
+		vy := that.Example[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &fieldmaskpb.FieldMask{}
+			}
+			if q == nil {
+				q = &fieldmaskpb.FieldMask{}
+			}
+			if !(*fieldmaskpb1.FieldMask)(p).EqualVT((*fieldmaskpb1.FieldMask)(q)) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FieldMaskRules) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*FieldMaskRules)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *TimestampRules) EqualVT(that *TimestampRules) bool {
 	if this == that {
 		return true
@@ -5967,6 +6171,15 @@ func (m *MessageRules) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CelExpression) > 0 {
+		for iNdEx := len(m.CelExpression) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.CelExpression[iNdEx])
+			copy(dAtA[i:], m.CelExpression[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CelExpression[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
 	if len(m.Oneof) > 0 {
 		for iNdEx := len(m.Oneof) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Oneof[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -6127,6 +6340,17 @@ func (m *FieldRules) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i -= size
+	}
+	if len(m.CelExpression) > 0 {
+		for iNdEx := len(m.CelExpression) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.CelExpression[iNdEx])
+			copy(dAtA[i:], m.CelExpression[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CelExpression[iNdEx])))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xea
+		}
 	}
 	if m.Ignore != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.Ignore))
@@ -6572,6 +6796,27 @@ func (m *FieldRules_Timestamp) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		dAtA[i] = 0x1
 		i--
 		dAtA[i] = 0xb2
+	}
+	return len(dAtA) - i, nil
+}
+func (m *FieldRules_FieldMask) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FieldRules_FieldMask) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.FieldMask != nil {
+		size, err := m.FieldMask.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xe2
 	}
 	return len(dAtA) - i, nil
 }
@@ -8745,6 +8990,25 @@ func (m *StringRules_Tuuid) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	dAtA[i] = 0x88
 	return len(dAtA) - i, nil
 }
+func (m *StringRules_Ulid) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *StringRules_Ulid) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Ulid {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x2
+	i--
+	dAtA[i] = 0x98
+	return len(dAtA) - i, nil
+}
 func (m *BytesRules) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8913,6 +9177,23 @@ func (m *BytesRules_Ipv6) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	i--
 	dAtA[i] = 0x60
+	return len(dAtA) - i, nil
+}
+func (m *BytesRules_Uuid) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BytesRules_Uuid) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Uuid {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x78
 	return len(dAtA) - i, nil
 }
 func (m *EnumRules) MarshalVT() (dAtA []byte, err error) {
@@ -9334,6 +9615,79 @@ func (m *DurationRules_Gte) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+func (m *FieldMaskRules) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FieldMaskRules) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FieldMaskRules) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Example) > 0 {
+		for iNdEx := len(m.Example) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := (*fieldmaskpb1.FieldMask)(m.Example[iNdEx]).MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.NotIn) > 0 {
+		for iNdEx := len(m.NotIn) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.NotIn[iNdEx])
+			copy(dAtA[i:], m.NotIn[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.NotIn[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.In) > 0 {
+		for iNdEx := len(m.In) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.In[iNdEx])
+			copy(dAtA[i:], m.In[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.In[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Const != nil {
+		size, err := (*fieldmaskpb1.FieldMask)(m.Const).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *TimestampRules) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -9914,6 +10268,15 @@ func (m *MessageRules) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CelExpression) > 0 {
+		for iNdEx := len(m.CelExpression) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.CelExpression[iNdEx])
+			copy(dAtA[i:], m.CelExpression[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CelExpression[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
 	if len(m.Oneof) > 0 {
 		for iNdEx := len(m.Oneof) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Oneof[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -10065,6 +10428,24 @@ func (m *FieldRules) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CelExpression) > 0 {
+		for iNdEx := len(m.CelExpression) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.CelExpression[iNdEx])
+			copy(dAtA[i:], m.CelExpression[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CelExpression[iNdEx])))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xea
+		}
+	}
+	if msg, ok := m.Type.(*FieldRules_FieldMask); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
 	}
 	if m.Ignore != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.Ignore))
@@ -10657,6 +11038,27 @@ func (m *FieldRules_Timestamp) MarshalToSizedBufferVTStrict(dAtA []byte) (int, e
 		dAtA[i] = 0x1
 		i--
 		dAtA[i] = 0xb2
+	}
+	return len(dAtA) - i, nil
+}
+func (m *FieldRules_FieldMask) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *FieldRules_FieldMask) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.FieldMask != nil {
+		size, err := m.FieldMask.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xe2
 	}
 	return len(dAtA) - i, nil
 }
@@ -12490,6 +12892,13 @@ func (m *StringRules) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if msg, ok := m.WellKnown.(*StringRules_Ulid); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if len(m.Example) > 0 {
 		for iNdEx := len(m.Example) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Example[iNdEx])
@@ -13067,6 +13476,25 @@ func (m *StringRules_Tuuid) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	dAtA[i] = 0x88
 	return len(dAtA) - i, nil
 }
+func (m *StringRules_Ulid) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *StringRules_Ulid) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Ulid {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x2
+	i--
+	dAtA[i] = 0x98
+	return len(dAtA) - i, nil
+}
 func (m *BytesRules) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -13096,6 +13524,13 @@ func (m *BytesRules) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if msg, ok := m.WellKnown.(*BytesRules_Uuid); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
 	}
 	if len(m.Example) > 0 {
 		for iNdEx := len(m.Example) - 1; iNdEx >= 0; iNdEx-- {
@@ -13247,6 +13682,23 @@ func (m *BytesRules_Ipv6) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error)
 	}
 	i--
 	dAtA[i] = 0x60
+	return len(dAtA) - i, nil
+}
+func (m *BytesRules_Uuid) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *BytesRules_Uuid) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.Uuid {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x78
 	return len(dAtA) - i, nil
 }
 func (m *EnumRules) MarshalVTStrict() (dAtA []byte, err error) {
@@ -13678,6 +14130,79 @@ func (m *DurationRules_Gte) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	}
 	return len(dAtA) - i, nil
 }
+func (m *FieldMaskRules) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FieldMaskRules) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *FieldMaskRules) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Example) > 0 {
+		for iNdEx := len(m.Example) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := (*fieldmaskpb1.FieldMask)(m.Example[iNdEx]).MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.NotIn) > 0 {
+		for iNdEx := len(m.NotIn) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.NotIn[iNdEx])
+			copy(dAtA[i:], m.NotIn[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.NotIn[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.In) > 0 {
+		for iNdEx := len(m.In) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.In[iNdEx])
+			copy(dAtA[i:], m.In[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.In[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Const != nil {
+		size, err := (*fieldmaskpb1.FieldMask)(m.Const).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *TimestampRules) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -14264,6 +14789,12 @@ func (m *MessageRules) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if len(m.CelExpression) > 0 {
+		for _, s := range m.CelExpression {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -14320,6 +14851,12 @@ func (m *FieldRules) SizeVT() (n int) {
 	}
 	if m.Ignore != nil {
 		n += 2 + protohelpers.SizeOfVarint(uint64(*m.Ignore))
+	}
+	if len(m.CelExpression) > 0 {
+		for _, s := range m.CelExpression {
+			l = len(s)
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -14573,6 +15110,18 @@ func (m *FieldRules_Timestamp) SizeVT() (n int) {
 	_ = l
 	if m.Timestamp != nil {
 		l = m.Timestamp.SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
+func (m *FieldRules_FieldMask) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.FieldMask != nil {
+		l = m.FieldMask.SizeVT()
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	return n
@@ -15657,6 +16206,15 @@ func (m *StringRules_Tuuid) SizeVT() (n int) {
 	n += 3
 	return n
 }
+func (m *StringRules_Ulid) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 3
+	return n
+}
 func (m *BytesRules) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15736,6 +16294,15 @@ func (m *BytesRules_Ipv4) SizeVT() (n int) {
 	return n
 }
 func (m *BytesRules_Ipv6) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
+func (m *BytesRules_Uuid) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -15930,6 +16497,38 @@ func (m *DurationRules_Gte) SizeVT() (n int) {
 	}
 	return n
 }
+func (m *FieldMaskRules) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Const != nil {
+		l = (*fieldmaskpb1.FieldMask)(m.Const).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.In) > 0 {
+		for _, s := range m.In {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.NotIn) > 0 {
+		for _, s := range m.NotIn {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Example) > 0 {
+		for _, e := range m.Example {
+			l = (*fieldmaskpb1.FieldMask)(e).SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *TimestampRules) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -16408,6 +17007,38 @@ func (m *MessageRules) UnmarshalVT(dAtA []byte) error {
 			if err := m.Oneof[len(m.Oneof)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CelExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CelExpression = append(m.CelExpression, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -17572,6 +18203,79 @@ func (m *FieldRules) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Ignore = &v
+		case 28:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FieldMask", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Type.(*FieldRules_FieldMask); ok {
+				if err := oneof.FieldMask.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &FieldMaskRules{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Type = &FieldRules_FieldMask{FieldMask: v}
+			}
+			iNdEx = postIndex
+		case 29:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CelExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CelExpression = append(m.CelExpression, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -22691,6 +23395,27 @@ func (m *StringRules) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Example = append(m.Example, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 35:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ulid", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.WellKnown = &StringRules_Ulid{Ulid: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -23138,6 +23863,27 @@ func (m *BytesRules) UnmarshalVT(dAtA []byte) error {
 			m.Example = append(m.Example, make([]byte, postIndex-iNdEx))
 			copy(m.Example[len(m.Example)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Uuid", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.WellKnown = &BytesRules_Uuid{Uuid: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -24266,6 +25012,199 @@ func (m *DurationRules) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Example = append(m.Example, &durationpb.Duration{})
 			if err := (*durationpb1.Duration)(m.Example[len(m.Example)-1]).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			if (fieldNum >= 1000) && (fieldNum < 536870912) {
+				err = proto.UnmarshalOptions{AllowPartial: true}.Unmarshal(dAtA[iNdEx:iNdEx+skippy], m)
+				if err != nil {
+					return err
+				}
+				iNdEx += skippy
+			} else {
+				m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				iNdEx += skippy
+			}
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *FieldMaskRules) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FieldMaskRules: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FieldMaskRules: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Const", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Const == nil {
+				m.Const = &fieldmaskpb.FieldMask{}
+			}
+			if err := (*fieldmaskpb1.FieldMask)(m.Const).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field In", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.In = append(m.In, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotIn", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NotIn = append(m.NotIn, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Example", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Example = append(m.Example, &fieldmaskpb.FieldMask{})
+			if err := (*fieldmaskpb1.FieldMask)(m.Example[len(m.Example)-1]).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -25586,6 +26525,42 @@ func (m *MessageRules) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CelExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.CelExpression = append(m.CelExpression, stringValue)
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -26753,6 +27728,83 @@ func (m *FieldRules) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.Ignore = &v
+		case 28:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FieldMask", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Type.(*FieldRules_FieldMask); ok {
+				if err := oneof.FieldMask.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &FieldMaskRules{}
+				if err := v.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Type = &FieldRules_FieldMask{FieldMask: v}
+			}
+			iNdEx = postIndex
+		case 29:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CelExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.CelExpression = append(m.CelExpression, stringValue)
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -31908,6 +32960,27 @@ func (m *StringRules) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.Example = append(m.Example, stringValue)
 			iNdEx = postIndex
+		case 35:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ulid", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.WellKnown = &StringRules_Ulid{Ulid: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -32344,6 +33417,27 @@ func (m *BytesRules) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.Example = append(m.Example, dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Uuid", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.WellKnown = &BytesRules_Uuid{Uuid: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -33480,6 +34574,207 @@ func (m *DurationRules) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.Example = append(m.Example, &durationpb.Duration{})
 			if err := (*durationpb1.Duration)(m.Example[len(m.Example)-1]).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			if (fieldNum >= 1000) && (fieldNum < 536870912) {
+				err = proto.UnmarshalOptions{AllowPartial: true}.Unmarshal(dAtA[iNdEx:iNdEx+skippy], m)
+				if err != nil {
+					return err
+				}
+				iNdEx += skippy
+			} else {
+				m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				iNdEx += skippy
+			}
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *FieldMaskRules) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FieldMaskRules: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FieldMaskRules: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Const", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Const == nil {
+				m.Const = &fieldmaskpb.FieldMask{}
+			}
+			if err := (*fieldmaskpb1.FieldMask)(m.Const).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field In", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.In = append(m.In, stringValue)
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotIn", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.NotIn = append(m.NotIn, stringValue)
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Example", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Example = append(m.Example, &fieldmaskpb.FieldMask{})
+			if err := (*fieldmaskpb1.FieldMask)(m.Example[len(m.Example)-1]).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
