@@ -163,8 +163,8 @@ from sift_client.sift_types.tag import Tag, TagCreate, TagUpdate
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
-    TestMeasurementUpdate,
     TestMeasurementType,
+    TestMeasurementUpdate,
     TestReport,
     TestReportCreate,
     TestReportUpdate,
