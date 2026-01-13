@@ -163,6 +163,7 @@ from sift_client.sift_types.tag import Tag, TagCreate, TagUpdate
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
+    TestMeasurementUpdate,
     TestMeasurementType,
     TestReport,
     TestReportCreate,
@@ -172,6 +173,20 @@ from sift_client.sift_types.test_report import (
     TestStepCreate,
     TestStepType,
 )
+
+# These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
+# Do this here because for some reason our docs generation doesn't like it when done in the classes themselves.
+TestStepType.__test__ = False
+TestMeasurementType.__test__ = False
+TestMeasurement.__test__ = False
+TestMeasurementCreate.__test__ = False
+TestMeasurementUpdate.__test__ = False
+TestStatus.__test__ = False
+TestStep.__test__ = False
+TestStepCreate.__test__ = False
+TestReport.__test__ = False
+TestReportCreate.__test__ = False
+TestReportUpdate.__test__ = False
 
 __all__ = [
     "Asset",

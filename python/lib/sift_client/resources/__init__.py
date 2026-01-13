@@ -176,6 +176,11 @@ from sift_client.resources.sync_stubs import (
     FileAttachmentsAPI,
 )
 
+# These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
+# Do this here because for some reason our docs generation doesn't like it when done in the classes themselves.
+TestResultsAPI.__test__ = False
+TestResultsAPIAsync.__test__ = False
+
 __all__ = [
     "AssetsAPI",
     "AssetsAPIAsync",

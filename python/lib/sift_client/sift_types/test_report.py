@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 class TestStatus(Enum):
     """TestStatus enum."""
 
-    __test__ = False
     UNSPECIFIED = 0
     DRAFT = 1
     PASSED = 2
@@ -57,7 +56,6 @@ class TestStatus(Enum):
 class TestStepType(Enum):
     """TestStepType enum."""
 
-    __test__ = False
     UNSPECIFIED = 0
     SEQUENCE = 1
     GROUP = 2
@@ -68,7 +66,6 @@ class TestStepType(Enum):
 class TestMeasurementType(Enum):
     """TestMeasurementType enum."""
 
-    __test__ = False
     UNSPECIFIED = 0
     DOUBLE = 1
     STRING = 3
@@ -79,7 +76,6 @@ class TestMeasurementType(Enum):
 class TestStepBase(ModelCreateUpdateBase):
     """Base model for TestStepUpdate and TestStepCreate. Contains shared fields for all test steps. Update and create models differ mostly in what fields are required vs optional."""
 
-    __test__ = False
     parent_step_id: str | None = None
     description: str | None = None
     error_info: ErrorInfo | None = None
@@ -243,7 +239,6 @@ class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
 class TestMeasurementBase(ModelCreateUpdateBase):
     """Base model for TestMeasurementUpdate and TestMeasurementCreate. Contains shared fields for all test measurements. Update and create models differ mostly in what fields are required vs optional."""
 
-    __test__ = False
     numeric_value: float | None = None
     string_value: str | None = None
     boolean_value: bool | None = None
@@ -330,7 +325,6 @@ class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProt
 class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
     """TestMeasurement model representing a measurement in a test."""
 
-    __test__ = False
     measurement_type: TestMeasurementType
     name: str
     test_step_id: str
@@ -432,7 +426,6 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
 class TestReportBase(ModelCreateUpdateBase):
     """Base model for TestReportUpdate and TestReportCreate. Contains shared fields for all test reports. Update and create models differ mostly in what fields are required vs optional."""
 
-    __test__ = False
     status: TestStatus | None = None
     metadata: dict[str, str | float | bool] | None = None
     serial_number: str | None = None
@@ -526,7 +519,6 @@ class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
 class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
     """TestReport model representing a test report."""
 
-    __test__ = False
     status: TestStatus
     name: str
     test_system_name: str
