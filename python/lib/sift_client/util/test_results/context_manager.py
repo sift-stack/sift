@@ -95,11 +95,14 @@ class ReportContext(AbstractContextManager):
         return True
 
     def new_step(
-        self, name: str, description: str | None = None, show_assertion_errors: bool = True
+        self, name: str, description: str | None = None, assertion_as_fail_not_error: bool = True
     ) -> NewStep:
         """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context."""
         return NewStep(
-            self, name=name, description=description, show_assertion_errors=show_assertion_errors
+            self,
+            name=name,
+            description=description,
+            assertion_as_fail_not_error=assertion_as_fail_not_error,
         )
 
     def get_next_step_path(self) -> str:
@@ -195,7 +198,7 @@ class NewStep(AbstractContextManager):
 
     report_context: ReportContext
     client: SiftClient
-    show_assertion_errors: bool = True
+    assertion_as_fail_not_error: bool = True
     current_step: TestStep | None = None
 
     def __init__(
@@ -203,7 +206,7 @@ class NewStep(AbstractContextManager):
         report_context: ReportContext,
         name: str,
         description: str | None = None,
-        show_assertion_errors: bool = True,
+        assertion_as_fail_not_error: bool = True,
     ):
         """Initialize a new step context.
 
@@ -211,12 +214,12 @@ class NewStep(AbstractContextManager):
             report_context: The report context to create the step in.
             name: The name of the step.
             description: The description of the step.
-            show_assertion_errors: Whether to show assertion errors in the step (exists because users don't want to see them when using pytest).
+            assertion_as_fail_not_error: Mark steps with assertion errors as failed instead of error+traceback (some users want assertions to work as simple failures especially when using pytest).
         """
         self.report_context = report_context
         self.client = report_context.report.client
         self.current_step = self.report_context.create_step(name, description)
-        self.show_assertion_errors = show_assertion_errors
+        self.assertion_as_fail_not_error = assertion_as_fail_not_error
 
     def __enter__(self):
         """Enter the context manager to create a new step.
@@ -243,7 +246,7 @@ class NewStep(AbstractContextManager):
         error_info = None
         assert self.current_step is not None
         if exc:
-            if isinstance(exc_value, AssertionError) and not self.show_assertion_errors:
+            if isinstance(exc_value, AssertionError) and not self.assertion_as_fail_not_error:
                 # If we're not showing assertion errors (i.e. pytest), mark step as failed but don't set error info.
                 self.report_context.record_step_outcome(False, self.current_step)
             else:
@@ -435,5 +438,7 @@ class NewStep(AbstractContextManager):
     def substep(self, name: str, description: str | None = None) -> NewStep:
         """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps."""
         return self.report_context.new_step(
-            name=name, description=description, show_assertion_errors=self.show_assertion_errors
+            name=name,
+            description=description,
+            assertion_as_fail_not_error=self.assertion_as_fail_not_error,
         )

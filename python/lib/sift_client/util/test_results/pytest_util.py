@@ -64,7 +64,7 @@ def _step_impl(
     name = str(request.node.name)
     existing_docstring = request.node.obj.__doc__ or None
     with report_context.new_step(
-        name=name, description=existing_docstring, show_assertion_errors=False
+        name=name, description=existing_docstring, assertion_as_fail_not_error=False
     ) as new_step:
         yield new_step
         if hasattr(request.node, "rep_call") and request.node.rep_call.excinfo:

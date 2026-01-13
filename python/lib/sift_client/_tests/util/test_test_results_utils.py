@@ -386,7 +386,7 @@ class TestContextManager:
                     "Has a bad assert and shows assertion errors. Pytest util should mark this as error.",
                 ) as nested_substep_2_context:
                     nested_substep_2 = nested_substep_2_context.current_step
-                    nested_substep_2_context.show_assertion_errors = True
+                    nested_substep_2_context.assertion_as_fail_not_error = True
                     nested_substep_2_context.force_result = True
                     assert False == True
                 with substep_context.substep(
