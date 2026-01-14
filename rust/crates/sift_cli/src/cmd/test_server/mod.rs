@@ -83,7 +83,7 @@ pub async fn run(ctx: Context, args: TestServerArgs) -> Result<ExitCode> {
         .register_encoded_file_descriptor_set(sift_rs::ingest::v1::FILE_DESCRIPTOR_SET)
         .register_encoded_file_descriptor_set(sift_rs::ingestion_configs::v2::FILE_DESCRIPTOR_SET)
         .register_encoded_file_descriptor_set(sift_rs::ping::v1::FILE_DESCRIPTOR_SET)
-        .build_v1()
+        .build_v1alpha()
         .context("failed to create gRPC reflection service")?;
 
     Output::new()
