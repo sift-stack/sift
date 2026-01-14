@@ -19,12 +19,10 @@ pub mod server;
 use crate::cmd::test_server::metrics_streaming_client::Metrics;
 
 pub async fn run(ctx: Context, args: TestServerArgs) -> Result<ExitCode> {
-    let local_address = args
-        .local_address
-        .unwrap_or_else(|| "0.0.0.0:50051".to_string());
-    let addr = local_address
-        .parse()
-        .context(format!("failed to parse local_address: {}", local_address))?;
+    let addr = args.local_address.parse().context(format!(
+        "failed to parse local_address: {}",
+        args.local_address
+    ))?;
 
     // Initialize streaming client.
     let mut streaming_client =
