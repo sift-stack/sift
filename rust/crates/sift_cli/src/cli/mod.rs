@@ -176,9 +176,9 @@ pub enum TestServerCmd {
 
 #[derive(clap::Args)]
 pub struct TestServerArgs {
-    /// The address to serve gRPC server. Default is 127.0.0.1:50051.
-    #[arg(short, long)]
-    pub local_address: Option<String>,
+    /// The address to serve gRPC server.
+    #[arg(short, long, default_value_t = String::from("0.0.0.0:50051"))]
+    pub local_address: String,
 
     /// Whether to stream metrics to Sift.
     #[arg(short, long)]
@@ -188,7 +188,7 @@ pub struct TestServerArgs {
     #[arg(short, long)]
     pub metrics_asset_name: Option<String>,
 
-    /// Include to use plain output.
+    /// Include to use plain output. Use this option in scripts or when saving logs.
     #[arg(short, long)]
     pub plain_output: bool,
 }
