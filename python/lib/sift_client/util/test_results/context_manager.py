@@ -94,9 +94,16 @@ class ReportContext(AbstractContextManager):
         self.report.update(update)
         return True
 
-    def new_step(self, name: str, description: str | None = None) -> NewStep:
+    def new_step(
+        self, name: str, description: str | None = None, assertion_as_fail_not_error: bool = True
+    ) -> NewStep:
         """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context."""
-        return NewStep(self, name=name, description=description)
+        return NewStep(
+            self,
+            name=name,
+            description=description,
+            assertion_as_fail_not_error=assertion_as_fail_not_error,
+        )
 
     def get_next_step_path(self) -> str:
         """Get the next step path for the current depth."""
@@ -191,6 +198,7 @@ class NewStep(AbstractContextManager):
 
     report_context: ReportContext
     client: SiftClient
+    assertion_as_fail_not_error: bool = True
     current_step: TestStep | None = None
 
     def __init__(
@@ -198,6 +206,7 @@ class NewStep(AbstractContextManager):
         report_context: ReportContext,
         name: str,
         description: str | None = None,
+        assertion_as_fail_not_error: bool = True,
     ):
         """Initialize a new step context.
 
@@ -205,10 +214,12 @@ class NewStep(AbstractContextManager):
             report_context: The report context to create the step in.
             name: The name of the step.
             description: The description of the step.
+            assertion_as_fail_not_error: Mark steps with assertion errors as failed instead of error+traceback (some users want assertions to work as simple failures especially when using pytest).
         """
         self.report_context = report_context
         self.client = report_context.report.client
         self.current_step = self.report_context.create_step(name, description)
+        self.assertion_as_fail_not_error = assertion_as_fail_not_error
 
     def __enter__(self):
         """Enter the context manager to create a new step.
@@ -233,15 +244,19 @@ class NewStep(AbstractContextManager):
         returns: The false if step failed or errored, true otherwise.
         """
         error_info = None
-        if exc:
-            stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore
-            stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
-            trace = "".join(stack)
-            error_info = ErrorInfo(
-                error_code=1,
-                error_message=trace,
-            )
         assert self.current_step is not None
+        if exc:
+            if isinstance(exc_value, AssertionError) and not self.assertion_as_fail_not_error:
+                # If we're not showing assertion errors (i.e. pytest), mark step as failed but don't set error info.
+                self.report_context.record_step_outcome(False, self.current_step)
+            else:
+                stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore
+                stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
+                trace = "".join(stack)
+                error_info = ErrorInfo(
+                    error_code=1,
+                    error_message=trace,
+                )
 
         # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
         result = self.report_context.resolve_and_propagate_step_result(
@@ -272,6 +287,7 @@ class NewStep(AbstractContextManager):
         self.report_context.exit_step(self.current_step)
 
         # Test only attribute (hence not public class variable)
+        # This changes the result after the status and error info are set.
         if hasattr(self, "force_result"):
             result = self.force_result
 
@@ -421,4 +437,8 @@ class NewStep(AbstractContextManager):
 
     def substep(self, name: str, description: str | None = None) -> NewStep:
         """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps."""
-        return self.report_context.new_step(name=name, description=description)
+        return self.report_context.new_step(
+            name=name,
+            description=description,
+            assertion_as_fail_not_error=self.assertion_as_fail_not_error,
+        )

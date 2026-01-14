@@ -368,16 +368,26 @@ class TestContextManager:
         parent_step = None
         substep = None
         nested_substep = None
+        nested_substep_2 = None
         sibling_substep = None
         with step.substep("Top Level Step", "Should fail") as parent_step_context:
             parent_step = parent_step_context.current_step
             with parent_step_context.substep("Parent Step", "Should fail") as substep_context:
                 substep = substep_context.current_step
                 with substep_context.substep(
-                    "Nested Substep", "Has a bad assert"
+                    "Nested Substep",
+                    "Has a bad assert. Pytest util should nominally mark this as fail instead of error.",
                 ) as nested_substep_context:
                     nested_substep = nested_substep_context.current_step
                     nested_substep_context.force_result = True
+                    assert False == True
+                with substep_context.substep(
+                    "Nested Substep 2",
+                    "Has a bad assert and shows assertion errors. Pytest util should mark this as error.",
+                ) as nested_substep_2_context:
+                    nested_substep_2 = nested_substep_2_context.current_step
+                    nested_substep_2_context.assertion_as_fail_not_error = True
+                    nested_substep_2_context.force_result = True
                     assert False == True
                 with substep_context.substep(
                     "Sibling Substep", "Should pass"
@@ -386,8 +396,10 @@ class TestContextManager:
 
         assert parent_step.status == TestStatus.FAILED
         assert substep.status == TestStatus.FAILED
-        assert nested_substep.status == TestStatus.ERROR
-        assert "AssertionError" in nested_substep.error_info.error_message
+        assert nested_substep.status == TestStatus.FAILED
+        assert nested_substep.error_info is None
+        assert nested_substep_2.status == TestStatus.ERROR
+        assert "AssertionError" in nested_substep_2.error_info.error_message
         assert sibling_substep.status == TestStatus.PASSED
 
         # If this test was successful, mark that at a high level.
