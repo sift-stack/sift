@@ -162,6 +162,7 @@ class TestCalculatedChannelBase:
             ],
         )
         assert update.expression == "$1 + $2"
+        assert update.expression_channel_references
         assert len(update.expression_channel_references) == 2
 
 
