@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.2] - January 16, 2026
+### What's New
+Added support for webpki TLS certificates.
+
 ## [v0.7.1] - January 8, 2026
 ### What's New
 #### Sift proto file descriptors now included
