@@ -133,9 +133,9 @@ jobs:
               HIDDEN="false"
               echo "Stable release detected: $FULL_VERSION -> $VERSION"
             else
-              # Pre-release (alpha, beta, rc) - no 'latest' alias and hide from dropdown
+              # Pre-release (alpha, beta, rc) - use 'pre-release' alias and hide from dropdown
               VERSION="${VERSION}${SUFFIX}"
-              ALIAS=""
+              ALIAS="pre-release"
               HIDDEN="true"
               echo "Pre-release detected: $FULL_VERSION -> $VERSION"
             fi
@@ -174,6 +174,10 @@ jobs:
             # Stable release: deploy abbreviated version with latest alias, visible in dropdown
             echo "Deploying stable release $VERSION with $ALIAS alias"
             mike deploy "$VERSION" "$ALIAS" --push --update-aliases
+          elif [[ "$ALIAS" == "pre-release" ]]; then
+            # Pre-release: deploy abbreviated version with pre-release alias, hidden from dropdown
+            echo "Deploying pre-release $VERSION with $ALIAS alias"
+            mike deploy "$VERSION" "$ALIAS" --push --update-aliases --prop-set hidden=true
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
