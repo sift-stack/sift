@@ -84,12 +84,12 @@ lint_fix() {
 
 doc() {
   source venv/bin/activate
-  pdoc lib/sift_py -p 7777
+  mkdocs serve
 }
 
 doc_build() {
   source venv/bin/activate
-  pdoc lib/sift_py -o docs/sift_py
+  mkdocs build
 }
 
 run_tests() {

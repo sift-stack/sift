@@ -26,6 +26,7 @@ if TYPE_CHECKING:
         FileAttachmentUpdate,
         RemoteFileEntityType,
     )
+    from sift_client.sift_types.job import Job, JobStatus, JobType
     from sift_client.sift_types.report import Report, ReportUpdate
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -641,6 +642,106 @@ class FileAttachmentsAPI:
 
         Returns:
             The uploaded FileAttachment.
+        """
+        ...
+
+class JobsAPI:
+    """Sync counterpart to `JobsAPIAsync`.
+
+    High-level API for interacting with jobs.
+
+    This class provides a Pythonic interface for managing jobs in Sift.
+    Jobs represent long-running operations like data imports, rule evaluations, and data exports.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the JobsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def cancel(self, job: Job | str) -> None:
+        """Cancel a job.
+
+        If the job hasn't started yet, it will be cancelled immediately.
+        Jobs that are already finished, failed, or cancelled are not affected.
+
+        Args:
+            job: The Job or ID of the job to cancel.
+        """
+        ...
+
+    def get(self, job_id: str) -> Job:
+        """Get a job by ID.
+
+        Args:
+            job_id: The ID of the job to retrieve.
+
+        Returns:
+            The Job object.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        job_ids: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by_user_id: str | None = None,
+        modified_by_user_id: str | None = None,
+        job_type: JobType | None = None,
+        job_status: JobStatus | None = None,
+        started_date_after: datetime | None = None,
+        started_date_before: datetime | None = None,
+        completed_date_after: datetime | None = None,
+        completed_date_before: datetime | None = None,
+        organization_id: str | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[Job]:
+        """List jobs with optional filtering.
+
+        Args:
+            job_ids: Filter to jobs with any of these IDs.
+            created_after: Filter to jobs created after this datetime.
+            created_before: Filter to jobs created before this datetime.
+            modified_after: Filter to jobs modified after this datetime.
+            modified_before: Filter to jobs modified before this datetime.
+            created_by_user_id: Filter to jobs created by this user ID.
+            modified_by_user_id: Filter to jobs last modified by this user ID.
+            job_type: Filter to jobs with this type.
+            job_status: Filter to jobs with this status.
+            started_date_after: Filter to jobs started after this datetime.
+            started_date_before: Filter to jobs started before this datetime.
+            completed_date_after: Filter to jobs completed after this datetime.
+            completed_date_before: Filter to jobs completed before this datetime.
+            organization_id: Organization ID. Required if your user belongs to multiple organizations.
+            filter_query: Explicit CEL query to filter jobs. If provided, other filter arguments are ignored.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of jobs to return. If None, returns all matches.
+
+        Returns:
+            A list of Job objects that match the filter criteria.
+        """
+        ...
+
+    def retry(self, job: Job | str) -> Job:
+        """Retry a failed job.
+
+        Jobs that are finished, in progress, or in the process of being cancelled are not affected.
+
+        Args:
+            job: The Job or ID of the job to retry.
+
+        Returns:
+            The updated Job object.
         """
         ...
 
