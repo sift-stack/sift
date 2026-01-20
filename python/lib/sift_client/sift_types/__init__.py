@@ -129,6 +129,8 @@ asset.update({"tags": ["new-tag"]})  # Updates the instance in-place
 ```
 """
 
+import sys
+
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
@@ -177,6 +179,7 @@ from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
     TestMeasurementType,
+    TestMeasurementUpdate,
     TestReport,
     TestReportCreate,
     TestReportUpdate,
@@ -185,6 +188,21 @@ from sift_client.sift_types.test_report import (
     TestStepCreate,
     TestStepType,
 )
+
+if "pytest" in sys.modules:
+    # These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
+    # Do this here because for some reason our docs generation doesn't like it when done in the classes themselves.
+    TestStepType.__test__ = False  # type: ignore
+    TestMeasurementType.__test__ = False  # type: ignore
+    TestMeasurement.__test__ = False  # type: ignore
+    TestMeasurementCreate.__test__ = False  # type: ignore
+    TestMeasurementUpdate.__test__ = False  # type: ignore
+    TestStatus.__test__ = False  # type: ignore
+    TestStep.__test__ = False  # type: ignore
+    TestStepCreate.__test__ = False  # type: ignore
+    TestReport.__test__ = False  # type: ignore
+    TestReportCreate.__test__ = False  # type: ignore
+    TestReportUpdate.__test__ = False  # type: ignore
 
 __all__ = [
     "Asset",

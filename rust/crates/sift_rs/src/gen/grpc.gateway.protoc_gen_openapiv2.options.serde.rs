@@ -1628,9 +1628,15 @@ impl serde::Serialize for json_schema::FieldConfiguration {
         if !self.path_param_name.is_empty() {
             len += 1;
         }
+        if self.deprecated {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("grpc.gateway.protoc_gen_openapiv2.options.JSONSchema.FieldConfiguration", len)?;
         if !self.path_param_name.is_empty() {
             struct_ser.serialize_field("pathParamName", &self.path_param_name)?;
+        }
+        if self.deprecated {
+            struct_ser.serialize_field("deprecated", &self.deprecated)?;
         }
         struct_ser.end()
     }
@@ -1644,11 +1650,13 @@ impl<'de> serde::Deserialize<'de> for json_schema::FieldConfiguration {
         const FIELDS: &[&str] = &[
             "path_param_name",
             "pathParamName",
+            "deprecated",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             PathParamName,
+            Deprecated,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1671,6 +1679,7 @@ impl<'de> serde::Deserialize<'de> for json_schema::FieldConfiguration {
                     {
                         match value {
                             "pathParamName" | "path_param_name" => Ok(GeneratedField::PathParamName),
+                            "deprecated" => Ok(GeneratedField::Deprecated),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1691,6 +1700,7 @@ impl<'de> serde::Deserialize<'de> for json_schema::FieldConfiguration {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut path_param_name__ = None;
+                let mut deprecated__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PathParamName => {
@@ -1699,10 +1709,17 @@ impl<'de> serde::Deserialize<'de> for json_schema::FieldConfiguration {
                             }
                             path_param_name__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Deprecated => {
+                            if deprecated__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("deprecated"));
+                            }
+                            deprecated__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(json_schema::FieldConfiguration {
                     path_param_name: path_param_name__.unwrap_or_default(),
+                    deprecated: deprecated__.unwrap_or_default(),
                 })
             }
         }
