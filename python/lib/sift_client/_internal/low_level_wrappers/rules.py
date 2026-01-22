@@ -207,6 +207,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "contextual_channels",
             "asset_ids",
             "asset_tag_ids",
+            "is_live",
         ]
         # Need to manually copy fields that will be reset even if not provided in update dict.
         copy_unset_fields = ["description", "name"]
@@ -261,6 +262,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             update_dict["contextual_channels"] = ContextualChannels(  # type: ignore
                 channels=[ChannelReferenceProto(name=c) for c in update.contextual_channels or []]
             )
+
+        # Map is_live (class field) to is_live_evaluation_enabled (proto field)
+        if "is_live" in model_dump:
+            update_dict["is_live_evaluation_enabled"] = update.is_live
 
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore

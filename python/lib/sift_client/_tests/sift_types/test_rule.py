@@ -23,7 +23,6 @@ def mock_rule(mock_client):
         id_="test_rule_id",
         name="test_rule",
         description="test description",
-        is_enabled=True,
         created_date=datetime.now(timezone.utc),
         modified_date=datetime.now(timezone.utc),
         created_by_user_id="user1",
@@ -46,7 +45,7 @@ def mock_rule(mock_client):
         client_key=None,
         rule_version=None,
         archived_date=None,
-        is_live_evaluation_enabled=False,
+        is_live=False,
         current_version_id="test_version_id",
     )
     rule._apply_client_to_instance(mock_client)

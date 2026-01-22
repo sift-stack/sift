@@ -335,7 +335,6 @@ class TestRulesAPIAsync:
                 assert updated_rule.description == "Updated description"
                 # Validate that things we didn't intentionally change didn't change
                 assert updated_rule.name == new_rule.name
-                assert updated_rule.is_enabled == new_rule.is_enabled
                 assert updated_rule.is_external == new_rule.is_external
                 assert updated_rule.expression == new_rule.expression
                 assert updated_rule.action.action_type == new_rule.action.action_type
