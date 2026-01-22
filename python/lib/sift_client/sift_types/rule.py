@@ -166,6 +166,7 @@ class RuleCreateUpdateBase(ModelCreateUpdateBase):
     asset_tag_ids: list[str] | None = None
     contextual_channels: list[str] | None = None
     is_external: bool = False
+    is_live_evaluation_enabled: bool = False
 
 
 class RuleCreate(RuleCreateUpdateBase, ModelCreate[CreateRuleRequest]):
