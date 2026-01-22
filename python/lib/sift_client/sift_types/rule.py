@@ -155,6 +155,8 @@ class Rule(BaseType[RuleProto, "Rule"]):
             ),
             is_archived=proto.is_archived,
             is_external=proto.is_external,
+            is_live_evaluation_enabled=proto.is_live_evaluation_enabled,
+            current_version_id=proto.current_version_id,
             _client=sift_client,
         )
 
