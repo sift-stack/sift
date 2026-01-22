@@ -45,7 +45,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
     # Required fields
     name: str
     description: str
-    is_enabled: bool
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
@@ -53,7 +52,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
     organization_id: str
     is_archived: bool
     is_external: bool
-    is_live_evaluation_enabled: bool
+    is_live: bool
     current_version_id: str
 
     # Optional fields
@@ -137,7 +136,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
                 ].expression.calculated_channel.channel_references.items()
             ],
             action=RuleAction._from_proto(proto.conditions[0].actions[0]),
-            is_enabled=proto.is_enabled,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
@@ -155,7 +153,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
             ),
             is_archived=proto.is_archived,
             is_external=proto.is_external,
-            is_live_evaluation_enabled=proto.is_live_evaluation_enabled,
+            is_live=proto.is_live_evaluation_enabled,
             current_version_id=proto.current_version_id,
             _client=sift_client,
         )
@@ -170,7 +168,7 @@ class RuleCreateUpdateBase(ModelCreateUpdateBase):
     asset_tag_ids: list[str] | None = None
     contextual_channels: list[str] | None = None
     is_external: bool = False
-    is_live_evaluation_enabled: bool = False
+    is_live: bool = False
 
 
 class RuleCreate(RuleCreateUpdateBase, ModelCreate[CreateRuleRequest]):

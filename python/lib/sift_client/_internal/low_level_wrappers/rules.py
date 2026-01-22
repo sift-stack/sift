@@ -124,11 +124,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         update_request = UpdateRuleRequest(
             name=create.name,
             description=create.description,
-            is_enabled=True,
             organization_id=create.organization_id or "",
             client_key=create.client_key,
             is_external=create.is_external,
-            is_live_evaluation_enabled=create.is_live_evaluation_enabled,
+            is_live_evaluation_enabled=create.is_live,
             conditions=conditions_request,
             asset_configuration=RuleAssetConfiguration(
                 asset_ids=create.asset_ids or [],
