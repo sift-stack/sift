@@ -53,6 +53,8 @@ class Rule(BaseType[RuleProto, "Rule"]):
     organization_id: str
     is_archived: bool
     is_external: bool
+    is_live_evaluation_enabled: bool
+    current_version_id: str
 
     # Optional fields
     expression: str | None
