@@ -264,8 +264,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
 
         # Map is_live (class field) to is_live_evaluation_enabled (proto field)
-        if "is_live" in model_dump:
-            update_dict["is_live_evaluation_enabled"] = update.is_live
+        update_dict["is_live_evaluation_enabled"] = update.is_live
 
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
