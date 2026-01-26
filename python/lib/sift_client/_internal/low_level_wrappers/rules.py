@@ -127,7 +127,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             organization_id=create.organization_id or "",
             client_key=create.client_key,
             is_external=create.is_external,
-            is_live_evaluation_enabled=create.is_live,
+            is_live_evaluation_enabled=create.evaluate_on_live_data,
             conditions=conditions_request,
             asset_configuration=RuleAssetConfiguration(
                 asset_ids=create.asset_ids or [],
@@ -207,7 +207,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "contextual_channels",
             "asset_ids",
             "asset_tag_ids",
-            "is_live",
+            "evaluate_on_live_data",
         ]
         # Need to manually copy fields that will be reset even if not provided in update dict.
         copy_unset_fields = ["description", "name"]
@@ -264,7 +264,9 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
 
         # Map is_live (class field) to is_live_evaluation_enabled (proto field)
-        update_dict["is_live_evaluation_enabled"] = model_dump.get("is_live", rule.is_live)
+        update_dict["is_live_evaluation_enabled"] = model_dump.get(
+            "evaluate_on_live_data", rule.evaluate_on_live_data
+        )
 
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
