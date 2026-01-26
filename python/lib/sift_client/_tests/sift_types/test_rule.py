@@ -45,7 +45,7 @@ def mock_rule(mock_client):
         client_key=None,
         rule_version=None,
         archived_date=None,
-        is_live=False,
+        evaluate_on_live_data=False,
         current_version_id="test_version_id",
     )
     rule._apply_client_to_instance(mock_client)
