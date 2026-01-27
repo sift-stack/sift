@@ -64,7 +64,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
     client_key: str | None
     rule_version: RuleVersion | None
     archived_date: datetime | None
-    is_live_evaluation_enabled: bool | None = None
 
     @property
     def assets(self) -> list[Asset]:
@@ -154,7 +153,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
             ),
             is_archived=proto.is_archived,
             is_external=proto.is_external,
-            is_live_evaluation_enabled=proto.is_live_evaluation_enabled,
             _client=sift_client,
         )
 
@@ -168,7 +166,6 @@ class RuleCreateUpdateBase(ModelCreateUpdateBase):
     asset_tag_ids: list[str] | None = None
     contextual_channels: list[str] | None = None
     is_external: bool = False
-    is_live_evaluation_enabled: bool | None = None
 
 
 class RuleCreate(RuleCreateUpdateBase, ModelCreate[CreateRuleRequest]):
