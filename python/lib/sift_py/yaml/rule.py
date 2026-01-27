@@ -271,7 +271,7 @@ class RuleYamlSpec(TypedDict):
     `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     `tag_names`: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     `is_external`: If this is an external rule.
-    `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
+    `is_live_evaluation_enabled`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
             This rule can still be used, however, in report generation.
 
     Channel references:
@@ -330,7 +330,7 @@ class RuleYamlSpec(TypedDict):
     asset_names: NotRequired[List[str]]
     tag_names: NotRequired[List[str]]
     is_external: NotRequired[bool]
-    is_live: NotRequired[bool]
+    is_live_evaluation_enabled: NotRequired[bool]
 
 
 class NamedExpressionYamlSpec(TypedDict):
