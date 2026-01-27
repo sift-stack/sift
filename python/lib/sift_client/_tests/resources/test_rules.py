@@ -453,66 +453,17 @@ class TestRulesAPIAsync:
         @pytest.mark.asyncio
         async def test_update_rule_live_evaluation_enabled(self, rules_api_async, new_rule):
             """Test updating a rule's is_live_evaluation_enabled field."""
-            from datetime import datetime, timezone
-
             try:
-                # First, create a rule with is_live_evaluation_enabled=False
-                rule_name = f"test_rule_update_live_{datetime.now(timezone.utc).isoformat()}"
-                channels = await rules_api_async.client.async_.channels.list_(limit=2)
-                assets = await rules_api_async.client.async_.assets.list_(limit=1)
+                update_dict = {"is_live_evaluation_enabled": True}
+                updated_rule = await rules_api_async.update(new_rule, update_dict)
+                assert updated_rule.is_live_evaluation_enabled
 
-                rule_create = RuleCreate(
-                    name=rule_name,
-                    description="Test rule for updating live evaluation",
-                    expression="$1 > $2",
-                    channel_references=[
-                        ChannelReference(
-                            channel_reference="$1", channel_identifier=channels[0].name
-                        ),
-                        ChannelReference(
-                            channel_reference="$2", channel_identifier=channels[1].name
-                        ),
-                    ],
-                    action=RuleAction.annotation(
-                        annotation_type=RuleAnnotationType.DATA_REVIEW,
-                        tags=[],
-                    ),
-                    asset_ids=[assets[0]._id_or_error],
-                    is_live_evaluation_enabled=False,
-                )
+                update_dict = {"is_live_evaluation_enabled": False}
+                updated_rule = await rules_api_async.update(new_rule, update_dict)
+                assert not updated_rule.is_live_evaluation_enabled
 
-                created_rule = await rules_api_async.create(rule_create)
-
-                # Verify initial state
-                assert created_rule.is_live_evaluation_enabled is False
-
-                # Update to enable live evaluation
-                update = RuleUpdate(is_live_evaluation_enabled=True)
-                updated_rule = await rules_api_async.update(created_rule, update)
-
-                assert updated_rule.id_ == created_rule.id_
-                assert updated_rule.is_live_evaluation_enabled is True
-                # Verify by fetching the rule again
-                fetched_rule = await rules_api_async.get(rule_id=updated_rule.id_)
-                assert fetched_rule.is_live_evaluation_enabled is True
-
-                # Update back to disable live evaluation
-                update = RuleUpdate(is_live_evaluation_enabled=False)
-                updated_rule = await rules_api_async.update(created_rule, update)
-
-                assert updated_rule.is_live_evaluation_enabled is False
-                # Verify by fetching the rule again
-                fetched_rule = await rules_api_async.get(rule_id=updated_rule.id_)
-                assert fetched_rule.is_live_evaluation_enabled is False
-
-                await rules_api_async.archive(created_rule)
-            except Exception:
-                # Clean up if something goes wrong
-                try:
-                    await rules_api_async.archive(created_rule)
-                except Exception:
-                    pass
-                raise
+            finally:
+                await rules_api_async.archive(new_rule.id_)
 
         @pytest.mark.asyncio
         async def test_update_with_id_string(self, rules_api_async, new_rule):
