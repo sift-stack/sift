@@ -712,10 +712,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#1-basic-example-sending-individual-flows" class="md-nav__link">
+  <a href="#1-basic-example-sending-individual-flows-with-flowconfig" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Basic Example: Sending Individual Flows
+        1. Basic Example: Sending Individual Flows with FlowConfig
       
     </span>
   </a>
@@ -723,10 +723,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-batch-sending-efficiently-sending-multiple-flows" class="md-nav__link">
+  <a href="#2-advanced-flowbuilderpy-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Batch Sending: Efficiently Sending Multiple Flows
+        2. Advanced FlowBuilderPy Usage
       
     </span>
   </a>
@@ -734,52 +734,24 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-advanced-concepts" class="md-nav__link">
+  <a href="#3-high-performance-batch-sending" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Advanced Concepts
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Advanced Concepts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#recovery-strategies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovery Strategies
+        3. High-Performance Batch Sending
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#tracing" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#4-queue-based-lazy-flow-creation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tracing
+        4. Queue-Based Lazy Flow Creation
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#metrics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Metrics
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -850,10 +822,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#1-basic-example-sending-individual-flows" class="md-nav__link">
+  <a href="#1-basic-example-sending-individual-flows-with-flowconfig" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Basic Example: Sending Individual Flows
+        1. Basic Example: Sending Individual Flows with FlowConfig
       
     </span>
   </a>
@@ -861,10 +833,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-batch-sending-efficiently-sending-multiple-flows" class="md-nav__link">
+  <a href="#2-advanced-flowbuilderpy-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Batch Sending: Efficiently Sending Multiple Flows
+        2. Advanced FlowBuilderPy Usage
       
     </span>
   </a>
@@ -872,52 +844,24 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-advanced-concepts" class="md-nav__link">
+  <a href="#3-high-performance-batch-sending" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Advanced Concepts
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Advanced Concepts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#recovery-strategies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovery Strategies
+        3. High-Performance Batch Sending
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#tracing" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#4-queue-based-lazy-flow-creation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tracing
+        4. Queue-Based Lazy Flow Creation
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#metrics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Metrics
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1395,9 +1339,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>sift-stack-py<span class="o">[</span>sift-stream<span class="o">]</span>
 </pre></div>
 <h2 id="topics-covered">Topics Covered<a class="anchor-link" href="#topics-covered">¶</a></h2><ol>
-<li><strong>Basic Example</strong>: Simple single flow sending</li>
-<li><strong>Batch Sending</strong>: Efficiently sending multiple flows at once</li>
-<li><strong>Advanced Concepts</strong>: Recovery strategies, checkpoints, and more</li>
+<li><strong>Basic Example</strong>: Simple single flow sending using FlowConfig</li>
+<li><strong>Advanced FlowBuilderPy</strong>: High-performance flow building with direct run ID management</li>
+<li><strong>High-Performance Batch Sending</strong>: Efficiently sending multiple flows using FlowBuilderPy</li>
+<li><strong>Queue-Based Lazy Flow Creation</strong>: Dynamic flow registration with multi-task architecture</li>
 </ol>
 </div>
 </div>
@@ -1409,12 +1354,14 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="1-basic-example-sending-individual-flows">1. Basic Example: Sending Individual Flows<a class="anchor-link" href="#1-basic-example-sending-individual-flows">¶</a></h2><p>This example shows the simplest way to send telemetry data to Sift:</p>
+<h2 id="1-basic-example-sending-individual-flows-with-flowconfig">1. Basic Example: Sending Individual Flows with FlowConfig<a class="anchor-link" href="#1-basic-example-sending-individual-flows-with-flowconfig">¶</a></h2><p>This example shows the simplest way to send telemetry data to Sift:</p>
 <ul>
 <li>Create an ingestion config with flow definitions</li>
+<li>Save the flow config from the ingestion config (no API call needed)</li>
 <li>Create a run to associate data with</li>
-<li>Send individual flows one at a time</li>
+<li>Send individual flows one at a time using <code>as_flow()</code></li>
 </ul>
+<p>This is the simplest approach and is recommended for basic use cases where performance is not critical.</p>
 </div>
 </div>
 </div>
@@ -1440,7 +1387,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span><span class="p">,</span> <span class="n">SiftConnectionConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1462,20 +1409,18 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 
     <span class="n">client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">connection_config</span><span class="o">=</span><span class="n">connection_config</span><span class="p">)</span>
 
-    <span class="c1"># Define your telemetry schema using an ingestion config</span>
+    <span class="c1"># Define your telemetry schema using an flow config and ingestion config</span>
+    <span class="n">flow_config</span> <span class="o">=</span> <span class="n">FlowConfig</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
+        <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
+            <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+
     <span class="n">ingestion_config</span> <span class="o">=</span> <span class="n">IngestionConfigCreate</span><span class="p">(</span>
         <span class="n">asset_name</span><span class="o">=</span><span class="s2">"sift_rover_1"</span><span class="p">,</span>
-        <span class="n">flows</span><span class="o">=</span><span class="p">[</span>
-            <span class="n">FlowConfig</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
-                <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
-                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
-                    <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
-                    <span class="p">),</span>
-                <span class="p">],</span>
-            <span class="p">)</span>
-        <span class="p">],</span>
+        <span class="n">flows</span><span class="o">=</span><span class="p">[</span><span class="n">flow_config</span><span class="p">],</span>
     <span class="p">)</span>
 
     <span class="c1"># Create a run to associate this data collection session</span>
@@ -1488,10 +1433,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
     <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
         <span class="c1"># Send data in a loop</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-            <span class="c1"># Get the flow config to create flows</span>
-            <span class="n">flow_config</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_config</span><span class="p">(</span><span class="n">flow_name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">)</span>
-
-            <span class="c1"># Create a flow with timestamp and values</span>
+            <span class="c1"># Create a flow with timestamp and values using the saved flow_config</span>
             <span class="c1"># The timestamp can also be left out to default to datetime.now(timezone.utc)</span>
             <span class="n">flow</span> <span class="o">=</span> <span class="n">flow_config</span><span class="o">.</span><span class="n">as_flow</span><span class="p">(</span>
                 <span class="n">timestamp</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
@@ -1513,7 +1455,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="clipboard-copy-txt" id="cell-1">import asyncio
 import random
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.sift_types import (
@@ -1535,20 +1477,18 @@ async def basic_example():
 
     client = SiftClient(connection_config=connection_config)
 
-    # Define your telemetry schema using an ingestion config
+    # Define your telemetry schema using an flow config and ingestion config
+    flow_config = FlowConfig(
+        name="onboard_sensors",
+        channels=[
+            ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
+            ChannelConfig(name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE),
+        ],
+    )
+
     ingestion_config = IngestionConfigCreate(
         asset_name="sift_rover_1",
-        flows=[
-            FlowConfig(
-                name="onboard_sensors",
-                channels=[
-                    ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
-                    ChannelConfig(
-                        name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE
-                    ),
-                ],
-            )
-        ],
+        flows=[flow_config],
     )
 
     # Create a run to associate this data collection session
@@ -1561,10 +1501,7 @@ async def basic_example():
     ) as ingest_client:
         # Send data in a loop
         for i in range(10):
-            # Get the flow config to create flows
-            flow_config = ingest_client.get_flow_config(flow_name="onboard_sensors")
-
-            # Create a flow with timestamp and values
+            # Create a flow with timestamp and values using the saved flow_config
             # The timestamp can also be left out to default to datetime.now(timezone.utc)
             flow = flow_config.as_flow(
                 timestamp=datetime.now(timezone.utc),
@@ -1594,7 +1531,17 @@ async def basic_example():
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="2-batch-sending-efficiently-sending-multiple-flows">2. Batch Sending: Efficiently Sending Multiple Flows<a class="anchor-link" href="#2-batch-sending-efficiently-sending-multiple-flows">¶</a></h2><p>For potentially better performance when sending many flows, use <code>batch_send()</code> to send multiple flows in a single operation. This may reduce the overhead of calling the underlying Rust SiftStream ingestion client.</p>
+<h2 id="2-advanced-flowbuilderpy-usage">2. Advanced FlowBuilderPy Usage<a class="anchor-link" href="#2-advanced-flowbuilderpy-usage">¶</a></h2><p>This example demonstrates the advanced <code>FlowBuilderPy</code> paradigm, which provides better performance and more control:</p>
+<ul>
+<li>Get <code>FlowDescriptorPy</code> using <code>get_flow_descriptor()</code></li>
+<li>Retrieve the run ID from SiftStream using <code>get_run_id()</code></li>
+<li>Create <code>FlowBuilderPy</code> from the descriptor</li>
+<li>Set the run ID directly on the flow builder using <code>attach_run_id()</code></li>
+<li>Use channel indices from the descriptor mapping to avoid hash operations</li>
+<li>Use <code>set()</code> with channel indices instead of <code>set_with_key()</code> for maximum performance</li>
+<li>Build the request and send using <code>send_requests()</code> or <code>send_requests_nonblocking()</code></li>
+</ul>
+<p><strong>Note</strong>: This approach requires managing the run ID directly, making it more advanced but also more performant. Using channel indices instead of channel names avoids hash lookups, providing the best performance for high-frequency data sending. It's useful when you need fine-grained control or are sending data for multiple runs/assets with a single SiftStream instance.</p>
 </div>
 </div>
 </div>
@@ -1617,8 +1564,10 @@ async def basic_example():
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">batch_send_example</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">"""Example showing how to efficiently send multiple flows at once."""</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">advanced_flowbuilder_example</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""Example showing advanced FlowBuilderPy usage with channel indices for maximum performance."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sift_stream_bindings</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlowBuilderPy</span><span class="p">,</span> <span class="n">TimeValuePy</span><span class="p">,</span> <span class="n">ValuePy</span>
+
     <span class="n">connection_config</span> <span class="o">=</span> <span class="n">SiftConnectionConfig</span><span class="p">(</span>
         <span class="n">api_key</span><span class="o">=</span><span class="s2">"my_api_key"</span><span class="p">,</span>
         <span class="n">grpc_url</span><span class="o">=</span><span class="s2">"sift_grpc_url"</span><span class="p">,</span>
@@ -1648,38 +1597,74 @@ async def basic_example():
         <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
         <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
-        <span class="n">flow_config</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_config</span><span class="p">(</span><span class="n">flow_name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">)</span>
+        <span class="c1"># Get the flow descriptor and run ID from SiftStream</span>
+        <span class="n">descriptor</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_descriptor</span><span class="p">(</span><span class="n">flow_name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">)</span>
+        <span class="n">run_id</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_run_id</span><span class="p">()</span>
 
-        <span class="c1"># Generate 5 seconds of data at 10Hz (10 flows per second = 50 flows total)</span>
-        <span class="n">sample_rate_hz</span> <span class="o">=</span> <span class="mi">10</span>
-        <span class="n">duration_seconds</span> <span class="o">=</span> <span class="mi">5</span>
-        <span class="n">num_flows</span> <span class="o">=</span> <span class="n">sample_rate_hz</span> <span class="o">*</span> <span class="n">duration_seconds</span>  <span class="c1"># 50 flows</span>
+        <span class="k">if</span> <span class="n">run_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Run ID is required for FlowBuilderPy usage"</span><span class="p">)</span>
 
-        <span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
-        <span class="n">flows</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_flows</span><span class="p">):</span>
-            <span class="c1"># Calculate timestamp for each sample (spaced 0.1 seconds apart)</span>
-            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">start_time</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">i</span> <span class="o">/</span> <span class="n">sample_rate_hz</span><span class="p">)</span>
-            <span class="n">flows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">flow_config</span><span class="o">.</span><span class="n">as_flow</span><span class="p">(</span>
-                    <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
-                    <span class="n">values</span><span class="o">=</span><span class="p">{</span>
-                        <span class="s2">"motor_temp"</span><span class="p">:</span> <span class="mf">50.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">5.0</span><span class="p">,</span>
-                        <span class="s2">"tank_pressure"</span><span class="p">:</span> <span class="mf">2000.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">,</span>
-                    <span class="p">},</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
+        <span class="c1"># Get the mapping from channel names to ChannelIndexPy</span>
+        <span class="c1"># This allows us to avoid hash lookups by using indices directly</span>
+        <span class="n">channel_index_map</span> <span class="o">=</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">mapping</span><span class="p">()</span>
 
-        <span class="c1"># Send all flows in a single batch operation</span>
-        <span class="c1"># batch_send supports sending any iterables of Flow or FlowPy objects</span>
-        <span class="k">await</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">batch_send</span><span class="p">(</span><span class="n">flows</span><span class="p">)</span>
+        <span class="c1"># Pre-compute channel indices and value conversion methods</span>
+        <span class="c1"># This creates a list of (ChannelIndexPy, conversion_method) tuples</span>
+        <span class="c1"># that can be reused for each flow, avoiding hash operations</span>
+        <span class="c1">#</span>
+        <span class="c1"># If this technique is used, caching the indices and conversion method</span>
+        <span class="c1"># is strongly recommended.</span>
+        <span class="n">channel_indices_and_methods</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">channel_index_map</span><span class="p">[</span><span class="s2">"motor_temp"</span><span class="p">],</span> <span class="n">ValuePy</span><span class="o">.</span><span class="n">Double</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">channel_index_map</span><span class="p">[</span><span class="s2">"tank_pressure"</span><span class="p">],</span> <span class="n">ValuePy</span><span class="o">.</span><span class="n">Double</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Send data in a loop using FlowBuilderPy with channel indices</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+            <span class="c1"># Create a FlowBuilderPy from the descriptor</span>
+            <span class="n">flow_builder</span> <span class="o">=</span> <span class="n">FlowBuilderPy</span><span class="p">(</span><span class="n">descriptor</span><span class="p">)</span>
+
+            <span class="c1"># Attach the run ID directly to the flow builder</span>
+            <span class="n">flow_builder</span><span class="o">.</span><span class="n">attach_run_id</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+
+            <span class="c1"># Set channel values using set() with pre-computed indices</span>
+            <span class="c1"># This avoids hash lookups and provides better performance</span>
+            <span class="n">motor_temp_value</span> <span class="o">=</span> <span class="mf">50.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">5.0</span>
+            <span class="n">tank_pressure_value</span> <span class="o">=</span> <span class="mf">2000.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">100.0</span>
+
+            <span class="c1"># If the raw data class used provides in-order iteration over the raw data, you can also iterate</span>
+            <span class="c1"># over the values and encoding information directly. Since the value indices are used, the</span>
+            <span class="c1"># additional per-channel hash lookup is not needed, further improving performance.</span>
+            <span class="c1">#</span>
+            <span class="c1"># Though for convenience, the values can also be set using set_with_key() which takes a channel name</span>
+            <span class="c1"># and value.</span>
+            <span class="c1">#</span>
+            <span class="c1"># Example:</span>
+            <span class="c1">#</span>
+            <span class="c1"># flow_builder.set_with_key("motor_temp", motor_temp_value)</span>
+            <span class="c1"># flow_builder.set_with_key("tank_pressure", tank_pressure_value)</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">motor_temp_value</span><span class="p">,</span> <span class="n">tank_pressure_value</span><span class="p">]</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">),</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">channel_indices_and_methods</span><span class="p">,</span> <span class="n">values</span>
+            <span class="p">):</span>
+                <span class="n">flow_builder</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+            <span class="c1"># Build the request with current timestamp</span>
+            <span class="n">request</span> <span class="o">=</span> <span class="n">flow_builder</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">TimeValuePy</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+
+            <span class="c1"># Send the request (non-blocking version)</span>
+            <span class="n">ingest_client</span><span class="o">.</span><span class="n">send_requests_nonblocking</span><span class="p">([</span><span class="n">request</span><span class="p">])</span>
+
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
 
 
 <span class="c1"># Uncomment to run:</span>
-<span class="c1"># asyncio.run(batch_send_example())</span>
+<span class="c1"># asyncio.run(advanced_flowbuilder_example())</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">async def batch_send_example():
-    """Example showing how to efficiently send multiple flows at once."""
+<div class="clipboard-copy-txt" id="cell-2">async def advanced_flowbuilder_example():
+    """Example showing advanced FlowBuilderPy usage with channel indices for maximum performance."""
+    from sift_stream_bindings import FlowBuilderPy, TimeValuePy, ValuePy
+
     connection_config = SiftConnectionConfig(
         api_key="my_api_key",
         grpc_url="sift_grpc_url",
@@ -1709,35 +1694,69 @@ async def basic_example():
         ingestion_config=ingestion_config,
         run=run,
     ) as ingest_client:
-        flow_config = ingest_client.get_flow_config(flow_name="onboard_sensors")
+        # Get the flow descriptor and run ID from SiftStream
+        descriptor = ingest_client.get_flow_descriptor(flow_name="onboard_sensors")
+        run_id = ingest_client.get_run_id()
 
-        # Generate 5 seconds of data at 10Hz (10 flows per second = 50 flows total)
-        sample_rate_hz = 10
-        duration_seconds = 5
-        num_flows = sample_rate_hz * duration_seconds  # 50 flows
+        if run_id is None:
+            raise ValueError("Run ID is required for FlowBuilderPy usage")
 
-        start_time = datetime.now(timezone.utc)
-        flows = []
-        for i in range(num_flows):
-            # Calculate timestamp for each sample (spaced 0.1 seconds apart)
-            timestamp = start_time + timedelta(seconds=i / sample_rate_hz)
-            flows.append(
-                flow_config.as_flow(
-                    timestamp=timestamp,
-                    values={
-                        "motor_temp": 50.0 + random.random() * 5.0,
-                        "tank_pressure": 2000.0 + random.random() * 100.0,
-                    },
-                )
-            )
+        # Get the mapping from channel names to ChannelIndexPy
+        # This allows us to avoid hash lookups by using indices directly
+        channel_index_map = descriptor.mapping()
 
-        # Send all flows in a single batch operation
-        # batch_send supports sending any iterables of Flow or FlowPy objects
-        await ingest_client.batch_send(flows)
+        # Pre-compute channel indices and value conversion methods
+        # This creates a list of (ChannelIndexPy, conversion_method) tuples
+        # that can be reused for each flow, avoiding hash operations
+        #
+        # If this technique is used, caching the indices and conversion method
+        # is strongly recommended.
+        channel_indices_and_methods = [
+            (channel_index_map["motor_temp"], ValuePy.Double),
+            (channel_index_map["tank_pressure"], ValuePy.Double),
+        ]
+
+        # Send data in a loop using FlowBuilderPy with channel indices
+        for i in range(10):
+            # Create a FlowBuilderPy from the descriptor
+            flow_builder = FlowBuilderPy(descriptor)
+
+            # Attach the run ID directly to the flow builder
+            flow_builder.attach_run_id(run_id)
+
+            # Set channel values using set() with pre-computed indices
+            # This avoids hash lookups and provides better performance
+            motor_temp_value = 50.0 + random.random() * 5.0
+            tank_pressure_value = 2000.0 + random.random() * 100.0
+
+            # If the raw data class used provides in-order iteration over the raw data, you can also iterate
+            # over the values and encoding information directly. Since the value indices are used, the
+            # additional per-channel hash lookup is not needed, further improving performance.
+            #
+            # Though for convenience, the values can also be set using set_with_key() which takes a channel name
+            # and value.
+            #
+            # Example:
+            #
+            # flow_builder.set_with_key("motor_temp", motor_temp_value)
+            # flow_builder.set_with_key("tank_pressure", tank_pressure_value)
+            values = [motor_temp_value, tank_pressure_value]
+            for (channel_index, conversion_method), value in zip(
+                channel_indices_and_methods, values
+            ):
+                flow_builder.set(channel_index, conversion_method(value))
+
+            # Build the request with current timestamp
+            request = flow_builder.request(TimeValuePy.now())
+
+            # Send the request (non-blocking version)
+            ingest_client.send_requests_nonblocking([request])
+
+            await asyncio.sleep(0.1)
 
 
 # Uncomment to run:
-# asyncio.run(batch_send_example())</div>
+# asyncio.run(advanced_flowbuilder_example())</div>
 </div>
 </div>
 </div>
@@ -1750,28 +1769,14 @@ async def basic_example():
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="3-advanced-concepts">3. Advanced Concepts<a class="anchor-link" href="#3-advanced-concepts">¶</a></h2><h3 id="recovery-strategies">Recovery Strategies<a class="anchor-link" href="#recovery-strategies">¶</a></h3><p>Recovery strategies can be used to allow fine-tuned control of SiftStream ingestion:</p>
+<h2 id="3-high-performance-batch-sending">3. High-Performance Batch Sending<a class="anchor-link" href="#3-high-performance-batch-sending">¶</a></h2><p>This example demonstrates high-performance batch sending using <code>FlowBuilderPy</code> with channel indices and <code>send_requests_nonblocking()</code>:</p>
 <ul>
-<li><strong>Retry with Backups [DEFAULT]</strong>: Retry failed connections + temporarily keep backups of ingested data for automatic re-ingestion if a streaming checkpoint (defaults to 60s) fails to send all data.</li>
-<li><strong>Retry Only</strong>: Retry failed connections only. More performant, but with no guarantee of data ingestion in the event of a connection issue.</li>
+<li>Pre-compute channel indices from the descriptor mapping to avoid hash operations</li>
+<li>Use <code>FlowBuilderPy</code> with <code>set()</code> and channel indices for maximum performance</li>
+<li>Use <code>send_requests_nonblocking()</code> for non-blocking batch sending</li>
+<li>This approach provides the best performance for high-throughput scenarios</li>
 </ul>
-<h3 id="tracing">Tracing<a class="anchor-link" href="#tracing">¶</a></h3><p>Tracing allows you to monitor and debug SiftStream ingestion through logs. You can configure tracing in several ways:</p>
-<ul>
-<li><strong>Console Only</strong>: Output logs to stdout/stderr only</li>
-<li><strong>File Logging</strong>: Output logs to both console and rolling log files</li>
-<li><strong>Disabled</strong>: Turn off tracing entirely</li>
-</ul>
-<p>Tracing is initialized once per process, and cannot be modified afterward.</p>
-<h3 id="metrics">Metrics<a class="anchor-link" href="#metrics">¶</a></h3><p>SiftStream provides detailed metrics about ingestion performance. Use <code>get_metrics_snapshot()</code> to access:</p>
-<ul>
-<li><strong>Bytes sent</strong>: Total bytes successfully sent to Sift</li>
-<li><strong>Byte rate</strong>: Current throughput in bytes per second</li>
-<li><strong>Messages sent</strong>: Total number of flows/messages sent</li>
-<li><strong>Message rate</strong>: Current message throughput</li>
-<li><strong>Checkpoint metrics</strong>: Timing and counts for checkpoints</li>
-<li><strong>Backup metrics</strong>: Statistics about disk backups (if enabled)</li>
-</ul>
-<p>Metrics are updated in real-time and can help you monitor ingestion health and performance.</p>
+<p>The combination of channel indices (avoiding hash lookups) and non-blocking batch sending allows the underlying Rust client to handle batching and sending asynchronously, minimizing Python overhead and maximizing throughput.</p>
 </div>
 </div>
 </div>
@@ -1794,11 +1799,12 @@ async def basic_example():
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.resources.ingestion</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecoveryStrategyConfig</span><span class="p">,</span> <span class="n">TracingConfig</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">high_performance_batch_example</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""Example showing high-performance batch sending with FlowBuilderPy using channel indices."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
 
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sift_stream_bindings</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlowBuilderPy</span><span class="p">,</span> <span class="n">TimeValuePy</span><span class="p">,</span> <span class="n">ValuePy</span>
 
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">advanced_example</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">"""Example with recovery strategies, tracing, and metrics."""</span>
     <span class="n">connection_config</span> <span class="o">=</span> <span class="n">SiftConnectionConfig</span><span class="p">(</span>
         <span class="n">api_key</span><span class="o">=</span><span class="s2">"my_api_key"</span><span class="p">,</span>
         <span class="n">grpc_url</span><span class="o">=</span><span class="s2">"sift_grpc_url"</span><span class="p">,</span>
@@ -1824,52 +1830,70 @@ async def basic_example():
 
     <span class="n">run</span> <span class="o">=</span> <span class="n">RunCreate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"sift_rover-"</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())))</span>
 
-    <span class="c1"># Use retry only for better performance (no backups)</span>
-    <span class="n">recovery_strategy</span> <span class="o">=</span> <span class="n">RecoveryStrategyConfig</span><span class="o">.</span><span class="n">retry_only</span><span class="p">()</span>
-
-    <span class="c1"># Use console-only tracing (stdout/stderr) instead of file logging</span>
-    <span class="n">tracing_config</span> <span class="o">=</span> <span class="n">TracingConfig</span><span class="o">.</span><span class="n">console_only</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"info"</span><span class="p">)</span>
-
     <span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">async_</span><span class="o">.</span><span class="n">ingestion</span><span class="o">.</span><span class="n">create_ingestion_config_streaming_client</span><span class="p">(</span>
         <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
         <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
-        <span class="n">recovery_strategy</span><span class="o">=</span><span class="n">recovery_strategy</span><span class="p">,</span>
-        <span class="n">tracing_config</span><span class="o">=</span><span class="n">tracing_config</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
-        <span class="n">flow_config</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_config</span><span class="p">(</span><span class="n">flow_name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">)</span>
+        <span class="c1"># Get the flow descriptor and run ID</span>
+        <span class="n">descriptor</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_descriptor</span><span class="p">(</span><span class="n">flow_name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">)</span>
+        <span class="n">run_id</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_run_id</span><span class="p">()</span>
 
-        <span class="c1"># Send some flows</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-            <span class="n">flow</span> <span class="o">=</span> <span class="n">flow_config</span><span class="o">.</span><span class="n">as_flow</span><span class="p">(</span>
-                <span class="n">timestamp</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
-                <span class="n">values</span><span class="o">=</span><span class="p">{</span>
-                    <span class="s2">"motor_temp"</span><span class="p">:</span> <span class="mf">50.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">5.0</span><span class="p">,</span>
-                    <span class="s2">"tank_pressure"</span><span class="p">:</span> <span class="mf">2000.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">,</span>
-                <span class="p">},</span>
-            <span class="p">)</span>
-            <span class="k">await</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">flow</span><span class="o">=</span><span class="n">flow</span><span class="p">)</span>
+        <span class="c1"># Pre-compute channel indices and conversion methods for maximum performance</span>
+        <span class="c1"># This avoids hash lookups when setting values in the loop below</span>
+        <span class="n">channel_index_map</span> <span class="o">=</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">mapping</span><span class="p">()</span>
+        <span class="n">channel_indices_and_methods</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">channel_index_map</span><span class="p">[</span><span class="s2">"motor_temp"</span><span class="p">],</span> <span class="n">ValuePy</span><span class="o">.</span><span class="n">Double</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">channel_index_map</span><span class="p">[</span><span class="s2">"tank_pressure"</span><span class="p">],</span> <span class="n">ValuePy</span><span class="o">.</span><span class="n">Double</span><span class="p">),</span>
+        <span class="p">]</span>
 
-        <span class="c1"># Get metrics snapshot to see ingestion statistics</span>
-        <span class="n">metrics</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_metrics_snapshot</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== Ingestion Metrics ==="</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Bytes sent: </span><span class="si">{</span><span class="n">metrics</span><span class="o">.</span><span class="n">bytes_sent</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Byte rate: </span><span class="si">{</span><span class="n">metrics</span><span class="o">.</span><span class="n">byte_rate</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> bytes/s"</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Messages sent: </span><span class="si">{</span><span class="n">metrics</span><span class="o">.</span><span class="n">messages_sent</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Message rate: </span><span class="si">{</span><span class="n">metrics</span><span class="o">.</span><span class="n">message_rate</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> messages/s"</span><span class="p">)</span>
+        <span class="c1"># Generate 5 seconds of data at 10Hz (10 flows per second = 50 flows total)</span>
+        <span class="n">sample_rate_hz</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">duration_seconds</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">num_flows</span> <span class="o">=</span> <span class="n">sample_rate_hz</span> <span class="o">*</span> <span class="n">duration_seconds</span>  <span class="c1"># 50 flows</span>
 
-        <span class="c1"># Additional metrics available:</span>
-        <span class="c1"># - metrics.checkpoint_metrics: Checkpoint timing and counts</span>
-        <span class="c1"># - metrics.backup_metrics: Backup statistics (if backups enabled)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+        <span class="n">requests</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_flows</span><span class="p">):</span>
+            <span class="c1"># Calculate timestamp for each sample (spaced 0.1 seconds apart)</span>
+            <span class="n">timestamp_secs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">start_time</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">i</span> <span class="o">/</span> <span class="n">sample_rate_hz</span><span class="p">))</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">TimeValuePy</span><span class="o">.</span><span class="n">from_timestamp</span><span class="p">(</span><span class="n">timestamp_secs</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Create FlowBuilderPy and build request using pre-computed indices</span>
+            <span class="n">flow_builder</span> <span class="o">=</span> <span class="n">FlowBuilderPy</span><span class="p">(</span><span class="n">descriptor</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">run_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">flow_builder</span><span class="o">.</span><span class="n">attach_run_id</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+
+            <span class="c1"># Generate values</span>
+            <span class="n">motor_temp_value</span> <span class="o">=</span> <span class="mf">50.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">5.0</span>
+            <span class="n">tank_pressure_value</span> <span class="o">=</span> <span class="mf">2000.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">100.0</span>
+
+            <span class="c1"># Use indices directly - no hash operations!</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">motor_temp_value</span><span class="p">,</span> <span class="n">tank_pressure_value</span><span class="p">]</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">),</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">channel_indices_and_methods</span><span class="p">,</span> <span class="n">values</span>
+            <span class="p">):</span>
+                <span class="n">flow_builder</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">channel_index</span><span class="p">,</span> <span class="n">conversion_method</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+            <span class="n">request</span> <span class="o">=</span> <span class="n">flow_builder</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
+            <span class="n">requests</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="c1"># Send all requests in a single non-blocking batch operation</span>
+        <span class="c1"># The combination of channel indices + non-blocking batch sending provides</span>
+        <span class="c1"># the best performance for high-throughput scenarios</span>
+        <span class="n">ingest_client</span><span class="o">.</span><span class="n">send_requests_nonblocking</span><span class="p">(</span><span class="n">requests</span><span class="p">)</span>
 
 
 <span class="c1"># Uncomment to run:</span>
-<span class="c1"># asyncio.run(advanced_example())</span>
+<span class="c1"># asyncio.run(high_performance_batch_example())</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">from sift_client.resources.ingestion import RecoveryStrategyConfig, TracingConfig
+<div class="clipboard-copy-txt" id="cell-3">async def high_performance_batch_example():
+    """Example showing high-performance batch sending with FlowBuilderPy using channel indices."""
+    from datetime import timedelta
 
+    from sift_stream_bindings import FlowBuilderPy, TimeValuePy, ValuePy
 
-async def advanced_example():
-    """Example with recovery strategies, tracing, and metrics."""
     connection_config = SiftConnectionConfig(
         api_key="my_api_key",
         grpc_url="sift_grpc_url",
@@ -1895,46 +1919,518 @@ async def advanced_example():
 
     run = RunCreate(name="sift_rover-" + str(int(time.time())))
 
-    # Use retry only for better performance (no backups)
-    recovery_strategy = RecoveryStrategyConfig.retry_only()
+    async with await client.async_.ingestion.create_ingestion_config_streaming_client(
+        ingestion_config=ingestion_config,
+        run=run,
+    ) as ingest_client:
+        # Get the flow descriptor and run ID
+        descriptor = ingest_client.get_flow_descriptor(flow_name="onboard_sensors")
+        run_id = ingest_client.get_run_id()
 
-    # Use console-only tracing (stdout/stderr) instead of file logging
-    tracing_config = TracingConfig.console_only(level="info")
+        # Pre-compute channel indices and conversion methods for maximum performance
+        # This avoids hash lookups when setting values in the loop below
+        channel_index_map = descriptor.mapping()
+        channel_indices_and_methods = [
+            (channel_index_map["motor_temp"], ValuePy.Double),
+            (channel_index_map["tank_pressure"], ValuePy.Double),
+        ]
+
+        # Generate 5 seconds of data at 10Hz (10 flows per second = 50 flows total)
+        sample_rate_hz = 10
+        duration_seconds = 5
+        num_flows = sample_rate_hz * duration_seconds  # 50 flows
+
+        start_time = datetime.now(timezone.utc)
+        requests = []
+
+        for i in range(num_flows):
+            # Calculate timestamp for each sample (spaced 0.1 seconds apart)
+            timestamp_secs = int((start_time + timedelta(seconds=i / sample_rate_hz)).timestamp())
+            timestamp = TimeValuePy.from_timestamp(timestamp_secs, 0)
+
+            # Create FlowBuilderPy and build request using pre-computed indices
+            flow_builder = FlowBuilderPy(descriptor)
+
+            if run_id is not None:
+                flow_builder.attach_run_id(run_id)
+
+            # Generate values
+            motor_temp_value = 50.0 + random.random() * 5.0
+            tank_pressure_value = 2000.0 + random.random() * 100.0
+
+            # Use indices directly - no hash operations!
+            values = [motor_temp_value, tank_pressure_value]
+            for (channel_index, conversion_method), value in zip(
+                channel_indices_and_methods, values
+            ):
+                flow_builder.set(channel_index, conversion_method(value))
+
+            request = flow_builder.request(timestamp)
+            requests.append(request)
+
+        # Send all requests in a single non-blocking batch operation
+        # The combination of channel indices + non-blocking batch sending provides
+        # the best performance for high-throughput scenarios
+        ingest_client.send_requests_nonblocking(requests)
+
+
+# Uncomment to run:
+# asyncio.run(high_performance_batch_example())</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f8efce39">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="4-queue-based-lazy-flow-creation">4. Queue-Based Lazy Flow Creation<a class="anchor-link" href="#4-queue-based-lazy-flow-creation">¶</a></h2><p>This example demonstrates a multi-task architecture for handling dynamic flow schemas using <code>add_new_flows()</code>:</p>
+<ul>
+<li><strong>Task 1</strong>: Ingest raw data from a source and push to Queue 1</li>
+<li><strong>Task 2</strong>: Read from Queue 1, check if flow descriptor is cached<ul>
+<li>If not cached, call <code>add_new_flows()</code> to register the new flow</li>
+<li>After registration, retrieve the descriptor and cache it</li>
+<li>Push the message with descriptor to Queue 2</li>
+</ul>
+</li>
+<li><strong>Task 3</strong>: Drain Queue 2, decode the raw data, and send to Sift using <code>FlowBuilderPy</code></li>
+</ul>
+<p>This pattern enables lazy flow registration, allowing you to handle unknown schemas at runtime without pre-registering all possible flows.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a8829136">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="CodeMirror cm-s-jupyter">
+<div class="zeroclipboard-container">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
+<div>
+<span class="notice" hidden="">Copied!</span>
+<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
+<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+</clipboard-copy>
+</div>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sift_stream_bindings</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlowBuilderPy</span><span class="p">,</span> <span class="n">FlowDescriptorPy</span><span class="p">,</span> <span class="n">TimeValuePy</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RawDataMessage</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Represents raw data that needs to be decoded and sent."""</span>
+
+    <span class="n">flow_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">channel_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>  <span class="c1"># Raw channel name -&gt; value mapping</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">queue_based_lazy_flow_example</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""Example demonstrating queue-based lazy flow creation with add_new_flows."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span><span class="p">,</span> <span class="n">SiftConnectionConfig</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">ChannelConfig</span><span class="p">,</span>
+        <span class="n">ChannelDataType</span><span class="p">,</span>
+        <span class="n">FlowConfig</span><span class="p">,</span>
+        <span class="n">IngestionConfigCreate</span><span class="p">,</span>
+        <span class="n">RunCreate</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">connection_config</span> <span class="o">=</span> <span class="n">SiftConnectionConfig</span><span class="p">(</span>
+        <span class="n">api_key</span><span class="o">=</span><span class="s2">"my_api_key"</span><span class="p">,</span>
+        <span class="n">grpc_url</span><span class="o">=</span><span class="s2">"sift_grpc_url"</span><span class="p">,</span>
+        <span class="n">rest_url</span><span class="o">=</span><span class="s2">"sift_rest_url"</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">connection_config</span><span class="o">=</span><span class="n">connection_config</span><span class="p">)</span>
+
+    <span class="c1"># Start with an empty ingestion config - flows will be added dynamically</span>
+    <span class="n">ingestion_config</span> <span class="o">=</span> <span class="n">IngestionConfigCreate</span><span class="p">(</span>
+        <span class="n">asset_name</span><span class="o">=</span><span class="s2">"sift_rover_1"</span><span class="p">,</span>
+        <span class="n">flows</span><span class="o">=</span><span class="p">[],</span>  <span class="c1"># Empty initially</span>
+    <span class="p">)</span>
+
+    <span class="n">run</span> <span class="o">=</span> <span class="n">RunCreate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"sift_rover-"</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())))</span>
+
+    <span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">async_</span><span class="o">.</span><span class="n">ingestion</span><span class="o">.</span><span class="n">create_ingestion_config_streaming_client</span><span class="p">(</span>
+        <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
+        <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
+        <span class="c1"># Queues for the pipeline</span>
+        <span class="n">queue1</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">RawDataMessage</span><span class="p">]</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+        <span class="n">queue2</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">RawDataMessage</span><span class="p">,</span> <span class="n">FlowDescriptorPy</span><span class="p">]]</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+        <span class="c1"># Cache for flow descriptors (flow_name -&gt; FlowDescriptorPy)</span>
+        <span class="n">descriptor_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FlowDescriptorPy</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Cache for flow configs (flow_name -&gt; FlowConfig)</span>
+        <span class="c1"># In a real scenario, you'd derive this from your raw data schema</span>
+        <span class="n">flow_config_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FlowConfig</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"onboard_sensors"</span><span class="p">:</span> <span class="n">FlowConfig</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
+                <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
+                    <span class="n">ChannelConfig</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
+                    <span class="p">),</span>
+                <span class="p">],</span>
+            <span class="p">),</span>
+            <span class="s2">"navigation"</span><span class="p">:</span> <span class="n">FlowConfig</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">"navigation"</span><span class="p">,</span>
+                <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"gps_lat"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"deg"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
+                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"gps_lon"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"deg"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
+                <span class="p">],</span>
+            <span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="n">run_id</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_run_id</span><span class="p">()</span>
+
+        <span class="c1"># Task 1: Ingest raw data and push to Queue 1</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ingest_task</span><span class="p">():</span>
+<span class="w">            </span><span class="sd">"""Simulate ingesting raw data from a source."""</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
+                <span class="c1"># Simulate different flows arriving</span>
+                <span class="n">flow_name</span> <span class="o">=</span> <span class="s2">"onboard_sensors"</span> <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">"navigation"</span>
+
+                <span class="k">if</span> <span class="n">flow_name</span> <span class="o">==</span> <span class="s2">"onboard_sensors"</span><span class="p">:</span>
+                    <span class="n">raw_data</span> <span class="o">=</span> <span class="n">RawDataMessage</span><span class="p">(</span>
+                        <span class="n">flow_name</span><span class="o">=</span><span class="n">flow_name</span><span class="p">,</span>
+                        <span class="n">timestamp</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+                        <span class="n">channel_values</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s2">"motor_temp"</span><span class="p">:</span> <span class="mf">50.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">5.0</span><span class="p">,</span>
+                            <span class="s2">"tank_pressure"</span><span class="p">:</span> <span class="mf">2000.0</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">raw_data</span> <span class="o">=</span> <span class="n">RawDataMessage</span><span class="p">(</span>
+                        <span class="n">flow_name</span><span class="o">=</span><span class="n">flow_name</span><span class="p">,</span>
+                        <span class="n">timestamp</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+                        <span class="n">channel_values</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s2">"gps_lat"</span><span class="p">:</span> <span class="mf">37.7749</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">,</span>
+                            <span class="s2">"gps_lon"</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.4194</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">)</span>
+
+                <span class="n">queue1</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">raw_data</span><span class="p">)</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="c1"># Task 2: Register flows lazily</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">registration_task</span><span class="p">():</span>
+<span class="w">            </span><span class="sd">"""Check if flow is registered, register if needed, then push to Queue 2."""</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">raw_data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">queue1</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+                    <span class="c1"># Check if ingest_task is done by checking queue size</span>
+                    <span class="k">if</span> <span class="n">queue1</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+                        <span class="k">break</span>
+                    <span class="k">continue</span>
+
+                <span class="n">flow_name</span> <span class="o">=</span> <span class="n">raw_data</span><span class="o">.</span><span class="n">flow_name</span>
+
+                <span class="c1"># Check if descriptor is cached</span>
+                <span class="k">if</span> <span class="n">flow_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">descriptor_cache</span><span class="p">:</span>
+                    <span class="c1"># For this example, the flow configs are pre-defined above.</span>
+                    <span class="c1">#</span>
+                    <span class="c1"># Though in practice, these would often be dynamically generated based on</span>
+                    <span class="c1"># the raw data schema.</span>
+                    <span class="k">if</span> <span class="n">flow_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">flow_config_cache</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Flow config not found for </span><span class="si">{</span><span class="n">flow_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+                    <span class="n">flow_config</span> <span class="o">=</span> <span class="n">flow_config_cache</span><span class="p">[</span><span class="n">flow_name</span><span class="p">]</span>
+
+                    <span class="c1"># Convert to Rust FlowConfigPy format</span>
+                    <span class="kn">from</span><span class="w"> </span><span class="nn">sift_stream_bindings</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                        <span class="n">ChannelConfigPy</span><span class="p">,</span>
+                        <span class="n">ChannelDataTypePy</span><span class="p">,</span>
+                        <span class="n">FlowConfigPy</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="n">channel_configs_py</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">ChannelConfigPy</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="n">ch</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                            <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataTypePy</span><span class="o">.</span><span class="n">Double</span>
+                            <span class="k">if</span> <span class="n">ch</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
+                            <span class="k">else</span> <span class="n">ChannelDataTypePy</span><span class="o">.</span><span class="n">Double</span><span class="p">,</span>
+                            <span class="n">unit</span><span class="o">=</span><span class="n">ch</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span>
+                            <span class="n">description</span><span class="o">=</span><span class="n">ch</span><span class="o">.</span><span class="n">description</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+                            <span class="n">enum_types</span><span class="o">=</span><span class="p">[],</span>
+                            <span class="n">bit_field_elements</span><span class="o">=</span><span class="p">[],</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">flow_config</span><span class="o">.</span><span class="n">channels</span>
+                    <span class="p">]</span>
+
+                    <span class="n">flow_config_py</span> <span class="o">=</span> <span class="n">FlowConfigPy</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">flow_config</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">channels</span><span class="o">=</span><span class="n">channel_configs_py</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># Register the new flow</span>
+                    <span class="k">await</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">add_new_flows</span><span class="p">([</span><span class="n">flow_config_py</span><span class="p">])</span>
+
+                    <span class="c1"># Get the descriptor and cache it</span>
+                    <span class="n">descriptor</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_descriptor</span><span class="p">(</span><span class="n">flow_name</span><span class="p">)</span>
+                    <span class="n">descriptor_cache</span><span class="p">[</span><span class="n">flow_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">descriptor</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Registered new flow: </span><span class="si">{</span><span class="n">flow_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+                <span class="c1"># Push to Queue 2 with the descriptor</span>
+                <span class="k">await</span> <span class="n">queue2</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">raw_data</span><span class="p">,</span> <span class="n">descriptor_cache</span><span class="p">[</span><span class="n">flow_name</span><span class="p">]))</span>
+
+        <span class="c1"># Task 3: Decode and send</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_task</span><span class="p">():</span>
+<span class="w">            </span><span class="sd">"""Decode raw data and send to Sift using FlowBuilderPy."""</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">raw_data</span><span class="p">,</span> <span class="n">descriptor</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">queue2</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+                    <span class="c1"># Check if registration_task is done</span>
+                    <span class="k">if</span> <span class="n">queue2</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span> <span class="ow">and</span> <span class="n">queue1</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+                        <span class="k">break</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Create FlowBuilderPy and set values</span>
+                <span class="n">flow_builder</span> <span class="o">=</span> <span class="n">FlowBuilderPy</span><span class="p">(</span><span class="n">descriptor</span><span class="p">)</span>
+                <span class="n">flow_builder</span><span class="o">.</span><span class="n">attach_run_id</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+
+                <span class="c1"># Set all channel values from raw data.</span>
+                <span class="k">for</span> <span class="n">channel_name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">raw_data</span><span class="o">.</span><span class="n">channel_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">flow_builder</span><span class="o">.</span><span class="n">set_with_key</span><span class="p">(</span><span class="n">channel_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+                <span class="c1"># Convert timestamp to TimeValuePy</span>
+                <span class="n">timestamp_secs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw_data</span><span class="o">.</span><span class="n">timestamp</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
+                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">TimeValuePy</span><span class="o">.</span><span class="n">from_timestamp</span><span class="p">(</span><span class="n">timestamp_secs</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># Build request and send</span>
+                <span class="n">request</span> <span class="o">=</span> <span class="n">flow_builder</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
+                <span class="k">await</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">send_requests</span><span class="p">([</span><span class="n">request</span><span class="p">])</span>
+
+        <span class="c1"># Run all tasks concurrently</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="n">ingest_task</span><span class="p">(),</span>
+            <span class="n">registration_task</span><span class="p">(),</span>
+            <span class="n">send_task</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+
+<span class="c1"># Uncomment to run:</span>
+<span class="c1"># asyncio.run(queue_based_lazy_flow_example())</span>
+</pre></div>
+<div class="clipboard-copy-txt" id="cell-4">from dataclasses import dataclass
+
+from sift_stream_bindings import FlowBuilderPy, FlowDescriptorPy, TimeValuePy
+
+
+@dataclass
+class RawDataMessage:
+    """Represents raw data that needs to be decoded and sent."""
+
+    flow_name: str
+    timestamp: datetime
+    channel_values: dict[str, float]  # Raw channel name -&gt; value mapping
+
+
+async def queue_based_lazy_flow_example():
+    """Example demonstrating queue-based lazy flow creation with add_new_flows."""
+    from sift_client import SiftClient, SiftConnectionConfig
+    from sift_client.sift_types import (
+        ChannelConfig,
+        ChannelDataType,
+        FlowConfig,
+        IngestionConfigCreate,
+        RunCreate,
+    )
+
+    connection_config = SiftConnectionConfig(
+        api_key="my_api_key",
+        grpc_url="sift_grpc_url",
+        rest_url="sift_rest_url",
+    )
+
+    client = SiftClient(connection_config=connection_config)
+
+    # Start with an empty ingestion config - flows will be added dynamically
+    ingestion_config = IngestionConfigCreate(
+        asset_name="sift_rover_1",
+        flows=[],  # Empty initially
+    )
+
+    run = RunCreate(name="sift_rover-" + str(int(time.time())))
 
     async with await client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
-        recovery_strategy=recovery_strategy,
-        tracing_config=tracing_config,
     ) as ingest_client:
-        flow_config = ingest_client.get_flow_config(flow_name="onboard_sensors")
+        # Queues for the pipeline
+        queue1: asyncio.Queue[RawDataMessage] = asyncio.Queue()
+        queue2: asyncio.Queue[tuple[RawDataMessage, FlowDescriptorPy]] = asyncio.Queue()
 
-        # Send some flows
-        for i in range(10):
-            flow = flow_config.as_flow(
-                timestamp=datetime.now(timezone.utc),
-                values={
-                    "motor_temp": 50.0 + random.random() * 5.0,
-                    "tank_pressure": 2000.0 + random.random() * 100.0,
-                },
-            )
-            await ingest_client.send(flow=flow)
+        # Cache for flow descriptors (flow_name -&gt; FlowDescriptorPy)
+        descriptor_cache: dict[str, FlowDescriptorPy] = {}
 
-        # Get metrics snapshot to see ingestion statistics
-        metrics = ingest_client.get_metrics_snapshot()
-        print("\n=== Ingestion Metrics ===")
-        print(f"Bytes sent: {metrics.bytes_sent:,}")
-        print(f"Byte rate: {metrics.byte_rate:,} bytes/s")
-        print(f"Messages sent: {metrics.messages_sent:,}")
-        print(f"Message rate: {metrics.message_rate:.2f} messages/s")
+        # Cache for flow configs (flow_name -&gt; FlowConfig)
+        # In a real scenario, you'd derive this from your raw data schema
+        flow_config_cache: dict[str, FlowConfig] = {
+            "onboard_sensors": FlowConfig(
+                name="onboard_sensors",
+                channels=[
+                    ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
+                    ChannelConfig(
+                        name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE
+                    ),
+                ],
+            ),
+            "navigation": FlowConfig(
+                name="navigation",
+                channels=[
+                    ChannelConfig(name="gps_lat", unit="deg", data_type=ChannelDataType.DOUBLE),
+                    ChannelConfig(name="gps_lon", unit="deg", data_type=ChannelDataType.DOUBLE),
+                ],
+            ),
+        }
 
-        # Additional metrics available:
-        # - metrics.checkpoint_metrics: Checkpoint timing and counts
-        # - metrics.backup_metrics: Backup statistics (if backups enabled)
+        run_id = ingest_client.get_run_id()
+
+        # Task 1: Ingest raw data and push to Queue 1
+        async def ingest_task():
+            """Simulate ingesting raw data from a source."""
+            for i in range(20):
+                # Simulate different flows arriving
+                flow_name = "onboard_sensors" if i % 2 == 0 else "navigation"
+
+                if flow_name == "onboard_sensors":
+                    raw_data = RawDataMessage(
+                        flow_name=flow_name,
+                        timestamp=datetime.now(timezone.utc),
+                        channel_values={
+                            "motor_temp": 50.0 + random.random() * 5.0,
+                            "tank_pressure": 2000.0 + random.random() * 100.0,
+                        },
+                    )
+                else:
+                    raw_data = RawDataMessage(
+                        flow_name=flow_name,
+                        timestamp=datetime.now(timezone.utc),
+                        channel_values={
+                            "gps_lat": 37.7749 + random.random() * 0.01,
+                            "gps_lon": -122.4194 + random.random() * 0.01,
+                        },
+                    )
+
+                queue1.put_nowait(raw_data)
+                await asyncio.sleep(0.1)
+
+        # Task 2: Register flows lazily
+        async def registration_task():
+            """Check if flow is registered, register if needed, then push to Queue 2."""
+            while True:
+                try:
+                    raw_data = await asyncio.wait_for(queue1.get(), timeout=1.0)
+                except asyncio.TimeoutError:
+                    # Check if ingest_task is done by checking queue size
+                    if queue1.empty():
+                        break
+                    continue
+
+                flow_name = raw_data.flow_name
+
+                # Check if descriptor is cached
+                if flow_name not in descriptor_cache:
+                    # For this example, the flow configs are pre-defined above.
+                    #
+                    # Though in practice, these would often be dynamically generated based on
+                    # the raw data schema.
+                    if flow_name not in flow_config_cache:
+                        raise ValueError(f"Flow config not found for {flow_name}")
+
+                    flow_config = flow_config_cache[flow_name]
+
+                    # Convert to Rust FlowConfigPy format
+                    from sift_stream_bindings import (
+                        ChannelConfigPy,
+                        ChannelDataTypePy,
+                        FlowConfigPy,
+                    )
+
+                    channel_configs_py = [
+                        ChannelConfigPy(
+                            name=ch.name,
+                            data_type=ChannelDataTypePy.Double
+                            if ch.data_type == ChannelDataType.DOUBLE
+                            else ChannelDataTypePy.Double,
+                            unit=ch.unit,
+                            description=ch.description or "",
+                            enum_types=[],
+                            bit_field_elements=[],
+                        )
+                        for ch in flow_config.channels
+                    ]
+
+                    flow_config_py = FlowConfigPy(
+                        name=flow_config.name,
+                        channels=channel_configs_py,
+                    )
+
+                    # Register the new flow
+                    await ingest_client.add_new_flows([flow_config_py])
+
+                    # Get the descriptor and cache it
+                    descriptor = ingest_client.get_flow_descriptor(flow_name)
+                    descriptor_cache[flow_name] = descriptor
+                    print(f"Registered new flow: {flow_name}")
+
+                # Push to Queue 2 with the descriptor
+                await queue2.put((raw_data, descriptor_cache[flow_name]))
+
+        # Task 3: Decode and send
+        async def send_task():
+            """Decode raw data and send to Sift using FlowBuilderPy."""
+            while True:
+                try:
+                    raw_data, descriptor = await asyncio.wait_for(queue2.get(), timeout=1.0)
+                except asyncio.TimeoutError:
+                    # Check if registration_task is done
+                    if queue2.empty() and queue1.empty():
+                        break
+                    continue
+
+                # Create FlowBuilderPy and set values
+                flow_builder = FlowBuilderPy(descriptor)
+                flow_builder.attach_run_id(run_id)
+
+                # Set all channel values from raw data.
+                for channel_name, value in raw_data.channel_values.items():
+                    flow_builder.set_with_key(channel_name, value)
+
+                # Convert timestamp to TimeValuePy
+                timestamp_secs = int(raw_data.timestamp.timestamp())
+                timestamp = TimeValuePy.from_timestamp(timestamp_secs, 0)
+
+                # Build request and send
+                request = flow_builder.request(timestamp)
+                await ingest_client.send_requests([request])
+
+        # Run all tasks concurrently
+        await asyncio.gather(
+            ingest_task(),
+            registration_task(),
+            send_task(),
+        )
 
 
 # Uncomment to run:
-# asyncio.run(advanced_example())</div>
+# asyncio.run(queue_based_lazy_flow_example())</div>
 </div>
 </div>
 </div>
