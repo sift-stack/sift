@@ -292,3 +292,76 @@ def test_rule_service_load_rules_from_yaml_with_contextual_channels(rule_service
             assert len(rule_config.contextual_channels) == 2
             assert rule_config.contextual_channels[0] == "humidity"
             assert rule_config.contextual_channels[1] == "pressure"
+
+
+def test_rule_service_create_rule_with_is_live_evaluation_enabled(rule_service):
+    """Test creating a rule with is_live_evaluation_enabled"""
+    rule = RuleConfig(
+        name="rule",
+        rule_client_key="rule-client-key",
+        channel_references=[
+            {
+                "channel_reference": "$1",
+                "channel_config": ChannelConfig(
+                    name="temperature",
+                    data_type=ChannelDataType.DOUBLE,
+                ),
+            }
+        ],
+        is_live_evaluation_enabled=True,
+        expression="$1 > 10",
+        action=RuleActionCreateDataReviewAnnotation(),
+    )
+
+    with mock.patch.object(RuleService, "_create_rule") as mock_create_rule:
+        rule_service.create_or_update_rule(rule)
+        mock_create_rule.assert_called_once_with(rule)
+        created_rule = mock_create_rule.call_args[0][0]
+        assert created_rule.is_live_evaluation_enabled
+
+
+def test_rule_service_load_rules_from_yaml_with_is_live_evaluation_enabled(rule_service):
+    """Test loading rules from YAML with is_live_evaluation_enabled"""
+    rule_yaml = {
+        "name": "rule",
+        "rule_client_key": "rule-client-key",
+        "channel_references": [{"$1": "temperature"}],
+        "contextual_channels": ["humidity", "pressure"],
+        "description": "description",
+        "expression": "$1 > 0",
+        "type": "review",
+        "asset_names": ["asset"],
+        "is_live_evaluation_enabled": True,
+    }
+
+    with mock.patch.object(RuleService, "create_or_update_rule"):
+        with mock.patch(
+            "sift_py.rule.service.load_rule_modules",
+            return_value=[rule_yaml],
+        ):
+            rule_configs = rule_service.load_rules_from_yaml(["path/to/rules.yml"])
+            assert len(rule_configs) == 1
+
+            rule_config = rule_configs[0]
+            assert rule_config.is_live_evaluation_enabled
+
+
+def test_rule_service_update_rule_with_is_live_evaluation_enabled(rule_service):
+    """Test updating a rule with is_live_evaluation_enabled"""
+    rule = RuleConfig(
+        name="rule",
+        rule_client_key="rule-client-key",
+        is_live_evaluation_enabled=True,
+        channel_references=[],
+    )
+
+    with mock.patch.object(RuleService, "_update_rule") as mock_update_rule:
+        with mock.patch.object(
+            RuleService, "_get_rule_from_client_key", return_value=Rule(name=rule.name)
+        ) as mock_get_rule_from_client_key:
+            rule_service.create_or_update_rule(rule)
+            mock_get_rule_from_client_key.assert_called_once_with(rule.rule_client_key)
+            mock_update_rule.assert_called_once()
+
+            updated_rule = mock_update_rule.call_args[0][0]
+            assert updated_rule.is_live_evaluation_enabled
