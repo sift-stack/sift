@@ -27,7 +27,7 @@ class RuleConfig(AsJson):
     - `tag_names`: A list of asset tags that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `contextual_channels`: A list of channel names that provide context but aren't directly used in the expression.
     - `is_external`: If this is an external rule.
-    - `is_live`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
+    - `is_live_evaluation_enabled`: If set to True then this rule will be evaluated on live data, otherwise live rule evaluation will be disabled.
             This rule can still be used, however, in report generation.
     """
 
@@ -41,7 +41,7 @@ class RuleConfig(AsJson):
     tag_names: List[str]
     contextual_channels: List[str]
     is_external: bool
-    is_live: bool
+    is_live_evaluation_enabled: bool
     _rule_id: Optional[str]  # Allow passing of rule_id when existing config retrieved from API
 
     def __init__(
@@ -59,7 +59,7 @@ class RuleConfig(AsJson):
         sub_expressions: Dict[str, Any] = {},
         contextual_channels: Optional[List[str]] = None,
         is_external: bool = False,
-        is_live: bool = False,
+        is_live_evaluation_enabled: bool = False,
     ):
         self.channel_references = _channel_references_from_dicts(channel_references)
         self.contextual_channels = contextual_channels or []
@@ -72,7 +72,7 @@ class RuleConfig(AsJson):
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
         self.is_external = is_external
-        self.is_live = is_live
+        self.is_live_evaluation_enabled = is_live_evaluation_enabled
         self._rule_id = None
 
     def as_json(self) -> Any:
@@ -90,7 +90,7 @@ class RuleConfig(AsJson):
             "description": self.description,
             "expression": self.expression,
             "is_external": self.is_external,
-            "is_live": self.is_live,
+            "is_live_evaluation_enabled": self.is_live_evaluation_enabled,
         }
 
         hash_map["expression_channel_references"] = self.channel_references
