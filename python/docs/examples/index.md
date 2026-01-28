@@ -16,10 +16,10 @@ To run these examples on your local machine:
    pip install sift-stack-py
    ```
 
-2. Set up your environment variables:
+2. Set up your environment variables in a `.env` file next to the notebook files:
    ```bash
-   export SIFT_API_KEY="your-api-key"
-   export BASE_URI="your-sift-instance-url"
+   SIFT_API_KEY="your-api-key"
+   BASE_URI="your-sift-instance-url"
    ```
 
 3. Open the notebooks in Jupyter after downloading them:
