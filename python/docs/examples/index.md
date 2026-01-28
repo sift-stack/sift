@@ -19,7 +19,8 @@ To run these examples on your local machine:
 2. Set up your environment variables in a `.env` file next to the notebook files:
    ```bash
    SIFT_API_KEY="your-api-key"
-   BASE_URI="your-sift-instance-url"
+   SIFT_GRPC_URI="your-sift-grpc-url"
+   SIFT_REST_URI="your-sift-rest-url"
    ```
 
 3. Open the notebooks in Jupyter after downloading them:
