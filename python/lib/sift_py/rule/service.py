@@ -252,7 +252,7 @@ class RuleService:
                     tag_names=rule_yaml.get("tag_names", []),
                     sub_expressions=subexpr,
                     is_external=rule_yaml.get("is_external", False),
-                    is_live=rule_yaml.get("is_live", False),
+                    is_live_evaluation_enabled=rule_yaml.get("is_live_evaluation_enabled", False),
                 )
             )
 
@@ -549,7 +549,7 @@ class RuleService:
             ),
             contextual_channels=ContextualChannels(channels=contextual_channel_names),
             is_external=config.is_external,
-            is_live_evaluation_enabled=config.is_live,
+            is_live_evaluation_enabled=config.is_live_evaluation_enabled,
         )
 
     def get_rule(self, rule: str) -> Optional[RuleConfig]:
@@ -617,6 +617,7 @@ class RuleService:
             tag_names=asset_tag_names,
             action=action,
             expression=expression,
+            is_live_evaluation_enabled=rule_pb.is_live_evaluation_enabled,
         )
 
         # rule_id currently required for an existing rule

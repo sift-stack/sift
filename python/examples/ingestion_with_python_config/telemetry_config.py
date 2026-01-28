@@ -81,7 +81,7 @@ def nostromos_lv_426() -> TelemetryConfig:
             FlowConfig(name="logs", channels=[log_channel]),
         ],
         rules=[
-            # Add `is_live=True` if you want these rules to run on live data.
+            # Add `is_live_evaluation_enabled=True` if you want these rules to run on live data.
             RuleConfig(
                 name="overheating",
                 description="Checks for vehicle overheating",
