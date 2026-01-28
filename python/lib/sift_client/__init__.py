@@ -105,7 +105,7 @@ See [sift_types](sift_types/) for detailed documentation and a complete list.
 
 ## Examples
 
-For complete examples, see the [examples](../examples/) directory.
+For complete examples, see the [examples](../../examples/) directory.
 
 ## Connection Configuration
 

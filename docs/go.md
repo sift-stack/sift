@@ -19,7 +19,7 @@ $ cd sift
 $ buf export protos --output=$PROJECT_DIR/protos --config protos/buf.yaml
 ```
 
-The Sift protos can and its imports can now be found in your `$PROJECT_DIR/protos` directory.
+The Sift protos and its imports can now be found in your `$PROJECT_DIR/protos` directory.
 
 3. Copy the `buf` template for Go to your project directory:
 
@@ -91,4 +91,4 @@ Your project up to this point should look like the following (full depth not sho
 $ go get -d ./...
 ```
 
-8. Now your project should be ready to use the generated Go code to interact with Sift's gRPC API. Please refer to the [example code](/examples/go) for usage.
+8. Now your project should be ready to use the generated Go code to interact with Sift's gRPC API. Please refer to the [example code](/go/examples) for usage.
