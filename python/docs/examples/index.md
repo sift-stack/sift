@@ -1,4 +1,4 @@
-# Examples
+# Examples Directory
 
 This section contains interactive Jupyter notebook examples demonstrating how to use the Sift Python client library.
 
