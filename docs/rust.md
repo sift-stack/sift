@@ -19,20 +19,20 @@ $ cd sift
 $ buf export protos --output=$PROJECT_DIR/protos --config protos/buf.yaml
 ```
 
-The Sift protos can and its imports can now be found in your `$PROJECT_DIR/protos` directory.
+The Sift protos and its imports can now be found in your `$PROJECT_DIR/protos` directory.
 
 3. Copy the `buf` template for Rust to your project directory:
 
 ```bash
-$ cp buf_templates/buf.gen.go.yaml $PROJECT_DIR/buf.gen.yaml
+$ cp buf_templates/buf.gen.rust.yaml $PROJECT_DIR/buf.gen.yaml
 ```
 
 4. `cd` into your Rust project at `$PROJECT_DIR`.
 
-5. Once inside of your Rust project, declare a module called `gen` in your `main.rs` (unless you're crate is a lib-crate) and create a `src/gen/mod.rs` file.
+5. Once inside of your Rust project, declare a module called `gen` in your `main.rs` (unless your crate is a lib-crate) and create a `src/gen/mod.rs` file.
 
 ```rust
-// main.go
+// main.rs
 
 /// Sift generated code
 mod gen;
@@ -103,4 +103,4 @@ tonic = { version = "0.11.0", features = ["tls", "tls-roots", "tls-webpki-roots"
 pub mod annotations;
 ```
 
-9. Now your project should be ready to use the generated Rust code to interact with Sift's gRPC API. Please refer to the [example code](/examples/rust/) for usage.
+9. Now your project should be ready to use the generated Rust code to interact with Sift's gRPC API. Please refer to the [example code](/rust/crates/sift_rs/examples) for usage.

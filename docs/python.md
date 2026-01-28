@@ -30,7 +30,7 @@ $ cd sift
 $ buf export protos --output=$PACKAGE_DIR/protos --config protos/buf.yaml
 ```
 
-The Sift protos can and its imports can now be found in your `$PACKAGE_DIR/protos` directory.
+The Sift protos and its imports can now be found in your `$PACKAGE_DIR/protos` directory.
 
 3. Copy the `buf` template for Python to `$PACKAGE_DIR`
 
@@ -147,4 +147,4 @@ the generated wheel file should be outputted into `$PACKAGE_DIR/dist/sift_protos
 $ pip install $PACKAGE_DIR/sift_protos-0.1-py3-none-any.whl
 ```
 
-14. Now your project should be ready to use the generated Python code to interact with Sift's gRPC API. Please refer to the [example code](/examples/python) for usage.
+14. Now your project should be ready to use the generated Python code to interact with Sift's gRPC API. Please refer to the [example code](/python/examples) for usage.

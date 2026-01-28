@@ -56,8 +56,9 @@ nav:
   - Sift Py API
   - Sift Client API (New)
   - Examples:
-      - examples/basic.ipynb
-      - examples/ingestion.ipynb
+      - examples/index.md
+      - Basic Usage: examples/basic.ipynb
+      - Data Ingestion: examples/ingestion.ipynb
 #  - Guides:
 #      - Logging
 #      - Error Handling

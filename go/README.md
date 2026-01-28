@@ -1,6 +1,6 @@
 # Sift Go
 
-[![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/sif-stack/sift/go)](https://pkg.go.dev/github.com/sift-stack/sift/go) 
+[![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/sift-stack/sift/go)](https://pkg.go.dev/github.com/sift-stack/sift/go) 
 
 This library offers a Go API on top of Sift's protocol buffers to ergonomically interface with the Sift gRPC API.
 
