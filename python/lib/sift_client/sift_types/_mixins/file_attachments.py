@@ -1,22 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from sift_client.client import SiftClient
+    from sift_client.sift_types._base import BaseTypeProtocol
     from sift_client.sift_types.file_attachment import FileAttachment
-
-
-class _SupportsFileAttachments(Protocol):
-    """Protocol for types that support file attachments."""
-
-    @property
-    def client(self) -> SiftClient: ...
-
-    @property
-    def id_(self) -> str | None: ...
 
 
 class FileAttachmentsMixin:
@@ -25,11 +15,6 @@ class FileAttachmentsMixin:
     This mixin assumes the class also inherits from BaseType, which provides:
     - id_: str | None
     - client: SiftClient property
-
-    The entity type is automatically determined from the class name:
-    - Asset -> assets
-    - Run -> runs
-    - TestReport -> test_reports
     """
 
     # Mapping of class names to entity types (REST API format)
@@ -40,13 +25,15 @@ class FileAttachmentsMixin:
         "TestStep": "test_steps",
     }
 
-    def __is_supported_entity_type(self) -> bool:
+    @staticmethod
+    def check_is_supported_entity_type(cls):
         """Check if the entity type is supported for file attachments.
 
         Returns:
             True if the entity type is supported, False otherwise.
         """
-        return self.__class__.__name__ in self._ENTITY_TYPE_MAP
+        if not cls.__name__ in FileAttachmentsMixin._ENTITY_TYPE_MAP:
+            raise ValueError("Entity is not a valid entity type")
 
     def _get_entity_type_name(self) -> str:
         """Get the entity type string.
@@ -58,7 +45,7 @@ class FileAttachmentsMixin:
             ValueError: If the class name is not in the entity type mapping.
         """
         class_name = self.__class__.__name__
-        entity_type = self._ENTITY_TYPE_MAP.get(class_name)
+        entity_type = FileAttachmentsMixin._ENTITY_TYPE_MAP.get(self.__class__.__name__)
 
         if not entity_type:
             raise ValueError(
@@ -69,20 +56,19 @@ class FileAttachmentsMixin:
         return entity_type
 
     @property
-    def attachments(self: _SupportsFileAttachments) -> list[FileAttachment]:
+    def attachments(self: BaseTypeProtocol) -> list[FileAttachment]:
         """Get all file attachments for this entity.
 
         Returns:
             A list of FileAttachments associated with this entity.
         """
-        if not self.__is_supported_entity_type():
-            raise ValueError("Entity is not a valid entity type")
+        FileAttachmentsMixin.check_is_supported_entity_type(self)
         return self.client.file_attachments.list_(
-            entities=[self],
+            entities=[self],  # type: ignore
         )
 
     def delete_attachment(
-        self: _SupportsFileAttachments,
+        self: BaseTypeProtocol,
         file_attachment: list[FileAttachment | str] | FileAttachment | str,
     ) -> None:
         """Delete one or more file attachments.
@@ -93,7 +79,7 @@ class FileAttachmentsMixin:
         self.client.file_attachments.delete(file_attachments=file_attachment)
 
     def upload_attachment(
-        self: _SupportsFileAttachments,
+        self: BaseTypeProtocol,
         path: str | Path,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
@@ -110,11 +96,10 @@ class FileAttachmentsMixin:
         Returns:
             The uploaded FileAttachment.
         """
-        if not self.__is_supported_entity_type():
-            raise ValueError("Entity is not a valid entity type")
+        FileAttachmentsMixin.check_is_supported_entity_type(self)
         return self.client.file_attachments.upload(
             path=path,
-            entity=self,
+            entity=self,  # type: ignore
             metadata=metadata,
             description=description,
             organization_id=organization_id,
