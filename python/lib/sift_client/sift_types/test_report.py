@@ -136,7 +136,7 @@ class TestStepCreate(TestStepBase, ModelCreate[TestStepProto]):
         return proto
 
 
-class TestStep(BaseType[TestStepProto, "TestStep"]):
+class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
     """TestStep model representing a step in a test."""
 
     test_report_id: str
