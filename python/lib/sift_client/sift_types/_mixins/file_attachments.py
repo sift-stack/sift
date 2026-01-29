@@ -32,8 +32,8 @@ class FileAttachmentsMixin:
         Returns:
             True if the entity type is supported, False otherwise.
         """
-        if not cls.__name__ in FileAttachmentsMixin._ENTITY_TYPE_MAP:
-            raise ValueError("Entity is not a valid entity type")
+        if not cls.__class__.__name__ in FileAttachmentsMixin._ENTITY_TYPE_MAP:
+            raise ValueError(f"{cls.__name__} does not support file attachments")
 
     def _get_entity_type_name(self) -> str:
         """Get the entity type string.
