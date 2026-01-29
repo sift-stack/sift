@@ -107,9 +107,9 @@ class FileAttachmentsMixin:
         """
         from sift_client.sift_types.asset import Asset
         from sift_client.sift_types.run import Run
-        from sift_client.sift_types.test_report import TestReport
+        from sift_client.sift_types.test_report import TestReport, TestStep
 
-        if not isinstance(self, (Asset, Run, TestReport)):
+        if not isinstance(self, (Asset, Run, TestReport, TestStep)):
             raise ValueError("Entity is not a valid entity type")
         return self.client.file_attachments.upload(
             path=path,
