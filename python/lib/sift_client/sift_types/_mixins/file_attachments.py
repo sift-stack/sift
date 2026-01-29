@@ -37,7 +37,16 @@ class FileAttachmentsMixin:
         "Asset": "assets",
         "Run": "runs",
         "TestReport": "test_reports",
+        "TestStep": "test_steps",
     }
+
+    def __is_supported_entity_type(self) -> bool:
+        """Check if the entity type is supported for file attachments.
+
+        Returns:
+            True if the entity type is supported, False otherwise.
+        """
+        return self.__class__.__name__ in self._ENTITY_TYPE_MAP
 
     def _get_entity_type_name(self) -> str:
         """Get the entity type string.
@@ -66,11 +75,7 @@ class FileAttachmentsMixin:
         Returns:
             A list of FileAttachments associated with this entity.
         """
-        from sift_client.sift_types.asset import Asset
-        from sift_client.sift_types.run import Run
-        from sift_client.sift_types.test_report import TestReport
-
-        if not isinstance(self, (Asset, Run, TestReport)):
+        if not self.__is_supported_entity_type():
             raise ValueError("Entity is not a valid entity type")
         return self.client.file_attachments.list_(
             entities=[self],
@@ -105,11 +110,7 @@ class FileAttachmentsMixin:
         Returns:
             The uploaded FileAttachment.
         """
-        from sift_client.sift_types.asset import Asset
-        from sift_client.sift_types.run import Run
-        from sift_client.sift_types.test_report import TestReport, TestStep
-
-        if not isinstance(self, (Asset, Run, TestReport, TestStep)):
+        if not self.__is_supported_entity_type():
             raise ValueError("Entity is not a valid entity type")
         return self.client.file_attachments.upload(
             path=path,
