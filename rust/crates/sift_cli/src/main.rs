@@ -84,6 +84,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             cli::ExportCmd::Run(args) => run_future(cmd::export::run(ctx, args)),
             cli::ExportCmd::Asset(args) => run_future(cmd::export::asset(ctx, args)),
         },
+        Cmd::TestServer(cmd) => match cmd {
+            cli::TestServerCmd::Run(args) => run_future(cmd::test_server::run(ctx, args)),
+        },
         _ => Ok(ExitCode::SUCCESS),
     }
 }
