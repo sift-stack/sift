@@ -241,6 +241,7 @@ python_version = "3.8"
 reportOptionalMemberAccess = "none"
 reportArgumentType = "none"
 reportAttributeAccessIssue = "none"
+reportPrivateImportUsage = "none"
 stubPath = "lib/sift_client/resources/sync_stubs"
 useLibraryCodeForTypes = true
 exclude = [
