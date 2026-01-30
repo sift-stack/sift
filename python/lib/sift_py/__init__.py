@@ -930,6 +930,6 @@ import warnings
 warnings.warn(
     "The `sift_py` module is deprecated as of v0.10.0 and will be removed entirely in v1.0.0. "
     "Please prefer to use `sift_client` instead.",
-    DeprecationWarning,
+    category=FutureWarning,
     stacklevel=2,
 )
