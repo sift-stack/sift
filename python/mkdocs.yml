@@ -114,7 +114,7 @@ plugins:
       nav_item_prefix: ""
 
   - api-autonav:
-      nav_section_title: Sift Client API (New)
+      nav_section_title: Sift Client API
       modules: [ lib/sift_client ]
       exclude_private: true
       nav_item_prefix: ""

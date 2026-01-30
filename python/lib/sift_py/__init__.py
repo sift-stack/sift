@@ -1,7 +1,5 @@
 """
-!!! warning
-    **DEPRECATION**
-
+!!! warning "Deprecation Warning"
     The `sift_py` module is deprecated as of **v0.10.0**. Please use `sift_client` if you aren't already.
     The `sift_py` module will be removed entirely in **v1.0.0**.
 
