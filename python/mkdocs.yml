@@ -53,8 +53,8 @@ extra:
 
 nav:
   - Home: index.md
+  - Sift Client API
   - Sift Py API
-  - Sift Client API (New)
   - Examples:
       - examples/basic.ipynb
       - examples/ingestion.ipynb
