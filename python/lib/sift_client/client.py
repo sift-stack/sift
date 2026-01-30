@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sift_client.errors import _sift_client_experimental_warning
 from sift_client.resources import (
     AssetsAPI,
     AssetsAPIAsync,
@@ -36,8 +35,6 @@ from sift_client.transport import (
     WithRestClient,
 )
 from sift_client.util.util import AsyncAPIs
-
-_sift_client_experimental_warning()
 
 
 class SiftClient(

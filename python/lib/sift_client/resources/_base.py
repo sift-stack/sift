@@ -3,11 +3,9 @@ from __future__ import annotations
 from abc import ABC
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from sift_client.errors import _sift_client_experimental_warning
 from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
 
-_sift_client_experimental_warning()
 
 if TYPE_CHECKING:
     import re

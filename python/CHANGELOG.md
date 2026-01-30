@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.10.0] - January 30, 2026
+
+!!! warning
+    **DEPRECATION NOTICE**
+
+    The `sift_py` module is deprecated as of **v0.10.0** and will be removed in **v1.0.0**. 
+    Please use `sift_client` for all new development. Several minor releases will follow 
+    before the major release to add features and give users time to migrate.
+
+
+- Stabilizes the [sift_client](https://sift-stack.github.io/sift/python/latest/#sift-client-api-new) module.
+- [Add FileAttachmentsMixin to TestStep](https://github.com/sift-stack/sift/pull/466)
+- [Add support for live rule field in sift-client](https://github.com/sift-stack/sift/pull/463)
+- [Adds batch rule update/create support to sift_client](https://github.com/sift-stack/sift/pull/456)
+- [Sift client jobs resource](https://github.com/sift-stack/sift/pull/458)
+
 ## [v0.9.6] - December 22, 2025
 - [Add support for tags in RuleConfigs](https://github.com/sift-stack/sift/pull/438)
 
