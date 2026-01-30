@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
 
-
 if TYPE_CHECKING:
     import re
     from datetime import datetime

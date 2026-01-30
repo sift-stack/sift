@@ -5,13 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.10.0] - January 30, 2026
 
-!!! warning
-    **DEPRECATION NOTICE**
+### DEPRECATION NOTICE
 
-    The `sift_py` module is deprecated as of **v0.10.0** and will be removed in **v1.0.0**. 
-    Please use `sift_client` for all new development. Several minor releases will follow 
-    before the major release to add features and give users time to migrate.
+The `sift_py` module is deprecated as of **v0.10.0** and will be removed in **v1.0.0**. 
+Please use `sift_client` for all new development. Several minor releases will follow 
+before the major release to add features and give users time to migrate.
 
+### What's New
 
 - Stabilizes the [sift_client](https://sift-stack.github.io/sift/python/latest/#sift-client-api-new) module.
 - [Add FileAttachmentsMixin to TestStep](https://github.com/sift-stack/sift/pull/466)
