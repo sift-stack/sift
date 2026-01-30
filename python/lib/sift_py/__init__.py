@@ -2,7 +2,7 @@
 !!! warning
     **DEPRECATION**
 
-    This module is deprecated as of **v0.10.0**. Please use `sift_client` instead.
+    The `sift_py` module is deprecated as of **v0.10.0**. Please use `sift_client` if you aren't already.
     The `sift_py` module will be removed entirely in **v1.0.0**.
 
 `sift_py` is a Python module built on top of Sift's protocol buffers to ergonomically interface with
@@ -928,8 +928,8 @@ visit the [examples directory](https://github.com/sift-stack/sift/tree/main/pyth
 import warnings
 
 warnings.warn(
-    "The `sift_py` module is deprecated as of v0.10.0 and will be removed entirely in v1.0.0. "
-    "Please prefer to use `sift_client` instead.",
+    "The `sift_py` module is deprecated as of **v0.10.0**. Please use `sift_client` if you aren't already. "
+    "The `sift_py` module will be removed entirely in **v1.0.0**.",
     category=FutureWarning,
     stacklevel=2,
 )
