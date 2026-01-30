@@ -1,4 +1,8 @@
 """
+!!! warning "Deprecation Warning"
+    The `sift_py` module is deprecated as of **v0.10.0**. Please use `sift_client` if you aren't already.
+    The `sift_py` module will be removed entirely in **v1.0.0**.
+
 `sift_py` is a Python module built on top of Sift's protocol buffers to ergonomically interface with
 Sift's gRPC API, especially with regard to data ingestion and and rule evaluation. If there are any
 words or concepts that you find yourself needing to familiarize yourself with, be sure to visit the
@@ -918,3 +922,12 @@ are created they become viewable in the Sift application.
 For more comphrensive examples demonstrating a little bit of everything, you may
 visit the [examples directory](https://github.com/sift-stack/sift/tree/main/python/examples) in the project repo.
 """
+
+import warnings
+
+warnings.warn(
+    "The `sift_py` module is deprecated as of **v0.10.0**. Please use `sift_client` if you aren't already. "
+    "The `sift_py` module will be removed entirely in **v1.0.0**.",
+    category=FutureWarning,
+    stacklevel=2,
+)

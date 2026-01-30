@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.9.6"
+version = "0.10.0"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -59,7 +59,7 @@ all = [
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
     'rosbags~=0.0',
-    'sift-stream-bindings>=0.2.0-rc4',
+    'sift-stream-bindings>=0.2.0-rc8',
     'types-pyOpenSSL<24.0.0',
 ]
 build = [
@@ -100,7 +100,7 @@ dev-all = [
     'pytest==8.2.2',
     'rosbags~=0.0',
     'ruff~=0.12.10',
-    'sift-stream-bindings>=0.2.0-rc4',
+    'sift-stream-bindings>=0.2.0-rc8',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -153,7 +153,7 @@ docs-build = [
     'pytest==8.2.2',
     'rosbags~=0.0',
     'ruff~=0.12.10',
-    'sift-stream-bindings>=0.2.0-rc4',
+    'sift-stream-bindings>=0.2.0-rc8',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -176,10 +176,10 @@ rosbags = [
     'rosbags~=0.0',
 ]
 sift-stream = [
-    'sift-stream-bindings>=0.2.0-rc4',
+    'sift-stream-bindings>=0.2.0-rc8',
 ]
 sift-stream-bindings = [
-    'sift-stream-bindings>=0.2.0-rc4',
+    'sift-stream-bindings>=0.2.0-rc8',
 ]
 tdms = [
     'npTDMS~=1.9',
@@ -215,7 +215,7 @@ docs = ["mkdocs",
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
-sift-stream = ["sift-stream-bindings>=0.2.0-rc4"]
+sift-stream = ["sift-stream-bindings>=0.2.0-rc8"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
 data-review = ["pyarrow>=17.0.0"]
 
@@ -241,6 +241,7 @@ python_version = "3.8"
 reportOptionalMemberAccess = "none"
 reportArgumentType = "none"
 reportAttributeAccessIssue = "none"
+reportPrivateImportUsage = "none"
 stubPath = "lib/sift_client/resources/sync_stubs"
 useLibraryCodeForTypes = true
 exclude = [

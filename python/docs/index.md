@@ -13,33 +13,15 @@ To install the Sift Python library:
 pip install sift-stack-py
 ```
 
-## API Documentation
+This library follows [semantic versioning](https://semver.org/) and is under active development.
 
-This documentation covers two Python APIs for interacting with Sift:
+**Pin to a major version** (e.g., `sift-stack-py~=1.0`) to avoid breaking changes between major releases.
 
-### Sift Py API
-
-The original low-level Python API that provides direct access to Sift's protocol buffer interfaces. 
-
-Browse the [**Sift Py API**][sift_py] section for complete reference documentation.
-
-**Use this API if you need:**
-
-- Direct protocol buffer access
-- Fine-grained control over gRPC connections  
-- Legacy compatibility with existing code
-
-### Sift Client API (New)   
-
-!!! warning
-    The Sift Client is experimental and is subject to change.
-
-    To avoid unexpected breaking changes, pin the exact version of the `sift-stack-py` library in your dependencies (for example, in `requirements.txt` or `pyproject.toml`).
-
+## Sift Client API 
 
 The modern, high-level client library that provides all the ergonomic features missing from the original API. This new client offers intuitive Python interfaces, strong type safety, automatic connection management, and both synchronous and asynchronous support. 
 
-Explore the [**Sift Client API (New)**][sift_client] section for the complete API reference.
+Explore the [**Sift Client API**][sift_client] section for the complete API reference.
 
 **Key improvements over Sift Py:**
 
@@ -49,6 +31,23 @@ Explore the [**Sift Client API (New)**][sift_client] section for the complete AP
 - **Auto Connection Management** - No manual gRPC connection handling
 - **Rich Object Models** - Immutable types with convenient methods
 - **Modern Patterns** - Context managers, iterators, and Python best practices
+
+### Sift Py API
+
+!!! warning "Deprecation Warning"
+
+    The `sift_py` module is deprecated as of **v0.10.0**. Please use `sift_client` if you aren't already.
+    The `sift_py` module will be removed entirely in **v1.0.0**.
+
+The original low-level Python API that provides direct access to Sift's protocol buffer interfaces.
+
+Browse the [**Sift Py API**][sift_py] section for complete reference documentation.
+
+**Use this API if you need:**
+
+- Direct protocol buffer access
+- Fine-grained control over gRPC connections
+- Legacy compatibility with existing code
 
 
 ## Getting help

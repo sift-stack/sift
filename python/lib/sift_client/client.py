@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sift_client.errors import _sift_client_experimental_warning
 from sift_client.resources import (
     AssetsAPI,
     AssetsAPIAsync,
@@ -37,8 +36,6 @@ from sift_client.transport import (
 )
 from sift_client.util.util import AsyncAPIs
 
-_sift_client_experimental_warning()
-
 
 class SiftClient(
     WithGrpcClient,
@@ -47,11 +44,6 @@ class SiftClient(
     """SiftClient is a high-level client for interacting with Sift's APIs.
 
     It provides both synchronous and asynchronous interfaces, strong type checking, and a Pythonic API design.
-
-    !!! warning
-        The Sift Client is experimental and is subject to change.
-
-        To avoid unexpected breaking changes, pin the exact version of the `sift-stack-py` library in your dependencies (for example, in `requirements.txt` or `pyproject.toml`).
 
     Examples:
         from sift_client import SiftClient
