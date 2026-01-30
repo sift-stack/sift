@@ -9,6 +9,7 @@ from typing import (
     Callable,
     ClassVar,
     Generic,
+    Protocol,
     TypeVar,
 )
 
@@ -21,6 +22,19 @@ if TYPE_CHECKING:
 
 ProtoT = TypeVar("ProtoT", bound=message.Message)
 SelfT = TypeVar("SelfT", bound="BaseType")
+
+
+class BaseTypeProtocol(Protocol):
+    """Protocol for defining public properties for types that inherit from BaseType."""
+
+    @property
+    def client(self) -> SiftClient: ...
+
+    @property
+    def id_(self) -> str | None: ...
+
+    @property
+    def _id_or_error(self) -> str: ...
 
 
 class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):

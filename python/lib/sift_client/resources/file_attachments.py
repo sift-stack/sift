@@ -19,7 +19,7 @@ if TYPE_CHECKING:
         RemoteFileEntityType,
     )
     from sift_client.sift_types.run import Run
-    from sift_client.sift_types.test_report import TestReport
+    from sift_client.sift_types.test_report import TestReport, TestStep
 
 
 class FileAttachmentsAPIAsync(ResourceBase):
@@ -94,7 +94,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         # metadata TODO: Add to backend
         # metadata: list[Any] | None = None,
         # file specific
-        entities: list[Run | Asset | TestReport] | None = None,
+        entities: list[Run | Asset | TestReport | TestStep] | None = None,
         entity_type: RemoteFileEntityType | None = None,
         entity_ids: list[str] | None = None,
         # common filters
@@ -255,7 +255,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         self,
         *,
         path: str | Path,
-        entity: Asset | Run | TestReport,
+        entity: Asset | Run | TestReport | TestStep,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,

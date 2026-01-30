@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import tempfile
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -230,3 +231,41 @@ class TestResultsTest:
 
         # Verify result
         assert result == mock_remote_files
+
+    def test_upload_attachment(self, mock_test_report, mock_test_step, mock_client):
+        """Ensure test report and step have FileAttachmentsMixin and it is called correctly."""
+        # Create mock file attachment to be returned
+        mock_file_attachment = MagicMock()
+        mock_file_attachment.description = "Test upload to test report"
+        mock_file_attachment.entity_id = mock_test_report.id_
+        mock_client.file_attachments.upload.return_value = mock_file_attachment
+
+        # Create a temporary test file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+            tmp.write("Test file content\n")
+            tmp_path = tmp.name
+
+        _ = mock_test_report.upload_attachment(
+            path=tmp_path, description="Test upload to test report"
+        )
+        _ = mock_test_step.upload_attachment(path=tmp_path, description="Test upload to test step")
+
+        # Verify file_attachments.upload was called with correct parameters
+        mock_client.file_attachments.upload.assert_has_calls(
+            [
+                call(
+                    path=tmp_path,
+                    entity=mock_test_report,
+                    metadata=None,
+                    description="Test upload to test report",
+                    organization_id=None,
+                ),
+                call(
+                    path=tmp_path,
+                    entity=mock_test_step,
+                    metadata=None,
+                    description="Test upload to test step",
+                    organization_id=None,
+                ),
+            ]
+        )
