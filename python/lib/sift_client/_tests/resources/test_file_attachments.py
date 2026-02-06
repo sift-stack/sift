@@ -292,6 +292,16 @@ class TestFileAttachmentsAPIAsync:
             for fa in file_attachments:
                 assert fa.entity_type == RemoteFileEntityType.TEST_REPORTS
 
+            # Test filtering by TEST_STEPS entity type
+            file_attachments = await file_attachments_api_async.list_(
+                entity_type=RemoteFileEntityType.TEST_STEPS,
+                limit=100,
+            )
+            assert isinstance(file_attachments, list)
+            # All returned attachments should be for TEST_STEPS
+            for fa in file_attachments:
+                assert fa.entity_type == RemoteFileEntityType.TEST_STEPS
+
         @pytest.mark.asyncio
         async def test_list_by_file_name(
             self, file_attachments_api_async, uploaded_file_attachment
