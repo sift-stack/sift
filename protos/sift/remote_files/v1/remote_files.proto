@@ -134,6 +134,7 @@ enum EntityType {
   ENTITY_TYPE_ASSET = 3;
   ENTITY_TYPE_ANNOTATION_LOG = 4;
   ENTITY_TYPE_TEST_REPORT = 5;
+  ENTITY_TYPE_TEST_STEP = 6;
 }
 
 // The request for a call to `RemoteFileService_GetRemoteFile` to retrieve a remote file;
@@ -167,6 +168,13 @@ message ListRemoteFilesRequest {
 
   // This field is only required if your user belongs to multiple organizations.
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `name`, `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `RemoteFileService_ListRemoteFilesResponse`.
@@ -198,6 +206,9 @@ message CreateRemoteFileRequest {
 
   // The metadata values associated with this remote file.
   repeated sift.metadata.v1.MetadataValue metadata_values = 13 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional custom storage key for uploaded object that is not managed by the RemoteFileService.
+  // When provided, caller is responsible for ensuring uniqueness to avoid collisions or API will return an error.
 }
 
 // The response for a call to `RemoteFileService_CreateRemoteFile`.

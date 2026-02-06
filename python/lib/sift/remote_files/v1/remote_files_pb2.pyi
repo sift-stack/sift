@@ -34,6 +34,7 @@ class _EntityTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enu
     ENTITY_TYPE_ASSET: _EntityType.ValueType  # 3
     ENTITY_TYPE_ANNOTATION_LOG: _EntityType.ValueType  # 4
     ENTITY_TYPE_TEST_REPORT: _EntityType.ValueType  # 5
+    ENTITY_TYPE_TEST_STEP: _EntityType.ValueType  # 6
 
 class EntityType(_EntityType, metaclass=_EntityTypeEnumTypeWrapper): ...
 
@@ -43,6 +44,7 @@ ENTITY_TYPE_ANNOTATION: EntityType.ValueType  # 2
 ENTITY_TYPE_ASSET: EntityType.ValueType  # 3
 ENTITY_TYPE_ANNOTATION_LOG: EntityType.ValueType  # 4
 ENTITY_TYPE_TEST_REPORT: EntityType.ValueType  # 5
+ENTITY_TYPE_TEST_STEP: EntityType.ValueType  # 6
 global___EntityType = EntityType
 
 @typing.final
@@ -232,6 +234,7 @@ class ListRemoteFilesRequest(google.protobuf.message.Message):
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of remote files to return. The service may return fewer than this value.
     If unspecified, at most 50 remote files will be returned. The maximum value is 1000; values above
@@ -251,6 +254,13 @@ class ListRemoteFilesRequest(google.protobuf.message.Message):
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
+    order_by: builtins.str
+    """How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order_by are `name`, `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
     def __init__(
         self,
         *,
@@ -258,8 +268,9 @@ class ListRemoteFilesRequest(google.protobuf.message.Message):
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
         organization_id: builtins.str = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListRemoteFilesRequest = ListRemoteFilesRequest
 

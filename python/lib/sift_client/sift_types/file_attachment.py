@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.run import Run
-    from sift_client.sift_types.test_report import TestReport
+    from sift_client.sift_types.test_report import TestReport, TestStep
 
 
 class RemoteFileEntityType(Enum):
@@ -27,6 +27,7 @@ class RemoteFileEntityType(Enum):
     ASSETS = EntityType.ENTITY_TYPE_ASSET  # 3
     ANNOTATION_LOGS = EntityType.ENTITY_TYPE_ANNOTATION_LOG  # 4
     TEST_REPORTS = EntityType.ENTITY_TYPE_TEST_REPORT  # 5
+    TEST_STEPS = EntityType.ENTITY_TYPE_TEST_STEP  # 6
 
     @classmethod
     def from_str(cls, val: str) -> RemoteFileEntityType | None:
@@ -97,7 +98,7 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
         )
 
     @property
-    def entity(self) -> Run | Asset | TestReport:
+    def entity(self) -> Run | Asset | TestReport | TestStep:
         """Get the entity that this file attachment is attached to."""
         if self.entity_type == RemoteFileEntityType.RUNS:
             return self.client.runs.get(run_id=self.entity_id)
@@ -105,6 +106,8 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
             return self.client.assets.get(asset_id=self.entity_id)
         elif self.entity_type == RemoteFileEntityType.TEST_REPORTS:
             return self.client.test_results.get(test_report_id=self.entity_id)
+        elif self.entity_type == RemoteFileEntityType.TEST_STEPS:
+            return self.client.test_results.get_step(test_step=self.entity_id)
         elif self.entity_type in (
             RemoteFileEntityType.ANNOTATIONS,
             RemoteFileEntityType.ANNOTATION_LOGS,

@@ -850,6 +850,7 @@ impl serde::Serialize for EntityType {
             Self::Asset => "ENTITY_TYPE_ASSET",
             Self::AnnotationLog => "ENTITY_TYPE_ANNOTATION_LOG",
             Self::TestReport => "ENTITY_TYPE_TEST_REPORT",
+            Self::TestStep => "ENTITY_TYPE_TEST_STEP",
         };
         serializer.serialize_str(variant)
     }
@@ -867,6 +868,7 @@ impl<'de> serde::Deserialize<'de> for EntityType {
             "ENTITY_TYPE_ASSET",
             "ENTITY_TYPE_ANNOTATION_LOG",
             "ENTITY_TYPE_TEST_REPORT",
+            "ENTITY_TYPE_TEST_STEP",
         ];
 
         struct GeneratedVisitor;
@@ -913,6 +915,7 @@ impl<'de> serde::Deserialize<'de> for EntityType {
                     "ENTITY_TYPE_ASSET" => Ok(EntityType::Asset),
                     "ENTITY_TYPE_ANNOTATION_LOG" => Ok(EntityType::AnnotationLog),
                     "ENTITY_TYPE_TEST_REPORT" => Ok(EntityType::TestReport),
+                    "ENTITY_TYPE_TEST_STEP" => Ok(EntityType::TestStep),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -1420,6 +1423,9 @@ impl serde::Serialize for ListRemoteFilesRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.remote_files.v1.ListRemoteFilesRequest", len)?;
         if self.page_size != 0 {
             struct_ser.serialize_field("pageSize", &self.page_size)?;
@@ -1432,6 +1438,9 @@ impl serde::Serialize for ListRemoteFilesRequest {
         }
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
         }
         struct_ser.end()
     }
@@ -1450,6 +1459,8 @@ impl<'de> serde::Deserialize<'de> for ListRemoteFilesRequest {
             "filter",
             "organization_id",
             "organizationId",
+            "order_by",
+            "orderBy",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1458,6 +1469,7 @@ impl<'de> serde::Deserialize<'de> for ListRemoteFilesRequest {
             PageToken,
             Filter,
             OrganizationId,
+            OrderBy,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1483,6 +1495,7 @@ impl<'de> serde::Deserialize<'de> for ListRemoteFilesRequest {
                             "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
                             "filter" => Ok(GeneratedField::Filter),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1506,6 +1519,7 @@ impl<'de> serde::Deserialize<'de> for ListRemoteFilesRequest {
                 let mut page_token__ = None;
                 let mut filter__ = None;
                 let mut organization_id__ = None;
+                let mut order_by__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PageSize => {
@@ -1534,6 +1548,12 @@ impl<'de> serde::Deserialize<'de> for ListRemoteFilesRequest {
                             }
                             organization_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ListRemoteFilesRequest {
@@ -1541,6 +1561,7 @@ impl<'de> serde::Deserialize<'de> for ListRemoteFilesRequest {
                     page_token: page_token__.unwrap_or_default(),
                     filter: filter__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
                 })
             }
         }
