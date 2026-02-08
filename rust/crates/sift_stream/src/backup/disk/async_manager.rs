@@ -399,7 +399,7 @@ impl AsyncBackupsManager {
             //
             // At this point, the data is fully committed either with backup files for re-ingestion
             // or confirmed ingested by Sift.
-            if ctx.last_message_id > self.committed_message_id.unwrap_or(0) {
+            if self.committed_message_id.is_none_or(|id| ctx.last_message_id > id) {
                 self.committed_message_id = Some(ctx.last_message_id);
                 self.metrics
                     .backups
@@ -475,8 +475,7 @@ impl AsyncBackupsManager {
         {
             // Effectively commit the message since the checkpoint the message belongs to has been successfully completed
             // already.
-            let committed_message_id = self.committed_message_id.unwrap_or(0);
-            if msg.message_id > committed_message_id {
+            if self.committed_message_id.is_none_or(|id| msg.message_id > id) {
                 self.committed_message_id = Some(msg.message_id);
                 self.metrics
                     .backups
@@ -2735,6 +2734,65 @@ mod test {
                 i
             );
         }
+    }
+
+    /// Regression test for message_id 0 can never be committed.
+    ///
+    /// The comparison `ctx.last_message_id > self.committed_message_id.unwrap_or(0)`
+    /// evaluates to `0 > 0 = false` when committed_message_id is None and the
+    /// message_id is 0, so committed_message_id is never set to Some(0).
+    #[tokio::test]
+    async fn test_message_id_zero_can_be_committed() {
+        let tmp_dir = TempDir::new("test_message_id_zero_can_be_committed").unwrap();
+        let tmp_dir_path = tmp_dir.path();
+        let backup_policy = DiskBackupPolicy {
+            backups_dir: Some(tmp_dir_path.to_path_buf()),
+            max_backup_file_size: 1024,
+            rolling_file_policy: RollingFilePolicy {
+                max_file_count: Some(10),
+            },
+            retain_backups: false,
+        };
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut backup_manager = AsyncBackupsManager::new(
+            true,
+            "test",
+            "test",
+            backup_policy,
+            control_tx.clone(),
+            control_tx.subscribe(),
+            data_rx,
+            metrics,
+        )
+        .await
+        .unwrap();
+
+        // Write only message 0.
+        let msg = create_test_data_message(0, false);
+        assert!(
+            backup_manager.handle_data_message(&msg).await.is_ok(),
+            "message 0 should be handled"
+        );
+
+        // Complete a successful checkpoint covering just message 0.
+        backup_manager.checkpoint_queue.push_back(CheckpointInfo {
+            range: 0..=0,
+            needs_reingest: false,
+        });
+        assert!(
+            backup_manager.process_pending_checkpoints().await.is_ok(),
+            "checkpoint should be processed"
+        );
+
+        // committed_message_id must be Some(0), not None.
+        // The system should distinguish "message 0 committed" from "nothing committed."
+        assert_eq!(
+            backup_manager.committed_message_id(),
+            Some(0),
+            "committed_message_id should be Some(0) after committing message 0"
+        );
     }
 
     #[tokio::test]
