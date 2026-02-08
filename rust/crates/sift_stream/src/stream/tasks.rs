@@ -328,6 +328,12 @@ impl IngestionTask {
                         }
                         Err(e) => {
                             current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
+
+                            // Send CheckpointComplete to pair with the CheckpointNeedsReingestion
+                            // sent by handle_failed_stream. Without this, the reingest signal can
+                            // be consumed by a later non-overlapping CheckpointComplete, causing
+                            // backup files from the failed stream to be deleted without re-ingestion.
+                            self.control_tx.send(ControlMessage::CheckpointComplete { first_message_id: first_message_id.load(Ordering::Relaxed), last_message_id: last_message_id.load(Ordering::Relaxed) }).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                         }
                     }
 
@@ -873,7 +879,9 @@ mod tests {
         // Verify graceful shutdown drained the data channel and sent the final checkpoint complete message.
         assert!(data_tx.is_empty(), "data channel should be empty");
 
-        // Each checkpoint expiration should generate a checkpoint complete control message.
+        // Each stream failure now also generates a CheckpointComplete (paired with
+        // CheckpointNeedsReingestion), plus 1 final from shutdown.
+        // With 2 errors configured: 2 failure checkpoints + 1 shutdown = 3.
         let mut complete_count = 0;
         while let Ok(msg) = control_rx.try_recv() {
             if matches!(
@@ -886,7 +894,10 @@ mod tests {
                 complete_count += 1;
             }
         }
-        assert_eq!(complete_count, 1, "should have completed 1 checkpoint");
+        assert_eq!(
+            complete_count, 3,
+            "should have completed 3 checkpoints (2 from stream failures + 1 from shutdown)"
+        );
     }
 
     #[tokio::test]
