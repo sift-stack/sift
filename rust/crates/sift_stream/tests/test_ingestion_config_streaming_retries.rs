@@ -137,10 +137,10 @@ async fn test_retries_succeed() {
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
-    assert_eq!(
-        num_messages as u32,
+    assert!(
+        num_messages_received.load(Ordering::Relaxed) >= num_messages as u32,
+        "expected no messages to be dropped, got {} (may include re-ingested messages from failed streams)",
         num_messages_received.load(Ordering::Relaxed),
-        "expected no messages to be dropped",
     );
 
     assert!(

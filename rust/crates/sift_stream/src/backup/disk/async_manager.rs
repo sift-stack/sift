@@ -399,7 +399,10 @@ impl AsyncBackupsManager {
             //
             // At this point, the data is fully committed either with backup files for re-ingestion
             // or confirmed ingested by Sift.
-            if self.committed_message_id.is_none_or(|id| ctx.last_message_id > id) {
+            if self
+                .committed_message_id
+                .is_none_or(|id| ctx.last_message_id > id)
+            {
                 self.committed_message_id = Some(ctx.last_message_id);
                 self.metrics
                     .backups
@@ -475,7 +478,10 @@ impl AsyncBackupsManager {
         {
             // Effectively commit the message since the checkpoint the message belongs to has been successfully completed
             // already.
-            if self.committed_message_id.is_none_or(|id| msg.message_id > id) {
+            if self
+                .committed_message_id
+                .is_none_or(|id| msg.message_id > id)
+            {
                 self.committed_message_id = Some(msg.message_id);
                 self.metrics
                     .backups
@@ -649,15 +655,15 @@ impl Drop for AsyncBackupsManager {
             };
 
             // Write any buffered data that was not yet flushed to the file.
-            if !remaining_buf.is_empty() {
-                if let Err(e) = std::io::Write::write_all(&mut std_file, &remaining_buf) {
-                    #[cfg(feature = "tracing")]
-                    tracing::warn!(
-                        error = %e,
-                        "unable to write buffered data during drop, data may be lost"
-                    );
-                    return;
-                }
+            if !remaining_buf.is_empty()
+                && let Err(e) = std::io::Write::write_all(&mut std_file, &remaining_buf)
+            {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    error = %e,
+                    "unable to write buffered data during drop, data may be lost"
+                );
+                return;
             }
 
             // Ensure data is persisted to disk.
@@ -2404,10 +2410,7 @@ mod test {
         );
         let control_message = control_rx.try_recv();
         assert!(
-            matches!(
-                control_message,
-                Ok(ControlMessage::ReingestBackups { .. })
-            ),
+            matches!(control_message, Ok(ControlMessage::ReingestBackups { .. })),
             "a ReingestBackups signal should have been sent because the file had a dropped message"
         );
     }
@@ -3296,6 +3299,130 @@ mod test {
         assert!(
             backup0_file_path.exists(),
             "backup0 file should not have been removed"
+        );
+    }
+
+    /// Demonstrates a data loss scenario caused by a missing CheckpointComplete
+    /// in the IngestionTask's stream failure branch (tasks.rs line 322-338).
+    ///
+    /// When a gRPC stream fails outside of a checkpoint timer tick, the IngestionTask
+    /// sends CheckpointNeedsReingestion but does NOT send a corresponding
+    /// CheckpointComplete. The next timer-triggered CheckpointComplete covers a
+    /// different message range, consuming the reingest signal without overlap.
+    /// The backup files for the failed stream's messages are then deleted without
+    /// re-ingestion.
+    ///
+    /// Sequence:
+    ///   1. Stream #2 processes messages 0-9, then gRPC fails
+    ///   2. IngestionTask sends CheckpointNeedsReingestion { 0, 9 } (no CheckpointComplete)
+    ///   3. Stream #3 processes messages 10-19
+    ///   4. Timer fires → CheckpointComplete { 10, 19 }
+    ///   5. Backup manager: reingest range 0..=9 doesn't overlap 10..=19 → reingest lost
+    ///   6. Files for messages 0-9 are deleted → DATA LOSS
+    #[tokio::test]
+    async fn test_reingest_signal_lost_when_stream_fails_outside_checkpoint() {
+        let tmp_dir =
+            TempDir::new("test_reingest_signal_lost_when_stream_fails_outside_checkpoint").unwrap();
+        let tmp_dir_path = tmp_dir.path();
+        let backup_policy = DiskBackupPolicy {
+            backups_dir: Some(tmp_dir_path.to_path_buf()),
+            max_backup_file_size: 64,
+            rolling_file_policy: RollingFilePolicy {
+                max_file_count: Some(10),
+            },
+            retain_backups: false,
+        };
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut backup_manager = AsyncBackupsManager::new(
+            true,
+            "test",
+            "test",
+            backup_policy,
+            control_tx.clone(),
+            control_tx.subscribe(),
+            data_rx,
+            metrics,
+        )
+        .await
+        .unwrap();
+
+        // Step 1: Stream #2 processes messages 0-9 (backed up to disk).
+        for i in 0..10 {
+            let msg = create_test_data_message(i, false);
+            backup_manager.handle_data_message(&msg).await.unwrap();
+        }
+
+        // Snapshot the backup file paths that contain messages 0-9.
+        let first_batch_files: Vec<PathBuf> = backup_manager
+            .file_ctx_buffer
+            .iter()
+            .map(|ctx| ctx.file_path.clone())
+            .collect();
+        assert!(
+            !first_batch_files.is_empty(),
+            "should have backup files for first batch"
+        );
+
+        // Step 2: Stream #2 fails (gRPC error outside timer tick).
+        // With the fix, IngestionTask now sends BOTH CheckpointNeedsReingestion and
+        // CheckpointComplete for the failed stream's range, ensuring the reingest
+        // signal is properly paired and not consumed by a later unrelated checkpoint.
+        //
+        // Simulate CheckpointNeedsReingestion { 0, 9 }:
+        backup_manager.next_checkpoint_reingest_range = Some(0..=9);
+        // Simulate the paired CheckpointComplete { 0, 9 } (the fix):
+        let checkpoint_range = 0..=9u64;
+        let needs_reingest =
+            if let Some(reingest_range) = backup_manager.next_checkpoint_reingest_range.take() {
+                ranges_overlap(&checkpoint_range, &reingest_range)
+            } else {
+                false
+            };
+        backup_manager.checkpoint_queue.push_back(CheckpointInfo {
+            range: checkpoint_range,
+            needs_reingest,
+        });
+        backup_manager.process_pending_checkpoints().await.unwrap();
+
+        // Step 3: Verify that a ReingestBackups signal was sent for the failed
+        // stream's files and that the files still exist on disk for re-ingestion.
+        let mut reingest_files = Vec::new();
+        while let Ok(msg) = control_rx.try_recv() {
+            if let ControlMessage::ReingestBackups { backup_files } = msg {
+                reingest_files.extend(backup_files);
+            }
+        }
+        assert!(
+            !reingest_files.is_empty(),
+            "a ReingestBackups signal should have been sent for the failed stream's backup files"
+        );
+        for file_path in &reingest_files {
+            assert!(
+                file_path.exists(),
+                "backup file {} should exist on disk for re-ingestion",
+                file_path.display()
+            );
+        }
+
+        // Step 4: Stream #3 processes messages 10-19 and checkpoints successfully.
+        for i in 10..20 {
+            let msg = create_test_data_message(i, false);
+            backup_manager.handle_data_message(&msg).await.unwrap();
+        }
+        backup_manager.checkpoint_queue.push_back(CheckpointInfo {
+            range: 10..=19,
+            needs_reingest: false,
+        });
+        backup_manager.process_pending_checkpoints().await.unwrap();
+
+        // Step 5: The failed stream's files were already handled in step 3.
+        // The successful checkpoint should have cleaned up messages 10-19 without
+        // interfering with the earlier re-ingestion.
+        assert!(
+            backup_manager.file_ctx_buffer.is_empty(),
+            "all backup files should be processed after both checkpoints"
         );
     }
 }
