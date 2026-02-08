@@ -634,10 +634,13 @@ impl Drop for AsyncBackupsManager {
                 "graceful shutdown was not used -- attempting to sync backup file during drop to prevent data loss"
             );
 
+            // Capture any data remaining in the BufWriter's internal buffer before
+            // calling into_inner(), which discards the buffer without flushing.
+            let remaining_buf = writer.buffer().to_vec();
             let file = writer.into_inner();
 
-            // Conver to standard file for blocking sync_all.
-            let std_file = match file.try_into_std() {
+            // Convert to standard file for blocking write + sync_all.
+            let mut std_file = match file.try_into_std() {
                 Ok(std_file) => std_file,
                 Err(_) => {
                     #[cfg(feature = "tracing")]
@@ -646,7 +649,19 @@ impl Drop for AsyncBackupsManager {
                 }
             };
 
-            // Attempt to sync the file.
+            // Write any buffered data that was not yet flushed to the file.
+            if !remaining_buf.is_empty() {
+                if let Err(e) = std::io::Write::write_all(&mut std_file, &remaining_buf) {
+                    #[cfg(feature = "tracing")]
+                    tracing::warn!(
+                        error = %e,
+                        "unable to write buffered data during drop, data may be lost"
+                    );
+                    return;
+                }
+            }
+
+            // Ensure data is persisted to disk.
             if let Err(e) = std_file.sync_all() {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
@@ -1626,6 +1641,81 @@ mod test {
         assert!(
             backup_task.await.is_ok(),
             "backup task should complete successfully"
+        );
+    }
+
+    /// Regression test BufWriter data lost during Drop.
+    ///
+    /// When AsyncBackupsManager is dropped without graceful shutdown, the Drop
+    /// impl must flush the BufWriter's internal buffer to disk. Previously,
+    /// `into_inner()` was called without capturing the buffer, silently
+    /// discarding any unflushed data.
+    #[tokio::test]
+    async fn test_drop_flushes_bufwriter_to_disk() {
+        let tmp_dir = TempDir::new("test_drop_flushes_bufwriter").unwrap();
+        let tmp_dir_path = tmp_dir.path();
+        let backup_policy = DiskBackupPolicy {
+            backups_dir: Some(tmp_dir_path.to_path_buf()),
+            // Large file size so no rotation occurs — all messages stay in one file.
+            max_backup_file_size: 1024 * 1024,
+            rolling_file_policy: RollingFilePolicy {
+                max_file_count: Some(10),
+            },
+            retain_backups: true,
+        };
+        let (control_tx, control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut backup_manager = AsyncBackupsManager::new(
+            true,
+            "test",
+            "test",
+            backup_policy,
+            control_tx,
+            control_rx,
+            data_rx,
+            metrics,
+        )
+        .await
+        .unwrap();
+
+        // Write a few small messages. These are small enough (~50-100 bytes each)
+        // to stay entirely within the BufWriter's 128KB internal buffer without
+        // triggering an auto-flush to the OS.
+        let num_messages = 5;
+        for i in 0..num_messages {
+            let msg = create_test_data_message(i, false);
+            assert!(
+                backup_manager.handle_data_message(&msg).await.is_ok(),
+                "message {} should be handled",
+                i
+            );
+        }
+
+        // Verify the file exists and messages were written to the BufWriter.
+        assert!(
+            backup_manager.current_file.is_some(),
+            "current file should exist"
+        );
+        assert_eq!(
+            backup_manager.current_file_ctx.message_count, num_messages as usize,
+            "should have written {} messages",
+            num_messages
+        );
+        let file_path = backup_manager.current_file_ctx.file_path.clone();
+
+        // Drop without graceful shutdown — triggers the Drop impl.
+        drop(backup_manager);
+
+        // Read the file back from disk and verify all messages were persisted.
+        let decoder = decode_backup::<_, IngestWithConfigDataStreamRequest>(&file_path)
+            .expect("should be able to decode backup file");
+        let decoded_messages: Vec<_> = decoder.into_iter().filter_map(|r| r.ok()).collect();
+        assert_eq!(
+            decoded_messages.len(),
+            num_messages as usize,
+            "all {} messages should have been persisted to disk during drop",
+            num_messages
         );
     }
 
