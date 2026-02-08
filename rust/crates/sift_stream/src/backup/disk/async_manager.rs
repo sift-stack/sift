@@ -388,7 +388,7 @@ impl AsyncBackupsManager {
             //
             // Update the needs_reingest flag for the file based on this checkpoint.
             if checkpoint.range.end() < file_range.end() {
-                ctx.needs_reingest = checkpoint.needs_reingest;
+                ctx.needs_reingest |= checkpoint.needs_reingest;
                 break;
             }
 
@@ -2202,6 +2202,124 @@ mod test {
                 .unwrap()
                 .needs_reingest,
             "file should be marked for re-ingestion"
+        );
+    }
+
+    /// Regression test for `needs_reingest` flag was overwritten instead of OR'd
+    /// when a checkpoint partially overlaps a file.
+    ///
+    /// Scenario:
+    /// - Messages 0-9 are written to a single backup file.
+    /// - Message 5 has `dropped_for_ingestion = true`, setting the file's `needs_reingest = true`.
+    /// - A successful checkpoint (needs_reingest=false) arrives for range 0..=5.
+    /// - The checkpoint ends in the middle of the file (file covers 0..=9).
+    /// - Previously, the code used `=` which would clear the flag to `false`.
+    /// - With the fix (`|=`), the flag correctly remains `true`.
+    #[tokio::test]
+    async fn test_dropped_message_flag_preserved_on_partial_checkpoint() {
+        let tmp_dir =
+            TempDir::new("test_dropped_message_flag_preserved_on_partial_checkpoint").unwrap();
+        let tmp_dir_path = tmp_dir.path();
+        let backup_policy = DiskBackupPolicy {
+            backups_dir: Some(tmp_dir_path.to_path_buf()),
+            // Large file size so all messages end up in one file.
+            max_backup_file_size: 1024,
+            rolling_file_policy: RollingFilePolicy {
+                max_file_count: Some(10),
+            },
+            retain_backups: false,
+        };
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut backup_manager = AsyncBackupsManager::new(
+            true,
+            "test",
+            "test",
+            backup_policy,
+            control_tx.clone(),
+            control_tx.subscribe(),
+            data_rx,
+            metrics,
+        )
+        .await
+        .unwrap();
+
+        // Write messages 0-9, with message 5 marked as dropped for ingestion.
+        for i in 0..10 {
+            let dropped = i == 5;
+            let msg = create_test_data_message(i, dropped);
+            assert!(
+                backup_manager.handle_data_message(&msg).await.is_ok(),
+                "message {} should be handled",
+                i
+            );
+        }
+
+        // All messages should be in the current file (large max size).
+        assert!(
+            backup_manager.current_file.is_some(),
+            "current file should exist"
+        );
+        assert!(
+            backup_manager.file_ctx_buffer.is_empty(),
+            "no files should have been rotated yet"
+        );
+        assert!(
+            backup_manager.current_file_ctx.needs_reingest,
+            "file should need re-ingestion due to dropped message"
+        );
+
+        // Send a *successful* checkpoint that partially covers the file (0..=5).
+        // The file spans 0..=9, so the checkpoint ends in the middle.
+        backup_manager.checkpoint_queue.push_back(CheckpointInfo {
+            range: 0..=5,
+            needs_reingest: false,
+        });
+        assert!(
+            backup_manager.process_pending_checkpoints().await.is_ok(),
+            "checkpoint should be processed"
+        );
+
+        // After processing, the file should have been rotated to file_ctx_buffer
+        // (process_checkpoint calls rotate_file). The file's needs_reingest must
+        // still be true because it contains message 5 which was dropped.
+        assert!(
+            !backup_manager.file_ctx_buffer.is_empty(),
+            "file should be in the buffer after checkpoint processing"
+        );
+        assert!(
+            backup_manager
+                .file_ctx_buffer
+                .front()
+                .unwrap()
+                .needs_reingest,
+            "file's needs_reingest flag must be preserved (dropped message 5 is in this file)"
+        );
+
+        // Now complete the second checkpoint covering the rest of the file.
+        backup_manager.checkpoint_queue.push_back(CheckpointInfo {
+            range: 6..=9,
+            needs_reingest: false,
+        });
+        assert!(
+            backup_manager.process_pending_checkpoints().await.is_ok(),
+            "second checkpoint should be processed"
+        );
+
+        // The file should have been sent for re-ingestion despite both checkpoints
+        // being successful, because it contained a dropped message.
+        assert!(
+            backup_manager.file_ctx_buffer.is_empty(),
+            "file should have been processed out of the buffer"
+        );
+        let control_message = control_rx.try_recv();
+        assert!(
+            matches!(
+                control_message,
+                Ok(ControlMessage::ReingestBackups { .. })
+            ),
+            "a ReingestBackups signal should have been sent because the file had a dropped message"
         );
     }
 
