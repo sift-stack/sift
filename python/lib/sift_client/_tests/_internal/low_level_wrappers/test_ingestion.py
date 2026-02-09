@@ -54,4 +54,3 @@ async def test_get_ingestion_config_flows(ingestion_low_level_client, sift_clien
         assert isinstance(flow.name, str)
         assert len(flow.name) > 0
         assert len(flow.channels) > 0
-

@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class ReportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the ReportsAPI.
 

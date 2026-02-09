@@ -60,6 +60,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RULE_PAGE_SIZE = 1000
 
+
 class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the RulesAPI.
 
