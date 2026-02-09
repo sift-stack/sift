@@ -35,6 +35,11 @@ class LowLevelClientBase(ABC):
             return results
         if page_token is None:
             page_token = ""
+
+        # No point in querying more results than needed if limited by max_results.
+        if max_results is not None and page_size is not None and page_size > max_results:
+            page_size = max_results
+
         while True:
             if max_results is not None and len(results) >= max_results:
                 break

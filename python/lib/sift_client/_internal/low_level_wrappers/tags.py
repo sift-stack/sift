@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 # Configure logging
 logger = logging.getLogger(__name__)
 
+TAGS_DEFAULT_PAGE_SIZE = 1000
+
 
 class TagsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the TagsAPI.
@@ -59,7 +61,7 @@ class TagsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_tags(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = TAGS_DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -97,6 +99,7 @@ class TagsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         query_filter: str | None = None,
         order_by: str | None = None,
+        page_size: int | None = TAGS_DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[Tag]:
         """List all tags with optional filtering.
@@ -114,4 +117,5 @@ class TagsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs={"query_filter": query_filter},
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )

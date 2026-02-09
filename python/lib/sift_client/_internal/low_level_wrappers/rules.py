@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 # Configure logging
 logger = logging.getLogger(__name__)
 
+DEFAULT_RULE_PAGE_SIZE = 1000
 
 class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the RulesAPI.
@@ -495,7 +496,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         filter_query: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
-        page_size: int | None = None,
+        page_size: int | None = DEFAULT_RULE_PAGE_SIZE,
     ) -> list[Rule]:
         """List all rules."""
         return await self._handle_pagination(

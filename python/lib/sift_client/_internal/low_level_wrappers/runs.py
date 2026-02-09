@@ -31,6 +31,8 @@ if TYPE_CHECKING:
 # Configure logging
 logger = logging.getLogger(__name__)
 
+RUNS_DEFAULT_PAGE_SIZE = 1000
+
 
 class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the RunsAPI.
@@ -66,7 +68,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_runs(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = RUNS_DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -104,6 +106,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         query_filter: str | None = None,
         order_by: str | None = None,
+        page_size: int | None = RUNS_DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[Run]:
         """List all runs with optional filtering.
@@ -121,6 +124,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs={"query_filter": query_filter},
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )
 
     async def create_run(self, *, create: RunCreate) -> Run:

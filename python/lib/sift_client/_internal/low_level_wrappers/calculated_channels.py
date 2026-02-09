@@ -27,6 +27,8 @@ from sift_client.transport import GrpcClient, WithGrpcClient
 
 logger = logging.getLogger(__name__)
 
+CALCULATED_CHANNELS_DEFAULT_PAGE_SIZE = 1000
+
 
 class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the CalculatedChannelsAPI.
@@ -91,7 +93,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
-        page_size: int | None = None,
+        page_size: int | None = CALCULATED_CHANNELS_DEFAULT_PAGE_SIZE,
         organization_id: str | None = None,
     ) -> list[CalculatedChannel]:
         """List all calculated channels matching the given query.
@@ -117,7 +119,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_calculated_channels(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = CALCULATED_CHANNELS_DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -198,7 +200,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         calculated_channel_id: str | None = None,
         client_key: str | None = None,
         organization_id: str | None = None,
-        page_size: int | None = None,
+        page_size: int | None = CALCULATED_CHANNELS_DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
