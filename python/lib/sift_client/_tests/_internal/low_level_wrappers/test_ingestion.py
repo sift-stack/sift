@@ -29,8 +29,6 @@ async def test_get_ingestion_config_flows(ingestion_low_level_client, sift_clien
     2. Gets the config flows using get_ingestion_config_flows
     3. Validates the structure and checks flow names for correctness
     """
-    asset_id = "a695480e-0069-44b0-ab4b-93e602f743cb"
-    
     # First, we need to find an ingestion config to test with
     # We'll list ingestion configs and use the first one's client_key
     ingestion_configs = await ingestion_low_level_client.list_ingestion_configs("")
