@@ -32,7 +32,7 @@ from sift_client.util import cel_utils as cel
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_INGESTION_PAGE_SIZE = 100
+DEFAULT_INGESTION_CONFIG_PAGE_SIZE = 100
 """Default page size for ingestion config and flow list calls (flow configs can be large)."""
 
 if TYPE_CHECKING:
@@ -100,7 +100,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_ingestion_configs(
         self,
         filter_query: str,
-        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        page_size: int | None = DEFAULT_INGESTION_CONFIG_PAGE_SIZE,
         page_token: str | None = None,
         order_by: str | None = None,
     ) -> tuple[list[IngestionConfig], str]:
@@ -115,12 +115,17 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             A tuple of (list of IngestionConfig, next_page_token).
         """
-        request_kwargs: dict[str, Any] = {
-            "filter": filter_query,
-            "page_token": page_token or "",
-        }
+        request_kwargs: dict[str, Any] = {}
+
         if page_size is not None:
             request_kwargs["page_size"] = page_size
+        if page_token is not None:
+            request_kwargs["page_token"] = page_token
+        if filter_query is not None:
+            request_kwargs["filter"] = filter_query
+        if order_by is not None:
+            request_kwargs["order_by"] = order_by
+
         request = ListIngestionConfigsRequest(**request_kwargs)
         res = await self._grpc_client.get_stub(IngestionConfigServiceStub).ListIngestionConfigs(
             request
@@ -132,7 +137,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_all_ingestion_configs(
         self,
         filter_query: str,
-        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        page_size: int | None = DEFAULT_INGESTION_CONFIG_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[IngestionConfig]:
         """List all ingestion configs matching the filter, using pagination.
@@ -155,10 +160,10 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_ingestion_config_flows(
         self,
         ingestion_config_id: str,
-        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        page_size: int | None = DEFAULT_INGESTION_CONFIG_PAGE_SIZE,
         page_token: str | None = None,
         order_by: str | None = None,
-        query_filter: str = "",
+        filter_query: str = "",
     ) -> tuple[list[FlowConfig], str]:
         """List ingestion config flows (single page).
 
@@ -167,7 +172,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size: Number of results per page.
             page_token: Token for the next page.
             order_by: Unused; accepted for _handle_pagination compatibility.
-            query_filter: Optional CEL filter for flows.
+            filter_query: Optional CEL filter for flows.
 
         Returns:
             A tuple of (list of FlowConfig, next_page_token).
@@ -178,8 +183,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request_kwargs["page_size"] = page_size
         if page_token is not None:
             request_kwargs["page_token"] = page_token
-        if query_filter is not None:
-            request_kwargs["filter"] = query_filter
+        if filter_query is not None:
+            request_kwargs["filter"] = filter_query
         if order_by is not None:
             request_kwargs["order_by"] = order_by
 
@@ -194,7 +199,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def get_ingestion_config_flows(
         self,
         ingestion_config_id: str,
-        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        page_size: int | None = DEFAULT_INGESTION_CONFIG_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[FlowConfig]:
         """Get all flows for an ingestion config, using pagination.
