@@ -11,7 +11,7 @@ from sift.tags.v2.tags_pb2 import (
 )
 from sift.tags.v2.tags_pb2_grpc import TagServiceStub
 
-from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.tag import Tag
 from sift_client.transport import WithGrpcClient
 
@@ -20,8 +20,6 @@ if TYPE_CHECKING:
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-TAGS_DEFAULT_PAGE_SIZE = 1000
 
 
 class TagsLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -61,7 +59,7 @@ class TagsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_tags(
         self,
         *,
-        page_size: int | None = TAGS_DEFAULT_PAGE_SIZE,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -99,7 +97,7 @@ class TagsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         query_filter: str | None = None,
         order_by: str | None = None,
-        page_size: int | None = TAGS_DEFAULT_PAGE_SIZE,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[Tag]:
         """List all tags with optional filtering.

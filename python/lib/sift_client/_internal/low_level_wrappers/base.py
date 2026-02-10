@@ -3,6 +3,9 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable
 
+DEFAULT_PAGE_SIZE = 1000
+"""Default page size to use for pagination."""
+
 
 class LowLevelClientBase(ABC):
     @staticmethod

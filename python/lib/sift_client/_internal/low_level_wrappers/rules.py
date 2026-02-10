@@ -37,7 +37,7 @@ from sift.rules.v1.rules_pb2 import (
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
-from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client._internal.util.util import count_non_none
@@ -57,8 +57,6 @@ if TYPE_CHECKING:
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-DEFAULT_RULE_PAGE_SIZE = 1000
 
 
 class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -497,7 +495,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         filter_query: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
-        page_size: int | None = DEFAULT_RULE_PAGE_SIZE,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
     ) -> list[Rule]:
         """List all rules."""
         return await self._handle_pagination(

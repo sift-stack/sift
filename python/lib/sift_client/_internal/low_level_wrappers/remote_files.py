@@ -18,6 +18,7 @@ from sift.remote_files.v1.remote_files_pb2 import (
 from sift.remote_files.v1.remote_files_pb2_grpc import RemoteFileServiceStub
 
 from sift_client._internal.low_level_wrappers.base import (
+    DEFAULT_PAGE_SIZE,
     LowLevelClientBase,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
@@ -25,8 +26,6 @@ from sift_client.transport import GrpcClient, WithGrpcClient
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
-
-REMOTE_FILES_DEFAULT_PAGE_SIZE = 1000
 
 
 class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -66,7 +65,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         query_filter: str | None = None,
         max_results: int | None = None,
-        page_size: int | None = REMOTE_FILES_DEFAULT_PAGE_SIZE,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         order_by: str | None = None,
         sift_client: SiftClient | None = None,
     ) -> list[FileAttachment]:
@@ -93,7 +92,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def list_remote_files(
         self,
-        page_size: int | None = REMOTE_FILES_DEFAULT_PAGE_SIZE,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
