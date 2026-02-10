@@ -31,7 +31,7 @@ async def test_get_ingestion_config_flows(ingestion_low_level_client, sift_clien
     """
     # First, we need to find an ingestion config to test with
     # We'll list ingestion configs and use the first one's client_key
-    ingestion_configs = await ingestion_low_level_client.list_ingestion_configs("")
+    ingestion_configs = await ingestion_low_level_client.list_all_ingestion_configs("")
 
     if not ingestion_configs:
         pytest.skip("No ingestion configs available for testing")

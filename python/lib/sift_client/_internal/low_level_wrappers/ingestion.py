@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections import namedtuple
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, Any, Iterable, cast
 
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ListIngestionConfigFlowsRequest,
@@ -31,6 +31,9 @@ from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util import cel_utils as cel
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_INGESTION_PAGE_SIZE = 100
+"""Default page size for ingestion config and flow list calls (flow configs can be large)."""
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -94,26 +97,127 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client=grpc_client)
 
-    async def get_ingestion_config_flows(self, ingestion_config_id: str) -> list[FlowConfig]:
-        """Get the flows for an ingestion config."""
-        res = await self._grpc_client.get_stub(IngestionConfigServiceStub).ListIngestionConfigFlows(
-            ListIngestionConfigFlowsRequest(ingestion_config_id=ingestion_config_id)
-        )
-        res = cast("ListIngestionConfigFlowsResponse", res)
-        return [FlowConfig._from_proto(flow) for flow in res.flows]
+    async def list_ingestion_configs(
+        self,
+        filter_query: str,
+        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        page_token: str | None = None,
+        order_by: str | None = None,
+    ) -> tuple[list[IngestionConfig], str]:
+        """List ingestion configs (single page).
 
-    async def list_ingestion_configs(self, filter_query: str) -> list[IngestionConfig]:
-        """List ingestion configs."""
+        Args:
+            filter_query: The CEL filter query.
+            page_size: Number of results per page.
+            page_token: Token for the next page.
+            order_by: Unused; accepted for _handle_pagination compatibility.
+
+        Returns:
+            A tuple of (list of IngestionConfig, next_page_token).
+        """
+        request_kwargs: dict[str, Any] = {
+            "filter": filter_query,
+            "page_token": page_token or "",
+        }
+        if page_size is not None:
+            request_kwargs["page_size"] = page_size
+        request = ListIngestionConfigsRequest(**request_kwargs)
         res = await self._grpc_client.get_stub(IngestionConfigServiceStub).ListIngestionConfigs(
-            ListIngestionConfigsRequest(filter=filter_query)
+            request
         )
         res = cast("ListIngestionConfigsResponse", res)
-        return [IngestionConfig._from_proto(config) for config in res.ingestion_configs]
+        configs = [IngestionConfig._from_proto(config) for config in res.ingestion_configs]
+        return configs, res.next_page_token
+
+    async def list_all_ingestion_configs(
+        self,
+        filter_query: str,
+        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        max_results: int | None = None,
+    ) -> list[IngestionConfig]:
+        """List all ingestion configs matching the filter, using pagination.
+
+        Args:
+            filter_query: The CEL filter query.
+            page_size: Number of results per page.
+            max_results: Maximum total results to return; None for no limit.
+
+        Returns:
+            A list of all matching IngestionConfigs.
+        """
+        return await self._handle_pagination(
+            self.list_ingestion_configs,
+            kwargs={"filter_query": filter_query},
+            page_size=page_size,
+            max_results=max_results,
+        )
+
+    async def list_ingestion_config_flows(
+        self,
+        ingestion_config_id: str,
+        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        page_token: str | None = None,
+        order_by: str | None = None,
+        query_filter: str = "",
+    ) -> tuple[list[FlowConfig], str]:
+        """List ingestion config flows (single page).
+
+        Args:
+            ingestion_config_id: The ingestion config ID.
+            page_size: Number of results per page.
+            page_token: Token for the next page.
+            order_by: Unused; accepted for _handle_pagination compatibility.
+            query_filter: Optional CEL filter for flows.
+
+        Returns:
+            A tuple of (list of FlowConfig, next_page_token).
+        """
+        request_kwargs: dict[str, Any] = {"ingestion_config_id": ingestion_config_id}
+
+        if page_size is not None:
+            request_kwargs["page_size"] = page_size
+        if page_token is not None:
+            request_kwargs["page_token"] = page_token
+        if query_filter is not None:
+            request_kwargs["filter"] = query_filter
+        if order_by is not None:
+            request_kwargs["order_by"] = order_by
+
+        request = ListIngestionConfigFlowsRequest(**request_kwargs)
+        res = await self._grpc_client.get_stub(IngestionConfigServiceStub).ListIngestionConfigFlows(
+            request
+        )
+        res = cast("ListIngestionConfigFlowsResponse", res)
+        flows = [FlowConfig._from_proto(flow) for flow in res.flows]
+        return flows, res.next_page_token
+
+    async def get_ingestion_config_flows(
+        self,
+        ingestion_config_id: str,
+        page_size: int | None = DEFAULT_INGESTION_PAGE_SIZE,
+        max_results: int | None = None,
+    ) -> list[FlowConfig]:
+        """Get all flows for an ingestion config, using pagination.
+
+        Args:
+            ingestion_config_id: The ingestion config ID.
+            page_size: Number of results per page.
+            max_results: Maximum total results to return; None for no limit.
+
+        Returns:
+            A list of all FlowConfigs for the ingestion config.
+        """
+        return await self._handle_pagination(
+            self.list_ingestion_config_flows,
+            kwargs={"ingestion_config_id": ingestion_config_id},
+            page_size=page_size,
+            max_results=max_results,
+        )
 
     async def get_ingestion_config_id_from_client_key(self, client_key: str) -> str | None:
         """Get the ingestion config id."""
         filter_query = cel.equals("client_key", client_key)
-        ingestion_configs = await self.list_ingestion_configs(filter_query)
+        ingestion_configs = await self.list_all_ingestion_configs(filter_query)
         if not ingestion_configs:
             return None
         if len(ingestion_configs) > 1:
