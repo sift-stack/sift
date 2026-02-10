@@ -15,6 +15,7 @@ from sift.assets.v1.assets_pb2 import (
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 
 from sift_client._internal.low_level_wrappers.base import (
+    DEFAULT_PAGE_SIZE,
     LowLevelClientBase,
 )
 from sift_client.sift_types.asset import Asset, AssetUpdate
@@ -46,7 +47,7 @@ class AssetsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
-        page_size: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
     ) -> list[Asset]:
         """List all results matching the given query.
 
@@ -70,7 +71,7 @@ class AssetsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def list_assets(
         self,
-        page_size: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,

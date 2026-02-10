@@ -249,9 +249,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         tasks = []
         # Queue up calls for non-cached channels in batches.
         batch_size = REQUEST_BATCH_SIZE
-        page_size = None
-        if max_results is not None and max_results <= CHANNELS_DEFAULT_PAGE_SIZE:
-            page_size = max_results
         for i in range(0, len(not_cached_channels), batch_size):  # type: ignore
             batch = not_cached_channels[i : i + batch_size]  # type: ignore
 

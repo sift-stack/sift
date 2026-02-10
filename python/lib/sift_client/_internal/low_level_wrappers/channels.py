@@ -59,7 +59,7 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_channels(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = CHANNELS_DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -97,6 +97,7 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         query_filter: str | None = None,
         order_by: str | None = None,
+        page_size: int | None = CHANNELS_DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[Channel]:
         """List all channels with optional filtering.
@@ -109,10 +110,6 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             A list of all matching channels.
         """
-        # Channels default page size is 10,000 so lower it if we're passing max_results
-        page_size = None
-        if max_results is not None and max_results <= CHANNELS_DEFAULT_PAGE_SIZE:
-            page_size = max_results
         return await self._handle_pagination(
             self.list_channels,
             kwargs={"query_filter": query_filter},

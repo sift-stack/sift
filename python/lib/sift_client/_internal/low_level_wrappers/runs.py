@@ -18,7 +18,7 @@ from sift.runs.v2.runs_pb2 import (
 )
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
-from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.transport import WithGrpcClient
@@ -66,7 +66,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_runs(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -104,6 +104,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         query_filter: str | None = None,
         order_by: str | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[Run]:
         """List all runs with optional filtering.
@@ -121,6 +122,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs={"query_filter": query_filter},
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )
 
     async def create_run(self, *, create: RunCreate) -> Run:

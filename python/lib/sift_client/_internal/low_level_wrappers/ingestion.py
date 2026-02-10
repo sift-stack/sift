@@ -14,7 +14,7 @@ from collections import namedtuple
 from typing import TYPE_CHECKING, Iterable, cast
 
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
-    GetIngestionConfigRequest,
+    ListIngestionConfigFlowsRequest,
     ListIngestionConfigFlowsResponse,
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
@@ -96,8 +96,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def get_ingestion_config_flows(self, ingestion_config_id: str) -> list[FlowConfig]:
         """Get the flows for an ingestion config."""
-        res = await self._grpc_client.get_stub(IngestionConfigServiceStub).GetIngestionConfig(
-            GetIngestionConfigRequest(ingestion_config_id=ingestion_config_id)
+        res = await self._grpc_client.get_stub(IngestionConfigServiceStub).ListIngestionConfigFlows(
+            ListIngestionConfigFlowsRequest(ingestion_config_id=ingestion_config_id)
         )
         res = cast("ListIngestionConfigFlowsResponse", res)
         return [FlowConfig._from_proto(flow) for flow in res.flows]

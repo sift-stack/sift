@@ -105,6 +105,7 @@ class ReportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         organization_id: str | None = None,
         order_by: str | None = None,
+        page_size: int | None = None,
         max_results: int | None = None,
     ) -> list[Report]:
         """List all reports with optional filtering.
@@ -126,6 +127,7 @@ class ReportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             },
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )
 
     async def rerun_report(self, report_id: str) -> tuple[str, str]:

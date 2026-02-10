@@ -33,7 +33,7 @@ from sift.test_reports.v1.test_reports_pb2 import (
 )
 from sift.test_reports.v1.test_reports_pb2_grpc import TestReportServiceStub
 
-from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -129,7 +129,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_test_reports(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -167,6 +167,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         query_filter: str | None = None,
         order_by: str | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[TestReport]:
         """List all test reports with optional filtering.
@@ -184,6 +185,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs={"query_filter": query_filter},
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )
 
     async def update_test_report(self, update: TestReportUpdate) -> TestReport:
@@ -274,6 +276,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
     ) -> list[TestStep]:
         """List all test steps with optional filtering.
 
@@ -290,6 +293,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs={"query_filter": query_filter},
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )
 
     async def update_test_step(self, update: TestStepUpdate) -> TestStep:
@@ -367,7 +371,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_test_measurements(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
@@ -408,6 +412,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
     ) -> list[TestMeasurement]:
         """List all test measurements with optional filtering.
 
@@ -424,6 +429,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs={"query_filter": query_filter},
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )
 
     async def update_test_measurement(self, update: TestMeasurementUpdate) -> TestMeasurement:

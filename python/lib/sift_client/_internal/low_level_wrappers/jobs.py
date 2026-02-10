@@ -19,7 +19,7 @@ from sift.jobs.v1.jobs_pb2 import (
 )
 from sift.jobs.v1.jobs_pb2_grpc import JobServiceStub
 
-from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.job import Job
 from sift_client.transport import GrpcClient, WithGrpcClient
 
@@ -41,7 +41,7 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_jobs(
         self,
         *,
-        page_size: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         page_token: str | None = None,
         query_filter: str | None = None,
         organization_id: str | None = None,
@@ -83,6 +83,7 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         organization_id: str | None = None,
         order_by: str | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[Job]:
         """List all jobs, handling pagination automatically.
@@ -107,6 +108,7 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs=kwargs,
             order_by=order_by,
             max_results=max_results,
+            page_size=page_size,
         )
 
         return jobs
