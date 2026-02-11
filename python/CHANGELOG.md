@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.10.1] - February 11, 2026
+
+### What's New
+- [Add pagination for list ingestion config/flows](https://github.com/sift-stack/sift/pull/471)
+- [Increase page size, fix list ingestion config API](https://github.com/sift-stack/sift/pull/470)
+- [Regenerate remote file upload proto to include TestSteps](https://github.com/sift-stack/sift/pull/468)
+
 ## [v0.10.0] - January 30, 2026
 
 ### DEPRECATION NOTICE
