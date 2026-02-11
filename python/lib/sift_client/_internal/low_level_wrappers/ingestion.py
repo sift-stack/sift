@@ -99,7 +99,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def list_ingestion_configs(
         self,
-        filter_query: str,
+        filter_query: str | None = None,
         page_size: int | None = DEFAULT_INGESTION_CONFIG_PAGE_SIZE,
         page_token: str | None = None,
         order_by: str | None = None,
@@ -136,7 +136,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def list_all_ingestion_configs(
         self,
-        filter_query: str,
+        filter_query: str | None = None,
         page_size: int | None = DEFAULT_INGESTION_CONFIG_PAGE_SIZE,
         max_results: int | None = None,
     ) -> list[IngestionConfig]:
@@ -163,7 +163,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = DEFAULT_INGESTION_CONFIG_PAGE_SIZE,
         page_token: str | None = None,
         order_by: str | None = None,
-        filter_query: str = "",
+        filter_query: str | None = None,
     ) -> tuple[list[FlowConfig], str]:
         """List ingestion config flows (single page).
 
