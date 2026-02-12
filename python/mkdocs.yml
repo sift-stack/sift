@@ -5,7 +5,7 @@ copyright: "Copyright 2025 Sift Stack, Inc."
 theme:
   name: material
   custom_dir: docs/overrides
-  favicon: stylesheets/sift-favicon.ico
+  favicon: stylesheets/dark-favicon.ico
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -28,8 +28,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
-  logo_light_mode: stylesheets/sift_logo_dark.svg
-  logo_dark_mode: stylesheets/sift_logo_light.svg
+  logo_light_mode: stylesheets/sift_logo_light.svg
+  logo_dark_mode: stylesheets/sift_logo_dark.svg
   font:
     text: IBM Plex Sans
     code: IBM Plex Mono

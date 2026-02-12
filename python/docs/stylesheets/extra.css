@@ -1,38 +1,18 @@
 /* MkDocs Material Dark Theme Overrides - Fumadocs Style */
 
 :root {
-    --tomato-1: #f9f6f5;
-    --tomato-2: #f9f2f0;
-    --tomato-3: #f9e4df;
-    --tomato-4: #ffd4ca;
-    --tomato-5: #fec4b7;
-    --tomato-6: #f9b3a4;
-    --tomato-7: #f19e8c;
-    --tomato-8: #e9826d;
-    --tomato-9: #ee4220;
-    --tomato-10: #e03006;
-    --tomato-11: #c82700;
-    --tomato-12: #5f2519;
-    --tomato-a1: #96612e05;
-    --tomato-a2: #c947140a;
-    --tomato-a3: #e933041b;
-    --tomato-a4: #ffd4ca;
-    --tomato-a5: #ffb3a2c0;
-    --tomato-a6: #f62f0358;
-    --tomato-a7: #e42a0170;
-    --tomato-a8: #dc270290;
-    --tomato-a9: #ed2801df;
-    --tomato-a10: #df2b00f9;
-    --tomato-a11: #c82700;
-    --tomato-a12: #4e0e01e6;
+    /* Sift Brand Colors */
+    --sift-orange: #EE4120;
+    --sift-ceramic: #F5F5F5;
+    --sift-rubber: #121619;
 
-    --brand-color: var(--tomato-9);
+    --brand-color: var(--sift-orange);
 
     /* MkDocs Material Accent Colors */
     --md-accent-fg-color: var(--brand-color);
     --md-accent-fg-color--transparent: rgb(from var(--brand-color) r g b / 0.1);
-    --md-accent-bg-color: hsla(0, 0%, 100%, 1);
-    --md-accent-bg-color--light: hsla(0, 0%, 100%, 0.7);
+    --md-accent-bg-color: var(--sift-ceramic);
+    --md-accent-bg-color--light: rgba(245, 245, 245, 0.7);
 }
 
 /* =============================================================================
@@ -54,7 +34,7 @@
 [data-md-color-scheme="slate"] {
     /* Primary Colors */
     --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.7);
-    --md-default-bg-color: rgb(0, 0, 0);
+    --md-default-bg-color: var(--sift-rubber);
     --md-primary-bg-color: var(--font-foreground-color);
 
     /* Logo Display */
@@ -66,7 +46,7 @@
     --bold-header-color: white;
     --font-foreground-color: rgb(255, 255, 255);
     --border-color: rgb(36, 36, 36);
-    --code-box-background-color: rgb(18, 18, 18);
+    --code-box-background-color: var(--sift-rubber);
     --search-bg: rgba(237, 237, 237, 0);
 
     /* Link Colors */
@@ -80,7 +60,7 @@
 [data-md-color-scheme="default"] {
     /* Primary Colors */
     --md-primary-bg-color--light: hsla(0, 0%, 0%, 0.7);
-    --md-default-bg-color: rgb(255, 255, 255);
+    --md-default-bg-color: var(--sift-ceramic);
     --md-primary-bg-color: var(--font-foreground-color);
 
     /* Logo Display */
@@ -127,9 +107,11 @@
 .md-header__button.md-logo {
     margin: 0 !important;
     padding: 0 !important;
+    padding-right: 4px !important;
 
     > img {
-        height: 2rem !important;
+        height: 18px !important;
+        width: auto !important;
     }
 }
 
@@ -205,7 +187,7 @@
    ============================================================================= */
 
 .md-code__content {
-    border-radius: 7px !important;
+    border-radius: 4pt !important;
     border: var(--border-color) solid 1px;
     background-color: var(--code-box-background-color) !important;
     font-size: 14px !important;
@@ -217,7 +199,7 @@
 
 .md-search__input, .md-search__suggest, .md-search__form {
     background-color: var(--search-bg) !important;
-    border-radius: 0.5rem !important;
+    border-radius: 4pt !important;
     border: var(--border-color) solid 1px;
 
     ::placeholder {
