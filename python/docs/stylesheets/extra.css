@@ -11,8 +11,8 @@
     /* MkDocs Material Accent Colors */
     --md-accent-fg-color: var(--brand-color);
     --md-accent-fg-color--transparent: rgb(from var(--brand-color) r g b / 0.1);
-    --md-accent-bg-color: var(--sift-ceramic);
-    --md-accent-bg-color--light: rgba(245, 245, 245, 0.7);
+    --md-accent-bg-color: hsla(0, 0%, 100%, 1);
+    --md-accent-bg-color--light: hsla(0, 0%, 100%, 0.7);
 }
 
 /* =============================================================================
@@ -34,7 +34,7 @@
 [data-md-color-scheme="slate"] {
     /* Primary Colors */
     --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.7);
-    --md-default-bg-color: var(--sift-rubber);
+    --md-default-bg-color: rgb(0, 0, 0);
     --md-primary-bg-color: var(--font-foreground-color);
 
     /* Logo Display */
@@ -46,7 +46,7 @@
     --bold-header-color: white;
     --font-foreground-color: rgb(255, 255, 255);
     --border-color: rgb(36, 36, 36);
-    --code-box-background-color: var(--sift-rubber);
+    --code-box-background-color: rgb(18, 18, 18);
     --search-bg: rgba(237, 237, 237, 0);
 
     /* Link Colors */
@@ -60,7 +60,7 @@
 [data-md-color-scheme="default"] {
     /* Primary Colors */
     --md-primary-bg-color--light: hsla(0, 0%, 0%, 0.7);
-    --md-default-bg-color: var(--sift-ceramic);
+    --md-default-bg-color: rgb(255, 255, 255);
     --md-primary-bg-color: var(--font-foreground-color);
 
     /* Logo Display */
