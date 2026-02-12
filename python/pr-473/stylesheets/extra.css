@@ -4,7 +4,7 @@
     /* Sift Brand Colors */
     --sift-orange: #EE4120;
     --sift-ceramic: #F5F5F5;
-    --sift-rubber: #121619;
+    --sift-dark: #101010;
 
     --brand-color: var(--sift-orange);
 
@@ -34,7 +34,7 @@
 [data-md-color-scheme="slate"] {
     /* Primary Colors */
     --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.7);
-    --md-default-bg-color: var(--sift-rubber);
+    --md-default-bg-color: var(--sift-dark);
     --md-primary-bg-color: var(--font-foreground-color);
 
     /* Logo Display */
@@ -42,7 +42,7 @@
     --md-footer-logo-light-mode: none;
 
     /* Custom Theme Colors */
-    --header-bg-color: rgb(from var(--sift-rubber) r g b / 0.8);
+    --header-bg-color: rgb(from var(--sift-dark) r g b / 0.8);
     --bold-header-color: white;
     --font-foreground-color: rgb(255, 255, 255);
     --border-color: rgb(36, 36, 36);
