@@ -63,6 +63,38 @@ class TestReports:
         assert report_from_rules is not None
         assert report_from_rules.run_id == nostromo_run.id_
 
+    @pytest.mark.asyncio
+    async def test_wait_until_complete(self, nostromo_run, test_rule, sift_client):
+        """Create a report and wait for its job to complete via async wait_until_complete."""
+        report = sift_client.reports.create_from_rules(
+            name="report_wait_until_complete",
+            run=nostromo_run,
+            rules=[test_rule],
+        )
+        assert report is not None
+        assert report.job_id
+
+        completed_report = await sift_client.async_.reports.wait_until_complete(
+            report=report,
+            polling_interval_secs=2,
+            timeout_secs=120,
+        )
+
+        assert completed_report is not None
+        assert completed_report.id_ == report.id_
+        assert completed_report.job_id == report.job_id
+
+        completed_rule_statuses = (
+            ReportRuleStatus.FINISHED,
+            ReportRuleStatus.FAILED,
+            ReportRuleStatus.CANCELED,
+            ReportRuleStatus.ERROR,
+        )
+        assert len(completed_report.summaries) == 1
+        assert any(
+            s.status in completed_rule_statuses for s in completed_report.summaries
+        ), "expected rule summary to be in a completed state"
+
     def test_create_from_applicable_rules(
         self, test_rule, nostromo_asset, nostromo_run, sift_client
     ):

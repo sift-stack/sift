@@ -337,3 +337,40 @@ class ReportsAPIAsync(ResourceBase):
         update.resource_id = report_id
         updated_report = await self._low_level_client.update_report(update=update)
         return self._apply_client_to_instance(updated_report)
+
+    async def wait_until_complete(
+        self,
+        *,
+        report: str | Report,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Report:
+        """Wait until the report is complete or the timeout is reached.
+
+        Polls the report job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Report
+
+        Args:
+            report: The Report or report_id to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Report in the completed state.
+        """
+        if isinstance(report, Report):
+            report_id = report._id_or_error
+            job_id = report.job_id
+        else:
+            report_id = report
+            report = await self.get(report_id=report_id)
+            job_id = report.job_id
+
+        await self.client.async_.jobs.wait_until_complete(
+            job=job_id,
+            polling_interval_secs=polling_interval_secs,
+            timeout_secs=timeout_secs,
+        )
+        # Return the updated report now that the job is complete
+        return await self.get(report_id=report_id)

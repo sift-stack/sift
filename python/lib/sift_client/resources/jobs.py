@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import time
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
@@ -155,3 +157,37 @@ class JobsAPIAsync(ResourceBase):
         job_id = job._id_or_error if isinstance(job, Job) else job
         updated_job = await self._low_level_client.retry_job(job_id)
         return self._apply_client_to_instance(updated_job)
+
+    async def wait_until_complete(
+        self,
+        *,
+        job: Job | str,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Job:
+        """Wait until the job is complete or the timeout is reached.
+
+        Polls the job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Job
+
+        Args:
+            job: The Job or job_id to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Job in the completed state.
+        """
+        job_id = job._id_or_error if isinstance(job, Job) else job
+
+        start = time.monotonic()
+        while True:
+            job = await self.get(job_id)
+            if job.job_status in (JobStatus.FINISHED, JobStatus.FAILED, JobStatus.CANCELLED):
+                return job
+            if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
+                raise TimeoutError(
+                    f"Job {job_id} did not complete within {timeout_secs} seconds"
+                )
+            await asyncio.sleep(polling_interval_secs)
