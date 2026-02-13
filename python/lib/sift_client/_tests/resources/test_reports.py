@@ -91,9 +91,9 @@ class TestReports:
             ReportRuleStatus.ERROR,
         )
         assert len(completed_report.summaries) == 1
-        assert any(
-            s.status in completed_rule_statuses for s in completed_report.summaries
-        ), "expected rule summary to be in a completed state"
+        assert any(s.status in completed_rule_statuses for s in completed_report.summaries), (
+            "expected rule summary to be in a completed state"
+        )
 
     def test_create_from_applicable_rules(
         self, test_rule, nostromo_asset, nostromo_run, sift_client

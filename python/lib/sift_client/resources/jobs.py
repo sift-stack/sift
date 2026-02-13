@@ -187,7 +187,5 @@ class JobsAPIAsync(ResourceBase):
             if job.job_status in (JobStatus.FINISHED, JobStatus.FAILED, JobStatus.CANCELLED):
                 return job
             if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
-                raise TimeoutError(
-                    f"Job {job_id} did not complete within {timeout_secs} seconds"
-                )
+                raise TimeoutError(f"Job {job_id} did not complete within {timeout_secs} seconds")
             await asyncio.sleep(polling_interval_secs)

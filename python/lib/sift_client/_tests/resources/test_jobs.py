@@ -296,9 +296,7 @@ class TestJobsAPIAsync:
         """Tests for the async wait_until_complete method."""
 
         @pytest.mark.asyncio
-        async def test_returns_immediately_when_job_already_complete(
-            self, jobs_api_async
-        ):
+        async def test_returns_immediately_when_job_already_complete(self, jobs_api_async):
             """When get returns a completed job on first call, wait returns immediately."""
             job_id = "test-job-id"
             mock_job = MagicMock()
@@ -316,9 +314,7 @@ class TestJobsAPIAsync:
             mock_get.assert_called_once_with(job_id)
 
         @pytest.mark.asyncio
-        async def test_returns_immediately_when_job_already_failed(
-            self, jobs_api_async
-        ):
+        async def test_returns_immediately_when_job_already_failed(self, jobs_api_async):
             """When get returns a failed job on first call, wait returns immediately."""
             job_id = "test-job-id"
             mock_job = MagicMock()
@@ -336,9 +332,7 @@ class TestJobsAPIAsync:
             mock_get.assert_called_once_with(job_id)
 
         @pytest.mark.asyncio
-        async def test_returns_immediately_when_job_already_cancelled(
-            self, jobs_api_async
-        ):
+        async def test_returns_immediately_when_job_already_cancelled(self, jobs_api_async):
             """When get returns a cancelled job on first call, wait returns immediately."""
             job_id = "test-job-id"
             mock_job = MagicMock()
@@ -380,9 +374,7 @@ class TestJobsAPIAsync:
             assert mock_get.call_count == 2
 
         @pytest.mark.asyncio
-        async def test_raises_timeout_error_when_not_complete_in_time(
-            self, jobs_api_async
-        ):
+        async def test_raises_timeout_error_when_not_complete_in_time(self, jobs_api_async):
             """When job never reaches a completed state, TimeoutError is raised."""
             job_id = "test-job-id"
             running_job = MagicMock()
