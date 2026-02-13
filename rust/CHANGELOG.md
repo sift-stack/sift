@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.3] - January 16, 2026
+### What's New
+Various bug fixes to the backup manager system, and the file backup mode of `SiftStream`.
+
+### Full Changelog
+- [Fix bug with metrics task and file backup mode](https://github.com/sift-stack/sift/commit/40e53550db3075872612a8eafbfbf16c376f8b52)
+- [Backup manager bug fixes](https://github.com/sift-stack/sift/commit/d8d07fec171cf3c0d790181cb5496e97ce358ecf)
+
+
 ## [v0.7.2] - January 16, 2026
 ### What's New
 Added support for webpki TLS certificates.
