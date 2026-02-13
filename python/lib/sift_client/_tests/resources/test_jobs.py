@@ -307,7 +307,7 @@ class TestJobsAPIAsync:
                 new_callable=AsyncMock,
                 return_value=mock_job,
             ) as mock_get:
-                result = await jobs_api_async.wait_until_complete(job_id)
+                result = await jobs_api_async.wait_until_complete(job=job_id)
 
             assert result is mock_job
             assert result.job_status == JobStatus.FINISHED
@@ -325,7 +325,7 @@ class TestJobsAPIAsync:
                 new_callable=AsyncMock,
                 return_value=mock_job,
             ) as mock_get:
-                result = await jobs_api_async.wait_until_complete(job_id)
+                result = await jobs_api_async.wait_until_complete(job=job_id)
 
             assert result is mock_job
             assert result.job_status == JobStatus.FAILED
@@ -343,7 +343,7 @@ class TestJobsAPIAsync:
                 new_callable=AsyncMock,
                 return_value=mock_job,
             ) as mock_get:
-                result = await jobs_api_async.wait_until_complete(job_id)
+                result = await jobs_api_async.wait_until_complete(job=job_id)
 
             assert result is mock_job
             assert result.job_status == JobStatus.CANCELLED
@@ -364,9 +364,9 @@ class TestJobsAPIAsync:
                 side_effect=[running_job, finished_job],
             ) as mock_get:
                 result = await jobs_api_async.wait_until_complete(
-                    job_id,
-                    polling_interval=0.01,
-                    timeout=10.0,
+                    job=job_id,
+                    polling_interval_secs=0.01,
+                    timeout_secs=10.0,
                 )
 
             assert result is finished_job
@@ -387,9 +387,9 @@ class TestJobsAPIAsync:
             ):
                 with pytest.raises(TimeoutError):
                     await jobs_api_async.wait_until_complete(
-                        job_id,
-                        polling_interval=0.05,
-                        timeout=0.1,
+                        job=job_id,
+                        polling_interval_secs=0.05,
+                        timeout_secs=0.1,
                     )
 
     class TestJobProperties:
