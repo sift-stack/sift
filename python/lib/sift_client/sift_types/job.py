@@ -286,3 +286,27 @@ class Job(BaseType[JobProto, "Job"]):
         updated_job = self.client.jobs.retry(self)
         self._update(updated_job)
         return self
+
+    def wait_until_complete(
+        self,
+        *,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Job:
+        """Wait until the job is complete or the timeout is reached.
+
+        Polls the job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Job
+
+        Args:
+            job: The Job or job_id to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Job in the completed state.
+        """
+        completed_job = self.client.jobs.wait_until_complete(job=self, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs)
+        self._update(completed_job)
+        return self

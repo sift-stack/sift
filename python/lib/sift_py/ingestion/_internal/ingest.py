@@ -520,11 +520,11 @@ class _IngestionServiceImpl:
 
         # We can have multiple channels of the same name but different data-type. This will create a completely unique channel
         # identifier by creating a composite key of the fully qualified channel name with the channel's data-type.
-        sift_channel_identifier: Callable[[ChannelConfigPb], str] = (
-            lambda x: f"{channel_fqn(x)}.{x.data_type}"
+        sift_channel_identifier: Callable[[ChannelConfigPb], str] = lambda x: (
+            f"{channel_fqn(x)}.{x.data_type}"
         )
-        config_channel_identifier: Callable[[ChannelConfig], str] = (
-            lambda x: f"{channel_fqn(x)}.{x.data_type.value}"
+        config_channel_identifier: Callable[[ChannelConfig], str] = lambda x: (
+            f"{channel_fqn(x)}.{x.data_type.value}"
         )
 
         for config_flow in config_flows:
