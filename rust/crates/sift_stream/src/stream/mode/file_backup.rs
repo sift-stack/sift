@@ -74,7 +74,15 @@ impl FileBackupWriter {
         write_rx: Receiver<Arc<IngestWithConfigDataStreamRequest>>,
     ) -> Result<()> {
         while let Ok(request) = write_rx.recv().await {
-            self.handle_request(&request).await?;
+            // Log errors if they occur, but only break/return when the channel is closed
+            // and empty.
+            if let Err(e) = self.handle_request(&request).await {
+                #[cfg(feature = "tracing")]
+                tracing::error!(
+                    error = %e,
+                    "error handling request"
+                );
+            }
         }
 
         // Flush and sync the current file before finishing
@@ -557,6 +565,76 @@ mod tests {
                 assert!(metadata.len() > 0, "File should have content");
             }
         }
+
+        #[tokio::test]
+        async fn test_file_backup_writer_run_continues_after_handle_request_error() {
+            let temp_dir = TempDir::new("test_file_backup_writer").unwrap();
+            let backup_dir = temp_dir.path().join("backup_subdir");
+            assert!(!backup_dir.exists(), "subdir must not exist yet");
+
+            let config = FileWriterConfig {
+                directory: backup_dir.clone(),
+                prefix: "test".to_string(),
+                max_size: 1024 * 1024,
+            };
+
+            let writer = FileBackupWriter::new(config, Arc::new(SiftStreamMetrics::default()));
+            let (write_tx, write_rx) = async_channel::bounded(10);
+            let ingestion_config_id = Uuid::new_v4().to_string();
+
+            let run_handle = tokio::spawn(async move { writer.run(write_rx).await });
+
+            // Send a request to create a file before the directory is created (this should fail internally but the task should continue running).
+            let request = create_test_request("flow_0", &ingestion_config_id);
+            write_tx.send(Arc::new(request)).await.unwrap();
+
+            // Wait for the request to be consumed.
+            while !write_tx.is_empty() {
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            }
+
+            // The task should not have finished yet.
+            assert!(!run_handle.is_finished());
+
+            // Create the necessary directory and send a second request. The file should be created successfully this time.
+            tokio::fs::create_dir_all(&backup_dir).await.unwrap();
+
+            let second_request = create_test_request("flow_1", &ingestion_config_id);
+            write_tx.send(Arc::new(second_request)).await.unwrap();
+
+            // Wait for the request to be consumed.
+            while !write_tx.is_empty() {
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            }
+
+            // Drop the write channel to signal the task to finish.
+            drop(write_tx);
+            assert!(
+                run_handle.await.unwrap().is_ok(),
+                "run task should complete successfully."
+            );
+
+            let files: Vec<_> = std::fs::read_dir(&backup_dir)
+                .unwrap()
+                .filter_map(|entry| entry.ok())
+                .filter(|entry| {
+                    entry
+                        .path()
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| n.starts_with("test-"))
+                        .unwrap_or(false)
+                })
+                .collect();
+            assert!(
+                !files.is_empty(),
+                "Expected at least one file with prefix 'test-' after creating directory"
+            );
+            for file in &files {
+                let metadata = std::fs::metadata(file.path()).unwrap();
+                assert!(metadata.len() > 0, "File should have content");
+            }
+        }
     }
 
     fn create_test_ingestion_config() -> IngestionConfig {
@@ -593,6 +671,52 @@ mod tests {
             end_stream_on_validation_error: false,
             organization_id: Uuid::new_v4().to_string(),
         }
+    }
+
+    #[tokio::test]
+    async fn test_file_backup_metrics_streaming_task_completes_when_control_channel_closed() {
+        let (setup_channel, _) = create_mock_grpc_channel_with_service().await;
+        let temp_dir = TempDir::new("test_file_backup").unwrap();
+        let backups_directory = temp_dir.path().to_path_buf();
+        let file_writer_config = FileWriterConfig {
+            directory: temp_dir.path().to_path_buf(),
+            prefix: "test".to_string(),
+            max_size: 1024 * 1024,
+        };
+        let metrics = Arc::new(SiftStreamMetrics::default());
+
+        let file_backup = FileBackup::new(
+            backups_directory,
+            file_writer_config,
+            10,
+            metrics,
+            100,
+            Some(std::time::Duration::from_secs(60)),
+            setup_channel,
+            "test_session".to_string(),
+            Uuid::new_v4(),
+        )
+        .unwrap();
+
+        // Decompose the file backup to get the control channel and metrics streaming task.
+        let FileBackup {
+            metrics_streaming,
+            control_tx,
+            ..
+        } = file_backup;
+
+        // Drop the control channel to signal the metrics streaming task to finish (which would happen if the struct was dropped).
+        drop(control_tx);
+
+        // Wait for the metrics streaming task to complete.
+        let metrics_streaming_result = metrics_streaming
+            .expect("metrics streaming task")
+            .await
+            .expect("metrics streaming task should complete successfully.");
+        assert!(
+            metrics_streaming_result.is_ok(),
+            "metrics streaming task should have returned success."
+        );
     }
 
     #[tokio::test]
