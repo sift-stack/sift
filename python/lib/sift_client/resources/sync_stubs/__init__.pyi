@@ -745,6 +745,25 @@ class JobsAPI:
         """
         ...
 
+    def wait_until_complete(
+        self, *, job: Job | str, polling_interval_secs: int = 5, timeout_secs: int | None = None
+    ) -> Job:
+        """Wait until the job is complete or the timeout is reached.
+
+        Polls the job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Job
+
+        Args:
+            job: The Job or job_id to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Job in the completed state.
+        """
+        ...
+
 class PingAPI:
     """Sync counterpart to `PingAPIAsync`.
 
@@ -960,6 +979,29 @@ class ReportsAPI:
         Args:
             report: The Report or report ID to update.
             update: The updates to apply.
+        """
+        ...
+
+    def wait_until_complete(
+        self,
+        *,
+        report: str | Report,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Report:
+        """Wait until the report is complete or the timeout is reached.
+
+        Polls the report job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Report
+
+        Args:
+            report: The Report or report_id to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Report in the completed state.
         """
         ...
 
