@@ -146,17 +146,16 @@ class TestReports:
         assert archived_report is not None
         assert archived_report.is_archived == True
 
-    def test_unarchive(self, sift_client):
-        reports_from_rules = sift_client.reports.list_(
-            name="report_from_rules", include_archived=True
+    def test_unarchive(self, nostromo_run, test_rule, sift_client):
+        # create a report, archive it, then unarchive it
+        report_from_rules = sift_client.reports.create_from_rules(
+            name="report_from_rules_unarchive",
+            run=nostromo_run,
+            rules=[test_rule],
         )
-        report_from_rules = None
-        for report_from_rules in reports_from_rules:
-            if report_from_rules.is_archived:
-                report_from_rules = report_from_rules
-                break
         assert report_from_rules is not None
-        assert report_from_rules.is_archived == True
-        unarchived_report = sift_client.reports.unarchive(report=report_from_rules)
+        archived_report = sift_client.reports.archive(report=report_from_rules)
+        assert archived_report.is_archived is True
+        unarchived_report = sift_client.reports.unarchive(report=archived_report)
         assert unarchived_report is not None
-        assert unarchived_report.is_archived == False
+        assert unarchived_report.is_archived is False
