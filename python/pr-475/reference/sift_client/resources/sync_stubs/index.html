@@ -10234,7 +10234,12 @@ Defaults to None (indefinite).</p>
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -10256,7 +10261,7 @@ Defaults to None (indefinite).</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The Report or report ID to cancel.</p>
+                <p>The Report, PendingReport, or report ID to cancel.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -10266,7 +10271,12 @@ Defaults to None (indefinite).</p>
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></code>
+   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a> | <a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></code>
                   </span>
               </p>
             </td>
@@ -10299,12 +10309,12 @@ Defaults to None (indefinite).</p>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">start_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">end_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            PendingReport
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span> <span class="o">|</span> <span class="kc">None</span>
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -10441,17 +10451,17 @@ If you want to evaluate against assets, use the rules client instead since no re
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            Report
+                    <code><a class="autorefs autorefs-internal" title="            PendingReport
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a> | None</code>
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a> | None</code>
                 </span>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>The created Report or None if no report was created.</p>
+                <p>The PendingReport or None if no report was created.</p>
               </div>
             </td>
           </tr>
@@ -10487,12 +10497,12 @@ If you want to evaluate against assets, use the rules client instead since no re
   
       pydantic-model
    (sift_client.sift_types.rule.Rule)" href="../../sift_types/rule/#sift_client.sift_types.rule.Rule">Rule</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">],</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            PendingReport
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span> <span class="o">|</span> <span class="kc">None</span>
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -10605,17 +10615,17 @@ If you want to evaluate against assets, use the rules client instead since no re
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            Report
+                    <code><a class="autorefs autorefs-internal" title="            PendingReport
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a> | None</code>
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a> | None</code>
                 </span>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>The created Report or None if no report was created.</p>
+                <p>The PendingReport or None if no report was created.</p>
               </div>
             </td>
           </tr>
@@ -10641,12 +10651,12 @@ If you want to evaluate against assets, use the rules client instead since no re
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">run_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">organization_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            PendingReport
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span> <span class="o">|</span> <span class="kc">None</span>
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -10749,17 +10759,17 @@ If you want to evaluate against assets, use the rules client instead since no re
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            Report
+                    <code><a class="autorefs autorefs-internal" title="            PendingReport
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a> | None</code>
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a> | None</code>
                 </span>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>The created Report or None if no report was created.</p>
+                <p>The PendingReport or None if no report was created.</p>
               </div>
             </td>
           </tr>
@@ -11473,12 +11483,24 @@ raises an error.</p>
 
 
 <a href="#sift_client.resources.sync_stubs.ReportsAPI.rerun" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">rerun</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">report</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">rerun</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">report</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span><span class="p">]</span>
+   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -11500,7 +11522,7 @@ raises an error.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The Report or report ID to rerun.</p>
+                <p>The Report, PendingReport, or report ID to rerun.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -11510,7 +11532,12 @@ raises an error.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></code>
+   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a> | <a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></code>
                   </span>
               </p>
             </td>
@@ -11530,12 +11557,17 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><span title="tuple">tuple</span>[<span title="str">str</span>, <span title="str">str</span>]</code>
+                    <code><a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>A tuple of (job_id, new_report_id).</p>
+                <p>A PendingReport for the new report run.</p>
               </div>
             </td>
           </tr>
@@ -11678,12 +11710,17 @@ raises an error.</p>
 <a href="#sift_client.resources.sync_stubs.ReportsAPI.wait_until_complete" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">wait_until_complete</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">report</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span><span class="p">,</span>
+   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Report
@@ -11698,7 +11735,7 @@ raises an error.</p>
 
         <p>Wait until the report is complete or the timeout is reached.</p>
 <p>Polls the report job status at the given interval until the job is FINISHED,
-FAILED, or CANCELLED, returning the completed Report</p>
+FAILED, or CANCELLED, returning the completed Report.</p>
 
 
 <table>
@@ -11715,17 +11752,22 @@ FAILED, or CANCELLED, returning the completed Report</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The Report or report_id to wait for.</p>
+                <p>The Report or PendingReport to wait for.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            Report
+                      <code><a class="autorefs autorefs-internal" title="            Report
 
 
   
       pydantic-model
-   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a></code>
+   (sift_client.sift_types.report.Report)" href="../../sift_types/report/#sift_client.sift_types.report.Report">Report</a> | <a class="autorefs autorefs-internal" title="            PendingReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.report.PendingReport)" href="../../sift_types/report/#sift_client.sift_types.report.PendingReport">PendingReport</a></code>
                   </span>
               </p>
             </td>
