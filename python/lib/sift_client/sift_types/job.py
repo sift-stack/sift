@@ -307,6 +307,8 @@ class Job(BaseType[JobProto, "Job"]):
         Returns:
             The Job in the completed state.
         """
-        completed_job = self.client.jobs.wait_until_complete(job=self, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs)
+        completed_job = self.client.jobs.wait_until_complete(
+            job=self, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs
+        )
         self._update(completed_job)
         return self

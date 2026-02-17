@@ -202,6 +202,7 @@ class ReportUpdate(ModelUpdate[ReportProto]):
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.report_id = self._resource_id
 
+
 class PendingReport(BaseType[EvaluateRulesResponseProto, "PendingReport"]):
     """PendingReport model representing a pending data analysis report.
     Represented by EvaluateRulesResponse in the Sift API.
@@ -239,5 +240,7 @@ class PendingReport(BaseType[EvaluateRulesResponseProto, "PendingReport"]):
         Returns:
             The Report in the completed state.
         """
-        self._client.jobs.wait_until_complete(job=self.job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs)
+        self._client.jobs.wait_until_complete(
+            job=self.job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs
+        )
         return self._client.reports.get(report_id=self.report_id)
