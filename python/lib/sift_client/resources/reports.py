@@ -180,12 +180,13 @@ class ReportsAPIAsync(ResourceBase):
         Returns:
             The PendingReport or None if no report was created.
         """
-        return await self._rules_low_level_client.evaluate_rules(
+        pending = await self._rules_low_level_client.evaluate_rules(
             report_template_id=report_template_id,
             run_id=run_id,
             organization_id=organization_id,
             report_name=name,
         )
+        return self._apply_client_to_instance(pending) if pending is not None else None
 
     async def create_from_rules(
         self,
@@ -206,13 +207,14 @@ class ReportsAPIAsync(ResourceBase):
         Returns:
             The PendingReport or None if no report was created.
         """
-        return await self._rules_low_level_client.evaluate_rules(
+        pending = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             rule_ids=[rule._id_or_error if isinstance(rule, Rule) else rule for rule in rules]
             or [],
             report_name=name,
         )
+        return self._apply_client_to_instance(pending) if pending is not None else None
 
     async def create_from_applicable_rules(
         self,
@@ -236,7 +238,7 @@ class ReportsAPIAsync(ResourceBase):
         Returns:
             The PendingReport or None if no report was created.
         """
-        return await self._rules_low_level_client.evaluate_rules(
+        pending = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             start_time=start_time,
@@ -244,6 +246,7 @@ class ReportsAPIAsync(ResourceBase):
             report_name=name,
             all_applicable_rules=True,
         )
+        return self._apply_client_to_instance(pending) if pending is not None else None
 
     async def wait_until_complete(
         self,

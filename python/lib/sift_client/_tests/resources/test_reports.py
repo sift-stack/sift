@@ -76,7 +76,7 @@ class TestReports:
         assert pending.job_id
 
         completed_report = await sift_client.async_.reports.wait_until_complete(
-            pending_report=pending,
+            report=pending,
             polling_interval_secs=2,
             timeout_secs=120,
         )
@@ -185,17 +185,17 @@ class TestReports:
         assert archived_report is not None
         assert archived_report.is_archived == True
 
-    def test_unarchive(self, sift_client):
-        reports_from_rules = sift_client.reports.list_(
-            name="report_from_rules", include_archived=True
+    def test_unarchive(self, nostromo_run, test_rule, sift_client):
+        # Create, wait for completion, then archive to ensure we have an archived report
+        pending = sift_client.reports.create_from_rules(
+            name="report_from_rules_unarchive",
+            run=nostromo_run,
+            rules=[test_rule],
         )
-        report_from_rules = None
-        for report_from_rules in reports_from_rules:
-            if report_from_rules.is_archived:
-                report_from_rules = report_from_rules
-                break
-        assert report_from_rules is not None
-        assert report_from_rules.is_archived == True
-        unarchived_report = sift_client.reports.unarchive(report=report_from_rules)
+        assert pending is not None
+        report = sift_client.reports.get(report_id=pending.report_id)
+        archived_report = sift_client.reports.archive(report=report)
+        assert archived_report.is_archived is True
+        unarchived_report = sift_client.reports.unarchive(report=archived_report)
         assert unarchived_report is not None
-        assert unarchived_report.is_archived == False
+        assert unarchived_report.is_archived is False
