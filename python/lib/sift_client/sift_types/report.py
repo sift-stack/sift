@@ -243,4 +243,4 @@ class PendingReport(BaseType[EvaluateRulesResponse, "PendingReport"]):
         self.client.jobs.wait_until_complete(
             job=self.job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs
         )
-        return cast(Report, self.client.reports.get(report_id=self.report_id))
+        return cast("Report", self.client.reports.get(report_id=self.report_id))
