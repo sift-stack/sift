@@ -8,6 +8,7 @@ from pydantic import ConfigDict
 from sift.reports.v1.reports_pb2 import Report as ReportProto
 from sift.reports.v1.reports_pb2 import ReportRuleSummary as ReportRuleSummaryProto
 from sift.reports.v1.reports_pb2 import ReportTag as ReportTagProto
+from sift.rule_evaluation.v1.rule_evaluation_pb2 import EvaluateRulesResponseProto
 
 from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.sift_types.tag import Tag
@@ -200,3 +201,43 @@ class ReportUpdate(ModelUpdate[ReportProto]):
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.report_id = self._resource_id
+
+class PendingReport(BaseType[EvaluateRulesResponseProto, "PendingReport"]):
+    """PendingReport model representing a pending data analysis report.
+    Represented by EvaluateRulesResponse in the Sift API.
+    """
+
+    report_id: str
+    job_id: str
+
+    @classmethod
+    def _from_proto(
+        cls, proto: EvaluateRulesResponseProto, sift_client: SiftClient | None = None
+    ) -> PendingReport:
+        return cls(
+            report_id=proto.report_id,
+            job_id=proto.job_id,
+            _client=sift_client,
+        )
+
+    def wait_until_complete(
+        self,
+        *,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Report:
+        """Wait until the report is complete or the timeout is reached.
+
+        Polls the report job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Report
+
+        Args:
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Report in the completed state.
+        """
+        self._client.jobs.wait_until_complete(job=self.job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs)
+        return self._client.reports.get(report_id=self.report_id)

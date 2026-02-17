@@ -55,34 +55,35 @@ def test_client_binding(sift_client):
 @pytest.mark.integration
 class TestReports:
     def test_create_from_rules(self, nostromo_run, test_rule, sift_client):
-        report_from_rules = sift_client.reports.create_from_rules(
+        pending = sift_client.reports.create_from_rules(
             name="report_from_rules",
             run=nostromo_run,
             rules=[test_rule],
         )
-        assert report_from_rules is not None
-        assert report_from_rules.run_id == nostromo_run.id_
+        assert pending is not None
+        report = sift_client.reports.get(report_id=pending.report_id)
+        assert report.run_id == nostromo_run.id_
 
     @pytest.mark.asyncio
     async def test_wait_until_complete(self, nostromo_run, test_rule, sift_client):
         """Create a report and wait for its job to complete via async wait_until_complete."""
-        report = sift_client.reports.create_from_rules(
+        pending = sift_client.reports.create_from_rules(
             name="report_wait_until_complete",
             run=nostromo_run,
             rules=[test_rule],
         )
-        assert report is not None
-        assert report.job_id
+        assert pending is not None
+        assert pending.job_id
 
         completed_report = await sift_client.async_.reports.wait_until_complete(
-            report=report,
+            pending_report=pending,
             polling_interval_secs=2,
             timeout_secs=120,
         )
 
         assert completed_report is not None
-        assert completed_report.id_ == report.id_
-        assert completed_report.job_id == report.job_id
+        assert completed_report.id_ == pending.report_id
+        assert completed_report.job_id == pending.job_id
 
         completed_rule_statuses = (
             ReportRuleStatus.FINISHED,
@@ -101,13 +102,14 @@ class TestReports:
         if not test_rule.asset_ids:
             # Test rule may exist but be in a state where it no longer applies to the asset associated w/ the run so re-attach it if necessary.
             test_rule = test_rule.update(update={"asset_ids": [nostromo_asset._id_or_error]})
-        report_from_applicable_rules = sift_client.reports.create_from_applicable_rules(
+        pending = sift_client.reports.create_from_applicable_rules(
             name="report_from_applicable_rules_run",
             run=nostromo_run,
             organization_id=nostromo_run.organization_id,
         )
-        assert report_from_applicable_rules is not None
-        assert report_from_applicable_rules.run_id == nostromo_run.id_
+        assert pending is not None
+        report = sift_client.reports.get(report_id=pending.report_id)
+        assert report.run_id == nostromo_run.id_
 
     def test_list(self, nostromo_asset, nostromo_run, tags, sift_client):
         reports = sift_client.reports.list_(
@@ -117,27 +119,31 @@ class TestReports:
         assert len(reports) > 0
 
     def test_rerun(self, nostromo_asset, nostromo_run, test_rule, sift_client):
-        report_from_rules = sift_client.reports.create_from_rules(
+        pending = sift_client.reports.create_from_rules(
             name="report_from_rules",
             run=nostromo_run,
             rules=[test_rule],
         )
-        assert report_from_rules is not None
-        job_id, rerun_report_id = sift_client.reports.rerun(report=report_from_rules)
-        rerun_report = sift_client.reports.get(report_id=rerun_report_id)
+        assert pending is not None
+        rerun_pending = sift_client.reports.rerun(report=pending)
+        assert rerun_pending is not None
+        assert rerun_pending.report_id
+        assert rerun_pending.job_id
+        rerun_report = sift_client.reports.get(report_id=rerun_pending.report_id)
         assert rerun_report is not None
         assert rerun_report.run_id == nostromo_run.id_
-        assert rerun_report.rerun_from_report_id == report_from_rules.id_
+        assert rerun_report.rerun_from_report_id == pending.report_id
 
     def test_update(self, nostromo_asset, nostromo_run, test_rule, sift_client):
-        report_from_rules = sift_client.reports.create_from_rules(
+        pending = sift_client.reports.create_from_rules(
             name="report_from_rules",
             run=nostromo_run,
             rules=[test_rule],
         )
-        assert report_from_rules is not None
+        assert pending is not None
+        report = sift_client.reports.get(report_id=pending.report_id)
         updated_report = sift_client.reports.update(
-            report=report_from_rules,
+            report=report,
             update={
                 "metadata": {
                     "test_type": "ci",
@@ -152,29 +158,30 @@ class TestReports:
             sift_client.reports.find(name="report_from_rules")
 
     def test_cancel(self, nostromo_asset, nostromo_run, test_rule, sift_client):
-        report_from_rules = sift_client.reports.create_from_rules(
+        pending = sift_client.reports.create_from_rules(
             name="report_from_rules",
             run=nostromo_run,
             rules=[test_rule],
         )
-        assert report_from_rules is not None
-        job_id, second_rerun_report_id = sift_client.reports.rerun(report=report_from_rules)
-        assert second_rerun_report_id is not None
-        sift_client.reports.cancel(report=second_rerun_report_id)
-        canceled_report = sift_client.reports.find(report_ids=[second_rerun_report_id])
+        assert pending is not None
+        second_rerun_pending = sift_client.reports.rerun(report=pending)
+        assert second_rerun_pending is not None
+        sift_client.reports.cancel(report=second_rerun_pending)
+        canceled_report = sift_client.reports.find(report_ids=[second_rerun_pending.report_id])
         assert canceled_report is not None
         for summary in canceled_report.summaries:
             # Sometimes the report finishes before it can be canceled.
             assert summary.status in [ReportRuleStatus.CANCELED, ReportRuleStatus.FINISHED]
 
     def test_archive(self, nostromo_run, test_rule, sift_client):
-        report_from_rules = sift_client.reports.create_from_rules(
+        pending = sift_client.reports.create_from_rules(
             name="report_from_rules",
             run=nostromo_run,
             rules=[test_rule],
         )
-        assert report_from_rules is not None
-        archived_report = sift_client.reports.archive(report=report_from_rules)
+        assert pending is not None
+        report = pending.wait_until_complete(polling_interval_secs=2, timeout_secs=120)
+        archived_report = sift_client.reports.archive(report=report)
         assert archived_report is not None
         assert archived_report.is_archived == True
 
