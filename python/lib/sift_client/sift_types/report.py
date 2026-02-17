@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from pydantic import ConfigDict
 from sift.reports.v1.reports_pb2 import Report as ReportProto
@@ -243,4 +243,4 @@ class PendingReport(BaseType[EvaluateRulesResponse, "PendingReport"]):
         self.client.jobs.wait_until_complete(
             job=self.job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs
         )
-        return self.client.reports.get(report_id=self.report_id)
+        return cast(Report, self.client.reports.get(report_id=self.report_id))
