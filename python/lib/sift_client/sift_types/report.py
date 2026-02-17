@@ -8,7 +8,7 @@ from pydantic import ConfigDict
 from sift.reports.v1.reports_pb2 import Report as ReportProto
 from sift.reports.v1.reports_pb2 import ReportRuleSummary as ReportRuleSummaryProto
 from sift.reports.v1.reports_pb2 import ReportTag as ReportTagProto
-from sift.rule_evaluation.v1.rule_evaluation_pb2 import EvaluateRulesResponseProto
+from sift.rule_evaluation.v1.rule_evaluation_pb2 import EvaluateRulesResponse
 
 from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.sift_types.tag import Tag
@@ -203,7 +203,7 @@ class ReportUpdate(ModelUpdate[ReportProto]):
         proto_msg.report_id = self._resource_id
 
 
-class PendingReport(BaseType[EvaluateRulesResponseProto, "PendingReport"]):
+class PendingReport(BaseType[EvaluateRulesResponse, "PendingReport"]):
     """PendingReport model representing a pending data analysis report.
     Represented by EvaluateRulesResponse in the Sift API.
     """
@@ -213,7 +213,7 @@ class PendingReport(BaseType[EvaluateRulesResponseProto, "PendingReport"]):
 
     @classmethod
     def _from_proto(
-        cls, proto: EvaluateRulesResponseProto, sift_client: SiftClient | None = None
+        cls, proto: EvaluateRulesResponse, sift_client: SiftClient | None = None
     ) -> PendingReport:
         return cls(
             report_id=proto.report_id,
@@ -240,7 +240,7 @@ class PendingReport(BaseType[EvaluateRulesResponseProto, "PendingReport"]):
         Returns:
             The Report in the completed state.
         """
-        self._client.jobs.wait_until_complete(
+        self.client.jobs.wait_until_complete(
             job=self.job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs
         )
-        return self._client.reports.get(report_id=self.report_id)
+        return self.client.reports.get(report_id=self.report_id)

@@ -275,6 +275,8 @@ class ReportsAPIAsync(ResourceBase):
             report_id = report.id_
         else:
             report_id = report.report_id
+        if not report_id:
+            raise ValueError("report_id must be set")
         return await self.get(report_id=report_id)
 
     async def rerun(
@@ -296,6 +298,8 @@ class ReportsAPIAsync(ResourceBase):
             report_id = report.report_id
         else:
             report_id = report
+        if not report_id:
+            raise ValueError("report_id must be provided")
         pending = await self._low_level_client.rerun_report(report_id=report_id)
         return self._apply_client_to_instance(pending)
 
@@ -315,6 +319,8 @@ class ReportsAPIAsync(ResourceBase):
             report_id = report.report_id
         else:
             report_id = report
+        if not report_id:
+            raise ValueError("report_id must be provided")
         await self._low_level_client.cancel_report(report_id=report_id)
 
     async def update(self, report: str | Report, update: ReportUpdate | dict) -> Report:
