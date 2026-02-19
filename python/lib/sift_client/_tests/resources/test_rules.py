@@ -279,9 +279,7 @@ class TestRulesAPIAsync:
             assert rule_at_version.rule_version.rule_version_id == versions[0].rule_version_id
 
         @pytest.mark.asyncio
-        async def test_get_rule_version_by_rule_version_instance(
-            self, rules_api_async, test_rule
-        ):
+        async def test_get_rule_version_by_rule_version_instance(self, rules_api_async, test_rule):
             """Test getting a rule at a specific version by passing RuleVersion instance."""
             versions = await rules_api_async.list_rule_versions(test_rule)
             assert versions

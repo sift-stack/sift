@@ -678,9 +678,6 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             List of Rules at those versions (order may match request order).
         """
         request = BatchGetRuleVersionsRequest(rule_version_ids=rule_version_ids)
-        response = await self._grpc_client.get_stub(RuleServiceStub).BatchGetRuleVersions(
-            request
-        )
+        response = await self._grpc_client.get_stub(RuleServiceStub).BatchGetRuleVersions(request)
         response = cast("BatchGetRuleVersionsResponse", response)
         return [Rule._from_proto(r) for r in response.rules]
-

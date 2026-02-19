@@ -292,7 +292,12 @@ class ReportsAPIAsync(ResourceBase):
         ) = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
-            rule_version_ids=[rule_version.rule_version_id if isinstance(rule_version, RuleVersion) else rule_version for rule_version in rule_versions]
+            rule_version_ids=[
+                rule_version.rule_version_id
+                if isinstance(rule_version, RuleVersion)
+                else rule_version
+                for rule_version in rule_versions
+            ]
             or [],
             report_name=name,
         )
