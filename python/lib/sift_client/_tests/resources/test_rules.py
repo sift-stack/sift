@@ -22,6 +22,7 @@ from sift_client.sift_types.rule import (
     RuleAnnotationType,
     RuleCreate,
     RuleUpdate,
+    RuleVersion,
 )
 
 pytestmark = pytest.mark.integration
@@ -214,6 +215,80 @@ class TestRulesAPIAsync:
 
             for rule in rules:
                 assert rule.created_date >= one_year_ago
+
+    class TestListRuleVersions:
+        """Tests for the async list_rule_versions method."""
+
+        @pytest.mark.asyncio
+        async def test_list_rule_versions_by_rule(self, rules_api_async, test_rule):
+            """Test listing rule versions for a rule."""
+            versions = await rules_api_async.list_rule_versions(test_rule)
+            assert isinstance(versions, list)
+            assert len(versions) >= 1
+            for v in versions:
+                assert isinstance(v, RuleVersion)
+                assert v.rule_id == test_rule.id_
+                assert v.rule_version_id
+                assert v.version
+                assert v.created_date
+
+        @pytest.mark.asyncio
+        async def test_list_rule_versions_by_rule_id_str(self, rules_api_async, test_rule):
+            """Test listing rule versions by rule ID string."""
+            versions = await rules_api_async.list_rule_versions(test_rule.id_)
+            assert isinstance(versions, list)
+            assert len(versions) >= 1
+            for v in versions:
+                assert v.rule_id == test_rule.id_
+
+        @pytest.mark.asyncio
+        async def test_list_rule_versions_with_limit(self, rules_api_async, test_rule):
+            """Test listing rule versions with limit."""
+            versions = await rules_api_async.list_rule_versions(test_rule, limit=1)
+            assert isinstance(versions, list)
+            assert len(versions) <= 1
+            if versions:
+                assert isinstance(versions[0], RuleVersion)
+
+        @pytest.mark.asyncio
+        async def test_list_rule_versions_with_rule_version_ids_filter(
+            self, rules_api_async, test_rule
+        ):
+            """Test listing rule versions filtered by rule_version_ids."""
+            all_versions = await rules_api_async.list_rule_versions(test_rule)
+            assert all_versions
+            first_id = all_versions[0].rule_version_id
+            versions = await rules_api_async.list_rule_versions(
+                test_rule, rule_version_ids=[first_id]
+            )
+            assert len(versions) == 1
+            assert versions[0].rule_version_id == first_id
+
+    class TestGetRuleVersion:
+        """Tests for the async get_rule_version method."""
+
+        @pytest.mark.asyncio
+        async def test_get_rule_version_by_id(self, rules_api_async, test_rule):
+            """Test getting a rule at a specific version by rule_version_id."""
+            versions = await rules_api_async.list_rule_versions(test_rule)
+            assert versions
+            rule_at_version = await rules_api_async.get_rule_version(versions[0].rule_version_id)
+            assert rule_at_version is not None
+            assert rule_at_version.id_ == test_rule.id_
+            assert rule_at_version.rule_version is not None
+            assert rule_at_version.rule_version.rule_version_id == versions[0].rule_version_id
+
+        @pytest.mark.asyncio
+        async def test_get_rule_version_by_rule_version_instance(
+            self, rules_api_async, test_rule
+        ):
+            """Test getting a rule at a specific version by passing RuleVersion instance."""
+            versions = await rules_api_async.list_rule_versions(test_rule)
+            assert versions
+            rule_at_version = await rules_api_async.get_rule_version(versions[0])
+            assert rule_at_version is not None
+            assert rule_at_version.id_ == test_rule.id_
+            assert rule_at_version.rule_version.rule_version_id == versions[0].rule_version_id
 
     class TestFind:
         """Tests for the async find method."""
