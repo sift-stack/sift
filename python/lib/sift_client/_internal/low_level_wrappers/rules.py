@@ -3,9 +3,18 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Sequence, cast
 
-from sift.common.type.v1.resource_identifier_pb2 import ResourceIdentifier, ResourceIdentifiers
+from sift.common.type.v1.resource_identifier_pb2 import (
+    NamedResources,
+    Names,
+    ResourceIdentifier,
+    ResourceIdentifiers,
+)
 from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
     AssetsTimeRange,
+    EvaluateRulesAnnotationOptions,
+    EvaluateRulesFromCurrentRuleVersions,
+    EvaluateRulesFromReportTemplate,
+    EvaluateRulesFromRuleVersions,
     EvaluateRulesRequest,
     EvaluateRulesResponse,
     RunTimeRange,
@@ -629,13 +638,22 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if all_applicable_rules:
             kwargs["all_applicable_rules"] = all_applicable_rules
         if rule_ids:
-            kwargs["rules"] = {"rules": ResourceIdentifiers(ids={"ids": rule_ids})}  # type: ignore
+            kwargs["rules"] = EvaluateRulesFromCurrentRuleVersions(
+                rules=ResourceIdentifiers(ids={"ids": rule_ids})  # type: ignore[arg-type]
+            )
         if rule_version_ids:
-            kwargs["rule_versions"] = rule_version_ids
+            kwargs["rule_versions"] = EvaluateRulesFromRuleVersions(
+                rule_version_ids=rule_version_ids
+            )
         if report_template_id:
-            kwargs["report_template"] = report_template_id
+            kwargs["report_template"] = EvaluateRulesFromReportTemplate(
+                report_template=ResourceIdentifier(id=report_template_id)
+            )
         if tags:
-            kwargs["tags"] = [tag.name if isinstance(tag, Tag) else tag for tag in tags]
+            tag_names = [tag.name if isinstance(tag, Tag) else tag for tag in tags]
+            kwargs["annotation_options"] = EvaluateRulesAnnotationOptions(
+                tags=NamedResources(names=Names(names=tag_names))  # type: ignore[arg-type]
+            )
         if report_name:
             kwargs["report_name"] = report_name
         if organization_id:
