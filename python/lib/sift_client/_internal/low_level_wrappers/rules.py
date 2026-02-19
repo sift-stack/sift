@@ -15,6 +15,8 @@ from sift.rules.v1.rules_pb2 import (
     ArchiveRuleRequest,
     BatchArchiveRulesRequest,
     BatchGetRulesRequest,
+    BatchGetRuleVersionsRequest,
+    BatchGetRuleVersionsResponse,
     BatchUnarchiveRulesRequest,
     BatchUpdateRulesRequest,
     BatchUpdateRulesResponse,
@@ -665,4 +667,20 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(RuleServiceStub).GetRuleVersion(request)
         grpc_rule = cast("GetRuleVersionResponse", response).rule
         return Rule._from_proto(grpc_rule)
+
+    async def batch_get_rule_versions(self, rule_version_ids: list[str]) -> list[Rule]:
+        """Get multiple rules at specific versions by rule_version_ids.
+
+        Args:
+            rule_version_ids: The rule version IDs to get.
+
+        Returns:
+            List of Rules at those versions (order may match request order).
+        """
+        request = BatchGetRuleVersionsRequest(rule_version_ids=rule_version_ids)
+        response = await self._grpc_client.get_stub(RuleServiceStub).BatchGetRuleVersions(
+            request
+        )
+        response = cast("BatchGetRuleVersionsResponse", response)
+        return [Rule._from_proto(r) for r in response.rules]
 

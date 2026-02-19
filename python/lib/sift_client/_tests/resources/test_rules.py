@@ -290,6 +290,46 @@ class TestRulesAPIAsync:
             assert rule_at_version.id_ == test_rule.id_
             assert rule_at_version.rule_version.rule_version_id == versions[0].rule_version_id
 
+    class TestBatchGetRuleVersions:
+        """Tests for the async batch_get_rule_versions method."""
+
+        @pytest.mark.asyncio
+        async def test_batch_get_rule_versions_by_ids(self, rules_api_async, test_rule):
+            """Test batch getting rules by rule_version_id strings."""
+            versions = await rules_api_async.list_rule_versions(test_rule)
+            assert versions
+            ids = [v.rule_version_id for v in versions[:2]]
+            rules = await rules_api_async.batch_get_rule_versions(ids)
+            assert len(rules) == len(ids)
+            returned_ids = {r.rule_version.rule_version_id for r in rules if r.rule_version}
+            assert returned_ids >= set(ids)
+            for r in rules:
+                assert r.id_ == test_rule.id_
+
+        @pytest.mark.asyncio
+        async def test_batch_get_rule_versions_by_rule_version_instances(
+            self, rules_api_async, test_rule
+        ):
+            """Test batch getting rules by passing RuleVersion instances."""
+            versions = await rules_api_async.list_rule_versions(test_rule)
+            assert versions
+            rules = await rules_api_async.batch_get_rule_versions(versions[:2])
+            assert len(rules) <= 2
+            for r in rules:
+                assert r.id_ == test_rule.id_
+            if len(versions) >= 2:
+                assert len(rules) == 2
+
+        @pytest.mark.asyncio
+        async def test_batch_get_rule_versions_single(self, rules_api_async, test_rule):
+            """Test batch_get_rule_versions with a single version ID."""
+            versions = await rules_api_async.list_rule_versions(test_rule)
+            assert versions
+            rules = await rules_api_async.batch_get_rule_versions([versions[0].rule_version_id])
+            assert len(rules) == 1
+            assert rules[0].id_ == test_rule.id_
+            assert rules[0].rule_version.rule_version_id == versions[0].rule_version_id
+
     class TestFind:
         """Tests for the async find method."""
 

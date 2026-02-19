@@ -390,3 +390,22 @@ class RulesAPIAsync(ResourceBase):
             rule_version_id = rule_version
         rule = await self._low_level_client.get_rule_version(rule_version_id=rule_version_id)
         return self._apply_client_to_instance(rule)
+
+    async def batch_get_rule_versions(
+        self, rule_versions: list[RuleVersion] | list[str]
+    ) -> list[Rule]:
+        """Get multiple rules at specific versions by rule version IDs.
+
+        Args:
+            rule_versions: List of RuleVersion instances or rule version IDs.
+
+        Returns:
+            List of Rules at those versions.
+        """
+        rule_version_ids = [
+            rv.rule_version_id if isinstance(rv, RuleVersion) else rv for rv in rule_versions
+        ]
+        rules = await self._low_level_client.batch_get_rule_versions(
+            rule_version_ids=rule_version_ids
+        )
+        return self._apply_client_to_instances(rules)
