@@ -24,7 +24,11 @@ from sift.rules.v1.rules_pb2 import (
     CreateRuleResponse,
     GetRuleRequest,
     GetRuleResponse,
+    GetRuleVersionRequest,
+    GetRuleVersionResponse,
     ListRulesRequest,
+    ListRuleVersionsRequest,
+    ListRuleVersionsResponse,
     RuleAssetConfiguration,
     RuleConditionExpression,
     UnarchiveRuleRequest,
@@ -45,6 +49,7 @@ from sift_client.sift_types.rule import (
     Rule,
     RuleCreate,
     RuleUpdate,
+    RuleVersion,
 )
 from sift_client.sift_types.tag import Tag
 from sift_client.transport import GrpcClient, WithGrpcClient
@@ -506,6 +511,57 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             max_results=max_results,
         )
 
+    async def list_rule_versions(
+        self,
+        rule_id: str,
+        *,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> tuple[list[RuleVersion], str]:
+        """List rule versions for a rule.
+
+        Args:
+            rule_id: The rule ID to list versions for.
+            filter_query: Optional CEL filter (fields: rule_version_id, user_notes, change_message).
+            order_by: Unused, for _handle_pagination compatibility.
+            page_size: Maximum number of versions per page.
+            page_token: Token for the next page.
+
+        Returns:
+            Tuple of (list of RuleVersions, next page token or empty string).
+        """
+        _ = order_by
+        request_kwargs: dict[str, Any] = {
+            "rule_id": rule_id,
+            "page_size": page_size or DEFAULT_PAGE_SIZE,
+            "page_token": page_token or "",
+        }
+        if filter_query:
+            request_kwargs["filter"] = filter_query
+        request = ListRuleVersionsRequest(**request_kwargs)
+        response = await self._grpc_client.get_stub(RuleServiceStub).ListRuleVersions(request)
+        response = cast("ListRuleVersionsResponse", response)
+        versions = [RuleVersion._from_proto(p) for p in response.rule_versions]
+        return versions, response.next_page_token or ""
+
+    async def list_all_rule_versions(
+        self,
+        rule_id: str,
+        *,
+        filter_query: str | None = None,
+        max_results: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+    ) -> list[RuleVersion]:
+        """List all rule versions for a rule, with optional CEL filter."""
+        return await self._handle_pagination(
+            self.list_rule_versions,
+            kwargs={"rule_id": rule_id, "filter_query": filter_query},
+            page_size=page_size,
+            max_results=max_results,
+        )
+
     async def evaluate_rules(
         self,
         *,
@@ -595,3 +651,18 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             report = await ReportsLowLevelClient(self._grpc_client).get_report(report_id=report_id)
             return created_annotation_count, report, job_id
         return created_annotation_count, None, job_id
+
+    async def get_rule_version(self, rule_version_id: str) -> Rule:
+        """Get a rule at a specific version by rule_version_id.
+
+        Args:
+            rule_version_id: The rule version ID to get.
+
+        Returns:
+            The Rule at that version.
+        """
+        request = GetRuleVersionRequest(rule_version_id=rule_version_id)
+        response = await self._grpc_client.get_stub(RuleServiceStub).GetRuleVersion(request)
+        grpc_rule = cast("GetRuleVersionResponse", response).rule
+        return Rule._from_proto(grpc_rule)
+
