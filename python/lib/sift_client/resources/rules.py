@@ -353,7 +353,7 @@ class RulesAPIAsync(ResourceBase):
             A list of RuleVersion objects matching the filters, ordered by newest versions first.
         """
         if isinstance(rule, Rule):
-            rule_id = rule.resource_id
+            rule_id = rule._id_or_error
         else:
             rule_id = rule
 
