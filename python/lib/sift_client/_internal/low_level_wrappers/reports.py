@@ -16,7 +16,7 @@ from sift.reports.v1.reports_pb2 import (
 from sift.reports.v1.reports_pb2_grpc import ReportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.report import PendingReport, Report, ReportUpdate
+from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
@@ -130,14 +130,14 @@ class ReportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size=page_size,
         )
 
-    async def rerun_report(self, report_id: str) -> PendingReport:
+    async def rerun_report(self, report_id: str) -> tuple[str, str]:
         """Rerun a report.
 
         Args:
             report_id: The ID of the report to rerun.
 
         Returns:
-            A PendingReport for the new report run.
+            A tuple of (job_id, new_report_id).
 
         Raises:
             ValueError: If report_id is not provided.
@@ -148,7 +148,7 @@ class ReportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = RerunReportRequest(report_id=report_id)
         response = await self._grpc_client.get_stub(ReportServiceStub).RerunReport(request)
         response = cast("RerunReportResponse", response)
-        return PendingReport(report_id=response.report_id, job_id=response.job_id)
+        return response.job_id, response.report_id
 
     async def cancel_report(self, report_id: str) -> None:
         """Cancel a report.

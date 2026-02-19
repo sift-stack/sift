@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.report import PendingReport, Report, ReportUpdate
+from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule
 from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.job import Job
     from sift_client.sift_types.tag import Tag
 
 
@@ -168,7 +169,7 @@ class ReportsAPIAsync(ResourceBase):
         run_id: str,
         organization_id: str | None = None,
         name: str | None = None,
-    ) -> PendingReport | None:
+    ) -> Job | None:
         """Create a new report from a report template.
 
         Args:
@@ -178,15 +179,15 @@ class ReportsAPIAsync(ResourceBase):
             name: Optional name for the report.
 
         Returns:
-            The PendingReport or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
-        pending = await self._rules_low_level_client.evaluate_rules(
+        job = await self._rules_low_level_client.evaluate_rules(
             report_template_id=report_template_id,
             run_id=run_id,
             organization_id=organization_id,
             report_name=name,
         )
-        return self._apply_client_to_instance(pending) if pending is not None else None
+        return self._apply_client_to_instance(job) if job is not None else None
 
     async def create_from_rules(
         self,
@@ -195,7 +196,7 @@ class ReportsAPIAsync(ResourceBase):
         run: Run | str | None = None,
         organization_id: str | None = None,
         rules: list[Rule] | list[str],
-    ) -> PendingReport | None:
+    ) -> Job | None:
         """Create a new report from rules.
 
         Args:
@@ -205,16 +206,16 @@ class ReportsAPIAsync(ResourceBase):
             rules: List of rules or rule IDs to include in the report.
 
         Returns:
-            The PendingReport or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
-        pending = await self._rules_low_level_client.evaluate_rules(
+        job = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             rule_ids=[rule._id_or_error if isinstance(rule, Rule) else rule for rule in rules]
             or [],
             report_name=name,
         )
-        return self._apply_client_to_instance(pending) if pending is not None else None
+        return self._apply_client_to_instance(job) if job is not None else None
 
     async def create_from_applicable_rules(
         self,
@@ -224,7 +225,7 @@ class ReportsAPIAsync(ResourceBase):
         name: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-    ) -> PendingReport | None:
+    ) -> Job | None:
         """Create a new report from applicable rules based on a run.
         If you want to evaluate against assets, use the rules client instead since no report is created in that case.
 
@@ -236,9 +237,9 @@ class ReportsAPIAsync(ResourceBase):
             end_time: Optional end time to evaluate rules against.
 
         Returns:
-            The PendingReport or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
-        pending = await self._rules_low_level_client.evaluate_rules(
+        job = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             start_time=start_time,
@@ -246,82 +247,38 @@ class ReportsAPIAsync(ResourceBase):
             report_name=name,
             all_applicable_rules=True,
         )
-        return self._apply_client_to_instance(pending) if pending is not None else None
-
-    async def wait_until_complete(
-        self,
-        *,
-        report: Report | PendingReport,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-    ) -> Report:
-        """Wait until the report is complete or the timeout is reached.
-
-        Polls the report job status at the given interval until the job is FINISHED,
-        FAILED, or CANCELLED, returning the completed Report.
-
-        Args:
-            report: The Report or PendingReport to wait for.
-            polling_interval_secs: Seconds between status polls. Defaults to 5s.
-            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-                Defaults to None (indefinite).
-
-        Returns:
-            The Report in the completed state.
-        """
-        await self.client.async_.jobs.wait_until_complete(
-            job=report.job_id,
-            polling_interval_secs=polling_interval_secs,
-            timeout_secs=timeout_secs,
-        )
-        if isinstance(report, Report):
-            report_id = report.id_
-        else:
-            report_id = report.report_id
-        if not report_id:
-            raise ValueError("report_id must be set")
-        return await self.get(report_id=report_id)
+        return self._apply_client_to_instance(job) if job is not None else None
 
     async def rerun(
         self,
         *,
-        report: str | Report | PendingReport,
-    ) -> PendingReport:
+        report: str | Report,
+    ) -> Job:
         """Rerun a report.
 
         Args:
-            report: The Report, PendingReport, or report ID to rerun.
+            report: The Report or report ID to rerun.
 
         Returns:
-            A PendingReport for the new report run.
+            The Job for the new pending report.
         """
-        if isinstance(report, Report):
-            report_id = report.id_
-        elif isinstance(report, PendingReport):
-            report_id = report.report_id
-        else:
-            report_id = report
+        report_id = report._id_or_error if isinstance(report, Report) else report
         if not report_id:
             raise ValueError("report_id must be provided")
-        pending = await self._low_level_client.rerun_report(report_id=report_id)
-        return self._apply_client_to_instance(pending)
+        job = await self._low_level_client.rerun_report(report_id=report_id)
+        return self._apply_client_to_instance(job)
 
     async def cancel(
         self,
         *,
-        report: str | Report | PendingReport,
+        report: str | Report,
     ) -> None:
         """Cancel a report.
 
         Args:
-            report: The Report, PendingReport, or report ID to cancel.
+            report: The Report or report ID to cancel.
         """
-        if isinstance(report, Report):
-            report_id = report.id_
-        elif isinstance(report, PendingReport):
-            report_id = report.report_id
-        else:
-            report_id = report
+        report_id = report._id_or_error if isinstance(report, Report) else report
         if not report_id:
             raise ValueError("report_id must be provided")
         await self._low_level_client.cancel_report(report_id=report_id)
@@ -333,7 +290,7 @@ class ReportsAPIAsync(ResourceBase):
             report: The Report or report ID to update.
             update: The updates to apply.
         """
-        report_id = report.id_ if isinstance(report, Report) else report
+        report_id = report._id_or_error if isinstance(report, Report) else report
 
         if isinstance(update, dict):
             update = ReportUpdate.model_validate(update)
@@ -347,7 +304,7 @@ class ReportsAPIAsync(ResourceBase):
         report: str | Report,
     ) -> Report:
         """Archive a report."""
-        report_id = report.id_ if isinstance(report, Report) else report
+        report_id = report._id_or_error if isinstance(report, Report) else report
         update = ReportUpdate(is_archived=True)
         update.resource_id = report_id
         updated_report = await self._low_level_client.update_report(update=update)
@@ -359,7 +316,7 @@ class ReportsAPIAsync(ResourceBase):
         report: str | Report,
     ) -> Report:
         """Unarchive a report."""
-        report_id = report.id_ if isinstance(report, Report) else report
+        report_id = report._id_or_error if isinstance(report, Report) else report
         update = ReportUpdate(is_archived=False)
         update.resource_id = report_id
         updated_report = await self._low_level_client.update_report(update=update)
