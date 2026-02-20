@@ -845,7 +845,7 @@ class ReportsAPI:
         run: Run | str | None = None,
         organization_id: str | None = None,
         rule_versions: list[RuleVersion] | list[str],
-    ) -> Report | None:
+    ) -> Job | None:
         """Create a new report from rule versions.
 
         Args:
@@ -855,7 +855,7 @@ class ReportsAPI:
             rule_versions: List of RuleVersions or rule_version IDs to include in the report.
 
         Returns:
-            The created Report or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
         ...
 

@@ -227,13 +227,15 @@ class TestReports:
         """Create a report from specific rule version IDs."""
         rule_versions = sift_client.rules.list_rule_versions(test_rule)
         assert rule_versions, "test_rule should have at least one version"
-        report = sift_client.reports.create_from_rule_versions(
+        job = sift_client.reports.create_from_rule_versions(
             name="report_from_rule_versions",
             run=nostromo_run,
             organization_id=nostromo_run.organization_id,
             rule_versions=[rule_versions[0].rule_version_id],
         )
-        assert report is not None
+        assert job is not None
+        assert isinstance(job.job_details, RuleEvaluationDetails)
+        report = sift_client.reports.get(report_id=job.job_details.report_id)
         assert report.run_id == nostromo_run.id_
         assert report.name == "report_from_rule_versions"
 
@@ -243,13 +245,15 @@ class TestReports:
         """Create a report passing RuleVersion instances."""
         rule_versions = sift_client.rules.list_rule_versions(test_rule)
         assert rule_versions
-        report = sift_client.reports.create_from_rule_versions(
+        job = sift_client.reports.create_from_rule_versions(
             name="report_from_rule_versions_objs",
             run=nostromo_run,
             organization_id=nostromo_run.organization_id,
             rule_versions=rule_versions[:1],
         )
-        assert report is not None
+        assert job is not None
+        assert isinstance(job.job_details, RuleEvaluationDetails)
+        report = sift_client.reports.get(report_id=job.job_details.report_id)
         assert report.run_id == nostromo_run.id_
 
     def test_create_from_rules(self, nostromo_run, test_rule, sift_client):

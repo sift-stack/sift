@@ -256,7 +256,7 @@ class ReportsAPIAsync(ResourceBase):
         run: Run | str | None = None,
         organization_id: str | None = None,
         rule_versions: list[RuleVersion] | list[str],
-    ) -> Report | None:
+    ) -> Job | None:
         """Create a new report from rule versions.
 
         Args:
@@ -266,12 +266,12 @@ class ReportsAPIAsync(ResourceBase):
             rule_versions: List of RuleVersions or rule_version IDs to include in the report.
 
         Returns:
-            The created Report or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
         (
-            created_annotation_count,
-            created_report,
-            job_id,
+            _annotation_count,
+            _report_id,
+            job,
         ) = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
@@ -284,9 +284,7 @@ class ReportsAPIAsync(ResourceBase):
             or [],
             report_name=name,
         )
-        if created_report:
-            return self._apply_client_to_instance(created_report)
-        return None
+        return self._apply_client_to_instance(job) if job is not None else None
 
     async def rerun(
         self,
@@ -407,6 +405,8 @@ class ReportsAPIAsync(ResourceBase):
                 job_id = report.job_id
                 report_id = report.id_
         else:
+            # job is not None here (we raised if both report and job were None)
+            assert job is not None
             if isinstance(job, str):
                 job_obj = await self.client.async_.jobs.get(job_id=job)
                 job_id = job
