@@ -39,6 +39,11 @@ class CampaignServiceStub(object):
                 request_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsRequest.SerializeToString,
                 response_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsResponse.FromString,
                 )
+        self.GetCampaignReportSummaries = channel.unary_unary(
+                '/sift.campaigns.v1.CampaignService/GetCampaignReportSummaries',
+                request_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.GetCampaignReportSummariesRequest.SerializeToString,
+                response_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.GetCampaignReportSummariesResponse.FromString,
+                )
 
 
 class CampaignServiceServicer(object):
@@ -79,6 +84,15 @@ class CampaignServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetCampaignReportSummaries(self, request, context):
+        """Returns per-campaign report summaries (annotation totals + rule classifications) in bulk.
+        Each campaign maps to its list of CampaignReport entries with summary fields populated.
+        Intended for use alongside ListCampaigns with skip_report_summaries=true.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_CampaignServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -106,6 +120,11 @@ def add_CampaignServiceServicer_to_server(servicer, server):
                     servicer.ListCampaignAnnotations,
                     request_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsRequest.FromString,
                     response_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsResponse.SerializeToString,
+            ),
+            'GetCampaignReportSummaries': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCampaignReportSummaries,
+                    request_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.GetCampaignReportSummariesRequest.FromString,
+                    response_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.GetCampaignReportSummariesResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -199,5 +218,22 @@ class CampaignService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.campaigns.v1.CampaignService/ListCampaignAnnotations',
             sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsRequest.SerializeToString,
             sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetCampaignReportSummaries(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.campaigns.v1.CampaignService/GetCampaignReportSummaries',
+            sift_dot_campaigns_dot_v1_dot_campaigns__pb2.GetCampaignReportSummariesRequest.SerializeToString,
+            sift_dot_campaigns_dot_v1_dot_campaigns__pb2.GetCampaignReportSummariesResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
