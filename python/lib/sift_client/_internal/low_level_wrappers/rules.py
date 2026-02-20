@@ -3,9 +3,18 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Sequence, cast
 
-from sift.common.type.v1.resource_identifier_pb2 import ResourceIdentifier, ResourceIdentifiers
+from sift.common.type.v1.resource_identifier_pb2 import (
+    NamedResources,
+    Names,
+    ResourceIdentifier,
+    ResourceIdentifiers,
+)
 from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
     AssetsTimeRange,
+    EvaluateRulesAnnotationOptions,
+    EvaluateRulesFromCurrentRuleVersions,
+    EvaluateRulesFromReportTemplate,
+    EvaluateRulesFromRuleVersions,
     EvaluateRulesRequest,
     EvaluateRulesResponse,
     RunTimeRange,
@@ -15,6 +24,8 @@ from sift.rules.v1.rules_pb2 import (
     ArchiveRuleRequest,
     BatchArchiveRulesRequest,
     BatchGetRulesRequest,
+    BatchGetRuleVersionsRequest,
+    BatchGetRuleVersionsResponse,
     BatchUnarchiveRulesRequest,
     BatchUpdateRulesRequest,
     BatchUpdateRulesResponse,
@@ -24,7 +35,11 @@ from sift.rules.v1.rules_pb2 import (
     CreateRuleResponse,
     GetRuleRequest,
     GetRuleResponse,
+    GetRuleVersionRequest,
+    GetRuleVersionResponse,
     ListRulesRequest,
+    ListRuleVersionsRequest,
+    ListRuleVersionsResponse,
     RuleAssetConfiguration,
     RuleConditionExpression,
     UnarchiveRuleRequest,
@@ -45,6 +60,7 @@ from sift_client.sift_types.rule import (
     Rule,
     RuleCreate,
     RuleUpdate,
+    RuleVersion,
 )
 from sift_client.sift_types.tag import Tag
 from sift_client.transport import GrpcClient, WithGrpcClient
@@ -506,6 +522,57 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             max_results=max_results,
         )
 
+    async def list_rule_versions(
+        self,
+        rule_id: str,
+        *,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> tuple[list[RuleVersion], str]:
+        """List rule versions for a rule.
+
+        Args:
+            rule_id: The rule ID to list versions for.
+            filter_query: Optional CEL filter (fields: rule_version_id, user_notes, change_message).
+            order_by: Unused, for _handle_pagination compatibility.
+            page_size: Maximum number of versions per page.
+            page_token: Token for the next page.
+
+        Returns:
+            Tuple of (list of RuleVersions, next page token or empty string).
+        """
+        _ = order_by
+        request_kwargs: dict[str, Any] = {
+            "rule_id": rule_id,
+            "page_size": page_size or DEFAULT_PAGE_SIZE,
+            "page_token": page_token or "",
+        }
+        if filter_query:
+            request_kwargs["filter"] = filter_query
+        request = ListRuleVersionsRequest(**request_kwargs)
+        response = await self._grpc_client.get_stub(RuleServiceStub).ListRuleVersions(request)
+        response = cast("ListRuleVersionsResponse", response)
+        versions = [RuleVersion._from_proto(p) for p in response.rule_versions]
+        return versions, response.next_page_token or ""
+
+    async def list_all_rule_versions(
+        self,
+        rule_id: str,
+        *,
+        filter_query: str | None = None,
+        max_results: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+    ) -> list[RuleVersion]:
+        """List all rule versions for a rule, with optional CEL filter."""
+        return await self._handle_pagination(
+            self.list_rule_versions,
+            kwargs={"rule_id": rule_id, "filter_query": filter_query},
+            page_size=page_size,
+            max_results=max_results,
+        )
+
     async def evaluate_rules(
         self,
         *,
@@ -571,13 +638,22 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if all_applicable_rules:
             kwargs["all_applicable_rules"] = all_applicable_rules
         if rule_ids:
-            kwargs["rules"] = {"rules": ResourceIdentifiers(ids={"ids": rule_ids})}  # type: ignore
+            kwargs["rules"] = EvaluateRulesFromCurrentRuleVersions(
+                rules=ResourceIdentifiers(ids={"ids": rule_ids})  # type: ignore[arg-type]
+            )
         if rule_version_ids:
-            kwargs["rule_versions"] = rule_version_ids
+            kwargs["rule_versions"] = EvaluateRulesFromRuleVersions(
+                rule_version_ids=rule_version_ids
+            )
         if report_template_id:
-            kwargs["report_template"] = report_template_id
+            kwargs["report_template"] = EvaluateRulesFromReportTemplate(
+                report_template=ResourceIdentifier(id=report_template_id)
+            )
         if tags:
-            kwargs["tags"] = [tag.name if isinstance(tag, Tag) else tag for tag in tags]
+            tag_names = [tag.name if isinstance(tag, Tag) else tag for tag in tags]
+            kwargs["annotation_options"] = EvaluateRulesAnnotationOptions(
+                tags=NamedResources(names=Names(names=tag_names))  # type: ignore[arg-type]
+            )
         if report_name:
             kwargs["report_name"] = report_name
         if organization_id:
@@ -595,3 +671,31 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             report = await ReportsLowLevelClient(self._grpc_client).get_report(report_id=report_id)
             return created_annotation_count, report, job_id
         return created_annotation_count, None, job_id
+
+    async def get_rule_version(self, rule_version_id: str) -> Rule:
+        """Get a rule at a specific version by rule_version_id.
+
+        Args:
+            rule_version_id: The rule version ID to get.
+
+        Returns:
+            The Rule at that version.
+        """
+        request = GetRuleVersionRequest(rule_version_id=rule_version_id)
+        response = await self._grpc_client.get_stub(RuleServiceStub).GetRuleVersion(request)
+        grpc_rule = cast("GetRuleVersionResponse", response).rule
+        return Rule._from_proto(grpc_rule)
+
+    async def batch_get_rule_versions(self, rule_version_ids: list[str]) -> list[Rule]:
+        """Get multiple rules at specific versions by rule_version_ids.
+
+        Args:
+            rule_version_ids: The rule version IDs to get.
+
+        Returns:
+            List of Rules at those versions (order may match request order).
+        """
+        request = BatchGetRuleVersionsRequest(rule_version_ids=rule_version_ids)
+        response = await self._grpc_client.get_stub(RuleServiceStub).BatchGetRuleVersions(request)
+        response = cast("BatchGetRuleVersionsResponse", response)
+        return [Rule._from_proto(r) for r in response.rules]

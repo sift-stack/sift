@@ -7,7 +7,7 @@ from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.errors import SiftWarning
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
-from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
+from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate, RuleVersion
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
@@ -328,3 +328,84 @@ class RulesAPIAsync(ResourceBase):
         # Fetch the rules.
         updated_rules = await self._low_level_client.batch_get_rules(rule_ids=final_rule_ids)
         return self._apply_client_to_instances(updated_rules)
+
+    async def list_rule_versions(
+        self,
+        rule: Rule | str,
+        *,
+        user_notes_contains: str | None = None,
+        change_message_contains: str | None = None,
+        rule_version_ids: list[str] | None = None,
+        filter_query: str | None = None,
+        limit: int | None = None,
+    ) -> list[RuleVersion]:
+        """List versions of a rule with optional filtering.
+
+        Args:
+            rule: The Rule instance or rule ID.
+            user_notes_contains: Filter by user notes (notes for a given version) containing this string.
+            change_message_contains: Filter by change messages containing this string.
+            rule_version_ids: Limit to these rule version IDs.
+            filter_query: Raw CEL filter (fields: rule_version_id, user_notes, change_message).
+            limit: Maximum number of versions to return. If None, returns all matches.
+
+        Returns:
+            A list of RuleVersion objects matching the filters, ordered by newest versions first.
+        """
+        if isinstance(rule, Rule):
+            rule_id = rule._id_or_error
+        else:
+            rule_id = rule
+
+        filter_parts: list[str] = []
+        if user_notes_contains:
+            filter_parts.append(cel.contains("user_notes", user_notes_contains))
+        if change_message_contains:
+            filter_parts.append(cel.contains("change_message", change_message_contains))
+        if rule_version_ids:
+            filter_parts.append(cel.in_("rule_version_id", rule_version_ids))
+        if filter_query:
+            filter_parts.append(filter_query)
+        query_filter = cel.and_(*filter_parts) if filter_parts else None
+
+        return await self._low_level_client.list_all_rule_versions(
+            rule_id=rule_id,
+            filter_query=query_filter,
+            max_results=limit,
+            page_size=limit,
+        )
+
+    async def get_rule_version(self, rule_version: RuleVersion | str) -> Rule:
+        """Get a rule at a specific version by rule version ID.
+
+        Args:
+            rule_version: The RuleVersion instance or rule version ID.
+
+        Returns:
+            The Rule at that version.
+        """
+        if isinstance(rule_version, RuleVersion):
+            rule_version_id = rule_version.rule_version_id
+        else:
+            rule_version_id = rule_version
+        rule = await self._low_level_client.get_rule_version(rule_version_id=rule_version_id)
+        return self._apply_client_to_instance(rule)
+
+    async def batch_get_rule_versions(
+        self, rule_versions: list[RuleVersion] | list[str]
+    ) -> list[Rule]:
+        """Get multiple rules at specific versions by rule version IDs.
+
+        Args:
+            rule_versions: List of RuleVersion instances or rule version IDs.
+
+        Returns:
+            List of Rules at those versions.
+        """
+        rule_version_ids = [
+            rv.rule_version_id if isinstance(rv, RuleVersion) else rv for rv in rule_versions
+        ]
+        rules = await self._low_level_client.batch_get_rule_versions(
+            rule_version_ids=rule_version_ids
+        )
+        return self._apply_client_to_instances(rules)

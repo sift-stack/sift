@@ -54,6 +54,35 @@ def test_client_binding(sift_client):
 
 @pytest.mark.integration
 class TestReports:
+    def test_create_from_rule_versions(self, nostromo_run, test_rule, sift_client):
+        """Create a report from specific rule version IDs."""
+        rule_versions = sift_client.rules.list_rule_versions(test_rule)
+        assert rule_versions, "test_rule should have at least one version"
+        report = sift_client.reports.create_from_rule_versions(
+            name="report_from_rule_versions",
+            run=nostromo_run,
+            organization_id=nostromo_run.organization_id,
+            rule_versions=[rule_versions[0].rule_version_id],
+        )
+        assert report is not None
+        assert report.run_id == nostromo_run.id_
+        assert report.name == "report_from_rule_versions"
+
+    def test_create_from_rule_versions_with_rule_version_objects(
+        self, nostromo_run, test_rule, sift_client
+    ):
+        """Create a report passing RuleVersion instances."""
+        rule_versions = sift_client.rules.list_rule_versions(test_rule)
+        assert rule_versions
+        report = sift_client.reports.create_from_rule_versions(
+            name="report_from_rule_versions_objs",
+            run=nostromo_run,
+            organization_id=nostromo_run.organization_id,
+            rule_versions=rule_versions[:1],
+        )
+        assert report is not None
+        assert report.run_id == nostromo_run.id_
+
     def test_create_from_rules(self, nostromo_run, test_rule, sift_client):
         report_from_rules = sift_client.reports.create_from_rules(
             name="report_from_rules",
@@ -146,17 +175,16 @@ class TestReports:
         assert archived_report is not None
         assert archived_report.is_archived == True
 
-    def test_unarchive(self, sift_client):
-        reports_from_rules = sift_client.reports.list_(
-            name="report_from_rules", include_archived=True
+    def test_unarchive(self, nostromo_run, test_rule, sift_client):
+        # create a report, archive it, then unarchive it
+        report_from_rules = sift_client.reports.create_from_rules(
+            name="report_from_rules_unarchive",
+            run=nostromo_run,
+            rules=[test_rule],
         )
-        report_from_rules = None
-        for report_from_rules in reports_from_rules:
-            if report_from_rules.is_archived:
-                report_from_rules = report_from_rules
-                break
         assert report_from_rules is not None
-        assert report_from_rules.is_archived == True
-        unarchived_report = sift_client.reports.unarchive(report=report_from_rules)
+        archived_report = sift_client.reports.archive(report=report_from_rules)
+        assert archived_report.is_archived is True
+        unarchived_report = sift_client.reports.unarchive(report=archived_report)
         assert unarchived_report is not None
-        assert unarchived_report.is_archived == False
+        assert unarchived_report.is_archived is False
