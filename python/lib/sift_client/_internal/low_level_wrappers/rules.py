@@ -594,5 +594,3 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         else:
             job = None
         return response.created_annotation_count, response.report_id, job
-
-

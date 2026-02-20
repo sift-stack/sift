@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from sift_client.resources import ReportsAPI, ReportsAPIAsync
@@ -53,6 +55,172 @@ def test_client_binding(sift_client):
     assert isinstance(sift_client.async_.reports, ReportsAPIAsync)
 
 
+@pytest.fixture
+def reports_api_async_mock_client(mock_client):
+    """ReportsAPIAsync with a mock client for unit testing wait_until_complete."""
+    mock_client.async_.jobs = MagicMock()
+    mock_client.async_.jobs.get = AsyncMock()
+    mock_client.async_.jobs.wait_until_complete = AsyncMock()
+    return ReportsAPIAsync(mock_client)
+
+
+class TestReportsWaitUntilComplete:
+    """Unit tests for ReportsAPIAsync.wait_until_complete validation and input handling."""
+
+    @pytest.mark.asyncio
+    async def test_raises_when_neither_report_nor_job_provided(self, reports_api_async_mock_client):
+        with pytest.raises(ValueError, match="either report or job must be provided"):
+            await reports_api_async_mock_client.wait_until_complete()
+
+    @pytest.mark.asyncio
+    async def test_raises_when_both_report_and_job_provided(self, reports_api_async_mock_client):
+        mock_report = MagicMock()
+        mock_report.job_id = "job-1"
+        mock_report.id_ = "report-1"
+        mock_job = MagicMock()
+        mock_job.id_ = "job-1"
+        mock_job.job_details = RuleEvaluationDetails(report_id="report-1")
+
+        with pytest.raises(
+            ValueError, match="exactly one of report or report_job must be provided"
+        ):
+            await reports_api_async_mock_client.wait_until_complete(
+                report=mock_report, job=mock_job
+            )
+
+    @pytest.mark.asyncio
+    async def test_valid_report_object_waits_and_returns_report(
+        self, reports_api_async_mock_client
+    ):
+        mock_report = MagicMock()
+        mock_report.job_id = "job-1"
+        mock_report.id_ = "report-1"
+        completed_report = MagicMock()
+        completed_report.id_ = "report-1"
+
+        with patch.object(
+            reports_api_async_mock_client,
+            "get",
+            new_callable=AsyncMock,
+            return_value=completed_report,
+        ) as mock_get:
+            result = await reports_api_async_mock_client.wait_until_complete(report=mock_report)
+
+        assert result is completed_report
+        reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_awaited_once_with(
+            job="job-1", polling_interval_secs=5, timeout_secs=None
+        )
+        mock_get.assert_awaited_once_with(report_id="report-1")
+
+    @pytest.mark.asyncio
+    async def test_valid_report_id_str_fetches_report_then_waits_and_returns(
+        self, reports_api_async_mock_client
+    ):
+        report_id = "report-1"
+        mock_report_from_get = MagicMock()
+        mock_report_from_get.job_id = "job-1"
+        mock_report_from_get.id_ = report_id
+        completed_report = MagicMock()
+        completed_report.id_ = report_id
+
+        with patch.object(
+            reports_api_async_mock_client,
+            "get",
+            new_callable=AsyncMock,
+            side_effect=[mock_report_from_get, completed_report],
+        ) as mock_get:
+            result = await reports_api_async_mock_client.wait_until_complete(report=report_id)
+
+        assert result is completed_report
+        assert mock_get.await_count == 2
+        reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_awaited_once_with(
+            job="job-1", polling_interval_secs=5, timeout_secs=None
+        )
+
+    @pytest.mark.asyncio
+    async def test_valid_job_object_rule_evaluation_waits_and_returns_report(
+        self, reports_api_async_mock_client
+    ):
+        mock_job = MagicMock()
+        mock_job.id_ = "job-1"
+        mock_job.job_details = RuleEvaluationDetails(report_id="report-1")
+        completed_report = MagicMock()
+        completed_report.id_ = "report-1"
+
+        with patch.object(
+            reports_api_async_mock_client,
+            "get",
+            new_callable=AsyncMock,
+            return_value=completed_report,
+        ) as mock_get:
+            result = await reports_api_async_mock_client.wait_until_complete(job=mock_job)
+
+        assert result is completed_report
+        reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_awaited_once_with(
+            job="job-1", polling_interval_secs=5, timeout_secs=None
+        )
+        mock_get.assert_awaited_once_with(report_id="report-1")
+
+    @pytest.mark.asyncio
+    async def test_valid_job_id_str_fetches_job_then_waits_and_returns_report(
+        self, reports_api_async_mock_client
+    ):
+        job_id = "job-1"
+        report_id = "report-1"
+        mock_job_from_get = MagicMock()
+        mock_job_from_get.id_ = job_id
+        mock_job_from_get.job_details = RuleEvaluationDetails(report_id=report_id)
+        reports_api_async_mock_client.client.async_.jobs.get = AsyncMock(
+            return_value=mock_job_from_get
+        )
+        completed_report = MagicMock()
+        completed_report.id_ = report_id
+
+        with patch.object(
+            reports_api_async_mock_client,
+            "get",
+            new_callable=AsyncMock,
+            return_value=completed_report,
+        ) as mock_get:
+            result = await reports_api_async_mock_client.wait_until_complete(job=job_id)
+
+        assert result is completed_report
+        reports_api_async_mock_client.client.async_.jobs.get.assert_awaited_once_with(job_id)
+        reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_awaited_once_with(
+            job=job_id, polling_interval_secs=5, timeout_secs=None
+        )
+        mock_get.assert_awaited_once_with(report_id=report_id)
+
+    @pytest.mark.asyncio
+    async def test_raises_when_job_object_not_rule_evaluation(self, reports_api_async_mock_client):
+        mock_job = MagicMock()
+        mock_job.id_ = "job-1"
+        mock_job.job_details = None  # not RuleEvaluationDetails
+
+        with pytest.raises(ValueError, match="job is not a rule evaluation job"):
+            await reports_api_async_mock_client.wait_until_complete(job=mock_job)
+
+        reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_raises_when_job_id_str_fetches_non_rule_evaluation_job(
+        self, reports_api_async_mock_client
+    ):
+        job_id = "job-1"
+        mock_job_from_get = MagicMock()
+        mock_job_from_get.id_ = job_id
+        mock_job_from_get.job_details = None  # e.g. data import job
+        reports_api_async_mock_client.client.async_.jobs.get = AsyncMock(
+            return_value=mock_job_from_get
+        )
+
+        with pytest.raises(ValueError, match="job is not a rule evaluation job"):
+            await reports_api_async_mock_client.wait_until_complete(job=job_id)
+
+        reports_api_async_mock_client.client.async_.jobs.get.assert_awaited_once_with(job_id)
+        reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_not_awaited()
+
+
 @pytest.mark.integration
 class TestReports:
     def test_create_from_rules(self, nostromo_run, test_rule, sift_client):
@@ -83,9 +251,7 @@ class TestReports:
             polling_interval_secs=2,
             timeout_secs=120,
         )
-        completed_report = await sift_client.async_.reports.get(
-            report_id=job.job_details.report_id
-        )
+        completed_report = await sift_client.async_.reports.get(report_id=job.job_details.report_id)
 
         assert completed_report is not None
         assert completed_report.id_ == job.job_details.report_id

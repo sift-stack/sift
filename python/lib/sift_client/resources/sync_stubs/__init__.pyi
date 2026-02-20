@@ -982,6 +982,37 @@ class ReportsAPI:
         """
         ...
 
+    def wait_until_complete(
+        self,
+        *,
+        report: Report | str | None = None,
+        job: Job | str | None = None,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Report:
+        """Wait until the report is complete or the timeout is reached.
+
+        Polls the report job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Report.
+
+        Either a report or job must be provided. The job must be a rule evaluation job.
+
+        Args:
+            report: The Report or report ID to wait for.
+            job: The pending rule evaluation Job or job ID to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Report in the completed state.
+
+        Raises:
+            ValueError: If both or neither report and job are provided, or if
+                job is not a rule evaluation job.
+        """
+        ...
+
 class RulesAPI:
     """Sync counterpart to `RulesAPIAsync`.
 

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.job import Job, RuleEvaluationDetails
 from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule
 from sift_client.sift_types.run import Run
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.job import Job
     from sift_client.sift_types.tag import Tag
 
 
@@ -321,3 +321,70 @@ class ReportsAPIAsync(ResourceBase):
         update.resource_id = report_id
         updated_report = await self._low_level_client.update_report(update=update)
         return self._apply_client_to_instance(updated_report)
+
+    async def wait_until_complete(
+        self,
+        *,
+        report: Report | str | None = None,
+        job: Job | str | None = None,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Report:
+        """Wait until the report is complete or the timeout is reached.
+
+        Polls the report job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Report.
+
+        Either a report or job must be provided. The job must be a rule evaluation job.
+
+        Args:
+            report: The Report or report ID to wait for.
+            job: The pending rule evaluation Job or job ID to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Report in the completed state.
+
+        Raises:
+            ValueError: If both or neither report and job are provided, or if
+                job is not a rule evaluation job.
+        """
+        if report is not None and job is not None:
+            raise ValueError("exactly one of report or report_job must be provided")
+
+        if report is not None:
+            if isinstance(report, str):
+                report_obj = await self.get(report_id=report)
+                job_id = report_obj.job_id
+                report_id = report
+            else:
+                job_id = report.job_id
+                report_id = report.id_
+        elif job is not None:
+            if isinstance(job, str):
+                job_obj = await self.client.async_.jobs.get(job_id=job)
+                if not isinstance(job_obj.job_details, RuleEvaluationDetails):
+                    raise ValueError("job is not a rule evaluation job")
+                job_id = job
+                report_id = job_obj.job_details.report_id
+            else:
+                if not isinstance(job.job_details, RuleEvaluationDetails):
+                    raise ValueError("job is not a rule evaluation job")
+                job_id = job.id_
+                report_id = job.job_details.report_id
+        else:
+            raise ValueError("either report or job must be provided")
+
+        if not report_id:
+            raise ValueError("report_id must be set")
+        if not job_id:
+            raise ValueError("job_id must be set")
+
+        await self.client.async_.jobs.wait_until_complete(
+            job=job_id,
+            polling_interval_secs=polling_interval_secs,
+            timeout_secs=timeout_secs,
+        )
+        return await self.get(report_id=report_id)
