@@ -70,6 +70,20 @@ service CampaignService {
       description: "List annotations for a campaign."
     };
   }
+
+  // Returns per-campaign report summaries (annotation totals + rule classifications) in bulk.
+  // Each campaign maps to its list of CampaignReport entries with summary fields populated.
+  // Intended for use alongside ListCampaigns with skip_report_summaries=true.
+  rpc GetCampaignReportSummaries(GetCampaignReportSummariesRequest) returns (GetCampaignReportSummariesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/campaigns:report-summaries"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetCampaignReportSummaries"
+      description: "Returns per-campaign report summaries in bulk."
+    };
+  }
 }
 
 message Campaign {
@@ -96,6 +110,12 @@ message Campaign {
 
   // Whether the campaign. This is inferred from whether archived_date is set.
   bool is_archived = 15 [(google.api.field_behavior) = REQUIRED];
+
+  // Indicates whether the summary fields on CampaignReport (num_annotations,
+  // num_passed_rules, num_accepted_rules, num_failed_rules, num_open_rules) are populated.
+  // When false, those fields should be ignored -- use GetCampaignReportSummaries to
+  // fetch the summary data separately.
+  bool reports_include_summaries = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // A top-level summary of the report's rules is provided here so clients needn't aggregate this information themselves.
@@ -127,6 +147,12 @@ message GetCampaignRequest {
   string campaign_id = 1 [(google.api.field_behavior) = OPTIONAL];
   string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
   string organization_id = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // If `true`, the response will omit the summary fields on the campaign's reports
+  // and set reports_include_summaries to false on the Campaign message.
+  // Reports will still be included with report_id and report_name populated.
+  // This significantly improves response times for campaigns with many reports. Defaults to `false`.
+  bool skip_report_summaries = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `CampaignService_GetCampaign` to retrieve a campaign.
@@ -209,6 +235,12 @@ message ListCampaignsRequest {
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date"
   string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // If `true`, the response will omit the summary fields on each campaign's reports
+  // and set reports_include_summaries to false on the Campaign message.
+  // Reports will still be included with report_id and report_name populated.
+  // This significantly improves response times for campaigns with many reports. Defaults to `false`.
+  bool skip_report_summaries = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `CampaignService_ListCampaignsResponse`.
@@ -266,4 +298,21 @@ message ListCampaignAnnotationsRequest {
 message ListCampaignAnnotationsResponse {
   repeated sift.annotations.v1.Annotation annotations = 1;
   string next_page_token = 2;
+}
+
+message GetCampaignReportSummariesRequest {
+  repeated string campaign_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Wrapper for repeated CampaignReport used in map values (proto3 maps cannot directly contain repeated fields).
+message CampaignReports {
+  repeated CampaignReport reports = 1;
+}
+
+message GetCampaignReportSummariesResponse {
+  // Keyed by campaign_id. Each value contains the full list of CampaignReport
+  // entries for that campaign with summary fields (num_*) populated.
+  map<string, CampaignReports> summaries_by_campaign_id = 1;
 }

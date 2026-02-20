@@ -616,6 +616,14 @@ impl MetricsStreamingTask {
                         Ok(ControlMessage::Shutdown) => {
                             break;
                         }
+                        Err(e) => {
+                            #[cfg(feature = "tracing")]
+                            tracing::error!(
+                                error = %e,
+                                "metrics streaming task received error on control channel"
+                            );
+                            break;
+                        }
                         _ => continue,
                     }
                 }

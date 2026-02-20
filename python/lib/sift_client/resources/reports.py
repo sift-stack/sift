@@ -7,7 +7,7 @@ from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.job import Job, RuleEvaluationDetails
 from sift_client.sift_types.report import Report, ReportUpdate
-from sift_client.sift_types.rule import Rule
+from sift_client.sift_types.rule import Rule, RuleVersion
 from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
@@ -248,6 +248,45 @@ class ReportsAPIAsync(ResourceBase):
             all_applicable_rules=True,
         )
         return self._apply_client_to_instance(job) if job is not None else None
+
+    async def create_from_rule_versions(
+        self,
+        *,
+        name: str,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        rule_versions: list[RuleVersion] | list[str],
+    ) -> Report | None:
+        """Create a new report from rule versions.
+
+        Args:
+            name: The name of the report.
+            run: The run or run ID to associate with the report.
+            organization_id: The organization ID.
+            rule_versions: List of RuleVersions or rule_version IDs to include in the report.
+
+        Returns:
+            The created Report or None if no report was created.
+        """
+        (
+            created_annotation_count,
+            created_report,
+            job_id,
+        ) = await self._rules_low_level_client.evaluate_rules(
+            run_id=run._id_or_error if isinstance(run, Run) else run,
+            organization_id=organization_id,
+            rule_version_ids=[
+                rule_version.rule_version_id
+                if isinstance(rule_version, RuleVersion)
+                else rule_version
+                for rule_version in rule_versions
+            ]
+            or [],
+            report_name=name,
+        )
+        if created_report:
+            return self._apply_client_to_instance(created_report)
+        return None
 
     async def rerun(
         self,

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     )
     from sift_client.sift_types.job import Job, JobStatus, JobType
     from sift_client.sift_types.report import Report, ReportUpdate
-    from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
+    from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate, RuleVersion
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
     from sift_client.sift_types.tag import Tag, TagUpdate
     from sift_client.sift_types.test_report import (
@@ -838,6 +838,27 @@ class ReportsAPI:
         """
         ...
 
+    def create_from_rule_versions(
+        self,
+        *,
+        name: str,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        rule_versions: list[RuleVersion] | list[str],
+    ) -> Report | None:
+        """Create a new report from rule versions.
+
+        Args:
+            name: The name of the report.
+            run: The run or run ID to associate with the report.
+            organization_id: The organization ID.
+            rule_versions: List of RuleVersions or rule_version IDs to include in the report.
+
+        Returns:
+            The created Report or None if no report was created.
+        """
+        ...
+
     def create_from_rules(
         self,
         *,
@@ -1045,6 +1066,17 @@ class RulesAPI:
         """
         ...
 
+    def batch_get_rule_versions(self, rule_versions: list[RuleVersion] | list[str]) -> list[Rule]:
+        """Get multiple rules at specific versions by rule version IDs.
+
+        Args:
+            rule_versions: List of RuleVersion instances or rule version IDs.
+
+        Returns:
+            List of Rules at those versions.
+        """
+        ...
+
     def batch_update_or_create_rules(
         self,
         rules: Sequence[RuleCreate | RuleUpdate],
@@ -1112,6 +1144,17 @@ class RulesAPI:
         """
         ...
 
+    def get_rule_version(self, rule_version: RuleVersion | str) -> Rule:
+        """Get a rule at a specific version by rule version ID.
+
+        Args:
+            rule_version: The RuleVersion instance or rule version ID.
+
+        Returns:
+            The Rule at that version.
+        """
+        ...
+
     def list_(
         self,
         *,
@@ -1162,6 +1205,31 @@ class RulesAPI:
 
         Returns:
             A list of Rules that matches the filter.
+        """
+        ...
+
+    def list_rule_versions(
+        self,
+        rule: Rule | str,
+        *,
+        user_notes_contains: str | None = None,
+        change_message_contains: str | None = None,
+        rule_version_ids: list[str] | None = None,
+        filter_query: str | None = None,
+        limit: int | None = None,
+    ) -> list[RuleVersion]:
+        """List versions of a rule with optional filtering.
+
+        Args:
+            rule: The Rule instance or rule ID.
+            user_notes_contains: Filter by user notes (notes for a given version) containing this string.
+            change_message_contains: Filter by change messages containing this string.
+            rule_version_ids: Limit to these rule version IDs.
+            filter_query: Raw CEL filter (fields: rule_version_id, user_notes, change_message).
+            limit: Maximum number of versions to return. If None, returns all matches.
+
+        Returns:
+            A list of RuleVersion objects matching the filters, ordered by newest versions first.
         """
         ...
 

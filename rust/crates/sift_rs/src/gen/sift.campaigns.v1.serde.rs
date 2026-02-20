@@ -52,6 +52,9 @@ impl serde::Serialize for Campaign {
         if self.is_archived {
             len += 1;
         }
+        if self.reports_include_summaries {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.Campaign", len)?;
         if !self.campaign_id.is_empty() {
             struct_ser.serialize_field("campaignId", &self.campaign_id)?;
@@ -98,6 +101,9 @@ impl serde::Serialize for Campaign {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if self.reports_include_summaries {
+            struct_ser.serialize_field("reportsIncludeSummaries", &self.reports_include_summaries)?;
+        }
         struct_ser.end()
     }
 }
@@ -133,6 +139,8 @@ impl<'de> serde::Deserialize<'de> for Campaign {
             "metadata",
             "is_archived",
             "isArchived",
+            "reports_include_summaries",
+            "reportsIncludeSummaries",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -152,6 +160,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
             CreatedFromCampaignId,
             Metadata,
             IsArchived,
+            ReportsIncludeSummaries,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -188,6 +197,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             "createdFromCampaignId" | "created_from_campaign_id" => Ok(GeneratedField::CreatedFromCampaignId),
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "reportsIncludeSummaries" | "reports_include_summaries" => Ok(GeneratedField::ReportsIncludeSummaries),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -222,6 +232,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                 let mut created_from_campaign_id__ = None;
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
+                let mut reports_include_summaries__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CampaignId => {
@@ -314,6 +325,12 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ReportsIncludeSummaries => {
+                            if reports_include_summaries__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportsIncludeSummaries"));
+                            }
+                            reports_include_summaries__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Campaign {
@@ -332,6 +349,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                     created_from_campaign_id: created_from_campaign_id__,
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
+                    reports_include_summaries: reports_include_summaries__.unwrap_or_default(),
                 })
             }
         }
@@ -546,6 +564,97 @@ impl<'de> serde::Deserialize<'de> for CampaignReport {
             }
         }
         deserializer.deserialize_struct("sift.campaigns.v1.CampaignReport", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CampaignReports {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.reports.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.CampaignReports", len)?;
+        if !self.reports.is_empty() {
+            struct_ser.serialize_field("reports", &self.reports)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CampaignReports {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "reports",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Reports,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reports" => Ok(GeneratedField::Reports),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CampaignReports;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.campaigns.v1.CampaignReports")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CampaignReports, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut reports__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Reports => {
+                            if reports__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reports"));
+                            }
+                            reports__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(CampaignReports {
+                    reports: reports__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.campaigns.v1.CampaignReports", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for CreateCampaignFrom {
@@ -958,6 +1067,210 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignResponse {
         deserializer.deserialize_struct("sift.campaigns.v1.CreateCampaignResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for GetCampaignReportSummariesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.campaign_ids.is_empty() {
+            len += 1;
+        }
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.GetCampaignReportSummariesRequest", len)?;
+        if !self.campaign_ids.is_empty() {
+            struct_ser.serialize_field("campaignIds", &self.campaign_ids)?;
+        }
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetCampaignReportSummariesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "campaign_ids",
+            "campaignIds",
+            "organization_id",
+            "organizationId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CampaignIds,
+            OrganizationId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "campaignIds" | "campaign_ids" => Ok(GeneratedField::CampaignIds),
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetCampaignReportSummariesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.campaigns.v1.GetCampaignReportSummariesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetCampaignReportSummariesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut campaign_ids__ = None;
+                let mut organization_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CampaignIds => {
+                            if campaign_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("campaignIds"));
+                            }
+                            campaign_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(GetCampaignReportSummariesRequest {
+                    campaign_ids: campaign_ids__.unwrap_or_default(),
+                    organization_id: organization_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.campaigns.v1.GetCampaignReportSummariesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for GetCampaignReportSummariesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.summaries_by_campaign_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.GetCampaignReportSummariesResponse", len)?;
+        if !self.summaries_by_campaign_id.is_empty() {
+            struct_ser.serialize_field("summariesByCampaignId", &self.summaries_by_campaign_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetCampaignReportSummariesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "summaries_by_campaign_id",
+            "summariesByCampaignId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            SummariesByCampaignId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "summariesByCampaignId" | "summaries_by_campaign_id" => Ok(GeneratedField::SummariesByCampaignId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetCampaignReportSummariesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.campaigns.v1.GetCampaignReportSummariesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetCampaignReportSummariesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut summaries_by_campaign_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::SummariesByCampaignId => {
+                            if summaries_by_campaign_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("summariesByCampaignId"));
+                            }
+                            summaries_by_campaign_id__ = Some(
+                                map_.next_value::<std::collections::HashMap<_, _>>()?
+                            );
+                        }
+                    }
+                }
+                Ok(GetCampaignReportSummariesResponse {
+                    summaries_by_campaign_id: summaries_by_campaign_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.campaigns.v1.GetCampaignReportSummariesResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for GetCampaignRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -975,6 +1288,9 @@ impl serde::Serialize for GetCampaignRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if self.skip_report_summaries {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.GetCampaignRequest", len)?;
         if !self.campaign_id.is_empty() {
             struct_ser.serialize_field("campaignId", &self.campaign_id)?;
@@ -984,6 +1300,9 @@ impl serde::Serialize for GetCampaignRequest {
         }
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if self.skip_report_summaries {
+            struct_ser.serialize_field("skipReportSummaries", &self.skip_report_summaries)?;
         }
         struct_ser.end()
     }
@@ -1001,6 +1320,8 @@ impl<'de> serde::Deserialize<'de> for GetCampaignRequest {
             "clientKey",
             "organization_id",
             "organizationId",
+            "skip_report_summaries",
+            "skipReportSummaries",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1008,6 +1329,7 @@ impl<'de> serde::Deserialize<'de> for GetCampaignRequest {
             CampaignId,
             ClientKey,
             OrganizationId,
+            SkipReportSummaries,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1032,6 +1354,7 @@ impl<'de> serde::Deserialize<'de> for GetCampaignRequest {
                             "campaignId" | "campaign_id" => Ok(GeneratedField::CampaignId),
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "skipReportSummaries" | "skip_report_summaries" => Ok(GeneratedField::SkipReportSummaries),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1054,6 +1377,7 @@ impl<'de> serde::Deserialize<'de> for GetCampaignRequest {
                 let mut campaign_id__ = None;
                 let mut client_key__ = None;
                 let mut organization_id__ = None;
+                let mut skip_report_summaries__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CampaignId => {
@@ -1074,12 +1398,19 @@ impl<'de> serde::Deserialize<'de> for GetCampaignRequest {
                             }
                             organization_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::SkipReportSummaries => {
+                            if skip_report_summaries__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("skipReportSummaries"));
+                            }
+                            skip_report_summaries__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(GetCampaignRequest {
                     campaign_id: campaign_id__.unwrap_or_default(),
                     client_key: client_key__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
+                    skip_report_summaries: skip_report_summaries__.unwrap_or_default(),
                 })
             }
         }
@@ -1477,6 +1808,9 @@ impl serde::Serialize for ListCampaignsRequest {
         if !self.order_by.is_empty() {
             len += 1;
         }
+        if self.skip_report_summaries {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.ListCampaignsRequest", len)?;
         if self.page_size != 0 {
             struct_ser.serialize_field("pageSize", &self.page_size)?;
@@ -1495,6 +1829,9 @@ impl serde::Serialize for ListCampaignsRequest {
         }
         if !self.order_by.is_empty() {
             struct_ser.serialize_field("orderBy", &self.order_by)?;
+        }
+        if self.skip_report_summaries {
+            struct_ser.serialize_field("skipReportSummaries", &self.skip_report_summaries)?;
         }
         struct_ser.end()
     }
@@ -1517,6 +1854,8 @@ impl<'de> serde::Deserialize<'de> for ListCampaignsRequest {
             "includeArchived",
             "order_by",
             "orderBy",
+            "skip_report_summaries",
+            "skipReportSummaries",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1527,6 +1866,7 @@ impl<'de> serde::Deserialize<'de> for ListCampaignsRequest {
             OrganizationId,
             IncludeArchived,
             OrderBy,
+            SkipReportSummaries,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1554,6 +1894,7 @@ impl<'de> serde::Deserialize<'de> for ListCampaignsRequest {
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "includeArchived" | "include_archived" => Ok(GeneratedField::IncludeArchived),
                             "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
+                            "skipReportSummaries" | "skip_report_summaries" => Ok(GeneratedField::SkipReportSummaries),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1579,6 +1920,7 @@ impl<'de> serde::Deserialize<'de> for ListCampaignsRequest {
                 let mut organization_id__ = None;
                 let mut include_archived__ = None;
                 let mut order_by__ = None;
+                let mut skip_report_summaries__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PageSize => {
@@ -1619,6 +1961,12 @@ impl<'de> serde::Deserialize<'de> for ListCampaignsRequest {
                             }
                             order_by__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::SkipReportSummaries => {
+                            if skip_report_summaries__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("skipReportSummaries"));
+                            }
+                            skip_report_summaries__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ListCampaignsRequest {
@@ -1628,6 +1976,7 @@ impl<'de> serde::Deserialize<'de> for ListCampaignsRequest {
                     organization_id: organization_id__.unwrap_or_default(),
                     include_archived: include_archived__.unwrap_or_default(),
                     order_by: order_by__.unwrap_or_default(),
+                    skip_report_summaries: skip_report_summaries__.unwrap_or_default(),
                 })
             }
         }
