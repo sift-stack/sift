@@ -49,6 +49,15 @@ class CampaignServiceStub:
     ]
     """List campaigns."""
 
+    GetCampaignReportSummaries: grpc.UnaryUnaryMultiCallable[
+        sift.campaigns.v1.campaigns_pb2.GetCampaignReportSummariesRequest,
+        sift.campaigns.v1.campaigns_pb2.GetCampaignReportSummariesResponse,
+    ]
+    """Returns per-campaign report summaries (annotation totals + rule classifications) in bulk.
+    Each campaign maps to its list of CampaignReport entries with summary fields populated.
+    Intended for use alongside ListCampaigns with skip_report_summaries=true.
+    """
+
 class CampaignServiceAsyncStub:
     GetCampaign: grpc.aio.UnaryUnaryMultiCallable[
         sift.campaigns.v1.campaigns_pb2.GetCampaignRequest,
@@ -79,6 +88,15 @@ class CampaignServiceAsyncStub:
         sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsResponse,
     ]
     """List campaigns."""
+
+    GetCampaignReportSummaries: grpc.aio.UnaryUnaryMultiCallable[
+        sift.campaigns.v1.campaigns_pb2.GetCampaignReportSummariesRequest,
+        sift.campaigns.v1.campaigns_pb2.GetCampaignReportSummariesResponse,
+    ]
+    """Returns per-campaign report summaries (annotation totals + rule classifications) in bulk.
+    Each campaign maps to its list of CampaignReport entries with summary fields populated.
+    Intended for use alongside ListCampaigns with skip_report_summaries=true.
+    """
 
 class CampaignServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -120,5 +138,16 @@ class CampaignServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsResponse, collections.abc.Awaitable[sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsResponse]]:
         """List campaigns."""
+
+    @abc.abstractmethod
+    def GetCampaignReportSummaries(
+        self,
+        request: sift.campaigns.v1.campaigns_pb2.GetCampaignReportSummariesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.campaigns.v1.campaigns_pb2.GetCampaignReportSummariesResponse, collections.abc.Awaitable[sift.campaigns.v1.campaigns_pb2.GetCampaignReportSummariesResponse]]:
+        """Returns per-campaign report summaries (annotation totals + rule classifications) in bulk.
+        Each campaign maps to its list of CampaignReport entries with summary fields populated.
+        Intended for use alongside ListCampaigns with skip_report_summaries=true.
+        """
 
 def add_CampaignServiceServicer_to_server(servicer: CampaignServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

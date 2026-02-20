@@ -37,6 +37,7 @@ class Campaign(google.protobuf.message.Message):
     CREATED_FROM_CAMPAIGN_ID_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    REPORTS_INCLUDE_SUMMARIES_FIELD_NUMBER: builtins.int
     campaign_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -48,6 +49,12 @@ class Campaign(google.protobuf.message.Message):
     """If this campaign was created by duplicating another campaign, that other campaign will be referenced here"""
     is_archived: builtins.bool
     """Whether the campaign. This is inferred from whether archived_date is set."""
+    reports_include_summaries: builtins.bool
+    """Indicates whether the summary fields on CampaignReport (num_annotations,
+    num_passed_rules, num_accepted_rules, num_failed_rules, num_open_rules) are populated.
+    When false, those fields should be ignored -- use GetCampaignReportSummaries to
+    fetch the summary data separately.
+    """
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -82,9 +89,10 @@ class Campaign(google.protobuf.message.Message):
         created_from_campaign_id: builtins.str | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         is_archived: builtins.bool = ...,
+        reports_include_summaries: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "reports_include_summaries", b"reports_include_summaries", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -147,17 +155,25 @@ class GetCampaignRequest(google.protobuf.message.Message):
     CAMPAIGN_ID_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    SKIP_REPORT_SUMMARIES_FIELD_NUMBER: builtins.int
     campaign_id: builtins.str
     client_key: builtins.str
     organization_id: builtins.str
+    skip_report_summaries: builtins.bool
+    """If `true`, the response will omit the summary fields on the campaign's reports
+    and set reports_include_summaries to false on the Campaign message.
+    Reports will still be included with report_id and report_name populated.
+    This significantly improves response times for campaigns with many reports. Defaults to `false`.
+    """
     def __init__(
         self,
         *,
         campaign_id: builtins.str = ...,
         client_key: builtins.str = ...,
         organization_id: builtins.str = ...,
+        skip_report_summaries: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["campaign_id", b"campaign_id", "client_key", b"client_key", "organization_id", b"organization_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["campaign_id", b"campaign_id", "client_key", b"client_key", "organization_id", b"organization_id", "skip_report_summaries", b"skip_report_summaries"]) -> None: ...
 
 global___GetCampaignRequest = GetCampaignRequest
 
@@ -298,6 +314,7 @@ class ListCampaignsRequest(google.protobuf.message.Message):
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     INCLUDE_ARCHIVED_FIELD_NUMBER: builtins.int
     ORDER_BY_FIELD_NUMBER: builtins.int
+    SKIP_REPORT_SUMMARIES_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of campaigns to return. The service may return fewer than this value.
     If unspecified, at most 50 campaigns will be returned. The maximum value is 1000; values above
@@ -327,6 +344,12 @@ class ListCampaignsRequest(google.protobuf.message.Message):
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
     """
+    skip_report_summaries: builtins.bool
+    """If `true`, the response will omit the summary fields on each campaign's reports
+    and set reports_include_summaries to false on the Campaign message.
+    Reports will still be included with report_id and report_name populated.
+    This significantly improves response times for campaigns with many reports. Defaults to `false`.
+    """
     def __init__(
         self,
         *,
@@ -336,8 +359,9 @@ class ListCampaignsRequest(google.protobuf.message.Message):
         organization_id: builtins.str = ...,
         include_archived: builtins.bool = ...,
         order_by: builtins.str = ...,
+        skip_report_summaries: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "include_archived", b"include_archived", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "include_archived", b"include_archived", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token", "skip_report_summaries", b"skip_report_summaries"]) -> None: ...
 
 global___ListCampaignsRequest = ListCampaignsRequest
 
@@ -478,3 +502,79 @@ class ListCampaignAnnotationsResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["annotations", b"annotations", "next_page_token", b"next_page_token"]) -> None: ...
 
 global___ListCampaignAnnotationsResponse = ListCampaignAnnotationsResponse
+
+@typing.final
+class GetCampaignReportSummariesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CAMPAIGN_IDS_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    organization_id: builtins.str
+    """This field is only required if your user belongs to multiple organizations."""
+    @property
+    def campaign_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        campaign_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        organization_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["campaign_ids", b"campaign_ids", "organization_id", b"organization_id"]) -> None: ...
+
+global___GetCampaignReportSummariesRequest = GetCampaignReportSummariesRequest
+
+@typing.final
+class CampaignReports(google.protobuf.message.Message):
+    """Wrapper for repeated CampaignReport used in map values (proto3 maps cannot directly contain repeated fields)."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORTS_FIELD_NUMBER: builtins.int
+    @property
+    def reports(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CampaignReport]: ...
+    def __init__(
+        self,
+        *,
+        reports: collections.abc.Iterable[global___CampaignReport] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["reports", b"reports"]) -> None: ...
+
+global___CampaignReports = CampaignReports
+
+@typing.final
+class GetCampaignReportSummariesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    @typing.final
+    class SummariesByCampaignIdEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        @property
+        def value(self) -> global___CampaignReports: ...
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: global___CampaignReports | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+    SUMMARIES_BY_CAMPAIGN_ID_FIELD_NUMBER: builtins.int
+    @property
+    def summaries_by_campaign_id(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___CampaignReports]:
+        """Keyed by campaign_id. Each value contains the full list of CampaignReport
+        entries for that campaign with summary fields (num_*) populated.
+        """
+
+    def __init__(
+        self,
+        *,
+        summaries_by_campaign_id: collections.abc.Mapping[builtins.str, global___CampaignReports] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["summaries_by_campaign_id", b"summaries_by_campaign_id"]) -> None: ...
+
+global___GetCampaignReportSummariesResponse = GetCampaignReportSummariesResponse
