@@ -343,8 +343,8 @@ class RulesAPIAsync(ResourceBase):
 
         Args:
             rule: The Rule instance or rule ID.
-            version_notes_contains: Filter by version notes (user_notes) containing this string.
-            change_message_contains: Filter by change message containing this string.
+            user_notes_contains: Filter by user notes (notes for a given version) containing this string.
+            change_message_contains: Filter by change messages containing this string.
             rule_version_ids: Limit to these rule version IDs.
             filter_query: Raw CEL filter (fields: rule_version_id, user_notes, change_message).
             limit: Maximum number of versions to return. If None, returns all matches.
