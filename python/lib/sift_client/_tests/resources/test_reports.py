@@ -185,7 +185,7 @@ class TestReportsWaitUntilComplete:
             result = await reports_api_async_mock_client.wait_until_complete(job=job_id)
 
         assert result is completed_report
-        reports_api_async_mock_client.client.async_.jobs.get.assert_awaited_once_with(job_id)
+        reports_api_async_mock_client.client.async_.jobs.get.assert_awaited_once_with(job_id=job_id)
         reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_awaited_once_with(
             job=job_id, polling_interval_secs=5, timeout_secs=None
         )
@@ -217,7 +217,7 @@ class TestReportsWaitUntilComplete:
         with pytest.raises(ValueError, match="job is not a rule evaluation job"):
             await reports_api_async_mock_client.wait_until_complete(job=job_id)
 
-        reports_api_async_mock_client.client.async_.jobs.get.assert_awaited_once_with(job_id)
+        reports_api_async_mock_client.client.async_.jobs.get.assert_awaited_once_with(job_id=job_id)
         reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_not_awaited()
 
 
