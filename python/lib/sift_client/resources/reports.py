@@ -353,7 +353,9 @@ class ReportsAPIAsync(ResourceBase):
                 job is not a rule evaluation job.
         """
         if report is not None and job is not None:
-            raise ValueError("exactly one of report or report_job must be provided")
+            raise ValueError("exactly one of report or job must be provided")
+        if report is None and job is None:
+            raise ValueError("either report or job must be provided")
 
         report_id: str | None = None
         job_id: str | None = None
@@ -365,25 +367,20 @@ class ReportsAPIAsync(ResourceBase):
             else:
                 job_id = report.job_id
                 report_id = report.id_
-        elif job is not None:
+        else:
             if isinstance(job, str):
                 job_obj = await self.client.async_.jobs.get(job_id=job)
-                if not isinstance(job_obj.job_details, RuleEvaluationDetails):
-                    raise ValueError("job is not a rule evaluation job")
                 job_id = job
-                report_id = job_obj.job_details.report_id
+                job_details = job_obj.job_details
             else:
-                if not isinstance(job.job_details, RuleEvaluationDetails):
-                    raise ValueError("job is not a rule evaluation job")
                 job_id = job.id_
-                report_id = job.job_details.report_id
-        else:
-            raise ValueError("either report or job must be provided")
+                job_details = job.job_details
+            if not isinstance(job_details, RuleEvaluationDetails):
+                raise ValueError("job is not a rule evaluation job")
+            report_id = job_details.report_id
 
-        if not report_id:
-            raise ValueError("report_id must be set")
-        if not job_id:
-            raise ValueError("job_id must be set")
+        if not report_id or not job_id:
+            raise ValueError("report_id and job_id must be set")
 
         await self.client.async_.jobs.wait_until_complete(
             job=job_id,
