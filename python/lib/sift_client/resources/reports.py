@@ -181,7 +181,7 @@ class ReportsAPIAsync(ResourceBase):
         Returns:
             The Job for the pending report, or None if no report was created.
         """
-        job = await self._rules_low_level_client.evaluate_rules(
+        _annotation_count, _report_id, job = await self._rules_low_level_client.evaluate_rules(
             report_template_id=report_template_id,
             run_id=run_id,
             organization_id=organization_id,
@@ -208,7 +208,7 @@ class ReportsAPIAsync(ResourceBase):
         Returns:
             The Job for the pending report, or None if no report was created.
         """
-        job = await self._rules_low_level_client.evaluate_rules(
+        _annotation_count, _report_id, job = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             rule_ids=[rule._id_or_error if isinstance(rule, Rule) else rule for rule in rules]
@@ -239,7 +239,7 @@ class ReportsAPIAsync(ResourceBase):
         Returns:
             The Job for the pending report, or None if no report was created.
         """
-        job = await self._rules_low_level_client.evaluate_rules(
+        _annotation_count, _report_id, job = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             start_time=start_time,
@@ -265,7 +265,8 @@ class ReportsAPIAsync(ResourceBase):
         report_id = report._id_or_error if isinstance(report, Report) else report
         if not report_id:
             raise ValueError("report_id must be provided")
-        job = await self._low_level_client.rerun_report(report_id=report_id)
+        job_id, _new_report_id = await self._low_level_client.rerun_report(report_id=report_id)
+        job = await self.client.async_.jobs.get(job_id=job_id)
         return self._apply_client_to_instance(job)
 
     async def cancel(
@@ -354,6 +355,8 @@ class ReportsAPIAsync(ResourceBase):
         if report is not None and job is not None:
             raise ValueError("exactly one of report or report_job must be provided")
 
+        report_id: str | None = None
+        job_id: str | None = None
         if report is not None:
             if isinstance(report, str):
                 report_obj = await self.get(report_id=report)
