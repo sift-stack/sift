@@ -333,7 +333,7 @@ class RulesAPIAsync(ResourceBase):
         self,
         rule: Rule | str,
         *,
-        version_notes_contains: str | None = None,
+        user_notes_contains: str | None = None,
         change_message_contains: str | None = None,
         rule_version_ids: list[str] | None = None,
         filter_query: str | None = None,
@@ -358,8 +358,8 @@ class RulesAPIAsync(ResourceBase):
             rule_id = rule
 
         filter_parts: list[str] = []
-        if version_notes_contains:
-            filter_parts.append(cel.contains("user_notes", version_notes_contains))
+        if user_notes_contains:
+            filter_parts.append(cel.contains("user_notes", user_notes_contains))
         if change_message_contains:
             filter_parts.append(cel.contains("change_message", change_message_contains))
         if rule_version_ids:
