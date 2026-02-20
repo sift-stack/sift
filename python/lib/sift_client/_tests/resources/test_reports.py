@@ -82,7 +82,7 @@ class TestReportsWaitUntilComplete:
         mock_job.job_details = RuleEvaluationDetails(report_id="report-1")
 
         with pytest.raises(
-            ValueError, match="exactly one of report or report_job must be provided"
+            ValueError, match="exactly one of report or job must be provided"
         ):
             await reports_api_async_mock_client.wait_until_complete(
                 report=mock_report, job=mock_job
