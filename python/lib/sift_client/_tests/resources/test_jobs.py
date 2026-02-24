@@ -8,6 +8,7 @@ These tests demonstrate and validate the usage of the Jobs API including:
 """
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from grpc.aio import AioRpcError
@@ -290,6 +291,106 @@ class TestJobsAPIAsync:
                 # Retry should not raise an error but won't change status
                 with pytest.raises(AioRpcError, match="job cannot be retried"):
                     await jobs_api_async.retry(job)
+
+    class TestWaitUntilComplete:
+        """Tests for the async wait_until_complete method."""
+
+        @pytest.mark.asyncio
+        async def test_returns_immediately_when_job_already_complete(self, jobs_api_async):
+            """When get returns a completed job on first call, wait returns immediately."""
+            job_id = "test-job-id"
+            mock_job = MagicMock()
+            mock_job.job_status = JobStatus.FINISHED
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                return_value=mock_job,
+            ) as mock_get:
+                result = await jobs_api_async.wait_until_complete(job=job_id)
+
+            assert result is mock_job
+            assert result.job_status == JobStatus.FINISHED
+            mock_get.assert_called_once_with(job_id)
+
+        @pytest.mark.asyncio
+        async def test_returns_immediately_when_job_already_failed(self, jobs_api_async):
+            """When get returns a failed job on first call, wait returns immediately."""
+            job_id = "test-job-id"
+            mock_job = MagicMock()
+            mock_job.job_status = JobStatus.FAILED
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                return_value=mock_job,
+            ) as mock_get:
+                result = await jobs_api_async.wait_until_complete(job=job_id)
+
+            assert result is mock_job
+            assert result.job_status == JobStatus.FAILED
+            mock_get.assert_called_once_with(job_id)
+
+        @pytest.mark.asyncio
+        async def test_returns_immediately_when_job_already_cancelled(self, jobs_api_async):
+            """When get returns a cancelled job on first call, wait returns immediately."""
+            job_id = "test-job-id"
+            mock_job = MagicMock()
+            mock_job.job_status = JobStatus.CANCELLED
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                return_value=mock_job,
+            ) as mock_get:
+                result = await jobs_api_async.wait_until_complete(job=job_id)
+
+            assert result is mock_job
+            assert result.job_status == JobStatus.CANCELLED
+            mock_get.assert_called_once_with(job_id)
+
+        @pytest.mark.asyncio
+        async def test_polls_until_complete(self, jobs_api_async):
+            """When get returns running then finished, wait returns after second poll."""
+            job_id = "test-job-id"
+            running_job = MagicMock()
+            running_job.job_status = JobStatus.RUNNING
+            finished_job = MagicMock()
+            finished_job.job_status = JobStatus.FINISHED
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                side_effect=[running_job, finished_job],
+            ) as mock_get:
+                result = await jobs_api_async.wait_until_complete(
+                    job=job_id,
+                    polling_interval_secs=0.01,
+                    timeout_secs=10.0,
+                )
+
+            assert result is finished_job
+            assert result.job_status == JobStatus.FINISHED
+            assert mock_get.call_count == 2
+
+        @pytest.mark.asyncio
+        async def test_raises_timeout_error_when_not_complete_in_time(self, jobs_api_async):
+            """When job never reaches a completed state, TimeoutError is raised."""
+            job_id = "test-job-id"
+            running_job = MagicMock()
+            running_job.job_status = JobStatus.RUNNING
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                return_value=running_job,
+            ):
+                with pytest.raises(TimeoutError):
+                    await jobs_api_async.wait_until_complete(
+                        job=job_id,
+                        polling_interval_secs=0.05,
+                        timeout_secs=0.1,
+                    )
 
     class TestJobProperties:
         """Tests for job property methods."""

@@ -745,6 +745,25 @@ class JobsAPI:
         """
         ...
 
+    def wait_until_complete(
+        self, *, job: Job | str, polling_interval_secs: int = 5, timeout_secs: int | None = None
+    ) -> Job:
+        """Wait until the job is complete or the timeout is reached.
+
+        Polls the job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Job
+
+        Args:
+            job: The Job or job_id to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Job in the completed state.
+        """
+        ...
+
 class PingAPI:
     """Sync counterpart to `PingAPIAsync`.
 
@@ -803,7 +822,7 @@ class ReportsAPI:
         name: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-    ) -> Report | None:
+    ) -> Job | None:
         """Create a new report from applicable rules based on a run.
         If you want to evaluate against assets, use the rules client instead since no report is created in that case.
 
@@ -815,7 +834,7 @@ class ReportsAPI:
             end_time: Optional end time to evaluate rules against.
 
         Returns:
-            The created Report or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
         ...
 
@@ -826,7 +845,7 @@ class ReportsAPI:
         run: Run | str | None = None,
         organization_id: str | None = None,
         rule_versions: list[RuleVersion] | list[str],
-    ) -> Report | None:
+    ) -> Job | None:
         """Create a new report from rule versions.
 
         Args:
@@ -836,7 +855,7 @@ class ReportsAPI:
             rule_versions: List of RuleVersions or rule_version IDs to include in the report.
 
         Returns:
-            The created Report or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
         ...
 
@@ -847,7 +866,7 @@ class ReportsAPI:
         run: Run | str | None = None,
         organization_id: str | None = None,
         rules: list[Rule] | list[str],
-    ) -> Report | None:
+    ) -> Job | None:
         """Create a new report from rules.
 
         Args:
@@ -857,7 +876,7 @@ class ReportsAPI:
             rules: List of rules or rule IDs to include in the report.
 
         Returns:
-            The created Report or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
         ...
 
@@ -868,7 +887,7 @@ class ReportsAPI:
         run_id: str,
         organization_id: str | None = None,
         name: str | None = None,
-    ) -> Report | None:
+    ) -> Job | None:
         """Create a new report from a report template.
 
         Args:
@@ -878,7 +897,7 @@ class ReportsAPI:
             name: Optional name for the report.
 
         Returns:
-            The created Report or None if no report was created.
+            The Job for the pending report, or None if no report was created.
         """
         ...
 
@@ -960,14 +979,14 @@ class ReportsAPI:
         """
         ...
 
-    def rerun(self, *, report: str | Report) -> tuple[str, str]:
+    def rerun(self, *, report: str | Report) -> Job:
         """Rerun a report.
 
         Args:
             report: The Report or report ID to rerun.
 
         Returns:
-            A tuple of (job_id, new_report_id).
+            The Job for the new pending report.
         """
         ...
 
@@ -981,6 +1000,37 @@ class ReportsAPI:
         Args:
             report: The Report or report ID to update.
             update: The updates to apply.
+        """
+        ...
+
+    def wait_until_complete(
+        self,
+        *,
+        report: Report | str | None = None,
+        job: Job | str | None = None,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Report:
+        """Wait until the report is complete or the timeout is reached.
+
+        Polls the report job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, returning the completed Report.
+
+        Either a report or job must be provided. The job must be a rule evaluation job.
+
+        Args:
+            report: The Report or report ID to wait for.
+            job: The pending rule evaluation Job or job ID to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The Report in the completed state.
+
+        Raises:
+            ValueError: If both or neither report and job are provided, or if
+                job is not a rule evaluation job.
         """
         ...
 

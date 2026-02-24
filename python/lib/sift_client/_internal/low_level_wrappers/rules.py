@@ -53,7 +53,7 @@ from sift.rules.v1.rules_pb2 import (
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
-from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
+from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client._internal.util.util import count_non_none
 from sift_client.sift_types.rule import (
@@ -69,7 +69,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.sift_types.channel import ChannelReference
-    from sift_client.sift_types.report import Report
+    from sift_client.sift_types.job import Job
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -587,8 +587,8 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         report_name: str | None = None,
         tags: list[str | Tag] | None = None,
         organization_id: str | None = None,
-    ) -> tuple[int, Report | None, str | None]:
-        """Evaluate a rule.
+    ) -> tuple[int, str | None, Job | None]:
+        """Evaluate rules.
 
         Args:
             run_id: The run ID to evaluate.
@@ -604,7 +604,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             organization_id: The organization ID to evaluate.
 
         Returns:
-            The result of the rule execution.
+            The annotation_count, report_id, and job for the pending report.
         """
         if count_non_none(run_id, asset_ids) > 1:
             raise ValueError(
@@ -664,13 +664,13 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request
         )
         response = cast("EvaluateRulesResponse", response)
-        created_annotation_count = response.created_annotation_count
-        report_id = response.report_id
         job_id = response.job_id
-        if report_id:
-            report = await ReportsLowLevelClient(self._grpc_client).get_report(report_id=report_id)
-            return created_annotation_count, report, job_id
-        return created_annotation_count, None, job_id
+
+        if job_id:
+            job = await JobsLowLevelClient(self._grpc_client).get_job(job_id=job_id)
+        else:
+            job = None
+        return response.created_annotation_count, response.report_id, job
 
     async def get_rule_version(self, rule_version_id: str) -> Rule:
         """Get a rule at a specific version by rule_version_id.
