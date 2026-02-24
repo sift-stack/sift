@@ -418,8 +418,10 @@ class ReportsAPIAsync(ResourceBase):
                 raise ValueError("job is not a rule evaluation job")
             report_id = job_details.report_id
 
-        if not report_id or not job_id:
-            raise ValueError("report_id and job_id must be set")
+        if not report_id:
+            raise ValueError("could not retrieve report_id")
+        if not job_id:
+            raise ValueError("could not retrieve job_id")
 
         await self.client.async_.jobs.wait_until_complete(
             job=job_id,
