@@ -37,6 +37,7 @@ class Channel(google.protobuf.message.Message):
     DISPLAY_DESCRIPTION_FIELD_NUMBER: builtins.int
     DISPLAY_UNIT_ID_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    ACTIVE_FIELD_NUMBER: builtins.int
     channel_id: builtins.str
     name: builtins.str
     """The full name of the channel."""
@@ -48,6 +49,7 @@ class Channel(google.protobuf.message.Message):
     data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType
     display_description: builtins.str
     display_unit_id: builtins.str
+    active: builtins.bool
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -76,9 +78,10 @@ class Channel(google.protobuf.message.Message):
         display_description: builtins.str = ...,
         display_unit_id: builtins.str = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        active: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "bit_field_elements", b"bit_field_elements", "channel_id", b"channel_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "data_type", b"data_type", "description", b"description", "display_description", b"display_description", "display_unit_id", b"display_unit_id", "enum_types", b"enum_types", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "unit_id", b"unit_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["active", b"active", "asset_id", b"asset_id", "bit_field_elements", b"bit_field_elements", "channel_id", b"channel_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "data_type", b"data_type", "description", b"description", "display_description", b"display_description", "display_unit_id", b"display_unit_id", "enum_types", b"enum_types", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "unit_id", b"unit_id"]) -> None: ...
 
 global___Channel = Channel
 
@@ -351,7 +354,7 @@ class UpdateChannelRequest(google.protobuf.message.Message):
     def channel(self) -> global___Channel: ...
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `display_description`, `display_units`, and `metadata`."""
+        """The list of fields to be updated. The fields available to be updated are `display_description`, `display_units`, `metadata`, and `active`."""
 
     def __init__(
         self,
@@ -382,3 +385,63 @@ class UpdateChannelResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["channel", b"channel"]) -> None: ...
 
 global___UpdateChannelResponse = UpdateChannelResponse
+
+@typing.final
+class BatchArchiveChannelsRequest(google.protobuf.message.Message):
+    """The request for a call to ChannelService_BatchArchiveChannels."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def channel_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        channel_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channel_ids", b"channel_ids"]) -> None: ...
+
+global___BatchArchiveChannelsRequest = BatchArchiveChannelsRequest
+
+@typing.final
+class BatchArchiveChannelsResponse(google.protobuf.message.Message):
+    """The result of a call to ChannelService_BatchArchiveChannels."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchArchiveChannelsResponse = BatchArchiveChannelsResponse
+
+@typing.final
+class BatchUnarchiveChannelsRequest(google.protobuf.message.Message):
+    """The request for a call to ChannelService_BatchUnarchiveChannels."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def channel_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        channel_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channel_ids", b"channel_ids"]) -> None: ...
+
+global___BatchUnarchiveChannelsRequest = BatchUnarchiveChannelsRequest
+
+@typing.final
+class BatchUnarchiveChannelsResponse(google.protobuf.message.Message):
+    """The result of a call to ChannelService_BatchUnarchiveChannels."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchUnarchiveChannelsResponse = BatchUnarchiveChannelsResponse

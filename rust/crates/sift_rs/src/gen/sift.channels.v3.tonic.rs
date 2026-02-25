@@ -165,6 +165,66 @@ pub mod channel_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn batch_archive_channels(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchArchiveChannelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchArchiveChannelsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.channels.v3.ChannelService/BatchArchiveChannels",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.channels.v3.ChannelService",
+                        "BatchArchiveChannels",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn batch_unarchive_channels(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchUnarchiveChannelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUnarchiveChannelsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.channels.v3.ChannelService/BatchUnarchiveChannels",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.channels.v3.ChannelService",
+                        "BatchUnarchiveChannels",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -193,6 +253,20 @@ pub mod channel_service_server {
             request: tonic::Request<super::UpdateChannelRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UpdateChannelResponse>,
+            tonic::Status,
+        >;
+        async fn batch_archive_channels(
+            &self,
+            request: tonic::Request<super::BatchArchiveChannelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchArchiveChannelsResponse>,
+            tonic::Status,
+        >;
+        async fn batch_unarchive_channels(
+            &self,
+            request: tonic::Request<super::BatchUnarchiveChannelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUnarchiveChannelsResponse>,
             tonic::Status,
         >;
     }
@@ -398,6 +472,106 @@ pub mod channel_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = UpdateChannelSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.channels.v3.ChannelService/BatchArchiveChannels" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchArchiveChannelsSvc<T: ChannelService>(pub Arc<T>);
+                    impl<
+                        T: ChannelService,
+                    > tonic::server::UnaryService<super::BatchArchiveChannelsRequest>
+                    for BatchArchiveChannelsSvc<T> {
+                        type Response = super::BatchArchiveChannelsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchArchiveChannelsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ChannelService>::batch_archive_channels(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchArchiveChannelsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.channels.v3.ChannelService/BatchUnarchiveChannels" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchUnarchiveChannelsSvc<T: ChannelService>(pub Arc<T>);
+                    impl<
+                        T: ChannelService,
+                    > tonic::server::UnaryService<super::BatchUnarchiveChannelsRequest>
+                    for BatchUnarchiveChannelsSvc<T> {
+                        type Response = super::BatchUnarchiveChannelsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchUnarchiveChannelsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ChannelService>::batch_unarchive_channels(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchUnarchiveChannelsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

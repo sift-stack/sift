@@ -40,6 +40,18 @@ class ChannelServiceStub:
     Update a channel
     """
 
+    BatchArchiveChannels: grpc.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.BatchArchiveChannelsRequest,
+        sift.channels.v3.channels_pb2.BatchArchiveChannelsResponse,
+    ]
+    """Batch archives channels by setting active to false."""
+
+    BatchUnarchiveChannels: grpc.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.BatchUnarchiveChannelsRequest,
+        sift.channels.v3.channels_pb2.BatchUnarchiveChannelsResponse,
+    ]
+    """Batch unarchives channels by setting active to true."""
+
 class ChannelServiceAsyncStub:
     GetChannel: grpc.aio.UnaryUnaryMultiCallable[
         sift.channels.v3.channels_pb2.GetChannelRequest,
@@ -61,6 +73,18 @@ class ChannelServiceAsyncStub:
 
     Update a channel
     """
+
+    BatchArchiveChannels: grpc.aio.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.BatchArchiveChannelsRequest,
+        sift.channels.v3.channels_pb2.BatchArchiveChannelsResponse,
+    ]
+    """Batch archives channels by setting active to false."""
+
+    BatchUnarchiveChannels: grpc.aio.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.BatchUnarchiveChannelsRequest,
+        sift.channels.v3.channels_pb2.BatchUnarchiveChannelsResponse,
+    ]
+    """Batch unarchives channels by setting active to true."""
 
 class ChannelServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -89,5 +113,21 @@ class ChannelServiceServicer(metaclass=abc.ABCMeta):
 
         Update a channel
         """
+
+    @abc.abstractmethod
+    def BatchArchiveChannels(
+        self,
+        request: sift.channels.v3.channels_pb2.BatchArchiveChannelsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.channels.v3.channels_pb2.BatchArchiveChannelsResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.BatchArchiveChannelsResponse]]:
+        """Batch archives channels by setting active to false."""
+
+    @abc.abstractmethod
+    def BatchUnarchiveChannels(
+        self,
+        request: sift.channels.v3.channels_pb2.BatchUnarchiveChannelsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.channels.v3.channels_pb2.BatchUnarchiveChannelsResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.BatchUnarchiveChannelsResponse]]:
+        """Batch unarchives channels by setting active to true."""
 
 def add_ChannelServiceServicer_to_server(servicer: ChannelServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

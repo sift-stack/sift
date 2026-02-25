@@ -59,6 +59,32 @@ service ChannelService {
       operation_id: "ChannelService_UpdateChannelV3"
     };
   }
+
+  // Batch archives channels by setting active to false.
+  rpc BatchArchiveChannels(BatchArchiveChannelsRequest) returns (BatchArchiveChannelsResponse) {
+    option (google.api.http) = {
+      post: "/api/v3/channels:batchArchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchArchiveChannels"
+      description: "Batch archives channels by setting active to false."
+      operation_id: "ChannelService_BatchArchiveChannels"
+    };
+  }
+
+  // Batch unarchives channels by setting active to true.
+  rpc BatchUnarchiveChannels(BatchUnarchiveChannelsRequest) returns (BatchUnarchiveChannelsResponse) {
+    option (google.api.http) = {
+      post: "/api/v3/channels:batchUnarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchUnarchiveChannels"
+      description: "Batch unarchives channels by setting active to true."
+      operation_id: "ChannelService_BatchUnarchiveChannels"
+    };
+  }
 }
 
 message Channel {
@@ -78,6 +104,7 @@ message Channel {
   string display_description = 13;
   string display_unit_id = 14;
   repeated sift.metadata.v1.MetadataValue metadata = 15 [(google.api.field_behavior) = REQUIRED];
+  bool active = 16;
 }
 
 // The request for a call to `ChannelService_GetChannel`.
@@ -187,7 +214,7 @@ message FilterChannelsResponse {
 message UpdateChannelRequest {
   Channel channel = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The fields available to be updated are `display_description`, `display_units`, and `metadata`.
+  // The list of fields to be updated. The fields available to be updated are `display_description`, `display_units`, `metadata`, and `active`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -195,3 +222,19 @@ message UpdateChannelRequest {
 message UpdateChannelResponse {
   Channel channel = 1 [(google.api.field_behavior) = REQUIRED];
 }
+
+// The request for a call to ChannelService_BatchArchiveChannels.
+message BatchArchiveChannelsRequest {
+  repeated string channel_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The result of a call to ChannelService_BatchArchiveChannels.
+message BatchArchiveChannelsResponse {}
+
+// The request for a call to ChannelService_BatchUnarchiveChannels.
+message BatchUnarchiveChannelsRequest {
+  repeated string channel_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The result of a call to ChannelService_BatchUnarchiveChannels.
+message BatchUnarchiveChannelsResponse {}
