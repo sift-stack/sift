@@ -3,6 +3,19 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.11.0] - February 24, 2026
+### What's New
+#### Better Rule and Report Support in SiftClient
+SiftClient has been updated to provide better support for RuleVersions and better ergonomics for Reports
+- Additional methods have been added to the SiftClient Rules resource to allow easy access to RuleVersions
+- Reports can now be generated from RuleVersions
+- The Jobs and Reports resources now have a `wait_until_complete` sync/async method, which provides a convenient way to wait until a job or report is complete, with configurable polling and timeout settings.
+- When creating reports, SiftClient now returns a Job object, to signify that the report is still in progress. Waiting on the job with `wait_until_complete` will return the completed report once finished. The report_id can also still be accessed directly from the job object if needed. 
+
+### Full Changelog
+- [Add more support for rule versions to SiftClient](https://github.com/sift-stack/sift/pull/479)
+- [Add better report creation and wait_until_complete to SiftClient](https://github.com/sift-stack/sift/pull/475)
+
 ## [v0.10.1] - February 11, 2026
 
 ### What's New
