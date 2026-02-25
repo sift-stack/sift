@@ -7,7 +7,12 @@ These tests demonstrate and validate the usage of the Channels API including:
 - Error handling and edge cases
 """
 
+import asyncio
+import uuid
+from urllib.parse import urljoin
+
 import pytest
+import requests
 
 from sift_client import SiftClient
 from sift_client.resources import ChannelsAPI, ChannelsAPIAsync
@@ -183,21 +188,6 @@ class TestChannelsAPIAsync:
             assert isinstance(channels_3, list)
             assert len(channels_3) <= 3
 
-        # TODO: active channel test
-        # @pytest.mark.asyncio
-        # async def test_list_include_archived(self, channels_api_async):
-        #     """Test channel listing with archived channels included."""
-        #     # Test without archived channels (default)
-        #     channels_active = await channels_api_async.list_(limit=5, include_archived=False)
-        #     assert isinstance(channels_active, list)
-        #
-        #     # Test with archived channels included
-        #     channels_all = await channels_api_async.list_(limit=5, include_archived=True)
-        #     assert isinstance(channels_all, list)
-        #
-        #     # Should have at least as many channels when including archived
-        #     assert len(channels_all) >= len(channels_active)
-
         @pytest.mark.asyncio
         async def test_list_with_time_filters(self, channels_api_async):
             """Test channel listing with time-based filters."""
@@ -239,6 +229,69 @@ class TestChannelsAPIAsync:
             """Test finding multiple channels raises an error."""
             with pytest.raises(ValueError, match="Multiple"):
                 await channels_api_async.find(name_contains="test", limit=5)
+
+    class TestArchive:
+        """Tests for the async archive method."""
+
+        @pytest.mark.asyncio
+        async def test_create_archive_unarchive_flow(self, channels_api_async, test_channel):
+            """Create a channel via REST schemaless ingest, then archive/unarchive via channels API; verify at each step with find."""
+            asset_name = test_channel.asset.name
+            asset_id = test_channel.asset_id
+            unique_name = f"archive-test-channel-{uuid.uuid4().hex}"
+
+            rest_client = channels_api_async.client.rest_client
+            rest_url = urljoin(rest_client.base_url, "api/v2/ingest")
+            api_key = rest_client._config.api_key
+
+            # Create the channel by ingesting a single data point (schemaless).
+            #
+            # This is currently the simplest way to create a channel. Simply
+            # creating a channel schema is not sufficient since schemaless channels
+            # that have no data are filtered out of the `ListChannels` response.
+            payload = {
+                "asset_name": asset_name,
+                "data": [
+                    {
+                        "timestamp": "2024-11-06T10:27:20-07:00",
+                        "values": [
+                            {"channel": unique_name, "value": 1},
+                        ],
+                    }
+                ],
+            }
+            resp = requests.post(
+                rest_url,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=30,
+            )
+            resp.raise_for_status()
+
+            # Retry find until the channel is visible.
+            created = None
+            for _ in range(20):
+                created = await channels_api_async.find(name=unique_name, asset=asset_id)
+                if created is not None:
+                    break
+                await asyncio.sleep(0.5)
+            assert created is not None, f"Channel {unique_name} did not appear after ingest"
+
+            await channels_api_async.archive([created])
+            found_archived = await channels_api_async.find(
+                name=unique_name, asset=asset_id, archived=True
+            )
+            assert found_archived is not None
+
+            await channels_api_async.unarchive([created])
+            found_active = await channels_api_async.find(name=unique_name, asset=asset_id)
+            assert found_active is not None
+
+            # Cleanup by archiving the channel again
+            await channels_api_async.archive([created])
 
     # TODO: data retrieval tests
     # class TestGetData:

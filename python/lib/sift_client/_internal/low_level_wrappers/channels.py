@@ -4,6 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from sift.channels.v3.channels_pb2 import (
+    BatchArchiveChannelsRequest,
+    BatchUnarchiveChannelsRequest,
     GetChannelRequest,
     GetChannelResponse,
     ListChannelsRequest,
@@ -117,3 +119,21 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             order_by=order_by,
             max_results=max_results,
         )
+
+    async def batch_archive_channels(self, channel_ids: list[str]) -> None:
+        """Batch archive channels by setting active to false.
+
+        Args:
+            channel_ids: The channel IDs to archive.
+        """
+        request = BatchArchiveChannelsRequest(channel_ids=channel_ids)
+        await self._grpc_client.get_stub(ChannelServiceStub).BatchArchiveChannels(request)
+
+    async def batch_unarchive_channels(self, channel_ids: list[str]) -> None:
+        """Batch unarchive channels by setting active to true.
+
+        Args:
+            channel_ids: The channel IDs to unarchive.
+        """
+        request = BatchUnarchiveChannelsRequest(channel_ids=channel_ids)
+        await self._grpc_client.get_stub(ChannelServiceStub).BatchUnarchiveChannels(request)

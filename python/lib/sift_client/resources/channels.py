@@ -19,6 +19,30 @@ if TYPE_CHECKING:
     from sift_client.sift_types.channel import Channel
 
 
+def _channel_ids_from_list(items: list[str | Channel]) -> list[str]:
+    """Resolve a list of channel IDs or Channel objects to a list of channel IDs.
+
+    Args:
+        items: List of channel IDs (str) or Channel objects.
+
+    Returns:
+        List of channel ID strings.
+
+    Raises:
+        ValueError: If any Channel object has no id set.
+    """
+    ids: list[str] = []
+    for item in items:
+        if isinstance(item, str):
+            ids.append(item)
+        else:
+            try:
+                ids.append(item._id_or_error)
+            except ValueError:
+                raise ValueError("One or more Channel objects have no id set.") from None
+    return ids
+
+
 class ChannelsAPIAsync(ResourceBase):
     """High-level API for interacting with channels.
 
@@ -75,7 +99,7 @@ class ChannelsAPIAsync(ResourceBase):
         run: Run | str | None = None,
         # common filters
         description_contains: str | None = None,
-        include_archived: bool | None = None,
+        archived: bool | None = None,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -96,7 +120,7 @@ class ChannelsAPIAsync(ResourceBase):
             assets: Filter channels associated with these Assets or asset IDs.
             run: Filter channels associated with this Run or run ID.
             description_contains: Partial description of the channel.
-            include_archived: If True, include archived channels in results.
+            archived: If True, searches for archived channels.
             filter_query: Explicit CEL query to filter channels.
             order_by: Field and direction to order results by.
             limit: Maximum number of channels to return. If None, returns all matches.
@@ -117,7 +141,6 @@ class ChannelsAPIAsync(ResourceBase):
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 filter_query=filter_query,
-                include_archived=include_archived,
             ),
         ]
         if channel_ids:
@@ -133,9 +156,10 @@ class ChannelsAPIAsync(ResourceBase):
         if run is not None:
             run_id = run.id_ if isinstance(run, Run) else run
             filter_parts.append(cel.equals("run_id", run_id))
+
         # This is opposite of usual archived state
-        if include_archived is not None:
-            filter_parts.append(cel.equals("active", not include_archived))
+        if archived is not None:
+            filter_parts.append(cel.equals("active", not archived))
 
         query_filter = cel.and_(*filter_parts)
 
@@ -162,6 +186,26 @@ class ChannelsAPIAsync(ResourceBase):
         elif len(channels) == 1:
             return channels[0]
         return None
+
+    async def archive(self, channels: list[str | Channel]) -> None:
+        """Batch archive channels by setting active to false.
+
+        Args:
+            channels: List of channel IDs or Channel objects to archive. If a Channel
+                has no id set, raises ValueError.
+        """
+        channel_ids = _channel_ids_from_list(channels)
+        await self._low_level_client.batch_archive_channels(channel_ids)
+
+    async def unarchive(self, channels: list[str | Channel]) -> None:
+        """Batch unarchive channels by setting active to true.
+
+        Args:
+            channels: List of channel IDs or Channel objects to unarchive. If a Channel
+                has no id set, raises ValueError.
+        """
+        channel_ids = _channel_ids_from_list(channels)
+        await self._low_level_client.batch_unarchive_channels(channel_ids)
 
     def _ensure_data_low_level_client(self):
         """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""
