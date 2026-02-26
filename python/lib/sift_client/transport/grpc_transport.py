@@ -55,6 +55,9 @@ class GrpcConfig:
             use_async: Whether to use async gRPC client.
             metadata: Additional metadata to include in all requests.
         """
+        if not url.startswith("http"):
+            # urljoin (used when executing requests) requires URL starting with http or https
+            url = f"https://{url}" if use_ssl else f"http://{url}"
         self.uri = url
         self.api_key = api_key
         self.use_ssl = use_ssl
