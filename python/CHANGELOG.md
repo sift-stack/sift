@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+
+https://github.com/sift-stack/sift/commit/e1305363e95cafb4c980fdd493f69e72660a52fb
+
+## [v0.12.0] - February 26, 2026
+### What's New
+#### Channel Archiving/Unarchiving Support in SiftClient
+SiftClient has been updated with the ability to archive and unarchive channels, allowing users to cleanup
+old channel definitions that are no longer desired.
+
+### Full Changelog
+- [Add channel archive/unarchive support](https://github.com/sift-stack/sift/pull/483)
+
 ## [v0.11.0] - February 24, 2026
 ### What's New
 #### Better Rule and Report Support in SiftClient
