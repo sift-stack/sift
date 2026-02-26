@@ -407,6 +407,15 @@ class ChannelsAPI:
         ...
 
     def _run(self, coro): ...
+    def archive(self, channels: list[str | Channel]) -> None:
+        """Batch archive channels by setting active to false.
+
+        Args:
+            channels: List of channel IDs or Channel objects to archive. If a Channel
+                has no id set, raises ValueError.
+        """
+        ...
+
     def find(self, **kwargs) -> Channel | None:
         """Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
         raises an error.
@@ -484,7 +493,7 @@ class ChannelsAPI:
         assets: list[str | Asset] | None = None,
         run: Run | str | None = None,
         description_contains: str | None = None,
-        include_archived: bool | None = None,
+        archived: bool | None = None,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -505,13 +514,22 @@ class ChannelsAPI:
             assets: Filter channels associated with these Assets or asset IDs.
             run: Filter channels associated with this Run or run ID.
             description_contains: Partial description of the channel.
-            include_archived: If True, include archived channels in results.
+            archived: If True, searches for archived channels.
             filter_query: Explicit CEL query to filter channels.
             order_by: Field and direction to order results by.
             limit: Maximum number of channels to return. If None, returns all matches.
 
         Returns:
             A list of Channels that matches the filter criteria.
+        """
+        ...
+
+    def unarchive(self, channels: list[str | Channel]) -> None:
+        """Batch unarchive channels by setting active to true.
+
+        Args:
+            channels: List of channel IDs or Channel objects to unarchive. If a Channel
+                has no id set, raises ValueError.
         """
         ...
 
