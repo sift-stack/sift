@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -15,6 +16,10 @@ if TYPE_CHECKING:
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Parquet MIME types are not included in mimetypes by default
+mimetypes.add_type("application/vnd.apache.parquet", ".pqt")
+mimetypes.add_type("application/vnd.apache.parquet", ".parquet")
 
 
 class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
@@ -182,7 +187,6 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         Returns:
             A tuple of (file_name, mime_type, content_encoding).
         """
-        import mimetypes
 
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
