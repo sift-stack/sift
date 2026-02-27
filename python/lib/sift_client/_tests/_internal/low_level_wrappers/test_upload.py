@@ -1,6 +1,7 @@
-"""Tests for UploadLowLevelClient functionality"""
+"""Tests for UploadLowLevelClient functionality."""
 
 from pathlib import Path
+
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 
 
