@@ -35,14 +35,14 @@ def assign_value_to_measurement(
 def evaluate_measurement_bounds(
     measurement: TestMeasurement | TestMeasurementCreate | TestMeasurementUpdate,
     value: float | str | bool,
-    bounds: dict[str, float] | NumericBounds | str | bool | None,
+    bounds: dict[str, float] | NumericBounds | str | float | bool | None,
 ) -> bool:
     """Update a measurement with the resolved bounds type and result of evaluating the given value against those bounds.
 
     Args:
         measurement: The measurement to update.
         value: The value to evaluate the bounds of.
-        bounds: The bounds to evaluate the value against. Either a dictionary with "min" and "max" keys, a NumericBounds object, a string, a boolean, or None.
+        bounds: The bounds to evaluate the value against. Either a dictionary with "min" and "max" keys, a NumericBounds object, a string, a float, a boolean, or None.
 
     Returns:
         True if the value is within the bounds, False otherwise.

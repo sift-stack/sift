@@ -284,7 +284,8 @@ class NewStep(AbstractContextManager):
         result = self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
-        self.report_context.exit_step(self.current_step)
+        if self.current_step:
+            self.report_context.exit_step(self.current_step)
 
         # Test only attribute (hence not public class variable)
         # This changes the result after the status and error info are set.

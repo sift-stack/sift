@@ -433,6 +433,7 @@ class TestBaseType:
 
         # Should not raise
         model = TestModel(name="test", created_date=datetime.now(timezone.utc))
+        assert model.created_date
         assert model.created_date.tzinfo is not None
 
     def test_validate_timezones_with_naive_datetime(self):

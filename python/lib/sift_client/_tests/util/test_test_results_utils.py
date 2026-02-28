@@ -533,6 +533,7 @@ class TestBounds:
         result = evaluate_measurement_bounds(measurement, 5.0, bounds)
         assert result == True
         assert measurement.passed == True
+        assert measurement.numeric_bounds
         assert measurement.numeric_bounds.min == 0.0
         assert measurement.numeric_bounds.max == 10.0
 
@@ -572,6 +573,7 @@ class TestBounds:
         assert result6 == True
         assert measurement.passed == True
         assert measurement.boolean_value == True
+        assert measurement.string_expected_value
         assert measurement.string_expected_value.lower() == "true"
 
     def test_evaluate_measurement_bounds_boolean_not_matching(self):
@@ -591,6 +593,7 @@ class TestBounds:
         assert result6 == False
         assert measurement.passed == False
         assert measurement.boolean_value == False
+        assert measurement.string_expected_value
         assert measurement.string_expected_value.lower() == "true"
 
     def test_evaluate_measurement_bounds_boolean_case_insensitive(self):

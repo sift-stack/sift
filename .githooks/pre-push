@@ -14,8 +14,7 @@ echo
 
 # Check for changes in Python files
 # Compare against the remote branch being pushed to
-python_changed_files=($(git diff --name-only --diff-filter=ACM @{upstream}... | grep '^python/' || true))
-
+python_changed_files=($(git diff --name-only --diff-filter=ACM @{upstream}... | grep -E '^(python/|pyproject.toml)' || true))
 echo "→ Python files changed:"
 if [[ -n "$python_changed_files" ]]; then
     echo "  ${python_changed_files[*]}"
