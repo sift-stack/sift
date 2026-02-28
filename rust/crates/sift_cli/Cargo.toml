@@ -23,13 +23,24 @@ flate2 = "1.1.2"
 indicatif = "0.18.0"
 parquet = "56.2.0"
 pbjson-types = { workspace = true }
+prost = "0.13.5"
 reqwest = "0.12.23"
 sift_pbfs = { workspace = true }
 sift_rs = { workspace = true }
-tokio = { version = "1.47.1", features = ["full", "net", "time"] }
+sift_stream = { workspace = true }
+tokio = { version = "1.47.1", features = ["full", "net", "time", "macros", "rt-multi-thread", "signal"] }
 tokio-stream = "0.1.17"
+tonic = { workspace = true }
+tonic-reflection = "0.12"
 toml = "0.8.23"
 zip = "6.0.0"
 
 [dev-dependencies]
 indoc = "2.0.6"
+
+[dependencies.uuid]
+version = "1.19.0"
+features = ["v4"]
+
+[build-dependencies]
+tonic-build = "0.12"

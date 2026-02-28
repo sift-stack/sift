@@ -8,6 +8,7 @@ pub mod completions;
 pub mod config;
 pub mod export;
 pub mod import;
+pub mod test_server;
 
 pub struct Context {
     pub grpc_uri: String,
