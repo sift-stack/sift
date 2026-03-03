@@ -11,6 +11,7 @@ import atexit
 import logging
 import threading
 from typing import Any
+from urllib.parse import urlparse
 
 from sift_py.grpc.transport import (
     SiftChannelConfig,
@@ -55,7 +56,17 @@ class GrpcConfig:
             use_async: Whether to use async gRPC client.
             metadata: Additional metadata to include in all requests.
         """
-        self.uri = url
+        parsed_url = urlparse(url)
+        normalized_url = url
+        if not parsed_url.netloc and parsed_url.scheme not in ("http", "https"):
+            # missing netloc means no '://' separator and will prepend the scheme
+            normalized_url = f"https://{url}" if use_ssl else f"http://{url}"
+            parsed_url = urlparse(normalized_url)
+        if parsed_url.scheme not in ("http", "https") or not parsed_url.netloc:
+            raise ValueError(
+                f"Invalid connection URL '{url}'. Expected format: 'http[s]://hostname[:port]'."
+            )
+        self.uri = normalized_url
         self.api_key = api_key
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
