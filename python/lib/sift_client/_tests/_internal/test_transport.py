@@ -36,15 +36,15 @@ class TestGrpcConfigUrl:
         assert config.uri == "http://grpc.sift.com"
 
     def test_raises_on_invalid_url(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid connection URL"):
             GrpcConfig(url="htp://localhost:8080", api_key="api")
 
     def test_raise_on_invalid_url2(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid connection URL"):
             GrpcConfig(url="https:/localhost:50051", api_key="api")
 
     def test_raise_on_missing_url(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid connection URL"):
             GrpcConfig(url="", api_key="api")
 
 
