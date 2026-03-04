@@ -116,9 +116,9 @@ def test_sift_channel(mocker: MockFixture):
         }
 
         with use_sift_channel(sift_channel_config_a) as channel:
+            stub = DataServiceStub(channel)
             with pytest.raises(grpc.RpcError, match="UNAUTHENTICATED"):
-                stub = DataServiceStub(channel)
-                _ = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+                _ = cast("GetDataResponse", stub.GetData(GetDataRequest()))
 
             get_data_spy.assert_not_called()
 
@@ -130,7 +130,7 @@ def test_sift_channel(mocker: MockFixture):
 
         with use_sift_channel(sift_channel_config_b) as channel:
             stub = DataServiceStub(channel)
-            res = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+            res = cast("GetDataResponse", stub.GetData(GetDataRequest()))
             assert res.next_page_token == "next-page-token"
             get_data_spy.assert_called_once()
 
@@ -145,7 +145,7 @@ def test_sift_channel(mocker: MockFixture):
         with use_sift_channel(sift_channel_config_c) as channel:
             stub = DataServiceStub(channel)
             # This will attempt 5 times: fail 4 times, succeed on 5th
-            res = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+            res = cast("GetDataResponse", stub.GetData(GetDataRequest()))
             assert res.next_page_token == "next-page-token"
             get_data_spy.assert_called_once()
 
@@ -166,8 +166,8 @@ def test_sift_channel(mocker: MockFixture):
             stub = DataServiceStub(channel)
 
             # This will go beyond the max number of attempts
-            with pytest.raises(Exception):
-                res = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+            with pytest.raises(grpc.RpcError):
+                stub.GetData(GetDataRequest())
 
             get_data_spy.assert_not_called()
 
@@ -187,7 +187,7 @@ def test_internal_error_retry(mocker: MockFixture):
         with use_sift_channel(sift_channel_config_c) as channel:
             stub = DataServiceStub(channel)
             # This will attempt 5 times: fail 4 times, succeed on 5th
-            res = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+            res = cast("GetDataResponse", stub.GetData(GetDataRequest()))
             assert res.next_page_token == "next-page-token"
             get_data_spy.assert_called_once()
 
@@ -207,8 +207,8 @@ def test_internal_error_retry(mocker: MockFixture):
             stub = DataServiceStub(channel)
 
             # This will go beyond the max number of attempts
-            with pytest.raises(Exception):
-                res = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+            with pytest.raises(grpc.RpcError):
+                stub.GetData(GetDataRequest())
 
             get_data_spy.assert_not_called()
 

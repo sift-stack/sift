@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Any, AsyncIterable, Callable, Iterable, TypeVar, Union
+from typing import Any, AsyncIterable, Callable, Iterable, TypeVar
 
 from grpc import aio as grpc_aio
 
@@ -42,7 +44,7 @@ class ClientAsyncInterceptor(
         self,
         continuation: Continuation[grpc_aio.StreamUnaryCall],
         client_call_details: grpc_aio.ClientCallDetails,
-        request_iterator: Union[Iterable[Any], AsyncIterable[Any]],
+        request_iterator: Iterable[Any] | AsyncIterable[Any],
     ):
         return await self.intercept(
             _async_swap_args(continuation), request_iterator, client_call_details
@@ -52,7 +54,7 @@ class ClientAsyncInterceptor(
         self,
         continuation: Continuation[grpc_aio.StreamStreamCall],
         client_call_details: grpc_aio.ClientCallDetails,
-        request_iterator: Union[Iterable[Any], AsyncIterable[Any]],
+        request_iterator: Iterable[Any] | AsyncIterable[Any],
     ):
         return await self.intercept(
             _async_swap_args(continuation), request_iterator, client_call_details

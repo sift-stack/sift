@@ -1,22 +1,24 @@
-from typing import Optional, Sequence, Tuple, Union
+from __future__ import annotations
+
+from typing import Sequence
 
 import grpc
 
 
 class ClientCallDetails(grpc.ClientCallDetails):
     method: str
-    timeout: Optional[float]
-    metadata: Optional[Sequence[Tuple[str, Union[str, bytes]]]]
-    credentials: Optional[grpc.CallCredentials]
-    wait_for_ready: Optional[bool]
+    timeout: float | None
+    metadata: Sequence[tuple[str, str | bytes]] | None
+    credentials: grpc.CallCredentials | None
+    wait_for_ready: bool | None
 
     def __init__(
         self,
         method: str,
-        timeout: Optional[float],
-        metadata: Optional[Sequence[Tuple[str, Union[str, bytes]]]],
-        credentials: Optional[grpc.CallCredentials],
-        wait_for_ready: Optional[bool],
+        timeout: float | None,
+        metadata: Sequence[tuple[str, str | bytes]] | None,
+        credentials: grpc.CallCredentials | None,
+        wait_for_ready: bool | None,
     ):
         self.method = method
         self.timeout = timeout

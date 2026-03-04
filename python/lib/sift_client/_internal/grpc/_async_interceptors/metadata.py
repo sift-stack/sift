@@ -25,7 +25,7 @@ class MetadataAsyncInterceptor(ClientAsyncInterceptor):
         request_or_iterator: Any,
         client_call_details: grpc_aio.ClientCallDetails,
     ):
-        call_details = cast(grpc_aio.ClientCallDetails, client_call_details)
+        call_details = cast("grpc_aio.ClientCallDetails", client_call_details)
         new_details = grpc_aio.ClientCallDetails(
             call_details.method,
             call_details.timeout,

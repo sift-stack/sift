@@ -20,7 +20,7 @@ class MetadataInterceptor(ClientInterceptor):
         request_or_iterator: Any,
         client_call_details: grpc.ClientCallDetails,
     ):
-        details = cast(ClientCallDetails, client_call_details)
+        details = cast("ClientCallDetails", client_call_details)
 
         new_details = ClientCallDetails(
             method=details.method,

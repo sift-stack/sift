@@ -7,17 +7,19 @@ and should generally be used within a with-block for correct resource management
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 from urllib.parse import ParseResult, urlparse
 
 import grpc
 import grpc.aio as grpc_aio
 from typing_extensions import NotRequired, TypeAlias
 
-from sift_client._internal.grpc._async_interceptors.base import ClientAsyncInterceptor
 from sift_client._internal.grpc._async_interceptors.metadata import MetadataAsyncInterceptor
-from sift_client._internal.grpc._interceptors.base import ClientInterceptor
 from sift_client._internal.grpc._interceptors.metadata import Metadata, MetadataInterceptor
+
+if TYPE_CHECKING:
+    from sift_client._internal.grpc._async_interceptors.base import ClientAsyncInterceptor
+    from sift_client._internal.grpc._interceptors.base import ClientInterceptor
 from sift_client._internal.grpc._retry import RetryPolicy
 from sift_client._internal.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 
@@ -52,7 +54,7 @@ def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
 
 
 def use_sift_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
 ) -> SiftChannel:
     """
     Returns an intercepted channel that is meant to be used across all services that
@@ -78,7 +80,7 @@ def use_sift_channel(
 
 
 def use_sift_async_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
 ) -> SiftAsyncChannel:
     """
     Like `use_sift_channel` but returns a channel meant to be used within the context
@@ -99,7 +101,7 @@ def use_sift_async_channel(
 
 
 def _use_insecure_sift_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
 ) -> SiftChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
@@ -112,7 +114,7 @@ def _use_insecure_sift_channel(
 
 
 def _use_insecure_sift_async_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
 ) -> SiftAsyncChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
@@ -125,8 +127,8 @@ def _use_insecure_sift_async_channel(
 
 
 def _compute_sift_interceptors(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
-) -> List[ClientInterceptor]:
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
+) -> list[ClientInterceptor]:
     """
     Initialized all interceptors here.
     """
@@ -136,14 +138,14 @@ def _compute_sift_interceptors(
 
 
 def _compute_sift_async_interceptors(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
-) -> List[grpc_aio.ClientInterceptor]:
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
+) -> list[grpc_aio.ClientInterceptor]:
     return [
         _metadata_async_interceptor(config, metadata),
     ]
 
 
-def _compute_channel_options(opts: SiftChannelConfig) -> List[Tuple[str, Any]]:
+def _compute_channel_options(opts: SiftChannelConfig) -> list[tuple[str, Any]]:
     """
     Initialize all [channel options](https://github.com/grpc/grpc/blob/v1.64.x/include/grpc/impl/channel_arg_names.h) here.
     """
@@ -158,7 +160,7 @@ def _compute_channel_options(opts: SiftChannelConfig) -> List[Tuple[str, Any]]:
 
     enable_keepalive = opts.get("enable_keepalive", True)
     if isinstance(enable_keepalive, dict):
-        config = cast(KeepaliveConfig, enable_keepalive)
+        config = cast("KeepaliveConfig", enable_keepalive)
         options.extend(_compute_keep_alive_channel_opts(config))
     elif enable_keepalive:
         options.extend(_compute_keep_alive_channel_opts(DEFAULT_KEEPALIVE_CONFIG))
@@ -167,7 +169,7 @@ def _compute_channel_options(opts: SiftChannelConfig) -> List[Tuple[str, Any]]:
 
 
 def _metadata_interceptor(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
 ) -> ClientInterceptor:
     """
     Any new metadata goes here.
@@ -183,7 +185,7 @@ def _metadata_interceptor(
 
 
 def _metadata_async_interceptor(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: dict[str, Any] | None = None
 ) -> ClientAsyncInterceptor:
     """
     Any new metadata goes here for unary-unary calls.
@@ -220,7 +222,7 @@ def _compute_user_agent() -> str:
         return "sift-stack-py"
 
 
-def _compute_keep_alive_channel_opts(config: KeepaliveConfig) -> List[Tuple[str, int]]:
+def _compute_keep_alive_channel_opts(config: KeepaliveConfig) -> list[tuple[str, int]]:
     return [
         ("grpc.keepalive_time_ms", config["keepalive_time_ms"]),
         ("grpc.keepalive_timeout_ms", config["keepalive_timeout_ms"]),
@@ -245,6 +247,6 @@ class SiftChannelConfig(TypedDict):
 
     uri: str
     apikey: str
-    enable_keepalive: NotRequired[Union[bool, KeepaliveConfig]]
+    enable_keepalive: NotRequired[bool | KeepaliveConfig]
     use_ssl: NotRequired[bool]
     cert_via_openssl: NotRequired[bool]

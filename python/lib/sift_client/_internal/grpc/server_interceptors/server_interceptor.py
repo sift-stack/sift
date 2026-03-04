@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import abc
-from typing import Any, Callable, Optional, Tuple, cast
+from typing import Any, Callable, cast
 
 import grpc
 
@@ -39,16 +41,16 @@ class ServerInterceptor(grpc.ServerInterceptor, metaclass=abc.ABCMeta):
 
 
 class _RpcHandler(grpc.RpcMethodHandler):
-    unary_unary: Optional[Callable]
-    unary_stream: Optional[Callable]
-    stream_unary: Optional[Callable]
-    stream_stream: Optional[Callable]
+    unary_unary: Callable | None
+    unary_stream: Callable | None
+    stream_unary: Callable | None
+    stream_stream: Callable | None
 
 
 def _get_factory_and_method(
     rpc_handler: grpc.RpcMethodHandler,
-) -> Tuple[Callable, Callable]:
-    handler = cast(_RpcHandler, rpc_handler)
+) -> tuple[Callable, Callable]:
+    handler = cast("_RpcHandler", rpc_handler)
 
     if handler.unary_unary:
         return grpc.unary_unary_rpc_method_handler, handler.unary_unary

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Dict, List, TypedDict
+from typing import ClassVar, TypedDict
 
 from grpc import StatusCode
 from typing_extensions import Self
@@ -19,7 +19,7 @@ class RetryPolicy:
 
     config: RetryConfig
 
-    DEFAULT_POLICY: RetryConfig = {
+    DEFAULT_POLICY: ClassVar[RetryConfig] = {
         "methodConfig": [
             {
                 # We can configure this on a per-service and RPC basis but for now we'll
@@ -55,11 +55,11 @@ class RetryPolicy:
 
 
 class RetryConfig(TypedDict):
-    methodConfig: List[MethodConfigDict]
+    methodConfig: list[MethodConfigDict]
 
 
 class MethodConfigDict(TypedDict):
-    name: List[Dict[str, str]]
+    name: list[dict[str, str]]
     retryPolicy: RetryConfigDict
 
 
@@ -68,4 +68,4 @@ class RetryConfigDict(TypedDict):
     initialBackoff: str
     maxBackoff: str
     backoffMultiplier: int
-    retryableStatusCodes: List[str]
+    retryableStatusCodes: list[str]
