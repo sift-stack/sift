@@ -15,9 +15,9 @@ from sift.data.v2.data_pb2 import (
     Query,
 )
 from sift.data.v2.data_pb2_grpc import DataServiceStub
-from sift_client._internal.time import to_timestamp_nanos
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.time import to_timestamp_nanos
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.transport import WithGrpcClient
 
