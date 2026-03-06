@@ -243,7 +243,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
         (
             updated_calculated_channel,
-            inapplicable_assets,
+            _inapplicable_assets,
         ) = await self._low_level_client.update_calculated_channel(
             update=update, user_notes=user_notes
         )

@@ -9,7 +9,7 @@ import logging
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
-from sift_py.rest import _DEFAULT_REST_RETRY, SiftRestConfig, _RestService
+from sift_client._internal.rest import _DEFAULT_REST_RETRY, SiftRestConfig, _RestService
 
 if TYPE_CHECKING:
     import requests
