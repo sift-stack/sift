@@ -46,6 +46,7 @@ unstable = []
 
 [dev-dependencies]
 async-trait = "^0.1"
+dotenvy = "0.15.7"
 hyper-util = "0.1.10"
 tempdir = "0.3.7"
 tokio-stream = "0.1.17"
