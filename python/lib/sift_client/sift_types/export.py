@@ -24,13 +24,13 @@ class ChannelReference(BaseModel):
     Example::
 
         ChannelReference(
-            channel_reference="velocity",                    # placeholder used as $velocity in the expression
-            channel_identifier="vehicle.engine.velocity",    # the actual channel
+            channel_reference="$1",                                       # must match the placeholder exactly as it appears in the expression
+            channel_identifier="cbddaf97-3332-4666-80f2-a19be6a77eef",   # channel UUID
         )
 
     Attributes:
-        channel_reference: The placeholder name used in the expression (without the $ prefix).
-        channel_identifier: The fully qualified channel name or channel ID.
+        channel_reference: The placeholder as it appears in the expression, i.e. $1, $2, etc.
+        channel_identifier: The channel UUID.
     """
 
     channel_reference: str
@@ -44,11 +44,11 @@ class ExportCalculatedChannel(BaseModel):
 
     Example::
 
-        CalculatedChannel(
+        ExportCalculatedChannel(
             name="speed_doubled",
-            expression="$velocity * 2",
+            expression="$1 * 2",
             channel_references=[
-                ChannelReference(channel_reference="velocity", channel_identifier="vehicle.engine.velocity"),
+                ChannelReference(channel_reference="$1", channel_identifier="<channel-uuid>"),
             ],
             units="m/s",
         )
