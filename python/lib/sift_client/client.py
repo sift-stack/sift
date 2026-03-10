@@ -7,6 +7,8 @@ from sift_client.resources import (
     CalculatedChannelsAPIAsync,
     ChannelsAPI,
     ChannelsAPIAsync,
+    ExportsAPI,
+    ExportsAPIAsync,
     FileAttachmentsAPI,
     FileAttachmentsAPIAsync,
     IngestionAPIAsync,
@@ -101,8 +103,12 @@ class SiftClient(
 
     tags: TagsAPI
     """Instance of the Tags API for making synchronous requests."""
+
     test_results: TestResultsAPI
     """Instance of the Test Results API for making synchronous requests."""
+
+    exports: ExportsAPI
+    """Instance of the Exports API for making synchronous requests."""
 
     async_: AsyncAPIs
     """Accessor for the asynchronous APIs. All asynchronous APIs are available as attributes on this accessor."""
@@ -152,6 +158,7 @@ class SiftClient(
         self.runs = RunsAPI(self)
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
+        self.exports = ExportsAPI(self)
 
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
@@ -167,6 +174,7 @@ class SiftClient(
             runs=RunsAPIAsync(self),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
+            exports=ExportsAPIAsync(self),
         )
 
     @property
