@@ -1818,8 +1818,8 @@ You're not viewing the latest version.
         <p>Maps a placeholder variable in a calculated channel expression to an actual channel.</p>
 <p>Example::</p>
 <div class="language-text highlight"><pre><span></span><code>ChannelReference(
-    channel_reference=&quot;velocity&quot;,                    # placeholder used as $velocity in the expression
-    channel_identifier=&quot;vehicle.engine.velocity&quot;,    # the actual channel
+    channel_reference=&quot;$1&quot;,                                       # must match the placeholder exactly as it appears in the expression
+    channel_identifier=&quot;cbddaf97-3332-4666-80f2-a19be6a77eef&quot;,   # channel UUID
 )
 </code></pre></div>
 
@@ -1841,7 +1841,7 @@ You're not viewing the latest version.
    (sift_client.sift_types.export.ChannelReference.channel_reference)" href="#sift_client.sift_types.export.ChannelReference.channel_reference">channel_reference</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>The placeholder name used in the expression (without the $ prefix).</p>
+                <p>The placeholder as it appears in the expression, i.e. $1, $2, etc.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -1860,7 +1860,7 @@ You're not viewing the latest version.
    (sift_client.sift_types.export.ChannelReference.channel_identifier)" href="#sift_client.sift_types.export.ChannelReference.channel_identifier">channel_identifier</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>The fully qualified channel name or channel ID.</p>
+                <p>The channel UUID.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -1985,11 +1985,11 @@ You're not viewing the latest version.
         <p>An inline calculated channel to include in an export.</p>
 <p>Defines a formula-based channel that is computed at export time from existing channels.</p>
 <p>Example::</p>
-<div class="language-text highlight"><pre><span></span><code>CalculatedChannel(
+<div class="language-text highlight"><pre><span></span><code>ExportCalculatedChannel(
     name=&quot;speed_doubled&quot;,
-    expression=&quot;$velocity * 2&quot;,
+    expression=&quot;$1 * 2&quot;,
     channel_references=[
-        ChannelReference(channel_reference=&quot;velocity&quot;, channel_identifier=&quot;vehicle.engine.velocity&quot;),
+        ChannelReference(channel_reference=&quot;$1&quot;, channel_identifier=&quot;&lt;channel-uuid&gt;&quot;),
     ],
     units=&quot;m/s&quot;,
 )
