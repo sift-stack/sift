@@ -7,8 +7,7 @@
 // - Open a streaming ingestion session
 // - Send timestamped flows in real time
 //
-// The program runs for INGEST_DURATION 
-
+// The program runs for INGEST_DURATION
 
 use sift_stream::{
     ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
@@ -20,7 +19,6 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-
 // Define configuration constants
 // ---------------------------------------------------------------------
 /// FLOW_NAME identifies the telemetry schema of a flow inside Sift.
@@ -29,7 +27,6 @@ const FLOW_NAME: &str = "vehicle_metrics";
 const SEND_INTERVAL: Duration = Duration::from_millis(500);
 /// INGEST_DURATION controls how long we send data before exiting
 const INGEST_DURATION: Duration = Duration::from_mins(10);
-
 
 /// Helper function to generate unique names
 /// ---------------------------------------------------------------------
@@ -53,8 +50,7 @@ fn make_unique_suffix() -> String {
 async fn main() -> Result<(), Box<dyn Error>> {
     // Sift stream uses the tracing crate for logging, which we can enable
     // to see internal sift stream logs
-    tracing_subscriber::fmt()
-        .init();
+    tracing_subscriber::fmt().init();
 
     tracing::info!("Starting streaming session.");
 
@@ -65,7 +61,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let suffix = make_unique_suffix();
     let asset_name = format!("robot_vehicle_{suffix}");
     let run_name = format!("{asset_name}_run");
-    
+
     // Load authentication from .env
     // -----------------------------------------------------------------
     // We load credentials from a .env file instead of hardcoding them.
@@ -107,7 +103,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ]
     };
 
-    // Create ingestion configuration 
+    // Create ingestion configuration
     // -----------------------------------------------------------------
     // IngestionConfigForm requires:
     //   - An Asset
