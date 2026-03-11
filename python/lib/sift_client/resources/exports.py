@@ -259,16 +259,16 @@ class ExportsAPIAsync(ResourceBase):
     ) -> str:
         """Export data within a time range.
 
-        Both start_time and stop_time are required. Unlike the other export methods,
-        channel_ids or calculated_channel_configs should be provided to scope the data,
-        since there are no runs or assets to infer channels from.
+        Both start_time and stop_time are required. At least one of channel_ids or
+        calculated_channel_configs **must** be provided to scope the data, since there
+        are no runs or assets to infer channels from.
 
         Args:
             start_time: Start of the time range to export.
             stop_time: End of the time range to export.
             output_format: The file format for the export (CSV or SUN).
             channel_ids: List of channel IDs to include in the export.
-            calculated_channel_configs: Optional inline calculated channels to include in the export.
+            calculated_channel_configs: Inline calculated channels to include in the export.
             use_legacy_format: Use legacy key-value metadata format for channel headers.
             simplify_channel_names: Remove the component part of channel names if unique in the export.
             combine_runs: Combine channels from the same asset across different runs into a single column.
@@ -281,8 +281,15 @@ class ExportsAPIAsync(ResourceBase):
             A presigned download URL for the exported zip file.
 
         Raises:
+            ValueError: If neither channel_ids nor calculated_channel_configs is provided.
             TimeoutError: If the export job does not complete within timeout_secs.
         """
+        if not channel_ids and not calculated_channel_configs:
+            raise ValueError(
+                "At least one of 'channel_ids' or 'calculated_channel_configs' must be provided "
+                "when exporting by time range."
+            )
+
         time_range = TimeRange()
         time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
         time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
