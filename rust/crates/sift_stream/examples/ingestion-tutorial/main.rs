@@ -1,4 +1,4 @@
-// Streams simulated vehicle velocity and temperature telemetry generated using random values to mimic onboard vehicle sensors to Sift indefinitely.
+// Streams simulated vehicle velocity and temperature telemetry, generated using random values to mimic onboard vehicle sensors, to Sift for up to 10 minutes.
 //
 // This example demonstrates the complete streaming ingestion lifecycle:
 // - Authenticate with Sift
@@ -148,6 +148,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
 
     // Stream telemetry to Sift using the SiftStream::send method for INGEST_DURATION
+    // -----------------------------------------------------------------
+    // NOTE: This approach uses `Flow` and `SiftStream::send()` for ease of use, and will
+    // provide acceptable performance for most users
+    // In cases where additional performance is required, a separate, more performant method
+    // is also available that uses `FlowBuilder` and `SiftStream::send_requests_nonblocking`
+    // See `examples/quick-start/` for an example using this alternate approach
     let start = std::time::Instant::now();
     while start.elapsed() < INGEST_DURATION {
         // Generate mock telemetry values
