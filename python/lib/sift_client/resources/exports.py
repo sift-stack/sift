@@ -132,6 +132,13 @@ class ExportsAPIAsync(ResourceBase):
         Raises:
             TimeoutError: If the export job does not complete within timeout_secs.
         """
+        if not run_ids:
+            raise ValueError("'run_ids' must be a non-empty list of run IDs.")
+        if any(not run_id for run_id in run_ids):
+            raise ValueError("'run_ids' must not contain empty or null values.")
+        if start_time and stop_time and start_time >= stop_time:
+            raise ValueError("'start_time' must be before 'stop_time'.")
+
         runs_and_time_range = RunsAndTimeRange(run_ids=run_ids)
         if start_time:
             runs_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
@@ -209,6 +216,13 @@ class ExportsAPIAsync(ResourceBase):
         Raises:
             TimeoutError: If the export job does not complete within timeout_secs.
         """
+        if not asset_ids:
+            raise ValueError("'asset_ids' must be a non-empty list of asset IDs.")
+        if any(not asset_id for asset_id in asset_ids):
+            raise ValueError("'asset_ids' must not contain empty or null values.")
+        if start_time >= stop_time:
+            raise ValueError("'start_time' must be before 'stop_time'.")
+
         assets_and_time_range = AssetsAndTimeRange(asset_ids=asset_ids)
         assets_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
         assets_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
@@ -289,6 +303,8 @@ class ExportsAPIAsync(ResourceBase):
                 "At least one of 'channel_ids' or 'calculated_channel_configs' must be provided "
                 "when exporting by time range."
             )
+        if start_time >= stop_time:
+            raise ValueError("'start_time' must be before 'stop_time'.")
 
         time_range = TimeRange()
         time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
@@ -325,8 +341,14 @@ class ExportsAPIAsync(ResourceBase):
     async def _await_download_url(
         self, job_id: str, polling_interval_secs: int = 5, timeout_secs: int | None = None
     ) -> str:
-        # jobs api handles polling loop, timeout, and status checks
-        await self.client.async_.jobs.wait_until_complete(
+        """Poll a background export job until complete, then return the download URL."""
+        from sift_client.sift_types.job import JobStatus
+
+        job = await self.client.async_.jobs.wait_until_complete(
             job=job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs
         )
+        if job.job_status == JobStatus.FAILED:
+            raise RuntimeError(f"Export job '{job_id}' failed.")
+        if job.job_status == JobStatus.CANCELLED:
+            raise RuntimeError(f"Export job '{job_id}' was cancelled.")
         return await self._low_level_client.get_download_url(job_id=job_id)
