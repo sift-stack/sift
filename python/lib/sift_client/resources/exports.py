@@ -113,16 +113,16 @@ class ExportsAPIAsync(ResourceBase):
 
         Args:
             run_ids: One or more run IDs to export data from.
-            output_format: The file format for the export (CSV or SUN).
+            output_format: The file format for the export (CSV or Sun/WinPlot).
             start_time: Optional start time to narrow the export within the run(s).
             stop_time: Optional stop time to narrow the export within the run(s).
             channel_ids: Optional list of channel IDs to include. If omitted, all channels are exported.
             calculated_channel_configs: Optional inline calculated channels to include in the export.
-            use_legacy_format: Use legacy key-value metadata format for channel headers.
-            simplify_channel_names: Remove the component part of channel names if unique in the export.
-            combine_runs: Combine channels from the same asset across different runs into a single column.
-            split_export_by_asset: Split each asset into its own export file.
-            split_export_by_run: Split each run into its own export file.
+            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
+            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
+            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
+            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
+            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
             polling_interval_secs: Seconds between status polls for async exports. Defaults to 5.
             timeout_secs: Maximum seconds to wait for async exports. None means wait indefinitely.
 
@@ -201,14 +201,14 @@ class ExportsAPIAsync(ResourceBase):
             asset_ids: One or more asset IDs to export data from.
             start_time: Start of the time range to export.
             stop_time: End of the time range to export.
-            output_format: The file format for the export (CSV or SUN).
+            output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             channel_ids: Optional list of channel IDs to include. If omitted, all channels are exported.
             calculated_channel_configs: Optional inline calculated channels to include in the export.
-            use_legacy_format: Use legacy key-value metadata format for channel headers.
-            simplify_channel_names: Remove the component part of channel names if unique in the export.
-            combine_runs: Combine channels from the same asset across different runs into a single column.
-            split_export_by_asset: Split each asset into its own export file.
-            split_export_by_run: Split each run into its own export file.
+            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
+            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
+            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
+            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
+            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
             polling_interval_secs: Seconds between status polls for async exports. Defaults to 5.
             timeout_secs: Maximum seconds to wait for async exports. None means wait indefinitely.
 
@@ -282,14 +282,14 @@ class ExportsAPIAsync(ResourceBase):
         Args:
             start_time: Start of the time range to export.
             stop_time: End of the time range to export.
-            output_format: The file format for the export (CSV or SUN).
+            output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             channel_ids: List of channel IDs to include in the export.
             calculated_channel_configs: Inline calculated channels to include in the export.
-            use_legacy_format: Use legacy key-value metadata format for channel headers.
-            simplify_channel_names: Remove the component part of channel names if unique in the export.
-            combine_runs: Combine channels from the same asset across different runs into a single column.
-            split_export_by_asset: Split each asset into its own export file.
-            split_export_by_run: Split each run into its own export file.
+            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
+            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
+            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
+            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
+            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
             polling_interval_secs: Seconds between status polls for async exports. Defaults to 5.
             timeout_secs: Maximum seconds to wait for async exports. None means wait indefinitely.
 

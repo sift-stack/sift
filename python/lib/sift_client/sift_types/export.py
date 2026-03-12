@@ -11,7 +11,7 @@ class ExportOutputFormat(Enum):
 
     Attributes:
         CSV: Comma-separated values format.
-        SUN: winplot format.
+        SUN: Sun (WinPlot) format.
     """
 
     CSV = ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_CSV
