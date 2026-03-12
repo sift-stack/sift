@@ -8476,7 +8476,7 @@ calculated_channel_configs are provided, all channels from the assets are includ
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The file format for the export (CSV or SUN).</p>
+                <p>The file format for the export (CSV, Parquet, or Sun/WinPlot).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8537,7 +8537,7 @@ calculated_channel_configs are provided, all channels from the assets are includ
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Use legacy key-value metadata format for channel headers.</p>
+                <p>Use legacy channel name display format: <code>channel.name (assetName=... runName=... runId=...)</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8557,7 +8557,7 @@ calculated_channel_configs are provided, all channels from the assets are includ
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Remove the component part of channel names if unique in the export.</p>
+                <p>Remove text preceding last period in channel names, only if the resulting simplified name is unique.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8577,7 +8577,7 @@ calculated_channel_configs are provided, all channels from the assets are includ
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Combine channels from the same asset across different runs into a single column.</p>
+                <p>Identical channels within the same asset across multiple runs will be combined into a single column.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8597,7 +8597,7 @@ calculated_channel_configs are provided, all channels from the assets are includ
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Split each asset into its own export file.</p>
+                <p>Split each asset into a separate file, with asset name removed from channel name display.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8617,7 +8617,7 @@ calculated_channel_configs are provided, all channels from the assets are includ
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Split each run into its own export file.</p>
+                <p>Split each run into a separate file, with run name removed from channel name display.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8799,7 +8799,7 @@ the run's assets are included.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The file format for the export (CSV or SUN).</p>
+                <p>The file format for the export (CSV or Sun/WinPlot).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8900,7 +8900,7 @@ the run's assets are included.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Use legacy key-value metadata format for channel headers.</p>
+                <p>Use legacy channel name display format: <code>channel.name (assetName=... runName=... runId=...)</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8920,7 +8920,7 @@ the run's assets are included.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Remove the component part of channel names if unique in the export.</p>
+                <p>Remove text preceding last period in channel names, only if the resulting simplified name is unique.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8940,7 +8940,7 @@ the run's assets are included.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Combine channels from the same asset across different runs into a single column.</p>
+                <p>Identical channels within the same asset across multiple runs will be combined into a single column.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8960,7 +8960,7 @@ the run's assets are included.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Split each asset into its own export file.</p>
+                <p>Split each asset into a separate file, with asset name removed from channel name display.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -8980,7 +8980,7 @@ the run's assets are included.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Split each run into its own export file.</p>
+                <p>Split each run into a separate file, with run name removed from channel name display.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -9177,7 +9177,7 @@ are no runs or assets to infer channels from.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The file format for the export (CSV or SUN).</p>
+                <p>The file format for the export (CSV, Parquet, or Sun/WinPlot).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -9238,7 +9238,7 @@ are no runs or assets to infer channels from.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Use legacy key-value metadata format for channel headers.</p>
+                <p>Use legacy channel name display format: <code>channel.name (assetName=... runName=... runId=...)</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -9258,7 +9258,7 @@ are no runs or assets to infer channels from.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Remove the component part of channel names if unique in the export.</p>
+                <p>Remove text preceding last period in channel names, only if the resulting simplified name is unique.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -9278,7 +9278,7 @@ are no runs or assets to infer channels from.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Combine channels from the same asset across different runs into a single column.</p>
+                <p>Identical channels within the same asset across multiple runs will be combined into a single column.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -9298,7 +9298,7 @@ are no runs or assets to infer channels from.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Split each asset into its own export file.</p>
+                <p>Split each asset into a separate file, with asset name removed from channel name display.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -9318,7 +9318,7 @@ are no runs or assets to infer channels from.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Split each run into its own export file.</p>
+                <p>Split each run into a separate file, with run name removed from channel name display.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
