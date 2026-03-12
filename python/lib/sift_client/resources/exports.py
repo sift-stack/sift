@@ -136,6 +136,8 @@ class ExportsAPIAsync(ResourceBase):
             raise ValueError("'run_ids' must be a non-empty list of run IDs.")
         if any(not run_id for run_id in run_ids):
             raise ValueError("'run_ids' must not contain empty or null values.")
+        if (start_time is None) != (stop_time is None):
+            raise ValueError("'start_time' and 'stop_time' must both be provided or both omitted.")
         if start_time and stop_time and start_time >= stop_time:
             raise ValueError("'start_time' must be before 'stop_time'.")
 
@@ -342,13 +344,19 @@ class ExportsAPIAsync(ResourceBase):
         self, job_id: str, polling_interval_secs: int = 5, timeout_secs: int | None = None
     ) -> str:
         """Poll a background export job until complete, then return the download URL."""
-        from sift_client.sift_types.job import JobStatus
+        from sift_client.sift_types.job import DataExportStatusDetails, JobStatus
 
         job = await self.client.async_.jobs.wait_until_complete(
             job=job_id, polling_interval_secs=polling_interval_secs, timeout_secs=timeout_secs
         )
         if job.job_status == JobStatus.FAILED:
-            raise RuntimeError(f"Export job '{job_id}' failed.")
+            reason = ""
+            if (
+                isinstance(job.job_status_details, DataExportStatusDetails)
+                and job.job_status_details.error_message
+            ):
+                reason = f": {job.job_status_details.error_message}"
+            raise RuntimeError(f"Export job '{job_id}' failed{reason}")
         if job.job_status == JobStatus.CANCELLED:
             raise RuntimeError(f"Export job '{job_id}' was cancelled.")
         return await self._low_level_client.get_download_url(job_id=job_id)
