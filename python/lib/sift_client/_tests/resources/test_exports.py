@@ -89,6 +89,7 @@ class TestBuildCalcConfigs:
     def test_converts_to_proto(self, sample_calc_channels):
         """Test converting Pydantic models to proto CalculatedChannelConfig messages."""
         result = _build_calc_configs(sample_calc_channels)
+        assert result is not None
         assert len(result) == 2
 
         first = result[0]
