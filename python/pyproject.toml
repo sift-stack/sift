@@ -26,7 +26,7 @@ keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
     "grpcio~=1.13",
     "PyYAML~=6.0",
-    "pandas~=2.0",
+    "pandas>=2.0,<3.1",
     "protobuf>=5.0",
     "pydantic~=2.10",
     # Support python 3.9+ typing in older versons of python.
@@ -36,7 +36,7 @@ dependencies = [
     "requests-toolbelt~=1.0",
     "alive-progress~=3.0",
     # May move these to optional dependencies in the future.
-    "pandas-stubs~=2.0",
+    "pandas-stubs>=2.0,<4.0",
     "types-PyYAML~=6.0",
     "types-protobuf>=5.0",
     "typing-extensions~=4.6",
