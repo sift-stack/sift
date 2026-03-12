@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from typing_extensions import NotRequired
 from urllib3.util import Retry
 
-from sift_client._internal.grpc.transport import _clean_uri
+from sift_client._internal._grpc.transport import _clean_uri
 
 _DEFAULT_REST_RETRY = Retry(total=3, status_forcelist=[500, 502, 503, 504], backoff_factor=1)
 
