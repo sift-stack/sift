@@ -9126,9 +9126,9 @@ the run's assets are included.</p>
     <div class="doc doc-contents ">
 
         <p>Export data within a time range.</p>
-<p>Both start_time and stop_time are required. Unlike the other export methods,
-channel_ids or calculated_channel_configs should be provided to scope the data,
-since there are no runs or assets to infer channels from.</p>
+<p>Both start_time and stop_time are required. At least one of channel_ids or
+calculated_channel_configs <strong>must</strong> be provided to scope the data, since there
+are no runs or assets to infer channels from.</p>
 
 
 <table>
@@ -9213,7 +9213,7 @@ since there are no runs or assets to infer channels from.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Optional inline calculated channels to include in the export.</p>
+                <p>Inline calculated channels to include in the export.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -9408,6 +9408,18 @@ since there are no runs or assets to infer channels from.</p>
         </tr>
       </thead>
       <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If neither channel_ids nor calculated_channel_configs is provided.</p>
+              </div>
+            </td>
+          </tr>
           <tr class="doc-section-item">
             <td>
               <span class="doc-raises-annotation">
