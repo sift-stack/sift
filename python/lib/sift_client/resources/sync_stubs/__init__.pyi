@@ -21,7 +21,7 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
-    from sift_client.sift_types.export import ExportCalculatedChannel, ExportOutputFormat
+    from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
         FileAttachmentUpdate,
@@ -547,28 +547,32 @@ class ExportsAPI:
 
     - ``export_by_run`` - Export data from one or more runs.
     - ``export_by_asset`` - Export data from one or more assets within a time range.
-    - ``export_by_time_range`` - Export data within a time range (requires channel_ids or calculated_channel_configs).
+    - ``export_by_time_range`` - Export data within a time range (requires channels or calculated_channels).
 
-    Each method handles the full export lifecycle: initiating the export, polling for
-    completion (if async), and returning the download URL.
+    Each method initiates the export and returns a Job handle. Use ``wait_until_complete``
+    to poll the job and retrieve the download URL.
 
     Example::
 
     from sift_client.sift_types.export import ExportOutputFormat
 
     # Export by run
-    url = await client.async_.exports.export_by_run(
-    run_ids=["run-id-1"],
+    run = await client.async_.runs.get(run_id="run-id-1")
+    job = await client.async_.exports.export_by_run(
+    runs=[run],
     output_format=ExportOutputFormat.CSV,
     )
+    url = await client.async_.exports.wait_until_complete(job=job)
 
     # Export by asset with time range
-    url = await client.async_.exports.export_by_asset(
-    asset_ids=["asset-id-1"],
+    asset = await client.async_.assets.get(asset_id="asset-id-1")
+    job = await client.async_.exports.export_by_asset(
+    assets=[asset],
     start_time=start,
     stop_time=stop,
     output_format=ExportOutputFormat.CSV,
     )
+    url = await client.async_.exports.wait_until_complete(job=job)
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -583,91 +587,83 @@ class ExportsAPI:
     def export_by_asset(
         self,
         *,
-        asset_ids: list[str],
+        assets: list[str | Asset],
         start_time: datetime,
         stop_time: datetime,
         output_format: ExportOutputFormat,
-        channel_ids: list[str] | None = None,
-        calculated_channel_configs: list[ExportCalculatedChannel] | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
         split_export_by_run: bool = False,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-    ) -> str:
+    ) -> Job:
         """Export data scoped by one or more assets within a time range.
 
-        Both start_time and stop_time are required. If no channel_ids or
-        calculated_channel_configs are provided, all channels from the assets are included.
+        Initiates the export on the server and returns a Job handle. Use
+        ``wait_until_complete`` to poll for completion and get the download URL.
+
+        Both start_time and stop_time are required. If no channels or
+        calculated_channels are provided, all channels from the assets are included.
 
         Args:
-            asset_ids: One or more asset IDs to export data from.
+            assets: One or more Asset objects or asset IDs to export data from.
             start_time: Start of the time range to export.
             stop_time: End of the time range to export.
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channel_ids: Optional list of channel IDs to include. If omitted, all channels are exported.
-            calculated_channel_configs: Optional inline calculated channels to include in the export.
+            channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
+            calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
             use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
             split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-            polling_interval_secs: Seconds between status polls for async exports. Defaults to 5.
-            timeout_secs: Maximum seconds to wait for async exports. None means wait indefinitely.
 
         Returns:
-            A presigned download URL for the exported zip file.
-
-        Raises:
-            TimeoutError: If the export job does not complete within timeout_secs.
+            A Job handle for the pending export.
         """
         ...
 
     def export_by_run(
         self,
         *,
-        run_ids: list[str],
+        runs: list[str | Run],
         output_format: ExportOutputFormat,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
-        channel_ids: list[str] | None = None,
-        calculated_channel_configs: list[ExportCalculatedChannel] | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
         split_export_by_run: bool = False,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-    ) -> str:
+    ) -> Job:
         """Export data scoped by one or more runs.
 
+        Initiates the export on the server and returns a Job handle. Use
+        ``wait_until_complete`` to poll for completion and get the download URL.
+
         If no start_time/stop_time are provided, the full time range of each run is used.
-        If no channel_ids or calculated_channel_configs are provided, all channels from
+        If no channels or calculated_channels are provided, all channels from
         the run's assets are included.
 
         Args:
-            run_ids: One or more run IDs to export data from.
+            runs: One or more Run objects or run IDs to export data from.
             output_format: The file format for the export (CSV or Sun/WinPlot).
             start_time: Optional start time to narrow the export within the run(s).
             stop_time: Optional stop time to narrow the export within the run(s).
-            channel_ids: Optional list of channel IDs to include. If omitted, all channels are exported.
-            calculated_channel_configs: Optional inline calculated channels to include in the export.
+            channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
+            calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
             use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
             split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-            polling_interval_secs: Seconds between status polls for async exports. Defaults to 5.
-            timeout_secs: Maximum seconds to wait for async exports. None means wait indefinitely.
 
         Returns:
-            A presigned download URL for the exported zip file.
-
-        Raises:
-            TimeoutError: If the export job does not complete within timeout_secs.
+            A Job handle for the pending export.
         """
         ...
 
@@ -677,41 +673,61 @@ class ExportsAPI:
         start_time: datetime,
         stop_time: datetime,
         output_format: ExportOutputFormat,
-        channel_ids: list[str] | None = None,
-        calculated_channel_configs: list[ExportCalculatedChannel] | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
         split_export_by_run: bool = False,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-    ) -> str:
+    ) -> Job:
         """Export data within a time range.
 
-        Both start_time and stop_time are required. At least one of channel_ids or
-        calculated_channel_configs **must** be provided to scope the data, since there
+        Initiates the export on the server and returns a Job handle. Use
+        ``wait_until_complete`` to poll for completion and get the download URL.
+
+        Both start_time and stop_time are required. At least one of channels or
+        calculated_channels **must** be provided to scope the data, since there
         are no runs or assets to infer channels from.
 
         Args:
             start_time: Start of the time range to export.
             stop_time: End of the time range to export.
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channel_ids: List of channel IDs to include in the export.
-            calculated_channel_configs: Inline calculated channels to include in the export.
+            channels: List of Channel objects or channel IDs to include in the export.
+            calculated_channels: Calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
             use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
             split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-            polling_interval_secs: Seconds between status polls for async exports. Defaults to 5.
-            timeout_secs: Maximum seconds to wait for async exports. None means wait indefinitely.
+
+        Returns:
+            A Job handle for the pending export.
+
+        Raises:
+            ValueError: If neither channels nor calculated_channels is provided.
+        """
+        ...
+
+    def wait_until_complete(
+        self, *, job: Job | str, polling_interval_secs: int = 5, timeout_secs: int | None = None
+    ) -> str:
+        """Wait for an export job to complete and return the download URL.
+
+        Polls the job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED.
+
+        Args:
+            job: The export Job or job ID to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
 
         Returns:
             A presigned download URL for the exported zip file.
 
         Raises:
-            ValueError: If neither channel_ids nor calculated_channel_configs is provided.
+            RuntimeError: If the export job fails or is cancelled.
             TimeoutError: If the export job does not complete within timeout_secs.
         """
         ...

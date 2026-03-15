@@ -2,19 +2,78 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+from sift.calculated_channels.v2.calculated_channels_pb2 import (
+    CalculatedChannelAbstractChannelReference,
+)
 from sift.exports.v1.exports_pb2 import (
+    AssetsAndTimeRange,
+    CalculatedChannelConfig,
     ExportDataRequest,
     ExportDataResponse,
+    ExportOptions,
     GetDownloadUrlRequest,
     GetDownloadUrlResponse,
+    RunsAndTimeRange,
+    TimeRange,
 )
 from sift.exports.v1.exports_pb2_grpc import ExportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.util.timestamp import to_pb_timestamp
+from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.transport.grpc_transport import GrpcClient
+
+
+def _build_calc_channel_configs(
+    calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None,
+) -> list[CalculatedChannelConfig]:
+    """Convert high-level calculated channel objects to proto CalculatedChannelConfig messages."""
+    if not calculated_channels:
+        return []
+    configs = []
+    for cc in calculated_channels:
+        if isinstance(cc, CalculatedChannelCreate):
+            refs = cc.expression_channel_references or []
+        else:
+            refs = cc.channel_references
+        configs.append(
+            CalculatedChannelConfig(
+                name=cc.name,
+                expression=cc.expression,
+                channel_references=[
+                    CalculatedChannelAbstractChannelReference(
+                        channel_reference=ref.channel_reference,
+                        channel_identifier=ref.channel_identifier,
+                    )
+                    for ref in refs
+                ],
+                units=cc.units,
+            )
+        )
+    return configs
+
+
+def _build_export_options(
+    *,
+    use_legacy_format: bool = False,
+    simplify_channel_names: bool = False,
+    combine_runs: bool = False,
+    split_export_by_asset: bool = False,
+    split_export_by_run: bool = False,
+) -> ExportOptions:
+    """Build an ExportOptions proto from primitive flags."""
+    return ExportOptions(
+        use_legacy_format=use_legacy_format,
+        simplify_channel_names=simplify_channel_names,
+        combine_runs=combine_runs,
+        split_export_by_asset=split_export_by_asset,
+        split_export_by_run=split_export_by_run,
+    )
 
 
 class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -31,30 +90,173 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client)
 
-    async def export_data(self, request: ExportDataRequest) -> ExportDataResponse:
-        """Initiate a data export.
-
-        Returns a presigned_url if the export completes immediately, or a job_id
-        if it's processed in the background. Use get_download_url() to retrieve
-        the URL for background jobs.
+    async def export_by_run(
+        self,
+        *,
+        run_ids: list[str],
+        output_format: int,
+        start_time: datetime | None = None,
+        stop_time: datetime | None = None,
+        channel_ids: list[str] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
+        use_legacy_format: bool = False,
+        simplify_channel_names: bool = False,
+        combine_runs: bool = False,
+        split_export_by_asset: bool = False,
+        split_export_by_run: bool = False,
+    ) -> str:
+        """Initiate a data export scoped by runs.
 
         Args:
-            request: The ExportDataRequest proto message.
+            run_ids: List of run IDs to export.
+            output_format: The proto enum value for the export format.
+            start_time: Optional start time to narrow the export.
+            stop_time: Optional stop time to narrow the export.
+            channel_ids: Optional list of channel IDs to include.
+            calculated_channels: Optional calculated channel objects to include.
+            use_legacy_format: Use legacy channel name display format.
+            simplify_channel_names: Simplify channel names if unique.
+            combine_runs: Combine identical channels across runs.
+            split_export_by_asset: Split export by asset.
+            split_export_by_run: Split export by run.
 
         Returns:
-            The ExportDataResponse containing either a presigned_url or a job_id.
+            The job ID for the background export.
         """
-        response = await self._grpc_client.get_stub(ExportServiceStub).ExportData(request)
-        return cast("ExportDataResponse", response)
+        runs_and_time_range = RunsAndTimeRange(run_ids=run_ids)
+        if start_time:
+            runs_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+        if stop_time:
+            runs_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+
+        request = ExportDataRequest(
+            runs_and_time_range=runs_and_time_range,
+            output_format=output_format,
+            export_options=_build_export_options(
+                use_legacy_format=use_legacy_format,
+                simplify_channel_names=simplify_channel_names,
+                combine_runs=combine_runs,
+                split_export_by_asset=split_export_by_asset,
+                split_export_by_run=split_export_by_run,
+            ),
+            channel_ids=channel_ids or [],
+            calculated_channel_configs=_build_calc_channel_configs(calculated_channels),
+        )
+
+        response = await self._export_data(request)
+        return response.job_id
+
+    async def export_by_asset(
+        self,
+        *,
+        asset_ids: list[str],
+        start_time: datetime,
+        stop_time: datetime,
+        output_format: int,
+        channel_ids: list[str] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
+        use_legacy_format: bool = False,
+        simplify_channel_names: bool = False,
+        combine_runs: bool = False,
+        split_export_by_asset: bool = False,
+        split_export_by_run: bool = False,
+    ) -> str:
+        """Initiate a data export scoped by assets and a time range.
+
+        Args:
+            asset_ids: List of asset IDs to export.
+            start_time: Start of the time range.
+            stop_time: End of the time range.
+            output_format: The proto enum value for the export format.
+            channel_ids: Optional list of channel IDs to include.
+            calculated_channels: Optional calculated channel objects to include.
+            use_legacy_format: Use legacy channel name display format.
+            simplify_channel_names: Simplify channel names if unique.
+            combine_runs: Combine identical channels across runs.
+            split_export_by_asset: Split export by asset.
+            split_export_by_run: Split export by run.
+
+        Returns:
+            The job ID for the background export.
+        """
+        assets_and_time_range = AssetsAndTimeRange(asset_ids=asset_ids)
+        assets_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+        assets_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+
+        request = ExportDataRequest(
+            assets_and_time_range=assets_and_time_range,
+            output_format=output_format,
+            export_options=_build_export_options(
+                use_legacy_format=use_legacy_format,
+                simplify_channel_names=simplify_channel_names,
+                combine_runs=combine_runs,
+                split_export_by_asset=split_export_by_asset,
+                split_export_by_run=split_export_by_run,
+            ),
+            channel_ids=channel_ids or [],
+            calculated_channel_configs=_build_calc_channel_configs(calculated_channels),
+        )
+
+        response = await self._export_data(request)
+        return response.job_id
+
+    async def export_by_time_range(
+        self,
+        *,
+        start_time: datetime,
+        stop_time: datetime,
+        output_format: int,
+        channel_ids: list[str] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
+        use_legacy_format: bool = False,
+        simplify_channel_names: bool = False,
+        combine_runs: bool = False,
+        split_export_by_asset: bool = False,
+        split_export_by_run: bool = False,
+    ) -> str:
+        """Initiate a data export scoped by a time range.
+
+        Args:
+            start_time: Start of the time range.
+            stop_time: End of the time range.
+            output_format: The proto enum value for the export format.
+            channel_ids: Optional list of channel IDs to include.
+            calculated_channels: Optional calculated channel objects to include.
+            use_legacy_format: Use legacy channel name display format.
+            simplify_channel_names: Simplify channel names if unique.
+            combine_runs: Combine identical channels across runs.
+            split_export_by_asset: Split export by asset.
+            split_export_by_run: Split export by run.
+
+        Returns:
+            The job ID for the background export.
+        """
+        time_range = TimeRange()
+        time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+        time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+
+        request = ExportDataRequest(
+            time_range=time_range,
+            output_format=output_format,
+            export_options=_build_export_options(
+                use_legacy_format=use_legacy_format,
+                simplify_channel_names=simplify_channel_names,
+                combine_runs=combine_runs,
+                split_export_by_asset=split_export_by_asset,
+                split_export_by_run=split_export_by_run,
+            ),
+            channel_ids=channel_ids or [],
+            calculated_channel_configs=_build_calc_channel_configs(calculated_channels),
+        )
+
+        response = await self._export_data(request)
+        return response.job_id
 
     async def get_download_url(self, job_id: str) -> str:
         """Get the download URL for a background export job.
 
-        If the job is still processing, the server will return an error.
-        Polling/retry logic should be handled.
-
         Args:
-            job_id: The job ID returned from export_data().
+            job_id: The job ID returned from an export method.
 
         Returns:
             The presigned URL to download the exported zip file.
@@ -63,3 +265,15 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(ExportServiceStub).GetDownloadUrl(request)
         response = cast("GetDownloadUrlResponse", response)
         return response.presigned_url
+
+    async def _export_data(self, request: ExportDataRequest) -> ExportDataResponse:
+        """Make the ExportData gRPC call.
+
+        Args:
+            request: The ExportDataRequest proto message.
+
+        Returns:
+            The ExportDataResponse.
+        """
+        response = await self._grpc_client.get_stub(ExportServiceStub).ExportData(request)
+        return cast("ExportDataResponse", response)
