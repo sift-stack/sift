@@ -117,7 +117,7 @@ class ExportsAPIAsync(ResourceBase):
 
         job_id = await self._low_level_client.export_by_run(
             run_ids=run_ids,
-            output_format=output_format.value,
+            output_format=output_format,
             start_time=start_time,
             stop_time=stop_time,
             channel_ids=channel_ids,
@@ -187,7 +187,7 @@ class ExportsAPIAsync(ResourceBase):
             asset_ids=asset_ids,
             start_time=start_time,
             stop_time=stop_time,
-            output_format=output_format.value,
+            output_format=output_format,
             channel_ids=channel_ids,
             calculated_channels=calculated_channels,
             use_legacy_format=use_legacy_format,
@@ -256,7 +256,7 @@ class ExportsAPIAsync(ResourceBase):
         job_id = await self._low_level_client.export_by_time_range(
             start_time=start_time,
             stop_time=stop_time,
-            output_format=output_format.value,
+            output_format=output_format,
             channel_ids=channel_ids,
             calculated_channels=calculated_channels,
             use_legacy_format=use_legacy_format,

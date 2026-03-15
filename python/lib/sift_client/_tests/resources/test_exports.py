@@ -13,8 +13,6 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from sift.exports.v1.exports_pb2 import ExportOutputFormat as ExportOutputFormatProto
-
 from sift_client._internal.low_level_wrappers.exports import _build_calc_channel_configs
 from sift_client.resources.exports import ExportsAPIAsync
 from sift_client.sift_types.asset import Asset
@@ -140,7 +138,7 @@ class TestExportsAPIAsync:
             assert isinstance(job, MagicMock)
             exports_api._low_level_client.export_by_run.assert_awaited_once_with(
                 run_ids=["run-1", "run-2"],
-                output_format=ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_CSV,
+                output_format=ExportOutputFormat.CSV,
                 start_time=START,
                 stop_time=STOP,
                 channel_ids=["ch-1"],
@@ -162,7 +160,7 @@ class TestExportsAPIAsync:
 
             exports_api._low_level_client.export_by_run.assert_awaited_once_with(
                 run_ids=["run-1"],
-                output_format=ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_SUN,
+                output_format=ExportOutputFormat.SUN,
                 start_time=None,
                 stop_time=None,
                 channel_ids=[],
@@ -279,7 +277,7 @@ class TestExportsAPIAsync:
                 asset_ids=["asset-1"],
                 start_time=START,
                 stop_time=STOP,
-                output_format=ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_CSV,
+                output_format=ExportOutputFormat.CSV,
                 channel_ids=["ch-1", "ch-2"],
                 calculated_channels=None,
                 use_legacy_format=False,
@@ -354,7 +352,7 @@ class TestExportsAPIAsync:
             exports_api._low_level_client.export_by_time_range.assert_awaited_once_with(
                 start_time=START,
                 stop_time=STOP,
-                output_format=ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_SUN,
+                output_format=ExportOutputFormat.SUN,
                 channel_ids=["ch-1"],
                 calculated_channels=None,
                 use_legacy_format=False,
