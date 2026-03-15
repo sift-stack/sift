@@ -21,6 +21,7 @@ from sift.exports.v1.exports_pb2_grpc import ExportServiceStub
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
+from sift_client.sift_types.export import ExportOutputFormat
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
@@ -44,7 +45,7 @@ def _build_calc_channel_configs(
         configs.append(
             CalculatedChannelConfig(
                 name=cc.name,
-                expression=cc.expression,
+                expression=cc.expression or "",
                 channel_references=[
                     CalculatedChannelAbstractChannelReference(
                         channel_reference=ref.channel_reference,
@@ -94,7 +95,7 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         *,
         run_ids: list[str],
-        output_format: int,
+        output_format: ExportOutputFormat,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         channel_ids: list[str] | None = None,
@@ -131,7 +132,7 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ExportDataRequest(
             runs_and_time_range=runs_and_time_range,
-            output_format=output_format,
+            output_format=output_format.value,
             export_options=_build_export_options(
                 use_legacy_format=use_legacy_format,
                 simplify_channel_names=simplify_channel_names,
@@ -152,7 +153,7 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         asset_ids: list[str],
         start_time: datetime,
         stop_time: datetime,
-        output_format: int,
+        output_format: ExportOutputFormat,
         channel_ids: list[str] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
@@ -185,7 +186,7 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ExportDataRequest(
             assets_and_time_range=assets_and_time_range,
-            output_format=output_format,
+            output_format=output_format.value,
             export_options=_build_export_options(
                 use_legacy_format=use_legacy_format,
                 simplify_channel_names=simplify_channel_names,
@@ -205,7 +206,7 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         start_time: datetime,
         stop_time: datetime,
-        output_format: int,
+        output_format: ExportOutputFormat,
         channel_ids: list[str] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
@@ -237,7 +238,7 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ExportDataRequest(
             time_range=time_range,
-            output_format=output_format,
+            output_format=output_format.value,
             export_options=_build_export_options(
                 use_legacy_format=use_legacy_format,
                 simplify_channel_names=simplify_channel_names,
