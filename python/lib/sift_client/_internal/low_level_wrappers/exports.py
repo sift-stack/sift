@@ -21,12 +21,12 @@ from sift.exports.v1.exports_pb2_grpc import ExportServiceStub
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
-from sift_client.sift_types.export import ExportOutputFormat
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.transport.grpc_transport import GrpcClient
 
 
