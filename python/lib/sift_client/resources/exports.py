@@ -17,7 +17,11 @@ from sift.exports.v1.exports_pb2 import (
 from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.export import ExportCalculatedChannel, ExportOutputFormat  # noqa: TC001
+from sift_client.sift_types.export import ExportOutputFormat  # noqa: TC001
+from sift_client.sift_types.run import Run
+from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -25,27 +29,32 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-def _build_calc_configs(
-    calculated_channel_configs: list[ExportCalculatedChannel] | None,
-) -> list[CalculatedChannelConfig] | None:
-    """Convert CalculatedChannel Pydantic models to proto CalculatedChannelConfig messages."""
-    if not calculated_channel_configs:
-        return None
-    return [
-        CalculatedChannelConfig(
-            name=cc.name,
-            expression=cc.expression,
-            channel_references=[
-                CalculatedChannelAbstractChannelReference(
-                    channel_reference=ref.channel_reference,
-                    channel_identifier=ref.channel_identifier,
-                )
-                for ref in cc.channel_references
-            ],
-            units=cc.units,
+def _build_calc_channels(
+    calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None,
+) -> list[CalculatedChannelConfig]:
+    if not calculated_channels:
+        return []
+    configs = []
+    for cc in calculated_channels:
+        if isinstance(cc, CalculatedChannelCreate):
+            refs = cc.expression_channel_references or []
+        else:
+            refs = cc.channel_references
+        configs.append(
+            CalculatedChannelConfig(
+                name=cc.name,
+                expression=cc.expression,
+                channel_references=[
+                    CalculatedChannelAbstractChannelReference(
+                        channel_reference=ref.channel_reference,
+                        channel_identifier=ref.channel_identifier,
+                    )
+                    for ref in refs
+                ],
+                units=cc.units,
+            )
         )
-        for cc in calculated_channel_configs
-    ]
+    return configs
 
 
 class ExportsAPIAsync(ResourceBase):
@@ -91,12 +100,12 @@ class ExportsAPIAsync(ResourceBase):
     async def export_by_run(
         self,
         *,
-        run_ids: list[str],
+        runs: list[str | Run],
         output_format: ExportOutputFormat,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
-        channel_ids: list[str] | None = None,
-        calculated_channel_configs: list[ExportCalculatedChannel] | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
@@ -132,22 +141,22 @@ class ExportsAPIAsync(ResourceBase):
         Raises:
             TimeoutError: If the export job does not complete within timeout_secs.
         """
-        if not run_ids:
-            raise ValueError("'run_ids' must be a non-empty list of run IDs.")
-        if any(not run_id for run_id in run_ids):
-            raise ValueError("'run_ids' must not contain empty or null values.")
+        if not runs:
+            raise ValueError("'runs' must be a non-empty list of run objects or run ids.")
+        if any(not run for run in runs):
+            raise ValueError("'runs' must not contain empty or null values.")
         if (start_time is None) != (stop_time is None):
             raise ValueError("'start_time' and 'stop_time' must both be provided or both omitted.")
         if start_time and stop_time and start_time >= stop_time:
             raise ValueError("'start_time' must be before 'stop_time'.")
+
+        run_ids = [r._id_or_error if isinstance(r, Run) else r for r in runs]
 
         runs_and_time_range = RunsAndTimeRange(run_ids=run_ids)
         if start_time:
             runs_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
         if stop_time:
             runs_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
-
-        calc_configs = _build_calc_configs(calculated_channel_configs)
 
         export_options = ExportOptions(
             use_legacy_format=use_legacy_format,
@@ -157,18 +166,20 @@ class ExportsAPIAsync(ResourceBase):
             split_export_by_run=split_export_by_run,
         )
 
+        channel_ids = (
+            [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
+        )
+
         request = ExportDataRequest(
             runs_and_time_range=runs_and_time_range,
             output_format=output_format.value,
             export_options=export_options,
-            channel_ids=channel_ids or [],
-            calculated_channel_configs=calc_configs or [],
+            channel_ids=channel_ids,
+            calculated_channel_configs=_build_calc_channels(calculated_channels),
         )
 
         response = await self._low_level_client.export_data(request=request)
 
-        if response.presigned_url:
-            return response.presigned_url
         return await self._await_download_url(
             job_id=response.job_id,
             polling_interval_secs=polling_interval_secs,
@@ -178,12 +189,12 @@ class ExportsAPIAsync(ResourceBase):
     async def export_by_asset(
         self,
         *,
-        asset_ids: list[str],
+        assets: list[str | Asset],
         start_time: datetime,
         stop_time: datetime,
         output_format: ExportOutputFormat,
-        channel_ids: list[str] | None = None,
-        calculated_channel_configs: list[ExportCalculatedChannel] | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
@@ -194,16 +205,16 @@ class ExportsAPIAsync(ResourceBase):
     ) -> str:
         """Export data scoped by one or more assets within a time range.
 
-        Both start_time and stop_time are required. If no channel_ids or
-        calculated_channel_configs are provided, all channels from the assets are included.
+        Both start_time and stop_time are required. If no channels or
+        calculated_channels are provided, all channels from the assets are included.
 
         Args:
-            asset_ids: One or more asset IDs to export data from.
+            assets: One or more Asset objects or asset IDs to export data from.
             start_time: Start of the time range to export.
             stop_time: End of the time range to export.
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channel_ids: Optional list of channel IDs to include. If omitted, all channels are exported.
-            calculated_channel_configs: Optional inline calculated channels to include in the export.
+            channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
+            calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
             use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
@@ -218,18 +229,18 @@ class ExportsAPIAsync(ResourceBase):
         Raises:
             TimeoutError: If the export job does not complete within timeout_secs.
         """
-        if not asset_ids:
-            raise ValueError("'asset_ids' must be a non-empty list of asset IDs.")
-        if any(not asset_id for asset_id in asset_ids):
-            raise ValueError("'asset_ids' must not contain empty or null values.")
+        if not assets:
+            raise ValueError("'assets' must be a non-empty list of asset objects or asset IDs.")
+        if any(not asset for asset in assets):
+            raise ValueError("'assets' must not contain empty or null values.")
         if start_time >= stop_time:
             raise ValueError("'start_time' must be before 'stop_time'.")
+
+        asset_ids = [a._id_or_error if isinstance(a, Asset) else a for a in assets]
 
         assets_and_time_range = AssetsAndTimeRange(asset_ids=asset_ids)
         assets_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
         assets_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
-
-        calc_configs = _build_calc_configs(calculated_channel_configs)
 
         export_options = ExportOptions(
             use_legacy_format=use_legacy_format,
@@ -239,18 +250,20 @@ class ExportsAPIAsync(ResourceBase):
             split_export_by_run=split_export_by_run,
         )
 
+        channel_ids = (
+            [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
+        )
+
         request = ExportDataRequest(
             assets_and_time_range=assets_and_time_range,
-            channel_ids=channel_ids or [],
-            calculated_channel_configs=calc_configs or [],
+            channel_ids=channel_ids,
+            calculated_channel_configs=_build_calc_channels(calculated_channels),
             output_format=output_format.value,
             export_options=export_options,
         )
 
         response = await self._low_level_client.export_data(request=request)
 
-        if response.presigned_url:
-            return response.presigned_url
         return await self._await_download_url(
             job_id=response.job_id,
             polling_interval_secs=polling_interval_secs,
@@ -263,8 +276,8 @@ class ExportsAPIAsync(ResourceBase):
         start_time: datetime,
         stop_time: datetime,
         output_format: ExportOutputFormat,
-        channel_ids: list[str] | None = None,
-        calculated_channel_configs: list[ExportCalculatedChannel] | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
@@ -275,16 +288,16 @@ class ExportsAPIAsync(ResourceBase):
     ) -> str:
         """Export data within a time range.
 
-        Both start_time and stop_time are required. At least one of channel_ids or
-        calculated_channel_configs **must** be provided to scope the data, since there
+        Both start_time and stop_time are required. At least one of channels or
+        calculated_channels **must** be provided to scope the data, since there
         are no runs or assets to infer channels from.
 
         Args:
             start_time: Start of the time range to export.
             stop_time: End of the time range to export.
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channel_ids: List of channel IDs to include in the export.
-            calculated_channel_configs: Inline calculated channels to include in the export.
+            channels: List of Channel objects or channel IDs to include in the export.
+            calculated_channels: Calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
             use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
@@ -297,12 +310,12 @@ class ExportsAPIAsync(ResourceBase):
             A presigned download URL for the exported zip file.
 
         Raises:
-            ValueError: If neither channel_ids nor calculated_channel_configs is provided.
+            ValueError: If neither channels nor calculated_channels is provided.
             TimeoutError: If the export job does not complete within timeout_secs.
         """
-        if not channel_ids and not calculated_channel_configs:
+        if not channels and not calculated_channels:
             raise ValueError(
-                "At least one of 'channel_ids' or 'calculated_channel_configs' must be provided "
+                "At least one of 'channels' or 'calculated_channels' must be provided "
                 "when exporting by time range."
             )
         if start_time >= stop_time:
@@ -312,8 +325,6 @@ class ExportsAPIAsync(ResourceBase):
         time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
         time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
 
-        calc_configs = _build_calc_configs(calculated_channel_configs)
-
         export_options = ExportOptions(
             use_legacy_format=use_legacy_format,
             simplify_channel_names=simplify_channel_names,
@@ -322,18 +333,20 @@ class ExportsAPIAsync(ResourceBase):
             split_export_by_run=split_export_by_run,
         )
 
+        channel_ids = (
+            [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
+        )
+
         request = ExportDataRequest(
             time_range=time_range,
-            channel_ids=channel_ids or [],
-            calculated_channel_configs=calc_configs or [],
+            channel_ids=channel_ids,
+            calculated_channel_configs=_build_calc_channels(calculated_channels),
             output_format=output_format.value,
             export_options=export_options,
         )
 
         response = await self._low_level_client.export_data(request=request)
 
-        if response.presigned_url:
-            return response.presigned_url
         return await self._await_download_url(
             job_id=response.job_id,
             polling_interval_secs=polling_interval_secs,
@@ -356,7 +369,7 @@ class ExportsAPIAsync(ResourceBase):
                 and job.job_status_details.error_message
             ):
                 reason = f": {job.job_status_details.error_message}"
-            raise RuntimeError(f"Export job '{job_id}' failed{reason}")
+            raise RuntimeError(f"Export job '{job_id}' failed {reason}")
         if job.job_status == JobStatus.CANCELLED:
             raise RuntimeError(f"Export job '{job_id}' was cancelled.")
         return await self._low_level_client.get_download_url(job_id=job_id)
