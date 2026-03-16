@@ -136,16 +136,21 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request.runs_and_time_range.CopyFrom(runs_and_time_range)
 
         elif asset_ids is not None:
-            assert start_time is not None
-            assert stop_time is not None
+            if start_time is None or stop_time is None:
+                raise ValueError(
+                    "start_time and stop_time must be provided when exporting by asset."
+                )
+
             assets_and_time_range = AssetsAndTimeRange(asset_ids=asset_ids)
             assets_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
             assets_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
             request.assets_and_time_range.CopyFrom(assets_and_time_range)
 
         else:
-            assert start_time is not None
-            assert stop_time is not None
+            if start_time is None or stop_time is None:
+                raise ValueError(
+                    "start_time and stop_time must be provided when exporting by time range."
+                )
             time_range = TimeRange()
             time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
             time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
