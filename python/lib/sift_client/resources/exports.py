@@ -59,7 +59,7 @@ class ExportsAPIAsync(ResourceBase):
             sift_client: The Sift client to use.
         """
         super().__init__(sift_client)
-        self._low_level_client = ExportsLowLevelClient(grpc_client=self._sift_client.grpc_client)
+        self._low_level_client = ExportsLowLevelClient(grpc_client=self.client.grpc_client)
 
     async def export_by_run(
         self,
@@ -129,8 +129,7 @@ class ExportsAPIAsync(ResourceBase):
             split_export_by_run=split_export_by_run,
         )
 
-        job = await self.client.async_.jobs.get(job_id=job_id)
-        return self._apply_client_to_instance(job)
+        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def export_by_asset(
         self,
@@ -197,8 +196,7 @@ class ExportsAPIAsync(ResourceBase):
             split_export_by_run=split_export_by_run,
         )
 
-        job = await self.client.async_.jobs.get(job_id=job_id)
-        return self._apply_client_to_instance(job)
+        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def export_by_time_range(
         self,
@@ -266,8 +264,7 @@ class ExportsAPIAsync(ResourceBase):
             split_export_by_run=split_export_by_run,
         )
 
-        job = await self.client.async_.jobs.get(job_id=job_id)
-        return self._apply_client_to_instance(job)
+        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def wait_until_complete(
         self,
