@@ -52,10 +52,8 @@ def exports_api(mock_client, mock_job):
     with patch("sift_client.resources.exports.ExportsLowLevelClient", autospec=True) as mock_ll:
         api = ExportsAPIAsync(mock_client)
         api._low_level_client = mock_ll.return_value
-        # Default: low-level export methods return a job_id
-        api._low_level_client.export_by_run = AsyncMock(return_value="job-123")
-        api._low_level_client.export_by_asset = AsyncMock(return_value="job-123")
-        api._low_level_client.export_by_time_range = AsyncMock(return_value="job-123")
+        # Default: low-level export_data returns a job_id
+        api._low_level_client.export_data = AsyncMock(return_value="job-123")
         # Default: jobs.get returns a mock Job
         mock_client.async_.jobs.get = AsyncMock(return_value=mock_job)
         return api
@@ -137,7 +135,7 @@ class TestExportsAPIAsync:
             )
 
             assert isinstance(job, MagicMock)
-            exports_api._low_level_client.export_by_run.assert_awaited_once_with(
+            exports_api._low_level_client.export_data.assert_awaited_once_with(
                 run_ids=["run-1", "run-2"],
                 output_format=ExportOutputFormat.CSV,
                 start_time=START,
@@ -159,7 +157,7 @@ class TestExportsAPIAsync:
                 output_format=ExportOutputFormat.SUN,
             )
 
-            exports_api._low_level_client.export_by_run.assert_awaited_once_with(
+            exports_api._low_level_client.export_data.assert_awaited_once_with(
                 run_ids=["run-1"],
                 output_format=ExportOutputFormat.SUN,
                 start_time=None,
@@ -182,7 +180,7 @@ class TestExportsAPIAsync:
                 calculated_channels=sample_calc_channels,
             )
 
-            call_kwargs = exports_api._low_level_client.export_by_run.call_args.kwargs
+            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
             assert call_kwargs["calculated_channels"] == sample_calc_channels
 
         @pytest.mark.asyncio
@@ -196,7 +194,7 @@ class TestExportsAPIAsync:
                 output_format=ExportOutputFormat.CSV,
             )
 
-            call_kwargs = exports_api._low_level_client.export_by_run.call_args.kwargs
+            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
             assert call_kwargs["run_ids"] == ["resolved-run-id", "raw-id"]
 
         @pytest.mark.asyncio
@@ -211,7 +209,7 @@ class TestExportsAPIAsync:
                 channels=[mock_channel, "raw-ch-id"],
             )
 
-            call_kwargs = exports_api._low_level_client.export_by_run.call_args.kwargs
+            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
             assert call_kwargs["channel_ids"] == ["resolved-ch-id", "raw-ch-id"]
 
         @pytest.mark.asyncio
@@ -274,7 +272,7 @@ class TestExportsAPIAsync:
             )
 
             assert isinstance(job, MagicMock)
-            exports_api._low_level_client.export_by_asset.assert_awaited_once_with(
+            exports_api._low_level_client.export_data.assert_awaited_once_with(
                 asset_ids=["asset-1"],
                 start_time=START,
                 stop_time=STOP,
@@ -301,7 +299,7 @@ class TestExportsAPIAsync:
                 output_format=ExportOutputFormat.CSV,
             )
 
-            call_kwargs = exports_api._low_level_client.export_by_asset.call_args.kwargs
+            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
             assert call_kwargs["asset_ids"] == ["resolved-asset-id", "raw-id"]
 
         @pytest.mark.asyncio
@@ -350,7 +348,7 @@ class TestExportsAPIAsync:
                 channels=["ch-1"],
             )
 
-            exports_api._low_level_client.export_by_time_range.assert_awaited_once_with(
+            exports_api._low_level_client.export_data.assert_awaited_once_with(
                 start_time=START,
                 stop_time=STOP,
                 output_format=ExportOutputFormat.SUN,
@@ -375,7 +373,7 @@ class TestExportsAPIAsync:
                 calculated_channels=sample_calc_channels,
             )
 
-            call_kwargs = exports_api._low_level_client.export_by_time_range.call_args.kwargs
+            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
             assert call_kwargs["calculated_channels"] == sample_calc_channels
             assert call_kwargs["channel_ids"] == []
 

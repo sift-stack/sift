@@ -115,7 +115,7 @@ class ExportsAPIAsync(ResourceBase):
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
 
-        job_id = await self._low_level_client.export_by_run(
+        job_id = await self._low_level_client.export_data(
             run_ids=run_ids,
             output_format=output_format,
             start_time=start_time,
@@ -183,7 +183,7 @@ class ExportsAPIAsync(ResourceBase):
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
 
-        job_id = await self._low_level_client.export_by_asset(
+        job_id = await self._low_level_client.export_data(
             asset_ids=asset_ids,
             start_time=start_time,
             stop_time=stop_time,
@@ -253,7 +253,7 @@ class ExportsAPIAsync(ResourceBase):
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
 
-        job_id = await self._low_level_client.export_by_time_range(
+        job_id = await self._low_level_client.export_data(
             start_time=start_time,
             stop_time=stop_time,
             output_format=output_format,
@@ -303,13 +303,14 @@ class ExportsAPIAsync(ResourceBase):
             timeout_secs=timeout_secs,
         )
         if completed_job.job_status == JobStatus.FAILED:
-            reason = ""
             if (
                 isinstance(completed_job.job_status_details, DataExportStatusDetails)
                 and completed_job.job_status_details.error_message
             ):
-                reason = f": {completed_job.job_status_details.error_message}"
-            raise RuntimeError(f"Export job '{job_id}' failed: {reason}")
+                raise RuntimeError(
+                    f"Export job '{job_id}' failed: {completed_job.job_status_details.error_message}"
+                )
+            raise RuntimeError(f"Export job '{job_id}' failed.")
         if completed_job.job_status == JobStatus.CANCELLED:
             raise RuntimeError(f"Export job '{job_id}' was cancelled.")
         return await self._low_level_client.get_download_url(job_id=job_id)
