@@ -300,14 +300,14 @@ fn create_data_import_request<R: io::Read>(
                     let mut enum_configs = Vec::new();
                     let mut bit_field_configs = Vec::new();
 
-                    if data_type == ChannelDataType::Enum.into() {
+                    if data_type == ChannelDataType::Enum as i32 {
                         let Some(configs) = enum_configs_iter.next() else {
                             return Err(anyhow!(
                                 "'{name}' was declared as type enum but --enum-config was not specified"
                             ));
                         };
                         enum_configs = configs;
-                    } else if data_type == ChannelDataType::BitField.into() {
+                    } else if data_type == ChannelDataType::BitField as i32 {
                         let Some(configs) = bit_field_configs_iter.next() else {
                             return Err(anyhow!(
                                 "'{name}' was declared as type bit-field but --bit-field-config was not specified"
