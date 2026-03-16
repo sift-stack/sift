@@ -83,7 +83,6 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         stop_time: datetime | None = None,
         channel_ids: list[str] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -105,7 +104,6 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             stop_time: Optional stop time for the export.
             channel_ids: Optional list of channel IDs to include.
             calculated_channels: Optional calculated channel objects to include.
-            use_legacy_format: Use legacy channel name display format.
             simplify_channel_names: Simplify channel names if unique.
             combine_runs: Combine identical channels across runs.
             split_export_by_asset: Split export by asset.
@@ -117,7 +115,7 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = ExportDataRequest(
             output_format=output_format.value,
             export_options=ExportOptions(
-                use_legacy_format=use_legacy_format,
+                use_legacy_format=False,
                 simplify_channel_names=simplify_channel_names,
                 combine_runs=combine_runs,
                 split_export_by_asset=split_export_by_asset,

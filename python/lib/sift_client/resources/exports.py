@@ -70,7 +70,6 @@ class ExportsAPIAsync(ResourceBase):
         stop_time: datetime | None = None,
         channels: list[str | Channel] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -92,7 +91,6 @@ class ExportsAPIAsync(ResourceBase):
             stop_time: Optional stop time to narrow the export within the run(s).
             channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
             calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
@@ -122,7 +120,6 @@ class ExportsAPIAsync(ResourceBase):
             stop_time=stop_time,
             channel_ids=channel_ids,
             calculated_channels=calculated_channels,
-            use_legacy_format=use_legacy_format,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
@@ -140,7 +137,6 @@ class ExportsAPIAsync(ResourceBase):
         output_format: ExportOutputFormat,
         channels: list[str | Channel] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -161,7 +157,6 @@ class ExportsAPIAsync(ResourceBase):
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
             calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
@@ -189,7 +184,6 @@ class ExportsAPIAsync(ResourceBase):
             output_format=output_format,
             channel_ids=channel_ids,
             calculated_channels=calculated_channels,
-            use_legacy_format=use_legacy_format,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
@@ -206,7 +200,6 @@ class ExportsAPIAsync(ResourceBase):
         output_format: ExportOutputFormat,
         channels: list[str | Channel] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -227,7 +220,6 @@ class ExportsAPIAsync(ResourceBase):
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             channels: List of Channel objects or channel IDs to include in the export.
             calculated_channels: Calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
@@ -257,7 +249,6 @@ class ExportsAPIAsync(ResourceBase):
             output_format=output_format,
             channel_ids=channel_ids,
             calculated_channels=calculated_channels,
-            use_legacy_format=use_legacy_format,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
