@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import tempfile
+import zipfile
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+import requests
 
 from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -27,7 +33,7 @@ class ExportsAPIAsync(ResourceBase):
     - ``export_by_time_range`` - Export data within a time range (requires channels or calculated_channels).
 
     Each method initiates the export and returns a Job handle. Use ``wait_until_complete``
-    to poll the job and retrieve the download URL.
+    to poll the job, download the export, and get the paths to the extracted files.
 
     Example::
 
@@ -39,7 +45,7 @@ class ExportsAPIAsync(ResourceBase):
             runs=[run],
             output_format=ExportOutputFormat.CSV,
         )
-        url = await client.async_.exports.wait_until_complete(job=job)
+        files = await client.async_.exports.wait_until_complete(job=job)
 
         # Export by asset with time range
         asset = await client.async_.assets.get(asset_id="asset-id-1")
@@ -49,7 +55,7 @@ class ExportsAPIAsync(ResourceBase):
             stop_time=stop,
             output_format=ExportOutputFormat.CSV,
         )
-        url = await client.async_.exports.wait_until_complete(job=job)
+        files = await client.async_.exports.wait_until_complete(job=job)
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -107,6 +113,12 @@ class ExportsAPIAsync(ResourceBase):
             raise ValueError("'start_time' and 'stop_time' must both be provided or both omitted.")
         if start_time and stop_time and start_time >= stop_time:
             raise ValueError("'start_time' must be before 'stop_time'.")
+        if combine_runs and split_export_by_run:
+            raise ValueError(
+                "'combine_runs' cannot be used with 'split_export_by_run'. "
+                "Combining merges identical channels across runs into a single column, "
+                "which is not possible when each run is split into a separate file."
+            )
 
         run_ids = [r._id_or_error if isinstance(r, Run) else r for r in runs]
         channel_ids = (
@@ -171,6 +183,12 @@ class ExportsAPIAsync(ResourceBase):
             raise ValueError("'assets' must not contain empty or null values.")
         if start_time >= stop_time:
             raise ValueError("'start_time' must be before 'stop_time'.")
+        if combine_runs and split_export_by_run:
+            raise ValueError(
+                "'combine_runs' cannot be used with 'split_export_by_run'. "
+                "Combining merges identical channels across runs into a single column, "
+                "which is not possible when each run is split into a separate file."
+            )
 
         asset_ids = [a._id_or_error if isinstance(a, Asset) else a for a in assets]
         channel_ids = (
@@ -238,6 +256,12 @@ class ExportsAPIAsync(ResourceBase):
             )
         if start_time >= stop_time:
             raise ValueError("'start_time' must be before 'stop_time'.")
+        if combine_runs and split_export_by_run:
+            raise ValueError(
+                "'combine_runs' cannot be used with 'split_export_by_run'. "
+                "Combining merges identical channels across runs into a single column, "
+                "which is not possible when each run is split into a separate file."
+            )
 
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
@@ -263,19 +287,22 @@ class ExportsAPIAsync(ResourceBase):
         job: Job | str,
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
-    ) -> str:
-        """Wait for an export job to complete and return the download URL.
+        output_dir: str | Path | None = None,
+    ) -> list[Path]:
+        """Wait for an export job to complete and download the exported files.
 
         Polls the job status at the given interval until the job is FINISHED,
-        FAILED, or CANCELLED.
+        FAILED, or CANCELLED, then downloads and extracts the exported data files.
 
         Args:
             job: The export Job or job ID to wait for.
             polling_interval_secs: Seconds between status polls. Defaults to 5.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+            output_dir: Directory to save the extracted files. If omitted, a
+                temporary directory is created automatically.
 
         Returns:
-            A presigned download URL for the exported zip file.
+            List of paths to the extracted data files.
 
         Raises:
             RuntimeError: If the export job fails or is cancelled.
@@ -296,9 +323,37 @@ class ExportsAPIAsync(ResourceBase):
                 and completed_job.job_status_details.error_message
             ):
                 raise RuntimeError(
-                    f"Export job '{job_id}' failed: {completed_job.job_status_details.error_message}"
+                    f"Export job '{job_id}' failed. {completed_job.job_status_details.error_message}"
                 )
             raise RuntimeError(f"Export job '{job_id}' failed.")
         if completed_job.job_status == JobStatus.CANCELLED:
             raise RuntimeError(f"Export job '{job_id}' was cancelled.")
-        return await self._low_level_client.get_download_url(job_id=job_id)
+
+        presigned_url = await self._low_level_client.get_download_url(job_id=job_id)
+        output_dir = (
+            Path(output_dir)
+            if output_dir is not None
+            else Path(tempfile.mkdtemp(prefix="sift_export_"))
+        )
+        zip_path = output_dir / f"{job_id}.zip"
+
+        # Run the synchronous request in a thread pool to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, ExportsAPIAsync._download_and_extract, presigned_url, zip_path, output_dir
+        )
+
+        return [f for f in output_dir.iterdir() if f.is_file()]
+
+    @staticmethod
+    def _download_and_extract(url: str, zip_path: Path, output_dir: Path) -> None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        with requests.get(url=url, stream=True) as response:
+            response.raise_for_status()
+            with zip_path.open("wb") as file:
+                for chunk in response.iter_content(chunk_size=4194304):  # 4 MiB
+                    if chunk:
+                        file.write(chunk)
+        with zipfile.ZipFile(zip_path, "r") as zip_file:
+            zip_file.extractall(output_dir)
+        zip_path.unlink()
