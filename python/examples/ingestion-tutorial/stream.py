@@ -154,7 +154,6 @@ async def main() -> None:
         ingestion_config=ingestion_config,
         run=run,
     ) as ingest_client:
-
         # Continue streaming until the user terminates the program
         while True:
             now = datetime.now(timezone.utc)
