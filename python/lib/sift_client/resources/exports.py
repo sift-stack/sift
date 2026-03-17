@@ -83,7 +83,7 @@ class ExportsAPIAsync(ResourceBase):
         resolved: list[CalculatedChannel | CalculatedChannelCreate] = []
         for cc in calculated_channels:
             refs = (
-                cc.expression_channel_references
+                (cc.expression_channel_references or [])
                 if isinstance(cc, CalculatedChannelCreate)
                 else cc.channel_references
             )
