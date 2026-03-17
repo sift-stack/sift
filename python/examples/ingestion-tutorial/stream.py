@@ -59,7 +59,6 @@ def make_unique_suffix() -> str:
 # All ingestion logic lives inside this async function.
 # Streaming ingestion uses async gRPC under the hood.
 async def main() -> None:
-
     # Create unique Asset and Run names
     # -----------------------------------------------------------------
     # An Asset represents the telemetry-producing system.
