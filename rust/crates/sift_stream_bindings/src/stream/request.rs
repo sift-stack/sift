@@ -6,7 +6,7 @@ use sift_rs::ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigData
 
 // Type Definitions
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct IngestWithConfigDataStreamRequestPy {
     #[pyo3(get, set)]
@@ -27,14 +27,14 @@ pub struct IngestWithConfigDataStreamRequestPy {
 
 // Type Definitions
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct IngestWithConfigDataStreamRequestWrapperPy {
     inner: IngestWithConfigDataStreamRequest,
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct IngestWithConfigDataChannelValuePy {
     #[pyo3(get, set)]

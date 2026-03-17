@@ -71,7 +71,7 @@ gen_python_modules() {
   # This is necessary to split `google` module into separate directories: one generated from the googleapis buf plugin,
   # and the other coming from the `protobuf` PyPI package that gets installed as `google`.
   echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$python_lib/google/__init__.py"
-  
+
   rm -rf "${python_lib}/__init__.py"
   if [[ -d "$python_gen_dir" ]]; then
     rm -rf "$python_gen_dir"
@@ -102,7 +102,7 @@ gen_protos() {
       if [[ -d "$lang/crates/sift_rs/src/gen" ]]; then
         rm -rf "$lang/crates/sift_rs/src/gen"
       fi
-      buf generate "$OUTPUT_PROTOS" --template "$lang/crates/sift_rs/buf.gen.yaml" --output "$lang/crates/sift_rs"
+      buf generate "$OUTPUT_PROTOS" --template "$lang/crates/sift_rs/buf.gen.yaml" --output "$lang/crates/sift_rs" --path "$OUTPUT_PROTOS/sift"
     elif [[ "$lang" == "go" ]]; then
       # Clean old generated files to avoid stale code
       if [[ -d "$lang/gen" ]]; then

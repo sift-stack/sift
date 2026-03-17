@@ -16,27 +16,27 @@ features = ["metrics-unstable"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-futures = { version = "0.3", default-features = false, features = ["alloc"] }
+async-channel = { workspace = true }
+async-trait = { workspace = true }
+bytesize = { workspace = true, optional = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+futures = { workspace = true }
+futures-core = { workspace = true }
+hyper = { workspace = true, optional = true }
+hyper-util = { workspace = true, optional = true }
+pbjson-types = { workspace = true }
+prost = { workspace = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 sift_connect = { workspace = true }
 sift_error = { workspace = true }
 sift_rs = { workspace = true }
 sift_pbfs = { workspace = true }
-tracing = { version = "0.1.41", optional = true }
-bytesize = { version = "2", optional = true }
-pbjson-types = { workspace = true }
-tokio = { version = "1.43.0", features = ["rt", "sync", "time", "macros", "fs"] }
-chrono = { workspace = true }
-futures-core = "0.3.31"
-tokio-stream = { version = "0.1.17", features = ["sync"] }
-async-channel = "2.2"
-async-trait = "^0.1"
-prost = "^0.13"
-dirs = "6.0.0"
-uuid = { version = "1.16.0", features = ["v4"] }
-hyper = { version = "1.7.0", features = ["server", "http1"], optional = true }
-hyper-util = { version = "0.1.10", features = ["service", "server", "tokio"], optional = true }
-serde = { version = "1.0.226", optional = true }
-serde_json = { version = "1.0.145", optional = true }
+tokio = { workspace = true, features = ["rt", "sync", "time", "macros", "fs"] }
+tokio-stream = { workspace = true, features = ["sync"] }
+tracing = { workspace = true, optional = true }
+uuid = { workspace = true }
 
 [features]
 default = ["tracing"]
@@ -45,19 +45,19 @@ metrics-unstable = ["dep:serde", "dep:serde_json", "dep:hyper", "dep:hyper-util"
 unstable = []
 
 [dev-dependencies]
-async-trait = "^0.1"
-dotenvy = "0.15.7"
-hyper-util = "0.1.10"
-tempdir = "0.3.7"
-tokio-stream = "0.1.17"
+async-trait = { workspace = true }
+criterion = { workspace = true }
+dotenvy = { workspace = true }
+hyper-util = { workspace = true }
+rand = { workspace = true }
+tempdir = { workspace = true }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "sync", "time", "signal"] }
+tokio-stream = { workspace = true }
 tonic = { workspace = true }
-tower = { version = "0.5.2", features = ["util"] }
-tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
-tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "sync", "time", "signal"] }
-uuid = { version = "1.16.0", features = ["v4"] }
-tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
-criterion = { version = "0.5", features = ["html_reports"] }
-rand = "0.8"
+tower = { workspace = true, features = ["util"] }
+tracing-subscriber = { workspace = true }
+tracing-test = { workspace = true }
+uuid = {workspace = true }
 
 [[bench]]
 name = "message_to_ingest_req"

@@ -12,12 +12,11 @@ categories = { workspace = true }
 readme = "README.md"
 
 [dependencies]
-prost = "^0.13"
+prost = { workspace = true }
 sift_error = { workspace = true }
-crc32fast = "1.4.2"
+crc32fast = { workspace = true }
 
 [dev-dependencies]
-tempdir = "0.3.7"
-uuid = { version = "1.16.0", features = ["v4"] }
+tempdir = { workspace = true }
+uuid = { workspace = true }
 sift_rs = { workspace = true }
-

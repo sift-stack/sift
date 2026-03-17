@@ -413,9 +413,11 @@ pub(crate) async fn create_mock_grpc_channel_with_service() -> (SiftChannel, Moc
         .unwrap();
 
     let sift_channel = ServiceBuilder::new()
-        .layer(tonic::service::interceptor(AuthInterceptor {
-            apikey: "test-api-key".to_string(),
-        }))
+        .layer(tonic::service::interceptor::InterceptorLayer::new(
+            AuthInterceptor {
+                apikey: "test-api-key".to_string(),
+            },
+        ))
         .service(channel);
 
     (sift_channel, mock_ingest_service)

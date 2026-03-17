@@ -26,7 +26,7 @@ const FLOW_NAME: &str = "vehicle_metrics";
 /// SEND_INTERVAL controls sampling frequency.
 const SEND_INTERVAL: Duration = Duration::from_millis(500);
 /// INGEST_DURATION controls how long we send data before exiting
-const INGEST_DURATION: Duration = Duration::from_mins(10);
+const INGEST_DURATION: Duration = Duration::from_secs(10 * 60);
 
 /// Helper function to generate unique names
 /// ---------------------------------------------------------------------

@@ -448,9 +448,11 @@ mod tests {
             .unwrap();
 
         let sift_channel: SiftChannel = ServiceBuilder::new()
-            .layer(tonic::service::interceptor(AuthInterceptor {
-                apikey: "test_api_key".to_string(),
-            }))
+            .layer(tonic::service::interceptor::InterceptorLayer::new(
+                AuthInterceptor {
+                    apikey: "test_api_key".to_string(),
+                },
+            ))
             .service(channel);
 
         (sift_channel, server)

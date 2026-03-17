@@ -4,7 +4,7 @@ use pyo3_stub_gen::derive::*;
 use sift_stream::SiftStreamMetricsSnapshot;
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct CheckpointMetricsSnapshotPy {
     #[pyo3(get)]
@@ -28,7 +28,7 @@ pub struct CheckpointMetricsSnapshotPy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct BackupMetricsSnapshotPy {
     #[pyo3(get)]
@@ -60,7 +60,7 @@ pub struct BackupMetricsSnapshotPy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct SiftStreamMetricsSnapshotPy {
     #[pyo3(get)]

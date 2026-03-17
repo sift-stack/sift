@@ -171,7 +171,9 @@ impl SiftChannelBuilder {
             .connect_lazy();
 
         let intercepted_channel = ServiceBuilder::new()
-            .layer(tonic::service::interceptor(AuthInterceptor { apikey }))
+            .layer(tonic::service::interceptor::InterceptorLayer::new(
+                AuthInterceptor { apikey },
+            ))
             .service(channel);
 
         Ok(intercepted_channel)

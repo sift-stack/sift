@@ -6,7 +6,7 @@ use sift_stream::{
 
 // Type Definitions
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Copy, Debug)]
 pub struct DurationPy {
     #[pyo3(get, set)]
@@ -25,7 +25,7 @@ pub struct DurationPy {
 ///
 /// Note: PyO3 doesn't support nested enums, so this is implemented as a struct wrapper.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct RecoveryStrategyPy {
     inner: RecoveryStrategy,
@@ -39,7 +39,7 @@ pub struct RecoveryStrategyPy {
 /// A retry policy configures the retry behavior of a Sift stream, including the number
 /// of attempts and exponential backoff parameters.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct RetryPolicyPy {
     #[pyo3(get, set)]
@@ -60,7 +60,7 @@ pub struct RetryPolicyPy {
 /// A disk backup policy configures how telemetry data is backed up to disk, including
 /// backup directory, file size limits, and retention policies.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct DiskBackupPolicyPy {
     #[pyo3(get, set)]
@@ -74,7 +74,7 @@ pub struct DiskBackupPolicyPy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct RollingFilePolicyPy {
     max_file_count: Option<usize>,
