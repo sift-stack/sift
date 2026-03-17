@@ -12,7 +12,7 @@ use sift_stream::stream::time::TimeValue;
 /// representations (Unix timestamps, RFC3339 strings, etc.). All times are stored
 /// and transmitted as UTC.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct TimeValuePy {
     pub inner: TimeValue,

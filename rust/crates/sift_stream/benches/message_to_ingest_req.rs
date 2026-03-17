@@ -24,7 +24,6 @@ compile_error!(
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use rand::seq::SliceRandom;
-use rand::thread_rng;
 use std::hint::black_box;
 
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
@@ -112,7 +111,7 @@ fn flow_randomized(name: &str, flow_config: &FlowConfig) -> Flow {
     }
 
     // Randomize the order of values
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     values.shuffle(&mut rng);
 
     Flow::new(name, ts, &values)

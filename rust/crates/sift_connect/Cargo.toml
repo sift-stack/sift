@@ -12,8 +12,8 @@ categories = { workspace = true }
 readme = "README.md"
 
 [dependencies]
-dirs = "6.0.0"
+dirs = { workspace = true }
 sift_error = { workspace = true }
-toml = "0.8.20"
-tonic = { version = "^0.12", features = ["tls-native-roots", "tls", "tls-roots", "tls-webpki-roots"] }
-tower = "^0.4"
+toml = { workspace = true }
+tonic = { workspace = true, features = ["tls-native-roots", "tls-webpki-roots"] }
+tower = { workspace = true }

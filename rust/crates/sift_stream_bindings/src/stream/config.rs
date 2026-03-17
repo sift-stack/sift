@@ -26,7 +26,7 @@ use std::sync::Arc;
 /// A `ChannelConfig` defines the schema for a single telemetry channel, including its
 /// name, data type, unit, and description.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ChannelConfigPy {
     inner: ChannelConfig,
@@ -52,7 +52,7 @@ pub struct ChannelConfigPy {
 /// A `FlowConfig` defines the schema for a flow, which is a named group of channels
 /// that are often telemetered together.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct FlowConfigPy {
     inner: FlowConfig,
@@ -63,7 +63,7 @@ pub struct FlowConfigPy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ChannelIndexPy {
     inner: ChannelIndex,
@@ -76,7 +76,7 @@ pub struct FlowDescriptorBuilderPy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct FlowDescriptorPy {
     // Use Arc to make cloning cheap - cloning Arc just increments a reference count
@@ -101,7 +101,7 @@ pub struct FlowBuilderPy {
 /// An `IngestionConfigForm` is used to create a new ingestion config or retrieve an existing
 /// one based on the `client_key`. It defines the schema of an asset's telemetry.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct IngestionConfigFormPy {
     #[pyo3(get, set)]
@@ -121,7 +121,7 @@ pub struct IngestionConfigFormPy {
 /// `client_key`. If a run with the given `client_key` exists, it will be updated
 /// with any changed fields.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct RunFormPy {
     #[pyo3(get, set)]
@@ -137,7 +137,7 @@ pub struct RunFormPy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct RunSelectorPy {
     run_id: Option<String>,

@@ -364,9 +364,11 @@ pub async fn start_test_ingest_server<I: IngestService>(
         .unwrap();
 
     let sift_channel: SiftChannel = ServiceBuilder::new()
-        .layer(tonic::service::interceptor(AuthInterceptor {
-            apikey: "apikey".to_string(),
-        }))
+        .layer(tonic::service::interceptor::InterceptorLayer::new(
+            AuthInterceptor {
+                apikey: "apikey".to_string(),
+            },
+        ))
         .service(channel);
 
     (sift_channel, server)

@@ -14,4 +14,4 @@ readme = "README.md"
 [dependencies]
 
 [dev-dependencies]
-indoc = "2.0.6"
+indoc = { workspace = true }

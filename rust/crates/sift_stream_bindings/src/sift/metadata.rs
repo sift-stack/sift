@@ -3,7 +3,7 @@ use pyo3::types::PyAny;
 use pyo3_stub_gen::derive::*;
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct MetadataPy {
     #[pyo3(get, set)]
@@ -13,7 +13,7 @@ pub struct MetadataPy {
 }
 
 #[gen_stub_pyclass_enum]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub enum MetadataValuePy {
     String(String),

@@ -1,1 +1,24 @@
-../../../protos/buf.yaml
+version: v2
+deps:
+  - buf.build/bufbuild/protovalidate
+  - buf.build/googleapis/googleapis
+  - buf.build/grpc-ecosystem/grpc-gateway
+lint:
+  use:
+    - DEFAULT
+  except:
+    - FIELD_NOT_REQUIRED
+    - PACKAGE_NO_IMPORT_CYCLE
+  ignore_only:
+    ENUM_VALUE_PREFIX:
+      - sift/protobuf_descriptors/v2/channel_parsing_options.proto
+      - sift/rules/v1/rules.proto
+    ENUM_ZERO_VALUE_SUFFIX:
+      - sift/protobuf_descriptors/v2/channel_parsing_options.proto
+  disallow_comment_ignores: true
+breaking:
+  use:
+    - FILE
+  except:
+    - EXTENSION_NO_DELETE
+    - FIELD_SAME_DEFAULT

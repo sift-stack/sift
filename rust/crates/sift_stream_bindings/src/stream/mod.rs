@@ -42,7 +42,7 @@ pub struct SiftStreamPy {
 /// A `Flow` represents a single telemetry message containing channel values that share
 /// a common timestamp.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct FlowPy {
     inner: Flow,

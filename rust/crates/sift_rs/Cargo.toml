@@ -12,19 +12,20 @@ categories = { workspace = true }
 readme = "README.md"
 
 [dependencies]
-async-trait = "^0.1"
-pbjson = "^0.7"
+async-trait =  { workspace = true }
+pbjson = { workspace = true }
 pbjson-types = { workspace = true }
-prost = "^0.13"
-prost-types = "^0.13"
-serde = { version = "^1.0" }
+prost = { workspace = true }
+prost-types = { workspace = true }
+serde = { workspace = true }
 sift_connect = { workspace = true }
 sift_error = { workspace = true }
-tokio = { version = "1", features = ["time"] }
+tokio = { workspace = true, features = ["time"] }
 tonic = { workspace = true }
+tonic-prost = { workspace = true }
 
 [dev-dependencies]
 chrono = { workspace = true }
-rand = "0.8.5"
-tokio = { version = "1", features = ["full"] }
-tokio-stream = "0.1.16"
+rand = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tokio-stream = { workspace = true }

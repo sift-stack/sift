@@ -13,7 +13,7 @@ use sift_stream::stream::channel::{ChannelValue, Value};
 /// A `ChannelValue` pairs a channel name with its typed value, used when constructing
 /// [`Flow`](sift_stream::Flow) instances.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ChannelValuePy {
     #[pyo3(get, set)]
@@ -27,7 +27,7 @@ pub struct ChannelValuePy {
 /// Represents a specific enumeration value for an enum channel. Enum channels use
 /// numeric values to represent discrete states.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ChannelEnumPy(pub u32);
 
@@ -39,14 +39,14 @@ pub struct ChannelEnumPy(pub u32);
 /// `Value` represents a typed value emitted by a channel, supporting all standard
 /// telemetry data types (bool, numbers, strings, enums, bitfields).
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ValuePy {
     inner: Value,
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ChannelBitFieldElementPy {
     pub inner: ChannelBitFieldElement,
@@ -59,7 +59,7 @@ pub struct ChannelBitFieldElementPy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ChannelEnumTypePy {
     pub inner: ChannelEnumType,
@@ -70,7 +70,7 @@ pub struct ChannelEnumTypePy {
 }
 
 #[gen_stub_pyclass_enum]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub enum ChannelDataTypePy {
     Unspecified,
@@ -88,7 +88,7 @@ pub enum ChannelDataTypePy {
 }
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct ChannelValueTypePy {
     inner: ChannelValueType,
