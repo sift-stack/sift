@@ -18,7 +18,6 @@ The program runs continuously until the user terminates it.
 # and generating unique identifiers.
 import asyncio
 import random
-import time
 import uuid
 from datetime import datetime, timezone
 
@@ -30,13 +29,12 @@ from sift_client import SiftClient, SiftConnectionConfig
 
 # Sift ingestion types used to define telemetry structure and runs.
 from sift_client.sift_types import (
-    ChannelConfig,          # Defines an individual telemetry signal
-    ChannelDataType,        # Specifies the signal's data type
-    FlowConfig,             # Defines a group of related channels (schema)
+    ChannelConfig,  # Defines an individual telemetry signal
+    ChannelDataType,  # Specifies the signal's data type
+    FlowConfig,  # Defines a group of related channels (schema)
     IngestionConfigCreate,  # Associates flows with an Asset
-    RunCreate,              # Represents a telemetry collection session
+    RunCreate,  # Represents a telemetry collection session
 )
-
 
 # Define configuration constants
 # ---------------------------------------------------------------------
@@ -124,7 +122,7 @@ async def main() -> None:
         ],
     )
 
-    # Create ingestion configuration 
+    # Create ingestion configuration
     # -----------------------------------------------------------------
     # IngestionConfigCreate associates:
     #   - An Asset
