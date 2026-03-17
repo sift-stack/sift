@@ -71,57 +71,44 @@ class ExportsAPIAsync(ResourceBase):
         self,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None,
     ) -> list[CalculatedChannel | CalculatedChannelCreate] | None:
-        """Resolve channel references in calculated channel objects for export.
+        """Resolve channel reference identifiers from names to UUIDs.
 
-        The export API requires channel UUIDs in calculated channel references, but
-        channel references may contain channel names instead. This method attempts
-        to resolve each identifier by looking it up as a channel name via the channels
-        API. If no channel is found by that name, the identifier is assumed to already
-        be a UUID and is kept as-is.
+        For each channel reference, looks up the identifier as a channel name.
+        If found, replaces it with the channel's UUID. If not found, assumes
+        the identifier is already a UUID and keeps it as-is.
         """
         if not calculated_channels:
             return calculated_channels
 
         resolved: list[CalculatedChannel | CalculatedChannelCreate] = []
         for cc in calculated_channels:
-            if isinstance(cc, CalculatedChannelCreate):
-                refs = cc.expression_channel_references or []
-                asset_ids = cc.asset_ids
-            else:
-                refs = cc.channel_references
-                asset_ids = cc.asset_ids
+            refs = (
+                cc.expression_channel_references
+                if isinstance(cc, CalculatedChannelCreate)
+                else cc.channel_references
+            )
 
             resolved_refs: list[ChannelReference] = []
-            any_resolved = False
             for ref in refs:
                 channel = await self.client.async_.channels.find(
                     name=ref.channel_identifier,
-                    assets=asset_ids,
+                    assets=cc.asset_ids,
                 )
                 if channel is not None:
-                    resolved_refs.append(
-                        ChannelReference(
-                            channel_reference=ref.channel_reference,
-                            channel_identifier=channel._id_or_error,
-                        )
+                    ref = ChannelReference(
+                        channel_reference=ref.channel_reference,
+                        channel_identifier=channel._id_or_error,
                     )
-                    any_resolved = True
-                else:
-                    # Assume already a UUID
-                    resolved_refs.append(ref)
+                resolved_refs.append(ref)
 
-            if any_resolved:
-                resolved.append(
-                    CalculatedChannelCreate(
-                        name=cc.name,
-                        expression=cc.expression,
-                        expression_channel_references=resolved_refs,
-                        units=cc.units if cc.units else None,
-                    )
+            resolved.append(
+                CalculatedChannelCreate(
+                    name=cc.name,
+                    expression=cc.expression,
+                    expression_channel_references=resolved_refs,
+                    units=cc.units or None,
                 )
-            else:
-                resolved.append(cc)
-
+            )
         return resolved
 
     async def export_by_run(
