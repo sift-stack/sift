@@ -17255,7 +17255,7 @@ has no id set, raises ValueError.</p>
 <li><code>export_by_time_range</code> - Export data within a time range (requires channels or calculated_channels).</li>
 </ul>
 <p>Each method initiates the export and returns a Job handle. Use <code>wait_until_complete</code>
-to poll the job and retrieve the download URL.</p>
+to poll the job, download the export, and get the paths to the extracted files.</p>
 <p>Example::</p>
 <p>from sift_client.sift_types.export import ExportOutputFormat</p>
 <h3 id="sift_client.resources.ExportsAPI--export-by-run">Export by run<a class="headerlink" href="#sift_client.resources.ExportsAPI--export-by-run" title="Permanent link">&para;</a></h3>
@@ -17264,7 +17264,7 @@ job = await client.async_.exports.export_by_run(
 runs=[run],
 output_format=ExportOutputFormat.CSV,
 )
-url = await client.async_.exports.wait_until_complete(job=job)</p>
+files = await client.async_.exports.wait_until_complete(job=job)</p>
 <h3 id="sift_client.resources.ExportsAPI--export-by-asset-with-time-range">Export by asset with time range<a class="headerlink" href="#sift_client.resources.ExportsAPI--export-by-asset-with-time-range" title="Permanent link">&para;</a></h3>
 <p>asset = await client.async_.assets.get(asset_id="asset-id-1")
 job = await client.async_.exports.export_by_asset(
@@ -17273,7 +17273,7 @@ start_time=start,
 stop_time=stop,
 output_format=ExportOutputFormat.CSV,
 )
-url = await client.async_.exports.wait_until_complete(job=job)</p>
+files = await client.async_.exports.wait_until_complete(job=job)</p>
 
         <p>Initialize the ExportsAPI.</p>
 
@@ -17352,7 +17352,7 @@ url = await client.async_.exports.wait_until_complete(job=job)</p>
               <td><code><a class="autorefs autorefs-internal" title="            wait_until_complete (sift_client.resources.ExportsAPI.wait_until_complete)" href="#sift_client.resources.ExportsAPI.wait_until_complete">wait_until_complete</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Wait for an export job to complete and return the download URL.</p>
+                  <p>Wait for an export job to complete and download the exported files.</p>
                 </div>
               </td>
             </tr>
@@ -17414,12 +17414,11 @@ url = await client.async_.exports.wait_until_complete(job=job)</p>
    (sift_client.sift_types.calculated_channel.CalculatedChannelCreate)" href="../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannelCreate">CalculatedChannelCreate</a></span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="p">]</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">use_legacy_format</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">simplify_channel_names</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">combine_runs</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">split_export_by_asset</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">split_export_by_run</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">simplify_channel_names</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">combine_runs</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">split_export_by_asset</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">split_export_by_run</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -17564,26 +17563,6 @@ calculated_channels are provided, all channels from the assets are included.</p>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
                       <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>use_legacy_format</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Use legacy channel name display format: <code>channel.name (assetName=... runName=... runId=...)</code>.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="bool">bool</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>False</code>
                   </span>
               </p>
             </td>
@@ -17744,12 +17723,11 @@ calculated_channels are provided, all channels from the assets are included.</p>
    (sift_client.sift_types.calculated_channel.CalculatedChannelCreate)" href="../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannelCreate">CalculatedChannelCreate</a></span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="p">]</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">use_legacy_format</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">simplify_channel_names</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">combine_runs</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">split_export_by_asset</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">split_export_by_run</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">simplify_channel_names</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">combine_runs</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">split_export_by_asset</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">split_export_by_run</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -17909,26 +17887,6 @@ the run's assets are included.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>use_legacy_format</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Use legacy channel name display format: <code>channel.name (assetName=... runName=... runId=...)</code>.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="bool">bool</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>False</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
                 <code>simplify_channel_names</code>
             </td>
             <td class="doc-param-details">
@@ -18077,12 +18035,11 @@ the run's assets are included.</p>
    (sift_client.sift_types.calculated_channel.CalculatedChannelCreate)" href="../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannelCreate">CalculatedChannelCreate</a></span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">]</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">use_legacy_format</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">simplify_channel_names</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">combine_runs</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">split_export_by_asset</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">split_export_by_run</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">simplify_channel_names</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">combine_runs</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">split_export_by_asset</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">split_export_by_run</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -18207,26 +18164,6 @@ are no runs or assets to infer channels from.</p>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
                       <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>use_legacy_format</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Use legacy channel name display format: <code>channel.name (assetName=... runName=... runId=...)</code>.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="bool">bool</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>False</code>
                   </span>
               </p>
             </td>
@@ -18390,14 +18327,15 @@ are no runs or assets to infer channels from.</p>
    (sift_client.sift_types.job.Job)" href="../sift_types/job/#sift_client.sift_types.job.Job">Job</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="pathlib.Path">Path</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Wait for an export job to complete and return the download URL.</p>
+        <p>Wait for an export job to complete and download the exported files.</p>
 <p>Polls the job status at the given interval until the job is FINISHED,
-FAILED, or CANCELLED.</p>
+FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
 
 
 <table>
@@ -18469,6 +18407,27 @@ FAILED, or CANCELLED.</p>
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_dir</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Directory to save the extracted files. If omitted, a
+temporary directory is created automatically.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -18484,12 +18443,12 @@ FAILED, or CANCELLED.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><span title="str">str</span></code>
+                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
                 </span>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>A presigned download URL for the exported zip file.</p>
+                <p>List of paths to the extracted data files.</p>
               </div>
             </td>
           </tr>
@@ -18571,7 +18530,7 @@ FAILED, or CANCELLED.</p>
 <li><code>export_by_time_range</code> - Export data within a time range (requires channels or calculated_channels).</li>
 </ul>
 <p>Each method initiates the export and returns a Job handle. Use <code>wait_until_complete</code>
-to poll the job and retrieve the download URL.</p>
+to poll the job, download the export, and get the paths to the extracted files.</p>
 <p>Example::</p>
 <div class="language-text highlight"><pre><span></span><code>from sift_client.sift_types.export import ExportOutputFormat
 
@@ -18581,7 +18540,7 @@ job = await client.async_.exports.export_by_run(
     runs=[run],
     output_format=ExportOutputFormat.CSV,
 )
-url = await client.async_.exports.wait_until_complete(job=job)
+files = await client.async_.exports.wait_until_complete(job=job)
 
 # Export by asset with time range
 asset = await client.async_.assets.get(asset_id=&quot;asset-id-1&quot;)
@@ -18591,7 +18550,7 @@ job = await client.async_.exports.export_by_asset(
     stop_time=stop,
     output_format=ExportOutputFormat.CSV,
 )
-url = await client.async_.exports.wait_until_complete(job=job)
+files = await client.async_.exports.wait_until_complete(job=job)
 </code></pre></div>
 
         <p>Initialize the ExportsAPI.</p>
@@ -18691,7 +18650,7 @@ url = await client.async_.exports.wait_until_complete(job=job)
    (sift_client.resources.ExportsAPIAsync.wait_until_complete)" href="#sift_client.resources.ExportsAPIAsync.wait_until_complete">wait_until_complete</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Wait for an export job to complete and return the download URL.</p>
+                  <p>Wait for an export job to complete and download the exported files.</p>
                 </div>
               </td>
             </tr>
@@ -19817,14 +19776,15 @@ are no runs or assets to infer channels from.</p>
    (sift_client.sift_types.job.Job)" href="../sift_types/job/#sift_client.sift_types.job.Job">Job</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="pathlib.Path">Path</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Wait for an export job to complete and return the download URL.</p>
+        <p>Wait for an export job to complete and download the exported files.</p>
 <p>Polls the job status at the given interval until the job is FINISHED,
-FAILED, or CANCELLED.</p>
+FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
 
 
 <table>
@@ -19896,6 +19856,27 @@ FAILED, or CANCELLED.</p>
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_dir</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Directory to save the extracted files. If omitted, a
+temporary directory is created automatically.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -19911,12 +19892,12 @@ FAILED, or CANCELLED.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><span title="str">str</span></code>
+                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
                 </span>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>A presigned download URL for the exported zip file.</p>
+                <p>List of paths to the extracted data files.</p>
               </div>
             </td>
           </tr>
