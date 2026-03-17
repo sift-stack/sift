@@ -518,9 +518,8 @@ class TestExportsAPIAsync:
             assert resolved.name == "my_calc"
             assert resolved.expression == "$1 + 10"
             assert resolved.units == "m/s"
-            assert (
-                resolved.expression_channel_references[0].channel_identifier == "resolved-ch-uuid"
-            )
+            assert resolved.expression_channel_references is not None
+            assert resolved.expression_channel_references[0].channel_identifier == "resolved-ch-uuid"
             mock_client.async_.channels.find.assert_awaited_once_with(
                 name="sensor.velocity", assets=["asset-1"]
             )
@@ -560,6 +559,7 @@ class TestExportsAPIAsync:
 
             resolved = result[0]
             assert isinstance(resolved, CalculatedChannelCreate)
+            assert resolved.expression_channel_references is not None
             assert (
                 resolved.expression_channel_references[0].channel_identifier
                 == "d8e64798-ad6f-41b8-b830-7e009806f365"
