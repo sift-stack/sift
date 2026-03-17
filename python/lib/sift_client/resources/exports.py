@@ -11,7 +11,8 @@ import requests
 from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
-from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
+from sift_client.sift_types.channel import Channel, ChannelReference
 from sift_client.sift_types.export import ExportOutputFormat  # noqa: TC001
 from sift_client.sift_types.job import Job
 from sift_client.sift_types.run import Run
@@ -20,7 +21,6 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
 
 
 class ExportsAPIAsync(ResourceBase):
@@ -66,6 +66,63 @@ class ExportsAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = ExportsLowLevelClient(grpc_client=self.client.grpc_client)
+
+    async def _resolve_calculated_channels(
+        self,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None,
+    ) -> list[CalculatedChannel | CalculatedChannelCreate] | None:
+        """Resolve channel references in calculated channel objects for export.
+
+        The export API requires channel UUIDs in calculated channel references, but
+        channel references may contain channel names instead. This method attempts
+        to resolve each identifier by looking it up as a channel name via the channels
+        API. If no channel is found by that name, the identifier is assumed to already
+        be a UUID and is kept as-is.
+        """
+        if not calculated_channels:
+            return calculated_channels
+
+        resolved: list[CalculatedChannel | CalculatedChannelCreate] = []
+        for cc in calculated_channels:
+            if isinstance(cc, CalculatedChannelCreate):
+                refs = cc.expression_channel_references or []
+                asset_ids = cc.asset_ids
+            else:
+                refs = cc.channel_references
+                asset_ids = cc.asset_ids
+
+            resolved_refs: list[ChannelReference] = []
+            any_resolved = False
+            for ref in refs:
+                channel = await self.client.async_.channels.find(
+                    name=ref.channel_identifier,
+                    assets=asset_ids,
+                )
+                if channel is not None:
+                    resolved_refs.append(
+                        ChannelReference(
+                            channel_reference=ref.channel_reference,
+                            channel_identifier=channel._id_or_error,
+                        )
+                    )
+                    any_resolved = True
+                else:
+                    # Assume already a UUID
+                    resolved_refs.append(ref)
+
+            if any_resolved:
+                resolved.append(
+                    CalculatedChannelCreate(
+                        name=cc.name,
+                        expression=cc.expression,
+                        expression_channel_references=resolved_refs,
+                        units=cc.units if cc.units else None,
+                    )
+                )
+            else:
+                resolved.append(cc)
+
+        return resolved
 
     async def export_by_run(
         self,
@@ -124,6 +181,7 @@ class ExportsAPIAsync(ResourceBase):
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
+        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
 
         job_id = await self._low_level_client.export_data(
             run_ids=run_ids,
@@ -131,7 +189,7 @@ class ExportsAPIAsync(ResourceBase):
             start_time=start_time,
             stop_time=stop_time,
             channel_ids=channel_ids,
-            calculated_channels=calculated_channels,
+            calculated_channels=resolved_calc_channels,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
@@ -194,6 +252,7 @@ class ExportsAPIAsync(ResourceBase):
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
+        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
 
         job_id = await self._low_level_client.export_data(
             asset_ids=asset_ids,
@@ -201,7 +260,7 @@ class ExportsAPIAsync(ResourceBase):
             stop_time=stop_time,
             output_format=output_format,
             channel_ids=channel_ids,
-            calculated_channels=calculated_channels,
+            calculated_channels=resolved_calc_channels,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
@@ -266,13 +325,14 @@ class ExportsAPIAsync(ResourceBase):
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
+        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
 
         job_id = await self._low_level_client.export_data(
             start_time=start_time,
             stop_time=stop_time,
             output_format=output_format,
             channel_ids=channel_ids,
-            calculated_channels=calculated_channels,
+            calculated_channels=resolved_calc_channels,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
