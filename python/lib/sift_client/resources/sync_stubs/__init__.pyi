@@ -550,7 +550,7 @@ class ExportsAPI:
     - ``export_by_time_range`` - Export data within a time range (requires channels or calculated_channels).
 
     Each method initiates the export and returns a Job handle. Use ``wait_until_complete``
-    to poll the job and retrieve the download URL.
+    to poll the job, download the export, and get the paths to the extracted files.
 
     Example::
 
@@ -562,7 +562,7 @@ class ExportsAPI:
     runs=[run],
     output_format=ExportOutputFormat.CSV,
     )
-    url = await client.async_.exports.wait_until_complete(job=job)
+    files = await client.async_.exports.wait_until_complete(job=job)
 
     # Export by asset with time range
     asset = await client.async_.assets.get(asset_id="asset-id-1")
@@ -572,7 +572,7 @@ class ExportsAPI:
     stop_time=stop,
     output_format=ExportOutputFormat.CSV,
     )
-    url = await client.async_.exports.wait_until_complete(job=job)
+    files = await client.async_.exports.wait_until_complete(job=job)
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -593,7 +593,6 @@ class ExportsAPI:
         output_format: ExportOutputFormat,
         channels: list[str | Channel] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -614,7 +613,6 @@ class ExportsAPI:
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
             calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
@@ -634,7 +632,6 @@ class ExportsAPI:
         stop_time: datetime | None = None,
         channels: list[str | Channel] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -656,7 +653,6 @@ class ExportsAPI:
             stop_time: Optional stop time to narrow the export within the run(s).
             channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
             calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
@@ -675,7 +671,6 @@ class ExportsAPI:
         output_format: ExportOutputFormat,
         channels: list[str | Channel] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        use_legacy_format: bool = False,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -696,7 +691,6 @@ class ExportsAPI:
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             channels: List of Channel objects or channel IDs to include in the export.
             calculated_channels: Calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            use_legacy_format: Use legacy channel name display format: ``channel.name (assetName=... runName=... runId=...)``.
             simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
             split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
@@ -711,20 +705,27 @@ class ExportsAPI:
         ...
 
     def wait_until_complete(
-        self, *, job: Job | str, polling_interval_secs: int = 5, timeout_secs: int | None = None
-    ) -> str:
-        """Wait for an export job to complete and return the download URL.
+        self,
+        *,
+        job: Job | str,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        output_dir: str | Path | None = None,
+    ) -> list[Path]:
+        """Wait for an export job to complete and download the exported files.
 
         Polls the job status at the given interval until the job is FINISHED,
-        FAILED, or CANCELLED.
+        FAILED, or CANCELLED, then downloads and extracts the exported data files.
 
         Args:
             job: The export Job or job ID to wait for.
             polling_interval_secs: Seconds between status polls. Defaults to 5.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+            output_dir: Directory to save the extracted files. If omitted, a
+                temporary directory is created automatically.
 
         Returns:
-            A presigned download URL for the exported zip file.
+            List of paths to the extracted data files.
 
         Raises:
             RuntimeError: If the export job fails or is cancelled.

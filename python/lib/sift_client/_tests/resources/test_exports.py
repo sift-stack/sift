@@ -3,7 +3,7 @@
 These tests validate the usage of the ExportsAPIAsync including:
 - Correct delegation to the low-level client for all three export methods
 - Domain object resolution (Run -> run_id, Asset -> asset_id, Channel -> channel_id)
-- Job lifecycle: export methods return Job, wait_until_complete returns URL
+- Job lifecycle: export methods return Job, wait_until_complete returns list of file paths
 - Input validation and error handling
 """
 
@@ -127,11 +127,9 @@ class TestExportsAPIAsync:
                 start_time=START,
                 stop_time=STOP,
                 channels=["ch-1"],
-                use_legacy_format=True,
                 simplify_channel_names=True,
                 combine_runs=True,
                 split_export_by_asset=True,
-                split_export_by_run=True,
             )
 
             assert isinstance(job, MagicMock)
@@ -142,11 +140,10 @@ class TestExportsAPIAsync:
                 stop_time=STOP,
                 channel_ids=["ch-1"],
                 calculated_channels=None,
-                use_legacy_format=True,
                 simplify_channel_names=True,
                 combine_runs=True,
                 split_export_by_asset=True,
-                split_export_by_run=True,
+                split_export_by_run=False,
             )
 
         @pytest.mark.asyncio
@@ -164,7 +161,6 @@ class TestExportsAPIAsync:
                 stop_time=None,
                 channel_ids=[],
                 calculated_channels=None,
-                use_legacy_format=False,
                 simplify_channel_names=False,
                 combine_runs=False,
                 split_export_by_asset=False,
@@ -257,6 +253,17 @@ class TestExportsAPIAsync:
                     stop_time=STOP,
                 )
 
+        @pytest.mark.asyncio
+        async def test_combine_runs_with_split_by_run_raises(self, exports_api):
+            """Test that enabling both combine_runs and split_export_by_run raises ValueError."""
+            with pytest.raises(ValueError, match="combine_runs.*split_export_by_run"):
+                await exports_api.export_by_run(
+                    runs=["run-1"],
+                    output_format=ExportOutputFormat.CSV,
+                    combine_runs=True,
+                    split_export_by_run=True,
+                )
+
     class TestExportByAsset:
         """Tests for the export_by_asset method."""
 
@@ -279,7 +286,6 @@ class TestExportsAPIAsync:
                 output_format=ExportOutputFormat.CSV,
                 channel_ids=["ch-1", "ch-2"],
                 calculated_channels=None,
-                use_legacy_format=False,
                 simplify_channel_names=False,
                 combine_runs=False,
                 split_export_by_asset=False,
@@ -335,6 +341,19 @@ class TestExportsAPIAsync:
                     output_format=ExportOutputFormat.CSV,
                 )
 
+        @pytest.mark.asyncio
+        async def test_combine_runs_with_split_by_run_raises(self, exports_api):
+            """Test that enabling both combine_runs and split_export_by_run raises ValueError."""
+            with pytest.raises(ValueError, match="combine_runs.*split_export_by_run"):
+                await exports_api.export_by_asset(
+                    assets=["asset-1"],
+                    start_time=START,
+                    stop_time=STOP,
+                    output_format=ExportOutputFormat.CSV,
+                    combine_runs=True,
+                    split_export_by_run=True,
+                )
+
     class TestExportByTimeRange:
         """Tests for the export_by_time_range method."""
 
@@ -354,7 +373,6 @@ class TestExportsAPIAsync:
                 output_format=ExportOutputFormat.SUN,
                 channel_ids=["ch-1"],
                 calculated_channels=None,
-                use_legacy_format=False,
                 simplify_channel_names=False,
                 combine_runs=False,
                 split_export_by_asset=False,
@@ -396,26 +414,45 @@ class TestExportsAPIAsync:
                     channels=["ch-1"],
                 )
 
+        @pytest.mark.asyncio
+        async def test_combine_runs_with_split_by_run_raises(self, exports_api):
+            """Test that enabling both combine_runs and split_export_by_run raises ValueError."""
+            with pytest.raises(ValueError, match="combine_runs.*split_export_by_run"):
+                await exports_api.export_by_time_range(
+                    start_time=START,
+                    stop_time=STOP,
+                    output_format=ExportOutputFormat.CSV,
+                    channels=["ch-1"],
+                    combine_runs=True,
+                    split_export_by_run=True,
+                )
+
     class TestWaitUntilComplete:
         """Tests for the wait_until_complete method."""
 
         @pytest.mark.asyncio
-        async def test_returns_download_url_on_success(self, exports_api, mock_client):
-            """Test that a finished job returns the download URL."""
+        async def test_returns_file_paths_on_success(self, exports_api, mock_client, tmp_path):
+            """Test that a finished job downloads files and returns their paths."""
             mock_job = MagicMock(spec=Job)
             mock_job._id_or_error = "job-123"
-            mock_client.async_.jobs.wait_until_complete = AsyncMock(return_value=mock_job)
-            exports_api._low_level_client.get_download_url = AsyncMock(
-                return_value="https://download.test/export.zip"
-            )
 
             completed_job = MagicMock(spec=Job)
             completed_job.job_status = JobStatus.FINISHED
             mock_client.async_.jobs.wait_until_complete = AsyncMock(return_value=completed_job)
+            exports_api._low_level_client.get_download_url = AsyncMock(
+                return_value="https://download.test/export.zip"
+            )
 
-            url = await exports_api.wait_until_complete(job=mock_job)
+            fake_file = tmp_path / "data.csv"
+            fake_file.write_text("col1,col2\n1,2")
 
-            assert url == "https://download.test/export.zip"
+            mock_loop = MagicMock()
+            mock_loop.run_in_executor = AsyncMock(return_value=None)
+
+            with patch("asyncio.get_event_loop", return_value=mock_loop):
+                result = await exports_api.wait_until_complete(job=mock_job, output_dir=tmp_path)
+
+            assert result == [fake_file]
             mock_client.async_.jobs.wait_until_complete.assert_awaited_once_with(
                 job="job-123", polling_interval_secs=5, timeout_secs=None
             )
@@ -424,7 +461,7 @@ class TestExportsAPIAsync:
             )
 
         @pytest.mark.asyncio
-        async def test_accepts_job_id_string(self, exports_api, mock_client):
+        async def test_accepts_job_id_string(self, exports_api, mock_client, tmp_path):
             """Test that a raw job_id string is accepted."""
             completed_job = MagicMock(spec=Job)
             completed_job.job_status = JobStatus.FINISHED
@@ -433,15 +470,22 @@ class TestExportsAPIAsync:
                 return_value="https://download.test/export.zip"
             )
 
-            url = await exports_api.wait_until_complete(job="job-456")
+            fake_file = tmp_path / "data.csv"
+            fake_file.write_text("col1,col2\n1,2")
 
-            assert url == "https://download.test/export.zip"
+            mock_loop = MagicMock()
+            mock_loop.run_in_executor = AsyncMock(return_value=None)
+
+            with patch("asyncio.get_event_loop", return_value=mock_loop):
+                result = await exports_api.wait_until_complete(job="job-456", output_dir=tmp_path)
+
+            assert result == [fake_file]
             mock_client.async_.jobs.wait_until_complete.assert_awaited_once_with(
                 job="job-456", polling_interval_secs=5, timeout_secs=None
             )
 
         @pytest.mark.asyncio
-        async def test_custom_polling_and_timeout(self, exports_api, mock_client):
+        async def test_custom_polling_and_timeout(self, exports_api, mock_client, tmp_path):
             """Test that polling_interval_secs and timeout_secs are forwarded."""
             mock_job = MagicMock(spec=Job)
             mock_job._id_or_error = "job-123"
@@ -453,9 +497,13 @@ class TestExportsAPIAsync:
                 return_value="https://download.test/export.zip"
             )
 
-            await exports_api.wait_until_complete(
-                job=mock_job, polling_interval_secs=1, timeout_secs=10
-            )
+            mock_loop = MagicMock()
+            mock_loop.run_in_executor = AsyncMock(return_value=None)
+
+            with patch("asyncio.get_event_loop", return_value=mock_loop):
+                await exports_api.wait_until_complete(
+                    job=mock_job, polling_interval_secs=1, timeout_secs=10, output_dir=tmp_path
+                )
 
             mock_client.async_.jobs.wait_until_complete.assert_awaited_once_with(
                 job="job-123", polling_interval_secs=1, timeout_secs=10
