@@ -30,7 +30,7 @@ class ExportsAPIAsync(ResourceBase):
     - ``export_by_asset`` - Export data from one or more assets within a time range.
     - ``export_by_time_range`` - Export data within a time range (requires channels or calculated_channels).
 
-    Each method initiates the export and returns a Job handle. Use ``wait_until_complete``
+    Each method initiates the export and returns a Job handle. Use ``wait_and_download``
     to poll the job, download the export, and get the paths to the extracted files.
 
     Example::
@@ -43,7 +43,7 @@ class ExportsAPIAsync(ResourceBase):
             runs=[run],
             output_format=ExportOutputFormat.CSV,
         )
-        files = await client.async_.exports.wait_until_complete(job=job)
+        files = await client.async_.exports.wait_and_download(job=job)
 
         # Export by asset with time range
         asset = await client.async_.assets.get(asset_id="asset-id-1")
@@ -53,7 +53,7 @@ class ExportsAPIAsync(ResourceBase):
             stop_time=stop,
             output_format=ExportOutputFormat.CSV,
         )
-        files = await client.async_.exports.wait_until_complete(job=job)
+        files = await client.async_.exports.wait_and_download(job=job)
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -126,7 +126,7 @@ class ExportsAPIAsync(ResourceBase):
         """Export data scoped by one or more runs.
 
         Initiates the export on the server and returns a Job handle. Use
-        ``wait_until_complete`` to poll for completion and get the download URL.
+        ``wait_and_download`` to poll for completion and get the download URL.
 
         If no start_time/stop_time are provided, the full time range of each run is used.
         If no channels or calculated_channels are provided, all channels from
@@ -200,7 +200,7 @@ class ExportsAPIAsync(ResourceBase):
         """Export data scoped by one or more assets within a time range.
 
         Initiates the export on the server and returns a Job handle. Use
-        ``wait_until_complete`` to poll for completion and get the download URL.
+        ``wait_and_download`` to poll for completion and get the download URL.
 
         Both start_time and stop_time are required. If no channels or
         calculated_channels are provided, all channels from the assets are included.
@@ -270,7 +270,7 @@ class ExportsAPIAsync(ResourceBase):
         """Export data within a time range.
 
         Initiates the export on the server and returns a Job handle. Use
-        ``wait_until_complete`` to poll for completion and get the download URL.
+        ``wait_and_download`` to poll for completion and get the download URL.
 
         Both start_time and stop_time are required. At least one of channels or
         calculated_channels **must** be provided to scope the data, since there
@@ -326,7 +326,7 @@ class ExportsAPIAsync(ResourceBase):
 
         return await self.client.async_.jobs.get(job_id=job_id)
 
-    async def download_when_complete(
+    async def wait_and_download(
         self,
         *,
         job: Job | str,
