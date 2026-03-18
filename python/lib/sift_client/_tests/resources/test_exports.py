@@ -211,6 +211,7 @@ class TestExportsAPIAsync:
             assert isinstance(job, MagicMock)
             exports_api._low_level_client.export_data.assert_awaited_once_with(
                 run_ids=["run-1", "run-2"],
+                asset_ids=None,
                 output_format=ExportOutputFormat.CSV,
                 start_time=START,
                 stop_time=STOP,
@@ -232,6 +233,7 @@ class TestExportsAPIAsync:
 
             exports_api._low_level_client.export_data.assert_awaited_once_with(
                 run_ids=["run-1"],
+                asset_ids=None,
                 output_format=ExportOutputFormat.SUN,
                 start_time=None,
                 stop_time=None,
@@ -329,6 +331,7 @@ class TestExportsAPIAsync:
 
             assert isinstance(job, MagicMock)
             exports_api._low_level_client.export_data.assert_awaited_once_with(
+                run_ids=None,
                 asset_ids=["asset-1"],
                 start_time=START,
                 stop_time=STOP,
@@ -403,6 +406,8 @@ class TestExportsAPIAsync:
             )
 
             exports_api._low_level_client.export_data.assert_awaited_once_with(
+                run_ids=None,
+                asset_ids=None,
                 start_time=START,
                 stop_time=STOP,
                 output_format=ExportOutputFormat.SUN,

@@ -109,6 +109,56 @@ class ExportsAPIAsync(ResourceBase):
             )
         return resolved
 
+    async def _export(
+        self,
+        *,
+        output_format: ExportOutputFormat,
+        start_time: datetime | None = None,
+        stop_time: datetime | None = None,
+        run_ids: list[str] | None = None,
+        asset_ids: list[str] | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
+        simplify_channel_names: bool = False,
+        combine_runs: bool = False,
+        split_export_by_asset: bool = False,
+        split_export_by_run: bool = False,
+    ) -> Job:
+        """Shared implementation for all export methods.
+
+        Validates common constraints, resolves channels, calls the low-level
+        export API, and returns the resulting Job.
+        """
+        if start_time is not None and stop_time is not None and start_time >= stop_time:
+            raise ValueError("'start_time' must be before 'stop_time'.")
+        if combine_runs and split_export_by_run:
+            raise ValueError(
+                "'combine_runs' cannot be used with 'split_export_by_run'. "
+                "Combining merges identical channels across runs into a single column, "
+                "which is not possible when each run is split into a separate file."
+            )
+
+        channel_ids = (
+            [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
+        )
+        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
+
+        job_id = await self._low_level_client.export_data(
+            run_ids=run_ids,
+            asset_ids=asset_ids,
+            output_format=output_format,
+            start_time=start_time,
+            stop_time=stop_time,
+            channel_ids=channel_ids,
+            calculated_channels=resolved_calc_channels,
+            simplify_channel_names=simplify_channel_names,
+            combine_runs=combine_runs,
+            split_export_by_asset=split_export_by_asset,
+            split_export_by_run=split_export_by_run,
+        )
+
+        return await self.client.async_.jobs.get(job_id=job_id)
+
     async def export_by_run(
         self,
         *,
@@ -153,35 +203,21 @@ class ExportsAPIAsync(ResourceBase):
             raise ValueError("'runs' must not contain empty or null values.")
         if (start_time is None) != (stop_time is None):
             raise ValueError("'start_time' and 'stop_time' must both be provided or both omitted.")
-        if start_time and stop_time and start_time >= stop_time:
-            raise ValueError("'start_time' must be before 'stop_time'.")
-        if combine_runs and split_export_by_run:
-            raise ValueError(
-                "'combine_runs' cannot be used with 'split_export_by_run'. "
-                "Combining merges identical channels across runs into a single column, "
-                "which is not possible when each run is split into a separate file."
-            )
 
         run_ids = [r._id_or_error if isinstance(r, Run) else r for r in runs]
-        channel_ids = (
-            [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
-        )
-        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
 
-        job_id = await self._low_level_client.export_data(
+        return await self._export(
             run_ids=run_ids,
             output_format=output_format,
             start_time=start_time,
             stop_time=stop_time,
-            channel_ids=channel_ids,
-            calculated_channels=resolved_calc_channels,
+            channels=channels,
+            calculated_channels=calculated_channels,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
             split_export_by_run=split_export_by_run,
         )
-
-        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def export_by_asset(
         self,
@@ -224,35 +260,21 @@ class ExportsAPIAsync(ResourceBase):
             raise ValueError("'assets' must be a non-empty list of asset objects or asset IDs.")
         if any(not asset for asset in assets):
             raise ValueError("'assets' must not contain empty or null values.")
-        if start_time >= stop_time:
-            raise ValueError("'start_time' must be before 'stop_time'.")
-        if combine_runs and split_export_by_run:
-            raise ValueError(
-                "'combine_runs' cannot be used with 'split_export_by_run'. "
-                "Combining merges identical channels across runs into a single column, "
-                "which is not possible when each run is split into a separate file."
-            )
 
         asset_ids = [a._id_or_error if isinstance(a, Asset) else a for a in assets]
-        channel_ids = (
-            [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
-        )
-        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
 
-        job_id = await self._low_level_client.export_data(
+        return await self._export(
             asset_ids=asset_ids,
             start_time=start_time,
             stop_time=stop_time,
             output_format=output_format,
-            channel_ids=channel_ids,
-            calculated_channels=resolved_calc_channels,
+            channels=channels,
+            calculated_channels=calculated_channels,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
             split_export_by_run=split_export_by_run,
         )
-
-        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def export_by_time_range(
         self,
@@ -298,33 +320,18 @@ class ExportsAPIAsync(ResourceBase):
                 "At least one of 'channels' or 'calculated_channels' must be provided "
                 "when exporting by time range."
             )
-        if start_time >= stop_time:
-            raise ValueError("'start_time' must be before 'stop_time'.")
-        if combine_runs and split_export_by_run:
-            raise ValueError(
-                "'combine_runs' cannot be used with 'split_export_by_run'. "
-                "Combining merges identical channels across runs into a single column, "
-                "which is not possible when each run is split into a separate file."
-            )
 
-        channel_ids = (
-            [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
-        )
-        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
-
-        job_id = await self._low_level_client.export_data(
+        return await self._export(
             start_time=start_time,
             stop_time=stop_time,
             output_format=output_format,
-            channel_ids=channel_ids,
-            calculated_channels=resolved_calc_channels,
+            channels=channels,
+            calculated_channels=calculated_channels,
             simplify_channel_names=simplify_channel_names,
             combine_runs=combine_runs,
             split_export_by_asset=split_export_by_asset,
             split_export_by_run=split_export_by_run,
         )
-
-        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def wait_and_download(
         self,
