@@ -22,39 +22,7 @@ if TYPE_CHECKING:
 
 
 class ExportsAPIAsync(ResourceBase):
-    """High-level API for exporting data from Sift.
-
-    Provides three export methods based on how you want to scope the data:
-
-    - ``export_by_run`` - Export data from one or more runs.
-    - ``export_by_asset`` - Export data from one or more assets within a time range.
-    - ``export_by_time_range`` - Export data within a time range (requires channels or calculated_channels).
-
-    Each method initiates the export and returns a Job handle. Use ``wait_and_download``
-    to poll the job, download the export, and get the paths to the extracted files.
-
-    Example::
-
-        from sift_client.sift_types.export import ExportOutputFormat
-
-        # Export by run
-        run = await client.async_.runs.get(run_id="run-id-1")
-        job = await client.async_.exports.export_by_run(
-            runs=[run],
-            output_format=ExportOutputFormat.CSV,
-        )
-        files = await client.async_.exports.wait_and_download(job=job)
-
-        # Export by asset with time range
-        asset = await client.async_.assets.get(asset_id="asset-id-1")
-        job = await client.async_.exports.export_by_asset(
-            assets=[asset],
-            start_time=start,
-            stop_time=stop,
-            output_format=ExportOutputFormat.CSV,
-        )
-        files = await client.async_.exports.wait_and_download(job=job)
-    """
+    """High-level API for exporting data from Sift."""
 
     def __init__(self, sift_client: SiftClient):
         """Initialize the ExportsAPI.
@@ -389,8 +357,8 @@ class ExportsAPIAsync(ResourceBase):
         )
         zip_path = output_dir / f"{job_id}.zip"
 
-        # Run the synchronous request in a thread pool to avoid blocking the event loop
-        loop = asyncio.get_event_loop()
+        # Run the synchronous download in a thread pool to avoid blocking the event loop
+        loop = asyncio.get_running_loop()
         extracted_files = await loop.run_in_executor(
             None, download_and_extract_zip, presigned_url, zip_path, output_dir
         )

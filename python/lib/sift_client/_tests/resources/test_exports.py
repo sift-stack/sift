@@ -619,7 +619,7 @@ class TestExportsAPIAsync:
             mock_job = MagicMock(spec=Job)
             mock_job._id_or_error = "job-123"
 
-            with patch("asyncio.get_event_loop", return_value=s["mock_loop"]):
+            with patch("asyncio.get_running_loop", return_value=s["mock_loop"]):
                 result = await s["api"].wait_and_download(job=mock_job, output_dir=s["tmp_path"])
 
             assert result == [s["fake_file"]]
@@ -632,7 +632,7 @@ class TestExportsAPIAsync:
         async def test_accepts_job_id_string(self, completed_export_setup):
             s = completed_export_setup
 
-            with patch("asyncio.get_event_loop", return_value=s["mock_loop"]):
+            with patch("asyncio.get_running_loop", return_value=s["mock_loop"]):
                 result = await s["api"].wait_and_download(job="job-456", output_dir=s["tmp_path"])
 
             assert result == [s["fake_file"]]
@@ -646,7 +646,7 @@ class TestExportsAPIAsync:
             mock_job = MagicMock(spec=Job)
             mock_job._id_or_error = "job-123"
 
-            with patch("asyncio.get_event_loop", return_value=s["mock_loop"]):
+            with patch("asyncio.get_running_loop", return_value=s["mock_loop"]):
                 await s["api"].wait_and_download(
                     job=mock_job, polling_interval_secs=1, timeout_secs=10, output_dir=s["tmp_path"]
                 )
