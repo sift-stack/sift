@@ -3,7 +3,7 @@
 These tests validate the usage of the ExportsAPIAsync including:
 - Correct delegation to the low-level client for all three export methods
 - Domain object resolution (Run -> run_id, Asset -> asset_id, Channel -> channel_id)
-- Job lifecycle: export methods return Job, wait_until_complete returns list of file paths
+- Job lifecycle: export methods return Job, wait_and_download returns list of file paths
 - Input validation and error handling
 """
 
@@ -110,7 +110,7 @@ def mock_resolved_channel():
 
 @pytest.fixture
 def completed_export_setup(exports_api, mock_client, tmp_path):
-    """Set up mocks for a successful wait_until_complete call.
+    """Set up mocks for a successful wait_and_download call.
 
     Returns a dict with the exports_api, mock_client, tmp_path, and fake_file.
     """
@@ -606,7 +606,7 @@ class TestExportsAPIAsync:
             assert result[1].expression_channel_references[0].channel_identifier == "rpm-uuid"
 
     class TestWaitUntilComplete:
-        """Tests for the wait_until_complete method."""
+        """Tests for the wait_and_download method."""
 
         @pytest.mark.asyncio
         async def test_returns_file_paths_on_success(self, completed_export_setup):
@@ -615,7 +615,7 @@ class TestExportsAPIAsync:
             mock_job._id_or_error = "job-123"
 
             with patch("asyncio.get_event_loop", return_value=s["mock_loop"]):
-                result = await s["api"].wait_until_complete(job=mock_job, output_dir=s["tmp_path"])
+                result = await s["api"].wait_and_download(job=mock_job, output_dir=s["tmp_path"])
 
             assert result == [s["fake_file"]]
             s["client"].async_.jobs.wait_until_complete.assert_awaited_once_with(
@@ -628,7 +628,7 @@ class TestExportsAPIAsync:
             s = completed_export_setup
 
             with patch("asyncio.get_event_loop", return_value=s["mock_loop"]):
-                result = await s["api"].wait_until_complete(job="job-456", output_dir=s["tmp_path"])
+                result = await s["api"].wait_and_download(job="job-456", output_dir=s["tmp_path"])
 
             assert result == [s["fake_file"]]
             s["client"].async_.jobs.wait_until_complete.assert_awaited_once_with(
@@ -642,7 +642,7 @@ class TestExportsAPIAsync:
             mock_job._id_or_error = "job-123"
 
             with patch("asyncio.get_event_loop", return_value=s["mock_loop"]):
-                await s["api"].wait_until_complete(
+                await s["api"].wait_and_download(
                     job=mock_job, polling_interval_secs=1, timeout_secs=10, output_dir=s["tmp_path"]
                 )
 
@@ -675,4 +675,4 @@ class TestExportsAPIAsync:
             mock_client.async_.jobs.wait_until_complete = AsyncMock(return_value=completed_job)
 
             with pytest.raises(RuntimeError, match=match):
-                await exports_api.wait_until_complete(job=mock_job)
+                await exports_api.wait_and_download(job=mock_job)
