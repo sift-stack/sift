@@ -539,6 +539,7 @@ class TestExportsAPIAsync:
             result = await exports_api._resolve_calculated_channels([mock_calculated_channel])
             resolved = result[0]
             assert isinstance(resolved, CalculatedChannelCreate)
+            assert resolved.expression_channel_references is not None
             assert (
                 resolved.expression_channel_references[0].channel_identifier
                 == "d8e64798-ad6f-41b8-b830-7e009806f365"
