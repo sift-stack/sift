@@ -8,31 +8,31 @@
       
       
       
-        <link rel="canonical" href="https://sift-stack.github.io/sift/python/pr-490/reference/sift_client/util/">
+        <link rel="canonical" href="https://sift-stack.github.io/sift/python/pr-490/reference/sift_client/util/download/">
       
       
-        <link rel="prev" href="../transport/rest_transport/">
+        <link rel="prev" href="../cel_utils/">
       
       
-        <link rel="next" href="cel_utils/">
+        <link rel="next" href="../metadata/">
       
       
         
       
       
-      <link rel="icon" href="../../../stylesheets/dark-favicon.ico">
+      <link rel="icon" href="../../../../stylesheets/dark-favicon.ico">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
-        <title>util - Sift | Python Client Library</title>
+        <title>download - Sift | Python Client Library</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,11 +51,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sift_client.util" class="md-skip">
+        <a href="#sift_client.util.download" class="md-skip">
           Skip to content
         </a>
       
@@ -95,14 +95,14 @@
             <div class="md-banner__inner md-grid md-typeset">
               
 You're not viewing the latest version.
-<a href="../../../..">
+<a href="../../../../..">
 
 
     <strong>Click here to go to latest.</strong>
 </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -112,9 +112,9 @@ You're not viewing the latest version.
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="Sift | Python Client Library" class="md-header__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
-      <img id='logo_dark_mode' src='../../../stylesheets/sift_logo_dark.svg' alt='logo'>
-<img id='logo_light_mode' src='../../../stylesheets/sift_logo_light.svg' alt='logo'>
+    <a href="../../../.." title="Sift | Python Client Library" class="md-header__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
+      <img id='logo_dark_mode' src='../../../../stylesheets/sift_logo_dark.svg' alt='logo'>
+<img id='logo_light_mode' src='../../../../stylesheets/sift_logo_light.svg' alt='logo'>
     </a>
     <label class="md-header__button md-icon" for="__drawer">
       
@@ -130,7 +130,7 @@ You're not viewing the latest version.
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              util
+              download
             
           </span>
         </div>
@@ -253,7 +253,7 @@ You're not viewing the latest version.
   
   
     <li class="md-tabs__item">
-      <a href="../../.." class="md-tabs__link">
+      <a href="../../../.." class="md-tabs__link">
         
   
   
@@ -285,7 +285,7 @@ You're not viewing the latest version.
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+        <a href="../../" class="md-tabs__link">
           
   
   
@@ -315,7 +315,7 @@ You're not viewing the latest version.
     
     
       <li class="md-tabs__item">
-        <a href="../../sift_py/" class="md-tabs__link">
+        <a href="../../../sift_py/" class="md-tabs__link">
           
   
   
@@ -338,7 +338,7 @@ You're not viewing the latest version.
     
     
       <li class="md-tabs__item">
-        <a href="../../../examples/" class="md-tabs__link">
+        <a href="../../../../examples/" class="md-tabs__link">
           
   
   
@@ -372,9 +372,9 @@ You're not viewing the latest version.
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="Sift | Python Client Library" class="md-nav__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
-      <img id='logo_dark_mode' src='../../../stylesheets/sift_logo_dark.svg' alt='logo'>
-<img id='logo_light_mode' src='../../../stylesheets/sift_logo_light.svg' alt='logo'>
+    <a href="../../../.." title="Sift | Python Client Library" class="md-nav__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
+      <img id='logo_dark_mode' src='../../../../stylesheets/sift_logo_dark.svg' alt='logo'>
+<img id='logo_light_mode' src='../../../../stylesheets/sift_logo_light.svg' alt='logo'>
     </a>
     Sift | Python Client Library
   </label>
@@ -400,7 +400,7 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../../../.." class="md-nav__link">
         
   
   
@@ -545,7 +545,7 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../" class="md-nav__link">
         
   
   
@@ -573,7 +573,7 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="../client/" class="md-nav__link">
+      <a href="../../client/" class="md-nav__link">
         
   
   
@@ -601,7 +601,7 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="../errors/" class="md-nav__link">
+      <a href="../../errors/" class="md-nav__link">
         
   
   
@@ -649,7 +649,7 @@ You're not viewing the latest version.
   
   
   
-    <a href="../resources/" class="md-nav__link">
+    <a href="../../resources/" class="md-nav__link">
       
   
   
@@ -703,7 +703,7 @@ You're not viewing the latest version.
   
   
   
-    <a href="../sift_types/" class="md-nav__link">
+    <a href="../../sift_types/" class="md-nav__link">
       
   
   
@@ -757,7 +757,7 @@ You're not viewing the latest version.
   
   
   
-    <a href="../transport/" class="md-nav__link">
+    <a href="../../transport/" class="md-nav__link">
       
   
   
@@ -844,19 +844,10 @@ You're not viewing the latest version.
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -872,7 +863,6 @@ You're not viewing the latest version.
   
 
       </a>
-      
     </li>
   
 
@@ -885,7 +875,7 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="cel_utils/" class="md-nav__link">
+      <a href="../cel_utils/" class="md-nav__link">
         
   
   
@@ -910,10 +900,37 @@ You're not viewing the latest version.
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="download/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    download
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -929,6 +946,39 @@ You're not viewing the latest version.
   
 
       </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.download.download_and_extract_zip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;download_and_extract_zip
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -941,7 +991,7 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="metadata/" class="md-nav__link">
+      <a href="../metadata/" class="md-nav__link">
         
   
   
@@ -989,7 +1039,7 @@ You're not viewing the latest version.
   
   
   
-    <a href="test_results/" class="md-nav__link">
+    <a href="../test_results/" class="md-nav__link">
       
   
   
@@ -1023,7 +1073,7 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="util/" class="md-nav__link">
+      <a href="../util/" class="md-nav__link">
         
   
   
@@ -1098,7 +1148,7 @@ You're not viewing the latest version.
   
   
   
-    <a href="../../sift_py/" class="md-nav__link">
+    <a href="../../../sift_py/" class="md-nav__link">
       
   
   
@@ -1153,7 +1203,7 @@ You're not viewing the latest version.
   
   
   
-    <a href="../../../examples/" class="md-nav__link">
+    <a href="../../../../examples/" class="md-nav__link">
       
   
   
@@ -1201,6 +1251,25 @@ You're not viewing the latest version.
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.download.download_and_extract_zip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;download_and_extract_zip
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1223,15 +1292,19 @@ You're not viewing the latest version.
 
 
 
-<h1 id="sift_client.util" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">sift_client.util</span>
+<h1 id="sift_client.util.download" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">sift_client.util.download</span>
 
 
-<a href="#sift_client.util" class="headerlink" title="Permanent link">&para;</a></h1>
+<a href="#sift_client.util.download" class="headerlink" title="Permanent link">&para;</a></h1>
 
     <div class="doc doc-contents first">
 
-        <p>Utility modules for the sift_client package.</p>
+
+
+
+
+
 
 
 
@@ -1241,59 +1314,21 @@ You're not viewing the latest version.
 <table>
       <thead>
         <tr>
-          <th><span class="doc-section-title">MODULE</span></th>
+          <th><span class="doc-section-title">FUNCTION</span></th>
           <th><span>DESCRIPTION</span></th>
         </tr>
       </thead>
       <tbody>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            sift_client.util.cel_utils" href="cel_utils/#sift_client.util.cel_utils">cel_utils</a></code></td>
-            <td class="doc-module-details">
-              <div class="doc-md-description">
-                <p>CEL (Common Expression Language) utilities for generating CEL expressions.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            sift_client.util.download" href="download/#sift_client.util.download">download</a></code></td>
-            <td class="doc-module-details">
-              <div class="doc-md-description">
-                
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            sift_client.util.metadata" href="metadata/#sift_client.util.metadata">metadata</a></code></td>
-            <td class="doc-module-details">
-              <div class="doc-md-description">
-                
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            sift_client.util.test_results" href="test_results/#sift_client.util.test_results">test_results</a></code></td>
-            <td class="doc-module-details">
-              <div class="doc-md-description">
-                <p>Test Results Utilities.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            sift_client.util.util" href="util/#sift_client.util.util">util</a></code></td>
-            <td class="doc-module-details">
-              <div class="doc-md-description">
-                
-              </div>
-            </td>
-          </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            download_and_extract_zip (sift_client.util.download.download_and_extract_zip)" href="#sift_client.util.download.download_and_extract_zip">download_and_extract_zip</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Download a zip file from a URL and extract its contents.</p>
+                </div>
+              </td>
+            </tr>
       </tbody>
     </table>
-
-
-
-
-
-
 
 
 
@@ -1309,6 +1344,151 @@ You're not viewing the latest version.
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.download.download_and_extract_zip" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">download_and_extract_zip</span>
+
+
+<a href="#sift_client.util.download.download_and_extract_zip" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">download_and_extract_zip</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">url</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n">zip_path</span><span class="p">:</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n"><span title="pathlib.Path">Path</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="pathlib.Path">Path</span></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Download a zip file from a URL and extract its contents.</p>
+<p>Downloads the file in streaming 4 MiB chunks, extracts all contents
+to the output directory, then removes the zip file.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>url</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The URL to download the zip file from.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>zip_path</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Path where the zip file will be temporarily saved.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="pathlib.Path">Path</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_dir</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Directory to extract the zip contents into.
+Created if it doesn't exist.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="pathlib.Path">Path</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>List of paths to the extracted files (excludes directories).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="requests.HTTPError">HTTPError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If the download request fails.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="zipfile.BadZipFile">BadZipFile</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If the downloaded file is not a valid zip.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
 
 
 
@@ -1382,10 +1562,10 @@ You're not viewing the latest version.
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
