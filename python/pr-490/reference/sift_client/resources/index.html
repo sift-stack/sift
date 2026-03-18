@@ -1688,17 +1688,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.ExportsAPIAsync.download_when_complete" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;download_when_complete
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.resources.ExportsAPIAsync.export_by_asset" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1725,6 +1714,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;export_by_time_range
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ExportsAPIAsync.wait_and_download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;wait_and_download
       
     </span>
   </a>
@@ -5624,17 +5624,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.ExportsAPIAsync.download_when_complete" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;download_when_complete
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.resources.ExportsAPIAsync.export_by_asset" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5661,6 +5650,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;export_by_time_range
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ExportsAPIAsync.wait_and_download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;wait_and_download
       
     </span>
   </a>
@@ -18529,7 +18529,7 @@ temporary directory is created automatically.</p>
 <li><code>export_by_asset</code> - Export data from one or more assets within a time range.</li>
 <li><code>export_by_time_range</code> - Export data within a time range (requires channels or calculated_channels).</li>
 </ul>
-<p>Each method initiates the export and returns a Job handle. Use <code>wait_until_complete</code>
+<p>Each method initiates the export and returns a Job handle. Use <code>wait_and_download</code>
 to poll the job, download the export, and get the paths to the extracted files.</p>
 <p>Example::</p>
 <div class="language-text highlight"><pre><span></span><code>from sift_client.sift_types.export import ExportOutputFormat
@@ -18540,7 +18540,7 @@ job = await client.async_.exports.export_by_run(
     runs=[run],
     output_format=ExportOutputFormat.CSV,
 )
-files = await client.async_.exports.wait_until_complete(job=job)
+files = await client.async_.exports.wait_and_download(job=job)
 
 # Export by asset with time range
 asset = await client.async_.assets.get(asset_id=&quot;asset-id-1&quot;)
@@ -18550,7 +18550,7 @@ job = await client.async_.exports.export_by_asset(
     stop_time=stop,
     output_format=ExportOutputFormat.CSV,
 )
-files = await client.async_.exports.wait_until_complete(job=job)
+files = await client.async_.exports.wait_and_download(job=job)
 </code></pre></div>
 
         <p>Initialize the ExportsAPI.</p>
@@ -18603,19 +18603,6 @@ files = await client.async_.exports.wait_until_complete(job=job)
       </thead>
       <tbody>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            download_when_complete
-
-
-  
-      async
-   (sift_client.resources.ExportsAPIAsync.download_when_complete)" href="#sift_client.resources.ExportsAPIAsync.download_when_complete">download_when_complete</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Wait for an export job to complete and download the exported files.</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            export_by_asset
 
 
@@ -18651,6 +18638,19 @@ files = await client.async_.exports.wait_until_complete(job=job)
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Export data within a time range.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            wait_and_download
+
+
+  
+      async
+   (sift_client.resources.ExportsAPIAsync.wait_and_download)" href="#sift_client.resources.ExportsAPIAsync.wait_and_download">wait_and_download</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Wait for an export job to complete and download the exported files.</p>
                 </div>
               </td>
             </tr>
@@ -18811,197 +18811,6 @@ files = await client.async_.exports.wait_until_complete(job=job)
 <div class="doc doc-object doc-function">
 
 
-<h3 id="sift_client.resources.ExportsAPIAsync.download_when_complete" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">download_when_complete</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-async"><code>async</code></small>
-  </span>
-
-<a href="#sift_client.resources.ExportsAPIAsync.download_when_complete" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">download_when_complete</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">job</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.job.Job)" href="../sift_types/job/#sift_client.sift_types.job.Job">Job</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="pathlib.Path">Path</span></span><span class="p">]</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Wait for an export job to complete and download the exported files.</p>
-<p>Polls the job status at the given interval until the job is FINISHED,
-FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">PARAMETER</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>job</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The export Job or job ID to wait for.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            Job
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.job.Job)" href="../sift_types/job/#sift_client.sift_types.job.Job">Job</a> | <span title="str">str</span></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>polling_interval_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Seconds between status polls. Defaults to 5.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>5</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>timeout_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Maximum seconds to wait. If None, polls indefinitely.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>output_dir</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Directory to save the extracted files. If omitted, a
-temporary directory is created automatically.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RETURNS</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>List of paths to the extracted data files.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RAISES</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-              <span class="doc-raises-annotation">
-                  <code><span title="RuntimeError">RuntimeError</span></code>
-              </span>
-            </td>
-            <td class="doc-raises-details">
-              <div class="doc-md-description">
-                <p>If the export job fails or is cancelled.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-              <span class="doc-raises-annotation">
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-              </span>
-            </td>
-            <td class="doc-raises-details">
-              <div class="doc-md-description">
-                <p>If the export job does not complete within timeout_secs.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
 <h3 id="sift_client.resources.ExportsAPIAsync.export_by_asset" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">export_by_asset</span>
 
@@ -19058,7 +18867,7 @@ temporary directory is created automatically.</p>
 
         <p>Export data scoped by one or more assets within a time range.</p>
 <p>Initiates the export on the server and returns a Job handle. Use
-<code>wait_until_complete</code> to poll for completion and get the download URL.</p>
+<code>wait_and_download</code> to poll for completion and get the download URL.</p>
 <p>Both start_time and stop_time are required. If no channels or
 calculated_channels are provided, all channels from the assets are included.</p>
 
@@ -19371,7 +19180,7 @@ calculated_channels are provided, all channels from the assets are included.</p>
 
         <p>Export data scoped by one or more runs.</p>
 <p>Initiates the export on the server and returns a Job handle. Use
-<code>wait_until_complete</code> to poll for completion and get the download URL.</p>
+<code>wait_and_download</code> to poll for completion and get the download URL.</p>
 <p>If no start_time/stop_time are provided, the full time range of each run is used.
 If no channels or calculated_channels are provided, all channels from
 the run's assets are included.</p>
@@ -19687,7 +19496,7 @@ the run's assets are included.</p>
 
         <p>Export data within a time range.</p>
 <p>Initiates the export on the server and returns a Job handle. Use
-<code>wait_until_complete</code> to poll for completion and get the download URL.</p>
+<code>wait_and_download</code> to poll for completion and get the download URL.</p>
 <p>Both start_time and stop_time are required. At least one of channels or
 calculated_channels <strong>must</strong> be provided to scope the data, since there
 are no runs or assets to infer channels from.</p>
@@ -19934,6 +19743,197 @@ are no runs or assets to infer channels from.</p>
             <td class="doc-raises-details">
               <div class="doc-md-description">
                 <p>If neither channels nor calculated_channels is provided.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.ExportsAPIAsync.wait_and_download" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">wait_and_download</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#sift_client.resources.ExportsAPIAsync.wait_and_download" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">wait_and_download</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">job</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.job.Job)" href="../sift_types/job/#sift_client.sift_types.job.Job">Job</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="pathlib.Path">Path</span></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Wait for an export job to complete and download the exported files.</p>
+<p>Polls the job status at the given interval until the job is FINISHED,
+FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>job</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The export Job or job ID to wait for.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            Job
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.job.Job)" href="../sift_types/job/#sift_client.sift_types.job.Job">Job</a> | <span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>polling_interval_secs</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Seconds between status polls. Defaults to 5.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>5</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout_secs</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Maximum seconds to wait. If None, polls indefinitely.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_dir</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Directory to save the extracted files. If omitted, a
+temporary directory is created automatically.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>List of paths to the extracted data files.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If the export job fails or is cancelled.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If the export job does not complete within timeout_secs.</p>
               </div>
             </td>
           </tr>
