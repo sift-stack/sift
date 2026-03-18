@@ -125,7 +125,7 @@ def completed_export_setup(exports_api, mock_client, tmp_path):
     fake_file.write_text("col1,col2\n1,2")
 
     mock_loop = MagicMock()
-    mock_loop.run_in_executor = AsyncMock(return_value=None)
+    mock_loop.run_in_executor = AsyncMock(return_value=[fake_file])
 
     return {
         "api": exports_api,

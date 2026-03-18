@@ -386,14 +386,14 @@ class ExportsAPIAsync(ResourceBase):
 
         # Run the synchronous request in a thread pool to avoid blocking the event loop
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
+        extracted_files = await loop.run_in_executor(
             None, ExportsAPIAsync._download_and_extract, presigned_url, zip_path, output_dir
         )
 
-        return [f for f in output_dir.iterdir() if f.is_file()]
+        return extracted_files
 
     @staticmethod
-    def _download_and_extract(url: str, zip_path: Path, output_dir: Path) -> None:
+    def _download_and_extract(url: str, zip_path: Path, output_dir: Path) -> list[Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
         with requests.get(url=url, stream=True) as response:
             response.raise_for_status()
@@ -402,5 +402,7 @@ class ExportsAPIAsync(ResourceBase):
                     if chunk:
                         file.write(chunk)
         with zipfile.ZipFile(zip_path, "r") as zip_file:
+            names = zip_file.namelist()
             zip_file.extractall(output_dir)
         zip_path.unlink()
+        return [output_dir / name for name in names if not name.endswith("/")]
