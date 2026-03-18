@@ -500,8 +500,8 @@ class TestExportsAPIAsync:
         ):
             """channels.find returns None → identifiers assumed to be UUIDs, objects preserved."""
             result = await exports_api._resolve_calculated_channels(sample_calc_channels)
-            assert result[0] is sample_calc_channels[0]
-            assert result[1] is sample_calc_channels[1]
+            assert result[0] == sample_calc_channels[0]
+            assert result[1] == sample_calc_channels[1]
 
         @pytest.mark.asyncio
         async def test_resolves_fetched_calculated_channel(
@@ -528,7 +528,7 @@ class TestExportsAPIAsync:
 
         @pytest.mark.asyncio
         async def test_keeps_identifier_when_not_found(self, exports_api, mock_calculated_channel):
-            """channels.find returns None → identifier kept as-is, original object preserved."""
+            """channels.find returns None → identifier kept as-is."""
             mock_calculated_channel.channel_references = [
                 ChannelReference(
                     channel_reference="$1",
@@ -537,7 +537,12 @@ class TestExportsAPIAsync:
             ]
 
             result = await exports_api._resolve_calculated_channels([mock_calculated_channel])
-            assert result[0] is mock_calculated_channel
+            resolved = result[0]
+            assert isinstance(resolved, CalculatedChannelCreate)
+            assert (
+                resolved.expression_channel_references[0].channel_identifier
+                == "d8e64798-ad6f-41b8-b830-7e009806f365"
+            )
 
         @pytest.mark.asyncio
         async def test_resolves_create_object_with_name_identifier(
@@ -595,7 +600,7 @@ class TestExportsAPIAsync:
             )
 
             assert len(result) == 2
-            assert result[0] is sample_calc_channels[0]
+            assert result[0] == sample_calc_channels[0]
             assert isinstance(result[1], CalculatedChannelCreate)
             assert result[1].expression_channel_references[0].channel_identifier == "rpm-uuid"
 
