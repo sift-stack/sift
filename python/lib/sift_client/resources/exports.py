@@ -2,11 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import tempfile
-import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-import requests
 
 from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -16,6 +13,7 @@ from sift_client.sift_types.channel import Channel, ChannelReference
 from sift_client.sift_types.export import ExportOutputFormat  # noqa: TC001
 from sift_client.sift_types.job import Job
 from sift_client.sift_types.run import Run
+from sift_client.util.download import download_and_extract_zip
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -328,7 +326,7 @@ class ExportsAPIAsync(ResourceBase):
 
         return await self.client.async_.jobs.get(job_id=job_id)
 
-    async def wait_until_complete(
+    async def download_when_complete(
         self,
         *,
         job: Job | str,
@@ -387,22 +385,7 @@ class ExportsAPIAsync(ResourceBase):
         # Run the synchronous request in a thread pool to avoid blocking the event loop
         loop = asyncio.get_event_loop()
         extracted_files = await loop.run_in_executor(
-            None, ExportsAPIAsync._download_and_extract, presigned_url, zip_path, output_dir
+            None, download_and_extract_zip, presigned_url, zip_path, output_dir
         )
 
         return extracted_files
-
-    @staticmethod
-    def _download_and_extract(url: str, zip_path: Path, output_dir: Path) -> list[Path]:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        with requests.get(url=url, stream=True) as response:
-            response.raise_for_status()
-            with zip_path.open("wb") as file:
-                for chunk in response.iter_content(chunk_size=4194304):  # 4 MiB
-                    if chunk:
-                        file.write(chunk)
-        with zipfile.ZipFile(zip_path, "r") as zip_file:
-            names = zip_file.namelist()
-            zip_file.extractall(output_dir)
-        zip_path.unlink()
-        return [output_dir / name for name in names if not name.endswith("/")]
