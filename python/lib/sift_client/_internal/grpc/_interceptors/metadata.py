@@ -2,8 +2,8 @@ from typing import Any, List, Tuple, cast
 
 import grpc
 
-from sift_client._internal._grpc._interceptors.base import ClientInterceptor, Continuation
-from sift_client._internal._grpc._interceptors.context import ClientCallDetails
+from sift_client._internal.grpc._interceptors.base import ClientInterceptor, Continuation
+from sift_client._internal.grpc._interceptors.context import ClientCallDetails
 
 Metadata = List[Tuple[str, str]]
 

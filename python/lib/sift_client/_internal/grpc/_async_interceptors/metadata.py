@@ -4,7 +4,7 @@ from typing import Any, Callable, List, Tuple, cast
 
 from grpc import aio as grpc_aio
 
-from sift_client._internal._grpc._async_interceptors.base import ClientAsyncInterceptor
+from sift_client._internal.grpc._async_interceptors.base import ClientAsyncInterceptor
 
 Metadata = List[Tuple[str, str]]
 

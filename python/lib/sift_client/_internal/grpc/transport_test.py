@@ -15,8 +15,8 @@ from sift.data.v2.data_pb2_grpc import (
     add_DataServiceServicer_to_server,
 )
 
-from sift_client._internal._grpc.server_interceptors.server_interceptor import ServerInterceptor
-from sift_client._internal._grpc.transport import SiftChannelConfig, use_sift_channel
+from sift_client._internal.grpc.server_interceptors.server_interceptor import ServerInterceptor
+from sift_client._internal.grpc.transport import SiftChannelConfig, use_sift_channel
 
 
 class DataService(DataServiceServicer):
