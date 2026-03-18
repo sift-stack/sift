@@ -13,7 +13,7 @@ import threading
 from typing import Any
 from urllib.parse import urlparse
 
-from sift_client._internal._grpc.transport import (
+from sift_client._internal.grpc.transport import (
     SiftChannelConfig,
     use_sift_async_channel,
 )
