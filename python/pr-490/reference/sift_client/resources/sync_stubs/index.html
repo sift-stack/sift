@@ -1377,28 +1377,6 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.ExportsAPI--export-by-run" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Export by run
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.ExportsAPI--export-by-asset-with-time-range" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Export by asset with time range
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.resources.sync_stubs.ExportsAPI.export_by_asset" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3025,28 +3003,6 @@ You're not viewing the latest version.
   
     <nav class="md-nav" aria-label=" ExportsAPI">
       <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.ExportsAPI--export-by-run" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Export by run
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.ExportsAPI--export-by-asset-with-time-range" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Export by asset with time range
-      
-    </span>
-  </a>
-  
-</li>
         
           <li class="md-nav__item">
   <a href="#sift_client.resources.sync_stubs.ExportsAPI.export_by_asset" class="md-nav__link">
@@ -8280,32 +8236,6 @@ has no id set, raises ValueError.</p>
 
         <p>Sync counterpart to <code>ExportsAPIAsync</code>.</p>
 <p>High-level API for exporting data from Sift.</p>
-<p>Provides three export methods based on how you want to scope the data:</p>
-<ul>
-<li><code>export_by_run</code> - Export data from one or more runs.</li>
-<li><code>export_by_asset</code> - Export data from one or more assets within a time range.</li>
-<li><code>export_by_time_range</code> - Export data within a time range (requires channels or calculated_channels).</li>
-</ul>
-<p>Each method initiates the export and returns a Job handle. Use <code>wait_and_download</code>
-to poll the job, download the export, and get the paths to the extracted files.</p>
-<p>Example::</p>
-<p>from sift_client.sift_types.export import ExportOutputFormat</p>
-<h3 id="sift_client.resources.sync_stubs.ExportsAPI--export-by-run">Export by run<a class="headerlink" href="#sift_client.resources.sync_stubs.ExportsAPI--export-by-run" title="Permanent link">&para;</a></h3>
-<p>run = await client.async_.runs.get(run_id="run-id-1")
-job = await client.async_.exports.export_by_run(
-runs=[run],
-output_format=ExportOutputFormat.CSV,
-)
-files = await client.async_.exports.wait_and_download(job=job)</p>
-<h3 id="sift_client.resources.sync_stubs.ExportsAPI--export-by-asset-with-time-range">Export by asset with time range<a class="headerlink" href="#sift_client.resources.sync_stubs.ExportsAPI--export-by-asset-with-time-range" title="Permanent link">&para;</a></h3>
-<p>asset = await client.async_.assets.get(asset_id="asset-id-1")
-job = await client.async_.exports.export_by_asset(
-assets=[asset],
-start_time=start,
-stop_time=stop,
-output_format=ExportOutputFormat.CSV,
-)
-files = await client.async_.exports.wait_and_download(job=job)</p>
 
         <p>Initialize the ExportsAPI.</p>
 

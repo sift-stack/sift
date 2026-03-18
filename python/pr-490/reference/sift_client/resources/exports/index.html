@@ -1755,35 +1755,6 @@ You're not viewing the latest version.
 
 
         <p>High-level API for exporting data from Sift.</p>
-<p>Provides three export methods based on how you want to scope the data:</p>
-<ul>
-<li><code>export_by_run</code> - Export data from one or more runs.</li>
-<li><code>export_by_asset</code> - Export data from one or more assets within a time range.</li>
-<li><code>export_by_time_range</code> - Export data within a time range (requires channels or calculated_channels).</li>
-</ul>
-<p>Each method initiates the export and returns a Job handle. Use <code>wait_and_download</code>
-to poll the job, download the export, and get the paths to the extracted files.</p>
-<p>Example::</p>
-<div class="language-text highlight"><pre><span></span><code>from sift_client.sift_types.export import ExportOutputFormat
-
-# Export by run
-run = await client.async_.runs.get(run_id=&quot;run-id-1&quot;)
-job = await client.async_.exports.export_by_run(
-    runs=[run],
-    output_format=ExportOutputFormat.CSV,
-)
-files = await client.async_.exports.wait_and_download(job=job)
-
-# Export by asset with time range
-asset = await client.async_.assets.get(asset_id=&quot;asset-id-1&quot;)
-job = await client.async_.exports.export_by_asset(
-    assets=[asset],
-    start_time=start,
-    stop_time=stop,
-    output_format=ExportOutputFormat.CSV,
-)
-files = await client.async_.exports.wait_and_download(job=job)
-</code></pre></div>
 
         <p>Initialize the ExportsAPI.</p>
 
