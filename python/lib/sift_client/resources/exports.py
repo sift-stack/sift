@@ -34,14 +34,14 @@ class ExportsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = ExportsLowLevelClient(grpc_client=self.client.grpc_client)
 
-    async def _export(
+    async def export(
         self,
         *,
         output_format: ExportOutputFormat,
+        runs: list[str | Run] | None = None,
+        assets: list[str | Asset] | None = None,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
-        run_ids: list[str] | None = None,
-        asset_ids: list[str] | None = None,
         channels: list[str | Channel] | None = None,
         calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
         simplify_channel_names: bool = False,
@@ -49,20 +49,65 @@ class ExportsAPIAsync(ResourceBase):
         split_export_by_asset: bool = False,
         split_export_by_run: bool = False,
     ) -> Job:
-        """Shared implementation for all export methods.
+        """Export data from Sift.
 
-        Validates common constraints, resolves channels, calls the low-level
-        export API, and returns the resulting Job.
+        Initiates an export on the server and returns a Job handle. Use
+        ``wait_and_download`` to poll for completion and download the files.
+
+        There are three ways to scope the export, determined by which arguments
+        are provided:
+
+        1. **By runs** — provide ``runs``. The ``start_time``/``stop_time`` are
+           optional (if omitted, the full time range of each run is used). If no
+           ``channels`` or ``calculated_channels`` are provided, all channels
+           from the runs' assets are included.
+
+        2. **By assets** — provide ``assets``. Both ``start_time`` and
+           ``stop_time`` are **required**. If no ``channels`` or
+           ``calculated_channels`` are provided, all channels from the assets
+           are included.
+
+        3. **By time range only** — provide ``start_time`` and ``stop_time``
+           without ``runs`` or ``assets``. At least one of ``channels`` or
+           ``calculated_channels`` **must** be provided to scope the data.
+
+        You cannot provide both ``runs`` and ``assets`` at the same time.
+
+        Args:
+            output_format: The file format for the export (CSV or Sun/WinPlot).
+            runs: One or more Run objects or run IDs to export data from.
+            assets: One or more Asset objects or asset IDs to export data from.
+            start_time: Start of the time range to export. Required when using
+                assets or time-range-only mode; optional when using runs.
+            stop_time: End of the time range to export. Required when using
+                assets or time-range-only mode; optional when using runs.
+            channels: Channel objects or channel IDs to include. If omitted and
+                runs or assets are provided, all channels are exported. Required
+                (along with ``calculated_channels``) in time-range-only mode.
+            calculated_channels: Calculated channels to include in the export.
+                Accepts existing CalculatedChannel objects or
+                CalculatedChannelCreate definitions.
+            simplify_channel_names: Remove text preceding last period in channel
+                names, only if the resulting simplified name is unique.
+            combine_runs: Identical channels within the same asset across
+                multiple runs will be combined into a single column.
+            split_export_by_asset: Split each asset into a separate file, with
+                asset name removed from channel name display.
+            split_export_by_run: Split each run into a separate file, with run
+                name removed from channel name display.
+
+        Returns:
+            A Job handle for the pending export.
         """
-        if start_time is not None and stop_time is not None and start_time >= stop_time:
-            raise ValueError("'start_time' must be before 'stop_time'.")
-        if combine_runs and split_export_by_run:
-            raise ValueError(
-                "'combine_runs' cannot be used with 'split_export_by_run'. "
-                "Combining merges identical channels across runs into a single column, "
-                "which is not possible when each run is split into a separate file."
-            )
+        if runs and assets:
+            raise ValueError("Provide either 'runs' or 'assets', not both.")
+        if not runs and not assets and not start_time and not stop_time:
+            raise ValueError("At least one of 'runs', 'assets', or a time range must be provided.")
 
+        run_ids = [r._id_or_error if isinstance(r, Run) else r for r in runs] if runs else None
+        asset_ids = (
+            [a._id_or_error if isinstance(a, Asset) else a for a in assets] if assets else None
+        )
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
@@ -86,180 +131,6 @@ class ExportsAPIAsync(ResourceBase):
         )
 
         return await self.client.async_.jobs.get(job_id=job_id)
-
-    async def export_by_run(
-        self,
-        *,
-        runs: list[str | Run],
-        output_format: ExportOutputFormat,
-        start_time: datetime | None = None,
-        stop_time: datetime | None = None,
-        channels: list[str | Channel] | None = None,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        simplify_channel_names: bool = False,
-        combine_runs: bool = False,
-        split_export_by_asset: bool = False,
-        split_export_by_run: bool = False,
-    ) -> Job:
-        """Export data scoped by one or more runs.
-
-        Initiates the export on the server and returns a Job handle. Use
-        ``wait_and_download`` to poll for completion and get the download URL.
-
-        If no start_time/stop_time are provided, the full time range of each run is used.
-        If no channels or calculated_channels are provided, all channels from
-        the run's assets are included.
-
-        Args:
-            runs: One or more Run objects or run IDs to export data from.
-            output_format: The file format for the export (CSV or Sun/WinPlot).
-            start_time: Optional start time to narrow the export within the run(s).
-            stop_time: Optional stop time to narrow the export within the run(s).
-            channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
-            calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
-            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
-            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
-            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-
-        Returns:
-            A Job handle for the pending export.
-        """
-        if not runs:
-            raise ValueError("'runs' must be a non-empty list of run objects or run ids.")
-        if any(not run for run in runs):
-            raise ValueError("'runs' must not contain empty or null values.")
-        if (start_time is None) != (stop_time is None):
-            raise ValueError("'start_time' and 'stop_time' must both be provided or both omitted.")
-
-        run_ids = [r._id_or_error if isinstance(r, Run) else r for r in runs]
-
-        return await self._export(
-            run_ids=run_ids,
-            output_format=output_format,
-            start_time=start_time,
-            stop_time=stop_time,
-            channels=channels,
-            calculated_channels=calculated_channels,
-            simplify_channel_names=simplify_channel_names,
-            combine_runs=combine_runs,
-            split_export_by_asset=split_export_by_asset,
-            split_export_by_run=split_export_by_run,
-        )
-
-    async def export_by_asset(
-        self,
-        *,
-        assets: list[str | Asset],
-        start_time: datetime,
-        stop_time: datetime,
-        output_format: ExportOutputFormat,
-        channels: list[str | Channel] | None = None,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        simplify_channel_names: bool = False,
-        combine_runs: bool = False,
-        split_export_by_asset: bool = False,
-        split_export_by_run: bool = False,
-    ) -> Job:
-        """Export data scoped by one or more assets within a time range.
-
-        Initiates the export on the server and returns a Job handle. Use
-        ``wait_and_download`` to poll for completion and get the download URL.
-
-        Both start_time and stop_time are required. If no channels or
-        calculated_channels are provided, all channels from the assets are included.
-
-        Args:
-            assets: One or more Asset objects or asset IDs to export data from.
-            start_time: Start of the time range to export.
-            stop_time: End of the time range to export.
-            output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
-            calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
-            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
-            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
-            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-
-        Returns:
-            A Job handle for the pending export.
-        """
-        if not assets:
-            raise ValueError("'assets' must be a non-empty list of asset objects or asset IDs.")
-        if any(not asset for asset in assets):
-            raise ValueError("'assets' must not contain empty or null values.")
-
-        asset_ids = [a._id_or_error if isinstance(a, Asset) else a for a in assets]
-
-        return await self._export(
-            asset_ids=asset_ids,
-            start_time=start_time,
-            stop_time=stop_time,
-            output_format=output_format,
-            channels=channels,
-            calculated_channels=calculated_channels,
-            simplify_channel_names=simplify_channel_names,
-            combine_runs=combine_runs,
-            split_export_by_asset=split_export_by_asset,
-            split_export_by_run=split_export_by_run,
-        )
-
-    async def export_by_time_range(
-        self,
-        *,
-        start_time: datetime,
-        stop_time: datetime,
-        output_format: ExportOutputFormat,
-        channels: list[str | Channel] | None = None,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        simplify_channel_names: bool = False,
-        combine_runs: bool = False,
-        split_export_by_asset: bool = False,
-        split_export_by_run: bool = False,
-    ) -> Job:
-        """Export data within a time range.
-
-        Initiates the export on the server and returns a Job handle. Use
-        ``wait_and_download`` to poll for completion and get the download URL.
-
-        Both start_time and stop_time are required. At least one of channels or
-        calculated_channels **must** be provided to scope the data, since there
-        are no runs or assets to infer channels from.
-
-        Args:
-            start_time: Start of the time range to export.
-            stop_time: End of the time range to export.
-            output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channels: List of Channel objects or channel IDs to include in the export.
-            calculated_channels: Calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
-            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
-            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
-            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-
-        Returns:
-            A Job handle for the pending export.
-
-        Raises:
-            ValueError: If neither channels nor calculated_channels is provided.
-        """
-        if not channels and not calculated_channels:
-            raise ValueError(
-                "At least one of 'channels' or 'calculated_channels' must be provided "
-                "when exporting by time range."
-            )
-
-        return await self._export(
-            start_time=start_time,
-            stop_time=stop_time,
-            output_format=output_format,
-            channels=channels,
-            calculated_channels=calculated_channels,
-            simplify_channel_names=simplify_channel_names,
-            combine_runs=combine_runs,
-            split_export_by_asset=split_export_by_asset,
-            split_export_by_run=split_export_by_run,
-        )
 
     async def wait_and_download(
         self,
