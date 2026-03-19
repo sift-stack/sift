@@ -113,13 +113,16 @@ class DataExportAPIAsync(ResourceBase):
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
-        if calculated_channels:
-            calculated_channels = [
+        normalized_calc_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = (
+            [
                 CalculatedChannelCreate.model_validate(cc) if isinstance(cc, dict) else cc
                 for cc in calculated_channels
             ]
+            if calculated_channels
+            else None
+        )
         resolved_calc_channels = await resolve_calculated_channels(
-            calculated_channels,
+            normalized_calc_channels,
             channels_api=self.client.async_.channels,
         )
 
