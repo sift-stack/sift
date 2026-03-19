@@ -631,10 +631,12 @@ class TestExportsAPIAsync:
             mock_client.async_.channels.find = AsyncMock(return_value=mock_resolved_channel)
 
             result = await exports_api._resolve_calculated_channels([mock_calculated_channel])
+            assert result is not None
 
             assert len(result) == 1
             resolved = result[0]
             assert isinstance(resolved, CalculatedChannelCreate)
+            assert resolved.expression_channel_references is not None
             assert (
                 resolved.expression_channel_references[0].channel_identifier == "resolved-ch-uuid"
             )
