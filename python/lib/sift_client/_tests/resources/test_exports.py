@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from sift_client._internal.low_level_wrappers.exports import _build_calc_channel_configs
+from sift_client._internal.util.channels import resolve_calculated_channels
 
 if TYPE_CHECKING:
     from sift_client import SiftClient
@@ -616,21 +617,24 @@ class TestExportsAPIAsync:
                 )
 
     class TestResolveCalculatedChannels:
-        """Tests for the _resolve_calculated_channels helper."""
+        """Tests for the resolve_calculated_channels utility."""
 
         @pytest.mark.asyncio
-        async def test_passes_through_none(self, exports_api):
-            result = await exports_api._resolve_calculated_channels(None)
+        async def test_passes_through_none(self):
+            mock_channels_api = MagicMock()
+            mock_channels_api.find = AsyncMock(return_value=None)
+            result = await resolve_calculated_channels(None, channels_api=mock_channels_api)
             assert result is None
 
         @pytest.mark.asyncio
-        async def test_resolves_name_to_uuid(
-            self, exports_api, mock_client, mock_calculated_channel, mock_resolved_channel
-        ):
-            """Name-based identifier is resolved to a UUID via channels.find."""
-            mock_client.async_.channels.find = AsyncMock(return_value=mock_resolved_channel)
+        async def test_resolves_name_to_uuid(self, mock_calculated_channel, mock_resolved_channel):
+            """Name-based identifier is resolved to a UUID via channels_api.find."""
+            mock_channels_api = MagicMock()
+            mock_channels_api.find = AsyncMock(return_value=mock_resolved_channel)
 
-            result = await exports_api._resolve_calculated_channels([mock_calculated_channel])
+            result = await resolve_calculated_channels(
+                [mock_calculated_channel], channels_api=mock_channels_api
+            )
             assert result is not None
 
             assert len(result) == 1
@@ -642,16 +646,19 @@ class TestExportsAPIAsync:
             )
 
         @pytest.mark.asyncio
-        async def test_keeps_identifier_when_not_found(self, exports_api, sample_calc_channels):
-            """channels.find returns None → identifiers kept as-is."""
-            result = await exports_api._resolve_calculated_channels(sample_calc_channels)
+        async def test_keeps_identifier_when_not_found(self, sample_calc_channels):
+            """channels_api.find returns None → identifiers kept as-is."""
+            mock_channels_api = MagicMock()
+            mock_channels_api.find = AsyncMock(return_value=None)
+            result = await resolve_calculated_channels(
+                sample_calc_channels, channels_api=mock_channels_api
+            )
+            assert result is not None
             assert result[0] == sample_calc_channels[0]
 
         @pytest.mark.asyncio
         async def test_mixed_create_and_existing(
             self,
-            exports_api,
-            mock_client,
             sample_calc_channels,
             mock_calculated_channel,
             mock_resolved_channel,
@@ -665,15 +672,19 @@ class TestExportsAPIAsync:
             async def find_side_effect(name, assets=None):
                 return mock_resolved_channel if name == "sensor.rpm" else None
 
-            mock_client.async_.channels.find = AsyncMock(side_effect=find_side_effect)
+            mock_channels_api = MagicMock()
+            mock_channels_api.find = AsyncMock(side_effect=find_side_effect)
 
-            result = await exports_api._resolve_calculated_channels(
-                [sample_calc_channels[0], mock_calculated_channel]
+            result = await resolve_calculated_channels(
+                [sample_calc_channels[0], mock_calculated_channel],
+                channels_api=mock_channels_api,
             )
 
+            assert result is not None
             assert len(result) == 2
             assert result[0] == sample_calc_channels[0]
             assert isinstance(result[1], CalculatedChannelCreate)
+            assert result[1].expression_channel_references is not None
             assert result[1].expression_channel_references[0].channel_identifier == "rpm-uuid"
 
     class TestWaitUntilComplete:

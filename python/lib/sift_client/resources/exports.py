@@ -6,19 +6,20 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
+from sift_client._internal.util.channels import resolve_calculated_channels
+from sift_client._internal.util.download import download_and_extract_zip
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
-from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
-from sift_client.sift_types.channel import Channel, ChannelReference
+from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.export import ExportOutputFormat  # noqa: TC001
 from sift_client.sift_types.job import Job
 from sift_client.sift_types.run import Run
-from sift_client.util.download import download_and_extract_zip
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
 
 
 class ExportsAPIAsync(ResourceBase):
@@ -32,50 +33,6 @@ class ExportsAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = ExportsLowLevelClient(grpc_client=self.client.grpc_client)
-
-    async def _resolve_calculated_channels(
-        self,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None,
-    ) -> list[CalculatedChannel | CalculatedChannelCreate] | None:
-        """Resolve channel reference identifiers from names to UUIDs.
-
-        For each channel reference, looks up the identifier as a channel name.
-        If found, replaces it with the channel's UUID. If not found, assumes
-        the identifier is already a UUID and keeps it as-is.
-        """
-        if not calculated_channels:
-            return calculated_channels
-
-        resolved: list[CalculatedChannel | CalculatedChannelCreate] = []
-        for cc in calculated_channels:
-            refs = (
-                (cc.expression_channel_references or [])
-                if isinstance(cc, CalculatedChannelCreate)
-                else cc.channel_references
-            )
-
-            resolved_refs: list[ChannelReference] = []
-            for ref in refs:
-                channel = await self.client.async_.channels.find(
-                    name=ref.channel_identifier,
-                    assets=cc.asset_ids,
-                )
-                if channel is not None:
-                    ref = ChannelReference(
-                        channel_reference=ref.channel_reference,
-                        channel_identifier=channel._id_or_error,
-                    )
-                resolved_refs.append(ref)
-
-            resolved.append(
-                CalculatedChannelCreate(
-                    name=cc.name,
-                    expression=cc.expression,
-                    expression_channel_references=resolved_refs,
-                    units=cc.units or None,
-                )
-            )
-        return resolved
 
     async def _export(
         self,
@@ -109,7 +66,10 @@ class ExportsAPIAsync(ResourceBase):
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
-        resolved_calc_channels = await self._resolve_calculated_channels(calculated_channels)
+        resolved_calc_channels = await resolve_calculated_channels(
+            calculated_channels,
+            channels_api=self.client.async_.channels,
+        )
 
         job_id = await self._low_level_client.export_data(
             run_ids=run_ids,
