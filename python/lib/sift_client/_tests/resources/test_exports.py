@@ -372,7 +372,9 @@ class TestResolveCalculatedChannels:
         result = await resolve_calculated_channels([cc], channels_api=api)
         assert result is not None
         assert len(result) == 1
-        assert result[0].expression_channel_references[0].channel_identifier == "resolved-uuid"
+        refs = result[0].expression_channel_references
+        assert refs is not None
+        assert refs[0].channel_identifier == "resolved-uuid"
 
     @pytest.mark.asyncio
     async def test_keeps_identifier_when_not_found(self):
