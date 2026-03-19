@@ -680,6 +680,7 @@ class ExportsAPI:
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
+        extract: bool = True,
     ) -> list[Path]:
         """Wait for an export job to complete and download the exported files.
 
@@ -692,9 +693,13 @@ class ExportsAPI:
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
             output_dir: Directory to save the extracted files. If omitted, a
                 temporary directory is created automatically.
+            extract: If True (default), extract the zip and delete it,
+                returning paths to the extracted files. If False, keep the
+                zip file and return its path.
 
         Returns:
-            List of paths to the extracted data files.
+            List of paths to the extracted data files, or a single-element
+            list containing the zip path if extract is False.
 
         Raises:
             RuntimeError: If the export job fails or is cancelled.

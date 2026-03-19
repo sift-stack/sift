@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 async def resolve_calculated_channels(
     calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None,
     channels_api: ChannelsAPIAsync,
-) -> list[CalculatedChannel | CalculatedChannelCreate] | None:
+) -> list[CalculatedChannelCreate] | None:
     """Resolve channel reference identifiers from names to UUIDs.
 
     For each channel reference, looks up the identifier as a channel name.
