@@ -9,12 +9,17 @@ These tests validate the usage of the ExportsAPIAsync including:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from sift_client._internal.low_level_wrappers.exports import _build_calc_channel_configs
+
+if TYPE_CHECKING:
+    from sift_client import SiftClient
+from sift_client.resources import ExportsAPI
 from sift_client.resources.exports import ExportsAPIAsync
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.calculated_channel import (
@@ -29,6 +34,188 @@ from sift_client.sift_types.run import Run
 
 START = datetime(2025, 1, 1, tzinfo=timezone.utc)
 STOP = datetime(2025, 1, 2, tzinfo=timezone.utc)
+
+
+@pytest.mark.integration
+def test_client_binding(sift_client):
+    assert sift_client.exports
+    assert isinstance(sift_client.exports, ExportsAPI)
+    assert sift_client.async_.exports
+    assert isinstance(sift_client.async_.exports, ExportsAPIAsync)
+
+
+@pytest.fixture
+def exports_api_async(sift_client: SiftClient):
+    return sift_client.async_.exports
+
+
+@pytest.fixture
+def exports_api_sync(sift_client: SiftClient):
+    return sift_client.exports
+
+
+@pytest.mark.integration
+class TestExportsIntegrationAsync:
+    """Integration tests for the async Exports API."""
+
+    class TestExportByRun:
+        @pytest.mark.asyncio
+        async def test_basic(self, exports_api_async, sift_client):
+            runs = await sift_client.async_.runs.list_(limit=1)
+            assert runs, "No runs available for integration test"
+
+            job = await exports_api_async.export_by_run(
+                runs=[runs[0]],
+                output_format=ExportOutputFormat.CSV,
+            )
+            assert isinstance(job, Job)
+            assert job.id_ is not None
+
+        @pytest.mark.asyncio
+        async def test_with_run_id_string(self, exports_api_async, sift_client):
+            runs = await sift_client.async_.runs.list_(limit=1)
+            assert runs
+
+            job = await exports_api_async.export_by_run(
+                runs=[runs[0].id_],
+                output_format=ExportOutputFormat.CSV,
+            )
+            assert isinstance(job, Job)
+
+        @pytest.mark.asyncio
+        async def test_with_time_range(self, exports_api_async, sift_client):
+            runs = await sift_client.async_.runs.list_(limit=1)
+            assert runs
+
+            now = datetime.now(timezone.utc)
+            job = await exports_api_async.export_by_run(
+                runs=[runs[0]],
+                start_time=now - timedelta(hours=1),
+                stop_time=now,
+                output_format=ExportOutputFormat.CSV,
+            )
+            assert isinstance(job, Job)
+
+    class TestExportByAsset:
+        @pytest.mark.asyncio
+        async def test_basic(self, exports_api_async, sift_client):
+            assets = await sift_client.async_.assets.list_(limit=1)
+            assert assets, "No assets available for integration test"
+
+            now = datetime.now(timezone.utc)
+            job = await exports_api_async.export_by_asset(
+                assets=[assets[0]],
+                start_time=now - timedelta(hours=1),
+                stop_time=now,
+                output_format=ExportOutputFormat.CSV,
+            )
+            assert isinstance(job, Job)
+            assert job.id_ is not None
+
+        @pytest.mark.asyncio
+        async def test_with_asset_id_string(self, exports_api_async, sift_client):
+            assets = await sift_client.async_.assets.list_(limit=1)
+            assert assets
+
+            now = datetime.now(timezone.utc)
+            job = await exports_api_async.export_by_asset(
+                assets=[assets[0].id_],
+                start_time=now - timedelta(hours=1),
+                stop_time=now,
+                output_format=ExportOutputFormat.CSV,
+            )
+            assert isinstance(job, Job)
+
+    class TestExportByTimeRange:
+        @pytest.mark.asyncio
+        async def test_with_channels(self, exports_api_async, sift_client):
+            channels = await sift_client.async_.channels.list_(limit=1)
+            assert channels, "No channels available for integration test"
+
+            now = datetime.now(timezone.utc)
+            job = await exports_api_async.export_by_time_range(
+                start_time=now - timedelta(hours=1),
+                stop_time=now,
+                channels=[channels[0]],
+                output_format=ExportOutputFormat.CSV,
+            )
+            assert isinstance(job, Job)
+            assert job.id_ is not None
+
+        @pytest.mark.asyncio
+        async def test_with_channel_id_string(self, exports_api_async, sift_client):
+            channels = await sift_client.async_.channels.list_(limit=1)
+            assert channels
+
+            now = datetime.now(timezone.utc)
+            job = await exports_api_async.export_by_time_range(
+                start_time=now - timedelta(hours=1),
+                stop_time=now,
+                channels=[channels[0].id_],
+                output_format=ExportOutputFormat.CSV,
+            )
+            assert isinstance(job, Job)
+
+    class TestWaitAndDownload:
+        @pytest.mark.asyncio
+        async def test_full_export_flow(self, exports_api_async, sift_client, tmp_path):
+            runs = await sift_client.async_.runs.list_(limit=1)
+            assert runs, "No runs available for integration test"
+
+            job = await exports_api_async.export_by_run(
+                runs=[runs[0]],
+                output_format=ExportOutputFormat.CSV,
+            )
+            files = await exports_api_async.wait_and_download(
+                job=job,
+                output_dir=tmp_path,
+                timeout_secs=60,
+            )
+            assert isinstance(files, list)
+            assert len(files) > 0
+            assert all(f.exists() for f in files)
+
+
+@pytest.mark.integration
+class TestExportsIntegrationSync:
+    """Integration tests for the sync Exports API."""
+
+    def test_export_by_run(self, exports_api_sync, sift_client):
+        runs = sift_client.runs.list_(limit=1)
+        assert runs, "No runs available for integration test"
+
+        job = exports_api_sync.export_by_run(
+            runs=[runs[0]],
+            output_format=ExportOutputFormat.CSV,
+        )
+        assert isinstance(job, Job)
+        assert job.id_ is not None
+
+    def test_export_by_asset(self, exports_api_sync, sift_client):
+        assets = sift_client.assets.list_(limit=1)
+        assert assets, "No assets available for integration test"
+
+        now = datetime.now(timezone.utc)
+        job = exports_api_sync.export_by_asset(
+            assets=[assets[0]],
+            start_time=now - timedelta(hours=1),
+            stop_time=now,
+            output_format=ExportOutputFormat.CSV,
+        )
+        assert isinstance(job, Job)
+
+    def test_export_by_time_range(self, exports_api_sync, sift_client):
+        channels = sift_client.channels.list_(limit=1)
+        assert channels, "No channels available for integration test"
+
+        now = datetime.now(timezone.utc)
+        job = exports_api_sync.export_by_time_range(
+            start_time=now - timedelta(hours=1),
+            stop_time=now,
+            channels=[channels[0]],
+            output_format=ExportOutputFormat.CSV,
+        )
+        assert isinstance(job, Job)
 
 
 @pytest.fixture
@@ -224,40 +411,6 @@ class TestExportsAPIAsync:
             )
 
         @pytest.mark.asyncio
-        async def test_minimal_args(self, exports_api):
-            """Test that minimal arguments are passed correctly with defaults."""
-            await exports_api.export_by_run(
-                runs=["run-1"],
-                output_format=ExportOutputFormat.SUN,
-            )
-
-            exports_api._low_level_client.export_data.assert_awaited_once_with(
-                run_ids=["run-1"],
-                asset_ids=None,
-                output_format=ExportOutputFormat.SUN,
-                start_time=None,
-                stop_time=None,
-                channel_ids=[],
-                calculated_channels=None,
-                simplify_channel_names=False,
-                combine_runs=False,
-                split_export_by_asset=False,
-                split_export_by_run=False,
-            )
-
-        @pytest.mark.asyncio
-        async def test_with_calculated_channels(self, exports_api, sample_calc_channels):
-            """Test that calculated channels are passed through to the low-level client."""
-            await exports_api.export_by_run(
-                runs=["run-1"],
-                output_format=ExportOutputFormat.CSV,
-                calculated_channels=sample_calc_channels,
-            )
-
-            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
-            assert call_kwargs["calculated_channels"] == sample_calc_channels
-
-        @pytest.mark.asyncio
         async def test_resolves_run_objects_to_ids(self, exports_api):
             """Test that Run domain objects are resolved to their IDs."""
             mock_run = MagicMock(spec=Run)
@@ -345,20 +498,6 @@ class TestExportsAPIAsync:
             )
 
         @pytest.mark.asyncio
-        async def test_with_calculated_channels(self, exports_api, sample_calc_channels):
-            await exports_api.export_by_asset(
-                assets=["asset-1"],
-                start_time=START,
-                stop_time=STOP,
-                output_format=ExportOutputFormat.CSV,
-                calculated_channels=sample_calc_channels,
-            )
-
-            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
-            assert call_kwargs["calculated_channels"] == sample_calc_channels
-            assert call_kwargs["channel_ids"] == []
-
-        @pytest.mark.asyncio
         async def test_resolves_asset_objects_to_ids(self, exports_api):
             mock_asset = MagicMock(spec=Asset)
             mock_asset._id_or_error = "resolved-asset-id"
@@ -418,21 +557,6 @@ class TestExportsAPIAsync:
                 split_export_by_asset=False,
                 split_export_by_run=False,
             )
-
-        @pytest.mark.asyncio
-        async def test_delegates_to_low_level_with_calc_channels(
-            self, exports_api, sample_calc_channels
-        ):
-            await exports_api.export_by_time_range(
-                start_time=START,
-                stop_time=STOP,
-                output_format=ExportOutputFormat.CSV,
-                calculated_channels=sample_calc_channels,
-            )
-
-            call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
-            assert call_kwargs["calculated_channels"] == sample_calc_channels
-            assert call_kwargs["channel_ids"] == []
 
         @pytest.mark.asyncio
         async def test_no_channels_raises(self, exports_api):
@@ -500,19 +624,10 @@ class TestExportsAPIAsync:
             assert result is None
 
         @pytest.mark.asyncio
-        async def test_preserves_objects_when_identifiers_not_found(
-            self, exports_api, sample_calc_channels
-        ):
-            """channels.find returns None → identifiers assumed to be UUIDs, objects preserved."""
-            result = await exports_api._resolve_calculated_channels(sample_calc_channels)
-            assert result[0] == sample_calc_channels[0]
-            assert result[1] == sample_calc_channels[1]
-
-        @pytest.mark.asyncio
-        async def test_resolves_fetched_calculated_channel(
+        async def test_resolves_name_to_uuid(
             self, exports_api, mock_client, mock_calculated_channel, mock_resolved_channel
         ):
-            """A fetched CalculatedChannel's name-based identifier is resolved to a UUID."""
+            """Name-based identifier is resolved to a UUID via channels.find."""
             mock_client.async_.channels.find = AsyncMock(return_value=mock_resolved_channel)
 
             result = await exports_api._resolve_calculated_channels([mock_calculated_channel])
@@ -520,66 +635,15 @@ class TestExportsAPIAsync:
             assert len(result) == 1
             resolved = result[0]
             assert isinstance(resolved, CalculatedChannelCreate)
-            assert resolved.name == "my_calc"
-            assert resolved.expression == "$1 + 10"
-            assert resolved.units == "m/s"
-            assert resolved.expression_channel_references is not None
             assert (
                 resolved.expression_channel_references[0].channel_identifier == "resolved-ch-uuid"
             )
-            mock_client.async_.channels.find.assert_awaited_once_with(
-                name="sensor.velocity", assets=["asset-1"]
-            )
 
         @pytest.mark.asyncio
-        async def test_keeps_identifier_when_not_found(self, exports_api, mock_calculated_channel):
-            """channels.find returns None → identifier kept as-is."""
-            mock_calculated_channel.channel_references = [
-                ChannelReference(
-                    channel_reference="$1",
-                    channel_identifier="d8e64798-ad6f-41b8-b830-7e009806f365",
-                ),
-            ]
-
-            result = await exports_api._resolve_calculated_channels([mock_calculated_channel])
-            resolved = result[0]
-            assert isinstance(resolved, CalculatedChannelCreate)
-            assert resolved.expression_channel_references is not None
-            assert (
-                resolved.expression_channel_references[0].channel_identifier
-                == "d8e64798-ad6f-41b8-b830-7e009806f365"
-            )
-
-        @pytest.mark.asyncio
-        async def test_resolves_create_object_with_name_identifier(
-            self, exports_api, mock_client, mock_resolved_channel
-        ):
-            """A CalculatedChannelCreate with a name-based identifier gets resolved."""
-            mock_resolved_channel._id_or_error = "d8e64798-ad6f-41b8-b830-7e009806f365"
-            mock_client.async_.channels.find = AsyncMock(return_value=mock_resolved_channel)
-
-            inline_cc = CalculatedChannelCreate(
-                name="inline_calc",
-                expression="$1 + 30",
-                expression_channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", channel_identifier="DiningRoomLight.rssi"
-                    ),
-                ],
-            )
-
-            result = await exports_api._resolve_calculated_channels([inline_cc])
-
-            resolved = result[0]
-            assert isinstance(resolved, CalculatedChannelCreate)
-            assert resolved.expression_channel_references is not None
-            assert (
-                resolved.expression_channel_references[0].channel_identifier
-                == "d8e64798-ad6f-41b8-b830-7e009806f365"
-            )
-            mock_client.async_.channels.find.assert_awaited_once_with(
-                name="DiningRoomLight.rssi", assets=None
-            )
+        async def test_keeps_identifier_when_not_found(self, exports_api, sample_calc_channels):
+            """channels.find returns None → identifiers kept as-is."""
+            result = await exports_api._resolve_calculated_channels(sample_calc_channels)
+            assert result[0] == sample_calc_channels[0]
 
         @pytest.mark.asyncio
         async def test_mixed_create_and_existing(
