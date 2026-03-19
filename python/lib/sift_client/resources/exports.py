@@ -10,6 +10,7 @@ from sift_client._internal.util.channels import resolve_calculated_channels
 from sift_client._internal.util.download import download_and_extract_zip
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.calculated_channel import CalculatedChannelCreate
 from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.export import ExportOutputFormat  # noqa: TC001
 from sift_client.sift_types.job import Job
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
+    from sift_client.sift_types.calculated_channel import CalculatedChannel
 
 
 class ExportsAPIAsync(ResourceBase):
@@ -43,7 +44,7 @@ class ExportsAPIAsync(ResourceBase):
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         channels: list[str | Channel] | None = None,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate | dict] | None = None,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -85,8 +86,9 @@ class ExportsAPIAsync(ResourceBase):
                 runs or assets are provided, all channels are exported. Required
                 (along with ``calculated_channels``) in time-range-only mode.
             calculated_channels: Calculated channels to include in the export.
-                Accepts existing CalculatedChannel objects or
-                CalculatedChannelCreate definitions.
+                Accepts existing CalculatedChannel objects,
+                CalculatedChannelCreate definitions, or dictionaries that
+                will be converted to CalculatedChannelCreate via model_validate.
             simplify_channel_names: Remove text preceding last period in channel
                 names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across
@@ -111,6 +113,11 @@ class ExportsAPIAsync(ResourceBase):
         channel_ids = (
             [c._id_or_error if isinstance(c, Channel) else c for c in channels] if channels else []
         )
+        if calculated_channels:
+            calculated_channels = [
+                CalculatedChannelCreate.model_validate(cc) if isinstance(cc, dict) else cc
+                for cc in calculated_channels
+            ]
         resolved_calc_channels = await resolve_calculated_channels(
             calculated_channels,
             channels_api=self.client.async_.channels,

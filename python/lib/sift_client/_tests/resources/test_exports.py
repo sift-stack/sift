@@ -263,6 +263,29 @@ class TestDomainObjectResolution:
         ]
 
 
+class TestDictConversion:
+    @pytest.mark.asyncio
+    async def test_calculated_channel_dict_converted(self, exports_api):
+        await exports_api.export(
+            runs=["run-1"],
+            output_format=CSV,
+            calculated_channels=[
+                {
+                    "name": "calc",
+                    "expression": "$1 + 1",
+                    "expression_channel_references": [
+                        {"channel_reference": "$1", "channel_identifier": "ch-1"}
+                    ],
+                }
+            ],
+        )
+        cc = exports_api._low_level_client.export_data.call_args.kwargs["calculated_channels"]
+        assert cc is not None
+        assert len(cc) == 1
+        assert isinstance(cc[0], CalculatedChannelCreate)
+        assert cc[0].name == "calc"
+
+
 class TestExportValidation:
     @pytest.mark.asyncio
     async def test_runs_and_assets_raises(self, exports_api):
