@@ -13,8 +13,8 @@ from sift_client._internal.util.channels import resolve_calculated_channels
 
 if TYPE_CHECKING:
     from sift_client import SiftClient
-from sift_client.resources import ExportsAPI
-from sift_client.resources.exports import ExportsAPIAsync
+from sift_client.resources import DataExportAPI
+from sift_client.resources.exports import DataExportAPIAsync
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
@@ -33,12 +33,12 @@ CSV = ExportOutputFormat.CSV
 
 @pytest.fixture
 def exports_api_async(sift_client: SiftClient):
-    return sift_client.async_.exports
+    return sift_client.async_.data_export
 
 
 @pytest.fixture
 def exports_api_sync(sift_client: SiftClient):
-    return sift_client.exports
+    return sift_client.data_export
 
 
 @pytest.fixture
@@ -63,7 +63,7 @@ def mock_job():
 @pytest.fixture
 def exports_api(mock_client, mock_job):
     with patch("sift_client.resources.exports.ExportsLowLevelClient", autospec=True) as mock_ll:
-        api = ExportsAPIAsync(mock_client)
+        api = DataExportAPIAsync(mock_client)
         api._low_level_client = mock_ll.return_value
         api._low_level_client.export_data = AsyncMock(return_value="job-123")
         mock_client.async_.jobs.get = AsyncMock(return_value=mock_job)
@@ -72,8 +72,8 @@ def exports_api(mock_client, mock_job):
 
 @pytest.mark.integration
 def test_client_binding(sift_client):
-    assert isinstance(sift_client.exports, ExportsAPI)
-    assert isinstance(sift_client.async_.exports, ExportsAPIAsync)
+    assert isinstance(sift_client.data_export, DataExportAPI)
+    assert isinstance(sift_client.async_.data_export, DataExportAPIAsync)
 
 
 @pytest.mark.integration
