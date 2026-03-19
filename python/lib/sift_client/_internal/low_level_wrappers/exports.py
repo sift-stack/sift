@@ -90,24 +90,10 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     ) -> str:
         """Initiate a data export.
 
-        Builds the ExportDataRequest proto and makes the gRPC call. The export
-        scope is determined by which ID list is provided:
-        - run_ids: export by run
-        - asset_ids: export by asset (requires start_time/stop_time)
-        - neither: export by time range (requires start_time/stop_time)
-
-        Args:
-            output_format: The export format enum.
-            run_ids: Optional list of run IDs (export by run).
-            asset_ids: Optional list of asset IDs (export by asset).
-            start_time: Optional start time for the export.
-            stop_time: Optional stop time for the export.
-            channel_ids: Optional list of channel IDs to include.
-            calculated_channels: Optional calculated channel objects to include.
-            simplify_channel_names: Simplify channel names if unique.
-            combine_runs: Combine identical channels across runs.
-            split_export_by_asset: Split export by asset.
-            split_export_by_run: Split export by run.
+        Builds the ExportDataRequest proto and makes the gRPC call.
+        Sets whichever time_selection oneof fields are provided
+        (run_ids, asset_ids, or time range); the server validates
+        the request.
 
         Returns:
             The job ID for the background export.
@@ -133,25 +119,20 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 runs_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
             request.runs_and_time_range.CopyFrom(runs_and_time_range)
 
-        elif asset_ids is not None:
-            if start_time is None or stop_time is None:
-                raise ValueError(
-                    "start_time and stop_time must be provided when exporting by asset."
-                )
-
+        if asset_ids is not None:
             assets_and_time_range = AssetsAndTimeRange(asset_ids=asset_ids)
-            assets_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
-            assets_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+            if start_time:
+                assets_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+            if stop_time:
+                assets_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
             request.assets_and_time_range.CopyFrom(assets_and_time_range)
 
-        else:
-            if start_time is None or stop_time is None:
-                raise ValueError(
-                    "start_time and stop_time must be provided when exporting by time range."
-                )
+        if run_ids is None and asset_ids is None:
             time_range = TimeRange()
-            time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
-            time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+            if start_time:
+                time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+            if stop_time:
+                time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
             request.time_range.CopyFrom(time_range)
 
         response = await self._grpc_client.get_stub(ExportServiceStub).ExportData(request)

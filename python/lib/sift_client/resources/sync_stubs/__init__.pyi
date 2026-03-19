@@ -553,50 +553,12 @@ class ExportsAPI:
         ...
 
     def _run(self, coro): ...
-    def export_by_asset(
+    def export(
         self,
         *,
-        assets: list[str | Asset],
-        start_time: datetime,
-        stop_time: datetime,
         output_format: ExportOutputFormat,
-        channels: list[str | Channel] | None = None,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        simplify_channel_names: bool = False,
-        combine_runs: bool = False,
-        split_export_by_asset: bool = False,
-        split_export_by_run: bool = False,
-    ) -> Job:
-        """Export data scoped by one or more assets within a time range.
-
-        Initiates the export on the server and returns a Job handle. Use
-        ``wait_and_download`` to poll for completion and get the download URL.
-
-        Both start_time and stop_time are required. If no channels or
-        calculated_channels are provided, all channels from the assets are included.
-
-        Args:
-            assets: One or more Asset objects or asset IDs to export data from.
-            start_time: Start of the time range to export.
-            stop_time: End of the time range to export.
-            output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
-            calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
-            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
-            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
-            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-
-        Returns:
-            A Job handle for the pending export.
-        """
-        ...
-
-    def export_by_run(
-        self,
-        *,
-        runs: list[str | Run],
-        output_format: ExportOutputFormat,
+        runs: list[str | Run] | None = None,
+        assets: list[str | Asset] | None = None,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         channels: list[str | Channel] | None = None,
@@ -606,70 +568,55 @@ class ExportsAPI:
         split_export_by_asset: bool = False,
         split_export_by_run: bool = False,
     ) -> Job:
-        """Export data scoped by one or more runs.
+        """Export data from Sift.
 
-        Initiates the export on the server and returns a Job handle. Use
-        ``wait_and_download`` to poll for completion and get the download URL.
+        Initiates an export on the server and returns a Job handle. Use
+        ``wait_and_download`` to poll for completion and download the files.
 
-        If no start_time/stop_time are provided, the full time range of each run is used.
-        If no channels or calculated_channels are provided, all channels from
-        the run's assets are included.
+        There are three ways to scope the export, determined by which arguments
+        are provided:
+
+        1. **By runs** — provide ``runs``. The ``start_time``/``stop_time`` are
+           optional (if omitted, the full time range of each run is used). If no
+           ``channels`` or ``calculated_channels`` are provided, all channels
+           from the runs' assets are included.
+
+        2. **By assets** — provide ``assets``. Both ``start_time`` and
+           ``stop_time`` are **required**. If no ``channels`` or
+           ``calculated_channels`` are provided, all channels from the assets
+           are included.
+
+        3. **By time range only** — provide ``start_time`` and ``stop_time``
+           without ``runs`` or ``assets``. At least one of ``channels`` or
+           ``calculated_channels`` **must** be provided to scope the data.
+
+        You cannot provide both ``runs`` and ``assets`` at the same time.
 
         Args:
-            runs: One or more Run objects or run IDs to export data from.
             output_format: The file format for the export (CSV or Sun/WinPlot).
-            start_time: Optional start time to narrow the export within the run(s).
-            stop_time: Optional stop time to narrow the export within the run(s).
-            channels: Optional list of Channel objects or channel IDs to include. If omitted, all channels are exported.
-            calculated_channels: Optional calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
-            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
-            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
-            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
+            runs: One or more Run objects or run IDs to export data from.
+            assets: One or more Asset objects or asset IDs to export data from.
+            start_time: Start of the time range to export. Required when using
+                assets or time-range-only mode; optional when using runs.
+            stop_time: End of the time range to export. Required when using
+                assets or time-range-only mode; optional when using runs.
+            channels: Channel objects or channel IDs to include. If omitted and
+                runs or assets are provided, all channels are exported. Required
+                (along with ``calculated_channels``) in time-range-only mode.
+            calculated_channels: Calculated channels to include in the export.
+                Accepts existing CalculatedChannel objects or
+                CalculatedChannelCreate definitions.
+            simplify_channel_names: Remove text preceding last period in channel
+                names, only if the resulting simplified name is unique.
+            combine_runs: Identical channels within the same asset across
+                multiple runs will be combined into a single column.
+            split_export_by_asset: Split each asset into a separate file, with
+                asset name removed from channel name display.
+            split_export_by_run: Split each run into a separate file, with run
+                name removed from channel name display.
 
         Returns:
             A Job handle for the pending export.
-        """
-        ...
-
-    def export_by_time_range(
-        self,
-        *,
-        start_time: datetime,
-        stop_time: datetime,
-        output_format: ExportOutputFormat,
-        channels: list[str | Channel] | None = None,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
-        simplify_channel_names: bool = False,
-        combine_runs: bool = False,
-        split_export_by_asset: bool = False,
-        split_export_by_run: bool = False,
-    ) -> Job:
-        """Export data within a time range.
-
-        Initiates the export on the server and returns a Job handle. Use
-        ``wait_and_download`` to poll for completion and get the download URL.
-
-        Both start_time and stop_time are required. At least one of channels or
-        calculated_channels **must** be provided to scope the data, since there
-        are no runs or assets to infer channels from.
-
-        Args:
-            start_time: Start of the time range to export.
-            stop_time: End of the time range to export.
-            output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
-            channels: List of Channel objects or channel IDs to include in the export.
-            calculated_channels: Calculated channels to include in the export. Accepts existing CalculatedChannel objects or CalculatedChannelCreate definitions.
-            simplify_channel_names: Remove text preceding last period in channel names, only if the resulting simplified name is unique.
-            combine_runs: Identical channels within the same asset across multiple runs will be combined into a single column.
-            split_export_by_asset: Split each asset into a separate file, with asset name removed from channel name display.
-            split_export_by_run: Split each run into a separate file, with run name removed from channel name display.
-
-        Returns:
-            A Job handle for the pending export.
-
-        Raises:
-            ValueError: If neither channels nor calculated_channels is provided.
         """
         ...
 
