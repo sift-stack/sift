@@ -538,14 +538,14 @@ class ChannelsAPI:
         """
         ...
 
-class ExportsAPI:
-    """Sync counterpart to `ExportsAPIAsync`.
+class DataExportAPI:
+    """Sync counterpart to `DataExportAPIAsync`.
 
     High-level API for exporting data from Sift.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the ExportsAPI.
+        """Initialize the DataExportAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -562,7 +562,7 @@ class ExportsAPI:
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         channels: list[str | Channel] | None = None,
-        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate | dict] | None = None,
         simplify_channel_names: bool = False,
         combine_runs: bool = False,
         split_export_by_asset: bool = False,
@@ -604,8 +604,9 @@ class ExportsAPI:
                 runs or assets are provided, all channels are exported. Required
                 (along with ``calculated_channels``) in time-range-only mode.
             calculated_channels: Calculated channels to include in the export.
-                Accepts existing CalculatedChannel objects or
-                CalculatedChannelCreate definitions.
+                Accepts existing CalculatedChannel objects,
+                CalculatedChannelCreate definitions, or dictionaries that
+                will be converted to CalculatedChannelCreate via model_validate.
             simplify_channel_names: Remove text preceding last period in channel
                 names, only if the resulting simplified name is unique.
             combine_runs: Identical channels within the same asset across

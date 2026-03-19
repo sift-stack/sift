@@ -23,11 +23,11 @@ if TYPE_CHECKING:
     from sift_client.sift_types.calculated_channel import CalculatedChannel
 
 
-class ExportsAPIAsync(ResourceBase):
+class DataExportAPIAsync(ResourceBase):
     """High-level API for exporting data from Sift."""
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the ExportsAPI.
+        """Initialize the DataExportAPI.
 
         Args:
             sift_client: The Sift client to use.
