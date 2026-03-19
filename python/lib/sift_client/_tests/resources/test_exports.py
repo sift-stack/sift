@@ -718,6 +718,26 @@ class TestExportsAPIAsync:
             )
 
         @pytest.mark.asyncio
+        async def test_extract_false_returns_zip_path(self, completed_export_setup):
+            s = completed_export_setup
+            mock_job = MagicMock(spec=Job)
+            mock_job._id_or_error = "job-123"
+
+            fake_zip = s["tmp_path"] / "job-123.zip"
+            s["mock_loop"].run_in_executor = AsyncMock(return_value=[fake_zip])
+
+            with patch("asyncio.get_running_loop", return_value=s["mock_loop"]):
+                result = await s["api"].wait_and_download(
+                    job=mock_job, output_dir=s["tmp_path"], extract=False
+                )
+
+            assert result == [fake_zip]
+            # Verify the lambda called download_and_extract_zip with extract=False
+            call_args = s["mock_loop"].run_in_executor.call_args
+            fn = call_args[0][1]  # the lambda
+            assert callable(fn)
+
+        @pytest.mark.asyncio
         async def test_custom_polling_and_timeout(self, completed_export_setup):
             s = completed_export_setup
             mock_job = MagicMock(spec=Job)
