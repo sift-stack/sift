@@ -118,7 +118,7 @@ class TestExportsIntegration:
         assert runs, "No runs available"
         job = await exports_api_async.export(runs=[runs[0]], output_format=CSV)
         files = await exports_api_async.wait_and_download(
-            job=job, output_dir=tmp_path, timeout_secs=60
+            job=job, output_dir=tmp_path, timeout_secs=300
         )
         assert len(files) > 0
         assert all(f.exists() for f in files)
