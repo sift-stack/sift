@@ -3,25 +3,27 @@ from __future__ import annotations
 import zipfile
 from typing import TYPE_CHECKING
 
-import requests
-
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from sift_client.transport.rest_transport import RestClient
+
 
 def download_and_extract_zip(
-    url: str, zip_path: Path, output_dir: Path, *, extract: bool = True
+    url: str, zip_path: Path, output_dir: Path, *, rest_client: RestClient, extract: bool = True
 ) -> list[Path]:
     """Download a zip file from a URL and optionally extract its contents.
 
-    Downloads the file in streaming 4 MiB chunks. If extract is True,
-    extracts all contents to the output directory and removes the zip file.
+    Downloads the file in streaming 4 MiB chunks using the SDK's rest client.
+    If extract is True, extracts all contents to the output directory and
+    removes the zip file.
 
     Args:
         url: The URL to download the zip file from.
         zip_path: Path where the zip file will be saved.
         output_dir: Directory to extract the zip contents into.
             Created if it doesn't exist.
+        rest_client: The SDK rest client to use for the download.
         extract: If True (default), extract the zip and delete it.
             If False, keep the zip file as-is.
 
@@ -34,7 +36,8 @@ def download_and_extract_zip(
         zipfile.BadZipFile: If the downloaded file is not a valid zip.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    with requests.get(url=url, stream=True) as response:
+    # Strip the session's default Authorization header, presigned URLs carry their own auth
+    with rest_client.get(url, stream=True, headers={"Authorization": None}) as response:
         response.raise_for_status()
         with zip_path.open("wb") as file:
             for chunk in response.iter_content(chunk_size=4194304):  # 4 MiB

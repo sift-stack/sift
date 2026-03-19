@@ -194,10 +194,13 @@ class ExportsAPIAsync(ResourceBase):
         zip_path = output_dir / f"{job_id}.zip"
 
         # Run the synchronous download in a thread pool to avoid blocking the event loop
+        rest_client = self.client.rest_client
         loop = asyncio.get_running_loop()
         extracted_files = await loop.run_in_executor(
             None,
-            lambda: download_and_extract_zip(presigned_url, zip_path, output_dir, extract=extract),
+            lambda: download_and_extract_zip(
+                presigned_url, zip_path, output_dir, rest_client=rest_client, extract=extract
+            ),
         )
 
         return extracted_files
