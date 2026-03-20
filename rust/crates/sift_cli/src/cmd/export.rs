@@ -17,8 +17,8 @@ use sift_rs::{
     SiftChannel,
     assets::v1::{ListAssetsRequest, ListAssetsResponse, asset_service_client::AssetServiceClient},
     exports::v1::{
-        AssetsAndTimeRange, ExportDataRequest, ExportDataResponse, ExportOutputFormat,
-        GetDownloadUrlRequest, GetDownloadUrlResponse, RunsAndTimeRange,
+        AssetsAndTimeRange, CalculatedChannelConfig, ExportDataRequest, ExportDataResponse,
+        ExportOutputFormat, GetDownloadUrlRequest, GetDownloadUrlResponse, RunsAndTimeRange,
         export_data_request::TimeSelection, export_service_client::ExportServiceClient,
     },
     jobs::v1::JobStatus,
@@ -30,8 +30,14 @@ use zip::ZipArchive;
 use crate::{
     cli::{ExportAssetArgs, ExportRunArgs},
     util::{
-        api::create_grpc_channel, channel::filter_channels, job::JobServiceWrapper,
-        progress::Spinner, tty::Output,
+        api::create_grpc_channel,
+        calculated_channel::{
+            channel_applies_to_assets, filter_calculated_channels, to_calculated_channel_config,
+        },
+        channel::filter_channels,
+        job::JobServiceWrapper,
+        progress::Spinner,
+        tty::Output,
     },
 };
 
@@ -120,6 +126,53 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
         }
     }
 
+    let mut calculated_channel_configs: Vec<CalculatedChannelConfig> = Vec::new();
+
+    if !args.common.calc_channel.is_empty() {
+        let names_cel = args
+            .common
+            .calc_channel
+            .iter()
+            .map(|c| format!("'{c}'"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let filter = format!("name in [{names_cel}]");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+
+        for channel in query_res {
+            if channel_applies_to_assets(&channel, &run.asset_ids) {
+                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+            }
+        }
+    }
+
+    if let Some(re) = args.common.calc_channel_regex {
+        let filter = format!("name.matches(\"{re}\")");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+
+        for channel in query_res {
+            if channel_applies_to_assets(&channel, &run.asset_ids) {
+                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+            }
+        }
+    }
+
+    if !args.common.calc_channel_id.is_empty() {
+        let ids_cel = args
+            .common
+            .calc_channel_id
+            .iter()
+            .map(|id| format!("'{id}'"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let filter = format!("calculated_channel_id in [{ids_cel}]");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+
+        for channel in query_res {
+            calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+        }
+    }
+
     let start_time = args
         .common
         .start
@@ -144,6 +197,7 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
 
     let export_req = ExportDataRequest {
         channel_ids,
+        calculated_channel_configs,
         output_format: ExportOutputFormat::from(args.common.format).into(),
         time_selection: Some(TimeSelection::RunsAndTimeRange(RunsAndTimeRange {
             start_time,
@@ -227,11 +281,60 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         }
     }
 
+    let asset_ids = vec![asset_id.to_string()];
+    let mut calculated_channel_configs: Vec<CalculatedChannelConfig> = Vec::new();
+
+    if !args.common.calc_channel.is_empty() {
+        let names_cel = args
+            .common
+            .calc_channel
+            .iter()
+            .map(|c| format!("'{c}'"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let filter = format!("name in [{names_cel}]");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+
+        for channel in query_res {
+            if channel_applies_to_assets(&channel, &asset_ids) {
+                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+            }
+        }
+    }
+
+    if let Some(re) = args.common.calc_channel_regex {
+        let filter = format!("name.matches(\"{re}\")");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+
+        for channel in query_res {
+            if channel_applies_to_assets(&channel, &asset_ids) {
+                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+            }
+        }
+    }
+
+    if !args.common.calc_channel_id.is_empty() {
+        let ids_cel = args
+            .common
+            .calc_channel_id
+            .iter()
+            .map(|id| format!("'{id}'"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let filter = format!("calculated_channel_id in [{ids_cel}]");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+
+        for channel in query_res {
+            calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+        }
+    }
+
     let export_req = ExportDataRequest {
         channel_ids,
+        calculated_channel_configs,
         output_format: ExportOutputFormat::from(args.common.format).into(),
         time_selection: Some(TimeSelection::AssetsAndTimeRange(AssetsAndTimeRange {
-            asset_ids: vec![asset_id.to_string()],
+            asset_ids,
             start_time: Some(start_time),
             stop_time: Some(stop_time),
         })),
