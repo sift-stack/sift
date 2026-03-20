@@ -79,75 +79,83 @@ def test_client_binding(sift_client):
 @pytest.mark.integration
 class TestExportsIntegration:
     @pytest.mark.asyncio
-    async def test_export_by_run(self, exports_api_async, sift_client):
-        runs = await sift_client.async_.runs.list_(limit=1)
-        assert runs, "No runs available"
-        job = await exports_api_async.export(runs=[runs[0]], output_format=CSV)
+    async def test_export_by_run(self, exports_api_async, nostromo_run):
+        start = nostromo_run.start_time
+        job = await exports_api_async.export(
+            runs=[nostromo_run],
+            start_time=start,
+            stop_time=start + timedelta(seconds=10),
+            output_format=CSV,
+        )
         assert isinstance(job, Job)
         assert job.id_ is not None
 
     @pytest.mark.asyncio
-    async def test_export_by_asset(self, exports_api_async, sift_client):
-        assets = await sift_client.async_.assets.list_(limit=1)
-        assert assets, "No assets available"
-        now = datetime.now(timezone.utc)
+    async def test_export_by_asset(self, exports_api_async, nostromo_asset, nostromo_run):
+        start = nostromo_run.start_time
         job = await exports_api_async.export(
-            assets=[assets[0]],
-            start_time=now - timedelta(hours=1),
-            stop_time=now,
+            assets=[nostromo_asset],
+            start_time=start,
+            stop_time=start + timedelta(seconds=10),
             output_format=CSV,
         )
         assert isinstance(job, Job)
 
     @pytest.mark.asyncio
-    async def test_export_by_time_range(self, exports_api_async, sift_client):
+    async def test_export_by_time_range(self, exports_api_async, sift_client, nostromo_run):
         channels = await sift_client.async_.channels.list_(limit=1)
         assert channels, "No channels available"
-        now = datetime.now(timezone.utc)
+        start = nostromo_run.start_time
         job = await exports_api_async.export(
-            start_time=now - timedelta(hours=1),
-            stop_time=now,
+            start_time=start,
+            stop_time=start + timedelta(seconds=10),
             channels=[channels[0]],
             output_format=CSV,
         )
         assert isinstance(job, Job)
 
     @pytest.mark.asyncio
-    async def test_wait_and_download(self, exports_api_async, sift_client, tmp_path):
-        runs = await sift_client.async_.runs.list_(limit=1)
-        assert runs, "No runs available"
-        job = await exports_api_async.export(runs=[runs[0]], output_format=CSV)
+    async def test_wait_and_download(self, exports_api_async, nostromo_run, tmp_path):
+        start = nostromo_run.start_time
+        job = await exports_api_async.export(
+            runs=[nostromo_run],
+            start_time=start,
+            stop_time=start + timedelta(seconds=10),
+            output_format=CSV,
+        )
         files = await exports_api_async.wait_and_download(
             job=job, output_dir=tmp_path, timeout_secs=300
         )
         assert len(files) > 0
         assert all(f.exists() for f in files)
 
-    def test_sync_export_by_run(self, exports_api_sync, sift_client):
-        runs = sift_client.runs.list_(limit=1)
-        assert runs, "No runs available"
-        job = exports_api_sync.export(runs=[runs[0]], output_format=CSV)
-        assert isinstance(job, Job)
-
-    def test_sync_export_by_asset(self, exports_api_sync, sift_client):
-        assets = sift_client.assets.list_(limit=1)
-        assert assets, "No assets available"
-        now = datetime.now(timezone.utc)
+    def test_sync_export_by_run(self, exports_api_sync, nostromo_run):
+        start = nostromo_run.start_time
         job = exports_api_sync.export(
-            assets=[assets[0]],
-            start_time=now - timedelta(hours=1),
-            stop_time=now,
+            runs=[nostromo_run],
+            start_time=start,
+            stop_time=start + timedelta(seconds=10),
             output_format=CSV,
         )
         assert isinstance(job, Job)
 
-    def test_sync_export_by_time_range(self, exports_api_sync, sift_client):
+    def test_sync_export_by_asset(self, exports_api_sync, nostromo_asset, nostromo_run):
+        start = nostromo_run.start_time
+        job = exports_api_sync.export(
+            assets=[nostromo_asset],
+            start_time=start,
+            stop_time=start + timedelta(seconds=10),
+            output_format=CSV,
+        )
+        assert isinstance(job, Job)
+
+    def test_sync_export_by_time_range(self, exports_api_sync, sift_client, nostromo_run):
         channels = sift_client.channels.list_(limit=1)
         assert channels, "No channels available"
-        now = datetime.now(timezone.utc)
+        start = nostromo_run.start_time
         job = exports_api_sync.export(
-            start_time=now - timedelta(hours=1),
-            stop_time=now,
+            start_time=start,
+            stop_time=start + timedelta(seconds=10),
             channels=[channels[0]],
             output_format=CSV,
         )
@@ -405,7 +413,7 @@ def download_setup(exports_api, mock_client, tmp_path):
     fake_file = tmp_path / "data.csv"
     fake_file.write_text("col1,col2\n1,2")
     mock_loop = MagicMock()
-    mock_loop.run_in_executor = AsyncMock(return_value=[fake_file])
+    mock_loop.run_in_executor = AsyncMock(return_value=None)
 
     return {
         "api": exports_api,
@@ -423,7 +431,8 @@ class TestWaitAndDownload:
         job = MagicMock(spec=Job)
         job._id_or_error = "job-123"
         with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            result = await s["api"].wait_and_download(job=job, output_dir=s["tmp_path"])
+            with patch("sift_client.resources.exports.extract_zip", return_value=[s["fake_file"]]):
+                result = await s["api"].wait_and_download(job=job, output_dir=s["tmp_path"])
         assert result == [s["fake_file"]]
         s["client"].async_.jobs.wait_until_complete.assert_awaited_once_with(
             job="job-123", polling_interval_secs=5, timeout_secs=None
@@ -433,7 +442,8 @@ class TestWaitAndDownload:
     async def test_job_id_string(self, download_setup):
         s = download_setup
         with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            result = await s["api"].wait_and_download(job="job-456", output_dir=s["tmp_path"])
+            with patch("sift_client.resources.exports.extract_zip", return_value=[s["fake_file"]]):
+                result = await s["api"].wait_and_download(job="job-456", output_dir=s["tmp_path"])
         assert result == [s["fake_file"]]
 
     @pytest.mark.asyncio
@@ -442,9 +452,10 @@ class TestWaitAndDownload:
         job = MagicMock(spec=Job)
         job._id_or_error = "job-123"
         with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            await s["api"].wait_and_download(
-                job=job, polling_interval_secs=1, timeout_secs=10, output_dir=s["tmp_path"]
-            )
+            with patch("sift_client.resources.exports.extract_zip", return_value=[s["fake_file"]]):
+                await s["api"].wait_and_download(
+                    job=job, polling_interval_secs=1, timeout_secs=10, output_dir=s["tmp_path"]
+                )
         s["client"].async_.jobs.wait_until_complete.assert_awaited_once_with(
             job="job-123", polling_interval_secs=1, timeout_secs=10
         )

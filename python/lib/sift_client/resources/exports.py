@@ -13,7 +13,7 @@ from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.calculated_channel import CalculatedChannelCreate
 from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.export import ExportOutputFormat  # noqa: TC001
-from sift_client.sift_types.job import Job  
+from sift_client.sift_types.job import Job
 from sift_client.sift_types.run import Run
 
 if TYPE_CHECKING:
