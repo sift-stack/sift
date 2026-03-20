@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import tempfile
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
+from sift_client._internal.util.executor import run_sync_function
+from sift_client._internal.util.file import download_file, extract_zip
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.job import Job, JobStatus, JobType
+from sift_client.sift_types.job import DataExportStatusDetails, Job, JobStatus, JobType
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
@@ -189,3 +193,74 @@ class JobsAPIAsync(ResourceBase):
             if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
                 raise TimeoutError(f"Job {job_id} did not complete within {timeout_secs} seconds")
             await asyncio.sleep(polling_interval_secs)
+
+    async def wait_and_download(
+        self,
+        *,
+        job: Job | str,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        output_dir: str | Path | None = None,
+        extract: bool = True,
+    ) -> list[Path]:
+        """Wait for an export job to complete and download the exported files.
+
+        Polls the job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, then downloads and extracts the exported data files.
+
+        Args:
+            job: The export Job or job ID to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+            output_dir: Directory to save the extracted files. If omitted, a
+                temporary directory is created automatically.
+            extract: If True (default), extract the zip and delete it,
+                returning paths to the extracted files. If False, keep the
+                zip file and return its path.
+
+        Returns:
+            List of paths to the extracted data files, or a single-element
+            list containing the zip path if extract is False.
+
+        Raises:
+            RuntimeError: If the export job fails or is cancelled.
+            TimeoutError: If the export job does not complete within timeout_secs.
+        """
+        job_id = job._id_or_error if isinstance(job, Job) else job
+
+        completed_job = await self.wait_until_complete(
+            job=job_id,
+            polling_interval_secs=polling_interval_secs,
+            timeout_secs=timeout_secs,
+        )
+        if completed_job.job_status == JobStatus.FAILED:
+            if (
+                isinstance(completed_job.job_status_details, DataExportStatusDetails)
+                and completed_job.job_status_details.error_message
+            ):
+                raise RuntimeError(
+                    f"Export job '{job_id}' failed. {completed_job.job_status_details.error_message}"
+                )
+            raise RuntimeError(f"Export job '{job_id}' failed.")
+        if completed_job.job_status == JobStatus.CANCELLED:
+            raise RuntimeError(f"Export job '{job_id}' was cancelled.")
+
+        presigned_url = await self.client.async_.data_export._low_level_client.get_download_url(
+            job_id=job_id
+        )
+        output_dir = (
+            Path(output_dir)
+            if output_dir is not None
+            else Path(tempfile.mkdtemp(prefix="sift_export_"))
+        )
+        zip_file_path = output_dir / f"{job_id}.zip"
+
+        # Run the synchronous download in a thread pool to avoid blocking the event loop
+        rest_client = self.client.rest_client
+        await run_sync_function(
+            lambda: download_file(presigned_url, zip_file_path, rest_client=rest_client)
+        )
+
+        if not extract:
+            return [zip_file_path]
+        return extract_zip(zip_file_path, output_dir)

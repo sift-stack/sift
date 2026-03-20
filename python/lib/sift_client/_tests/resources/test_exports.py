@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from sift_client import SiftClient
 from sift_client.resources import DataExportAPI
 from sift_client.resources.exports import DataExportAPIAsync
+from sift_client.resources.jobs import JobsAPIAsync
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
@@ -123,9 +124,7 @@ class TestExportsIntegration:
             stop_time=start + timedelta(seconds=10),
             output_format=CSV,
         )
-        files = await exports_api_async.wait_and_download(
-            job=job, output_dir=tmp_path, timeout_secs=300
-        )
+        files = job.wait_and_download(output_dir=tmp_path, timeout_secs=300)
         assert len(files) > 0
         assert all(f.exists() for f in files)
 
@@ -402,11 +401,15 @@ class TestResolveCalculatedChannels:
 
 
 @pytest.fixture
-def download_setup(exports_api, mock_client, tmp_path):
+def download_setup(mock_client, tmp_path):
     completed_job = MagicMock(spec=Job)
     completed_job.job_status = JobStatus.FINISHED
-    mock_client.async_.jobs.wait_until_complete = AsyncMock(return_value=completed_job)
-    exports_api._low_level_client.get_download_url = AsyncMock(
+
+    jobs_api = JobsAPIAsync(mock_client)
+    jobs_api.wait_until_complete = AsyncMock(return_value=completed_job)
+    mock_client.async_.data_export = MagicMock()
+    mock_client.async_.data_export._low_level_client = MagicMock()
+    mock_client.async_.data_export._low_level_client.get_download_url = AsyncMock(
         return_value="https://dl.test/export.zip"
     )
 
@@ -416,7 +419,7 @@ def download_setup(exports_api, mock_client, tmp_path):
     mock_loop.run_in_executor = AsyncMock(return_value=None)
 
     return {
-        "api": exports_api,
+        "api": jobs_api,
         "client": mock_client,
         "tmp_path": tmp_path,
         "fake_file": fake_file,
@@ -431,10 +434,10 @@ class TestWaitAndDownload:
         job = MagicMock(spec=Job)
         job._id_or_error = "job-123"
         with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            with patch("sift_client.resources.exports.extract_zip", return_value=[s["fake_file"]]):
+            with patch("sift_client.resources.jobs.extract_zip", return_value=[s["fake_file"]]):
                 result = await s["api"].wait_and_download(job=job, output_dir=s["tmp_path"])
         assert result == [s["fake_file"]]
-        s["client"].async_.jobs.wait_until_complete.assert_awaited_once_with(
+        s["api"].wait_until_complete.assert_awaited_once_with(
             job="job-123", polling_interval_secs=5, timeout_secs=None
         )
 
@@ -442,7 +445,7 @@ class TestWaitAndDownload:
     async def test_job_id_string(self, download_setup):
         s = download_setup
         with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            with patch("sift_client.resources.exports.extract_zip", return_value=[s["fake_file"]]):
+            with patch("sift_client.resources.jobs.extract_zip", return_value=[s["fake_file"]]):
                 result = await s["api"].wait_and_download(job="job-456", output_dir=s["tmp_path"])
         assert result == [s["fake_file"]]
 
@@ -452,11 +455,11 @@ class TestWaitAndDownload:
         job = MagicMock(spec=Job)
         job._id_or_error = "job-123"
         with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            with patch("sift_client.resources.exports.extract_zip", return_value=[s["fake_file"]]):
+            with patch("sift_client.resources.jobs.extract_zip", return_value=[s["fake_file"]]):
                 await s["api"].wait_and_download(
                     job=job, polling_interval_secs=1, timeout_secs=10, output_dir=s["tmp_path"]
                 )
-        s["client"].async_.jobs.wait_until_complete.assert_awaited_once_with(
+        s["api"].wait_until_complete.assert_awaited_once_with(
             job="job-123", polling_interval_secs=1, timeout_secs=10
         )
 
@@ -473,12 +476,11 @@ class TestWaitAndDownload:
             (JobStatus.CANCELLED, None, "cancelled"),
         ],
     )
-    async def test_terminal_status_raises(self, exports_api, mock_client, status, details, match):
-        job = MagicMock(spec=Job)
-        job._id_or_error = "job-err"
+    async def test_terminal_status_raises(self, mock_client, status, details, match):
+        jobs_api = JobsAPIAsync(mock_client)
         completed = MagicMock(spec=Job)
         completed.job_status = status
         completed.job_status_details = details
-        mock_client.async_.jobs.wait_until_complete = AsyncMock(return_value=completed)
+        jobs_api.wait_until_complete = AsyncMock(return_value=completed)
         with pytest.raises(RuntimeError, match=match):
-            await exports_api.wait_and_download(job=job)
+            await jobs_api.wait_and_download(job="job-err")
