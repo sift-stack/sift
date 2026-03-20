@@ -1387,17 +1387,6 @@ You're not viewing the latest version.
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.DataExportAPI.wait_and_download" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;wait_and_download
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1547,6 +1536,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;retry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.JobsAPI.wait_and_download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;wait_and_download
       
     </span>
   </a>
@@ -2993,17 +2993,6 @@ You're not viewing the latest version.
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.DataExportAPI.wait_and_download" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;wait_and_download
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -3153,6 +3142,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;retry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.JobsAPI.wait_and_download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;wait_and_download
       
     </span>
   </a>
@@ -8250,14 +8250,6 @@ has no id set, raises ValueError.</p>
                 </div>
               </td>
             </tr>
-            <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            wait_and_download (sift_client.resources.sync_stubs.DataExportAPI.wait_and_download)" href="#sift_client.resources.sync_stubs.DataExportAPI.wait_and_download">wait_and_download</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Wait for an export job to complete and download the exported files.</p>
-                </div>
-              </td>
-            </tr>
       </tbody>
     </table>
 
@@ -8338,7 +8330,7 @@ has no id set, raises ValueError.</p>
 
         <p>Export data from Sift.</p>
 <p>Initiates an export on the server and returns a Job handle. Use
-<code>wait_and_download</code> to poll for completion and download the files.</p>
+<code>job.wait_and_download()</code> to poll for completion and download the files.</p>
 <p>There are three ways to scope the export, determined by which arguments
 are provided:</p>
 <ol>
@@ -8649,228 +8641,6 @@ name removed from channel name display.</p>
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>A Job handle for the pending export.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sift_client.resources.sync_stubs.DataExportAPI.wait_and_download" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">wait_and_download</span>
-
-
-<a href="#sift_client.resources.sync_stubs.DataExportAPI.wait_and_download" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">wait_and_download</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">job</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.job.Job)" href="../../sift_types/job/#sift_client.sift_types.job.Job">Job</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">extract</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="pathlib.Path">Path</span></span><span class="p">]</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Wait for an export job to complete and download the exported files.</p>
-<p>Polls the job status at the given interval until the job is FINISHED,
-FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">PARAMETER</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>job</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The export Job or job ID to wait for.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            Job
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.job.Job)" href="../../sift_types/job/#sift_client.sift_types.job.Job">Job</a> | <span title="str">str</span></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>polling_interval_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Seconds between status polls. Defaults to 5.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>5</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>timeout_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Maximum seconds to wait. If None, polls indefinitely.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>output_dir</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Directory to save the extracted files. If omitted, a
-temporary directory is created automatically.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>extract</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>If True (default), extract the zip and delete it,
-returning paths to the extracted files. If False, keep the
-zip file and return its path.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="bool">bool</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>True</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RETURNS</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>List of paths to the extracted data files, or a single-element</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>list containing the zip path if extract is False.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RAISES</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-              <span class="doc-raises-annotation">
-                  <code><span title="RuntimeError">RuntimeError</span></code>
-              </span>
-            </td>
-            <td class="doc-raises-details">
-              <div class="doc-md-description">
-                <p>If the export job fails or is cancelled.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-              <span class="doc-raises-annotation">
-                  <code><span title="TimeoutError">TimeoutError</span></code>
-              </span>
-            </td>
-            <td class="doc-raises-details">
-              <div class="doc-md-description">
-                <p>If the export job does not complete within timeout_secs.</p>
               </div>
             </td>
           </tr>
@@ -10123,6 +9893,14 @@ Jobs represent long-running operations like data imports, rule evaluations, and 
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            wait_and_download (sift_client.resources.sync_stubs.JobsAPI.wait_and_download)" href="#sift_client.resources.sync_stubs.JobsAPI.wait_and_download">wait_and_download</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Wait for an export job to complete and download the exported files.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            wait_until_complete (sift_client.resources.sync_stubs.JobsAPI.wait_until_complete)" href="#sift_client.resources.sync_stubs.JobsAPI.wait_until_complete">wait_until_complete</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -10798,6 +10576,228 @@ Jobs that are already finished, failed, or cancelled are not affected.</p>
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>The updated Job object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.sync_stubs.JobsAPI.wait_and_download" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">wait_and_download</span>
+
+
+<a href="#sift_client.resources.sync_stubs.JobsAPI.wait_and_download" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">wait_and_download</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">job</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.job.Job)" href="../../sift_types/job/#sift_client.sift_types.job.Job">Job</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">extract</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="pathlib.Path">Path</span></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Wait for an export job to complete and download the exported files.</p>
+<p>Polls the job status at the given interval until the job is FINISHED,
+FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>job</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The export Job or job ID to wait for.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            Job
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.job.Job)" href="../../sift_types/job/#sift_client.sift_types.job.Job">Job</a> | <span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>polling_interval_secs</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Seconds between status polls. Defaults to 5.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>5</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout_secs</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Maximum seconds to wait. If None, polls indefinitely.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_dir</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Directory to save the extracted files. If omitted, a
+temporary directory is created automatically.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extract</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If True (default), extract the zip and delete it,
+returning paths to the extracted files. If False, keep the
+zip file and return its path.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>True</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>List of paths to the extracted data files, or a single-element</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>list containing the zip path if extract is False.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If the export job fails or is cancelled.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="TimeoutError">TimeoutError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If the export job does not complete within timeout_secs.</p>
               </div>
             </td>
           </tr>
