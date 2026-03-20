@@ -34,6 +34,11 @@ jobs:
         env:
           # Fix ring crate cross-compilation for aarch64
           CFLAGS_aarch64_unknown_linux_gnu: "-D__ARM_ARCH=8"
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.platform.target }}
+          path: rust/crates/sift_stream_bindings/dist
 
   windows:
     runs-on: ${{ matrix.platform.runner }}
@@ -58,6 +63,11 @@ jobs:
           args: --release --out dist
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
           working-directory: rust/crates/sift_stream_bindings
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-${{ matrix.platform.target }}-py${{ matrix.python-version }}
+          path: rust/crates/sift_stream_bindings/dist
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
@@ -80,6 +90,11 @@ jobs:
           args: --release --out dist --interpreter '3.8 3.9 3.10 3.11 3.12 3.13 3.14'
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
           working-directory: rust/crates/sift_stream_bindings
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.platform.target }}
+          path: rust/crates/sift_stream_bindings/dist
 
   sdist:
     runs-on: ubuntu-latest
@@ -91,4 +106,8 @@ jobs:
           command: sdist
           args: --out dist
           working-directory: rust/crates/sift_stream_bindings
-
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: rust/crates/sift_stream_bindings/dist
