@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.2] - March 20, 2026
+### What's New
+Updates `sift_connect` to use the `tls-ring` feature from `tonic` instead of `tls-aws-lc`.
+
+### Full Changelog
+- [Use tls-ring instead of tls-aws-lc feature in tonic](https://github.com/sift-stack/sift/commit/1da4864f0ad31ddfa2f408d6aad80a994e7b9bd8)
+
 ## [v0.8.1] - March 20, 2026
 ### What's New
 Fixes a regression in  `sift_connect` prevending a TLS provider to be selected when creating a `SiftChannel`.
