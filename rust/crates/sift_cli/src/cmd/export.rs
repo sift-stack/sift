@@ -17,8 +17,8 @@ use sift_rs::{
     SiftChannel,
     assets::v1::{ListAssetsRequest, ListAssetsResponse, asset_service_client::AssetServiceClient},
     exports::v1::{
-        AssetsAndTimeRange, CalculatedChannelConfig, ExportDataRequest, ExportDataResponse,
-        ExportOutputFormat, GetDownloadUrlRequest, GetDownloadUrlResponse, RunsAndTimeRange,
+        AssetsAndTimeRange, ExportDataRequest, ExportDataResponse, ExportOutputFormat,
+        GetDownloadUrlRequest, GetDownloadUrlResponse, RunsAndTimeRange,
         export_data_request::TimeSelection, export_service_client::ExportServiceClient,
     },
     jobs::v1::JobStatus,
@@ -128,12 +128,12 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
     }
 
     let scope = ResolveScope::Run(&run.run_id);
-    let mut calculated_channel_configs: Vec<CalculatedChannelConfig> = Vec::new();
+    let mut calculated_channel_configs = Vec::new();
 
-    if !args.common.calc_channel.is_empty() {
+    if !args.common.calculated_channel.is_empty() {
         let names_cel = args
             .common
-            .calc_channel
+            .calculated_channel
             .iter()
             .map(|c| format!("'{c}'"))
             .collect::<Vec<_>>()
@@ -151,7 +151,7 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
         }
     }
 
-    if let Some(re) = args.common.calc_channel_regex {
+    if let Some(re) = args.common.calculated_channel_regex {
         let filter = format!("name.matches(\"{re}\")");
         let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
 
@@ -165,10 +165,10 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
         }
     }
 
-    if !args.common.calc_channel_id.is_empty() {
+    if !args.common.calculated_channel_id.is_empty() {
         let ids_cel = args
             .common
-            .calc_channel_id
+            .calculated_channel_id
             .iter()
             .map(|id| format!("'{id}'"))
             .collect::<Vec<_>>()
@@ -294,12 +294,12 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
 
     let asset_ids = vec![asset_id.to_string()];
     let scope = ResolveScope::Assets(&asset_ids);
-    let mut calculated_channel_configs: Vec<CalculatedChannelConfig> = Vec::new();
+    let mut calculated_channel_configs = Vec::new();
 
-    if !args.common.calc_channel.is_empty() {
+    if !args.common.calculated_channel.is_empty() {
         let names_cel = args
             .common
-            .calc_channel
+            .calculated_channel
             .iter()
             .map(|c| format!("'{c}'"))
             .collect::<Vec<_>>()
@@ -317,7 +317,7 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         }
     }
 
-    if let Some(re) = args.common.calc_channel_regex {
+    if let Some(re) = args.common.calculated_channel_regex {
         let filter = format!("name.matches(\"{re}\")");
         let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
 
@@ -331,10 +331,10 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         }
     }
 
-    if !args.common.calc_channel_id.is_empty() {
+    if !args.common.calculated_channel_id.is_empty() {
         let ids_cel = args
             .common
-            .calc_channel_id
+            .calculated_channel_id
             .iter()
             .map(|id| format!("'{id}'"))
             .collect::<Vec<_>>()
