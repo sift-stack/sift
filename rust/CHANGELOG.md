@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.1] - March 20, 2026
+### What's New
+Fixes a regression in  `sift_connect` prevending a TLS provider to be selected when creating a `SiftChannel`.
+
+### Full Changelog
+- [Fix sift-connect tonic build feature regression](https://github.com/sift-stack/sift/commit/86d0b630fe2bf93397b942128f1596769800aaaa)
+
 ## [v0.8.0] - March 17, 2026
 ### What's New
 Updates all crate dependencies to their latest versions, as well as proto build tooling.
