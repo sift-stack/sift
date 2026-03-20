@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
 from sift_client._internal.util.channels import resolve_calculated_channels
+from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import download_file, extract_zip
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
@@ -205,10 +205,8 @@ class DataExportAPIAsync(ResourceBase):
 
         # Run the synchronous download in a thread pool to avoid blocking the event loop
         rest_client = self.client.rest_client
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(
-            None,
-            lambda: download_file(presigned_url, zip_file_path, rest_client=rest_client),
+        await run_sync_function(
+            lambda: download_file(presigned_url, zip_file_path, rest_client=rest_client)
         )
 
         if not extract:
