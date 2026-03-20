@@ -2,12 +2,23 @@ use anyhow::{Context, Result, anyhow};
 use sift_rs::{
     SiftChannel,
     calculated_channels::v2::{
-        CalculatedChannel, ListCalculatedChannelsRequest, ListCalculatedChannelsResponse,
-        calculated_channel_query_configuration::Query,
+        CalculatedChannel, CalculatedChannelAbstractChannelReference,
+        ListCalculatedChannelsRequest, ListCalculatedChannelsResponse,
+        ResolveCalculatedChannelRequest, calculated_channel_asset_configuration::AssetScope,
         calculated_channel_service_client::CalculatedChannelServiceClient,
+        resolve_calculated_channel_request::CalculatedChannel as RequestCalculatedChannel,
+    },
+    common::r#type::v1::{
+        Ids, NamedResources, ResourceIdentifier, named_resources::Resources,
+        resource_identifier::Identifier,
     },
     exports::v1::CalculatedChannelConfig,
 };
+
+pub enum ResolveScope<'a> {
+    Run(&'a str),
+    Assets(&'a [String]),
+}
 
 pub async fn filter_calculated_channels(
     grpc_channel: SiftChannel,
@@ -44,8 +55,6 @@ pub async fn filter_calculated_channels(
 }
 
 pub fn channel_applies_to_assets(channel: &CalculatedChannel, asset_ids: &[String]) -> bool {
-    use sift_rs::calculated_channels::v2::calculated_channel_asset_configuration::AssetScope;
-
     let Some(config) = &channel.calculated_channel_configuration else {
         return true;
     };
@@ -61,27 +70,82 @@ pub fn channel_applies_to_assets(channel: &CalculatedChannel, asset_ids: &[Strin
     }
 }
 
-pub fn to_calculated_channel_config(channel: CalculatedChannel) -> Result<CalculatedChannelConfig> {
-    let name = channel.name.clone();
-    let units = channel.units.clone();
+pub async fn resolve_to_calculated_channel_configs(
+    grpc_channel: SiftChannel,
+    channel: &CalculatedChannel,
+    scope: &ResolveScope<'_>,
+) -> Result<Vec<CalculatedChannelConfig>> {
+    let mut service = CalculatedChannelServiceClient::new(grpc_channel);
 
-    let config = channel
-        .calculated_channel_configuration
-        .ok_or_else(|| anyhow!("calculated channel '{name}' has no configuration"))?;
-
-    let query_config = config
-        .query_configuration
-        .ok_or_else(|| anyhow!("calculated channel '{name}' has no query configuration"))?;
-
-    let sel = match query_config.query {
-        Some(Query::Sel(sel)) => sel,
-        None => return Err(anyhow!("calculated channel '{name}' has no query")),
+    let (assets, run) = match scope {
+        ResolveScope::Run(run_id) => (
+            None,
+            Some(ResourceIdentifier {
+                identifier: Some(Identifier::Id(run_id.to_string())),
+            }),
+        ),
+        ResolveScope::Assets(asset_ids) => (
+            Some(NamedResources {
+                resources: Some(Resources::Ids(Ids {
+                    ids: asset_ids.to_vec(),
+                })),
+            }),
+            None,
+        ),
     };
 
-    Ok(CalculatedChannelConfig {
-        name,
-        expression: sel.expression,
-        channel_references: sel.expression_channel_references,
-        units,
-    })
+    let response = service
+        .resolve_calculated_channel(ResolveCalculatedChannelRequest {
+            assets,
+            run,
+            calculated_channel: Some(RequestCalculatedChannel::Identifier(ResourceIdentifier {
+                identifier: Some(Identifier::Id(channel.calculated_channel_id.clone())),
+            })),
+            ..Default::default()
+        })
+        .await
+        .with_context(|| format!("failed to resolve calculated channel '{}'", channel.name))?
+        .into_inner();
+
+    if !response.unresolved.is_empty() {
+        let assets: Vec<_> = response
+            .unresolved
+            .iter()
+            .map(|u| format!("'{}': {}", u.asset_name, u.error_message))
+            .collect();
+        return Err(anyhow!(
+            "calculated channel '{}' could not be resolved for the following assets:\n{}",
+            channel.name,
+            assets.join("\n")
+        ));
+    }
+
+    response
+        .resolved
+        .into_iter()
+        .map(|resolved| {
+            let expr = resolved.expression_request.ok_or_else(|| {
+                anyhow!(
+                    "resolved calculated channel '{}' has no expression request",
+                    channel.name
+                )
+            })?;
+
+            let channel_references = expr
+                .expression_channel_references
+                .into_iter()
+                .map(|r| CalculatedChannelAbstractChannelReference {
+                    channel_reference: r.channel_reference,
+                    channel_identifier: r.channel_id,
+                })
+                .collect();
+
+            Ok(CalculatedChannelConfig {
+                name: channel.name.clone(),
+                expression: expr.expression,
+                channel_references,
+                units: channel.units.clone(),
+            })
+        })
+        .collect()
 }

@@ -32,7 +32,8 @@ use crate::{
     util::{
         api::create_grpc_channel,
         calculated_channel::{
-            channel_applies_to_assets, filter_calculated_channels, to_calculated_channel_config,
+            ResolveScope, channel_applies_to_assets, filter_calculated_channels,
+            resolve_to_calculated_channel_configs,
         },
         channel::filter_channels,
         job::JobServiceWrapper,
@@ -126,6 +127,7 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
         }
     }
 
+    let scope = ResolveScope::Run(&run.run_id);
     let mut calculated_channel_configs: Vec<CalculatedChannelConfig> = Vec::new();
 
     if !args.common.calc_channel.is_empty() {
@@ -141,7 +143,10 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
 
         for channel in query_res {
             if channel_applies_to_assets(&channel, &run.asset_ids) {
-                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+                let configs =
+                    resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, &scope)
+                        .await?;
+                calculated_channel_configs.extend(configs);
             }
         }
     }
@@ -152,7 +157,10 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
 
         for channel in query_res {
             if channel_applies_to_assets(&channel, &run.asset_ids) {
-                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+                let configs =
+                    resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, &scope)
+                        .await?;
+                calculated_channel_configs.extend(configs);
             }
         }
     }
@@ -169,7 +177,10 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
         let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
 
         for channel in query_res {
-            calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+            let configs =
+                resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, &scope)
+                    .await?;
+            calculated_channel_configs.extend(configs);
         }
     }
 
@@ -282,6 +293,7 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
     }
 
     let asset_ids = vec![asset_id.to_string()];
+    let scope = ResolveScope::Assets(&asset_ids);
     let mut calculated_channel_configs: Vec<CalculatedChannelConfig> = Vec::new();
 
     if !args.common.calc_channel.is_empty() {
@@ -297,7 +309,10 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
 
         for channel in query_res {
             if channel_applies_to_assets(&channel, &asset_ids) {
-                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+                let configs =
+                    resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, &scope)
+                        .await?;
+                calculated_channel_configs.extend(configs);
             }
         }
     }
@@ -308,7 +323,10 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
 
         for channel in query_res {
             if channel_applies_to_assets(&channel, &asset_ids) {
-                calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+                let configs =
+                    resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, &scope)
+                        .await?;
+                calculated_channel_configs.extend(configs);
             }
         }
     }
@@ -325,7 +343,10 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
 
         for channel in query_res {
-            calculated_channel_configs.push(to_calculated_channel_config(channel)?);
+            let configs =
+                resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, &scope)
+                    .await?;
+            calculated_channel_configs.extend(configs);
         }
     }
 
