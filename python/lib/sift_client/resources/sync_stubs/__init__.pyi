@@ -571,7 +571,7 @@ class DataExportAPI:
         """Export data from Sift.
 
         Initiates an export on the server and returns a Job handle. Use
-        ``wait_and_download`` to poll for completion and download the files.
+        ``job.wait_and_download()`` to poll for completion and download the files.
 
         There are three ways to scope the export, determined by which arguments
         are provided:
@@ -618,40 +618,6 @@ class DataExportAPI:
 
         Returns:
             A Job handle for the pending export.
-        """
-        ...
-
-    def wait_and_download(
-        self,
-        *,
-        job: Job | str,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-        output_dir: str | Path | None = None,
-        extract: bool = True,
-    ) -> list[Path]:
-        """Wait for an export job to complete and download the exported files.
-
-        Polls the job status at the given interval until the job is FINISHED,
-        FAILED, or CANCELLED, then downloads and extracts the exported data files.
-
-        Args:
-            job: The export Job or job ID to wait for.
-            polling_interval_secs: Seconds between status polls. Defaults to 5.
-            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-            output_dir: Directory to save the extracted files. If omitted, a
-                temporary directory is created automatically.
-            extract: If True (default), extract the zip and delete it,
-                returning paths to the extracted files. If False, keep the
-                zip file and return its path.
-
-        Returns:
-            List of paths to the extracted data files, or a single-element
-            list containing the zip path if extract is False.
-
-        Raises:
-            RuntimeError: If the export job fails or is cancelled.
-            TimeoutError: If the export job does not complete within timeout_secs.
         """
         ...
 
@@ -882,6 +848,40 @@ class JobsAPI:
 
         Returns:
             The updated Job object.
+        """
+        ...
+
+    def wait_and_download(
+        self,
+        *,
+        job: Job | str,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        output_dir: str | Path | None = None,
+        extract: bool = True,
+    ) -> list[Path]:
+        """Wait for an export job to complete and download the exported files.
+
+        Polls the job status at the given interval until the job is FINISHED,
+        FAILED, or CANCELLED, then downloads and extracts the exported data files.
+
+        Args:
+            job: The export Job or job ID to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+            output_dir: Directory to save the extracted files. If omitted, a
+                temporary directory is created automatically.
+            extract: If True (default), extract the zip and delete it,
+                returning paths to the extracted files. If False, keep the
+                zip file and return its path.
+
+        Returns:
+            List of paths to the extracted data files, or a single-element
+            list containing the zip path if extract is False.
+
+        Raises:
+            RuntimeError: If the export job fails or is cancelled.
+            TimeoutError: If the export job does not complete within timeout_secs.
         """
         ...
 
