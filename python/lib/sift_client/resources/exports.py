@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
 from sift_client._internal.util.channels import resolve_calculated_channels
-from sift_client._internal.util.download import download_and_extract_zip
+from sift_client._internal.util.file import download_file, extract_zip
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.calculated_channel import CalculatedChannelCreate
 from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.export import ExportOutputFormat  # noqa: TC001
-from sift_client.sift_types.job import Job
+from sift_client.sift_types.job import Job  
 from sift_client.sift_types.run import Run
 
 if TYPE_CHECKING:
@@ -201,16 +201,16 @@ class DataExportAPIAsync(ResourceBase):
             if output_dir is not None
             else Path(tempfile.mkdtemp(prefix="sift_export_"))
         )
-        zip_path = output_dir / f"{job_id}.zip"
+        zip_file_path = output_dir / f"{job_id}.zip"
 
         # Run the synchronous download in a thread pool to avoid blocking the event loop
         rest_client = self.client.rest_client
         loop = asyncio.get_running_loop()
-        extracted_files = await loop.run_in_executor(
+        await loop.run_in_executor(
             None,
-            lambda: download_and_extract_zip(
-                presigned_url, zip_path, output_dir, rest_client=rest_client, extract=extract
-            ),
+            lambda: download_file(presigned_url, zip_file_path, rest_client=rest_client),
         )
 
-        return extracted_files
+        if not extract:
+            return [zip_file_path]
+        return extract_zip(zip_file_path, output_dir)
