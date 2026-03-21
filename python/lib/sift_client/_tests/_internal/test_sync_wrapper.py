@@ -82,6 +82,13 @@ class MockResourceAsync(ResourceBase):
         await asyncio.sleep(0.01)
         raise ValueError("Test exception")
 
+    async def async_method_with_executor(self) -> str:
+        """Test async method that uses run_in_executor, like wait_and_download."""
+        self._record_call("async_method_with_executor")
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, lambda: "executor_result")
+        return result
+
     async def async_method_with_complex_args(
         self, arg1: str, arg2: dict[str, Any] | None = None, *args, **kwargs
     ) -> dict[str, Any]:
@@ -183,3 +190,44 @@ class TestSyncWrapper:
         assert result["args"] == ("extra_arg",)
         assert result["kwargs"] == {"keyword": "keyword_value"}
         assert mock_resource_sync._async_impl.get_call_count("async_method_with_complex_args") == 1
+
+
+class TestSyncWrapperEventLoopScenarios:
+    """Test sync wrapper with run_in_executor under different event loop scenarios."""
+
+    @pytest.fixture
+    def mock_resource_sync(self):
+        mock_client = MockClient()
+        MockResource = generate_sync_api(MockResourceAsync, "MockResource")  # noqa: N806
+        return MockResource(mock_client, value="testVal")
+
+    def test_sync_no_event_loop(self, mock_resource_sync):
+        """Plain sync call with no active event loop in the calling thread."""
+        result = mock_resource_sync.async_method_with_executor()
+        assert result == "executor_result"
+
+    def test_with_user_event_loop(self, mock_resource_sync):
+        """User has their own event loop running in another thread."""
+        user_loop = asyncio.new_event_loop()
+        user_thread = threading.Thread(target=user_loop.run_forever, daemon=True)
+        user_thread.start()
+        try:
+            result = mock_resource_sync.async_method_with_executor()
+            assert result == "executor_result"
+        finally:
+            user_loop.call_soon_threadsafe(user_loop.stop)
+            user_thread.join(timeout=1.0)
+            user_loop.close()
+
+    def test_sync_from_async(self, mock_resource_sync):
+        """Sync API called from inside a running async function."""
+
+        async def caller():
+            return mock_resource_sync.async_method_with_executor()
+
+        loop = asyncio.new_event_loop()
+        try:
+            result = loop.run_until_complete(caller())
+            assert result == "executor_result"
+        finally:
+            loop.close()
