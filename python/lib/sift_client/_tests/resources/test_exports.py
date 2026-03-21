@@ -92,12 +92,17 @@ class TestExportsIntegration:
         assert job.id_ is not None
 
     @pytest.mark.asyncio
-    async def test_export_by_asset(self, exports_api_async, nostromo_asset, nostromo_run):
+    async def test_export_by_asset(
+        self, exports_api_async, sift_client, nostromo_asset, nostromo_run
+    ):
+        channels = await sift_client.async_.channels.list_(limit=1)
+        assert channels, "No channels available"
         start = nostromo_run.start_time
         job = await exports_api_async.export(
             assets=[nostromo_asset],
             start_time=start,
             stop_time=start + timedelta(seconds=10),
+            channels=[channels[0]],
             output_format=CSV,
         )
         assert isinstance(job, Job)
@@ -138,12 +143,17 @@ class TestExportsIntegration:
         )
         assert isinstance(job, Job)
 
-    def test_sync_export_by_asset(self, exports_api_sync, nostromo_asset, nostromo_run):
+    def test_sync_export_by_asset(
+        self, exports_api_sync, sift_client, nostromo_asset, nostromo_run
+    ):
+        channels = sift_client.channels.list_(limit=1)
+        assert channels, "No channels available"
         start = nostromo_run.start_time
         job = exports_api_sync.export(
             assets=[nostromo_asset],
             start_time=start,
             stop_time=start + timedelta(seconds=10),
+            channels=[channels[0]],
             output_format=CSV,
         )
         assert isinstance(job, Job)
