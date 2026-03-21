@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import urljoin
 
 import pytest
+import requests
 
 from sift_client._internal.low_level_wrappers.exports import _build_calc_channel_configs
 from sift_client._internal.util.channels import resolve_calculated_channels
@@ -77,6 +80,49 @@ def test_client_binding(sift_client):
     assert isinstance(sift_client.async_.data_export, DataExportAPIAsync)
 
 
+INGEST_TIMESTAMP = datetime(2025, 6, 1, tzinfo=timezone.utc)
+
+
+@pytest.fixture(scope="session")
+def ingested_export_channel(sift_client, nostromo_asset):
+    """Ingest a single data point into a unique channel on the nostromo asset for export tests."""
+    import time
+
+    channel_name = f"export-test-{uuid.uuid4().hex[:8]}"
+    rest_client = sift_client.rest_client
+    ingest_url = urljoin(rest_client.base_url, "api/v2/ingest")
+    api_key = rest_client._config.api_key
+
+    payload = {
+        "asset_name": nostromo_asset.name,
+        "data": [
+            {
+                "timestamp": INGEST_TIMESTAMP.isoformat(),
+                "values": [{"channel": channel_name, "value": 42}],
+            }
+        ],
+    }
+    resp = requests.post(
+        ingest_url,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json=payload,
+        timeout=30,
+    )
+    resp.raise_for_status()
+
+    channel = None
+    for _ in range(20):
+        channel = sift_client.channels.find(name=channel_name, asset=nostromo_asset._id_or_error)
+        if channel is not None:
+            break
+        time.sleep(0.5)
+    assert channel is not None, f"Channel {channel_name} did not appear after ingest"
+
+    yield channel
+
+    sift_client.channels.archive([channel])
+
+
 @pytest.mark.integration
 class TestExportsIntegration:
     @pytest.mark.asyncio
@@ -93,16 +139,13 @@ class TestExportsIntegration:
 
     @pytest.mark.asyncio
     async def test_export_by_asset(
-        self, exports_api_async, sift_client, nostromo_asset, nostromo_run
+        self, exports_api_async, nostromo_asset, ingested_export_channel
     ):
-        channels = await sift_client.async_.channels.list_(limit=1)
-        assert channels, "No channels available"
-        start = nostromo_run.start_time
         job = await exports_api_async.export(
             assets=[nostromo_asset],
-            start_time=start,
-            stop_time=start + timedelta(seconds=10),
-            channels=[channels[0]],
+            start_time=INGEST_TIMESTAMP - timedelta(seconds=1),
+            stop_time=INGEST_TIMESTAMP + timedelta(seconds=1),
+            channels=[ingested_export_channel],
             output_format=CSV,
         )
         assert isinstance(job, Job)
@@ -143,17 +186,12 @@ class TestExportsIntegration:
         )
         assert isinstance(job, Job)
 
-    def test_sync_export_by_asset(
-        self, exports_api_sync, sift_client, nostromo_asset, nostromo_run
-    ):
-        channels = sift_client.channels.list_(limit=1)
-        assert channels, "No channels available"
-        start = nostromo_run.start_time
+    def test_sync_export_by_asset(self, exports_api_sync, nostromo_asset, ingested_export_channel):
         job = exports_api_sync.export(
             assets=[nostromo_asset],
-            start_time=start,
-            stop_time=start + timedelta(seconds=10),
-            channels=[channels[0]],
+            start_time=INGEST_TIMESTAMP - timedelta(seconds=1),
+            stop_time=INGEST_TIMESTAMP + timedelta(seconds=1),
+            channels=[ingested_export_channel],
             output_format=CSV,
         )
         assert isinstance(job, Job)
