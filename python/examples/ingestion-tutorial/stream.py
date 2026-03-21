@@ -197,9 +197,7 @@ async def main() -> None:
             await ingest_client.send(
                 FlowPy(
                     flow_name=FLOW_NAME,
-                    timestamp=TimeValuePy.from_timestamp_millis(
-                        int(now.timestamp() * 1000)
-                    ),
+                    timestamp=TimeValuePy.from_timestamp_millis(int(now.timestamp() * 1000)),
                     values=[
                         ChannelValuePy(name="velocity", value=ValuePy.Double(velocity)),
                         ChannelValuePy(name="temperature", value=ValuePy.Double(temperature)),
