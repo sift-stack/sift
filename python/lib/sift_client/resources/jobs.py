@@ -165,8 +165,8 @@ class JobsAPIAsync(ResourceBase):
 
     async def wait_until_complete(
         self,
-        *,
         job: Job | str,
+        *,
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
     ) -> Job:
@@ -197,8 +197,8 @@ class JobsAPIAsync(ResourceBase):
 
     async def wait_and_download(
         self,
-        *,
         job: Job | str,
+        *,
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
