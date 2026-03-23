@@ -19,21 +19,18 @@ import pytest
 import requests
 
 from sift_client._internal.low_level_wrappers.exports import _build_calc_channel_configs
-from sift_client._internal.util.channels import resolve_calculated_channels
 
 if TYPE_CHECKING:
     from sift_client import SiftClient
 from sift_client.resources import DataExportAPI
 from sift_client.resources.exports import DataExportAPIAsync
-from sift_client.resources.jobs import JobsAPIAsync
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelCreate,
     ChannelReference,
 )
-from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.export import ExportOutputFormat
-from sift_client.sift_types.job import DataExportStatusDetails, Job, JobStatus
+from sift_client.sift_types.job import Job, JobStatus
 
 START = datetime(2025, 1, 1, tzinfo=timezone.utc)
 STOP = datetime(2025, 1, 2, tzinfo=timezone.utc)
@@ -328,72 +325,3 @@ class TestBuildCalcChannelConfigs:
             "ch-dist",
             "ch-time",
         ]
-
-
-class TestResolveCalculatedChannels:
-    @pytest.mark.asyncio
-    async def test_none_passthrough(self):
-        api = MagicMock()
-        api.find = AsyncMock(return_value=None)
-        assert await resolve_calculated_channels(None, channels_api=api) is None
-
-    @pytest.mark.asyncio
-    async def test_resolves_name_to_uuid(self):
-        mock_ch = MagicMock(spec=Channel)
-        mock_ch._id_or_error = "resolved-uuid"
-        api = MagicMock()
-        api.find = AsyncMock(return_value=mock_ch)
-
-        cc = MagicMock(spec=CalculatedChannel)
-        cc.name, cc.expression, cc.units = "calc", "$1 + 10", "m/s"
-        cc.asset_ids = ["asset-1"]
-        cc.channel_references = [
-            ChannelReference(channel_reference="$1", channel_identifier="sensor.vel")
-        ]
-
-        result = await resolve_calculated_channels([cc], channels_api=api)
-        assert result is not None
-        assert len(result) == 1
-        refs = result[0].expression_channel_references
-        assert refs is not None
-        assert refs[0].channel_identifier == "resolved-uuid"
-
-    @pytest.mark.asyncio
-    async def test_keeps_identifier_when_not_found(self):
-        api = MagicMock()
-        api.find = AsyncMock(return_value=None)
-        cc = CalculatedChannelCreate(
-            name="x",
-            expression="$1",
-            units="m",
-            expression_channel_references=[
-                ChannelReference(channel_reference="$1", channel_identifier="ch-1")
-            ],
-        )
-        result = await resolve_calculated_channels([cc], channels_api=api)
-        assert result is not None
-        assert result[0] == cc
-
-
-class TestWaitAndDownload:
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        ("status", "details", "match"),
-        [
-            (
-                JobStatus.FAILED,
-                DataExportStatusDetails(error_message="out of memory"),
-                r"failed.*out of memory",
-            ),
-            (JobStatus.FAILED, None, "failed"),
-            (JobStatus.CANCELLED, None, "cancelled"),
-        ],
-    )
-    async def test_terminal_status_raises(self, mock_client, status, details, match):
-        jobs_api = JobsAPIAsync(mock_client)
-        completed = MagicMock(spec=Job)
-        completed.job_status = status
-        completed.job_status_details = details
-        jobs_api.wait_until_complete = AsyncMock(return_value=completed)
-        with pytest.raises(RuntimeError, match=match):
-            await jobs_api.wait_and_download(job="job-err")

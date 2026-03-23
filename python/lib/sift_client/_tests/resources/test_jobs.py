@@ -18,6 +18,7 @@ from sift_client.resources import JobsAPI, JobsAPIAsync
 from sift_client.sift_types import Job
 from sift_client.sift_types.job import (
     DataExportDetails,
+    DataExportStatusDetails,
     DataImportDetails,
     DataImportStatusDetails,
     JobStatus,
@@ -525,3 +526,29 @@ class TestJobsAPISync:
 
             if jobs:
                 assert isinstance(jobs[0], Job)
+
+
+class TestWaitAndDownload:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("status", "details", "match"),
+        [
+            (
+                JobStatus.FAILED,
+                DataExportStatusDetails(error_message="out of memory"),
+                r"failed.*out of memory",
+            ),
+            (JobStatus.FAILED, None, "failed"),
+            (JobStatus.CANCELLED, None, "cancelled"),
+        ],
+    )
+    async def test_terminal_status_raises(self, status, details, match):
+        mock_client = MagicMock()
+        mock_client.grpc_client = MagicMock()
+        jobs_api = JobsAPIAsync(mock_client)
+        completed = MagicMock(spec=Job)
+        completed.job_status = status
+        completed.job_status_details = details
+        jobs_api.wait_until_complete = AsyncMock(return_value=completed)
+        with pytest.raises(RuntimeError, match=match):
+            await jobs_api.wait_and_download(job="job-err")
