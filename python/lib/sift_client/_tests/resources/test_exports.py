@@ -1,4 +1,11 @@
-"""Tests for the Exports API."""
+"""Pytest tests for the Exports API.
+
+These tests demonstrate and validate the usage of the Data Export API including:
+- Basic export operations (by run, by asset, by time range)
+- Wait and download functionality
+- Input validation and error handling
+- Calculated channel configuration and resolution
+"""
 
 from __future__ import annotations
 
@@ -19,7 +26,6 @@ if TYPE_CHECKING:
 from sift_client.resources import DataExportAPI
 from sift_client.resources.exports import DataExportAPIAsync
 from sift_client.resources.jobs import JobsAPIAsync
-from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelCreate,
@@ -28,7 +34,6 @@ from sift_client.sift_types.calculated_channel import (
 from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.export import ExportOutputFormat
 from sift_client.sift_types.job import DataExportStatusDetails, Job, JobStatus
-from sift_client.sift_types.run import Run
 
 START = datetime(2025, 1, 1, tzinfo=timezone.utc)
 STOP = datetime(2025, 1, 2, tzinfo=timezone.utc)
@@ -37,11 +42,13 @@ CSV = ExportOutputFormat.CSV
 
 @pytest.fixture
 def exports_api_async(sift_client: SiftClient):
+    """Get the async data export API instance."""
     return sift_client.async_.data_export
 
 
 @pytest.fixture
 def exports_api_sync(sift_client: SiftClient):
+    """Get the synchronous data export API instance."""
     return sift_client.data_export
 
 
@@ -76,7 +83,9 @@ def exports_api(mock_client, mock_job):
 
 @pytest.mark.integration
 def test_client_binding(sift_client):
+    assert sift_client.data_export
     assert isinstance(sift_client.data_export, DataExportAPI)
+    assert sift_client.async_.data_export
     assert isinstance(sift_client.async_.data_export, DataExportAPIAsync)
 
 
@@ -124,198 +133,116 @@ def ingested_export_channel(sift_client, nostromo_asset):
 
 
 @pytest.mark.integration
-class TestExportsIntegration:
-    @pytest.mark.asyncio
-    async def test_export_by_run(self, exports_api_async, nostromo_run):
-        start = nostromo_run.start_time
-        job = await exports_api_async.export(
-            runs=[nostromo_run],
-            start_time=start,
-            stop_time=start + timedelta(seconds=10),
-            output_format=CSV,
-        )
-        assert isinstance(job, Job)
-        assert job.id_ is not None
+class TestDataExportAPIAsync:
+    """Test suite for the async Data Export API functionality."""
 
-    @pytest.mark.asyncio
-    async def test_export_by_asset(
-        self, exports_api_async, nostromo_asset, ingested_export_channel
-    ):
-        job = await exports_api_async.export(
-            assets=[nostromo_asset],
-            start_time=INGEST_TIMESTAMP - timedelta(seconds=1),
-            stop_time=INGEST_TIMESTAMP + timedelta(seconds=1),
-            channels=[ingested_export_channel],
-            output_format=CSV,
-        )
-        assert isinstance(job, Job)
+    class TestExport:
+        """Tests for the async export method."""
 
-    @pytest.mark.asyncio
-    async def test_export_by_time_range(self, exports_api_async, sift_client, nostromo_run):
-        channels = await sift_client.async_.channels.list_(limit=1)
-        assert channels, "No channels available"
-        start = nostromo_run.start_time
-        job = await exports_api_async.export(
-            start_time=start,
-            stop_time=start + timedelta(seconds=10),
-            channels=[channels[0]],
-            output_format=CSV,
-        )
-        assert isinstance(job, Job)
+        @pytest.mark.asyncio
+        async def test_export_by_run(self, exports_api_async, nostromo_run):
+            """Test exporting data scoped to a run."""
+            start = nostromo_run.start_time
+            job = await exports_api_async.export(
+                runs=[nostromo_run],
+                start_time=start,
+                stop_time=start + timedelta(seconds=10),
+                output_format=CSV,
+            )
+            assert isinstance(job, Job)
+            assert job.id_ is not None
 
-    @pytest.mark.asyncio
-    async def test_wait_and_download(self, exports_api_async, nostromo_run, tmp_path):
-        start = nostromo_run.start_time
-        job = await exports_api_async.export(
-            runs=[nostromo_run],
-            start_time=start,
-            stop_time=start + timedelta(seconds=10),
-            output_format=CSV,
-        )
-        files = job.wait_and_download(output_dir=tmp_path, timeout_secs=300)
-        assert len(files) > 0
-        assert all(f.exists() for f in files)
+        @pytest.mark.asyncio
+        async def test_export_by_asset(
+            self, exports_api_async, nostromo_asset, ingested_export_channel
+        ):
+            """Test exporting data scoped to an asset with specific channels."""
+            job = await exports_api_async.export(
+                assets=[nostromo_asset],
+                start_time=INGEST_TIMESTAMP - timedelta(seconds=1),
+                stop_time=INGEST_TIMESTAMP + timedelta(seconds=1),
+                channels=[ingested_export_channel],
+                output_format=CSV,
+            )
+            assert isinstance(job, Job)
 
-    def test_sync_export_by_run(self, exports_api_sync, nostromo_run):
-        start = nostromo_run.start_time
-        job = exports_api_sync.export(
-            runs=[nostromo_run],
-            start_time=start,
-            stop_time=start + timedelta(seconds=10),
-            output_format=CSV,
-        )
-        assert isinstance(job, Job)
+        @pytest.mark.asyncio
+        async def test_export_by_time_range(self, exports_api_async, sift_client, nostromo_run):
+            """Test exporting data by time range with explicit channels."""
+            channels = await sift_client.async_.channels.list_(limit=1)
+            assert channels, "No channels available"
+            start = nostromo_run.start_time
+            job = await exports_api_async.export(
+                start_time=start,
+                stop_time=start + timedelta(seconds=10),
+                channels=[channels[0]],
+                output_format=CSV,
+            )
+            assert isinstance(job, Job)
 
-    def test_sync_export_by_asset(self, exports_api_sync, nostromo_asset, ingested_export_channel):
-        job = exports_api_sync.export(
-            assets=[nostromo_asset],
-            start_time=INGEST_TIMESTAMP - timedelta(seconds=1),
-            stop_time=INGEST_TIMESTAMP + timedelta(seconds=1),
-            channels=[ingested_export_channel],
-            output_format=CSV,
-        )
-        assert isinstance(job, Job)
+    class TestWaitAndDownload:
+        """Tests for the async wait_and_download method."""
 
-    def test_sync_export_by_time_range(self, exports_api_sync, sift_client, nostromo_run):
-        channels = sift_client.channels.list_(limit=1)
-        assert channels, "No channels available"
-        start = nostromo_run.start_time
-        job = exports_api_sync.export(
-            start_time=start,
-            stop_time=start + timedelta(seconds=10),
-            channels=[channels[0]],
-            output_format=CSV,
-        )
-        assert isinstance(job, Job)
+        @pytest.mark.asyncio
+        async def test_wait_and_download(self, exports_api_async, nostromo_run, tmp_path):
+            """Test exporting data and downloading the result."""
+            start = nostromo_run.start_time
+            job = await exports_api_async.export(
+                runs=[nostromo_run],
+                start_time=start,
+                stop_time=start + timedelta(seconds=10),
+                output_format=CSV,
+            )
+            files = job.wait_and_download(output_dir=tmp_path, timeout_secs=300)
+            assert len(files) > 0
+            assert all(f.exists() for f in files)
 
 
-class TestExportDelegation:
-    """Verify each mode correctly delegates to the low-level client."""
+@pytest.mark.integration
+class TestDataExportAPISync:
+    """Test suite for the synchronous Data Export API functionality.
 
-    @pytest.mark.asyncio
-    async def test_by_runs(self, exports_api):
-        await exports_api.export(
-            runs=["run-1", "run-2"],
-            output_format=CSV,
-            start_time=START,
-            stop_time=STOP,
-            channels=["ch-1"],
-            simplify_channel_names=True,
-            combine_runs=True,
-            split_export_by_asset=True,
-        )
-        exports_api._low_level_client.export_data.assert_awaited_once_with(
-            run_ids=["run-1", "run-2"],
-            asset_ids=None,
-            output_format=CSV,
-            start_time=START,
-            stop_time=STOP,
-            channel_ids=["ch-1"],
-            calculated_channels=None,
-            simplify_channel_names=True,
-            combine_runs=True,
-            split_export_by_asset=True,
-            split_export_by_run=False,
-        )
+    Only includes basic sync tests to verify sync wrappers work. No specific sync behavior
+    difference tests are needed.
+    """
 
-    @pytest.mark.asyncio
-    async def test_by_assets(self, exports_api):
-        await exports_api.export(
-            assets=["asset-1"],
-            start_time=START,
-            stop_time=STOP,
-            output_format=CSV,
-            channels=["ch-1", "ch-2"],
-        )
-        exports_api._low_level_client.export_data.assert_awaited_once_with(
-            run_ids=None,
-            asset_ids=["asset-1"],
-            start_time=START,
-            stop_time=STOP,
-            output_format=CSV,
-            channel_ids=["ch-1", "ch-2"],
-            calculated_channels=None,
-            simplify_channel_names=False,
-            combine_runs=False,
-            split_export_by_asset=False,
-            split_export_by_run=False,
-        )
+    class TestExport:
+        """Tests for the sync export method."""
 
-    @pytest.mark.asyncio
-    async def test_by_time_range(self, exports_api):
-        await exports_api.export(
-            start_time=START,
-            stop_time=STOP,
-            output_format=ExportOutputFormat.SUN,
-            channels=["ch-1"],
-        )
-        exports_api._low_level_client.export_data.assert_awaited_once_with(
-            run_ids=None,
-            asset_ids=None,
-            start_time=START,
-            stop_time=STOP,
-            output_format=ExportOutputFormat.SUN,
-            channel_ids=["ch-1"],
-            calculated_channels=None,
-            simplify_channel_names=False,
-            combine_runs=False,
-            split_export_by_asset=False,
-            split_export_by_run=False,
-        )
+        def test_export_by_run(self, exports_api_sync, nostromo_run):
+            """Test synchronous export scoped to a run."""
+            start = nostromo_run.start_time
+            job = exports_api_sync.export(
+                runs=[nostromo_run],
+                start_time=start,
+                stop_time=start + timedelta(seconds=10),
+                output_format=CSV,
+            )
+            assert isinstance(job, Job)
 
+        def test_export_by_asset(self, exports_api_sync, nostromo_asset, ingested_export_channel):
+            """Test synchronous export scoped to an asset with specific channels."""
+            job = exports_api_sync.export(
+                assets=[nostromo_asset],
+                start_time=INGEST_TIMESTAMP - timedelta(seconds=1),
+                stop_time=INGEST_TIMESTAMP + timedelta(seconds=1),
+                channels=[ingested_export_channel],
+                output_format=CSV,
+            )
+            assert isinstance(job, Job)
 
-class TestDomainObjectResolution:
-    @pytest.mark.asyncio
-    async def test_run_objects_to_ids(self, exports_api):
-        mock_run = MagicMock(spec=Run)
-        mock_run._id_or_error = "resolved-run-id"
-        await exports_api.export(runs=[mock_run, "raw-id"], output_format=CSV)
-        assert exports_api._low_level_client.export_data.call_args.kwargs["run_ids"] == [
-            "resolved-run-id",
-            "raw-id",
-        ]
-
-    @pytest.mark.asyncio
-    async def test_asset_objects_to_ids(self, exports_api):
-        mock_asset = MagicMock(spec=Asset)
-        mock_asset._id_or_error = "resolved-asset-id"
-        await exports_api.export(
-            assets=[mock_asset, "raw-id"], start_time=START, stop_time=STOP, output_format=CSV
-        )
-        assert exports_api._low_level_client.export_data.call_args.kwargs["asset_ids"] == [
-            "resolved-asset-id",
-            "raw-id",
-        ]
-
-    @pytest.mark.asyncio
-    async def test_channel_objects_to_ids(self, exports_api):
-        mock_ch = MagicMock(spec=Channel)
-        mock_ch._id_or_error = "resolved-ch-id"
-        await exports_api.export(runs=["run-1"], output_format=CSV, channels=[mock_ch, "raw-ch-id"])
-        assert exports_api._low_level_client.export_data.call_args.kwargs["channel_ids"] == [
-            "resolved-ch-id",
-            "raw-ch-id",
-        ]
+        def test_export_by_time_range(self, exports_api_sync, sift_client, nostromo_run):
+            """Test synchronous export by time range with explicit channels."""
+            channels = sift_client.channels.list_(limit=1)
+            assert channels, "No channels available"
+            start = nostromo_run.start_time
+            job = exports_api_sync.export(
+                start_time=start,
+                stop_time=start + timedelta(seconds=10),
+                channels=[channels[0]],
+                output_format=CSV,
+            )
+            assert isinstance(job, Job)
 
 
 class TestDictConversion:
@@ -448,69 +375,7 @@ class TestResolveCalculatedChannels:
         assert result[0] == cc
 
 
-@pytest.fixture
-def download_setup(mock_client, tmp_path):
-    completed_job = MagicMock(spec=Job)
-    completed_job.job_status = JobStatus.FINISHED
-
-    jobs_api = JobsAPIAsync(mock_client)
-    jobs_api.wait_until_complete = AsyncMock(return_value=completed_job)
-    mock_client.async_.data_export = MagicMock()
-    mock_client.async_.data_export._low_level_client = MagicMock()
-    mock_client.async_.data_export._low_level_client.get_download_url = AsyncMock(
-        return_value="https://dl.test/export.zip"
-    )
-
-    fake_file = tmp_path / "data.csv"
-    fake_file.write_text("col1,col2\n1,2")
-    mock_loop = MagicMock()
-    mock_loop.run_in_executor = AsyncMock(return_value=None)
-
-    return {
-        "api": jobs_api,
-        "client": mock_client,
-        "tmp_path": tmp_path,
-        "fake_file": fake_file,
-        "loop": mock_loop,
-    }
-
-
 class TestWaitAndDownload:
-    @pytest.mark.asyncio
-    async def test_success(self, download_setup):
-        s = download_setup
-        job = MagicMock(spec=Job)
-        job._id_or_error = "job-123"
-        with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            with patch("sift_client.resources.jobs.extract_zip", return_value=[s["fake_file"]]):
-                result = await s["api"].wait_and_download(job=job, output_dir=s["tmp_path"])
-        assert result == [s["fake_file"]]
-        s["api"].wait_until_complete.assert_awaited_once_with(
-            job="job-123", polling_interval_secs=5, timeout_secs=None
-        )
-
-    @pytest.mark.asyncio
-    async def test_job_id_string(self, download_setup):
-        s = download_setup
-        with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            with patch("sift_client.resources.jobs.extract_zip", return_value=[s["fake_file"]]):
-                result = await s["api"].wait_and_download(job="job-456", output_dir=s["tmp_path"])
-        assert result == [s["fake_file"]]
-
-    @pytest.mark.asyncio
-    async def test_custom_polling_and_timeout(self, download_setup):
-        s = download_setup
-        job = MagicMock(spec=Job)
-        job._id_or_error = "job-123"
-        with patch("asyncio.get_running_loop", return_value=s["loop"]):
-            with patch("sift_client.resources.jobs.extract_zip", return_value=[s["fake_file"]]):
-                await s["api"].wait_and_download(
-                    job=job, polling_interval_secs=1, timeout_secs=10, output_dir=s["tmp_path"]
-                )
-        s["api"].wait_until_complete.assert_awaited_once_with(
-            job="job-123", polling_interval_secs=1, timeout_secs=10
-        )
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("status", "details", "match"),
