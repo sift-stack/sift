@@ -1,6 +1,6 @@
 [package]
 name = "sift_cli"
-version = "0.1.0-alpha.3"
+version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 categories.workspace = true
@@ -10,6 +10,11 @@ keywords.workspace = true
 readme.workspace = true
 license.workspace = true
 description = "CLI to streamline programmatic workflows with Sift's API"
+changelog = "CHANGELOG.md"
+
+[[bin]]
+name = "sift-cli"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }

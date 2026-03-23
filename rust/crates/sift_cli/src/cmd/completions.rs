@@ -1,3 +1,8 @@
+use crate::BIN_NAME;
+use anyhow::{Context, Result, anyhow};
+use clap::CommandFactory;
+use clap_complete::{Shell, generate};
+use crossterm::style::Stylize;
 use std::{
     env,
     fs::{self, File},
@@ -6,11 +11,6 @@ use std::{
     process::ExitCode,
     str::FromStr,
 };
-
-use anyhow::{Context, Result, anyhow};
-use clap::{CommandFactory, crate_name};
-use clap_complete::{Shell, generate};
-use crossterm::style::Stylize;
 
 use crate::{
     cli::{self, CompletionsPrintArgs},
@@ -26,7 +26,7 @@ pub fn print(args: CompletionsPrintArgs) -> Result<ExitCode> {
     let mut cmd = cli::Args::command();
     let mut stdout = io::stdout();
 
-    generate(shell, &mut cmd, crate_name!(), &mut stdout);
+    generate(shell, &mut cmd, BIN_NAME, &mut stdout);
 
     Ok(ExitCode::SUCCESS)
 }
@@ -36,11 +36,11 @@ pub fn update() -> Result<ExitCode> {
     let root = get_config_root()?;
 
     let (dir_path, filename) = match try_get_shell()? {
-        Shell::Zsh => (root.join(".zsh-complete"), format!("_{}", crate_name!())),
-        Shell::Bash => (root.join(".bash_completion.d"), String::from(crate_name!())),
+        Shell::Zsh => (root.join(".zsh-complete"), format!("_{}", BIN_NAME)),
+        Shell::Bash => (root.join(".bash_completion.d"), String::from(BIN_NAME)),
         Shell::Fish => (
             get_fish_completions_dir(&root),
-            format!("{}.fish", crate_name!()),
+            format!("{}.fish", BIN_NAME),
         ),
         _ => {
             Output::new()
@@ -67,7 +67,7 @@ pub fn update() -> Result<ExitCode> {
         .with_context(|| format!("failed to create/open {}", completions_file_path.display()))?;
 
     let mut cmd = cli::Args::command();
-    generate(shell, &mut cmd, crate_name!(), &mut completions_file);
+    generate(shell, &mut cmd, BIN_NAME, &mut completions_file);
 
     let mut out = Output::new();
     out.line(format!(

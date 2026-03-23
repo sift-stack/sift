@@ -14,6 +14,8 @@ use util::tty::Output;
 
 use clap::Parser;
 
+const BIN_NAME: &str = "sift-cli";
+
 fn main() -> ExitCode {
     let args = cli::Args::parse();
 

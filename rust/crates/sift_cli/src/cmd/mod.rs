@@ -1,7 +1,7 @@
-use std::{fs::read_to_string, io::ErrorKind};
-
+use crate::BIN_NAME;
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use crossterm::style::Stylize;
+use std::{fs::read_to_string, io::ErrorKind};
 use toml::{Table, Value};
 
 pub mod completions;
@@ -29,7 +29,7 @@ impl Context {
                 ErrorKind::NotFound => {
                     return Err(anyhow!("expected to find '{}'.", p.yellow())).context(format!(
                         "Create a config using '{}'.",
-                        "sift_cli config create".green()
+                        format!("{BIN_NAME} config create").green()
                     ));
                 }
                 _ => return Err(anyhow!("failed to read config file")),
