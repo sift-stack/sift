@@ -1,3 +1,4 @@
+use crate::BIN_NAME;
 use anyhow::{Context, Result, anyhow};
 use crossterm::style::Stylize;
 use std::{
@@ -33,7 +34,7 @@ pub fn create() -> Result<ExitCode> {
         ))
         .tip(format!(
             "Use '{}' to configure it.",
-            "sift_cli config update".green()
+            format!("{BIN_NAME} config update").green()
         ))
         .print();
 
@@ -105,7 +106,7 @@ pub fn config_where() -> Result<ExitCode> {
             .line(format!("'{}' not found.", p.yellow()))
             .tip(format!(
                 "try running '{}' first.",
-                "sift_cli config create".green()
+                format!("{BIN_NAME} config create").green()
             ))
             .eprint();
         return Ok(ExitCode::FAILURE);
