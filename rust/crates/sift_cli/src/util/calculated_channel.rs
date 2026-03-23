@@ -70,6 +70,91 @@ pub fn channel_applies_to_assets(channel: &CalculatedChannel, asset_ids: &[Strin
     }
 }
 
+/// Resolves all calculated channel CLI inputs (names, regex, IDs) into
+/// [`CalculatedChannelConfig`]s. For name and regex lookups, channels are
+/// filtered to those that apply to `asset_ids`. Each non-empty input must
+/// match at least one channel or an error is returned.
+pub async fn resolve_calculated_channels(
+    grpc_channel: SiftChannel,
+    names: &[String],
+    regex: Option<&str>,
+    ids: &[String],
+    asset_ids: &[String],
+    scope: &ResolveScope<'_>,
+) -> Result<Vec<CalculatedChannelConfig>> {
+    let mut configs = Vec::new();
+
+    if !names.is_empty() {
+        let names_cel = names
+            .iter()
+            .map(|c| format!("'{c}'"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let filter = format!("name in [{names_cel}]");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+        let mut matched = false;
+        for channel in query_res {
+            if channel_applies_to_assets(&channel, asset_ids) {
+                let resolved =
+                    resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, scope)
+                        .await?;
+                matched |= !resolved.is_empty();
+                configs.extend(resolved);
+            }
+        }
+        if !matched {
+            return Err(anyhow!(
+                "no calculated channels matched the provided `calculated_channel` inputs."
+            ));
+        }
+    }
+
+    if let Some(re) = regex {
+        let filter = format!("name.matches(\"{re}\")");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+        let mut matched = false;
+        for channel in query_res {
+            if channel_applies_to_assets(&channel, asset_ids) {
+                let resolved =
+                    resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, scope)
+                        .await?;
+                matched |= !resolved.is_empty();
+                configs.extend(resolved);
+            }
+        }
+        if !matched {
+            return Err(anyhow!(
+                "no calculated channels matched the provided `calculated_channel_regex` inputs."
+            ));
+        }
+    }
+
+    if !ids.is_empty() {
+        let ids_cel = ids
+            .iter()
+            .map(|id| format!("'{id}'"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let filter = format!("calculated_channel_id in [{ids_cel}]");
+        let query_res = filter_calculated_channels(grpc_channel.clone(), &filter).await?;
+        let mut matched = false;
+        for channel in query_res {
+            let resolved =
+                resolve_to_calculated_channel_configs(grpc_channel.clone(), &channel, scope)
+                    .await?;
+            matched |= !resolved.is_empty();
+            configs.extend(resolved);
+        }
+        if !matched {
+            return Err(anyhow!(
+                "no calculated channels matched the provided `calculated_channel_id` inputs."
+            ));
+        }
+    }
+
+    Ok(configs)
+}
+
 pub async fn resolve_to_calculated_channel_configs(
     grpc_channel: SiftChannel,
     channel: &CalculatedChannel,
