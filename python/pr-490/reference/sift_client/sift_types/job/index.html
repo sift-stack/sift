@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../../../stylesheets/dark-favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
@@ -4138,9 +4138,9 @@ Jobs that are already finished, failed, or cancelled are not affected.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Wait for an export job to complete and download the exported files.</p>
+        <p>Wait for a job to complete and download the result files.</p>
 <p>Polls the job status at the given interval until the job is FINISHED,
-FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
+FAILED, or CANCELLED, then downloads the result files.</p>
 
 
 <table>
@@ -4197,7 +4197,7 @@ FAILED, or CANCELLED, then downloads and extracts the exported data files.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Directory to save the extracted files. If omitted, a
+                <p>Directory to save the downloaded files. If omitted, a
 temporary directory is created automatically.</p>
               </div>
               <p>
@@ -4218,9 +4218,10 @@ temporary directory is created automatically.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>If True (default), extract the zip and delete it,
-returning paths to the extracted files. If False, keep the
-zip file and return its path.</p>
+                <p>If True (default) and the downloaded file is a zip,
+extract it and delete the archive, returning paths to the
+extracted files. Non-zip files are returned as-is regardless
+of this flag.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -4254,19 +4255,7 @@ zip file and return its path.</p>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>List of paths to the extracted data files, or a single-element</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><span title="list">list</span>[<span title="pathlib.Path">Path</span>]</code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>list containing the zip path if extract is False.</p>
+                <p>List of paths to the downloaded/extracted files.</p>
               </div>
             </td>
           </tr>
@@ -4290,7 +4279,7 @@ zip file and return its path.</p>
             </td>
             <td class="doc-raises-details">
               <div class="doc-md-description">
-                <p>If the export job fails or is cancelled.</p>
+                <p>If the job fails or is cancelled.</p>
               </div>
             </td>
           </tr>
@@ -4302,7 +4291,7 @@ zip file and return its path.</p>
             </td>
             <td class="doc-raises-details">
               <div class="doc-md-description">
-                <p>If the export job does not complete within timeout_secs.</p>
+                <p>If the job does not complete within timeout_secs.</p>
               </div>
             </td>
           </tr>
