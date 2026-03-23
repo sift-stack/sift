@@ -108,6 +108,18 @@ pub struct ExportArgs {
     #[arg(long)]
     pub channel_id: Vec<String>,
 
+    /// Regular expression used to filter calculated channels to include in the export
+    #[arg(long)]
+    pub calculated_channel_regex: Option<String>,
+
+    /// Name of calculated channel to include in the export; can be specified multiple times
+    #[arg(long)]
+    pub calculated_channel: Vec<String>,
+
+    /// ID of calculated channel to include in the export; can be specified multiple times
+    #[arg(long)]
+    pub calculated_channel_id: Vec<String>,
+
     /// Start time in RFC 3339 format (required for asset exports)
     #[arg(long)]
     pub start: Option<String>,
