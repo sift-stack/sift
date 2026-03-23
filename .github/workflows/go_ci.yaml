@@ -4,9 +4,6 @@ on:
   release:
     types: [created]
   pull_request:
-    paths:
-      - 'go/**'
-      - '.github/workflows/go_ci.yaml'
   push:
     branches:
       - main
@@ -15,8 +12,31 @@ on:
       - '.github/workflows/go_ci.yaml'
   workflow_call:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - 'go/**'
+              - '.github/workflows/go_ci.yaml'
+
   lint-go:
+    needs: [changes]
+    if: |
+      always() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.go == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -60,3 +80,18 @@ jobs:
         with:
           working-directory: go
           version: v1.60
+
+  go-ci-status:
+    if: always()
+    needs: [changes, lint-go]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          result="${{ needs.lint-go.result }}"
+          if [[ "$result" == "success" || "$result" == "skipped" ]]; then
+            echo "go-ci passed (lint-go: $result)"
+          else
+            echo "go-ci failed (lint-go: $result)"
+            exit 1
+          fi
