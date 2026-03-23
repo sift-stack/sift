@@ -6,12 +6,14 @@ on:
   pull_request:
     paths:
       - 'python/**'
+      - 'rust/crates/sift_stream_bindings/**'
       - '.github/workflows/python_ci.yaml'
   push:
     branches:
       - main
     paths:
       - 'python/**'
+      - 'rust/crates/sift_stream_bindings/**'
       - '.github/workflows/python_ci.yaml'
   workflow_call:
 
