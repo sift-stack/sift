@@ -323,27 +323,27 @@ class Job(BaseType[JobProto, "Job"]):
         output_dir: str | Path | None = None,
         extract: bool = True,
     ) -> list[Path]:
-        """Wait for an export job to complete and download the exported files.
+        """Wait for a job to complete and download the result files.
 
         Polls the job status at the given interval until the job is FINISHED,
-        FAILED, or CANCELLED, then downloads and extracts the exported data files.
+        FAILED, or CANCELLED, then downloads the result files.
 
         Args:
             polling_interval_secs: Seconds between status polls. Defaults to 5.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-            output_dir: Directory to save the extracted files. If omitted, a
+            output_dir: Directory to save the downloaded files. If omitted, a
                 temporary directory is created automatically.
-            extract: If True (default), extract the zip and delete it,
-                returning paths to the extracted files. If False, keep the
-                zip file and return its path.
+            extract: If True (default) and the downloaded file is a zip,
+                extract it and delete the archive, returning paths to the
+                extracted files. Non-zip files are returned as-is regardless
+                of this flag.
 
         Returns:
-            List of paths to the extracted data files, or a single-element
-            list containing the zip path if extract is False.
+            List of paths to the downloaded/extracted files.
 
         Raises:
-            RuntimeError: If the export job fails or is cancelled.
-            TimeoutError: If the export job does not complete within timeout_secs.
+            RuntimeError: If the job fails or is cancelled.
+            TimeoutError: If the job does not complete within timeout_secs.
         """
         return self.client.jobs.wait_and_download(
             job=self,

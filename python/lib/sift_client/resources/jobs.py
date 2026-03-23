@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import tempfile
 import time
+import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -203,28 +204,28 @@ class JobsAPIAsync(ResourceBase):
         output_dir: str | Path | None = None,
         extract: bool = True,
     ) -> list[Path]:
-        """Wait for an export job to complete and download the exported files.
+        """Wait for a job to complete and download the result files.
 
         Polls the job status at the given interval until the job is FINISHED,
-        FAILED, or CANCELLED, then downloads and extracts the exported data files.
+        FAILED, or CANCELLED, then downloads the result files.
 
         Args:
-            job: The export Job or job ID to wait for.
+            job: The Job or job ID to wait for.
             polling_interval_secs: Seconds between status polls. Defaults to 5.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-            output_dir: Directory to save the extracted files. If omitted, a
+            output_dir: Directory to save the downloaded files. If omitted, a
                 temporary directory is created automatically.
-            extract: If True (default), extract the zip and delete it,
-                returning paths to the extracted files. If False, keep the
-                zip file and return its path.
+            extract: If True (default) and the downloaded file is a zip,
+                extract it and delete the archive, returning paths to the
+                extracted files. Non-zip files are returned as-is regardless
+                of this flag.
 
         Returns:
-            List of paths to the extracted data files, or a single-element
-            list containing the zip path if extract is False.
+            List of paths to the downloaded/extracted files.
 
         Raises:
-            RuntimeError: If the export job fails or is cancelled.
-            TimeoutError: If the export job does not complete within timeout_secs.
+            RuntimeError: If the job fails or is cancelled.
+            TimeoutError: If the job does not complete within timeout_secs.
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
 
@@ -253,14 +254,14 @@ class JobsAPIAsync(ResourceBase):
             if output_dir is not None
             else Path(tempfile.mkdtemp(prefix="sift_export_"))
         )
-        zip_file_path = output_dir / f"{job_id}.zip"
+        download_path = output_dir / job_id
 
         # Run the synchronous download in a thread pool to avoid blocking the event loop
         rest_client = self.client.rest_client
         await run_sync_function(
-            lambda: download_file(presigned_url, zip_file_path, rest_client=rest_client)
+            lambda: download_file(presigned_url, download_path, rest_client=rest_client)
         )
 
-        if not extract:
-            return [zip_file_path]
-        return extract_zip(zip_file_path, output_dir)
+        if not extract or not zipfile.is_zipfile(download_path):
+            return [download_path]
+        return extract_zip(download_path, output_dir)
