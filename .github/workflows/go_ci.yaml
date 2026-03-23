@@ -4,9 +4,15 @@ on:
   release:
     types: [created]
   pull_request:
+    paths:
+      - 'go/**'
+      - '.github/workflows/go_ci.yaml'
   push:
     branches:
       - main
+    paths:
+      - 'go/**'
+      - '.github/workflows/go_ci.yaml'
   workflow_call:
 
 jobs:
