@@ -29,11 +29,20 @@ from sift_client import SiftClient, SiftConnectionConfig
 
 # Sift ingestion types used to define telemetry structure and runs.
 from sift_client.sift_types import (
-    ChannelConfig,  # Defines an individual telemetry signal
-    ChannelDataType,  # Specifies the signal's data type
-    FlowConfig,  # Defines a group of related channels (schema)
-    IngestionConfigCreate,  # Associates flows with an Asset
     RunCreate,  # Represents a telemetry collection session
+)
+
+# Use sift_stream_bindings types directly to avoid CPU-bound conversion
+# penalties from the ergonomic Flow <-> FlowPy conversions.
+from sift_stream_bindings import (
+    ChannelConfigPy,
+    ChannelDataTypePy,
+    ChannelValuePy,
+    FlowConfigPy,
+    FlowPy,
+    IngestionConfigFormPy,  # Used instead of IngestionConfigCreate to work with FlowConfigPy
+    TimeValuePy,
+    ValuePy,
 )
 
 # Define configuration constants
@@ -95,41 +104,51 @@ async def main() -> None:
 
     # Define telemetry signals (Channels) within a Flow
     # -----------------------------------------------------------------
-    # A FlowConfig defines the telemetry schema.
-    # Each ChannelConfig defines:
+    # A FlowConfigPy defines the telemetry schema using sift_stream_bindings
+    # types directly, avoiding the CPU-bound overhead of the ergonomic
+    # Flow <-> FlowPy conversions.
+    #
+    # Each ChannelConfigPy defines:
     #   - name (signal identifier)
     #   - unit (measurement unit)
     #   - data_type (numeric, string, etc.)
-    #   - description (a human-readable explanation of what the Channel (signal) represents and how it should be interpreted)
-
+    #   - description (a human-readable explanation of what the Channel
+    #     (signal) represents and how it should be interpreted)
+    #
     # All telemetry sent to Sift must conform to this schema.
-    flow_config = FlowConfig(
+    flow_config = FlowConfigPy(
         name=FLOW_NAME,
         channels=[
-            ChannelConfig(
+            ChannelConfigPy(
                 name="velocity",
                 unit="m/s",
-                data_type=ChannelDataType.DOUBLE,
+                data_type=ChannelDataTypePy.Double,
                 description="The velocity Channel streams real-time speed measurements of the vehicle in meters per second (m/s) as double-precision numeric values.",
+                enum_types=[],
+                bit_field_elements=[],
             ),
-            ChannelConfig(
+            ChannelConfigPy(
                 name="temperature",
                 unit="C",
-                data_type=ChannelDataType.DOUBLE,
+                data_type=ChannelDataTypePy.Double,
                 description="The temperature Channel streams real-time temperature readings of the vehicle in degrees Celsius (°C) as double-precision numeric values.",
+                enum_types=[],
+                bit_field_elements=[],
             ),
         ],
     )
 
     # Create ingestion configuration
     # -----------------------------------------------------------------
-    # IngestionConfigCreate associates:
+    # IngestionConfigFormPy associates:
     #   - An Asset
     #   - One or more Flow definitions
-    #
-    # RunCreate defines the session that will group all incoming flows.
-    ingestion_config = IngestionConfigCreate(
+    # Using IngestionConfigFormPy from sift_stream_bindings to stay compatible
+    # with FlowConfigPy, instead of IngestionConfigCreate which only accepts
+    # the ergonomic FlowConfig type.
+    ingestion_config = IngestionConfigFormPy(
         asset_name=asset_name,
+        client_key=asset_name,
         flows=[flow_config],
     )
 
@@ -138,8 +157,9 @@ async def main() -> None:
     # RunCreate defines the session that will group all incoming flows.
     # While not strictly necessary for ingestion, Runs are useful for organizing
     # data from one or more Assets for a given period of time (such as a specific test,
-    # or daily ops)
-    run = RunCreate(name=run_name)
+    # or daily ops).
+    # client_key provides a stable unique identifier for the Run.
+    run = RunCreate(name=run_name, client_key=run_name)
 
     # Open a streaming ingestion client
     # -----------------------------------------------------------------
@@ -149,6 +169,11 @@ async def main() -> None:
     #
     # All telemetry sent within this context will appear inside
     # this Run in Sift.
+    #
+    # WARNING: SiftStream should be reused for the entire program duration.
+    # Do NOT recreate the streaming client per batch or per iteration —
+    # each instantiation creates a new ingestion config, which introduces
+    # significant performance overhead.
     async with await client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
@@ -164,24 +189,21 @@ async def main() -> None:
             velocity = random.uniform(0, 10)
             temperature = random.uniform(20, 40)
 
-            # Create a Flow object that matches the FlowConfig schema
+            # Build and send a FlowPy directly using sift_stream_bindings types
             # ---------------------------------------------------------
-            # flow_config.as_flow():
-            #   - Attaches a timestamp
-            #   - Maps channel names to values
-            #   - Ensures schema conformity
-            flow = flow_config.as_flow(
-                timestamp=now,
-                values={
-                    "velocity": velocity,
-                    "temperature": temperature,
-                },
+            # Using FlowPy, ChannelValuePy, ValuePy, and TimeValuePy directly
+            # avoids the CPU-bound conversion overhead of the ergonomic
+            # flow_config.as_flow() helper.
+            await ingest_client.send(
+                FlowPy(
+                    flow_name=FLOW_NAME,
+                    timestamp=TimeValuePy.from_timestamp_millis(int(now.timestamp() * 1000)),
+                    values=[
+                        ChannelValuePy(name="velocity", value=ValuePy.Double(velocity)),
+                        ChannelValuePy(name="temperature", value=ValuePy.Double(temperature)),
+                    ],
+                )
             )
-
-            # Send telemetry to Sift over the open gRPC stream
-            # ---------------------------------------------------------
-            # Each call transmits a structured, timestamped flow.
-            await ingest_client.send(flow=flow)
 
             print(
                 f"[SENT {now.isoformat()}] "
