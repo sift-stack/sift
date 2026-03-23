@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from sift_client._internal.sync_wrapper import generate_sync_api
+from sift_client._internal.util.executor import run_sync_function
 from sift_client.resources._base import ResourceBase
 
 
@@ -85,8 +86,7 @@ class MockResourceAsync(ResourceBase):
     async def async_method_with_executor(self) -> str:
         """Test async method that uses run_in_executor, like wait_and_download."""
         self._record_call("async_method_with_executor")
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(None, lambda: "executor_result")
+        result = await run_sync_function(lambda: "executor_result")
         return result
 
     async def async_method_with_complex_args(
