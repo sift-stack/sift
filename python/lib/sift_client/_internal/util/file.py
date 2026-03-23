@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import warnings
 import zipfile
 from typing import TYPE_CHECKING
+
+from sift_client.errors import SiftWarning
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -9,7 +12,7 @@ if TYPE_CHECKING:
     from sift_client.transport.rest_transport import RestClient
 
 
-def download_file(url: str, dest: Path, *, rest_client: RestClient) -> Path:
+def download_file(signed_url: str, output_path: Path, *, rest_client: RestClient) -> Path:
     """Download a file from a URL in streaming 4 MiB chunks.
 
     Args:
@@ -23,15 +26,15 @@ def download_file(url: str, dest: Path, *, rest_client: RestClient) -> Path:
     Raises:
         requests.HTTPError: If the download request fails.
     """
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     # Strip the session's default Authorization header, presigned URLs carry their own auth
-    with rest_client.get(url, stream=True, headers={"Authorization": None}) as response:
+    with rest_client.get(signed_url, stream=True, headers={"Authorization": None}) as response:
         response.raise_for_status()
-        with dest.open("wb") as file:
+        with output_path.open("wb") as file:
             for chunk in response.iter_content(chunk_size=4194304):  # 4 MiB
                 if chunk:
                     file.write(chunk)
-    return dest
+    return output_path
 
 
 def extract_zip(zip_path: Path, output_dir: Path, *, delete_zip: bool = True) -> list[Path]:
@@ -53,5 +56,8 @@ def extract_zip(zip_path: Path, output_dir: Path, *, delete_zip: bool = True) ->
         names = zip_file.namelist()
         zip_file.extractall(output_dir)
     if delete_zip:
-        zip_path.unlink()
+        try:
+            zip_path.unlink()
+        except OSError:
+            warnings.warn(f"Failed to delete zip file '{zip_path}'", SiftWarning, stacklevel=2)
     return [output_dir / name for name in names if not name.endswith("/")]
