@@ -4,12 +4,6 @@ on:
   release:
     types: [created]
   pull_request:
-    paths:
-      - 'rust/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'dist-workspace.toml'
-      - '.github/workflows/rust_ci.yaml'
   push:
     branches:
       - main
@@ -26,8 +20,34 @@ on:
           required: false
           type: string
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'rust/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'dist-workspace.toml'
+              - '.github/workflows/rust_ci.yaml'
+
   lint-rust:
+    needs: [changes]
+    if: |
+      always() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.rust == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -63,3 +83,18 @@ jobs:
           maturin develop --release
           ruff check sift_stream_bindings.pyi
           pytest tests
+
+  rust-ci-status:
+    if: always()
+    needs: [changes, lint-rust]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          result="${{ needs.lint-rust.result }}"
+          if [[ "$result" == "success" || "$result" == "skipped" ]]; then
+            echo "rust-ci passed (lint-rust: $result)"
+          else
+            echo "rust-ci failed (lint-rust: $result)"
+            exit 1
+          fi
