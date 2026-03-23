@@ -9,14 +9,14 @@ These tests demonstrate and validate the usage of the Data Export API including:
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
-from urllib.parse import urljoin
 
 import pytest
-import requests
+import pytest_asyncio
 
 from sift_client._internal.low_level_wrappers.exports import _build_calc_channel_configs
 
@@ -24,12 +24,15 @@ if TYPE_CHECKING:
     from sift_client import SiftClient
 from sift_client.resources import DataExportAPI
 from sift_client.resources.exports import DataExportAPIAsync
+from sift_client.resources.ingestion import TracingConfig
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelCreate,
     ChannelReference,
 )
+from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.export import ExportOutputFormat
+from sift_client.sift_types.ingestion import ChannelConfig, FlowConfig, IngestionConfigCreate
 from sift_client.sift_types.job import Job, JobStatus
 
 START = datetime(2025, 1, 1, tzinfo=timezone.utc)
@@ -89,39 +92,34 @@ def test_client_binding(sift_client):
 INGEST_TIMESTAMP = datetime(2025, 6, 1, tzinfo=timezone.utc)
 
 
-@pytest.fixture(scope="session")
-def ingested_export_channel(sift_client, nostromo_asset):
+@pytest_asyncio.fixture(scope="session")
+async def ingested_export_channel(sift_client, nostromo_asset):
     """Ingest a single data point into a unique channel on the nostromo asset for export tests."""
-    import time
-
     channel_name = f"export-test-{uuid.uuid4().hex[:8]}"
-    rest_client = sift_client.rest_client
-    ingest_url = urljoin(rest_client.base_url, "api/v2/ingest")
-    api_key = rest_client._config.api_key
 
-    payload = {
-        "asset_name": nostromo_asset.name,
-        "data": [
-            {
-                "timestamp": INGEST_TIMESTAMP.isoformat(),
-                "values": [{"channel": channel_name, "value": 42}],
-            }
-        ],
-    }
-    resp = requests.post(
-        ingest_url,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json=payload,
-        timeout=30,
+    flow_config = FlowConfig(
+        name="export-test-flow",
+        channels=[ChannelConfig(name=channel_name, data_type=ChannelDataType.DOUBLE)],
     )
-    resp.raise_for_status()
+    ingestion_config = IngestionConfigCreate(
+        asset_name=nostromo_asset.name,
+        flows=[flow_config],
+    )
+
+    async with await sift_client.async_.ingestion.create_ingestion_config_streaming_client(
+        ingestion_config=ingestion_config,
+        tracing_config=TracingConfig.disabled(),  # suppresses ./logs
+    ) as stream:
+        await stream.send(
+            flow_config.as_flow(timestamp=INGEST_TIMESTAMP, values={channel_name: 42.0})
+        )
 
     channel = None
     for _ in range(20):
         channel = sift_client.channels.find(name=channel_name, asset=nostromo_asset._id_or_error)
         if channel is not None:
             break
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
     assert channel is not None, f"Channel {channel_name} did not appear after ingest"
 
     yield channel
