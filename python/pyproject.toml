@@ -117,28 +117,28 @@ development = [
     'tomlkit~=0.13.3',
 ]
 docs = [
-    'griffe-pydantic',
-    'mike',
-    'mkdocs',
-    'mkdocs-api-autonav',
-    'mkdocs-include-markdown-plugin',
-    'mkdocs-jupyter',
-    'mkdocs-material',
-    'mkdocstrings[python]',
+    'griffe-pydantic==1.3.1',
+    'mike==2.1.3',
+    'mkdocs-api-autonav==0.4.0',
+    'mkdocs-include-markdown-plugin==7.1.6',
+    'mkdocs-jupyter==0.25.1',
+    'mkdocs-material==9.7.5',
+    'mkdocs==1.6.1',
+    'mkdocstrings[python]==1.0.3',
 ]
 docs-build = [
     'build==1.2.1',
     'cffi~=1.14',
-    'griffe-pydantic',
+    'griffe-pydantic==1.3.1',
     'grpcio-testing~=1.13',
     'h5py~=3.11',
-    'mike',
-    'mkdocs',
-    'mkdocs-api-autonav',
-    'mkdocs-include-markdown-plugin',
-    'mkdocs-jupyter',
-    'mkdocs-material',
-    'mkdocstrings[python]',
+    'mike==2.1.3',
+    'mkdocs-api-autonav==0.4.0',
+    'mkdocs-include-markdown-plugin==7.1.6',
+    'mkdocs-jupyter==0.25.1',
+    'mkdocs-material==9.7.5',
+    'mkdocs==1.6.1',
+    'mkdocstrings[python]==1.0.3',
     'mypy==1.10.0',
     'npTDMS~=1.9',
     'pdoc==14.5.0',
@@ -202,14 +202,14 @@ development = [
     "tomlkit~=0.13.3"
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
-docs = ["mkdocs",
-    "mkdocs-material",
-    "mkdocstrings[python]",
-    "mkdocs-include-markdown-plugin",
-    "mkdocs-api-autonav",
-    "mike",
-    "griffe-pydantic",
-    "mkdocs-jupyter"]
+docs = ["mkdocs==1.6.1",
+    "mkdocs-material==9.7.5",
+    "mkdocstrings[python]==1.0.3",
+    "mkdocs-include-markdown-plugin==7.1.6",
+    "mkdocs-api-autonav==0.4.0",
+    "mike==2.1.3",
+    "griffe-pydantic==1.3.1",
+    "mkdocs-jupyter==0.25.1"]
 
 # May be required for certain library functionality
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
