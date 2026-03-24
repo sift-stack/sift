@@ -593,7 +593,7 @@ class DataExportAPI:
         You cannot provide both ``runs`` and ``assets`` at the same time.
 
         Args:
-            output_format: The file format for the export (CSV or Sun/WinPlot).
+            output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             runs: One or more Run objects or run IDs to export data from.
             assets: One or more Asset objects or asset IDs to export data from.
             start_time: Start of the time range to export. Required when using

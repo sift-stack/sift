@@ -11,7 +11,9 @@ class ExportOutputFormat(Enum):
     Attributes:
         CSV: Comma-separated values format.
         SUN: Sun (WinPlot) format (not used in certain environments).
+        PARQUET: Apache Parquet columnar storage format.
     """
 
     CSV = ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_CSV
     SUN = ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_SUN
+    PARQUET = ExportOutputFormatProto.EXPORT_OUTPUT_FORMAT_PARQUET
