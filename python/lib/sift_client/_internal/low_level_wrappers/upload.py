@@ -93,7 +93,11 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         file_name, mimetype, content_encoding = self._mime_and_content_type_from_path(posix_path)
 
         if not mimetype:
-            raise ValueError(f"The MIME-type of '{posix_path}' could not be computed.")
+            extension = posix_path.suffix
+            if extension:
+                mimetype = f"application/x-{extension.lstrip('.')}"
+            else:
+                mimetype = "application/octet-stream"  # fallback to generic 'binary data' MIME type
 
         # Run the synchronous file upload in a thread pool to avoid blocking the event loop
         loop = asyncio.get_event_loop()
