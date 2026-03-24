@@ -36,14 +36,17 @@ class TestUploadAttachment:
         assert mimetype == "application/x-pcapng"
 
     @pytest.mark.asyncio
-    async def test_no_extension_raises_value_error(self, tmp_path):
+    async def test_no_extension_falls_back_to_octet_stream(self, tmp_path):
         test_file = tmp_path / "README"
         test_file.write_bytes(b"fake data")
 
         client = UploadLowLevelClient.__new__(UploadLowLevelClient)
 
-        with pytest.raises(ValueError, match="file has no extension"):
+        with patch.object(client, "_upload_file_sync", return_value="remote-file-123") as mock:
             await client.upload_attachment(path=test_file, entity_id="e1", entity_type="runs")
+
+        _, _, mimetype, *_ = mock.call_args[0]
+        assert mimetype == "application/octet-stream"
 
     @pytest.mark.asyncio
     async def test_file_name_preserved(self, tmp_path):

@@ -97,7 +97,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             if extension:
                 mimetype = f"application/x-{extension.lstrip('.')}"
             else:
-                raise ValueError(f"Cannot determine MIME type for '{path}': file has no extension.")
+                mimetype = "application/octet-stream"  # fallback to generic 'binary data' MIME type
 
         # Run the synchronous file upload in a thread pool to avoid blocking the event loop
         loop = asyncio.get_event_loop()
