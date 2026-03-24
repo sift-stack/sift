@@ -8,44 +8,52 @@ import pytest
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 
 
-class TestUploadLowLevelClient:
-    class TestMimeAndContentTypeFromPath:
-        def test_known_mime_type(self):
-            _, mime, _ = UploadLowLevelClient._mime_and_content_type_from_path(Path("video.mp4"))
-            assert mime == "video/mp4"
+class TestUploadAttachment:
+    @pytest.mark.asyncio
+    async def test_known_mime_type(self, tmp_path):
+        test_file = tmp_path / "video.mp4"
+        test_file.write_bytes(b"fake data")
 
-        def test_unknown_extension_returns_none(self):
-            _, mime, _ = UploadLowLevelClient._mime_and_content_type_from_path(Path("data.parquet"))
-            assert mime is None
+        client = UploadLowLevelClient.__new__(UploadLowLevelClient)
 
-        def test_no_extension_returns_none(self):
-            _, mime, _ = UploadLowLevelClient._mime_and_content_type_from_path(Path("README"))
-            assert mime is None
+        with patch.object(client, "_upload_file_sync", return_value="remote-file-123") as mock:
+            await client.upload_attachment(path=test_file, entity_id="e1", entity_type="runs")
 
-        def test_file_name_preserved(self):
-            name, _, _ = UploadLowLevelClient._mime_and_content_type_from_path(
-                Path("my_file.pcapng")
-            )
-            assert name == "my_file.pcapng"
+        _, _, mimetype, *_ = mock.call_args[0]
+        assert mimetype == "video/mp4"
 
-    class TestUploadAttachmentMimeFallback:
-        @pytest.mark.asyncio
-        async def test_unknown_mime_type_falls_back_to_octet_stream(self, tmp_path):
-            test_file = tmp_path / "data.parquet"
-            test_file.write_bytes(b"fake parquet data")
+    @pytest.mark.asyncio
+    async def test_unknown_extension_falls_back_to_application_x_ext(self, tmp_path):
+        test_file = tmp_path / "data.pcapng"
+        test_file.write_bytes(b"fake data")
 
-            client = UploadLowLevelClient.__new__(UploadLowLevelClient)
+        client = UploadLowLevelClient.__new__(UploadLowLevelClient)
 
-            with patch.object(
-                client, "_upload_file_sync", return_value="remote-file-123"
-            ) as mock_upload:
-                result = await client.upload_attachment(
-                    path=test_file,
-                    entity_id="entity_123",
-                    entity_type="runs",
-                )
+        with patch.object(client, "_upload_file_sync", return_value="remote-file-123") as mock:
+            await client.upload_attachment(path=test_file, entity_id="e1", entity_type="runs")
 
-            mock_upload.assert_called_once()
-            _, _, mimetype, *_ = mock_upload.call_args[0]
-            assert mimetype == "application/octet-stream"
-            assert result == "remote-file-123"
+        _, _, mimetype, *_ = mock.call_args[0]
+        assert mimetype == "application/x-pcapng"
+
+    @pytest.mark.asyncio
+    async def test_no_extension_raises_value_error(self, tmp_path):
+        test_file = tmp_path / "README"
+        test_file.write_bytes(b"fake data")
+
+        client = UploadLowLevelClient.__new__(UploadLowLevelClient)
+
+        with pytest.raises(ValueError, match="file has no extension"):
+            await client.upload_attachment(path=test_file, entity_id="e1", entity_type="runs")
+
+    @pytest.mark.asyncio
+    async def test_file_name_preserved(self, tmp_path):
+        test_file = tmp_path / "my_file.pcapng"
+        test_file.write_bytes(b"fake data")
+
+        client = UploadLowLevelClient.__new__(UploadLowLevelClient)
+
+        with patch.object(client, "_upload_file_sync", return_value="remote-file-123") as mock:
+            await client.upload_attachment(path=test_file, entity_id="e1", entity_type="runs")
+
+        file_name, *_ = mock.call_args[0]
+        assert file_name == Path(test_file)

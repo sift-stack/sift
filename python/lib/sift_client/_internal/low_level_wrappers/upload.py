@@ -17,6 +17,10 @@ if TYPE_CHECKING:
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Parquet MIME types are not included in mimetypes by default
+mimetypes.add_type("application/vnd.apache.parquet", ".pqt")
+mimetypes.add_type("application/vnd.apache.parquet", ".parquet")
+
 
 class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
     """Low-level client for file upload operations.
@@ -89,7 +93,11 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         file_name, mimetype, content_encoding = self._mime_and_content_type_from_path(posix_path)
 
         if not mimetype:
-            mimetype = "application/octet-stream"  # fallback to generic 'binary data' MIME type
+            extension = posix_path.suffix
+            if extension:
+                mimetype = f"application/x-{extension.removeprefix('.')}"
+            else:
+                raise ValueError(f"Cannot determine MIME type for '{path}': file has no extension.")
 
         # Run the synchronous file upload in a thread pool to avoid blocking the event loop
         loop = asyncio.get_event_loop()
