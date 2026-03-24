@@ -95,7 +95,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         if not mimetype:
             extension = posix_path.suffix
             if extension:
-                mimetype = f"application/x-{extension.removeprefix('.')}"
+                mimetype = f"application/x-{extension.lstrip('.')}"
             else:
                 raise ValueError(f"Cannot determine MIME type for '{path}': file has no extension.")
 
