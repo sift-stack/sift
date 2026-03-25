@@ -14,6 +14,7 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/annotations/v1/annotations.proto";
+import "sift/common/type/v1/calculated_channels.proto";
 import "sift/common/type/v1/resource_identifier.proto";
 import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
@@ -523,6 +524,8 @@ message ValidationResult {
   // If the rule is invalid and unable to be saved, this will contain the error message. Expression errors will be returned in
   // the asset_expression_validation_results.
   optional string error = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  string rule_name = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message BatchUpdateRulesRequest {
@@ -532,9 +535,8 @@ message BatchUpdateRulesRequest {
   // If validate_only is true, the request will only validate the request and not save the rules.
   bool validate_only = 2 [(google.api.field_behavior) = OPTIONAL];
 
-  // If override_expression_validation is true, the request will save the rules even if the expressions are invalid. This
-  // can be useful for multi-asset rules where an invalid expression for one asset should not prevent the rule from being saved.
-  bool override_expression_validation = 3 [(google.api.field_behavior) = REQUIRED];
+  // Deprecated - to improve API response clarity in the event of a failure, Sift will always perform input validation.
+  bool override_expression_validation = 3 [deprecated = true];
 }
 message BatchUpdateRulesResponse {
   bool success = 1 [(google.api.field_behavior) = REQUIRED];
@@ -811,11 +813,19 @@ message CalculatedChannelConfig {
   string expression = 2 [(google.api.field_behavior) = REQUIRED];
   // This will be ignored in requests and will be generated automatically.
   repeated sift.common.type.v1.FunctionDependency function_dependencies = 3 [(google.api.field_behavior) = OPTIONAL];
+  // This will be ignored in requests and will be generated automatically.
+  // Tracks which calculated channel versions this rule depends on.
+  repeated sift.common.type.v1.CalculatedChannelDependency calculated_channel_dependencies = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 message ChannelReference {
-  string name = 1 [(google.api.field_behavior) = REQUIRED];
-  // Deprecated - use name instead. If provided, name will be joined with the component as `component.name`
-  string component = 2 [(google.api.field_behavior) = REQUIRED];
+  // Required for native channel references. Must not be set when calculated_channel_version_id is provided.
+  string name = 1 [(google.api.field_behavior) = OPTIONAL];
+  // Deprecated - use name instead. If provided, name will be joined with the component as `component.name`.
+  // Must not be set when calculated_channel_version_id is provided.
+  string component = 2 [(google.api.field_behavior) = OPTIONAL];
+  // Reference to a calculated channel version. When set, the rule will use the calculated channel
+  // instead of looking up a native channel by name. Must not be set when name is provided.
+  optional string calculated_channel_version_id = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message RuleActionConfiguration {
@@ -840,6 +850,7 @@ message AnnotationActionConfiguration {
   optional string assigned_to_user_id = 3;
   repeated sift.metadata.v1.MetadataValue metadata = 4;
 }
+
 
 // Deprecated - use RuleEvaluationService instead.
 message EvaluateRulesRequest {

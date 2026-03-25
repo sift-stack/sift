@@ -15,7 +15,7 @@ _sym_db = _symbol_database.Default()
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&sift/common/type/v1/organization.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\"n\n\x0cOrganization\x12,\n\x0forganization_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\x30\n\x11organization_name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x10organizationNameB\x9b\x01\n\x17\x63om.sift.common.type.v1B\x11OrganizationProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&sift/common/type/v1/organization.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\"\xb4\x01\n\x0cOrganization\x12,\n\x0forganization_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\x30\n\x11organization_name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x10organizationName\x12\x30\n\x0fis_abac_enabled\x18\x03 \x01(\x08\x42\x03\xe0\x41\x01H\x00R\risAbacEnabled\x88\x01\x01\x42\x12\n\x10_is_abac_enabledB\x9b\x01\n\x17\x63om.sift.common.type.v1B\x11OrganizationProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -27,6 +27,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ORGANIZATION'].fields_by_name['organization_id']._serialized_options = b'\340A\002'
   _globals['_ORGANIZATION'].fields_by_name['organization_name']._loaded_options = None
   _globals['_ORGANIZATION'].fields_by_name['organization_name']._serialized_options = b'\340A\002'
-  _globals['_ORGANIZATION']._serialized_start=96
-  _globals['_ORGANIZATION']._serialized_end=206
+  _globals['_ORGANIZATION'].fields_by_name['is_abac_enabled']._loaded_options = None
+  _globals['_ORGANIZATION'].fields_by_name['is_abac_enabled']._serialized_options = b'\340A\001'
+  _globals['_ORGANIZATION']._serialized_start=97
+  _globals['_ORGANIZATION']._serialized_end=277
 # @@protoc_insertion_point(module_scope)

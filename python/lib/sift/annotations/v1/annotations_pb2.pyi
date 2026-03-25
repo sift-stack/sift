@@ -90,6 +90,8 @@ class Annotation(google.protobuf.message.Message):
     METADATA_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    BATCHED_TRIGGERS_FIELD_NUMBER: builtins.int
+    IS_NOISY_RULE_FIELD_NUMBER: builtins.int
     annotation_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -110,6 +112,8 @@ class Annotation(google.protobuf.message.Message):
     """
     is_archived: builtins.bool
     """is_archived is a inferred from when archived_date is not null"""
+    batched_triggers: builtins.int
+    is_noisy_rule: builtins.bool
     @property
     def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -162,9 +166,11 @@ class Annotation(google.protobuf.message.Message):
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
+        batched_triggers: builtins.int = ...,
+        is_noisy_rule: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "archived_date", b"archived_date", "assigned_to_user", b"assigned_to_user", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "end_time", b"end_time", "legend_config", b"legend_config", "modified_date", b"modified_date", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "assigned_to_user", b"assigned_to_user", "assigned_to_user_id", b"assigned_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "end_time", b"end_time", "is_archived", b"is_archived", "legend_config", b"legend_config", "linked_channels", b"linked_channels", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "pending", b"pending", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "assigned_to_user", b"assigned_to_user", "assigned_to_user_id", b"assigned_to_user_id", "batched_triggers", b"batched_triggers", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "end_time", b"end_time", "is_archived", b"is_archived", "is_noisy_rule", b"is_noisy_rule", "legend_config", b"legend_config", "linked_channels", b"linked_channels", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "pending", b"pending", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_created_by_condition_id", b"_created_by_condition_id"]) -> typing.Literal["created_by_condition_id"] | None: ...
     @typing.overload
@@ -214,24 +220,43 @@ class AnnotationLinkedChannelsBitFieldElement(google.protobuf.message.Message):
 global___AnnotationLinkedChannelsBitFieldElement = AnnotationLinkedChannelsBitFieldElement
 
 @typing.final
+class AnnotationLinkedCalculatedChannel(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CALCULATED_CHANNEL_VERSION_ID_FIELD_NUMBER: builtins.int
+    calculated_channel_version_id: builtins.str
+    def __init__(
+        self,
+        *,
+        calculated_channel_version_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel_version_id", b"calculated_channel_version_id"]) -> None: ...
+
+global___AnnotationLinkedCalculatedChannel = AnnotationLinkedCalculatedChannel
+
+@typing.final
 class AnnotationLinkedChannel(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     CHANNEL_FIELD_NUMBER: builtins.int
     BIT_FIELD_ELEMENT_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_FIELD_NUMBER: builtins.int
     @property
     def channel(self) -> global___AnnotationLinkedChannelsChannel: ...
     @property
     def bit_field_element(self) -> global___AnnotationLinkedChannelsBitFieldElement: ...
+    @property
+    def calculated_channel(self) -> global___AnnotationLinkedCalculatedChannel: ...
     def __init__(
         self,
         *,
         channel: global___AnnotationLinkedChannelsChannel | None = ...,
         bit_field_element: global___AnnotationLinkedChannelsBitFieldElement | None = ...,
+        calculated_channel: global___AnnotationLinkedCalculatedChannel | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["bit_field_element", b"bit_field_element", "channel", b"channel", "type", b"type"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["bit_field_element", b"bit_field_element", "channel", b"channel", "type", b"type"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["type", b"type"]) -> typing.Literal["channel", "bit_field_element"] | None: ...
+    def HasField(self, field_name: typing.Literal["bit_field_element", b"bit_field_element", "calculated_channel", b"calculated_channel", "channel", b"channel", "type", b"type"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["bit_field_element", b"bit_field_element", "calculated_channel", b"calculated_channel", "channel", b"channel", "type", b"type"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["type", b"type"]) -> typing.Literal["channel", "bit_field_element", "calculated_channel"] | None: ...
 
 global___AnnotationLinkedChannel = AnnotationLinkedChannel
 
@@ -481,7 +506,7 @@ class ListAnnotationsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
-    `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
+    `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`, `rule_id`,
     `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, `campaign_reports`, `metadata`, `archived_date`, and `is_archived`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/annotations#annotation). Optional.

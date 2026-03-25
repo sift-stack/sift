@@ -20,7 +20,7 @@ service DataImportService {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "CreateDataImportFromUrl"
-      description: "Creates a data import from a url."
+      description: "Creates a data import from a file hosted at a url."
       operation_id: "DataImportService_CreateDataImportFromUrlV2"
     };
   }
@@ -84,6 +84,7 @@ message CreateDataImportFromUrlRequest {
   Ch10Config ch10_config = 3 [(google.api.field_behavior) = OPTIONAL];
   TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
   ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
+  Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUrlResponse {
@@ -103,6 +104,7 @@ message CreateDataImportFromUploadRequest {
   Ch10Config ch10_config = 3 [(google.api.field_behavior) = OPTIONAL];
   TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
   ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
+  Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUploadResponse {
@@ -156,6 +158,8 @@ enum DataTypeKey {
   DATA_TYPE_KEY_TDMS = 2;
   DATA_TYPE_KEY_CH10 = 3;
   DATA_TYPE_KEY_PARQUET_FLATDATASET = 4;
+  DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW = 5;
+  DATA_TYPE_KEY_HDF5 = 6;
 }
 
 message DetectConfigRequest {
@@ -166,6 +170,7 @@ message DetectConfigRequest {
 message DetectConfigResponse {
   CsvConfig csv_config = 1;
   ParquetConfig parquet_config = 2;
+  Hdf5Config hdf5_config = 3;
 }
 
 message Ch10Config {
@@ -201,9 +206,37 @@ message ParquetDataColumn {
   sift.common.type.v1.ChannelConfig channel_config = 2;
 }
 
+message ParquetColumn {
+  string path = 1;
+  sift.common.type.v1.ChannelConfig column_config = 2;
+}
+
 message ParquetFlatDatasetConfig {
   ParquetTimeColumn time_column = 1;
   repeated ParquetDataColumn data_columns = 2;
+}
+
+message ParquetSingleChannelPerRowMultiChannelConfig {
+  string name_path = 1;
+  string data_path = 2;
+}
+
+message ParquetSingleChannelPerRowSingleChannelConfig {
+  string data_path = 1;
+  sift.common.type.v1.ChannelConfig channel = 2;
+}
+
+message ParquetSingleChannelPerRowConfig {
+  // Timestamp column configuration.
+  ParquetTimeColumn time_column = 1;
+  // Detected columns.
+  repeated ParquetColumn columns = 2;
+  oneof config {
+    // Single channel per file configuration.
+    ParquetSingleChannelPerRowSingleChannelConfig single_channel = 3;
+    // Multi-channel per file configuration.
+    ParquetSingleChannelPerRowMultiChannelConfig multi_channel = 4;
+  }
 }
 
 enum ParquetComplexTypesImportMode {
@@ -225,11 +258,33 @@ message ParquetConfig {
   string run_id = 3;
   oneof config {
     ParquetFlatDatasetConfig flat_dataset = 4;
+    ParquetSingleChannelPerRowConfig single_channel_per_row = 8;
   }
   uint64 footer_offset = 5;
   uint32 footer_length = 6;
 
   ParquetComplexTypesImportMode complex_types_import_mode = 7;
+}
+
+message Hdf5DataConfig {
+  string time_dataset = 1;
+  uint64 time_index = 2;
+  string value_dataset = 3;
+  uint64 value_index = 4;
+  sift.common.type.v1.ChannelConfig channel_config = 5;
+  // For compound types, allow specifying which fields to use.
+  optional string time_field = 6;
+  optional string value_field = 7;
+}
+
+message Hdf5Config {
+  string asset_name = 1;
+  string run_name = 2;
+  // The id of the run to add this data to. If set, `run_name` is ignored.
+  string run_id = 3;
+  repeated Hdf5DataConfig data = 4;
+  TimeFormat time_format = 5;
+  optional google.protobuf.Timestamp relative_start_time = 6;
 }
 
 enum DataImportStatus {
@@ -251,6 +306,7 @@ message DataImport {
   Ch10Config ch10_config = 9 [(google.api.field_behavior) = OPTIONAL];
   TDMSConfig tdms_config = 10 [(google.api.field_behavior) = OPTIONAL];
   ParquetConfig parquet_config = 16 [(google.api.field_behavior) = OPTIONAL];
+  Hdf5Config hdf5_config = 17 [(google.api.field_behavior) = OPTIONAL];
 
   // The run id will be set if the data import ingests to a run once the run is available.
   optional string run_id = 11 [(google.api.field_behavior) = OPTIONAL];

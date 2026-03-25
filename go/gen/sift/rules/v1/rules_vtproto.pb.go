@@ -535,6 +535,7 @@ func (m *ValidationResult) CloneVT() *ValidationResult {
 	r := new(ValidationResult)
 	r.RuleId = m.RuleId
 	r.ClientKey = m.ClientKey
+	r.RuleName = m.RuleName
 	if rhs := m.AssetExpressionValidationResults; rhs != nil {
 		tmpContainer := make([]*AssetExpressionValidationResult, len(rhs))
 		for k, v := range rhs {
@@ -1484,6 +1485,19 @@ func (m *CalculatedChannelConfig) CloneVT() *CalculatedChannelConfig {
 		}
 		r.FunctionDependencies = tmpContainer
 	}
+	if rhs := m.CalculatedChannelDependencies; rhs != nil {
+		tmpContainer := make([]*v11.CalculatedChannelDependency, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface {
+				CloneVT() *v11.CalculatedChannelDependency
+			}); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v11.CalculatedChannelDependency)
+			}
+		}
+		r.CalculatedChannelDependencies = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1502,6 +1516,10 @@ func (m *ChannelReference) CloneVT() *ChannelReference {
 	r := new(ChannelReference)
 	r.Name = m.Name
 	r.Component = m.Component
+	if rhs := m.CalculatedChannelVersionId; rhs != nil {
+		tmpVal := *rhs
+		r.CalculatedChannelVersionId = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2538,6 +2556,9 @@ func (this *ValidationResult) EqualVT(that *ValidationResult) bool {
 		}
 	}
 	if p, q := this.Error, that.Error; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if this.RuleName != that.RuleName {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3801,6 +3822,29 @@ func (this *CalculatedChannelConfig) EqualVT(that *CalculatedChannelConfig) bool
 			}
 		}
 	}
+	if len(this.CalculatedChannelDependencies) != len(that.CalculatedChannelDependencies) {
+		return false
+	}
+	for i, vx := range this.CalculatedChannelDependencies {
+		vy := that.CalculatedChannelDependencies[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &v11.CalculatedChannelDependency{}
+			}
+			if q == nil {
+				q = &v11.CalculatedChannelDependency{}
+			}
+			if equal, ok := interface{}(p).(interface {
+				EqualVT(*v11.CalculatedChannelDependency) bool
+			}); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto.Equal(p, q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3821,6 +3865,9 @@ func (this *ChannelReference) EqualVT(that *ChannelReference) bool {
 		return false
 	}
 	if this.Component != that.Component {
+		return false
+	}
+	if p, q := this.CalculatedChannelVersionId, that.CalculatedChannelVersionId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6685,6 +6732,13 @@ func (m *ValidationResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.RuleName) > 0 {
+		i -= len(m.RuleName)
+		copy(dAtA[i:], m.RuleName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleName)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.Error != nil {
 		i -= len(*m.Error)
 		copy(dAtA[i:], *m.Error)
@@ -8905,6 +8959,30 @@ func (m *CalculatedChannelConfig) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CalculatedChannelDependencies) > 0 {
+		for iNdEx := len(m.CalculatedChannelDependencies) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.CalculatedChannelDependencies[iNdEx]).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.CalculatedChannelDependencies[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
 	if len(m.FunctionDependencies) > 0 {
 		for iNdEx := len(m.FunctionDependencies) - 1; iNdEx >= 0; iNdEx-- {
 			if vtmsg, ok := interface{}(m.FunctionDependencies[iNdEx]).(interface {
@@ -8990,6 +9068,13 @@ func (m *ChannelReference) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CalculatedChannelVersionId != nil {
+		i -= len(*m.CalculatedChannelVersionId)
+		copy(dAtA[i:], *m.CalculatedChannelVersionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CalculatedChannelVersionId)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.Component) > 0 {
 		i -= len(m.Component)
@@ -11047,6 +11132,13 @@ func (m *ValidationResult) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RuleName) > 0 {
+		i -= len(m.RuleName)
+		copy(dAtA[i:], m.RuleName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleName)))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.Error != nil {
 		i -= len(*m.Error)
@@ -13285,6 +13377,30 @@ func (m *CalculatedChannelConfig) MarshalToSizedBufferVTStrict(dAtA []byte) (int
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CalculatedChannelDependencies) > 0 {
+		for iNdEx := len(m.CalculatedChannelDependencies) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.CalculatedChannelDependencies[iNdEx]).(interface {
+				MarshalToSizedBufferVTStrict([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.CalculatedChannelDependencies[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
 	if len(m.FunctionDependencies) > 0 {
 		for iNdEx := len(m.FunctionDependencies) - 1; iNdEx >= 0; iNdEx-- {
 			if vtmsg, ok := interface{}(m.FunctionDependencies[iNdEx]).(interface {
@@ -13370,6 +13486,13 @@ func (m *ChannelReference) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CalculatedChannelVersionId != nil {
+		i -= len(*m.CalculatedChannelVersionId)
+		copy(dAtA[i:], *m.CalculatedChannelVersionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CalculatedChannelVersionId)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.Component) > 0 {
 		i -= len(m.Component)
@@ -14596,6 +14719,10 @@ func (m *ValidationResult) SizeVT() (n int) {
 		l = len(*m.Error)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.RuleName)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -15459,6 +15586,18 @@ func (m *CalculatedChannelConfig) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if len(m.CalculatedChannelDependencies) > 0 {
+		for _, e := range m.CalculatedChannelDependencies {
+			if size, ok := interface{}(e).(interface {
+				SizeVT() int
+			}); ok {
+				l = size.SizeVT()
+			} else {
+				l = proto.Size(e)
+			}
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -15475,6 +15614,10 @@ func (m *ChannelReference) SizeVT() (n int) {
 	}
 	l = len(m.Component)
 	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.CalculatedChannelVersionId != nil {
+		l = len(*m.CalculatedChannelVersionId)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -19612,6 +19755,38 @@ func (m *ValidationResult) UnmarshalVT(dAtA []byte) error {
 			}
 			s := string(dAtA[iNdEx:postIndex])
 			m.Error = &s
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuleName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -24618,6 +24793,48 @@ func (m *CalculatedChannelConfig) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelDependencies", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CalculatedChannelDependencies = append(m.CalculatedChannelDependencies, &v11.CalculatedChannelDependency{})
+			if unmarshal, ok := interface{}(m.CalculatedChannelDependencies[len(m.CalculatedChannelDependencies)-1]).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.CalculatedChannelDependencies[len(m.CalculatedChannelDependencies)-1]); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -24732,6 +24949,39 @@ func (m *ChannelReference) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Component = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelVersionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.CalculatedChannelVersionId = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -30146,6 +30396,42 @@ func (m *ValidationResult) UnmarshalVTUnsafe(dAtA []byte) error {
 			s := stringValue
 			m.Error = &s
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RuleName = stringValue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -35359,6 +35645,48 @@ func (m *CalculatedChannelConfig) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelDependencies", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CalculatedChannelDependencies = append(m.CalculatedChannelDependencies, &v11.CalculatedChannelDependency{})
+			if unmarshal, ok := interface{}(m.CalculatedChannelDependencies[len(m.CalculatedChannelDependencies)-1]).(interface {
+				UnmarshalVTUnsafe([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.CalculatedChannelDependencies[len(m.CalculatedChannelDependencies)-1]); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -35481,6 +35809,43 @@ func (m *ChannelReference) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.Component = stringValue
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelVersionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.CalculatedChannelVersionId = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

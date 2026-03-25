@@ -15,6 +15,7 @@ import sift.common.type.v1.channel_data_type_pb2
 import sift.common.type.v1.resource_identifier_pb2
 import sift.common.type.v1.user_defined_functions_pb2
 import sift.metadata.v1.metadata_pb2
+import sift.rules.v1.rules_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -42,6 +43,7 @@ class CalculatedChannel(google.protobuf.message.Message):
     FUNCTION_DEPENDENCIES_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_DEPENDENCIES_FIELD_NUMBER: builtins.int
     calculated_channel_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -68,6 +70,10 @@ class CalculatedChannel(google.protobuf.message.Message):
     def function_dependencies(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.user_defined_functions_pb2.FunctionDependency]: ...
     @property
     def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
+    @property
+    def calculated_channel_dependencies(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CalculatedChannelDependency]:
+        """Calculated channels that this channel depends on."""
+
     def __init__(
         self,
         *,
@@ -90,9 +96,10 @@ class CalculatedChannel(google.protobuf.message.Message):
         function_dependencies: collections.abc.Iterable[sift.common.type.v1.user_defined_functions_pb2.FunctionDependency] | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         is_archived: builtins.bool = ...,
+        calculated_channel_dependencies: collections.abc.Iterable[global___CalculatedChannelDependency] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "client_key", b"client_key", "created_date", b"created_date", "modified_date", b"modified_date", "units", b"units"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_id", b"calculated_channel_id", "change_message", b"change_message", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "function_dependencies", b"function_dependencies", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "units", b"units", "user_notes", b"user_notes", "version", b"version", "version_id", b"version_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_dependencies", b"calculated_channel_dependencies", "calculated_channel_id", b"calculated_channel_id", "change_message", b"change_message", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "function_dependencies", b"function_dependencies", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "units", b"units", "user_notes", b"user_notes", "version", b"version", "version_id", b"version_id"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -101,6 +108,23 @@ class CalculatedChannel(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["_units", b"_units"]) -> typing.Literal["units"] | None: ...
 
 global___CalculatedChannel = CalculatedChannel
+
+@typing.final
+class CalculatedChannelDependency(google.protobuf.message.Message):
+    """A dependency on another calculated channel."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CALCULATED_CHANNEL_VERSION_ID_FIELD_NUMBER: builtins.int
+    calculated_channel_version_id: builtins.str
+    def __init__(
+        self,
+        *,
+        calculated_channel_version_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel_version_id", b"calculated_channel_version_id"]) -> None: ...
+
+global___CalculatedChannelDependency = CalculatedChannelDependency
 
 @typing.final
 class CalculatedChannelConfiguration(google.protobuf.message.Message):
@@ -205,15 +229,25 @@ class CalculatedChannelAbstractChannelReference(google.protobuf.message.Message)
 
     CHANNEL_REFERENCE_FIELD_NUMBER: builtins.int
     CHANNEL_IDENTIFIER_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_VERSION_ID_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_FIELD_NUMBER: builtins.int
     channel_reference: builtins.str
     channel_identifier: builtins.str
+    """must use either a channel_identifier or a calculated_channel_reference, not both"""
+    calculated_channel_version_id: builtins.str
+    @property
+    def calculated_channel(self) -> sift.calculated_channels.v1.calculated_channels_pb2.ExpressionRequest: ...
     def __init__(
         self,
         *,
         channel_reference: builtins.str = ...,
         channel_identifier: builtins.str = ...,
+        calculated_channel_version_id: builtins.str = ...,
+        calculated_channel: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionRequest | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["channel_identifier", b"channel_identifier", "channel_reference", b"channel_reference"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "calculated_channel_reference", b"calculated_channel_reference", "calculated_channel_version_id", b"calculated_channel_version_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "calculated_channel_reference", b"calculated_channel_reference", "calculated_channel_version_id", b"calculated_channel_version_id", "channel_identifier", b"channel_identifier", "channel_reference", b"channel_reference"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["calculated_channel_reference", b"calculated_channel_reference"]) -> typing.Literal["calculated_channel_version_id", "calculated_channel"] | None: ...
 
 global___CalculatedChannelAbstractChannelReference = CalculatedChannelAbstractChannelReference
 
@@ -263,17 +297,20 @@ class GetCalculatedChannelRequest(google.protobuf.message.Message):
     CALCULATED_CHANNEL_ID_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_VERSION_ID_FIELD_NUMBER: builtins.int
     calculated_channel_id: builtins.str
     client_key: builtins.str
     organization_id: builtins.str
+    calculated_channel_version_id: builtins.str
     def __init__(
         self,
         *,
         calculated_channel_id: builtins.str = ...,
         client_key: builtins.str = ...,
         organization_id: builtins.str = ...,
+        calculated_channel_version_id: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["calculated_channel_id", b"calculated_channel_id", "client_key", b"client_key", "organization_id", b"organization_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel_id", b"calculated_channel_id", "calculated_channel_version_id", b"calculated_channel_version_id", "client_key", b"client_key", "organization_id", b"organization_id"]) -> None: ...
 
 global___GetCalculatedChannelRequest = GetCalculatedChannelRequest
 
@@ -852,3 +889,83 @@ class ListResolvedCalculatedChannelsResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["calculated_channel_resolutions", b"calculated_channel_resolutions", "next_page_token", b"next_page_token"]) -> None: ...
 
 global___ListResolvedCalculatedChannelsResponse = ListResolvedCalculatedChannelsResponse
+
+@typing.final
+class GetCalculatedChannelVersionsRequest(google.protobuf.message.Message):
+    """The request for a call to `CalculatedChannelService_GetCalculatedChannelVersions` to retrieve versions of calculated channels by their version IDs."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CALCULATED_CHANNEL_VERSION_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def calculated_channel_version_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        calculated_channel_version_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel_version_ids", b"calculated_channel_version_ids"]) -> None: ...
+
+global___GetCalculatedChannelVersionsRequest = GetCalculatedChannelVersionsRequest
+
+@typing.final
+class GetCalculatedChannelVersionsResponse(google.protobuf.message.Message):
+    """The response of a call to `CalculatedChannelService_GetCalculatedChannelVersions`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CALCULATED_CHANNELS_FIELD_NUMBER: builtins.int
+    @property
+    def calculated_channels(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CalculatedChannel]: ...
+    def __init__(
+        self,
+        *,
+        calculated_channels: collections.abc.Iterable[global___CalculatedChannel] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channels", b"calculated_channels"]) -> None: ...
+
+global___GetCalculatedChannelVersionsResponse = GetCalculatedChannelVersionsResponse
+
+@typing.final
+class GetCalculatedChannelDependentsRequest(google.protobuf.message.Message):
+    """The request for a call to `CalculatedChannelService_GetCalculatedChannelDependents` to retrieve calculated channels that depend on a given calculated channel."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CALCULATED_CHANNEL_ID_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_VERSION_ID_FIELD_NUMBER: builtins.int
+    calculated_channel_id: builtins.str
+    calculated_channel_version_id: builtins.str
+    def __init__(
+        self,
+        *,
+        calculated_channel_id: builtins.str = ...,
+        calculated_channel_version_id: builtins.str = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "calculated_channel_id", b"calculated_channel_id", "calculated_channel_version_id", b"calculated_channel_version_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "calculated_channel_id", b"calculated_channel_id", "calculated_channel_version_id", b"calculated_channel_version_id"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["calculated_channel", b"calculated_channel"]) -> typing.Literal["calculated_channel_id", "calculated_channel_version_id"] | None: ...
+
+global___GetCalculatedChannelDependentsRequest = GetCalculatedChannelDependentsRequest
+
+@typing.final
+class GetCalculatedChannelDependentsResponse(google.protobuf.message.Message):
+    """The response of a call to `CalculatedChannelService_GetCalculatedChannelDependents`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CALCULATED_CHANNELS_FIELD_NUMBER: builtins.int
+    RULES_FIELD_NUMBER: builtins.int
+    @property
+    def calculated_channels(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CalculatedChannel]: ...
+    @property
+    def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.rules.v1.rules_pb2.Rule]: ...
+    def __init__(
+        self,
+        *,
+        calculated_channels: collections.abc.Iterable[global___CalculatedChannel] | None = ...,
+        rules: collections.abc.Iterable[sift.rules.v1.rules_pb2.Rule] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channels", b"calculated_channels", "rules", b"rules"]) -> None: ...
+
+global___GetCalculatedChannelDependentsResponse = GetCalculatedChannelDependentsResponse

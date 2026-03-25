@@ -483,12 +483,18 @@ impl serde::Serialize for ExportDataResponse {
         if !self.job_id.is_empty() {
             len += 1;
         }
+        if !self.service_message.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.exports.v1.ExportDataResponse", len)?;
         if !self.presigned_url.is_empty() {
             struct_ser.serialize_field("presignedUrl", &self.presigned_url)?;
         }
         if !self.job_id.is_empty() {
             struct_ser.serialize_field("jobId", &self.job_id)?;
+        }
+        if !self.service_message.is_empty() {
+            struct_ser.serialize_field("serviceMessage", &self.service_message)?;
         }
         struct_ser.end()
     }
@@ -504,12 +510,15 @@ impl<'de> serde::Deserialize<'de> for ExportDataResponse {
             "presignedUrl",
             "job_id",
             "jobId",
+            "service_message",
+            "serviceMessage",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             PresignedUrl,
             JobId,
+            ServiceMessage,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -533,6 +542,7 @@ impl<'de> serde::Deserialize<'de> for ExportDataResponse {
                         match value {
                             "presignedUrl" | "presigned_url" => Ok(GeneratedField::PresignedUrl),
                             "jobId" | "job_id" => Ok(GeneratedField::JobId),
+                            "serviceMessage" | "service_message" => Ok(GeneratedField::ServiceMessage),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -554,6 +564,7 @@ impl<'de> serde::Deserialize<'de> for ExportDataResponse {
             {
                 let mut presigned_url__ = None;
                 let mut job_id__ = None;
+                let mut service_message__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PresignedUrl => {
@@ -568,11 +579,18 @@ impl<'de> serde::Deserialize<'de> for ExportDataResponse {
                             }
                             job_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ServiceMessage => {
+                            if service_message__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("serviceMessage"));
+                            }
+                            service_message__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ExportDataResponse {
                     presigned_url: presigned_url__.unwrap_or_default(),
                     job_id: job_id__.unwrap_or_default(),
+                    service_message: service_message__.unwrap_or_default(),
                 })
             }
         }
@@ -753,6 +771,7 @@ impl serde::Serialize for ExportOutputFormat {
             Self::Unspecified => "EXPORT_OUTPUT_FORMAT_UNSPECIFIED",
             Self::Csv => "EXPORT_OUTPUT_FORMAT_CSV",
             Self::Sun => "EXPORT_OUTPUT_FORMAT_SUN",
+            Self::Parquet => "EXPORT_OUTPUT_FORMAT_PARQUET",
         };
         serializer.serialize_str(variant)
     }
@@ -767,6 +786,7 @@ impl<'de> serde::Deserialize<'de> for ExportOutputFormat {
             "EXPORT_OUTPUT_FORMAT_UNSPECIFIED",
             "EXPORT_OUTPUT_FORMAT_CSV",
             "EXPORT_OUTPUT_FORMAT_SUN",
+            "EXPORT_OUTPUT_FORMAT_PARQUET",
         ];
 
         struct GeneratedVisitor;
@@ -810,6 +830,7 @@ impl<'de> serde::Deserialize<'de> for ExportOutputFormat {
                     "EXPORT_OUTPUT_FORMAT_UNSPECIFIED" => Ok(ExportOutputFormat::Unspecified),
                     "EXPORT_OUTPUT_FORMAT_CSV" => Ok(ExportOutputFormat::Csv),
                     "EXPORT_OUTPUT_FORMAT_SUN" => Ok(ExportOutputFormat::Sun),
+                    "EXPORT_OUTPUT_FORMAT_PARQUET" => Ok(ExportOutputFormat::Parquet),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -920,9 +941,15 @@ impl serde::Serialize for GetDownloadUrlResponse {
         if !self.presigned_url.is_empty() {
             len += 1;
         }
+        if !self.service_message.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.exports.v1.GetDownloadUrlResponse", len)?;
         if !self.presigned_url.is_empty() {
             struct_ser.serialize_field("presignedUrl", &self.presigned_url)?;
+        }
+        if !self.service_message.is_empty() {
+            struct_ser.serialize_field("serviceMessage", &self.service_message)?;
         }
         struct_ser.end()
     }
@@ -936,11 +963,14 @@ impl<'de> serde::Deserialize<'de> for GetDownloadUrlResponse {
         const FIELDS: &[&str] = &[
             "presigned_url",
             "presignedUrl",
+            "service_message",
+            "serviceMessage",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             PresignedUrl,
+            ServiceMessage,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -963,6 +993,7 @@ impl<'de> serde::Deserialize<'de> for GetDownloadUrlResponse {
                     {
                         match value {
                             "presignedUrl" | "presigned_url" => Ok(GeneratedField::PresignedUrl),
+                            "serviceMessage" | "service_message" => Ok(GeneratedField::ServiceMessage),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -983,6 +1014,7 @@ impl<'de> serde::Deserialize<'de> for GetDownloadUrlResponse {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut presigned_url__ = None;
+                let mut service_message__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PresignedUrl => {
@@ -991,10 +1023,17 @@ impl<'de> serde::Deserialize<'de> for GetDownloadUrlResponse {
                             }
                             presigned_url__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ServiceMessage => {
+                            if service_message__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("serviceMessage"));
+                            }
+                            service_message__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(GetDownloadUrlResponse {
                     presigned_url: presigned_url__.unwrap_or_default(),
+                    service_message: service_message__.unwrap_or_default(),
                 })
             }
         }

@@ -27,6 +27,10 @@ func (m *Organization) CloneVT() *Organization {
 	r := new(Organization)
 	r.OrganizationId = m.OrganizationId
 	r.OrganizationName = m.OrganizationName
+	if rhs := m.IsAbacEnabled; rhs != nil {
+		tmpVal := *rhs
+		r.IsAbacEnabled = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -48,6 +52,9 @@ func (this *Organization) EqualVT(that *Organization) bool {
 		return false
 	}
 	if this.OrganizationName != that.OrganizationName {
+		return false
+	}
+	if p, q := this.IsAbacEnabled, that.IsAbacEnabled; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -89,6 +96,16 @@ func (m *Organization) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsAbacEnabled != nil {
+		i--
+		if *m.IsAbacEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.OrganizationName) > 0 {
 		i -= len(m.OrganizationName)
@@ -137,6 +154,16 @@ func (m *Organization) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsAbacEnabled != nil {
+		i--
+		if *m.IsAbacEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.OrganizationName) > 0 {
 		i -= len(m.OrganizationName)
 		copy(dAtA[i:], m.OrganizationName)
@@ -167,6 +194,9 @@ func (m *Organization) SizeVT() (n int) {
 	l = len(m.OrganizationName)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.IsAbacEnabled != nil {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -265,6 +295,27 @@ func (m *Organization) UnmarshalVT(dAtA []byte) error {
 			}
 			m.OrganizationName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsAbacEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsAbacEnabled = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -388,6 +439,27 @@ func (m *Organization) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.OrganizationName = stringValue
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsAbacEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsAbacEnabled = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

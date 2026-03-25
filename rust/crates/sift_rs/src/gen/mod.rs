@@ -1,31 +1,4 @@
 // @generated
-pub mod buf {
-    // @@protoc_insertion_point(attribute:buf.validate)
-    pub mod validate {
-        include!("buf/validate/buf.validate.rs");
-        // @@protoc_insertion_point(buf.validate)
-    }
-}
-pub mod google {
-    // @@protoc_insertion_point(attribute:google.api)
-    pub mod api {
-        include!("google/api/google.api.rs");
-        // @@protoc_insertion_point(google.api)
-    }
-}
-pub mod grpc {
-    pub mod gateway {
-        pub mod protoc_gen_openapiv2 {
-            // @@protoc_insertion_point(attribute:grpc.gateway.protoc_gen_openapiv2.options)
-            pub mod options {
-                include!(
-                    "grpc/gateway/protoc_gen_openapiv2/options/grpc.gateway.protoc_gen_openapiv2.options.rs"
-                );
-                // @@protoc_insertion_point(grpc.gateway.protoc_gen_openapiv2.options)
-            }
-        }
-    }
-}
 pub mod sift {
     pub mod annotation_logs {
         // @@protoc_insertion_point(attribute:sift.annotation_logs.v1)
@@ -105,6 +78,11 @@ pub mod sift {
                 include!("sift/common/r#type/v1/sift.common.type.v1.rs");
                 // @@protoc_insertion_point(sift.common.type.v1)
             }
+        }
+        // @@protoc_insertion_point(attribute:sift.common.v1)
+        pub mod v1 {
+            include!("sift/common/v1/sift.common.v1.rs");
+            // @@protoc_insertion_point(sift.common.v1)
         }
     }
     pub mod data {
@@ -194,25 +172,11 @@ pub mod sift {
             // @@protoc_insertion_point(sift.notifications.v1)
         }
     }
-    pub mod options {
-        // @@protoc_insertion_point(attribute:sift.options.v1)
-        pub mod v1 {
-            include!("sift/options/v1/sift.options.v1.rs");
-            // @@protoc_insertion_point(sift.options.v1)
-        }
-    }
     pub mod ping {
         // @@protoc_insertion_point(attribute:sift.ping.v1)
         pub mod v1 {
             include!("sift/ping/v1/sift.ping.v1.rs");
             // @@protoc_insertion_point(sift.ping.v1)
-        }
-    }
-    pub mod policies {
-        // @@protoc_insertion_point(attribute:sift.policies.v1)
-        pub mod v1 {
-            include!("sift/policies/v1/sift.policies.v1.rs");
-            // @@protoc_insertion_point(sift.policies.v1)
         }
     }
     pub mod protobuf_descriptors {
@@ -241,13 +205,6 @@ pub mod sift {
         pub mod v1 {
             include!("sift/reports/v1/sift.reports.v1.rs");
             // @@protoc_insertion_point(sift.reports.v1)
-        }
-    }
-    pub mod resource_attribute {
-        // @@protoc_insertion_point(attribute:sift.resource_attribute.v1)
-        pub mod v1 {
-            include!("sift/resource_attribute/v1/sift.resource_attribute.v1.rs");
-            // @@protoc_insertion_point(sift.resource_attribute.v1)
         }
     }
     pub mod roles {
@@ -309,13 +266,6 @@ pub mod sift {
         pub mod v2 {
             include!("sift/unit/v2/sift.unit.v2.rs");
             // @@protoc_insertion_point(sift.unit.v2)
-        }
-    }
-    pub mod user_attributes {
-        // @@protoc_insertion_point(attribute:sift.user_attributes.v1)
-        pub mod v1 {
-            include!("sift/user_attributes/v1/sift.user_attributes.v1.rs");
-            // @@protoc_insertion_point(sift.user_attributes.v1)
         }
     }
     pub mod user_defined_functions {

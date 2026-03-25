@@ -16,14 +16,19 @@ class Organization(google.protobuf.message.Message):
 
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     ORGANIZATION_NAME_FIELD_NUMBER: builtins.int
+    IS_ABAC_ENABLED_FIELD_NUMBER: builtins.int
     organization_id: builtins.str
     organization_name: builtins.str
+    is_abac_enabled: builtins.bool
     def __init__(
         self,
         *,
         organization_id: builtins.str = ...,
         organization_name: builtins.str = ...,
+        is_abac_enabled: builtins.bool | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["organization_id", b"organization_id", "organization_name", b"organization_name"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_is_abac_enabled", b"_is_abac_enabled", "is_abac_enabled", b"is_abac_enabled"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_is_abac_enabled", b"_is_abac_enabled", "is_abac_enabled", b"is_abac_enabled", "organization_id", b"organization_id", "organization_name", b"organization_name"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_is_abac_enabled", b"_is_abac_enabled"]) -> typing.Literal["is_abac_enabled"] | None: ...
 
 global___Organization = Organization

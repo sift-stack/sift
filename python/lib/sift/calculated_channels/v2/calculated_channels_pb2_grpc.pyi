@@ -67,6 +67,18 @@ class CalculatedChannelServiceStub:
     ]
     """Retrieve the latest versions of calculated channels based on an optional filter."""
 
+    GetCalculatedChannelVersions: grpc.UnaryUnaryMultiCallable[
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelVersionsRequest,
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelVersionsResponse,
+    ]
+    """Retrieve calculated channel versions by their version IDs."""
+
+    GetCalculatedChannelDependents: grpc.UnaryUnaryMultiCallable[
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelDependentsRequest,
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelDependentsResponse,
+    ]
+    """Retrieve calculated channels that depend on a given calculated channel."""
+
 class CalculatedChannelServiceAsyncStub:
     GetCalculatedChannel: grpc.aio.UnaryUnaryMultiCallable[
         sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelRequest,
@@ -115,6 +127,18 @@ class CalculatedChannelServiceAsyncStub:
         sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsResponse,
     ]
     """Retrieve the latest versions of calculated channels based on an optional filter."""
+
+    GetCalculatedChannelVersions: grpc.aio.UnaryUnaryMultiCallable[
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelVersionsRequest,
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelVersionsResponse,
+    ]
+    """Retrieve calculated channel versions by their version IDs."""
+
+    GetCalculatedChannelDependents: grpc.aio.UnaryUnaryMultiCallable[
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelDependentsRequest,
+        sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelDependentsResponse,
+    ]
+    """Retrieve calculated channels that depend on a given calculated channel."""
 
 class CalculatedChannelServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -180,5 +204,21 @@ class CalculatedChannelServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsResponse, collections.abc.Awaitable[sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsResponse]]:
         """Retrieve the latest versions of calculated channels based on an optional filter."""
+
+    @abc.abstractmethod
+    def GetCalculatedChannelVersions(
+        self,
+        request: sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelVersionsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelVersionsResponse, collections.abc.Awaitable[sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelVersionsResponse]]:
+        """Retrieve calculated channel versions by their version IDs."""
+
+    @abc.abstractmethod
+    def GetCalculatedChannelDependents(
+        self,
+        request: sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelDependentsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelDependentsResponse, collections.abc.Awaitable[sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelDependentsResponse]]:
+        """Retrieve calculated channels that depend on a given calculated channel."""
 
 def add_CalculatedChannelServiceServicer_to_server(servicer: CalculatedChannelServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

@@ -72,11 +72,13 @@ class SavedSearchProperties(google.protobuf.message.Message):
     INCLUDE_ARCHIVED_FIELD_NUMBER: builtins.int
     ORDER_BY_FIELD_NUMBER: builtins.int
     METADATA_ITEMS_FIELD_NUMBER: builtins.int
+    DURATION_FIELD_NUMBER: builtins.int
     overview_mode: builtins.str
     search_term: builtins.str
     show_advanced_filters: builtins.bool
     include_archived: builtins.bool
     order_by: builtins.str
+    duration: builtins.str
     @property
     def from_date_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -112,9 +114,12 @@ class SavedSearchProperties(google.protobuf.message.Message):
         include_archived: builtins.bool | None = ...,
         order_by: builtins.str | None = ...,
         metadata_items: collections.abc.Iterable[global___SavedSearchMetadataItem] | None = ...,
+        duration: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "order_by", b"order_by", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "to_date_time", b"to_date_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "metadata_items", b"metadata_items", "order_by", b"order_by", "overview_mode", b"overview_mode", "report_template_items", b"report_template_items", "run_items", b"run_items", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "tag_items", b"tag_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_duration", b"_duration", "_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "duration", b"duration", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "order_by", b"order_by", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "to_date_time", b"to_date_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_duration", b"_duration", "_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "duration", b"duration", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "metadata_items", b"metadata_items", "order_by", b"order_by", "overview_mode", b"overview_mode", "report_template_items", b"report_template_items", "run_items", b"run_items", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "tag_items", b"tag_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_duration", b"_duration"]) -> typing.Literal["duration"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_from_date_time", b"_from_date_time"]) -> typing.Literal["from_date_time"] | None: ...
     @typing.overload

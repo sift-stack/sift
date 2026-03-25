@@ -1497,6 +1497,9 @@ impl serde::Serialize for SavedSearchProperties {
         if !self.metadata_items.is_empty() {
             len += 1;
         }
+        if self.duration.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.saved_searches.v1.SavedSearchProperties", len)?;
         if !self.overview_mode.is_empty() {
             struct_ser.serialize_field("overviewMode", &self.overview_mode)?;
@@ -1540,6 +1543,9 @@ impl serde::Serialize for SavedSearchProperties {
         if !self.metadata_items.is_empty() {
             struct_ser.serialize_field("metadataItems", &self.metadata_items)?;
         }
+        if let Some(v) = self.duration.as_ref() {
+            struct_ser.serialize_field("duration", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1578,6 +1584,7 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
             "orderBy",
             "metadata_items",
             "metadataItems",
+            "duration",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1596,6 +1603,7 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
             IncludeArchived,
             OrderBy,
             MetadataItems,
+            Duration,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1631,6 +1639,7 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                             "includeArchived" | "include_archived" => Ok(GeneratedField::IncludeArchived),
                             "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
                             "metadataItems" | "metadata_items" => Ok(GeneratedField::MetadataItems),
+                            "duration" => Ok(GeneratedField::Duration),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1664,6 +1673,7 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                 let mut include_archived__ = None;
                 let mut order_by__ = None;
                 let mut metadata_items__ = None;
+                let mut duration__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::OverviewMode => {
@@ -1750,6 +1760,12 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                             }
                             metadata_items__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Duration => {
+                            if duration__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("duration"));
+                            }
+                            duration__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(SavedSearchProperties {
@@ -1767,6 +1783,7 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                     include_archived: include_archived__,
                     order_by: order_by__,
                     metadata_items: metadata_items__.unwrap_or_default(),
+                    duration: duration__,
                 })
             }
         }

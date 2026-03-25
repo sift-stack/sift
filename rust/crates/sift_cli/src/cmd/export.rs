@@ -290,7 +290,7 @@ async fn export(
             .ok_or_else(|| anyhow!("failed to find job {job_id}"))?;
     }
 
-    let GetDownloadUrlResponse { presigned_url } = export_service
+    let GetDownloadUrlResponse { presigned_url, .. } = export_service
         .get_download_url(GetDownloadUrlRequest { job_id })
         .await
         .context("failed to get download URL for export")?

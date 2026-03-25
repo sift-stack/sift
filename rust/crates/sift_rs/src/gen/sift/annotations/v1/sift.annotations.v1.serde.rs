@@ -88,6 +88,12 @@ impl serde::Serialize for Annotation {
         if self.is_archived {
             len += 1;
         }
+        if self.batched_triggers != 0 {
+            len += 1;
+        }
+        if self.is_noisy_rule {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.Annotation", len)?;
         if !self.annotation_id.is_empty() {
             struct_ser.serialize_field("annotationId", &self.annotation_id)?;
@@ -174,6 +180,12 @@ impl serde::Serialize for Annotation {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if self.batched_triggers != 0 {
+            struct_ser.serialize_field("batchedTriggers", &self.batched_triggers)?;
+        }
+        if self.is_noisy_rule {
+            struct_ser.serialize_field("isNoisyRule", &self.is_noisy_rule)?;
+        }
         struct_ser.end()
     }
 }
@@ -232,6 +244,10 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             "archivedDate",
             "is_archived",
             "isArchived",
+            "batched_triggers",
+            "batchedTriggers",
+            "is_noisy_rule",
+            "isNoisyRule",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -263,6 +279,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             Metadata,
             ArchivedDate,
             IsArchived,
+            BatchedTriggers,
+            IsNoisyRule,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -311,6 +329,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "batchedTriggers" | "batched_triggers" => Ok(GeneratedField::BatchedTriggers),
+                            "isNoisyRule" | "is_noisy_rule" => Ok(GeneratedField::IsNoisyRule),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -357,6 +377,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                 let mut metadata__ = None;
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
+                let mut batched_triggers__ = None;
+                let mut is_noisy_rule__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AnnotationId => {
@@ -521,6 +543,20 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::BatchedTriggers => {
+                            if batched_triggers__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("batchedTriggers"));
+                            }
+                            batched_triggers__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::IsNoisyRule => {
+                            if is_noisy_rule__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isNoisyRule"));
+                            }
+                            is_noisy_rule__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Annotation {
@@ -551,10 +587,104 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                     metadata: metadata__.unwrap_or_default(),
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
+                    batched_triggers: batched_triggers__.unwrap_or_default(),
+                    is_noisy_rule: is_noisy_rule__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("sift.annotations.v1.Annotation", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for AnnotationLinkedCalculatedChannel {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.calculated_channel_version_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.AnnotationLinkedCalculatedChannel", len)?;
+        if !self.calculated_channel_version_id.is_empty() {
+            struct_ser.serialize_field("calculatedChannelVersionId", &self.calculated_channel_version_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for AnnotationLinkedCalculatedChannel {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "calculated_channel_version_id",
+            "calculatedChannelVersionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CalculatedChannelVersionId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "calculatedChannelVersionId" | "calculated_channel_version_id" => Ok(GeneratedField::CalculatedChannelVersionId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = AnnotationLinkedCalculatedChannel;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.AnnotationLinkedCalculatedChannel")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AnnotationLinkedCalculatedChannel, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut calculated_channel_version_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CalculatedChannelVersionId => {
+                            if calculated_channel_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelVersionId"));
+                            }
+                            calculated_channel_version_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(AnnotationLinkedCalculatedChannel {
+                    calculated_channel_version_id: calculated_channel_version_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.AnnotationLinkedCalculatedChannel", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for AnnotationLinkedChannel {
@@ -577,6 +707,9 @@ impl serde::Serialize for AnnotationLinkedChannel {
                 annotation_linked_channel::Type::BitFieldElement(v) => {
                     struct_ser.serialize_field("bitFieldElement", v)?;
                 }
+                annotation_linked_channel::Type::CalculatedChannel(v) => {
+                    struct_ser.serialize_field("calculatedChannel", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -592,12 +725,15 @@ impl<'de> serde::Deserialize<'de> for AnnotationLinkedChannel {
             "channel",
             "bit_field_element",
             "bitFieldElement",
+            "calculated_channel",
+            "calculatedChannel",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Channel,
             BitFieldElement,
+            CalculatedChannel,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -621,6 +757,7 @@ impl<'de> serde::Deserialize<'de> for AnnotationLinkedChannel {
                         match value {
                             "channel" => Ok(GeneratedField::Channel),
                             "bitFieldElement" | "bit_field_element" => Ok(GeneratedField::BitFieldElement),
+                            "calculatedChannel" | "calculated_channel" => Ok(GeneratedField::CalculatedChannel),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -655,6 +792,13 @@ impl<'de> serde::Deserialize<'de> for AnnotationLinkedChannel {
                                 return Err(serde::de::Error::duplicate_field("bitFieldElement"));
                             }
                             r#type__ = map_.next_value::<::std::option::Option<_>>()?.map(annotation_linked_channel::Type::BitFieldElement)
+;
+                        }
+                        GeneratedField::CalculatedChannel => {
+                            if r#type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannel"));
+                            }
+                            r#type__ = map_.next_value::<::std::option::Option<_>>()?.map(annotation_linked_channel::Type::CalculatedChannel)
 ;
                         }
                     }

@@ -517,6 +517,9 @@ impl serde::Serialize for CreateRunRequest {
         if !self.metadata.is_empty() {
             len += 1;
         }
+        if self.create_default_report.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.CreateRunRequest", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -542,6 +545,9 @@ impl serde::Serialize for CreateRunRequest {
         if !self.metadata.is_empty() {
             struct_ser.serialize_field("metadata", &self.metadata)?;
         }
+        if let Some(v) = self.create_default_report.as_ref() {
+            struct_ser.serialize_field("createDefaultReport", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -564,6 +570,8 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
             "client_key",
             "clientKey",
             "metadata",
+            "create_default_report",
+            "createDefaultReport",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -576,6 +584,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
             OrganizationId,
             ClientKey,
             Metadata,
+            CreateDefaultReport,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -605,6 +614,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             "metadata" => Ok(GeneratedField::Metadata),
+                            "createDefaultReport" | "create_default_report" => Ok(GeneratedField::CreateDefaultReport),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -632,6 +642,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                 let mut organization_id__ = None;
                 let mut client_key__ = None;
                 let mut metadata__ = None;
+                let mut create_default_report__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -682,6 +693,12 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                             }
                             metadata__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CreateDefaultReport => {
+                            if create_default_report__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createDefaultReport"));
+                            }
+                            create_default_report__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateRunRequest {
@@ -693,6 +710,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                     organization_id: organization_id__.unwrap_or_default(),
                     client_key: client_key__,
                     metadata: metadata__.unwrap_or_default(),
+                    create_default_report: create_default_report__,
                 })
             }
         }

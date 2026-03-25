@@ -1732,6 +1732,9 @@ impl serde::Serialize for RemoteFile {
         if !self.metadata_values.is_empty() {
             len += 1;
         }
+        if self.remote_file_type != 0 {
+            len += 1;
+        }
         if self.metadata.is_some() {
             len += 1;
         }
@@ -1785,6 +1788,11 @@ impl serde::Serialize for RemoteFile {
         if !self.metadata_values.is_empty() {
             struct_ser.serialize_field("metadataValues", &self.metadata_values)?;
         }
+        if self.remote_file_type != 0 {
+            let v = RemoteFileType::try_from(self.remote_file_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.remote_file_type)))?;
+            struct_ser.serialize_field("remoteFileType", &v)?;
+        }
         if let Some(v) = self.metadata.as_ref() {
             match v {
                 remote_file::Metadata::VideoMetadata(v) => {
@@ -1837,6 +1845,8 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
             "modifiedDate",
             "metadata_values",
             "metadataValues",
+            "remote_file_type",
+            "remoteFileType",
             "video_metadata",
             "videoMetadata",
             "image_metadata",
@@ -1862,6 +1872,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
             CreatedDate,
             ModifiedDate,
             MetadataValues,
+            RemoteFileType,
             VideoMetadata,
             ImageMetadata,
             AudioMetadata,
@@ -1901,6 +1912,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                             "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "metadataValues" | "metadata_values" => Ok(GeneratedField::MetadataValues),
+                            "remoteFileType" | "remote_file_type" => Ok(GeneratedField::RemoteFileType),
                             "videoMetadata" | "video_metadata" => Ok(GeneratedField::VideoMetadata),
                             "imageMetadata" | "image_metadata" => Ok(GeneratedField::ImageMetadata),
                             "audioMetadata" | "audio_metadata" => Ok(GeneratedField::AudioMetadata),
@@ -1938,6 +1950,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                 let mut created_date__ = None;
                 let mut modified_date__ = None;
                 let mut metadata_values__ = None;
+                let mut remote_file_type__ = None;
                 let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -2033,6 +2046,12 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                             }
                             metadata_values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RemoteFileType => {
+                            if remote_file_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("remoteFileType"));
+                            }
+                            remote_file_type__ = Some(map_.next_value::<RemoteFileType>()? as i32);
+                        }
                         GeneratedField::VideoMetadata => {
                             if metadata__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("videoMetadata"));
@@ -2072,11 +2091,95 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                     created_date: created_date__,
                     modified_date: modified_date__,
                     metadata_values: metadata_values__.unwrap_or_default(),
+                    remote_file_type: remote_file_type__.unwrap_or_default(),
                     metadata: metadata__,
                 })
             }
         }
         deserializer.deserialize_struct("sift.remote_files.v1.RemoteFile", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for RemoteFileType {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "REMOTE_FILE_TYPE_UNSPECIFIED",
+            Self::Telemetry => "REMOTE_FILE_TYPE_TELEMETRY",
+            Self::Image => "REMOTE_FILE_TYPE_IMAGE",
+            Self::Video => "REMOTE_FILE_TYPE_VIDEO",
+            Self::Audio => "REMOTE_FILE_TYPE_AUDIO",
+            Self::TestReport => "REMOTE_FILE_TYPE_TEST_REPORT",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for RemoteFileType {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "REMOTE_FILE_TYPE_UNSPECIFIED",
+            "REMOTE_FILE_TYPE_TELEMETRY",
+            "REMOTE_FILE_TYPE_IMAGE",
+            "REMOTE_FILE_TYPE_VIDEO",
+            "REMOTE_FILE_TYPE_AUDIO",
+            "REMOTE_FILE_TYPE_TEST_REPORT",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = RemoteFileType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "REMOTE_FILE_TYPE_UNSPECIFIED" => Ok(RemoteFileType::Unspecified),
+                    "REMOTE_FILE_TYPE_TELEMETRY" => Ok(RemoteFileType::Telemetry),
+                    "REMOTE_FILE_TYPE_IMAGE" => Ok(RemoteFileType::Image),
+                    "REMOTE_FILE_TYPE_VIDEO" => Ok(RemoteFileType::Video),
+                    "REMOTE_FILE_TYPE_AUDIO" => Ok(RemoteFileType::Audio),
+                    "REMOTE_FILE_TYPE_TEST_REPORT" => Ok(RemoteFileType::TestReport),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for UpdateRemoteFileRequest {

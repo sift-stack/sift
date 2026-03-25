@@ -66,6 +66,8 @@ message EvaluateRulesRequest {
 
   // If this request creates a report, this field will be used as the report name.
   optional string report_name = 8 [(google.api.field_behavior) = OPTIONAL];
+
+  // If evaluating a run against a family stat, this field will be used to provide alignment configuration for the run under test
 }
 
 message RunTimeRange {
@@ -123,7 +125,10 @@ message EvaluateRulesPreviewRequest {
 
   // Only required if your user belongs to multiple organizations
   string organization_id = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // If evaluating a run against a family stat, this field will be used to provide alignment configuration for the run under test
 }
+
 
 message EvaluateRulesFromRuleConfigs {
   repeated sift.rules.v1.UpdateRuleRequest configs = 1 [(google.api.field_behavior) = REQUIRED];

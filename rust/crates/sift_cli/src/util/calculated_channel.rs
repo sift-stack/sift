@@ -222,6 +222,7 @@ pub async fn resolve_to_calculated_channel_configs(
                 .map(|r| CalculatedChannelAbstractChannelReference {
                     channel_reference: r.channel_reference,
                     channel_identifier: r.channel_id,
+                    calculated_channel_reference: None,
                 })
                 .collect();
 

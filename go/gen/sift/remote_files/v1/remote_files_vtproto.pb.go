@@ -49,6 +49,7 @@ func (m *RemoteFile) CloneVT() *RemoteFile {
 	r.ModifiedByUserId = m.ModifiedByUserId
 	r.CreatedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.CreatedDate).CloneVT())
 	r.ModifiedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ModifiedDate).CloneVT())
+	r.RemoteFileType = m.RemoteFileType
 	if rhs := m.Description; rhs != nil {
 		tmpVal := *rhs
 		r.Description = &tmpVal
@@ -550,6 +551,9 @@ func (this *RemoteFile) EqualVT(that *RemoteFile) bool {
 				return false
 			}
 		}
+	}
+	if this.RemoteFileType != that.RemoteFileType {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1498,6 +1502,13 @@ func (m *RemoteFile) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i -= size
+	}
+	if m.RemoteFileType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.RemoteFileType))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
 	}
 	if len(m.MetadataValues) > 0 {
 		for iNdEx := len(m.MetadataValues) - 1; iNdEx >= 0; iNdEx-- {
@@ -2619,6 +2630,13 @@ func (m *RemoteFile) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.RemoteFileType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.RemoteFileType))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
 	}
 	if len(m.MetadataValues) > 0 {
 		for iNdEx := len(m.MetadataValues) - 1; iNdEx >= 0; iNdEx-- {
@@ -3819,6 +3837,9 @@ func (m *RemoteFile) SizeVT() (n int) {
 			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.RemoteFileType != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.RemoteFileType))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4836,6 +4857,25 @@ func (m *RemoteFile) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteFileType", wireType)
+			}
+			m.RemoteFileType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RemoteFileType |= RemoteFileType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7542,6 +7582,25 @@ func (m *RemoteFile) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteFileType", wireType)
+			}
+			m.RemoteFileType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RemoteFileType |= RemoteFileType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

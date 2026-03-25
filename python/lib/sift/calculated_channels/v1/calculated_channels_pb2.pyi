@@ -88,19 +88,27 @@ global___ExpressionMode = ExpressionMode
 
 @typing.final
 class ExpressionChannelReference(google.protobuf.message.Message):
+    """Reference to a saved calculated channel with optional asset context."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     CHANNEL_REFERENCE_FIELD_NUMBER: builtins.int
     CHANNEL_ID_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_FIELD_NUMBER: builtins.int
     channel_reference: builtins.str
     channel_id: builtins.str
+    @property
+    def calculated_channel(self) -> global___ExpressionRequest: ...
     def __init__(
         self,
         *,
         channel_reference: builtins.str = ...,
         channel_id: builtins.str = ...,
+        calculated_channel: global___ExpressionRequest | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["channel_id", b"channel_id", "channel_reference", b"channel_reference"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "calculated_channel_reference", b"calculated_channel_reference"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "calculated_channel_reference", b"calculated_channel_reference", "channel_id", b"channel_id", "channel_reference", b"channel_reference"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["calculated_channel_reference", b"calculated_channel_reference"]) -> typing.Literal["calculated_channel"] | None: ...
 
 global___ExpressionChannelReference = ExpressionChannelReference
 

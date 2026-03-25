@@ -51,6 +51,8 @@ func (m *Annotation) CloneVT() *Annotation {
 	r.DeletedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.DeletedDate).CloneVT())
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsArchived = m.IsArchived
+	r.BatchedTriggers = m.BatchedTriggers
+	r.IsNoisyRule = m.IsNoisyRule
 	if rhs := m.RunId; rhs != nil {
 		tmpVal := *rhs
 		r.RunId = &tmpVal
@@ -156,6 +158,23 @@ func (m *AnnotationLinkedChannelsBitFieldElement) CloneMessageVT() proto.Message
 	return m.CloneVT()
 }
 
+func (m *AnnotationLinkedCalculatedChannel) CloneVT() *AnnotationLinkedCalculatedChannel {
+	if m == nil {
+		return (*AnnotationLinkedCalculatedChannel)(nil)
+	}
+	r := new(AnnotationLinkedCalculatedChannel)
+	r.CalculatedChannelVersionId = m.CalculatedChannelVersionId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AnnotationLinkedCalculatedChannel) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *AnnotationLinkedChannel) CloneVT() *AnnotationLinkedChannel {
 	if m == nil {
 		return (*AnnotationLinkedChannel)(nil)
@@ -192,6 +211,15 @@ func (m *AnnotationLinkedChannel_BitFieldElement) CloneVT() isAnnotationLinkedCh
 	}
 	r := new(AnnotationLinkedChannel_BitFieldElement)
 	r.BitFieldElement = m.BitFieldElement.CloneVT()
+	return r
+}
+
+func (m *AnnotationLinkedChannel_CalculatedChannel) CloneVT() isAnnotationLinkedChannel_Type {
+	if m == nil {
+		return (*AnnotationLinkedChannel_CalculatedChannel)(nil)
+	}
+	r := new(AnnotationLinkedChannel_CalculatedChannel)
+	r.CalculatedChannel = m.CalculatedChannel.CloneVT()
 	return r
 }
 
@@ -761,6 +789,12 @@ func (this *Annotation) EqualVT(that *Annotation) bool {
 	if this.IsArchived != that.IsArchived {
 		return false
 	}
+	if this.BatchedTriggers != that.BatchedTriggers {
+		return false
+	}
+	if this.IsNoisyRule != that.IsNoisyRule {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -807,6 +841,25 @@ func (this *AnnotationLinkedChannelsBitFieldElement) EqualVT(that *AnnotationLin
 
 func (this *AnnotationLinkedChannelsBitFieldElement) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*AnnotationLinkedChannelsBitFieldElement)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *AnnotationLinkedCalculatedChannel) EqualVT(that *AnnotationLinkedCalculatedChannel) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CalculatedChannelVersionId != that.CalculatedChannelVersionId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AnnotationLinkedCalculatedChannel) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*AnnotationLinkedCalculatedChannel)
 	if !ok {
 		return false
 	}
@@ -882,6 +935,31 @@ func (this *AnnotationLinkedChannel_BitFieldElement) EqualVT(thatIface isAnnotat
 		}
 		if q == nil {
 			q = &AnnotationLinkedChannelsBitFieldElement{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *AnnotationLinkedChannel_CalculatedChannel) EqualVT(thatIface isAnnotationLinkedChannel_Type) bool {
+	that, ok := thatIface.(*AnnotationLinkedChannel_CalculatedChannel)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.CalculatedChannel, that.CalculatedChannel; p != q {
+		if p == nil {
+			p = &AnnotationLinkedCalculatedChannel{}
+		}
+		if q == nil {
+			q = &AnnotationLinkedCalculatedChannel{}
 		}
 		if !p.EqualVT(q) {
 			return false
@@ -1915,6 +1993,25 @@ func (m *Annotation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsNoisyRule {
+		i--
+		if m.IsNoisyRule {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xe8
+	}
+	if m.BatchedTriggers != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.BatchedTriggers))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xe0
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -2279,6 +2376,46 @@ func (m *AnnotationLinkedChannelsBitFieldElement) MarshalToSizedBufferVT(dAtA []
 	return len(dAtA) - i, nil
 }
 
+func (m *AnnotationLinkedCalculatedChannel) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AnnotationLinkedCalculatedChannel) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AnnotationLinkedCalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CalculatedChannelVersionId) > 0 {
+		i -= len(m.CalculatedChannelVersionId)
+		copy(dAtA[i:], m.CalculatedChannelVersionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CalculatedChannelVersionId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AnnotationLinkedChannel) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2356,6 +2493,25 @@ func (m *AnnotationLinkedChannel_BitFieldElement) MarshalToSizedBufferVT(dAtA []
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+func (m *AnnotationLinkedChannel_CalculatedChannel) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AnnotationLinkedChannel_CalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.CalculatedChannel != nil {
+		size, err := m.CalculatedChannel.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
 	}
 	return len(dAtA) - i, nil
 }
@@ -3392,6 +3548,25 @@ func (m *Annotation) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsNoisyRule {
+		i--
+		if m.IsNoisyRule {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xe8
+	}
+	if m.BatchedTriggers != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.BatchedTriggers))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xe0
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -3756,6 +3931,46 @@ func (m *AnnotationLinkedChannelsBitFieldElement) MarshalToSizedBufferVTStrict(d
 	return len(dAtA) - i, nil
 }
 
+func (m *AnnotationLinkedCalculatedChannel) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AnnotationLinkedCalculatedChannel) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *AnnotationLinkedCalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CalculatedChannelVersionId) > 0 {
+		i -= len(m.CalculatedChannelVersionId)
+		copy(dAtA[i:], m.CalculatedChannelVersionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CalculatedChannelVersionId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AnnotationLinkedChannel) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3785,6 +4000,13 @@ func (m *AnnotationLinkedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if msg, ok := m.Type.(*AnnotationLinkedChannel_CalculatedChannel); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
 	}
 	if msg, ok := m.Type.(*AnnotationLinkedChannel_BitFieldElement); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -3838,6 +4060,25 @@ func (m *AnnotationLinkedChannel_BitFieldElement) MarshalToSizedBufferVTStrict(d
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+func (m *AnnotationLinkedChannel_CalculatedChannel) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *AnnotationLinkedChannel_CalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.CalculatedChannel != nil {
+		size, err := m.CalculatedChannel.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
 	}
 	return len(dAtA) - i, nil
 }
@@ -4974,6 +5215,12 @@ func (m *Annotation) SizeVT() (n int) {
 	if m.IsArchived {
 		n += 3
 	}
+	if m.BatchedTriggers != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.BatchedTriggers))
+	}
+	if m.IsNoisyRule {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5003,6 +5250,20 @@ func (m *AnnotationLinkedChannelsBitFieldElement) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.BitFieldName)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AnnotationLinkedCalculatedChannel) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.CalculatedChannelVersionId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -5043,6 +5304,18 @@ func (m *AnnotationLinkedChannel_BitFieldElement) SizeVT() (n int) {
 	_ = l
 	if m.BitFieldElement != nil {
 		l = m.BitFieldElement.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
+func (m *AnnotationLinkedChannel_CalculatedChannel) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CalculatedChannel != nil {
+		l = m.CalculatedChannel.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	return n
@@ -6323,6 +6596,45 @@ func (m *Annotation) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 28:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BatchedTriggers", wireType)
+			}
+			m.BatchedTriggers = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BatchedTriggers |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 29:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsNoisyRule", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsNoisyRule = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -6543,6 +6855,89 @@ func (m *AnnotationLinkedChannelsBitFieldElement) UnmarshalVT(dAtA []byte) error
 	}
 	return nil
 }
+func (m *AnnotationLinkedCalculatedChannel) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AnnotationLinkedCalculatedChannel: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AnnotationLinkedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelVersionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CalculatedChannelVersionId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *AnnotationLinkedChannel) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6652,6 +7047,47 @@ func (m *AnnotationLinkedChannel) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Type = &AnnotationLinkedChannel_BitFieldElement{BitFieldElement: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannel", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Type.(*AnnotationLinkedChannel_CalculatedChannel); ok {
+				if err := oneof.CalculatedChannel.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &AnnotationLinkedCalculatedChannel{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Type = &AnnotationLinkedChannel_CalculatedChannel{CalculatedChannel: v}
 			}
 			iNdEx = postIndex
 		default:
@@ -9918,6 +10354,45 @@ func (m *Annotation) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 28:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BatchedTriggers", wireType)
+			}
+			m.BatchedTriggers = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BatchedTriggers |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 29:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsNoisyRule", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsNoisyRule = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -10150,6 +10625,93 @@ func (m *AnnotationLinkedChannelsBitFieldElement) UnmarshalVTUnsafe(dAtA []byte)
 	}
 	return nil
 }
+func (m *AnnotationLinkedCalculatedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AnnotationLinkedCalculatedChannel: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AnnotationLinkedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelVersionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.CalculatedChannelVersionId = stringValue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *AnnotationLinkedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -10259,6 +10821,47 @@ func (m *AnnotationLinkedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
 					return err
 				}
 				m.Type = &AnnotationLinkedChannel_BitFieldElement{BitFieldElement: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannel", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Type.(*AnnotationLinkedChannel_CalculatedChannel); ok {
+				if err := oneof.CalculatedChannel.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &AnnotationLinkedCalculatedChannel{}
+				if err := v.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Type = &AnnotationLinkedChannel_CalculatedChannel{CalculatedChannel: v}
 			}
 			iNdEx = postIndex
 		default:
