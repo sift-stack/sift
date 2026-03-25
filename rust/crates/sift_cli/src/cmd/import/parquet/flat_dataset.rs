@@ -59,7 +59,9 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
 
     if args.preview {
         let parquet_conf = create_data_import_req.parquet_config.unwrap();
-        let Config::FlatDataset(flatset_conf) = parquet_conf.config.unwrap();
+        let Config::FlatDataset(flatset_conf) = parquet_conf.config.unwrap() else {
+            anyhow::bail!("expected FlatDataset config for preview");
+        };
 
         let channel_confs = flatset_conf
             .data_columns
