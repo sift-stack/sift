@@ -6,6 +6,34 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 https://github.com/sift-stack/sift/commit/e1305363e95cafb4c980fdd493f69e72660a52fb
 
+## [v0.13.0] - March 24, 2026
+### What's New
+#### SiftClient Export API
+The `sift_client` module now exposes a public export interface and wrapper, making it easier to integrate with downstream tools and workflows.
+
+#### Module Migration to `sift_client`
+The `grpc`, `rest`, and `time` modules have been migrated from `sift_py` to `sift_client`. All imports from `sift_py` for these modules have been removed. This continues the transition toward `sift_client` as the primary interface ahead of the `v1.0.0` release.
+
+#### Arbitrary File Attachment Uploads
+File attachment uploads now support arbitrary file types (e.g., Parquet, pcapng) by falling back to `application/octet-stream` for unknown MIME types.
+
+#### Improved SiftChannelConfig URL Handling
+`SiftChannelConfig` now handles URLs more robustly, fixing gRPC connection errors caused by missing URL schemes.
+
+#### Streaming Ingestion Performance
+The streaming ingestion module has been refactored to use `sift_stream_bindings` types for improved performance.
+
+### Full Changelog
+- [Add export API for SiftClient](https://github.com/sift-stack/sift/pull/490)
+- [Port grpc, rest, and time modules into sift_client](https://github.com/sift-stack/sift/pull/487)
+- [Fall back to application/octet-stream for unknown MIME types](https://github.com/sift-stack/sift/pull/509)
+- [Parquet file attachment support](https://github.com/sift-stack/sift/pull/486)
+- [Fix gRPC connection errors with missing scheme](https://github.com/sift-stack/sift/pull/485)
+- [Migrate to sift_stream_bindings types for improved ingestion performance](https://github.com/sift-stack/sift/pull/503)
+- [Add Python streaming ingestion tutorial example](https://github.com/sift-stack/sift/pull/493)
+- [Update pandas and pandas-stubs version bounds](https://github.com/sift-stack/sift/pull/492)
+- [Pin doc build versions](https://github.com/sift-stack/sift/pull/505)
+
 ## [v0.12.0] - February 26, 2026
 ### What's New
 #### Channel Archiving/Unarchiving Support in SiftClient
