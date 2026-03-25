@@ -38,6 +38,7 @@ from sift_client.sift_types.job import Job, JobStatus
 START = datetime(2025, 1, 1, tzinfo=timezone.utc)
 STOP = datetime(2025, 1, 2, tzinfo=timezone.utc)
 CSV = ExportOutputFormat.CSV
+PARQUET = ExportOutputFormat.PARQUET
 
 
 @pytest.fixture
@@ -238,6 +239,20 @@ class TestDataExportAPISync:
                 output_format=CSV,
             )
             assert isinstance(job, Job)
+
+
+class TestParquetFormat:
+    @pytest.mark.asyncio
+    async def test_export_parquet_format(self, exports_api):
+        """Test that Parquet output format is accepted."""
+        await exports_api.export(
+            runs=["run-1"],
+            start_time=START,
+            stop_time=STOP,
+            output_format=PARQUET,
+        )
+        call_kwargs = exports_api._low_level_client.export_data.call_args.kwargs
+        assert call_kwargs["output_format"] == PARQUET
 
 
 class TestDictConversion:
