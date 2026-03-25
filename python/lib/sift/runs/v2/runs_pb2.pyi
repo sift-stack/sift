@@ -237,6 +237,7 @@ class CreateRunRequest(google.protobuf.message.Message):
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    CREATE_DEFAULT_REPORT_FIELD_NUMBER: builtins.int
     name: builtins.str
     """The name that will be assigned to the new run."""
     description: builtins.str
@@ -245,6 +246,10 @@ class CreateRunRequest(google.protobuf.message.Message):
     """An organization ID is only required if the user belongs to multiple organizations."""
     client_key: builtins.str
     """An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide."""
+    create_default_report: builtins.bool
+    """Whether to create a default report for this run. This facilitates getting the report ID for live rules that will be automatically created for this run which can streamline programatically creating Campaigns.
+    Defaults to false if not specified (This default can be changed for your organization by Sift. Contact support to change this default behavior.).
+    """
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
         """Tags to associate with the new run."""
@@ -279,10 +284,14 @@ class CreateRunRequest(google.protobuf.message.Message):
         organization_id: builtins.str = ...,
         client_key: builtins.str | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        create_default_report: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "client_key", b"client_key", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "client_key", b"client_key", "description", b"description", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_create_default_report", b"_create_default_report", "client_key", b"client_key", "create_default_report", b"create_default_report", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_create_default_report", b"_create_default_report", "client_key", b"client_key", "create_default_report", b"create_default_report", "description", b"description", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_create_default_report", b"_create_default_report"]) -> typing.Literal["create_default_report"] | None: ...
 
 global___CreateRunRequest = CreateRunRequest
 

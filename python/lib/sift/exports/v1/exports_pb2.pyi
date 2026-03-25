@@ -30,12 +30,14 @@ class _ExportOutputFormatEnumTypeWrapper(google.protobuf.internal.enum_type_wrap
     EXPORT_OUTPUT_FORMAT_UNSPECIFIED: _ExportOutputFormat.ValueType  # 0
     EXPORT_OUTPUT_FORMAT_CSV: _ExportOutputFormat.ValueType  # 1
     EXPORT_OUTPUT_FORMAT_SUN: _ExportOutputFormat.ValueType  # 2
+    EXPORT_OUTPUT_FORMAT_PARQUET: _ExportOutputFormat.ValueType  # 3
 
 class ExportOutputFormat(_ExportOutputFormat, metaclass=_ExportOutputFormatEnumTypeWrapper): ...
 
 EXPORT_OUTPUT_FORMAT_UNSPECIFIED: ExportOutputFormat.ValueType  # 0
 EXPORT_OUTPUT_FORMAT_CSV: ExportOutputFormat.ValueType  # 1
 EXPORT_OUTPUT_FORMAT_SUN: ExportOutputFormat.ValueType  # 2
+EXPORT_OUTPUT_FORMAT_PARQUET: ExportOutputFormat.ValueType  # 3
 global___ExportOutputFormat = ExportOutputFormat
 
 @typing.final
@@ -225,19 +227,23 @@ class ExportDataResponse(google.protobuf.message.Message):
 
     PRESIGNED_URL_FIELD_NUMBER: builtins.int
     JOB_ID_FIELD_NUMBER: builtins.int
+    SERVICE_MESSAGE_FIELD_NUMBER: builtins.int
     presigned_url: builtins.str
     """Pre-signed URL of exported zip containing export files. This will be blank if
     the job is processed as a background job, in which case `job_id` will be non-empty.
     """
     job_id: builtins.str
     """This will be non-empty if the export is being processed asynchronously in a background job."""
+    service_message: builtins.str
+    """Optional message for the client to display in success or error notification (e.g. exclusions or 403 reason)."""
     def __init__(
         self,
         *,
         presigned_url: builtins.str = ...,
         job_id: builtins.str = ...,
+        service_message: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["job_id", b"job_id", "presigned_url", b"presigned_url"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["job_id", b"job_id", "presigned_url", b"presigned_url", "service_message", b"service_message"]) -> None: ...
 
 global___ExportDataResponse = ExportDataResponse
 
@@ -261,12 +267,16 @@ class GetDownloadUrlResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     PRESIGNED_URL_FIELD_NUMBER: builtins.int
+    SERVICE_MESSAGE_FIELD_NUMBER: builtins.int
     presigned_url: builtins.str
+    service_message: builtins.str
+    """Optional message for the client to display in success or error notification."""
     def __init__(
         self,
         *,
         presigned_url: builtins.str = ...,
+        service_message: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["presigned_url", b"presigned_url"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["presigned_url", b"presigned_url", "service_message", b"service_message"]) -> None: ...
 
 global___GetDownloadUrlResponse = GetDownloadUrlResponse

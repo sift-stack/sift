@@ -12,6 +12,7 @@ import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/resource_identifier.proto";
 import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
+import "sift/rules/v1/rules.proto";
 
 
 service CalculatedChannelService {
@@ -104,6 +105,24 @@ service CalculatedChannelService {
       description: "Retrieve the latest versions of calculated channels based on an optional filter."
     };
   }
+
+  // Retrieve calculated channel versions by their version IDs.
+  rpc GetCalculatedChannelVersions(GetCalculatedChannelVersionsRequest) returns (GetCalculatedChannelVersionsResponse) {
+    option (google.api.http) = {get: "/api/v2/calculated-channels/versions"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetCalculatedChannelVersions"
+      description: "Retrieve calculated channel versions by their version IDs."
+    };
+  }
+
+  // Retrieve calculated channels that depend on a given calculated channel.
+  rpc GetCalculatedChannelDependents(GetCalculatedChannelDependentsRequest) returns (GetCalculatedChannelDependentsResponse) {
+    option (google.api.http) = {get: "/api/v2/calculated-channels/dependents"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetCalculatedChannelDependents"
+      description: "Retrieve calculated channels that depend on a given calculated channel."
+    };
+  }
 }
 
 message CalculatedChannel {
@@ -128,6 +147,13 @@ message CalculatedChannel {
   repeated sift.metadata.v1.MetadataValue metadata = 20 [(google.api.field_behavior) = REQUIRED];
   // Whether the calculated channel is archived. This is inferred from whether archived_date is set.
   bool is_archived = 21 [(google.api.field_behavior) = REQUIRED];
+  // Calculated channels that this channel depends on.
+  repeated CalculatedChannelDependency calculated_channel_dependencies = 22 [(google.api.field_behavior) = REQUIRED];
+}
+
+// A dependency on another calculated channel.
+message CalculatedChannelDependency {
+  string calculated_channel_version_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message CalculatedChannelConfiguration {
@@ -160,7 +186,12 @@ message CalculatedChannelQueryConfiguration {
 
 message CalculatedChannelAbstractChannelReference {
   string channel_reference = 1 [(google.api.field_behavior) = REQUIRED];
-  string channel_identifier = 2 [(google.api.field_behavior) = REQUIRED];
+  // must use either a channel_identifier or a calculated_channel_reference, not both
+  string channel_identifier = 2 [(google.api.field_behavior) = OPTIONAL];
+  oneof calculated_channel_reference {
+    string calculated_channel_version_id = 3;
+    sift.calculated_channels.v1.ExpressionRequest calculated_channel = 4;
+  }
 }
 
 message CalculatedChannelValidationResult {
@@ -181,6 +212,7 @@ message GetCalculatedChannelRequest {
   string calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
   string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
   string organization_id = 3 [(google.api.field_behavior) = OPTIONAL];
+  string calculated_channel_version_id = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message GetCalculatedChannelResponse {
@@ -410,4 +442,28 @@ message CalculatedChannelResolution {
 message ListResolvedCalculatedChannelsResponse {
   repeated CalculatedChannelResolution calculated_channel_resolutions = 1 [(google.api.field_behavior) = REQUIRED];
   string next_page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for a call to `CalculatedChannelService_GetCalculatedChannelVersions` to retrieve versions of calculated channels by their version IDs.
+message GetCalculatedChannelVersionsRequest {
+  repeated string calculated_channel_version_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `CalculatedChannelService_GetCalculatedChannelVersions`.
+message GetCalculatedChannelVersionsResponse {
+  repeated CalculatedChannel calculated_channels = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `CalculatedChannelService_GetCalculatedChannelDependents` to retrieve calculated channels that depend on a given calculated channel.
+message GetCalculatedChannelDependentsRequest {
+  oneof calculated_channel {
+    string calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
+    string calculated_channel_version_id = 2 [(google.api.field_behavior) = OPTIONAL];
+  }
+}
+
+// The response of a call to `CalculatedChannelService_GetCalculatedChannelDependents`.
+message GetCalculatedChannelDependentsResponse {
+  repeated CalculatedChannel calculated_channels = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.rules.v1.Rule rules = 2 [(google.api.field_behavior) = REQUIRED];
 }

@@ -8,4 +8,5 @@ import "google/api/field_behavior.proto";
 message Organization {
   string organization_id = 1 [(google.api.field_behavior) = REQUIRED];
   string organization_name = 2 [(google.api.field_behavior) = REQUIRED];
+  optional bool is_abac_enabled = 3 [(google.api.field_behavior) = OPTIONAL];
 }

@@ -54,6 +54,16 @@ class CalculatedChannelServiceStub(object):
                 request_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsRequest.SerializeToString,
                 response_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsResponse.FromString,
                 )
+        self.GetCalculatedChannelVersions = channel.unary_unary(
+                '/sift.calculated_channels.v2.CalculatedChannelService/GetCalculatedChannelVersions',
+                request_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelVersionsRequest.SerializeToString,
+                response_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelVersionsResponse.FromString,
+                )
+        self.GetCalculatedChannelDependents = channel.unary_unary(
+                '/sift.calculated_channels.v2.CalculatedChannelService/GetCalculatedChannelDependents',
+                request_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelDependentsRequest.SerializeToString,
+                response_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelDependentsResponse.FromString,
+                )
 
 
 class CalculatedChannelServiceServicer(object):
@@ -115,6 +125,20 @@ class CalculatedChannelServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetCalculatedChannelVersions(self, request, context):
+        """Retrieve calculated channel versions by their version IDs.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetCalculatedChannelDependents(self, request, context):
+        """Retrieve calculated channels that depend on a given calculated channel.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_CalculatedChannelServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -157,6 +181,16 @@ def add_CalculatedChannelServiceServicer_to_server(servicer, server):
                     servicer.ListResolvedCalculatedChannels,
                     request_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsRequest.FromString,
                     response_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsResponse.SerializeToString,
+            ),
+            'GetCalculatedChannelVersions': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCalculatedChannelVersions,
+                    request_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelVersionsRequest.FromString,
+                    response_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelVersionsResponse.SerializeToString,
+            ),
+            'GetCalculatedChannelDependents': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCalculatedChannelDependents,
+                    request_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelDependentsRequest.FromString,
+                    response_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelDependentsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -301,5 +335,39 @@ class CalculatedChannelService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.calculated_channels.v2.CalculatedChannelService/ListResolvedCalculatedChannels',
             sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsRequest.SerializeToString,
             sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetCalculatedChannelVersions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.calculated_channels.v2.CalculatedChannelService/GetCalculatedChannelVersions',
+            sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelVersionsRequest.SerializeToString,
+            sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelVersionsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetCalculatedChannelDependents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.calculated_channels.v2.CalculatedChannelService/GetCalculatedChannelDependents',
+            sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelDependentsRequest.SerializeToString,
+            sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.GetCalculatedChannelDependentsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

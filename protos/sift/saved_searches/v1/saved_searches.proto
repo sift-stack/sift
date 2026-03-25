@@ -103,6 +103,7 @@ message SavedSearchProperties {
   optional bool include_archived = 12 [(google.api.field_behavior) = OPTIONAL];
   optional string order_by = 13 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchMetadataItem metadata_items = 14 [(google.api.field_behavior) = OPTIONAL];
+  optional string duration = 15 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message SavedSearchFilterItem {

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package sift.common.v1;
+
+
+// ResourceType represents the type of resource being accessed.
+enum ResourceType {
+  RESOURCE_TYPE_UNSPECIFIED = 0;
+  RESOURCE_TYPE_ASSET = 1;
+  RESOURCE_TYPE_CHANNEL = 2;
+  RESOURCE_TYPE_RUN = 3;
+  RESOURCE_TYPE_ANNOTATION = 4;
+  RESOURCE_TYPE_CAMPAIGN = 5;
+  RESOURCE_TYPE_REPORT = 6;
+  RESOURCE_TYPE_RULE = 7;
+  RESOURCE_TYPE_RULE_VERSION = 8;
+  RESOURCE_TYPE_USER_DEFINED_FUNCTION = 9;
+  RESOURCE_TYPE_CALCULATED_CHANNEL = 10;
+  RESOURCE_TYPE_REPORT_TEMPLATE = 11;
+  RESOURCE_TYPE_TEST_REPORT = 12;
+
+  // Special type for a resource that doesn't yet exist (eg. creating an asset)
+  RESOURCE_TYPE_SIFT_APP = 1000;
+}

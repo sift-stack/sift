@@ -22,6 +22,31 @@ else:
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
+class _RemoteFileType:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _RemoteFileTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_RemoteFileType.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    REMOTE_FILE_TYPE_UNSPECIFIED: _RemoteFileType.ValueType  # 0
+    REMOTE_FILE_TYPE_TELEMETRY: _RemoteFileType.ValueType  # 1
+    """Data import / telemetry (internal: created by import job)."""
+    REMOTE_FILE_TYPE_IMAGE: _RemoteFileType.ValueType  # 2
+    REMOTE_FILE_TYPE_VIDEO: _RemoteFileType.ValueType  # 3
+    REMOTE_FILE_TYPE_AUDIO: _RemoteFileType.ValueType  # 4
+    REMOTE_FILE_TYPE_TEST_REPORT: _RemoteFileType.ValueType  # 5
+
+class RemoteFileType(_RemoteFileType, metaclass=_RemoteFileTypeEnumTypeWrapper): ...
+
+REMOTE_FILE_TYPE_UNSPECIFIED: RemoteFileType.ValueType  # 0
+REMOTE_FILE_TYPE_TELEMETRY: RemoteFileType.ValueType  # 1
+"""Data import / telemetry (internal: created by import job)."""
+REMOTE_FILE_TYPE_IMAGE: RemoteFileType.ValueType  # 2
+REMOTE_FILE_TYPE_VIDEO: RemoteFileType.ValueType  # 3
+REMOTE_FILE_TYPE_AUDIO: RemoteFileType.ValueType  # 4
+REMOTE_FILE_TYPE_TEST_REPORT: RemoteFileType.ValueType  # 5
+global___RemoteFileType = RemoteFileType
+
 class _EntityType:
     ValueType = typing.NewType("ValueType", builtins.int)
     V: typing_extensions.TypeAlias = ValueType
@@ -69,6 +94,7 @@ class RemoteFile(google.protobuf.message.Message):
     CREATED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     METADATA_VALUES_FIELD_NUMBER: builtins.int
+    REMOTE_FILE_TYPE_FIELD_NUMBER: builtins.int
     remote_file_id: builtins.str
     organization_id: builtins.str
     entity_id: builtins.str
@@ -81,6 +107,7 @@ class RemoteFile(google.protobuf.message.Message):
     description: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
+    remote_file_type: global___RemoteFileType.ValueType
     @property
     def video_metadata(self) -> global___VideoMetadata: ...
     @property
@@ -114,9 +141,10 @@ class RemoteFile(google.protobuf.message.Message):
         created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         metadata_values: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        remote_file_type: global___RemoteFileType.ValueType = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_description", b"_description", "audio_metadata", b"audio_metadata", "created_date", b"created_date", "description", b"description", "image_metadata", b"image_metadata", "metadata", b"metadata", "modified_date", b"modified_date", "video_metadata", b"video_metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_description", b"_description", "audio_metadata", b"audio_metadata", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "entity_id", b"entity_id", "entity_type", b"entity_type", "file_content_encoding", b"file_content_encoding", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_size", b"file_size", "image_metadata", b"image_metadata", "metadata", b"metadata", "metadata_values", b"metadata_values", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "remote_file_id", b"remote_file_id", "storage_key", b"storage_key", "video_metadata", b"video_metadata"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_description", b"_description", "audio_metadata", b"audio_metadata", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "entity_id", b"entity_id", "entity_type", b"entity_type", "file_content_encoding", b"file_content_encoding", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_size", b"file_size", "image_metadata", b"image_metadata", "metadata", b"metadata", "metadata_values", b"metadata_values", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "remote_file_id", b"remote_file_id", "remote_file_type", b"remote_file_type", "storage_key", b"storage_key", "video_metadata", b"video_metadata"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
     @typing.overload
@@ -365,7 +393,10 @@ global___CreateRemoteFileRequest = CreateRemoteFileRequest
 
 @typing.final
 class CreateRemoteFileResponse(google.protobuf.message.Message):
-    """The response for a call to `RemoteFileService_CreateRemoteFile`."""
+    """Internal only: source of the remote file (attachment vs import). Not exposed in responses; use RemoteFile.remote_file_type instead.
+
+    The response for a call to `RemoteFileService_CreateRemoteFile`.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 

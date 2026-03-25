@@ -32,6 +32,11 @@ func (m *ExpressionChannelReference) CloneVT() *ExpressionChannelReference {
 	r := new(ExpressionChannelReference)
 	r.ChannelReference = m.ChannelReference
 	r.ChannelId = m.ChannelId
+	if m.CalculatedChannelReference != nil {
+		r.CalculatedChannelReference = m.CalculatedChannelReference.(interface {
+			CloneVT() isExpressionChannelReference_CalculatedChannelReference
+		}).CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -41,6 +46,15 @@ func (m *ExpressionChannelReference) CloneVT() *ExpressionChannelReference {
 
 func (m *ExpressionChannelReference) CloneMessageVT() proto.Message {
 	return m.CloneVT()
+}
+
+func (m *ExpressionChannelReference_CalculatedChannel) CloneVT() isExpressionChannelReference_CalculatedChannelReference {
+	if m == nil {
+		return (*ExpressionChannelReference_CalculatedChannel)(nil)
+	}
+	r := new(ExpressionChannelReference_CalculatedChannel)
+	r.CalculatedChannel = m.CalculatedChannel.CloneVT()
+	return r
 }
 
 func (m *ExpressionRequest) CloneVT() *ExpressionRequest {
@@ -249,6 +263,18 @@ func (this *ExpressionChannelReference) EqualVT(that *ExpressionChannelReference
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.CalculatedChannelReference == nil && that.CalculatedChannelReference != nil {
+		return false
+	} else if this.CalculatedChannelReference != nil {
+		if that.CalculatedChannelReference == nil {
+			return false
+		}
+		if !this.CalculatedChannelReference.(interface {
+			EqualVT(isExpressionChannelReference_CalculatedChannelReference) bool
+		}).EqualVT(that.CalculatedChannelReference) {
+			return false
+		}
+	}
 	if this.ChannelReference != that.ChannelReference {
 		return false
 	}
@@ -265,6 +291,31 @@ func (this *ExpressionChannelReference) EqualMessageVT(thatMsg proto.Message) bo
 	}
 	return this.EqualVT(that)
 }
+func (this *ExpressionChannelReference_CalculatedChannel) EqualVT(thatIface isExpressionChannelReference_CalculatedChannelReference) bool {
+	that, ok := thatIface.(*ExpressionChannelReference_CalculatedChannel)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.CalculatedChannel, that.CalculatedChannel; p != q {
+		if p == nil {
+			p = &ExpressionRequest{}
+		}
+		if q == nil {
+			q = &ExpressionRequest{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
 func (this *ExpressionRequest) EqualVT(that *ExpressionRequest) bool {
 	if this == that {
 		return true
@@ -729,6 +780,15 @@ func (m *ExpressionChannelReference) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if vtmsg, ok := m.CalculatedChannelReference.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if len(m.ChannelId) > 0 {
 		i -= len(m.ChannelId)
 		copy(dAtA[i:], m.ChannelId)
@@ -746,6 +806,25 @@ func (m *ExpressionChannelReference) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *ExpressionChannelReference_CalculatedChannel) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ExpressionChannelReference_CalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.CalculatedChannel != nil {
+		size, err := m.CalculatedChannel.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
 func (m *ExpressionRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1243,6 +1322,13 @@ func (m *ExpressionChannelReference) MarshalToSizedBufferVTStrict(dAtA []byte) (
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if msg, ok := m.CalculatedChannelReference.(*ExpressionChannelReference_CalculatedChannel); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if len(m.ChannelId) > 0 {
 		i -= len(m.ChannelId)
 		copy(dAtA[i:], m.ChannelId)
@@ -1260,6 +1346,25 @@ func (m *ExpressionChannelReference) MarshalToSizedBufferVTStrict(dAtA []byte) (
 	return len(dAtA) - i, nil
 }
 
+func (m *ExpressionChannelReference_CalculatedChannel) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *ExpressionChannelReference_CalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.CalculatedChannel != nil {
+		size, err := m.CalculatedChannel.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
 func (m *ExpressionRequest) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1746,10 +1851,25 @@ func (m *ExpressionChannelReference) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if vtmsg, ok := m.CalculatedChannelReference.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
 	n += len(m.unknownFields)
 	return n
 }
 
+func (m *ExpressionChannelReference_CalculatedChannel) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CalculatedChannel != nil {
+		l = m.CalculatedChannel.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
 func (m *ExpressionRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2031,6 +2151,47 @@ func (m *ExpressionChannelReference) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ChannelId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannel", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.CalculatedChannelReference.(*ExpressionChannelReference_CalculatedChannel); ok {
+				if err := oneof.CalculatedChannel.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ExpressionRequest{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.CalculatedChannelReference = &ExpressionChannelReference_CalculatedChannel{CalculatedChannel: v}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3256,6 +3417,47 @@ func (m *ExpressionChannelReference) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.ChannelId = stringValue
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannel", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.CalculatedChannelReference.(*ExpressionChannelReference_CalculatedChannel); ok {
+				if err := oneof.CalculatedChannel.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ExpressionRequest{}
+				if err := v.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.CalculatedChannelReference = &ExpressionChannelReference_CalculatedChannel{CalculatedChannel: v}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -108,6 +108,16 @@ message RemoteFile {
   google.protobuf.Timestamp created_date = 15 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 16 [(google.api.field_behavior) = REQUIRED];
   repeated sift.metadata.v1.MetadataValue metadata_values = 18 [(google.api.field_behavior) = OPTIONAL];
+  RemoteFileType remote_file_type = 20 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum RemoteFileType {
+  REMOTE_FILE_TYPE_UNSPECIFIED = 0;
+  REMOTE_FILE_TYPE_TELEMETRY = 1; // Data import / telemetry (internal: created by import job).
+  REMOTE_FILE_TYPE_IMAGE = 2;
+  REMOTE_FILE_TYPE_VIDEO = 3;
+  REMOTE_FILE_TYPE_AUDIO = 4;
+  REMOTE_FILE_TYPE_TEST_REPORT = 5;
 }
 
 message VideoMetadata {
@@ -209,7 +219,11 @@ message CreateRemoteFileRequest {
 
   // Optional custom storage key for uploaded object that is not managed by the RemoteFileService.
   // When provided, caller is responsible for ensuring uniqueness to avoid collisions or API will return an error.
+
+  // Internal only: do not use from public API.
 }
+
+// Internal only: source of the remote file (attachment vs import). Not exposed in responses; use RemoteFile.remote_file_type instead.
 
 // The response for a call to `RemoteFileService_CreateRemoteFile`.
 message CreateRemoteFileResponse {

@@ -2113,6 +2113,9 @@ impl serde::Serialize for CalculatedChannelConfig {
         if !self.function_dependencies.is_empty() {
             len += 1;
         }
+        if !self.calculated_channel_dependencies.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.CalculatedChannelConfig", len)?;
         if !self.channel_references.is_empty() {
             struct_ser.serialize_field("channelReferences", &self.channel_references)?;
@@ -2122,6 +2125,9 @@ impl serde::Serialize for CalculatedChannelConfig {
         }
         if !self.function_dependencies.is_empty() {
             struct_ser.serialize_field("functionDependencies", &self.function_dependencies)?;
+        }
+        if !self.calculated_channel_dependencies.is_empty() {
+            struct_ser.serialize_field("calculatedChannelDependencies", &self.calculated_channel_dependencies)?;
         }
         struct_ser.end()
     }
@@ -2138,6 +2144,8 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
             "expression",
             "function_dependencies",
             "functionDependencies",
+            "calculated_channel_dependencies",
+            "calculatedChannelDependencies",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2145,6 +2153,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
             ChannelReferences,
             Expression,
             FunctionDependencies,
+            CalculatedChannelDependencies,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2169,6 +2178,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
                             "channelReferences" | "channel_references" => Ok(GeneratedField::ChannelReferences),
                             "expression" => Ok(GeneratedField::Expression),
                             "functionDependencies" | "function_dependencies" => Ok(GeneratedField::FunctionDependencies),
+                            "calculatedChannelDependencies" | "calculated_channel_dependencies" => Ok(GeneratedField::CalculatedChannelDependencies),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2191,6 +2201,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
                 let mut channel_references__ = None;
                 let mut expression__ = None;
                 let mut function_dependencies__ = None;
+                let mut calculated_channel_dependencies__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelReferences => {
@@ -2213,12 +2224,19 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
                             }
                             function_dependencies__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CalculatedChannelDependencies => {
+                            if calculated_channel_dependencies__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelDependencies"));
+                            }
+                            calculated_channel_dependencies__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CalculatedChannelConfig {
                     channel_references: channel_references__.unwrap_or_default(),
                     expression: expression__.unwrap_or_default(),
                     function_dependencies: function_dependencies__.unwrap_or_default(),
+                    calculated_channel_dependencies: calculated_channel_dependencies__.unwrap_or_default(),
                 })
             }
         }
@@ -2239,12 +2257,18 @@ impl serde::Serialize for ChannelReference {
         if !self.component.is_empty() {
             len += 1;
         }
+        if self.calculated_channel_version_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ChannelReference", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
         }
         if !self.component.is_empty() {
             struct_ser.serialize_field("component", &self.component)?;
+        }
+        if let Some(v) = self.calculated_channel_version_id.as_ref() {
+            struct_ser.serialize_field("calculatedChannelVersionId", v)?;
         }
         struct_ser.end()
     }
@@ -2258,12 +2282,15 @@ impl<'de> serde::Deserialize<'de> for ChannelReference {
         const FIELDS: &[&str] = &[
             "name",
             "component",
+            "calculated_channel_version_id",
+            "calculatedChannelVersionId",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Name,
             Component,
+            CalculatedChannelVersionId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2287,6 +2314,7 @@ impl<'de> serde::Deserialize<'de> for ChannelReference {
                         match value {
                             "name" => Ok(GeneratedField::Name),
                             "component" => Ok(GeneratedField::Component),
+                            "calculatedChannelVersionId" | "calculated_channel_version_id" => Ok(GeneratedField::CalculatedChannelVersionId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2308,6 +2336,7 @@ impl<'de> serde::Deserialize<'de> for ChannelReference {
             {
                 let mut name__ = None;
                 let mut component__ = None;
+                let mut calculated_channel_version_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -2322,11 +2351,18 @@ impl<'de> serde::Deserialize<'de> for ChannelReference {
                             }
                             component__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CalculatedChannelVersionId => {
+                            if calculated_channel_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelVersionId"));
+                            }
+                            calculated_channel_version_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ChannelReference {
                     name: name__.unwrap_or_default(),
                     component: component__.unwrap_or_default(),
+                    calculated_channel_version_id: calculated_channel_version_id__,
                 })
             }
         }
@@ -8784,6 +8820,9 @@ impl serde::Serialize for ValidationResult {
         if self.error.is_some() {
             len += 1;
         }
+        if !self.rule_name.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ValidationResult", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -8796,6 +8835,9 @@ impl serde::Serialize for ValidationResult {
         }
         if let Some(v) = self.error.as_ref() {
             struct_ser.serialize_field("error", v)?;
+        }
+        if !self.rule_name.is_empty() {
+            struct_ser.serialize_field("ruleName", &self.rule_name)?;
         }
         struct_ser.end()
     }
@@ -8814,6 +8856,8 @@ impl<'de> serde::Deserialize<'de> for ValidationResult {
             "asset_expression_validation_results",
             "assetExpressionValidationResults",
             "error",
+            "rule_name",
+            "ruleName",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -8822,6 +8866,7 @@ impl<'de> serde::Deserialize<'de> for ValidationResult {
             ClientKey,
             AssetExpressionValidationResults,
             Error,
+            RuleName,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -8847,6 +8892,7 @@ impl<'de> serde::Deserialize<'de> for ValidationResult {
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             "assetExpressionValidationResults" | "asset_expression_validation_results" => Ok(GeneratedField::AssetExpressionValidationResults),
                             "error" => Ok(GeneratedField::Error),
+                            "ruleName" | "rule_name" => Ok(GeneratedField::RuleName),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -8870,6 +8916,7 @@ impl<'de> serde::Deserialize<'de> for ValidationResult {
                 let mut client_key__ = None;
                 let mut asset_expression_validation_results__ = None;
                 let mut error__ = None;
+                let mut rule_name__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -8896,6 +8943,12 @@ impl<'de> serde::Deserialize<'de> for ValidationResult {
                             }
                             error__ = map_.next_value()?;
                         }
+                        GeneratedField::RuleName => {
+                            if rule_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleName"));
+                            }
+                            rule_name__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ValidationResult {
@@ -8903,6 +8956,7 @@ impl<'de> serde::Deserialize<'de> for ValidationResult {
                     client_key: client_key__.unwrap_or_default(),
                     asset_expression_validation_results: asset_expression_validation_results__.unwrap_or_default(),
                     error: error__,
+                    rule_name: rule_name__.unwrap_or_default(),
                 })
             }
         }

@@ -306,13 +306,13 @@ type ListChannelsRequest struct {
 	// the call that provided the page token. Optional.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-	// Available fields to filter by are `channel_id`, `asset_id`, `name`, `description`, `active`,
+	// Available fields to filter by are `channel_id`, `asset_id`, `name`, `description`
 	// `run_id`, `run_name`, `run_client_key`, `created_date`, `modified_date`, `created_by_user_id`, and `modified_by_user_id`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-	// Available fields to order_by are `name`, `created_date` and `modified_date`.
+	// Available fields to order_by are `name`, `created_date` and `modified_date`, `active`.
 	// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
 	// Example: "created_date desc,modified_date"

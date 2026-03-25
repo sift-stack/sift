@@ -229,6 +229,10 @@ message CreateRunRequest {
 
   // The metadata values associated with this run.
   repeated sift.metadata.v1.MetadataValue metadata = 9 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether to create a default report for this run. This facilitates getting the report ID for live rules that will be automatically created for this run which can streamline programatically creating Campaigns.
+  // Defaults to false if not specified (This default can be changed for your organization by Sift. Contact support to change this default behavior.).
+  optional bool create_default_report = 10 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateRunResponse {

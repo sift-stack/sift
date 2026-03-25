@@ -18,6 +18,7 @@ import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
 import sift.annotations.v1.annotations_pb2
+import sift.common.type.v1.calculated_channels_pb2
 import sift.common.type.v1.resource_identifier_pb2
 import sift.common.type.v1.user_defined_functions_pb2
 import sift.metadata.v1.metadata_pb2
@@ -679,12 +680,14 @@ class ValidationResult(google.protobuf.message.Message):
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     ASSET_EXPRESSION_VALIDATION_RESULTS_FIELD_NUMBER: builtins.int
     ERROR_FIELD_NUMBER: builtins.int
+    RULE_NAME_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     client_key: builtins.str
     error: builtins.str
     """If the rule is invalid and unable to be saved, this will contain the error message. Expression errors will be returned in
     the asset_expression_validation_results.
     """
+    rule_name: builtins.str
     @property
     def asset_expression_validation_results(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___AssetExpressionValidationResult]:
         """If the expression is invalid for an asset, one or more AssetExpressionValidationResult will be returned. This may block
@@ -698,9 +701,10 @@ class ValidationResult(google.protobuf.message.Message):
         client_key: builtins.str = ...,
         asset_expression_validation_results: collections.abc.Iterable[global___AssetExpressionValidationResult] | None = ...,
         error: builtins.str | None = ...,
+        rule_name: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_error", b"_error", "asset_expression_validation_results", b"asset_expression_validation_results", "client_key", b"client_key", "error", b"error", "rule_id", b"rule_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "asset_expression_validation_results", b"asset_expression_validation_results", "client_key", b"client_key", "error", b"error", "rule_id", b"rule_id", "rule_name", b"rule_name"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
 
 global___ValidationResult = ValidationResult
@@ -715,9 +719,7 @@ class BatchUpdateRulesRequest(google.protobuf.message.Message):
     validate_only: builtins.bool
     """If validate_only is true, the request will only validate the request and not save the rules."""
     override_expression_validation: builtins.bool
-    """If override_expression_validation is true, the request will save the rules even if the expressions are invalid. This
-    can be useful for multi-asset rules where an invalid expression for one asset should not prevent the rule from being saved.
-    """
+    """Deprecated - to improve API response clarity in the event of a failure, Sift will always perform input validation."""
     @property
     def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateRuleRequest]:
         """rules are limited 1000 rules at a time"""
@@ -1598,6 +1600,7 @@ class CalculatedChannelConfig(google.protobuf.message.Message):
     CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
     EXPRESSION_FIELD_NUMBER: builtins.int
     FUNCTION_DEPENDENCIES_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_DEPENDENCIES_FIELD_NUMBER: builtins.int
     expression: builtins.str
     @property
     def channel_references(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___ChannelReference]: ...
@@ -1605,14 +1608,21 @@ class CalculatedChannelConfig(google.protobuf.message.Message):
     def function_dependencies(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.user_defined_functions_pb2.FunctionDependency]:
         """This will be ignored in requests and will be generated automatically."""
 
+    @property
+    def calculated_channel_dependencies(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.calculated_channels_pb2.CalculatedChannelDependency]:
+        """This will be ignored in requests and will be generated automatically.
+        Tracks which calculated channel versions this rule depends on.
+        """
+
     def __init__(
         self,
         *,
         channel_references: collections.abc.Mapping[builtins.str, global___ChannelReference] | None = ...,
         expression: builtins.str = ...,
         function_dependencies: collections.abc.Iterable[sift.common.type.v1.user_defined_functions_pb2.FunctionDependency] | None = ...,
+        calculated_channel_dependencies: collections.abc.Iterable[sift.common.type.v1.calculated_channels_pb2.CalculatedChannelDependency] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "expression", b"expression", "function_dependencies", b"function_dependencies"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel_dependencies", b"calculated_channel_dependencies", "channel_references", b"channel_references", "expression", b"expression", "function_dependencies", b"function_dependencies"]) -> None: ...
 
 global___CalculatedChannelConfig = CalculatedChannelConfig
 
@@ -1622,16 +1632,27 @@ class ChannelReference(google.protobuf.message.Message):
 
     NAME_FIELD_NUMBER: builtins.int
     COMPONENT_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_VERSION_ID_FIELD_NUMBER: builtins.int
     name: builtins.str
+    """Required for native channel references. Must not be set when calculated_channel_version_id is provided."""
     component: builtins.str
-    """Deprecated - use name instead. If provided, name will be joined with the component as `component.name`"""
+    """Deprecated - use name instead. If provided, name will be joined with the component as `component.name`.
+    Must not be set when calculated_channel_version_id is provided.
+    """
+    calculated_channel_version_id: builtins.str
+    """Reference to a calculated channel version. When set, the rule will use the calculated channel
+    instead of looking up a native channel by name. Must not be set when name is provided.
+    """
     def __init__(
         self,
         *,
         name: builtins.str = ...,
         component: builtins.str = ...,
+        calculated_channel_version_id: builtins.str | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["component", b"component", "name", b"name"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_calculated_channel_version_id", b"_calculated_channel_version_id", "calculated_channel_version_id", b"calculated_channel_version_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_calculated_channel_version_id", b"_calculated_channel_version_id", "calculated_channel_version_id", b"calculated_channel_version_id", "component", b"component", "name", b"name"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_calculated_channel_version_id", b"_calculated_channel_version_id"]) -> typing.Literal["calculated_channel_version_id"] | None: ...
 
 global___ChannelReference = ChannelReference
 

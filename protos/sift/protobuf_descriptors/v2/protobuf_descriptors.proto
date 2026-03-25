@@ -23,7 +23,7 @@ service ProtobufDescriptorService {
   // Used to register a protobuf message to be ingested.
   rpc AddProtobufDescriptor(AddProtobufDescriptorRequest) returns (AddProtobufDescriptorResponse) {
     option (google.api.http) = {
-      post: "/api/v2/protobuf-descriptors:add",
+      post: "/api/v2/protobuf-descriptors:add"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -36,7 +36,7 @@ service ProtobufDescriptorService {
   // Used to check if a protobuf descriptor is compatible with the existing descriptors.
   rpc CheckProtobufDescriptorCompatibility(CheckProtobufDescriptorCompatibilityRequest) returns (CheckProtobufDescriptorCompatibilityResponse) {
     option (google.api.http) = {
-      post: "/api/v2/protobuf-descriptors:check-compatibility",
+      post: "/api/v2/protobuf-descriptors:check-compatibility"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {

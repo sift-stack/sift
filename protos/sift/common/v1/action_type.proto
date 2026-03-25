@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package sift.common.v1;
+
+
+// ActionType represents the type of action being performed on a resource
+// Granular ABAC actions, broken up by CRUD.
+enum ActionType {
+  ACTION_TYPE_UNSPECIFIED = 0;
+  // Create actions (reserving 100 for generic create)
+  ACTION_TYPE_INGEST_DATA = 110;
+  ACTION_TYPE_CREATE_RUN = 120;
+  // Read actions
+  // Lowest-level read action type. If this is denied, all other read actions should be denied.
+  // Used for view/search/index metadata and overview details pages.
+  ACTION_TYPE_VIEW_DETAILS = 200;
+  // Read telemetry data values from channels/runs/assets.
+  // Keep ACTION_TYPE_VIEW_DETAILS for non-telemetry "view details" style access.
+  ACTION_TYPE_VIEW_DATA = 205;
+  ACTION_TYPE_EXPORT = 210;
+  // Update/Edit actions (reserving 300 for generic edit)
+  // Name, Description, Units
+  ACTION_TYPE_EDIT_DETAILS = 310;
+  ACTION_TYPE_EDIT_TAGS = 312;
+  ACTION_TYPE_EDIT_METADATA = 313;
+  // Delete actions
+  ACTION_TYPE_ARCHIVE = 400;
+}

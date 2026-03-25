@@ -105,12 +105,22 @@ impl serde::Serialize for ExpressionChannelReference {
         if !self.channel_id.is_empty() {
             len += 1;
         }
+        if self.calculated_channel_reference.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v1.ExpressionChannelReference", len)?;
         if !self.channel_reference.is_empty() {
             struct_ser.serialize_field("channelReference", &self.channel_reference)?;
         }
         if !self.channel_id.is_empty() {
             struct_ser.serialize_field("channelId", &self.channel_id)?;
+        }
+        if let Some(v) = self.calculated_channel_reference.as_ref() {
+            match v {
+                expression_channel_reference::CalculatedChannelReference::CalculatedChannel(v) => {
+                    struct_ser.serialize_field("calculatedChannel", v)?;
+                }
+            }
         }
         struct_ser.end()
     }
@@ -126,12 +136,15 @@ impl<'de> serde::Deserialize<'de> for ExpressionChannelReference {
             "channelReference",
             "channel_id",
             "channelId",
+            "calculated_channel",
+            "calculatedChannel",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             ChannelReference,
             ChannelId,
+            CalculatedChannel,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -155,6 +168,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionChannelReference {
                         match value {
                             "channelReference" | "channel_reference" => Ok(GeneratedField::ChannelReference),
                             "channelId" | "channel_id" => Ok(GeneratedField::ChannelId),
+                            "calculatedChannel" | "calculated_channel" => Ok(GeneratedField::CalculatedChannel),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -176,6 +190,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionChannelReference {
             {
                 let mut channel_reference__ = None;
                 let mut channel_id__ = None;
+                let mut calculated_channel_reference__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelReference => {
@@ -190,11 +205,19 @@ impl<'de> serde::Deserialize<'de> for ExpressionChannelReference {
                             }
                             channel_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CalculatedChannel => {
+                            if calculated_channel_reference__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannel"));
+                            }
+                            calculated_channel_reference__ = map_.next_value::<::std::option::Option<_>>()?.map(expression_channel_reference::CalculatedChannelReference::CalculatedChannel)
+;
+                        }
                     }
                 }
                 Ok(ExpressionChannelReference {
                     channel_reference: channel_reference__.unwrap_or_default(),
                     channel_id: channel_id__.unwrap_or_default(),
+                    calculated_channel_reference: calculated_channel_reference__,
                 })
             }
         }

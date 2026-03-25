@@ -216,6 +216,7 @@ func (m *ExportDataResponse) CloneVT() *ExportDataResponse {
 	r := new(ExportDataResponse)
 	r.PresignedUrl = m.PresignedUrl
 	r.JobId = m.JobId
+	r.ServiceMessage = m.ServiceMessage
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -250,6 +251,7 @@ func (m *GetDownloadUrlResponse) CloneVT() *GetDownloadUrlResponse {
 	}
 	r := new(GetDownloadUrlResponse)
 	r.PresignedUrl = m.PresignedUrl
+	r.ServiceMessage = m.ServiceMessage
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -571,6 +573,9 @@ func (this *ExportDataResponse) EqualVT(that *ExportDataResponse) bool {
 	if this.JobId != that.JobId {
 		return false
 	}
+	if this.ServiceMessage != that.ServiceMessage {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -607,6 +612,9 @@ func (this *GetDownloadUrlResponse) EqualVT(that *GetDownloadUrlResponse) bool {
 		return false
 	}
 	if this.PresignedUrl != that.PresignedUrl {
+		return false
+	}
+	if this.ServiceMessage != that.ServiceMessage {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1250,6 +1258,13 @@ func (m *ExportDataResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ServiceMessage) > 0 {
+		i -= len(m.ServiceMessage)
+		copy(dAtA[i:], m.ServiceMessage)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ServiceMessage)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.JobId) > 0 {
 		i -= len(m.JobId)
 		copy(dAtA[i:], m.JobId)
@@ -1336,6 +1351,13 @@ func (m *GetDownloadUrlResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ServiceMessage) > 0 {
+		i -= len(m.ServiceMessage)
+		copy(dAtA[i:], m.ServiceMessage)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ServiceMessage)))
+		i--
+		dAtA[i] = 0x12
 	}
 	if len(m.PresignedUrl) > 0 {
 		i -= len(m.PresignedUrl)
@@ -1862,6 +1884,13 @@ func (m *ExportDataResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ServiceMessage) > 0 {
+		i -= len(m.ServiceMessage)
+		copy(dAtA[i:], m.ServiceMessage)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ServiceMessage)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.JobId) > 0 {
 		i -= len(m.JobId)
 		copy(dAtA[i:], m.JobId)
@@ -1948,6 +1977,13 @@ func (m *GetDownloadUrlResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int,
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ServiceMessage) > 0 {
+		i -= len(m.ServiceMessage)
+		copy(dAtA[i:], m.ServiceMessage)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ServiceMessage)))
+		i--
+		dAtA[i] = 0x12
 	}
 	if len(m.PresignedUrl) > 0 {
 		i -= len(m.PresignedUrl)
@@ -2166,6 +2202,10 @@ func (m *ExportDataResponse) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.ServiceMessage)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2191,6 +2231,10 @@ func (m *GetDownloadUrlResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	l = len(m.PresignedUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ServiceMessage)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -3360,6 +3404,38 @@ func (m *ExportDataResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.JobId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceMessage", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServiceMessage = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -3525,6 +3601,38 @@ func (m *GetDownloadUrlResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PresignedUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceMessage", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServiceMessage = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4742,6 +4850,42 @@ func (m *ExportDataResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.JobId = stringValue
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceMessage", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.ServiceMessage = stringValue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -4915,6 +5059,42 @@ func (m *GetDownloadUrlResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.PresignedUrl = stringValue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceMessage", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.ServiceMessage = stringValue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

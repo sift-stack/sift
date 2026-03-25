@@ -246,6 +246,9 @@ impl serde::Serialize for CalculatedChannel {
         if self.is_archived {
             len += 1;
         }
+        if !self.calculated_channel_dependencies.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.CalculatedChannel", len)?;
         if !self.calculated_channel_id.is_empty() {
             struct_ser.serialize_field("calculatedChannelId", &self.calculated_channel_id)?;
@@ -304,6 +307,9 @@ impl serde::Serialize for CalculatedChannel {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if !self.calculated_channel_dependencies.is_empty() {
+            struct_ser.serialize_field("calculatedChannelDependencies", &self.calculated_channel_dependencies)?;
+        }
         struct_ser.end()
     }
 }
@@ -347,6 +353,8 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
             "metadata",
             "is_archived",
             "isArchived",
+            "calculated_channel_dependencies",
+            "calculatedChannelDependencies",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -370,6 +378,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
             FunctionDependencies,
             Metadata,
             IsArchived,
+            CalculatedChannelDependencies,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -410,6 +419,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                             "functionDependencies" | "function_dependencies" => Ok(GeneratedField::FunctionDependencies),
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "calculatedChannelDependencies" | "calculated_channel_dependencies" => Ok(GeneratedField::CalculatedChannelDependencies),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -448,6 +458,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                 let mut function_dependencies__ = None;
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
+                let mut calculated_channel_dependencies__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CalculatedChannelId => {
@@ -566,6 +577,12 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CalculatedChannelDependencies => {
+                            if calculated_channel_dependencies__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelDependencies"));
+                            }
+                            calculated_channel_dependencies__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CalculatedChannel {
@@ -588,6 +605,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                     function_dependencies: function_dependencies__.unwrap_or_default(),
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
+                    calculated_channel_dependencies: calculated_channel_dependencies__.unwrap_or_default(),
                 })
             }
         }
@@ -608,12 +626,25 @@ impl serde::Serialize for CalculatedChannelAbstractChannelReference {
         if !self.channel_identifier.is_empty() {
             len += 1;
         }
+        if self.calculated_channel_reference.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.CalculatedChannelAbstractChannelReference", len)?;
         if !self.channel_reference.is_empty() {
             struct_ser.serialize_field("channelReference", &self.channel_reference)?;
         }
         if !self.channel_identifier.is_empty() {
             struct_ser.serialize_field("channelIdentifier", &self.channel_identifier)?;
+        }
+        if let Some(v) = self.calculated_channel_reference.as_ref() {
+            match v {
+                calculated_channel_abstract_channel_reference::CalculatedChannelReference::CalculatedChannelVersionId(v) => {
+                    struct_ser.serialize_field("calculatedChannelVersionId", v)?;
+                }
+                calculated_channel_abstract_channel_reference::CalculatedChannelReference::CalculatedChannel(v) => {
+                    struct_ser.serialize_field("calculatedChannel", v)?;
+                }
+            }
         }
         struct_ser.end()
     }
@@ -629,12 +660,18 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelAbstractChannelReference 
             "channelReference",
             "channel_identifier",
             "channelIdentifier",
+            "calculated_channel_version_id",
+            "calculatedChannelVersionId",
+            "calculated_channel",
+            "calculatedChannel",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             ChannelReference,
             ChannelIdentifier,
+            CalculatedChannelVersionId,
+            CalculatedChannel,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -658,6 +695,8 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelAbstractChannelReference 
                         match value {
                             "channelReference" | "channel_reference" => Ok(GeneratedField::ChannelReference),
                             "channelIdentifier" | "channel_identifier" => Ok(GeneratedField::ChannelIdentifier),
+                            "calculatedChannelVersionId" | "calculated_channel_version_id" => Ok(GeneratedField::CalculatedChannelVersionId),
+                            "calculatedChannel" | "calculated_channel" => Ok(GeneratedField::CalculatedChannel),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -679,6 +718,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelAbstractChannelReference 
             {
                 let mut channel_reference__ = None;
                 let mut channel_identifier__ = None;
+                let mut calculated_channel_reference__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelReference => {
@@ -693,11 +733,25 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelAbstractChannelReference 
                             }
                             channel_identifier__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CalculatedChannelVersionId => {
+                            if calculated_channel_reference__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelVersionId"));
+                            }
+                            calculated_channel_reference__ = map_.next_value::<::std::option::Option<_>>()?.map(calculated_channel_abstract_channel_reference::CalculatedChannelReference::CalculatedChannelVersionId);
+                        }
+                        GeneratedField::CalculatedChannel => {
+                            if calculated_channel_reference__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannel"));
+                            }
+                            calculated_channel_reference__ = map_.next_value::<::std::option::Option<_>>()?.map(calculated_channel_abstract_channel_reference::CalculatedChannelReference::CalculatedChannel)
+;
+                        }
                     }
                 }
                 Ok(CalculatedChannelAbstractChannelReference {
                     channel_reference: channel_reference__.unwrap_or_default(),
                     channel_identifier: channel_identifier__.unwrap_or_default(),
+                    calculated_channel_reference: calculated_channel_reference__,
                 })
             }
         }
@@ -1031,6 +1085,98 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfiguration {
             }
         }
         deserializer.deserialize_struct("sift.calculated_channels.v2.CalculatedChannelConfiguration", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CalculatedChannelDependency {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.calculated_channel_version_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.CalculatedChannelDependency", len)?;
+        if !self.calculated_channel_version_id.is_empty() {
+            struct_ser.serialize_field("calculatedChannelVersionId", &self.calculated_channel_version_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CalculatedChannelDependency {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "calculated_channel_version_id",
+            "calculatedChannelVersionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CalculatedChannelVersionId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "calculatedChannelVersionId" | "calculated_channel_version_id" => Ok(GeneratedField::CalculatedChannelVersionId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CalculatedChannelDependency;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.calculated_channels.v2.CalculatedChannelDependency")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CalculatedChannelDependency, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut calculated_channel_version_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CalculatedChannelVersionId => {
+                            if calculated_channel_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelVersionId"));
+                            }
+                            calculated_channel_version_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(CalculatedChannelDependency {
+                    calculated_channel_version_id: calculated_channel_version_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.calculated_channels.v2.CalculatedChannelDependency", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for CalculatedChannelQueryConfiguration {
@@ -1816,6 +1962,224 @@ impl<'de> serde::Deserialize<'de> for CreateCalculatedChannelResponse {
         deserializer.deserialize_struct("sift.calculated_channels.v2.CreateCalculatedChannelResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for GetCalculatedChannelDependentsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.calculated_channel.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.GetCalculatedChannelDependentsRequest", len)?;
+        if let Some(v) = self.calculated_channel.as_ref() {
+            match v {
+                get_calculated_channel_dependents_request::CalculatedChannel::CalculatedChannelId(v) => {
+                    struct_ser.serialize_field("calculatedChannelId", v)?;
+                }
+                get_calculated_channel_dependents_request::CalculatedChannel::CalculatedChannelVersionId(v) => {
+                    struct_ser.serialize_field("calculatedChannelVersionId", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetCalculatedChannelDependentsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "calculated_channel_id",
+            "calculatedChannelId",
+            "calculated_channel_version_id",
+            "calculatedChannelVersionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CalculatedChannelId,
+            CalculatedChannelVersionId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "calculatedChannelId" | "calculated_channel_id" => Ok(GeneratedField::CalculatedChannelId),
+                            "calculatedChannelVersionId" | "calculated_channel_version_id" => Ok(GeneratedField::CalculatedChannelVersionId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetCalculatedChannelDependentsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.calculated_channels.v2.GetCalculatedChannelDependentsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetCalculatedChannelDependentsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut calculated_channel__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CalculatedChannelId => {
+                            if calculated_channel__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelId"));
+                            }
+                            calculated_channel__ = map_.next_value::<::std::option::Option<_>>()?.map(get_calculated_channel_dependents_request::CalculatedChannel::CalculatedChannelId);
+                        }
+                        GeneratedField::CalculatedChannelVersionId => {
+                            if calculated_channel__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelVersionId"));
+                            }
+                            calculated_channel__ = map_.next_value::<::std::option::Option<_>>()?.map(get_calculated_channel_dependents_request::CalculatedChannel::CalculatedChannelVersionId);
+                        }
+                    }
+                }
+                Ok(GetCalculatedChannelDependentsRequest {
+                    calculated_channel: calculated_channel__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.calculated_channels.v2.GetCalculatedChannelDependentsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for GetCalculatedChannelDependentsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.calculated_channels.is_empty() {
+            len += 1;
+        }
+        if !self.rules.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.GetCalculatedChannelDependentsResponse", len)?;
+        if !self.calculated_channels.is_empty() {
+            struct_ser.serialize_field("calculatedChannels", &self.calculated_channels)?;
+        }
+        if !self.rules.is_empty() {
+            struct_ser.serialize_field("rules", &self.rules)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetCalculatedChannelDependentsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "calculated_channels",
+            "calculatedChannels",
+            "rules",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CalculatedChannels,
+            Rules,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "calculatedChannels" | "calculated_channels" => Ok(GeneratedField::CalculatedChannels),
+                            "rules" => Ok(GeneratedField::Rules),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetCalculatedChannelDependentsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.calculated_channels.v2.GetCalculatedChannelDependentsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetCalculatedChannelDependentsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut calculated_channels__ = None;
+                let mut rules__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CalculatedChannels => {
+                            if calculated_channels__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannels"));
+                            }
+                            calculated_channels__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Rules => {
+                            if rules__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rules"));
+                            }
+                            rules__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(GetCalculatedChannelDependentsResponse {
+                    calculated_channels: calculated_channels__.unwrap_or_default(),
+                    rules: rules__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.calculated_channels.v2.GetCalculatedChannelDependentsResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for GetCalculatedChannelRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1833,6 +2197,9 @@ impl serde::Serialize for GetCalculatedChannelRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if !self.calculated_channel_version_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.GetCalculatedChannelRequest", len)?;
         if !self.calculated_channel_id.is_empty() {
             struct_ser.serialize_field("calculatedChannelId", &self.calculated_channel_id)?;
@@ -1842,6 +2209,9 @@ impl serde::Serialize for GetCalculatedChannelRequest {
         }
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.calculated_channel_version_id.is_empty() {
+            struct_ser.serialize_field("calculatedChannelVersionId", &self.calculated_channel_version_id)?;
         }
         struct_ser.end()
     }
@@ -1859,6 +2229,8 @@ impl<'de> serde::Deserialize<'de> for GetCalculatedChannelRequest {
             "clientKey",
             "organization_id",
             "organizationId",
+            "calculated_channel_version_id",
+            "calculatedChannelVersionId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1866,6 +2238,7 @@ impl<'de> serde::Deserialize<'de> for GetCalculatedChannelRequest {
             CalculatedChannelId,
             ClientKey,
             OrganizationId,
+            CalculatedChannelVersionId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1890,6 +2263,7 @@ impl<'de> serde::Deserialize<'de> for GetCalculatedChannelRequest {
                             "calculatedChannelId" | "calculated_channel_id" => Ok(GeneratedField::CalculatedChannelId),
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "calculatedChannelVersionId" | "calculated_channel_version_id" => Ok(GeneratedField::CalculatedChannelVersionId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1912,6 +2286,7 @@ impl<'de> serde::Deserialize<'de> for GetCalculatedChannelRequest {
                 let mut calculated_channel_id__ = None;
                 let mut client_key__ = None;
                 let mut organization_id__ = None;
+                let mut calculated_channel_version_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CalculatedChannelId => {
@@ -1932,12 +2307,19 @@ impl<'de> serde::Deserialize<'de> for GetCalculatedChannelRequest {
                             }
                             organization_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CalculatedChannelVersionId => {
+                            if calculated_channel_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelVersionId"));
+                            }
+                            calculated_channel_version_id__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(GetCalculatedChannelRequest {
                     calculated_channel_id: calculated_channel_id__.unwrap_or_default(),
                     client_key: client_key__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
+                    calculated_channel_version_id: calculated_channel_version_id__.unwrap_or_default(),
                 })
             }
         }
@@ -2034,6 +2416,190 @@ impl<'de> serde::Deserialize<'de> for GetCalculatedChannelResponse {
             }
         }
         deserializer.deserialize_struct("sift.calculated_channels.v2.GetCalculatedChannelResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for GetCalculatedChannelVersionsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.calculated_channel_version_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.GetCalculatedChannelVersionsRequest", len)?;
+        if !self.calculated_channel_version_ids.is_empty() {
+            struct_ser.serialize_field("calculatedChannelVersionIds", &self.calculated_channel_version_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetCalculatedChannelVersionsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "calculated_channel_version_ids",
+            "calculatedChannelVersionIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CalculatedChannelVersionIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "calculatedChannelVersionIds" | "calculated_channel_version_ids" => Ok(GeneratedField::CalculatedChannelVersionIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetCalculatedChannelVersionsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.calculated_channels.v2.GetCalculatedChannelVersionsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetCalculatedChannelVersionsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut calculated_channel_version_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CalculatedChannelVersionIds => {
+                            if calculated_channel_version_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelVersionIds"));
+                            }
+                            calculated_channel_version_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(GetCalculatedChannelVersionsRequest {
+                    calculated_channel_version_ids: calculated_channel_version_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.calculated_channels.v2.GetCalculatedChannelVersionsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for GetCalculatedChannelVersionsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.calculated_channels.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.GetCalculatedChannelVersionsResponse", len)?;
+        if !self.calculated_channels.is_empty() {
+            struct_ser.serialize_field("calculatedChannels", &self.calculated_channels)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetCalculatedChannelVersionsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "calculated_channels",
+            "calculatedChannels",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CalculatedChannels,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "calculatedChannels" | "calculated_channels" => Ok(GeneratedField::CalculatedChannels),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetCalculatedChannelVersionsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.calculated_channels.v2.GetCalculatedChannelVersionsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetCalculatedChannelVersionsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut calculated_channels__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CalculatedChannels => {
+                            if calculated_channels__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannels"));
+                            }
+                            calculated_channels__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(GetCalculatedChannelVersionsResponse {
+                    calculated_channels: calculated_channels__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.calculated_channels.v2.GetCalculatedChannelVersionsResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ListCalculatedChannelVersionsRequest {

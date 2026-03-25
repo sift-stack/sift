@@ -69,6 +69,8 @@ class _DataTypeKeyEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._En
     DATA_TYPE_KEY_TDMS: _DataTypeKey.ValueType  # 2
     DATA_TYPE_KEY_CH10: _DataTypeKey.ValueType  # 3
     DATA_TYPE_KEY_PARQUET_FLATDATASET: _DataTypeKey.ValueType  # 4
+    DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW: _DataTypeKey.ValueType  # 5
+    DATA_TYPE_KEY_HDF5: _DataTypeKey.ValueType  # 6
 
 class DataTypeKey(_DataTypeKey, metaclass=_DataTypeKeyEnumTypeWrapper): ...
 
@@ -77,6 +79,8 @@ DATA_TYPE_KEY_CSV: DataTypeKey.ValueType  # 1
 DATA_TYPE_KEY_TDMS: DataTypeKey.ValueType  # 2
 DATA_TYPE_KEY_CH10: DataTypeKey.ValueType  # 3
 DATA_TYPE_KEY_PARQUET_FLATDATASET: DataTypeKey.ValueType  # 4
+DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW: DataTypeKey.ValueType  # 5
+DATA_TYPE_KEY_HDF5: DataTypeKey.ValueType  # 6
 global___DataTypeKey = DataTypeKey
 
 class _ParquetComplexTypesImportMode:
@@ -138,6 +142,7 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     CH10_CONFIG_FIELD_NUMBER: builtins.int
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
+    HDF5_CONFIG_FIELD_NUMBER: builtins.int
     url: builtins.str
     """The url to import. HTTP and S3 urls are supported.
     If you need to import non-public S3 objects, please contact Sift to set that up.
@@ -150,6 +155,8 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     def tdms_config(self) -> global___TDMSConfig: ...
     @property
     def parquet_config(self) -> global___ParquetConfig: ...
+    @property
+    def hdf5_config(self) -> global___Hdf5Config: ...
     def __init__(
         self,
         *,
@@ -158,9 +165,10 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
         ch10_config: global___Ch10Config | None = ...,
         tdms_config: global___TDMSConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
+        hdf5_config: global___Hdf5Config | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "url", b"url"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "url", b"url"]) -> None: ...
 
 global___CreateDataImportFromUrlRequest = CreateDataImportFromUrlRequest
 
@@ -219,6 +227,7 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     CH10_CONFIG_FIELD_NUMBER: builtins.int
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
+    HDF5_CONFIG_FIELD_NUMBER: builtins.int
     @property
     def csv_config(self) -> global___CsvConfig: ...
     @property
@@ -227,6 +236,8 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     def tdms_config(self) -> global___TDMSConfig: ...
     @property
     def parquet_config(self) -> global___ParquetConfig: ...
+    @property
+    def hdf5_config(self) -> global___Hdf5Config: ...
     def __init__(
         self,
         *,
@@ -234,9 +245,10 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
         ch10_config: global___Ch10Config | None = ...,
         tdms_config: global___TDMSConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
+        hdf5_config: global___Hdf5Config | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> None: ...
 
 global___CreateDataImportFromUploadRequest = CreateDataImportFromUploadRequest
 
@@ -372,18 +384,22 @@ class DetectConfigResponse(google.protobuf.message.Message):
 
     CSV_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
+    HDF5_CONFIG_FIELD_NUMBER: builtins.int
     @property
     def csv_config(self) -> global___CsvConfig: ...
     @property
     def parquet_config(self) -> global___ParquetConfig: ...
+    @property
+    def hdf5_config(self) -> global___Hdf5Config: ...
     def __init__(
         self,
         *,
         csv_config: global___CsvConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
+        hdf5_config: global___Hdf5Config | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["csv_config", b"csv_config", "parquet_config", b"parquet_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["csv_config", b"csv_config", "parquet_config", b"parquet_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config"]) -> None: ...
 
 global___DetectConfigResponse = DetectConfigResponse
 
@@ -491,6 +507,26 @@ class ParquetDataColumn(google.protobuf.message.Message):
 global___ParquetDataColumn = ParquetDataColumn
 
 @typing.final
+class ParquetColumn(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PATH_FIELD_NUMBER: builtins.int
+    COLUMN_CONFIG_FIELD_NUMBER: builtins.int
+    path: builtins.str
+    @property
+    def column_config(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig: ...
+    def __init__(
+        self,
+        *,
+        path: builtins.str = ...,
+        column_config: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["column_config", b"column_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["column_config", b"column_config", "path", b"path"]) -> None: ...
+
+global___ParquetColumn = ParquetColumn
+
+@typing.final
 class ParquetFlatDatasetConfig(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -512,6 +548,82 @@ class ParquetFlatDatasetConfig(google.protobuf.message.Message):
 global___ParquetFlatDatasetConfig = ParquetFlatDatasetConfig
 
 @typing.final
+class ParquetSingleChannelPerRowMultiChannelConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NAME_PATH_FIELD_NUMBER: builtins.int
+    DATA_PATH_FIELD_NUMBER: builtins.int
+    name_path: builtins.str
+    data_path: builtins.str
+    def __init__(
+        self,
+        *,
+        name_path: builtins.str = ...,
+        data_path: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_path", b"data_path", "name_path", b"name_path"]) -> None: ...
+
+global___ParquetSingleChannelPerRowMultiChannelConfig = ParquetSingleChannelPerRowMultiChannelConfig
+
+@typing.final
+class ParquetSingleChannelPerRowSingleChannelConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    DATA_PATH_FIELD_NUMBER: builtins.int
+    CHANNEL_FIELD_NUMBER: builtins.int
+    data_path: builtins.str
+    @property
+    def channel(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig: ...
+    def __init__(
+        self,
+        *,
+        data_path: builtins.str = ...,
+        channel: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["channel", b"channel"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["channel", b"channel", "data_path", b"data_path"]) -> None: ...
+
+global___ParquetSingleChannelPerRowSingleChannelConfig = ParquetSingleChannelPerRowSingleChannelConfig
+
+@typing.final
+class ParquetSingleChannelPerRowConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TIME_COLUMN_FIELD_NUMBER: builtins.int
+    COLUMNS_FIELD_NUMBER: builtins.int
+    SINGLE_CHANNEL_FIELD_NUMBER: builtins.int
+    MULTI_CHANNEL_FIELD_NUMBER: builtins.int
+    @property
+    def time_column(self) -> global___ParquetTimeColumn:
+        """Timestamp column configuration."""
+
+    @property
+    def columns(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ParquetColumn]:
+        """Detected columns."""
+
+    @property
+    def single_channel(self) -> global___ParquetSingleChannelPerRowSingleChannelConfig:
+        """Single channel per file configuration."""
+
+    @property
+    def multi_channel(self) -> global___ParquetSingleChannelPerRowMultiChannelConfig:
+        """Multi-channel per file configuration."""
+
+    def __init__(
+        self,
+        *,
+        time_column: global___ParquetTimeColumn | None = ...,
+        columns: collections.abc.Iterable[global___ParquetColumn] | None = ...,
+        single_channel: global___ParquetSingleChannelPerRowSingleChannelConfig | None = ...,
+        multi_channel: global___ParquetSingleChannelPerRowMultiChannelConfig | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["config", b"config", "multi_channel", b"multi_channel", "single_channel", b"single_channel", "time_column", b"time_column"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["columns", b"columns", "config", b"config", "multi_channel", b"multi_channel", "single_channel", b"single_channel", "time_column", b"time_column"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["config", b"config"]) -> typing.Literal["single_channel", "multi_channel"] | None: ...
+
+global___ParquetSingleChannelPerRowConfig = ParquetSingleChannelPerRowConfig
+
+@typing.final
 class ParquetConfig(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -519,6 +631,7 @@ class ParquetConfig(google.protobuf.message.Message):
     RUN_NAME_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     FLAT_DATASET_FIELD_NUMBER: builtins.int
+    SINGLE_CHANNEL_PER_ROW_FIELD_NUMBER: builtins.int
     FOOTER_OFFSET_FIELD_NUMBER: builtins.int
     FOOTER_LENGTH_FIELD_NUMBER: builtins.int
     COMPLEX_TYPES_IMPORT_MODE_FIELD_NUMBER: builtins.int
@@ -531,6 +644,8 @@ class ParquetConfig(google.protobuf.message.Message):
     complex_types_import_mode: global___ParquetComplexTypesImportMode.ValueType
     @property
     def flat_dataset(self) -> global___ParquetFlatDatasetConfig: ...
+    @property
+    def single_channel_per_row(self) -> global___ParquetSingleChannelPerRowConfig: ...
     def __init__(
         self,
         *,
@@ -538,15 +653,91 @@ class ParquetConfig(google.protobuf.message.Message):
         run_name: builtins.str = ...,
         run_id: builtins.str = ...,
         flat_dataset: global___ParquetFlatDatasetConfig | None = ...,
+        single_channel_per_row: global___ParquetSingleChannelPerRowConfig | None = ...,
         footer_offset: builtins.int = ...,
         footer_length: builtins.int = ...,
         complex_types_import_mode: global___ParquetComplexTypesImportMode.ValueType = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["config", b"config", "flat_dataset", b"flat_dataset"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_name", b"asset_name", "complex_types_import_mode", b"complex_types_import_mode", "config", b"config", "flat_dataset", b"flat_dataset", "footer_length", b"footer_length", "footer_offset", b"footer_offset", "run_id", b"run_id", "run_name", b"run_name"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["config", b"config"]) -> typing.Literal["flat_dataset"] | None: ...
+    def HasField(self, field_name: typing.Literal["config", b"config", "flat_dataset", b"flat_dataset", "single_channel_per_row", b"single_channel_per_row"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_name", b"asset_name", "complex_types_import_mode", b"complex_types_import_mode", "config", b"config", "flat_dataset", b"flat_dataset", "footer_length", b"footer_length", "footer_offset", b"footer_offset", "run_id", b"run_id", "run_name", b"run_name", "single_channel_per_row", b"single_channel_per_row"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["config", b"config"]) -> typing.Literal["flat_dataset", "single_channel_per_row"] | None: ...
 
 global___ParquetConfig = ParquetConfig
+
+@typing.final
+class Hdf5DataConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TIME_DATASET_FIELD_NUMBER: builtins.int
+    TIME_INDEX_FIELD_NUMBER: builtins.int
+    VALUE_DATASET_FIELD_NUMBER: builtins.int
+    VALUE_INDEX_FIELD_NUMBER: builtins.int
+    CHANNEL_CONFIG_FIELD_NUMBER: builtins.int
+    TIME_FIELD_FIELD_NUMBER: builtins.int
+    VALUE_FIELD_FIELD_NUMBER: builtins.int
+    time_dataset: builtins.str
+    time_index: builtins.int
+    value_dataset: builtins.str
+    value_index: builtins.int
+    time_field: builtins.str
+    """For compound types, allow specifying which fields to use."""
+    value_field: builtins.str
+    @property
+    def channel_config(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig: ...
+    def __init__(
+        self,
+        *,
+        time_dataset: builtins.str = ...,
+        time_index: builtins.int = ...,
+        value_dataset: builtins.str = ...,
+        value_index: builtins.int = ...,
+        channel_config: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
+        time_field: builtins.str | None = ...,
+        value_field: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_time_field", b"_time_field", "_value_field", b"_value_field", "channel_config", b"channel_config", "time_field", b"time_field", "value_field", b"value_field"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_time_field", b"_time_field", "_value_field", b"_value_field", "channel_config", b"channel_config", "time_dataset", b"time_dataset", "time_field", b"time_field", "time_index", b"time_index", "value_dataset", b"value_dataset", "value_field", b"value_field", "value_index", b"value_index"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_time_field", b"_time_field"]) -> typing.Literal["time_field"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_value_field", b"_value_field"]) -> typing.Literal["value_field"] | None: ...
+
+global___Hdf5DataConfig = Hdf5DataConfig
+
+@typing.final
+class Hdf5Config(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_NAME_FIELD_NUMBER: builtins.int
+    RUN_NAME_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    DATA_FIELD_NUMBER: builtins.int
+    TIME_FORMAT_FIELD_NUMBER: builtins.int
+    RELATIVE_START_TIME_FIELD_NUMBER: builtins.int
+    asset_name: builtins.str
+    run_name: builtins.str
+    run_id: builtins.str
+    """The id of the run to add this data to. If set, `run_name` is ignored."""
+    time_format: global___TimeFormat.ValueType
+    @property
+    def data(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Hdf5DataConfig]: ...
+    @property
+    def relative_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        asset_name: builtins.str = ...,
+        run_name: builtins.str = ...,
+        run_id: builtins.str = ...,
+        data: collections.abc.Iterable[global___Hdf5DataConfig] | None = ...,
+        time_format: global___TimeFormat.ValueType = ...,
+        relative_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "relative_start_time", b"relative_start_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "asset_name", b"asset_name", "data", b"data", "relative_start_time", b"relative_start_time", "run_id", b"run_id", "run_name", b"run_name", "time_format", b"time_format"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_relative_start_time", b"_relative_start_time"]) -> typing.Literal["relative_start_time"] | None: ...
+
+global___Hdf5Config = Hdf5Config
 
 @typing.final
 class DataImport(google.protobuf.message.Message):
@@ -562,6 +753,7 @@ class DataImport(google.protobuf.message.Message):
     CH10_CONFIG_FIELD_NUMBER: builtins.int
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
+    HDF5_CONFIG_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     REPORT_ID_FIELD_NUMBER: builtins.int
     ASSET_ID_FIELD_NUMBER: builtins.int
@@ -589,6 +781,8 @@ class DataImport(google.protobuf.message.Message):
     @property
     def parquet_config(self) -> global___ParquetConfig: ...
     @property
+    def hdf5_config(self) -> global___Hdf5Config: ...
+    @property
     def data_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def data_stop_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
@@ -605,14 +799,15 @@ class DataImport(google.protobuf.message.Message):
         ch10_config: global___Ch10Config | None = ...,
         tdms_config: global___TDMSConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
+        hdf5_config: global___Hdf5Config | None = ...,
         run_id: builtins.str | None = ...,
         report_id: builtins.str | None = ...,
         asset_id: builtins.str | None = ...,
         data_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         data_stop_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "error_message", b"error_message", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "error_message", b"error_message", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_asset_id", b"_asset_id"]) -> typing.Literal["asset_id"] | None: ...
     @typing.overload
