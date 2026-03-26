@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     import pandas as pd
     import pyarrow as pa
 
+    from sift_client._internal.low_level_wrappers.data_imports import (
+        ImportConfig,
+    )
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset, AssetUpdate
     from sift_client.sift_types.calculated_channel import (
@@ -21,6 +24,7 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.data_import import CsvImportConfig, DataImport, DataImportStatus
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
@@ -618,6 +622,148 @@ class DataExportAPI:
 
         Returns:
             A Job handle for the pending export.
+        """
+        ...
+
+class DataImportAPI:
+    """Sync counterpart to `DataImportAPIAsync`.
+
+    High-level API for importing data into Sift.
+
+    Supports importing data from local files or remote URLs. Returns a
+    `DataImport` object that can be polled for status.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the DataImportAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def detect_config(self, file_path: str | Path) -> CsvImportConfig:
+        """Auto-detect import configuration from a file.
+
+        Reads a sample of the file, sends it to the server's DetectConfig
+        endpoint, and returns the detected configuration. You can inspect
+        and modify the result before passing it to :meth:`import_from_path`.
+
+        Currently supports CSV files only.
+
+        Args:
+            file_path: Path to the file to analyze.
+
+        Returns:
+            The detected import config.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If detection returns no config.
+        """
+        ...
+
+    def get(self, data_import_id: str) -> DataImport:
+        """Get a data import by ID.
+
+        Args:
+            data_import_id: The ID of the data import.
+
+        Returns:
+            The DataImport.
+        """
+        ...
+
+    def import_from_path(self, *, file_path: str | Path, config: ImportConfig) -> DataImport:
+        """Import data from a local file.
+
+        Creates a data import on the server and uploads the file to the
+        returned presigned URL. Returns a :class:`DataImport` that can be
+        polled for status via ``data_import.refresh()``.
+
+        Args:
+            file_path: Path to the local file to import.
+            config: Import configuration describing the file format and column
+                mapping.
+
+        Returns:
+            A :class:`DataImport` representing the import operation.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+        """
+        ...
+
+    def import_from_url(self, *, url: str, config: ImportConfig) -> DataImport:
+        """Import data from a remote URL (HTTP or S3).
+
+        Returns a :class:`DataImport` that can be polled for status via
+        ``data_import.refresh()``.
+
+        Args:
+            url: The URL to import from.
+            config: Import configuration describing the file format and column
+                mapping.
+
+        Returns:
+            A :class:`DataImport` representing the import operation.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        data_import_ids: list[str] | None = None,
+        status: DataImportStatus | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[DataImport]:
+        """List data imports with optional filtering.
+
+        Args:
+            data_import_ids: Filter to imports with any of these IDs.
+            status: Filter to imports with this status.
+            filter_query: Explicit CEL filter string.
+            order_by: Ordering string (e.g. "created_date desc").
+            limit: Maximum number of imports to return. If None, returns all.
+
+        Returns:
+            A list of DataImport objects matching the filter criteria.
+        """
+        ...
+
+    def retry(self, data_import: str | DataImport) -> None:
+        """Retry a failed data import.
+
+        Only works for URL-based imports in a failed state.
+
+        Args:
+            data_import: The DataImport or data_import_id to retry.
+        """
+        ...
+
+    def wait_until_complete(
+        self,
+        data_import: str | DataImport,
+        *,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> DataImport:
+        """Wait until a data import reaches a terminal state.
+
+        Polls the import status at the given interval until the import is
+        SUCCEEDED or FAILED, returning the completed DataImport.
+
+        Args:
+            data_import: The DataImport or data_import_id to wait for.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+                Defaults to None (indefinite).
+
+        Returns:
+            The DataImport in its terminal state.
         """
         ...
 
