@@ -53,7 +53,7 @@ class TestResultsTest:
                 "part_number": "1234567890",
                 "start_time": simulated_time,
                 "end_time": simulated_time,
-                "run_id": nostromo_run.id_,
+                "run_id": nostromo_run._id_or_error,
             },
         )
         assert test_report.id_ is not None
@@ -64,12 +64,14 @@ class TestResultsTest:
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
+            return
+
         simulated_time = test_report.start_time
 
         # Create multiple test steps using TestStepCreate
         step1 = sift_client.test_results.create_step(
             TestStepCreate(
-                test_report_id=test_report.id_,
+                test_report_id=test_report._id_or_error,
                 name="Step 1: Initialization",
                 description="Initialize the test environment",
                 step_type=TestStepType.ACTION,
@@ -83,8 +85,8 @@ class TestResultsTest:
         # Create a step using a dict
         step1_1 = sift_client.test_results.create_step(
             {
-                "test_report_id": test_report.id_,
-                "parent_step_id": step1.id_,
+                "test_report_id": test_report._id_or_error,
+                "parent_step_id": step1._id_or_error,
                 "name": "Step 1.1: Substep 1",
                 "description": "Substep 1 of Step 1",
                 "step_type": TestStepType.ACTION,
@@ -98,7 +100,7 @@ class TestResultsTest:
 
         step2 = sift_client.test_results.create_step(
             TestStepCreate(
-                test_report_id=test_report.id_,
+                test_report_id=test_report._id_or_error,
                 name="Step 2: Data Collection",
                 description="Collect sensor data",
                 step_type=TestStepType.ACTION,
@@ -111,7 +113,7 @@ class TestResultsTest:
         simulated_time = simulated_time + timedelta(seconds=10.1)
         step3 = sift_client.test_results.create_step(
             TestStepCreate(
-                test_report_id=test_report.id_,
+                test_report_id=test_report._id_or_error,
                 name="Step 3: Validation",
                 description="Validate collected data",
                 step_type=TestStepType.ACTION,
@@ -124,8 +126,8 @@ class TestResultsTest:
 
         step3_1 = sift_client.test_results.create_step(
             TestStepCreate(
-                test_report_id=test_report.id_,
-                parent_step_id=step3.id_,
+                test_report_id=test_report._id_or_error,
+                parent_step_id=step3._id_or_error,
                 name="Step 3.1: Substep 3.1",
                 description="Error demo",
                 step_type=TestStepType.ACTION,
@@ -155,6 +157,8 @@ class TestResultsTest:
         step3_1 = self.test_steps.get("step3_1")
         if not step3 or not step3_1:
             pytest.skip("Need to create a step first")
+            return
+
         step3 = sift_client.test_results.update_step(
             step3,
             {"status": TestStatus.PASSED},
@@ -173,11 +177,12 @@ class TestResultsTest:
         step1_1 = self.test_steps.get("step1_1")
         if not step1 or not step2 or not step3 or not step1_1:
             pytest.skip("Need to create steps first")
+            return
 
         # Create measurements for each step using TestMeasurementCreate
         measurement1 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
-                test_step_id=step1.id_,
+                test_step_id=step1._id_or_error,
                 name="Temperature Reading",
                 measurement_type=TestMeasurementType.DOUBLE,
                 numeric_value=25.5,
@@ -195,7 +200,7 @@ class TestResultsTest:
         # Create a measurement using a dict
         measurement2 = sift_client.test_results.create_measurement(
             {
-                "test_step_id": step2.id_,
+                "test_step_id": step2._id_or_error,
                 "name": "FW Version",
                 "measurement_type": TestMeasurementType.STRING,
                 "string_value": "1.10.3",
@@ -208,7 +213,7 @@ class TestResultsTest:
 
         measurement3 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
-                test_step_id=step3.id_,
+                test_step_id=step3._id_or_error,
                 name="Status Check",
                 measurement_type=TestMeasurementType.BOOLEAN,
                 boolean_value=True,
@@ -218,9 +223,10 @@ class TestResultsTest:
             update_step=True,
         )
 
+        assert step1_1.start_time
         measurement4 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
-                test_step_id=step1_1.id_,
+                test_step_id=step1_1._id_or_error,
                 name="Substep 1.1: Substep 1.1.1",
                 measurement_type=TestMeasurementType.BOOLEAN,
                 boolean_value=True,
@@ -244,6 +250,7 @@ class TestResultsTest:
         measurement4 = self.test_measurements.get("measurement4")
         if not measurement2 or not measurement4:
             pytest.skip("Need to create measurements first")
+            return
 
         measurement2 = sift_client.test_results.update_measurement(
             measurement2,
@@ -284,6 +291,8 @@ class TestResultsTest:
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
+            return
+
         new_end_time = test_report.start_time + timedelta(seconds=42)
         # Update the report with metadata
         updated_report = sift_client.test_results.update(
@@ -341,6 +350,8 @@ class TestResultsTest:
             if step.parent_step_id is not None:
                 existing_step = step
                 break
+
+        assert existing_step is not None
         assert len(steps)
         steps = sift_client.test_results.list_steps(
             test_reports=[existing_step.test_report_id],
@@ -367,6 +378,7 @@ class TestResultsTest:
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
+            return
 
         # Archive the report
         archived_report = sift_client.test_results.archive(test_report=test_report)
@@ -374,7 +386,7 @@ class TestResultsTest:
 
         sift_client.test_results.delete(test_report=test_report)
         try:
-            deleted_report = sift_client.test_results.get(test_report_id=test_report.id_)
+            deleted_report = sift_client.test_results.get(test_report_id=test_report._id_or_error)
             assert deleted_report is None  # Shouldn't reach here so error if we get something.
         except aiogrpc.AioRpcError as e:
             self.test_reports.pop("basic_test_report")
@@ -389,7 +401,7 @@ class TestResultsTest:
 
         # Excercise find_report, custom_filter, and filtering by commonon-proto fields such as created_date
         found_report = sift_client.test_results.find(
-            filter_query=f"test_report_id == '{test_report.id_}' && created_date >= timestamp('{create_time}')"
+            filter_query=f"test_report_id == '{test_report._id_or_error}' && created_date >= timestamp('{create_time}')"
         )
         assert found_report is not None
         assert found_report.id_ == test_report.id_
