@@ -6,11 +6,10 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from sift.data_imports.v2.data_imports_pb2 import DATA_TYPE_KEY_CSV
-
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.data_import import (
+    EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
     DataImport,
     DataImportStatus,
@@ -49,7 +48,10 @@ class DataImportAPIAsync(ResourceBase):
         self,
         *,
         file_path: str | Path,
-        config: ImportConfig,
+        config: ImportConfig | None = None,
+        asset_name: str | None = None,
+        run_name: str | None = None,
+        run_id: str | None = None,
     ) -> DataImport:
         """Import data from a local file.
 
@@ -57,20 +59,46 @@ class DataImportAPIAsync(ResourceBase):
         returned presigned URL. Returns a :class:`DataImport` that can be
         polled for status via ``data_import.refresh()``.
 
+        When ``config`` is omitted the file format is auto-detected via
+        :meth:`detect_config` and a :class:`CsvImportConfig` is built using
+        the provided ``asset_name`` and optional ``run_name`` / ``run_id``.
+
         Args:
             file_path: Path to the local file to import.
             config: Import configuration describing the file format and column
-                mapping.
+                mapping. When provided, ``asset_name``, ``run_name``, and
+                ``run_id`` are ignored.
+            asset_name: Name of the asset to import into. Required when
+                ``config`` is not provided.
+            run_name: Optional run name. Only used when ``config`` is not
+                provided.
+            run_id: Optional existing run ID. Only used when ``config`` is not
+                provided.
 
         Returns:
             A :class:`DataImport` representing the import operation.
 
         Raises:
             FileNotFoundError: If the file does not exist.
+            ValueError: If neither ``config`` nor ``asset_name`` is provided.
         """
         path = Path(file_path)
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {file_path}")
+
+        if config is None:
+            if asset_name is None:
+                raise ValueError(
+                    "Either 'config' or 'asset_name' must be provided."
+                )
+            detected = await self.detect_config(file_path)
+            config = detected.model_copy(
+                update={
+                    "asset_name": asset_name,
+                    "run_name": run_name,
+                    "run_id": run_id,
+                }
+            )
 
         data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
         logger.info("Created data import %s", data_import_id)
@@ -168,14 +196,15 @@ class DataImportAPIAsync(ResourceBase):
         )
         await self._low_level_client.retry(data_import_id)
 
-    async def detect_config(self, file_path: str | Path) -> CsvImportConfig:
+    async def detect_config(self, file_path: str | Path) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
         Reads a sample of the file, sends it to the server's DetectConfig
-        endpoint, and returns the detected configuration. You can inspect
-        and modify the result before passing it to :meth:`import_from_path`.
+        endpoint, and returns the detected configuration. The file format
+        is inferred from the file extension. You can inspect and modify the
+        result before passing it to :meth:`import_from_path`.
 
-        Currently supports CSV files only.
+        Supported extensions: .csv, .parquet, .tdms, .ch10, .ch11, .h5, .hdf5
 
         Args:
             file_path: Path to the file to analyze.
@@ -185,19 +214,38 @@ class DataImportAPIAsync(ResourceBase):
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If detection returns no config.
+            ValueError: If the file extension is unsupported or detection
+                returns no config.
         """
         path = Path(file_path)
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {file_path}")
 
+        ext = path.suffix.lower()
+        data_type_key = EXTENSION_TO_DATA_TYPE_KEY.get(ext)
+        if data_type_key is None:
+            raise ValueError(
+                f"Unsupported file extension '{ext}'. "
+                f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}"
+            )
+
         with open(path, "rb") as f:
             sample = f.read(_DETECT_CONFIG_SAMPLE_SIZE)
 
-        response = await self._low_level_client.detect_config(sample, DATA_TYPE_KEY_CSV)
+        response = await self._low_level_client.detect_config(sample, data_type_key.value)
 
         if response.HasField("csv_config"):
-            return CsvImportConfig._from_proto(response.csv_config)
+            config = CsvImportConfig._from_proto(response.csv_config)
+            # The server's DetectConfig may include the time column in
+            # data_columns, but CreateDataImportFromUpload rejects that
+            # overlap. Filter it out so the config is import-ready.
+            time_col = config.time_column.column
+            filtered = [dc for dc in config.data_columns if dc.column != time_col]
+            if len(filtered) != len(config.data_columns):
+                config = config.model_copy(update={"data_columns": filtered})
+            return config
+
+        # TODO: Add parquet_config and hdf5_config once their config types are added.
 
         raise ValueError("Server returned an empty DetectConfig response.")
 

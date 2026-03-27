@@ -6,6 +6,13 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
+from sift.data_imports.v2.data_imports_pb2 import (
+    DATA_TYPE_KEY_CH10,
+    DATA_TYPE_KEY_CSV,
+    DATA_TYPE_KEY_HDF5,
+    DATA_TYPE_KEY_PARQUET_FLATDATASET,
+    DATA_TYPE_KEY_TDMS,
+)
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
 from sift.data_imports.v2.data_imports_pb2 import DataImport as DataImportProto
@@ -49,6 +56,27 @@ class DataImportStatus(Enum):
     IN_PROGRESS = DataImportStatusProto.DATA_IMPORT_STATUS_IN_PROGRESS
     SUCCEEDED = DataImportStatusProto.DATA_IMPORT_STATUS_SUCCEEDED
     FAILED = DataImportStatusProto.DATA_IMPORT_STATUS_FAILED
+
+
+class DataTypeKey(Enum):
+    """Supported file types for data import detection."""
+
+    CSV = DATA_TYPE_KEY_CSV
+    PARQUET = DATA_TYPE_KEY_PARQUET_FLATDATASET
+    TDMS = DATA_TYPE_KEY_TDMS
+    CH10 = DATA_TYPE_KEY_CH10
+    HDF5 = DATA_TYPE_KEY_HDF5
+
+
+EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
+    ".csv": DataTypeKey.CSV,
+    ".parquet": DataTypeKey.PARQUET,
+    ".tdms": DataTypeKey.TDMS,
+    ".ch10": DataTypeKey.CH10,
+    ".ch11": DataTypeKey.CH10,
+    ".h5": DataTypeKey.HDF5,
+    ".hdf5": DataTypeKey.HDF5,
+}
 
 
 # ---------------------------------------------------------------------------
