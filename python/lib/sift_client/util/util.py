@@ -8,6 +8,7 @@ if TYPE_CHECKING:
         CalculatedChannelsAPIAsync,
         ChannelsAPIAsync,
         DataExportAPIAsync,
+        DataImportAPIAsync,
         FileAttachmentsAPIAsync,
         IngestionAPIAsync,
         JobsAPIAsync,
@@ -61,6 +62,9 @@ class AsyncAPIs(NamedTuple):
 
     data_export: DataExportAPIAsync
     """Instance of the Data Export API for making asynchronous requests."""
+
+    data_import: DataImportAPIAsync
+    """Instance of the Data Import API for making asynchronous requests."""
 
 
 def count_non_none(*args: Any) -> int:
