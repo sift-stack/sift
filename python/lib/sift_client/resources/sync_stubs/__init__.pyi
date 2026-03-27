@@ -643,14 +643,15 @@ class DataImportAPI:
         ...
 
     def _run(self, coro): ...
-    def detect_config(self, file_path: str | Path) -> CsvImportConfig:
+    def detect_config(self, file_path: str | Path) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
         Reads a sample of the file, sends it to the server's DetectConfig
-        endpoint, and returns the detected configuration. You can inspect
-        and modify the result before passing it to :meth:`import_from_path`.
+        endpoint, and returns the detected configuration. The file format
+        is inferred from the file extension. You can inspect and modify the
+        result before passing it to :meth:`import_from_path`.
 
-        Currently supports CSV files only.
+        Supported extensions: .csv, .parquet, .tdms, .ch10, .ch11, .h5, .hdf5
 
         Args:
             file_path: Path to the file to analyze.
@@ -660,7 +661,8 @@ class DataImportAPI:
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If detection returns no config.
+            ValueError: If the file extension is unsupported or detection
+                returns no config.
         """
         ...
 
@@ -675,23 +677,43 @@ class DataImportAPI:
         """
         ...
 
-    def import_from_path(self, *, file_path: str | Path, config: ImportConfig) -> DataImport:
+    def import_from_path(
+        self,
+        *,
+        file_path: str | Path,
+        config: ImportConfig | None = None,
+        asset_name: str | None = None,
+        run_name: str | None = None,
+        run_id: str | None = None,
+    ) -> DataImport:
         """Import data from a local file.
 
         Creates a data import on the server and uploads the file to the
         returned presigned URL. Returns a :class:`DataImport` that can be
         polled for status via ``data_import.refresh()``.
 
+        When ``config`` is omitted the file format is auto-detected via
+        :meth:`detect_config` and a :class:`CsvImportConfig` is built using
+        the provided ``asset_name`` and optional ``run_name`` / ``run_id``.
+
         Args:
             file_path: Path to the local file to import.
             config: Import configuration describing the file format and column
-                mapping.
+                mapping. When provided, ``asset_name``, ``run_name``, and
+                ``run_id`` are ignored.
+            asset_name: Name of the asset to import into. Required when
+                ``config`` is not provided.
+            run_name: Optional run name. Only used when ``config`` is not
+                provided.
+            run_id: Optional existing run ID. Only used when ``config`` is not
+                provided.
 
         Returns:
             A :class:`DataImport` representing the import operation.
 
         Raises:
             FileNotFoundError: If the file does not exist.
+            ValueError: If neither ``config`` nor ``asset_name`` is provided.
         """
         ...
 
