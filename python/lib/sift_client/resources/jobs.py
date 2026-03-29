@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from alive_progress import alive_bar
+from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
@@ -220,7 +220,7 @@ class JobsAPIAsync(ResourceBase):
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
         extract: bool = True,
-        show_progress: bool = True,
+        show_progress: bool = False,
     ) -> list[Path]:
         """Wait for a job to complete and download the result files.
 
@@ -237,8 +237,8 @@ class JobsAPIAsync(ResourceBase):
                 extract it and delete the archive, returning paths to the
                 extracted files. Non-zip files are returned as-is regardless
                 of this flag.
-            show_progress: If True (default), display an animated progress
-                spinner while waiting. Defaults to True.
+            show_progress: If True, display an animated progress spinner
+                while waiting and a download progress bar. Defaults to False.
 
         Returns:
             List of paths to the downloaded/extracted files.

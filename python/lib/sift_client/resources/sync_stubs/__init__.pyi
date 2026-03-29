@@ -859,7 +859,7 @@ class JobsAPI:
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
         extract: bool = True,
-        show_progress: bool = True,
+        show_progress: bool = False,
     ) -> list[Path]:
         """Wait for a job to complete and download the result files.
 
@@ -876,8 +876,8 @@ class JobsAPI:
                 extract it and delete the archive, returning paths to the
                 extracted files. Non-zip files are returned as-is regardless
                 of this flag.
-            show_progress: If True (default), display an animated progress
-                spinner while waiting. Defaults to True.
+            show_progress: If True, display an animated progress spinner
+                while waiting and a download progress bar. Defaults to False.
 
         Returns:
             List of paths to the downloaded/extracted files.
