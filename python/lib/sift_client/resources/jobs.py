@@ -7,6 +7,8 @@ import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from alive_progress import alive_bar
+
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import download_file, extract_zip
@@ -169,6 +171,7 @@ class JobsAPIAsync(ResourceBase):
         *,
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
+        show_progress: bool = False,
     ) -> Job:
         """Wait until the job is complete or the timeout is reached.
 
@@ -180,6 +183,8 @@ class JobsAPIAsync(ResourceBase):
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
                 Defaults to None (indefinite).
+            show_progress: If True, display an animated progress spinner alongisde
+                the job status while polling. Defaults to False.
 
         Returns:
             The Job in the completed state.
@@ -187,13 +192,25 @@ class JobsAPIAsync(ResourceBase):
         job_id = job._id_or_error if isinstance(job, Job) else job
 
         start = time.monotonic()
-        while True:
-            job = await self.get(job_id)
-            if job.job_status in (JobStatus.FINISHED, JobStatus.FAILED, JobStatus.CANCELLED):
-                return job
-            if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
-                raise TimeoutError(f"Job {job_id} did not complete within {timeout_secs} seconds")
-            await asyncio.sleep(polling_interval_secs)
+        with alive_bar(
+            title="Processing job",
+            bar=None,
+            spinner_length=5,
+            monitor=False,
+            stats=False,
+            disable=not show_progress,
+        ) as bar:
+            while True:
+                job = await self.get(job_id)
+                bar.title(f"Job status: {job.job_status.value}")
+                bar()
+                if job.job_status in (JobStatus.FINISHED, JobStatus.FAILED, JobStatus.CANCELLED):
+                    return job
+                if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
+                    raise TimeoutError(
+                        f"Job {job_id} did not complete within {timeout_secs} seconds"
+                    )
+                await asyncio.sleep(polling_interval_secs)
 
     async def wait_and_download(
         self,
@@ -203,6 +220,7 @@ class JobsAPIAsync(ResourceBase):
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
         extract: bool = True,
+        show_progress: bool = True,
     ) -> list[Path]:
         """Wait for a job to complete and download the result files.
 
@@ -219,6 +237,8 @@ class JobsAPIAsync(ResourceBase):
                 extract it and delete the archive, returning paths to the
                 extracted files. Non-zip files are returned as-is regardless
                 of this flag.
+            show_progress: If True (default), display an animated progress
+                spinner while waiting. Defaults to True.
 
         Returns:
             List of paths to the downloaded/extracted files.
@@ -233,6 +253,7 @@ class JobsAPIAsync(ResourceBase):
             job=job_id,
             polling_interval_secs=polling_interval_secs,
             timeout_secs=timeout_secs,
+            show_progress=show_progress,
         )
         if completed_job.job_status == JobStatus.FAILED:
             if (
@@ -259,7 +280,9 @@ class JobsAPIAsync(ResourceBase):
         # Run the synchronous download in a thread pool to avoid blocking the event loop
         rest_client = self.client.rest_client
         await run_sync_function(
-            lambda: download_file(presigned_url, download_path, rest_client=rest_client)
+            lambda: download_file(
+                presigned_url, download_path, rest_client=rest_client, show_progress=show_progress
+            )
         )
 
         if not extract or not zipfile.is_zipfile(download_path):

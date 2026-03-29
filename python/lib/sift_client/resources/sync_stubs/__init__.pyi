@@ -859,6 +859,7 @@ class JobsAPI:
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
         extract: bool = True,
+        show_progress: bool = True,
     ) -> list[Path]:
         """Wait for a job to complete and download the result files.
 
@@ -875,6 +876,8 @@ class JobsAPI:
                 extract it and delete the archive, returning paths to the
                 extracted files. Non-zip files are returned as-is regardless
                 of this flag.
+            show_progress: If True (default), display an animated progress
+                spinner while waiting. Defaults to True.
 
         Returns:
             List of paths to the downloaded/extracted files.
@@ -886,7 +889,12 @@ class JobsAPI:
         ...
 
     def wait_until_complete(
-        self, job: Job | str, *, polling_interval_secs: int = 5, timeout_secs: int | None = None
+        self,
+        job: Job | str,
+        *,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        show_progress: bool = False,
     ) -> Job:
         """Wait until the job is complete or the timeout is reached.
 
@@ -898,6 +906,8 @@ class JobsAPI:
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
                 Defaults to None (indefinite).
+            show_progress: If True, display an animated progress spinner alongisde
+                the job status while polling. Defaults to False.
 
         Returns:
             The Job in the completed state.
