@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any, cast
 
 import requests
@@ -21,6 +20,7 @@ from sift_client._internal.low_level_wrappers.base import (
     DEFAULT_PAGE_SIZE,
     LowLevelClientBase,
 )
+from sift_client._internal.util.executor import run_sync_function
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 if TYPE_CHECKING:
@@ -194,12 +194,10 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         url = await self.get_remote_file_download_url(file_attachment._id_or_error)
 
-        # Run the synchronous requests.get in a thread pool to avoid blocking
         def _download():
             response = requests.get(url)
             response.raise_for_status()
             return response.content
 
-        # Use run_in_executor for Python 3.8 compatibility (asyncio.to_thread was added in 3.9)
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _download)
+        # Run the synchronous requests.get in a thread pool to avoid blocking
+        return await run_sync_function(_download)
