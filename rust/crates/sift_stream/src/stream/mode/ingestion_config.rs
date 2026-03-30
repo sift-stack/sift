@@ -620,6 +620,54 @@ impl DataStream {
     }
 }
 
+impl Stream for DataStream {
+    type Item = IngestWithConfigDataStreamRequest;
+
+    fn poll_next(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        // Close the stream if a checkpoint complete signal is received.
+        if matches!(
+            self.control_rx.as_mut().poll_next(ctx),
+            Poll::Ready(Some(Ok(ControlMessage::SignalNextCheckpoint)))
+        ) {
+            return Poll::Ready(None);
+        }
+
+        // Continue with data streaming.
+        match self.data_rx.as_mut().poll_next(ctx) {
+            Poll::Ready(Some(DataMessage {
+                message_id,
+                request,
+                ..
+            })) => {
+                if !self.saw_first_message {
+                    self.saw_first_message = true;
+                    self.first_message_id.store(message_id, Ordering::Relaxed);
+                }
+                self.last_message_id.store(message_id, Ordering::Relaxed);
+
+                let message_size = request.encoded_len() as u64;
+                self.metrics.messages_sent.increment();
+                self.metrics.checkpoint.cur_messages_sent.increment();
+                self.metrics.bytes_sent.add(message_size);
+                self.metrics.checkpoint.cur_bytes_sent.add(message_size);
+
+                // NOTE: This will copy the request which can be expensive.
+                Poll::Ready(Some((*request).clone()))
+            }
+            Poll::Ready(None) => {
+                // All senders dropped.. conclude stream
+                #[cfg(feature = "tracing")]
+                tracing::debug!(
+                    sift_stream_id = %self.sift_stream_id,
+                    "received signal to conclude SiftStream"
+                );
+                Poll::Ready(None)
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -763,53 +811,5 @@ mod tests {
         let reqs = vec![make_request(), make_request(), make_request()];
         let err = live.send_requests(&stream_id, reqs).await.unwrap_err();
         assert_eq!(err.into_inner().len(), 3);
-    }
-}
-
-impl Stream for DataStream {
-    type Item = IngestWithConfigDataStreamRequest;
-
-    fn poll_next(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        // Close the stream if a checkpoint complete signal is received.
-        if matches!(
-            self.control_rx.as_mut().poll_next(ctx),
-            Poll::Ready(Some(Ok(ControlMessage::SignalNextCheckpoint)))
-        ) {
-            return Poll::Ready(None);
-        }
-
-        // Continue with data streaming.
-        match self.data_rx.as_mut().poll_next(ctx) {
-            Poll::Ready(Some(DataMessage {
-                message_id,
-                request,
-                ..
-            })) => {
-                if !self.saw_first_message {
-                    self.saw_first_message = true;
-                    self.first_message_id.store(message_id, Ordering::Relaxed);
-                }
-                self.last_message_id.store(message_id, Ordering::Relaxed);
-
-                let message_size = request.encoded_len() as u64;
-                self.metrics.messages_sent.increment();
-                self.metrics.checkpoint.cur_messages_sent.increment();
-                self.metrics.bytes_sent.add(message_size);
-                self.metrics.checkpoint.cur_bytes_sent.add(message_size);
-
-                // NOTE: This will copy the request which can be expensive.
-                Poll::Ready(Some((*request).clone()))
-            }
-            Poll::Ready(None) => {
-                // All senders dropped.. conclude stream
-                #[cfg(feature = "tracing")]
-                tracing::debug!(
-                    sift_stream_id = %self.sift_stream_id,
-                    "received signal to conclude SiftStream"
-                );
-                Poll::Ready(None)
-            }
-            Poll::Pending => Poll::Pending,
-        }
     }
 }

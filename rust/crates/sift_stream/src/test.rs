@@ -138,7 +138,7 @@ impl IngestionConfigService for MockIngestionConfigService {
         }
 
         Ok(Response::new(ListIngestionConfigsResponse {
-            ingestion_configs: ingestion_configs,
+            ingestion_configs,
             next_page_token: "".to_string(),
         }))
     }

@@ -1,11 +1,21 @@
 use sift_error::prelude::{Error as SiftError, ErrorKind};
 use std::fmt;
 
-/// Returned by the async `Transport::send` / `Transport::send_requests` when
-/// the underlying channel is closed and delivery cannot complete.
+/// Returned by the async [`Transport::send`](crate::stream::Transport::send) /
+/// [`Transport::send_requests`](crate::stream::Transport::send_requests) when the underlying
+/// channel is closed and delivery cannot complete.
 ///
-/// The inner value `T` is the undelivered message so the caller can decide
-/// what to do with it (e.g. log, retry, discard).
+/// The inner value `T` is the undelivered message. Typical recovery strategies:
+///
+/// - **Log and discard** — if losing the message is acceptable (e.g. high-frequency sensor
+///   data where the next sample will arrive momentarily).
+/// - **Buffer and retry** — store the message locally and re-attempt once the channel is
+///   re-established.
+/// - **Propagate as an error** — call [`into_inner`](SendError::into_inner) to recover the
+///   message and return it up the call stack for the application to decide.
+///
+/// A closed channel usually means the [`SiftStream`](crate::SiftStream) is shutting down.
+/// Check that [`SiftStream::finish`](crate::SiftStream::finish) has not already been called.
 #[derive(Debug)]
 pub struct SendError<T>(pub T);
 
@@ -24,8 +34,23 @@ impl<T> fmt::Display for SendError<T> {
 
 impl<T: fmt::Debug> std::error::Error for SendError<T> {}
 
-/// Returned by the sync `Transport::try_send` / `Transport::try_send_requests`
-/// when immediate delivery fails.
+/// Returned by the sync [`Transport::try_send`](crate::stream::Transport::try_send) /
+/// [`Transport::try_send_requests`](crate::stream::Transport::try_send_requests) when
+/// immediate delivery fails.
+///
+/// The undelivered value `T` is always returned inside the variant so the caller can
+/// recover it without cloning.
+///
+/// ## Variants and recovery
+///
+/// - [`Full`](TrySendError::Full) — the channel is currently at capacity. The message has
+///   *not* been dropped; the caller can retry later with another `try_send` call, switch to
+///   the backpressure-aware [`send`](crate::SiftStream::send), or discard the message if
+///   it is stale.
+///
+/// - [`Closed`](TrySendError::Closed) — all channel receivers have been dropped. The
+///   [`SiftStream`](crate::SiftStream) is shutting down. Retrying on the same stream will
+///   not succeed.
 #[derive(Debug)]
 pub enum TrySendError<T> {
     /// The channel has been closed. The undelivered value is returned.
@@ -62,15 +87,23 @@ impl<T> fmt::Display for TrySendError<T> {
 
 impl<T: fmt::Debug> std::error::Error for TrySendError<T> {}
 
-/// Returned by [`SiftStream::send`] and [`SiftStream::try_send`] when encoding fails.
+/// Returned by [`SiftStream::send`](crate::SiftStream::send) when delivery fails.
 ///
-/// Wraps either a [`sift_error::Error`] from the encode step or the undelivered
-/// message when the backing channel is closed.
+/// This is the top-level error type for the high-level send API. It distinguishes
+/// encode-time failures from channel-level failures so callers can handle them
+/// differently.
 #[derive(Debug)]
 pub enum SiftStreamSendError<T> {
     /// The message could not be encoded before it was sent.
+    ///
+    /// This typically indicates a schema mismatch or an invalid value in the message.
+    /// Retrying the same message without correcting the schema will not succeed.
     EncodeError(SiftError),
-    /// The channel closed before the message could be delivered.
+
+    /// The backing channel closed before the message could be delivered.
+    ///
+    /// The undelivered message is returned inside the variant. See the recovery
+    /// guidance on [`SendError`] for options.
     ChannelClosed(T),
 }
 
@@ -94,15 +127,25 @@ impl<T> SiftStreamSendError<T> {
     }
 }
 
-/// Returned by [`SiftStream::try_send`] when immediate delivery fails.
+/// Returned by [`SiftStream::try_send`](crate::SiftStream::try_send) when immediate
+/// delivery fails.
 ///
-/// Wraps either a [`sift_error::Error`] from the encode step or a
-/// [`TrySendError`] from the backing channel.
+/// This is the top-level error type for the non-blocking send API. It distinguishes
+/// encode-time failures from channel-level failures so callers can handle them
+/// differently.
 #[derive(Debug)]
 pub enum SiftStreamTrySendError<T> {
     /// The message could not be encoded before it was sent.
+    ///
+    /// This typically indicates a schema mismatch or an invalid value in the message.
+    /// Retrying the same message without correcting the schema will not succeed.
     EncodeError(SiftError),
+
     /// The backing channel was full or closed.
+    ///
+    /// The inner [`TrySendError`] carries the undelivered message. Inspect the variant
+    /// to distinguish between a transient backpressure condition (`Full`) and a permanent
+    /// shutdown (`Closed`). See [`TrySendError`] for recovery guidance.
     Channel(TrySendError<T>),
 }
 

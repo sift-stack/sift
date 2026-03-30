@@ -69,12 +69,40 @@ pub trait Encoder: private::Sealed {
     type Message: Send + Sync;
 }
 
-/// A trait that defines how data is transmitted, or streamed.
+/// Defines how encoded telemetry messages are delivered to their destination.
 ///
-/// For example, a live streaming implementation might use a
-/// gRPC stream to transmit data in real-time to Sift, while
-/// an alternative implementation might write data to a file
-/// for a more "offline" use-case.
+/// Two concrete implementations are provided:
+///
+/// - [`LiveStreaming`](crate::LiveStreaming) — delivers messages via a gRPC stream to Sift in
+///   real-time, with optional disk backups and periodic checkpointing.
+/// - [`FileBackup`](crate::FileBackup) — writes messages to rolling disk backup files without
+///   connecting to Sift.
+///
+/// ## Send API
+///
+/// Each implementation exposes four send methods that differ in their backpressure behaviour:
+///
+/// | Method | Blocks? | Error on failure |
+/// |---|---|---|
+/// | [`send`](Transport::send) | Yes — awaits until the channel has capacity | [`SendError<T>`] with the undelivered message |
+/// | [`send_requests`](Transport::send_requests) | Yes — per-message backpressure | [`SendError<Vec<T>>`] with all undelivered messages |
+/// | [`try_send`](Transport::try_send) | No — returns immediately | [`TrySendError<T>`] as `Full(T)` or `Closed(T)` |
+/// | [`try_send_requests`](Transport::try_send_requests) | No — fails on first undeliverable message | [`TrySendError<Vec<T>>`] with all undelivered |
+///
+/// In every failure case the undelivered message(s) are returned inside the error variant so
+/// that the caller can decide whether to retry, log, buffer locally, or discard them.
+///
+/// ## Channel semantics for `LiveStreaming`
+///
+/// `LiveStreaming` maintains two internal bounded channels:
+///
+/// - **backup channel** — the primary durability path. All four send methods operate on this
+///   channel first. Errors reported by the send API always reflect the state of this channel.
+/// - **ingestion channel** — forwards messages to the gRPC task. This channel uses a
+///   *force-send* strategy: if it is full, the oldest in-flight message is evicted to make
+///   room. It never blocks and never returns `Full`.
+///
+/// This trait is sealed: only implementations within this crate are permitted.
 #[async_trait]
 pub trait Transport: private::Sealed {
     type Message: Send + Sync;
@@ -82,8 +110,12 @@ pub trait Transport: private::Sealed {
 
     /// Send a single message with backpressure.
     ///
-    /// Awaits until the channel has capacity. Returns [`SendError<Self::Message>`]
-    /// containing the undelivered message if the channel is closed.
+    /// Awaits until the backing channel has capacity, then delivers the message.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SendError<Self::Message>`] containing the undelivered message if the
+    /// backing channel is closed before delivery completes.
     async fn send(
         &mut self,
         stream_id: &Uuid,
@@ -92,9 +124,13 @@ pub trait Transport: private::Sealed {
 
     /// Send a batch of messages with backpressure.
     ///
-    /// Awaits for each message in turn. Returns [`SendError<Vec<Self::Message>>`]
-    /// containing all undelivered messages (the failed one plus any not yet attempted)
-    /// if the channel is closed mid-iteration.
+    /// Awaits channel capacity for each message in turn. Stops on the first failure and
+    /// returns the failed message together with all remaining (not-yet-attempted) messages.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SendError<Vec<Self::Message>>`] containing every message that was not
+    /// delivered: the failing message followed by any that had not yet been attempted.
     async fn send_requests<I>(
         &mut self,
         stream_id: &Uuid,
@@ -106,8 +142,14 @@ pub trait Transport: private::Sealed {
 
     /// Attempt to send a single message without blocking.
     ///
-    /// Returns [`TrySendError<Self::Message>`] with the undelivered message if
-    /// the channel is full or closed.
+    /// Returns immediately regardless of whether the channel has capacity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TrySendError<Self::Message>`] with the undelivered message:
+    /// - [`TrySendError::Full`] — the channel is at capacity; consider retrying with
+    ///   [`send`](Transport::send) to apply backpressure instead.
+    /// - [`TrySendError::Closed`] — the channel has been closed.
     fn try_send(
         &mut self,
         stream_id: &Uuid,
@@ -116,8 +158,15 @@ pub trait Transport: private::Sealed {
 
     /// Attempt to send a batch of messages without blocking.
     ///
-    /// Returns [`TrySendError<Vec<Self::Message>>`] with all undelivered messages
-    /// (the failed one plus any not yet attempted) on first failure.
+    /// Calls [`try_send`](Transport::try_send) for each message in turn. Returns immediately
+    /// on the first failure, bundling the failed message with any remaining unprocessed
+    /// messages.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TrySendError<Vec<Self::Message>>`] with every message that was not delivered:
+    /// - [`TrySendError::Full`] — the channel was at capacity for one of the messages.
+    /// - [`TrySendError::Closed`] — the channel was closed.
     fn try_send_requests<I>(
         &mut self,
         stream_id: &Uuid,
@@ -127,7 +176,10 @@ pub trait Transport: private::Sealed {
         I: IntoIterator<Item = Self::Message> + Send,
         I::IntoIter: Send;
 
-    /// Finish the stream. The mode implementation handles the actual cleanup logic.
+    /// Flush any remaining messages and cleanly shut down the transport.
+    ///
+    /// Must be called when ingestion is complete. Dropping a [`SiftStream`] without
+    /// calling `finish` may result in tail-end data not reaching Sift.
     async fn finish(self, stream_id: &Uuid) -> Result<()>;
 }
 
@@ -185,11 +237,26 @@ where
         self.run.as_ref()
     }
 
-    /// Send telemetry with backpressure. Awaits until the channel has capacity.
+    /// Send telemetry with backpressure.
     ///
-    /// Returns [`SiftStreamSendError::EncodeError`] if the message cannot be encoded, or
-    /// [`SiftStreamSendError::ChannelClosed`] (with the undelivered message) if the
-    /// backing channel closes before delivery completes.
+    /// Encodes `message` and then awaits until the backing channel has capacity. For
+    /// [`LiveStreaming`](crate::LiveStreaming) this is the **backup channel**; for
+    /// [`FileBackup`](crate::FileBackup) this is the write channel.
+    ///
+    /// Use this method when you want the caller to slow down naturally when the pipeline
+    /// is under load. For a non-blocking alternative see [`try_send`](SiftStream::try_send).
+    ///
+    /// # Errors
+    ///
+    /// - [`SiftStreamSendError::EncodeError`] — the message could not be encoded. This
+    ///   indicates a schema mismatch or invalid value and is not recoverable by retrying.
+    /// - [`SiftStreamSendError::ChannelClosed`] — the backing channel was closed before the
+    ///   message could be delivered. The undelivered message is returned inside the variant.
+    ///
+    /// # Cancellation safety
+    ///
+    /// If the returned future is dropped while waiting for channel capacity, no message is
+    /// lost — either the send completed before the drop, or the channel slot was never taken.
     pub async fn send<M>(
         &mut self,
         message: M,
@@ -209,8 +276,17 @@ where
 
     /// Send a batch of pre-encoded requests with backpressure.
     ///
-    /// Awaits for each message in turn. Returns [`SendError`] containing all
-    /// undelivered messages if the channel closes mid-iteration.
+    /// Awaits channel capacity for each request in turn. Stops on the first failure and
+    /// returns all undelivered messages (the failing one plus any not yet attempted).
+    ///
+    /// Unlike [`send`](SiftStream::send), this method accepts pre-encoded
+    /// [`Transport::Message`](crate::stream::Transport::Message) values directly, bypassing
+    /// the encode step. Use [`FlowBuilder`](crate::FlowBuilder) to construct them for maximum
+    /// performance.
+    ///
+    /// # Errors
+    ///
+    /// [`SendError<Vec<T>>`] containing every message that was not delivered.
     pub async fn send_requests<I>(
         &mut self,
         requests: I,
@@ -226,9 +302,21 @@ where
 
     /// Attempt to send telemetry without blocking.
     ///
-    /// Returns [`SiftStreamTrySendError::EncodeError`] if the message cannot be encoded, or
-    /// [`SiftStreamTrySendError::Channel`] (with the undelivered message) if the channel
-    /// is full or closed.
+    /// Encodes `message` and immediately attempts to place it on the backing channel. Returns
+    /// at once regardless of whether the channel has capacity.
+    ///
+    /// Use this method in tight loops or real-time contexts where blocking is unacceptable.
+    /// For backpressure-aware sending see [`send`](SiftStream::send).
+    ///
+    /// # Errors
+    ///
+    /// - [`SiftStreamTrySendError::EncodeError`] — the message could not be encoded.
+    /// - [`SiftStreamTrySendError::Channel`] wrapping one of:
+    ///   - [`TrySendError::Full`] — the backing channel is at capacity; the undelivered
+    ///     message is returned. Consider switching to [`send`](SiftStream::send) to apply
+    ///     backpressure, or retrying after a short delay.
+    ///   - [`TrySendError::Closed`] — the backing channel has been closed; the undelivered
+    ///     message is returned.
     pub fn try_send<M>(
         &mut self,
         message: M,
@@ -247,7 +335,19 @@ where
 
     /// Attempt to send a batch of pre-encoded requests without blocking.
     ///
-    /// Returns [`TrySendError`] with all undelivered messages on first failure.
+    /// Calls `try_send` on the backing channel for each request. Returns immediately on
+    /// the first failure with every undelivered message (the failing one plus any not yet
+    /// attempted).
+    ///
+    /// Unlike [`try_send`](SiftStream::try_send), this method accepts pre-encoded
+    /// [`Transport::Message`](crate::stream::Transport::Message) values directly. Use
+    /// [`FlowBuilder`](crate::FlowBuilder) to construct them for maximum performance.
+    ///
+    /// # Errors
+    ///
+    /// [`TrySendError<Vec<T>>`] containing every message that was not delivered:
+    /// - [`TrySendError::Full`] — the backing channel was at capacity.
+    /// - [`TrySendError::Closed`] — the backing channel was closed.
     pub fn try_send_requests<I>(
         &mut self,
         requests: I,

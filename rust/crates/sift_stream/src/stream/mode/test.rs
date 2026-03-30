@@ -34,7 +34,6 @@ fn validate_handling_empty_values() {
                 ..Default::default()
             },
         ],
-        ..Default::default()
     };
     let flow_descriptor = FlowDescriptor::try_from(("ingestion_config_id", flow_config))
         .expect("flow descriptor should be generated");
@@ -98,7 +97,6 @@ fn validate_handling_no_matches_based_on_name() {
                 ..Default::default()
             },
         ],
-        ..Default::default()
     };
     let flow_descriptor = FlowDescriptor::try_from(("ingestion_config_id", flow_config))
         .expect("flow descriptor should be generated");
@@ -146,7 +144,6 @@ fn validate_handling_no_matches_based_on_type() {
                 ..Default::default()
             },
         ],
-        ..Default::default()
     };
     let flow_descriptor = FlowDescriptor::try_from(("ingestion_config_id", flow_config))
         .expect("flow descriptor should be generated");

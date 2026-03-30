@@ -1122,7 +1122,7 @@ mod test {
 
         // The backup file should have been rotated.
         assert!(
-            backup_manager.file_ctx_buffer.len() > 0,
+            !backup_manager.file_ctx_buffer.is_empty(),
             "backup files should be present"
         );
         assert!(

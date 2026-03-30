@@ -237,6 +237,87 @@
 //!
 //! Anything that falls outside of that will require changing the client-key.
 //!
+//! ## Sending Telemetry
+//!
+//! [`SiftStream`] exposes four methods for delivering telemetry. They differ only in whether
+//! they apply backpressure (blocking) or return immediately (non-blocking), and in whether
+//! they accept a high-level [`Flow`] or pre-encoded raw requests:
+//!
+//! | Method | Blocks? | Input |
+//! |---|---|---|
+//! | [`send`](stream::SiftStream::send) | Yes | [`Flow`] or any [`Encodeable`](stream::Encodeable) |
+//! | [`send_requests`](stream::SiftStream::send_requests) | Yes | Pre-encoded requests |
+//! | [`try_send`](stream::SiftStream::try_send) | No | [`Flow`] or any [`Encodeable`](stream::Encodeable) |
+//! | [`try_send_requests`](stream::SiftStream::try_send_requests) | No | Pre-encoded requests |
+//!
+//! ### Backpressure with `send`
+//!
+//! [`send`](stream::SiftStream::send) awaits until the backing channel has capacity, then
+//! delivers the message. Use this when you want the producer to slow down naturally when
+//! the pipeline is under load — the simplest and most common choice.
+//!
+//! ```ignore
+//! // Awaits until the channel has room; backpressure is applied automatically.
+//! sift_stream.send(Flow::new(
+//!     "robotic-arm",
+//!     TimeValue::now(),
+//!     &[ChannelValue::new("joint-angle-encoder", 7.2_f64)],
+//! )).await?;
+//! ```
+//!
+//! On error, [`SiftStreamSendError`] is returned. Call `into_inner()` on the
+//! [`ChannelClosed`](stream::SiftStreamSendError::ChannelClosed) variant to recover the
+//! undelivered message.
+//!
+//! ### Non-blocking sends with `try_send`
+//!
+//! [`try_send`](stream::SiftStream::try_send) returns immediately regardless of channel
+//! state. If the channel is full it returns [`TrySendError::Full`] with the message; if
+//! the channel is closed it returns [`TrySendError::Closed`]. Use this in tight loops or
+//! real-time contexts where blocking even briefly is unacceptable.
+//!
+//! ```ignore
+//! match sift_stream.try_send(Flow::new(
+//!     "robotic-arm",
+//!     TimeValue::now(),
+//!     &[ChannelValue::new("joint-angle-encoder", 7.2_f64)],
+//! )) {
+//!     Ok(()) => {}
+//!     Err(SiftStreamTrySendError::Channel(TrySendError::Full(msg))) => {
+//!         // Channel is busy — drop this sample or buffer it for later.
+//!         drop(msg);
+//!     }
+//!     Err(e) => return Err(e.into()),
+//! }
+//! ```
+//!
+//! ### Pre-encoded batch sends
+//!
+//! [`send_requests`](stream::SiftStream::send_requests) and
+//! [`try_send_requests`](stream::SiftStream::try_send_requests) accept pre-encoded
+//! [`IngestWithConfigDataStreamRequest`](sift_rs::ingest::v1::IngestWithConfigDataStreamRequest)
+//! values built with [`FlowBuilder`]. This skips the per-call encoding step and is the
+//! highest-throughput option.
+//!
+//! ```ignore
+//! let descriptor = sift_stream.get_flow_descriptor("robotic-arm").unwrap();
+//! let run_id = sift_stream.run().unwrap().run_id.clone();
+//!
+//! let mut builder = FlowBuilder::new(&descriptor);
+//! builder.attach_run_id(&run_id);
+//! builder.set_with_key("joint-angle-encoder", 7.2_f64).unwrap();
+//!
+//! // Blocking batch send with backpressure:
+//! sift_stream.send_requests(vec![builder.request(TimeValue::now())]).await?;
+//!
+//! // Non-blocking batch send:
+//! sift_stream.try_send_requests(vec![builder.request(TimeValue::now())])?;
+//! ```
+//!
+//! On the first failure, `send_requests` / `try_send_requests` stop iterating and return
+//! **all** undelivered messages — the failing one plus any not yet attempted — inside the
+//! error so nothing is silently dropped.
+//!
 //! ## Retry Policy
 //!
 //! At the time of writing this crate, [tonic](https://docs.rs/tonic/latest/tonic/)
