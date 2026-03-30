@@ -314,9 +314,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         await self._sift_stream_instance.send_requests(requests)
 
-    def try_send_requests(
-        self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]
-    ):
+    def try_send_requests(self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]):
         self._sift_stream_instance.try_send_requests(requests)
 
     def get_flow_descriptor(self, flow_name: str) -> FlowDescriptorPy:

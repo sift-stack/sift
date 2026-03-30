@@ -493,9 +493,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         """
         await self._low_level_client.send_requests(requests)
 
-    def try_send_requests(
-        self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]
-    ):
+    def try_send_requests(self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]):
         """Send pre-encoded requests without blocking.
 
         Attempts to place each request on the backing channel immediately. Returns as
