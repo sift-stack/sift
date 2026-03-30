@@ -72,9 +72,9 @@ def evaluate_measurement_bounds(
         measurement.passed = True
         try:
             if measurement.numeric_bounds.min is not None:
-                measurement.passed = measurement.passed and measurement.numeric_bounds.min <= value
+                measurement.passed = measurement.passed and measurement.numeric_bounds.min <= value # type: ignore
             if measurement.numeric_bounds.max is not None:
-                measurement.passed = measurement.passed and measurement.numeric_bounds.max >= value
+                measurement.passed = measurement.passed and measurement.numeric_bounds.max >= value # type: ignore
         except TypeError:
             raise TypeError(
                 f"Value must be a float or int to evaluate numeric bounds but gave {type(value)}"
