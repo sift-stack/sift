@@ -314,10 +314,10 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         await self._sift_stream_instance.send_requests(requests)
 
-    def send_requests_nonblocking(
+    def try_send_requests(
         self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]
     ):
-        self._sift_stream_instance.send_requests_nonblocking(requests)
+        self._sift_stream_instance.try_send_requests(requests)
 
     def get_flow_descriptor(self, flow_name: str) -> FlowDescriptorPy:
         return self._sift_stream_instance.get_flow_descriptor(flow_name)

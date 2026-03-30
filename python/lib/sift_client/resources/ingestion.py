@@ -493,22 +493,29 @@ class IngestionConfigStreamingClient(ResourceBase):
         """
         await self._low_level_client.send_requests(requests)
 
-    def send_requests_nonblocking(
+    def try_send_requests(
         self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]
     ):
-        """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
+        """Send pre-encoded requests without blocking.
 
-        This method offers a way to send data that matches the raw gRPC service interface. You are
-        expected to handle channel value ordering as well as empty values correctly.
+        Attempts to place each request on the backing channel immediately. Returns as
+        soon as the first failure is encountered; any undelivered requests are reported
+        in the raised exception message (without printing their contents).
+
+        This method offers a way to send data that matches the raw gRPC service interface.
+        You are expected to handle channel value ordering as well as empty values correctly.
 
         Important:
             If using this interface, you should use `FlowBuilderPy::request` to ensure proper
             building of the request.
 
         Args:
-            requests: List of ingestion requests to send to Sift.
+            requests: Iterable of ingestion requests to send to Sift.
+
+        Raises:
+            RuntimeError: If the backing channel is full or closed.
         """
-        self._low_level_client.send_requests_nonblocking(requests)
+        self._low_level_client.try_send_requests(requests)
 
     def get_flow_descriptor(self, flow_name: str) -> FlowDescriptorPy:
         """Retrieve a flow descriptor by name.
