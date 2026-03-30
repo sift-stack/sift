@@ -449,7 +449,7 @@ async fn test_sift_stream_ingestion_and_backup_channels_fill_up() {
 
     // Send a burst of messages that will cause the ingestion and backup channels to fill up.
     //
-    // Since this test is running in single-threded mode, and `send_requests_nonblocking` is not async,
+    // Since this test is running in single-threaded mode, and `try_send_requests` is not async,
     // sending all the messages should occur before the background tasks have a chance to run
     // and create space.
     for data in 0..100 {

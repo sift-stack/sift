@@ -102,7 +102,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    // Next, stream telemetry to backup files using the [`SiftStream::send_requests_nonblocking`] method
+    // Next, stream telemetry to backup files using the [`SiftStream::try_send_requests`] method
     // and the [`FlowBuilder`] to build the flow.
     //
     // This approach is more performant, and also provides methods to set the channel value via
@@ -116,7 +116,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
     let run_id = sift_stream.run().unwrap().run_id.clone();
     for i in 0..360 {
         // Build the flow using the [`FlowBuilder`] and send it to
-        // Sift using the [`SiftStream::send_requests_nonblocking`] method.
+        // Sift using the [`SiftStream::try_send_requests`] method.
         let mut flow_builder = FlowBuilder::new(&descriptor);
         flow_builder.attach_run_id(&run_id);
         flow_builder
