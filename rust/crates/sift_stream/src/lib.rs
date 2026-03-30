@@ -456,6 +456,7 @@ pub use stream::{
         file_backup::FileBackup,
         ingestion_config::{Flow, IngestionConfigEncoder, LiveStreaming},
     },
+    send_error::{SendError, TrySendError},
     time::TimeValue,
 };
 
