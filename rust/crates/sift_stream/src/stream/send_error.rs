@@ -199,4 +199,68 @@ mod tests {
         assert!(format!("{:?}", closed).contains("Closed"));
         assert!(format!("{:?}", full).contains("Full"));
     }
+
+    // SiftStreamSendError tests
+
+    #[test]
+    fn sift_stream_send_error_encode_error_display() {
+        let err = SiftStreamSendError::<u32>::encode_error("bad encoding");
+        assert!(err.to_string().contains("encode error"));
+    }
+
+    #[test]
+    fn sift_stream_send_error_channel_closed_display() {
+        let err = SiftStreamSendError::ChannelClosed(42u32);
+        assert!(err.to_string().contains("channel closed"));
+    }
+
+    #[test]
+    fn sift_stream_send_error_is_error() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+        let err = SiftStreamSendError::ChannelClosed(0u8);
+        assert_error(&err);
+    }
+
+    #[test]
+    fn sift_stream_send_error_debug() {
+        let err = SiftStreamSendError::ChannelClosed(42u32);
+        assert!(format!("{:?}", err).contains("ChannelClosed"));
+        let err2 = SiftStreamSendError::<u32>::encode_error("oops");
+        assert!(format!("{:?}", err2).contains("EncodeError"));
+    }
+
+    // SiftStreamTrySendError tests
+
+    #[test]
+    fn sift_stream_try_send_error_encode_error_display() {
+        let err = SiftStreamTrySendError::<u32>::encode_error("bad");
+        assert!(err.to_string().contains("encode error"));
+    }
+
+    #[test]
+    fn sift_stream_try_send_error_channel_full_display() {
+        let err = SiftStreamTrySendError::Channel(TrySendError::Full(42u32));
+        assert!(err.to_string().contains("channel full"));
+    }
+
+    #[test]
+    fn sift_stream_try_send_error_channel_closed_display() {
+        let err = SiftStreamTrySendError::Channel(TrySendError::Closed(42u32));
+        assert!(err.to_string().contains("channel closed"));
+    }
+
+    #[test]
+    fn sift_stream_try_send_error_is_error() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+        let err = SiftStreamTrySendError::Channel(TrySendError::Closed(0u8));
+        assert_error(&err);
+    }
+
+    #[test]
+    fn sift_stream_try_send_error_debug() {
+        let err = SiftStreamTrySendError::Channel(TrySendError::Full(42u32));
+        assert!(format!("{:?}", err).contains("Full"));
+        let err2 = SiftStreamTrySendError::<u32>::encode_error("oops");
+        assert!(format!("{:?}", err2).contains("EncodeError"));
+    }
 }

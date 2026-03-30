@@ -1057,4 +1057,155 @@ mod tests {
         // Finish should succeed and flush data
         stream.finish().await.unwrap();
     }
+
+    // --- Transport send/try_send error-path tests ---
+
+    /// Build a minimal FileBackup backed by a controlled channel.
+    /// The spawned write task simply drains messages into a black hole so it
+    /// never blocks, but the *caller* also gets the Receiver so they can
+    /// withhold reads when they need the channel to appear full or closed.
+    fn make_file_backup_with_capacity(
+        cap: usize,
+    ) -> (
+        FileBackup,
+        async_channel::Receiver<Arc<IngestWithConfigDataStreamRequest>>,
+    ) {
+        let (write_tx, write_rx) = async_channel::bounded(cap);
+        let (control_tx, _) = tokio::sync::broadcast::channel(10);
+
+        let fb = FileBackup {
+            write_tx,
+            write_task: tokio::spawn(async { Ok(()) }),
+            control_tx,
+            metrics_streaming: None,
+            flows_seen: HashSet::new(),
+            metrics: Arc::new(SiftStreamMetrics::default()),
+        };
+
+        (fb, write_rx)
+    }
+
+    #[tokio::test]
+    async fn test_file_backup_try_send_full_returns_full() {
+        let (mut fb, write_rx) = make_file_backup_with_capacity(1);
+        let stream_id = Uuid::new_v4();
+        let ingestion_config_id = Uuid::new_v4().to_string();
+
+        // First send fills the channel.
+        fb.try_send(
+            &stream_id,
+            create_test_request("flow1", &ingestion_config_id),
+        )
+        .unwrap();
+
+        // Second send should fail with Full because the channel is now at capacity.
+        let req = create_test_request("flow2", &ingestion_config_id);
+        let flow = req.flow.clone();
+        let err = fb.try_send(&stream_id, req).unwrap_err();
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().flow, flow);
+
+        drop(write_rx);
+    }
+
+    #[tokio::test]
+    async fn test_file_backup_try_send_closed_returns_closed() {
+        let (mut fb, write_rx) = make_file_backup_with_capacity(10);
+        let stream_id = Uuid::new_v4();
+        let ingestion_config_id = Uuid::new_v4().to_string();
+
+        // Closing the receiver makes every subsequent try_send return Closed.
+        drop(write_rx);
+
+        let req = create_test_request("flow1", &ingestion_config_id);
+        let flow = req.flow.clone();
+        let err = fb.try_send(&stream_id, req).unwrap_err();
+        assert!(err.is_closed(), "expected Closed, got {err}");
+        assert_eq!(err.into_inner().flow, flow);
+    }
+
+    #[tokio::test]
+    async fn test_file_backup_send_closed_returns_send_error() {
+        let (mut fb, write_rx) = make_file_backup_with_capacity(10);
+        let stream_id = Uuid::new_v4();
+        let ingestion_config_id = Uuid::new_v4().to_string();
+
+        drop(write_rx);
+
+        let req = create_test_request("flow1", &ingestion_config_id);
+        let flow = req.flow.clone();
+        let err = fb.send(&stream_id, req).await.unwrap_err();
+        assert_eq!(err.into_inner().flow, flow);
+    }
+
+    #[tokio::test]
+    async fn test_file_backup_send_blocks_until_space_available() {
+        let (mut fb, write_rx) = make_file_backup_with_capacity(1);
+        let stream_id = Uuid::new_v4();
+        let ingestion_config_id = Uuid::new_v4().to_string();
+
+        // Fill the channel so the next async send has to wait.
+        fb.try_send(
+            &stream_id,
+            create_test_request("flow1", &ingestion_config_id),
+        )
+        .unwrap();
+
+        // Consumer reads after a short delay, freeing space for the blocked send.
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            let _ = write_rx.recv().await;
+            // Keep the receiver alive so the channel doesn't close.
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        });
+
+        fb.send(
+            &stream_id,
+            create_test_request("flow2", &ingestion_config_id),
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_file_backup_try_send_requests_returns_undelivered_on_full() {
+        let (mut fb, write_rx) = make_file_backup_with_capacity(1);
+        let stream_id = Uuid::new_v4();
+        let ingestion_config_id = Uuid::new_v4().to_string();
+
+        // Fill the channel.
+        fb.try_send(
+            &stream_id,
+            create_test_request("flow0", &ingestion_config_id),
+        )
+        .unwrap();
+
+        let reqs = vec![
+            create_test_request("flow1", &ingestion_config_id),
+            create_test_request("flow2", &ingestion_config_id),
+            create_test_request("flow3", &ingestion_config_id),
+        ];
+        let err = fb.try_send_requests(&stream_id, reqs).unwrap_err();
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().len(), 3);
+
+        drop(write_rx);
+    }
+
+    #[tokio::test]
+    async fn test_file_backup_send_requests_returns_undelivered_on_closed() {
+        let (mut fb, write_rx) = make_file_backup_with_capacity(10);
+        let stream_id = Uuid::new_v4();
+        let ingestion_config_id = Uuid::new_v4().to_string();
+
+        drop(write_rx);
+
+        let reqs = vec![
+            create_test_request("flow1", &ingestion_config_id),
+            create_test_request("flow2", &ingestion_config_id),
+            create_test_request("flow3", &ingestion_config_id),
+        ];
+        let err = fb.send_requests(&stream_id, reqs).await.unwrap_err();
+        assert_eq!(err.into_inner().len(), 3);
+    }
 }

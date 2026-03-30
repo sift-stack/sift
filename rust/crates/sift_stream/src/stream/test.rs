@@ -401,6 +401,58 @@ async fn test_sift_stream_builder_load_ingestion_config_with_new_flows() {
     assert_eq!(flows.len(), 2);
 }
 
+#[tokio::test]
+async fn test_sift_stream_try_send_smoke() {
+    let backups_dir = uuid::Uuid::new_v4().to_string();
+    let tmp_dir = TempDir::new(&backups_dir).expect("failed to create tempdir");
+    let tmp_dir_path = tmp_dir.path();
+
+    let ingestion_config = IngestionConfigForm {
+        asset_name: "test_asset".to_string(),
+        client_key: "test_client_key_try_send".to_string(),
+        flows: vec![crate::FlowConfig {
+            name: "try_send_flow".to_string(),
+            channels: vec![crate::ChannelConfig {
+                name: "value".to_string(),
+                data_type: sift_rs::common::r#type::v1::ChannelDataType::Double.into(),
+                ..Default::default()
+            }],
+        }],
+    };
+
+    let disk_backup_policy = DiskBackupPolicy {
+        backups_dir: Some(tmp_dir_path.to_path_buf()),
+        ..Default::default()
+    };
+    let retry_policy = crate::RetryPolicy::default();
+    let (grpc_channel, _mock_service) = crate::test::create_mock_grpc_channel_with_service().await;
+
+    let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
+        .ingestion_config(ingestion_config)
+        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
+            retry_policy,
+            disk_backup_policy,
+        })
+        .metrics_streaming_interval(None)
+        .build()
+        .await
+        .expect("failed to build sift stream");
+
+    // try_send should succeed when the channel has room.
+    let result = sift_stream.try_send(crate::Flow::new(
+        "try_send_flow",
+        crate::TimeValue::now(),
+        &[crate::ChannelValue::new("value", 1.0_f64)],
+    ));
+    assert!(result.is_ok(), "try_send failed: {result:?}");
+
+    tokio::time::timeout(Duration::from_secs(10), async {
+        sift_stream.finish().await.expect("failed to finish");
+    })
+    .await
+    .expect("timeout waiting for finish");
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn test_sift_stream_ingestion_and_backup_channels_fill_up() {
     let backups_dir = uuid::Uuid::new_v4().to_string();

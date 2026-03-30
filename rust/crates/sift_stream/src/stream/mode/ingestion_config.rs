@@ -620,6 +620,152 @@ impl DataStream {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::stream::tasks::DataMessage;
+    use std::collections::HashSet;
+
+    fn make_request() -> IngestWithConfigDataStreamRequest {
+        IngestWithConfigDataStreamRequest {
+            ingestion_config_id: uuid::Uuid::new_v4().to_string(),
+            flow: "test_flow".to_string(),
+            timestamp: None,
+            channel_values: vec![],
+            run_id: String::new(),
+            end_stream_on_validation_error: false,
+            organization_id: String::new(),
+        }
+    }
+
+    fn make_live_streaming(
+        ingestion_capacity: usize,
+        backup_capacity: usize,
+    ) -> (
+        LiveStreaming,
+        async_channel::Receiver<DataMessage>,
+        async_channel::Receiver<DataMessage>,
+    ) {
+        let (control_tx, _) = broadcast::channel(10);
+        let (ingestion_tx, ingestion_rx) = async_channel::bounded(ingestion_capacity);
+        let (backup_tx, backup_rx) = async_channel::bounded(backup_capacity);
+
+        let system = StreamSystem {
+            backup_manager: tokio::spawn(async { Ok(()) }),
+            ingestion: tokio::spawn(async { Ok(()) }),
+            reingestion: tokio::spawn(async { Ok(()) }),
+            metrics_streaming: None,
+            control_tx,
+            ingestion_tx,
+            backup_tx,
+        };
+
+        let live = LiveStreaming {
+            message_id_counter: 0,
+            stream_system: system,
+            flows_seen: HashSet::new(),
+            metrics: Arc::new(crate::metrics::SiftStreamMetrics::default()),
+        };
+
+        (live, ingestion_rx, backup_rx)
+    }
+
+    #[tokio::test]
+    async fn test_try_send_backup_closed_returns_closed() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 10);
+        drop(backup_rx);
+        let stream_id = uuid::Uuid::new_v4();
+        let req = make_request();
+        let flow = req.flow.clone();
+        let err = live.try_send(&stream_id, req).unwrap_err();
+        assert!(err.is_closed(), "expected Closed, got {err}");
+        assert_eq!(err.into_inner().flow, flow);
+    }
+
+    #[tokio::test]
+    async fn test_try_send_backup_full_returns_full() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 1);
+        // Pre-fill the backup channel so the next try_send finds it full.
+        let dummy = DataMessage {
+            message_id: 0,
+            request: Arc::new(make_request()),
+            dropped_for_ingestion: false,
+        };
+        live.stream_system.backup_tx.try_send(dummy).unwrap();
+
+        let stream_id = uuid::Uuid::new_v4();
+        let req = make_request();
+        let flow = req.flow.clone();
+        let err = live.try_send(&stream_id, req).unwrap_err();
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().flow, flow);
+        drop(backup_rx);
+    }
+
+    #[tokio::test]
+    async fn test_send_backup_closed_returns_send_error() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 10);
+        drop(backup_rx);
+        let stream_id = uuid::Uuid::new_v4();
+        let req = make_request();
+        let flow = req.flow.clone();
+        let err = live.send(&stream_id, req).await.unwrap_err();
+        assert_eq!(err.into_inner().flow, flow);
+    }
+
+    #[tokio::test]
+    async fn test_send_blocks_until_backup_space_available() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 1);
+        // Fill the backup channel so send will have to wait.
+        let dummy = DataMessage {
+            message_id: 0,
+            request: Arc::new(make_request()),
+            dropped_for_ingestion: false,
+        };
+        live.stream_system.backup_tx.try_send(dummy).unwrap();
+
+        // After a short delay, consume the dummy so send can proceed.
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            let _ = backup_rx.recv().await;
+            // Keep the receiver alive so the channel stays open.
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        });
+
+        let stream_id = uuid::Uuid::new_v4();
+        live.send(&stream_id, make_request()).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_try_send_requests_returns_undelivered_on_full() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 1);
+        let dummy = DataMessage {
+            message_id: 0,
+            request: Arc::new(make_request()),
+            dropped_for_ingestion: false,
+        };
+        live.stream_system.backup_tx.try_send(dummy).unwrap();
+
+        let stream_id = uuid::Uuid::new_v4();
+        let reqs = vec![make_request(), make_request(), make_request()];
+        let err = live.try_send_requests(&stream_id, reqs).unwrap_err();
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().len(), 3);
+        drop(backup_rx);
+    }
+
+    #[tokio::test]
+    async fn test_send_requests_returns_undelivered_on_closed() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 10);
+        drop(backup_rx);
+
+        let stream_id = uuid::Uuid::new_v4();
+        let reqs = vec![make_request(), make_request(), make_request()];
+        let err = live.send_requests(&stream_id, reqs).await.unwrap_err();
+        assert_eq!(err.into_inner().len(), 3);
+    }
+}
+
 impl Stream for DataStream {
     type Item = IngestWithConfigDataStreamRequest;
 
