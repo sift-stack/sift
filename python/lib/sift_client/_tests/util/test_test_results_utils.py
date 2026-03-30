@@ -536,6 +536,12 @@ class TestBounds:
         assert measurement.numeric_bounds.min == 0.0
         assert measurement.numeric_bounds.max == 10.0
 
+    def test_numeric_bounds_bad_value_type(self):
+        """Test that an error is raised if the value is not a float or int when evaluating numeric bounds."""
+        measurement = TestMeasurementUpdate()
+        with pytest.raises(TypeError, match="Value must be a float or int to evaluate numeric bounds but gave <class 'str'>"):
+            evaluate_measurement_bounds(measurement, "1", {"min": 0.0, "max": 10.0})
+
     def test_evaluate_measurement_bounds_string_matching(self):
         """Test string value matching expected string."""
         measurement = TestMeasurementUpdate()

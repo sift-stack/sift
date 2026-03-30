@@ -70,13 +70,16 @@ def evaluate_measurement_bounds(
     elif isinstance(bounds, NumericBounds):
         measurement.numeric_bounds = bounds
         measurement.passed = True
-        float_value = float(value)
-        if measurement.numeric_bounds.min is not None:
-            measurement.passed = (
-                measurement.passed and measurement.numeric_bounds.min <= float_value
-            )
-        if measurement.numeric_bounds.max is not None:
-            measurement.passed = (
-                measurement.passed and measurement.numeric_bounds.max >= float_value
-            )
+        try:
+            if measurement.numeric_bounds.min is not None:
+                measurement.passed = (
+                    measurement.passed and measurement.numeric_bounds.min <= value
+                )
+            if measurement.numeric_bounds.max is not None:
+                measurement.passed = (
+                    measurement.passed and measurement.numeric_bounds.max >= value
+                )
+        except TypeError:
+            raise TypeError(f"Value must be a float or int to evaluate numeric bounds but gave {type(value)}") from None
+
     return bool(measurement.passed)
