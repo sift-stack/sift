@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
+from sift_client._internal.util.executor import run_sync_function
+from sift_client._internal.util.file import download_file
 from sift_client.resources._base import ResourceBase
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
-    from pathlib import Path
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
@@ -247,9 +249,12 @@ class FileAttachmentsAPIAsync(ResourceBase):
         """
         if isinstance(file_attachment, str):
             file_attachment = await self.get(file_attachment_id=file_attachment)
-        content = await self._low_level_client.download_remote_file(file_attachment=file_attachment)
-        with open(output_path, "wb") as f:
-            f.write(content)
+        url = await self._low_level_client.get_remote_file_download_url(
+            file_attachment._id_or_error
+        )
+        await run_sync_function(
+            lambda: download_file(url, Path(output_path), rest_client=self.client.rest_client)
+        )
 
     async def upload(
         self,

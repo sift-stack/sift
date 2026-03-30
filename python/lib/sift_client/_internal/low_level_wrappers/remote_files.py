@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-import requests
 from sift.remote_files.v1.remote_files_pb2 import (
     BatchDeleteRemoteFilesRequest,
     DeleteRemoteFileRequest,
@@ -20,7 +19,6 @@ from sift_client._internal.low_level_wrappers.base import (
     DEFAULT_PAGE_SIZE,
     LowLevelClientBase,
 )
-from sift_client._internal.util.executor import run_sync_function
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 if TYPE_CHECKING:
@@ -182,22 +180,3 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request
         )
         return response.download_url
-
-    async def download_remote_file(self, file_attachment: FileAttachment) -> bytes:
-        """Download a remote file.
-
-        Args:
-            file_attachment: The FileAttachment to download.
-
-        Returns:
-            The downloaded file.
-        """
-        url = await self.get_remote_file_download_url(file_attachment._id_or_error)
-
-        def _download():
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.content
-
-        # Run the synchronous requests.get in a thread pool to avoid blocking
-        return await run_sync_function(_download)
