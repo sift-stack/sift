@@ -116,7 +116,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
 
         // Send telemetry to Sift.
         sift_stream
-            .send_requests_nonblocking(vec![flow_builder.request(TimeValue::now())])
+            .try_send_requests(vec![flow_builder.request(TimeValue::now())])
             .unwrap();
 
         // For demonstrative purposes, adding a contrived wait to get 10Hz data.

@@ -1,4 +1,5 @@
 use crate::stream::mode::ingestion_config::IngestionConfigEncoder;
+use crate::stream::send_error::{SendError, TrySendError};
 use crate::stream::{SiftStream, Transport, private::Sealed};
 use crate::{
     DiskBackupPolicy, RetryPolicy,
@@ -106,12 +107,12 @@ pub struct FileBackup {
 // Seal the trait - only this crate can implement SiftStreamMode
 impl Sealed for FileBackup {}
 
-#[async_trait]
-impl Transport for FileBackup {
-    type Encoder = IngestionConfigEncoder;
-    type Message = IngestWithConfigDataStreamRequest;
-
-    fn send(&mut self, stream_id: &Uuid, message: Self::Message) -> Result<()> {
+impl FileBackup {
+    fn prepare_message(
+        &mut self,
+        stream_id: &Uuid,
+        message: IngestWithConfigDataStreamRequest,
+    ) -> Arc<IngestWithConfigDataStreamRequest> {
         self.metrics.messages_received.increment();
 
         #[cfg(feature = "tracing")]
@@ -119,43 +120,105 @@ impl Transport for FileBackup {
             if !self.flows_seen.contains(&message.flow) {
                 self.metrics.unique_flows_received.increment();
                 self.flows_seen.insert(message.flow.clone());
-                tracing::info!(
-                    sift_stream_id = %stream_id,
-                    "flow '{}' being ingested for the first time",
-                    &message.flow,
-                );
+                tracing::info!(sift_stream_id = %stream_id, "flow '{}' being ingested for the first time", &message.flow);
             }
         }
 
-        // Track the backup channel depth.
         self.metrics
             .backup_channel_depth
             .set(self.write_tx.len() as u64);
+        Arc::new(message)
+    }
+}
 
-        // Send the request to the background write task (non-blocking)
-        let request_arc = Arc::new(message);
-        self.write_tx.try_send(request_arc).map_err(|e| {
-            if e.is_full() {
-                Error::new_msg(ErrorKind::StreamError, "file backup write channel is full")
-            } else {
-                Error::new_msg(
-                    ErrorKind::StreamError,
-                    format!("file backup write channel is closed: {e}"),
-                )
-            }
-        })?;
+#[async_trait]
+impl Transport for FileBackup {
+    type Encoder = IngestionConfigEncoder;
+    type Message = IngestWithConfigDataStreamRequest;
+
+    async fn send(
+        &mut self,
+        stream_id: &Uuid,
+        message: Self::Message,
+    ) -> std::result::Result<(), SendError<Self::Message>> {
+        let arc = self.prepare_message(stream_id, message);
+
+        self.write_tx
+            .send(arc)
+            .await
+            .map_err(|async_channel::SendError(a)| {
+                SendError(Arc::try_unwrap(a).unwrap_or_else(|a| (*a).clone()))
+            })?;
 
         self.metrics.messages_sent.increment();
         Ok(())
     }
 
-    fn send_requests<I>(&mut self, stream_id: &Uuid, requests: I) -> Result<()>
+    fn try_send(
+        &mut self,
+        stream_id: &Uuid,
+        message: Self::Message,
+    ) -> std::result::Result<(), TrySendError<Self::Message>> {
+        let arc = self.prepare_message(stream_id, message);
+
+        match self.write_tx.try_send(arc) {
+            Ok(()) => {
+                self.metrics.messages_sent.increment();
+                Ok(())
+            }
+            Err(async_channel::TrySendError::Full(a)) => Err(TrySendError::Full(
+                Arc::try_unwrap(a).unwrap_or_else(|a| (*a).clone()),
+            )),
+            Err(async_channel::TrySendError::Closed(a)) => Err(TrySendError::Closed(
+                Arc::try_unwrap(a).unwrap_or_else(|a| (*a).clone()),
+            )),
+        }
+    }
+
+    async fn send_requests<I>(
+        &mut self,
+        stream_id: &Uuid,
+        requests: I,
+    ) -> std::result::Result<(), SendError<Vec<Self::Message>>>
     where
-        I: IntoIterator<Item = IngestWithConfigDataStreamRequest> + Send,
+        I: IntoIterator<Item = Self::Message> + Send,
         I::IntoIter: Send,
     {
-        for req in requests {
-            self.send(stream_id, req)?;
+        let mut iter = requests.into_iter();
+        while let Some(msg) = iter.next() {
+            if let Err(SendError(failed)) = self.send(stream_id, msg).await {
+                let mut undelivered = vec![failed];
+                undelivered.extend(iter);
+                return Err(SendError(undelivered));
+            }
+        }
+        Ok(())
+    }
+
+    fn try_send_requests<I>(
+        &mut self,
+        stream_id: &Uuid,
+        requests: I,
+    ) -> std::result::Result<(), TrySendError<Vec<Self::Message>>>
+    where
+        I: IntoIterator<Item = Self::Message> + Send,
+        I::IntoIter: Send,
+    {
+        let mut iter = requests.into_iter();
+        while let Some(msg) = iter.next() {
+            match self.try_send(stream_id, msg) {
+                Ok(()) => {}
+                Err(TrySendError::Full(failed)) => {
+                    let mut undelivered = vec![failed];
+                    undelivered.extend(iter);
+                    return Err(TrySendError::Full(undelivered));
+                }
+                Err(TrySendError::Closed(failed)) => {
+                    let mut undelivered = vec![failed];
+                    undelivered.extend(iter);
+                    return Err(TrySendError::Closed(undelivered));
+                }
+            }
         }
         Ok(())
     }
@@ -743,7 +806,7 @@ mod tests {
         let request = create_test_request("test_flow", &ingestion_config.ingestion_config_id);
 
         // Send the request
-        mode.send(&sift_stream_id, request).unwrap();
+        mode.try_send(&sift_stream_id, request).unwrap();
 
         // Wait for the background task to process the message
         wait_for_backup_metrics(&metrics, 1, 1000).await;
@@ -782,9 +845,9 @@ mod tests {
         let request2 = create_test_request("flow2", &ingestion_config.ingestion_config_id);
         let request3 = create_test_request("flow1", &ingestion_config.ingestion_config_id); // Duplicate
 
-        mode.send(&sift_stream_id, request1).unwrap();
-        mode.send(&sift_stream_id, request2).unwrap();
-        mode.send(&sift_stream_id, request3).unwrap();
+        mode.try_send(&sift_stream_id, request1).unwrap();
+        mode.try_send(&sift_stream_id, request2).unwrap();
+        mode.try_send(&sift_stream_id, request3).unwrap();
 
         // Wait for the background task to process all messages
         wait_for_backup_metrics(&metrics, 3, 1000).await;
@@ -825,7 +888,7 @@ mod tests {
             create_test_request("flow3", &ingestion_config.ingestion_config_id),
         ];
 
-        mode.send_requests(&sift_stream_id, requests).unwrap();
+        mode.try_send_requests(&sift_stream_id, requests).unwrap();
 
         // Wait for the background task to process all messages
         wait_for_backup_metrics(&metrics, 3, 1000).await;
@@ -833,45 +896,6 @@ mod tests {
         assert_eq!(metrics.messages_received.get(), 3);
         assert_eq!(metrics.messages_sent.get(), 3);
         assert_eq!(metrics.backups.total_messages.get(), 3);
-
-        // Finish to ensure all data is written
-        mode.finish(&sift_stream_id).await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_file_backup_mode_send_requests_nonblocking() {
-        let ingestion_config = create_test_ingestion_config();
-        let temp_dir = TempDir::new("test_file_backup").unwrap();
-        let metrics = Arc::new(SiftStreamMetrics::default());
-        let sift_stream_id = Uuid::new_v4();
-
-        let file_writer_config = FileWriterConfig {
-            directory: temp_dir.path().to_path_buf(),
-            prefix: ingestion_config.client_key.clone(),
-            max_size: 1024 * 1024,
-        };
-
-        let mut mode = create_test_file_backup_mode(
-            temp_dir.path().to_path_buf(),
-            file_writer_config,
-            1024 * 100,
-            metrics.clone(),
-        )
-        .await;
-
-        let requests = vec![
-            create_test_request("flow1", &ingestion_config.ingestion_config_id),
-            create_test_request("flow2", &ingestion_config.ingestion_config_id),
-        ];
-
-        mode.send_requests(&sift_stream_id, requests).unwrap();
-
-        // Wait for the background task to process all messages
-        wait_for_backup_metrics(&metrics, 2, 1000).await;
-
-        assert_eq!(metrics.messages_received.get(), 2);
-        assert_eq!(metrics.messages_sent.get(), 2);
-        assert_eq!(metrics.backups.total_messages.get(), 2);
 
         // Finish to ensure all data is written
         mode.finish(&sift_stream_id).await.unwrap();
@@ -912,7 +936,7 @@ mod tests {
 
         let request = builder.request(TimeValue::now());
 
-        mode.send(&sift_stream_id, request).unwrap();
+        mode.try_send(&sift_stream_id, request).unwrap();
 
         // Wait for the background task to process the message
         wait_for_backup_metrics(&metrics, 1, 1000).await;
@@ -955,7 +979,7 @@ mod tests {
         let request = builder.request(TimeValue::now());
 
         // Should still succeed even without flow descriptor
-        mode.send(&sift_stream_id, request).unwrap();
+        mode.try_send(&sift_stream_id, request).unwrap();
 
         // Wait for the background task to process the message
         wait_for_backup_metrics(&metrics, 1, 1000).await;

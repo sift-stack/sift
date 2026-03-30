@@ -39,7 +39,7 @@ pub mod tasks;
 
 /// Error types returned by [`Transport`] send methods.
 pub mod send_error;
-pub use send_error::{SendError, TrySendError};
+pub use send_error::{SendError, SiftStreamSendError, SiftStreamTrySendError, TrySendError};
 
 #[cfg(test)]
 mod test;
@@ -80,17 +80,49 @@ pub trait Transport: private::Sealed {
     type Message: Send + Sync;
     type Encoder: Encoder<Message = Self::Message>;
 
-    /// Send a [`Self::Message`].
-    fn send(&mut self, stream_id: &Uuid, message: Self::Message) -> Result<()>;
+    /// Send a single message with backpressure.
+    ///
+    /// Awaits until the channel has capacity. Returns [`SendError<Self::Message>`]
+    /// containing the undelivered message if the channel is closed.
+    async fn send(
+        &mut self,
+        stream_id: &Uuid,
+        message: Self::Message,
+    ) -> std::result::Result<(), SendError<Self::Message>>;
 
-    /// Send a batch of messages via an iterator.
+    /// Send a batch of messages with backpressure.
     ///
-    /// This method is used as a more performant way to send a batch of messages, assuming
-    /// the iterator itself is not performing substantial work.
+    /// Awaits for each message in turn. Returns [`SendError<Vec<Self::Message>>`]
+    /// containing all undelivered messages (the failed one plus any not yet attempted)
+    /// if the channel is closed mid-iteration.
+    async fn send_requests<I>(
+        &mut self,
+        stream_id: &Uuid,
+        requests: I,
+    ) -> std::result::Result<(), SendError<Vec<Self::Message>>>
+    where
+        I: IntoIterator<Item = Self::Message> + Send,
+        I::IntoIter: Send;
+
+    /// Attempt to send a single message without blocking.
     ///
-    /// However, this is less convenient since the caller will need to ensure the
-    /// resulting [`Self::Message`]s are properly created.
-    fn send_requests<I>(&mut self, stream_id: &Uuid, requests: I) -> Result<()>
+    /// Returns [`TrySendError<Self::Message>`] with the undelivered message if
+    /// the channel is full or closed.
+    fn try_send(
+        &mut self,
+        stream_id: &Uuid,
+        message: Self::Message,
+    ) -> std::result::Result<(), TrySendError<Self::Message>>;
+
+    /// Attempt to send a batch of messages without blocking.
+    ///
+    /// Returns [`TrySendError<Vec<Self::Message>>`] with all undelivered messages
+    /// (the failed one plus any not yet attempted) on first failure.
+    fn try_send_requests<I>(
+        &mut self,
+        stream_id: &Uuid,
+        requests: I,
+    ) -> std::result::Result<(), TrySendError<Vec<Self::Message>>>
     where
         I: IntoIterator<Item = Self::Message> + Send,
         I::IntoIter: Send;
@@ -153,43 +185,79 @@ where
         self.run.as_ref()
     }
 
-    /// The entry-point to send actual telemetry to Sift in the form of [`Flow`](mode::ingestion_config::Flow)s.
-    pub async fn send<M>(&mut self, message: M) -> Result<()>
+    /// Send telemetry with backpressure. Awaits until the channel has capacity.
+    ///
+    /// Returns [`SiftStreamSendError::EncodeError`] if the message cannot be encoded, or
+    /// [`SiftStreamSendError::ChannelClosed`] (with the undelivered message) if the
+    /// backing channel closes before delivery completes.
+    pub async fn send<M>(
+        &mut self,
+        message: M,
+    ) -> std::result::Result<(), SiftStreamSendError<<T as Transport>::Message>>
     where
         M: Encodeable<Encoder = E, Output = <T as Transport>::Message> + Send + Sync,
     {
         let encoded = message
             .encode(&mut self.encoder, &self.sift_stream_id, self.run.as_ref())
-            .ok_or(Error::new_msg(
-                ErrorKind::EncodeMessageError,
-                "Failed to encode message",
-            ))?;
+            .ok_or_else(|| SiftStreamSendError::encode_error("Failed to encode message"))?;
 
-        self.transport.send(&self.sift_stream_id, encoded)
+        self.transport
+            .send(&self.sift_stream_id, encoded)
+            .await
+            .map_err(|SendError(msg)| SiftStreamSendError::ChannelClosed(msg))
     }
 
-    /// This method offers a way to send data in a manner that's identical to the raw
-    /// [`gRPC service`] for ingestion-config based streaming.
+    /// Send a batch of pre-encoded requests with backpressure.
     ///
-    /// [`gRPC service`]: https://github.com/sift-stack/sift/blob/main/protos/sift/ingest/v1/ingest.proto#L11
-    pub async fn send_requests<I>(&mut self, requests: I) -> Result<()>
+    /// Awaits for each message in turn. Returns [`SendError`] containing all
+    /// undelivered messages if the channel closes mid-iteration.
+    pub async fn send_requests<I>(
+        &mut self,
+        requests: I,
+    ) -> std::result::Result<(), SendError<Vec<<T as Transport>::Message>>>
     where
         I: IntoIterator<Item = <T as Transport>::Message> + Send,
         I::IntoIter: Send,
     {
-        self.transport.send_requests(&self.sift_stream_id, requests)
+        self.transport
+            .send_requests(&self.sift_stream_id, requests)
+            .await
     }
 
-    /// This method offers a way to send data in a manner that's identical to the raw
-    /// [`gRPC service`] for ingestion-config based streaming.
+    /// Attempt to send telemetry without blocking.
     ///
-    /// [`gRPC service`]: https://github.com/sift-stack/sift/blob/main/protos/sift/ingest/v1/ingest.proto#L11
-    pub fn send_requests_nonblocking<I>(&mut self, requests: I) -> Result<()>
+    /// Returns [`SiftStreamTrySendError::EncodeError`] if the message cannot be encoded, or
+    /// [`SiftStreamTrySendError::Channel`] (with the undelivered message) if the channel
+    /// is full or closed.
+    pub fn try_send<M>(
+        &mut self,
+        message: M,
+    ) -> std::result::Result<(), SiftStreamTrySendError<<T as Transport>::Message>>
+    where
+        M: Encodeable<Encoder = E, Output = <T as Transport>::Message> + Send + Sync,
+    {
+        let encoded = message
+            .encode(&mut self.encoder, &self.sift_stream_id, self.run.as_ref())
+            .ok_or_else(|| SiftStreamTrySendError::encode_error("Failed to encode message"))?;
+
+        self.transport
+            .try_send(&self.sift_stream_id, encoded)
+            .map_err(SiftStreamTrySendError::Channel)
+    }
+
+    /// Attempt to send a batch of pre-encoded requests without blocking.
+    ///
+    /// Returns [`TrySendError`] with all undelivered messages on first failure.
+    pub fn try_send_requests<I>(
+        &mut self,
+        requests: I,
+    ) -> std::result::Result<(), TrySendError<Vec<<T as Transport>::Message>>>
     where
         I: IntoIterator<Item = <T as Transport>::Message> + Send,
         I::IntoIter: Send,
     {
-        self.transport.send_requests(&self.sift_stream_id, requests)
+        self.transport
+            .try_send_requests(&self.sift_stream_id, requests)
     }
 
     /// Gracefully finish the stream, draining any remaining data before returning.

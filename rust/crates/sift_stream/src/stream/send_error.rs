@@ -1,3 +1,4 @@
+use sift_error::prelude::{Error as SiftError, ErrorKind};
 use std::fmt;
 
 /// Returned by the async `Transport::send` / `Transport::send_requests` when
@@ -60,6 +61,68 @@ impl<T> fmt::Display for TrySendError<T> {
 }
 
 impl<T: fmt::Debug> std::error::Error for TrySendError<T> {}
+
+/// Returned by [`SiftStream::send`] and [`SiftStream::try_send`] when encoding fails.
+///
+/// Wraps either a [`sift_error::Error`] from the encode step or the undelivered
+/// message when the backing channel is closed.
+#[derive(Debug)]
+pub enum SiftStreamSendError<T> {
+    /// The message could not be encoded before it was sent.
+    EncodeError(SiftError),
+    /// The channel closed before the message could be delivered.
+    ChannelClosed(T),
+}
+
+impl<T: fmt::Debug> fmt::Display for SiftStreamSendError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SiftStreamSendError::EncodeError(e) => write!(f, "encode error: {e}"),
+            SiftStreamSendError::ChannelClosed(_) => {
+                write!(f, "channel closed: failed to send message")
+            }
+        }
+    }
+}
+
+impl<T: fmt::Debug> std::error::Error for SiftStreamSendError<T> {}
+
+impl<T> SiftStreamSendError<T> {
+    /// Convert an encode failure into this error type. Used internally.
+    pub(crate) fn encode_error(msg: &str) -> Self {
+        SiftStreamSendError::EncodeError(SiftError::new_msg(ErrorKind::EncodeMessageError, msg))
+    }
+}
+
+/// Returned by [`SiftStream::try_send`] when immediate delivery fails.
+///
+/// Wraps either a [`sift_error::Error`] from the encode step or a
+/// [`TrySendError`] from the backing channel.
+#[derive(Debug)]
+pub enum SiftStreamTrySendError<T> {
+    /// The message could not be encoded before it was sent.
+    EncodeError(SiftError),
+    /// The backing channel was full or closed.
+    Channel(TrySendError<T>),
+}
+
+impl<T: fmt::Debug> fmt::Display for SiftStreamTrySendError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SiftStreamTrySendError::EncodeError(e) => write!(f, "encode error: {e}"),
+            SiftStreamTrySendError::Channel(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl<T: fmt::Debug> std::error::Error for SiftStreamTrySendError<T> {}
+
+impl<T> SiftStreamTrySendError<T> {
+    /// Convert an encode failure into this error type. Used internally.
+    pub(crate) fn encode_error(msg: &str) -> Self {
+        SiftStreamTrySendError::EncodeError(SiftError::new_msg(ErrorKind::EncodeMessageError, msg))
+    }
+}
 
 #[cfg(test)]
 mod tests {
