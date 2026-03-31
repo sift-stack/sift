@@ -50,6 +50,7 @@ def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
     @wraps(orig_init)
     def __init__(self, *args, **kwargs):  # noqa: N807
         self._async_impl = cls(*args, **kwargs)
+        self._async_impl._is_sync = True
 
     def _run(self, coro):
         loop = self._async_impl.client.get_asyncio_loop()

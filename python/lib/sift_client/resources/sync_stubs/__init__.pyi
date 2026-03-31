@@ -859,7 +859,7 @@ class JobsAPI:
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
         extract: bool = True,
-        show_progress: bool = False,
+        show_progress: bool | None = True,
     ) -> list[Path]:
         """Wait for a job to complete and download the result files.
 
@@ -877,7 +877,9 @@ class JobsAPI:
                 extracted files. Non-zip files are returned as-is regardless
                 of this flag.
             show_progress: If True, display an animated progress spinner
-                while waiting and a download progress bar. Defaults to False.
+                while waiting and a download progress bar. Defaults to True
+                for sync. Set to False to disable, or configure globally via
+                ``sift_client.show_progress``.
 
         Returns:
             List of paths to the downloaded/extracted files.
@@ -894,7 +896,7 @@ class JobsAPI:
         *,
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
-        show_progress: bool = False,
+        show_progress: bool | None = True,
     ) -> Job:
         """Wait until the job is complete or the timeout is reached.
 
@@ -906,8 +908,10 @@ class JobsAPI:
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
                 Defaults to None (indefinite).
-            show_progress: If True, display an animated progress spinner alongisde
-                the job status while polling. Defaults to False.
+            show_progress: If True, display an animated progress spinner alongside
+                the job status while polling. Defaults to True for sync. Set to
+                False to disable, or configure globally via
+                ``sift_client.show_progress``.
 
         Returns:
             The Job in the completed state.

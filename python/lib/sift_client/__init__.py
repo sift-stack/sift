@@ -132,6 +132,8 @@ client = SiftClient(connection_config=config)
 5. **Use type hints** to get full IDE support and catch errors early
 """
 
+from __future__ import annotations
+
 import logging
 
 from sift_client.client import SiftClient
@@ -143,3 +145,8 @@ __all__ = [
 ]
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+# Global setting for progress bar display.
+# - None (default): progress bars are shown for sync, hidden for async
+# - False: disable progress bars everywhere
+show_progress: bool | None = None

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from alive_progress import alive_bar  # type: ignore[import-untyped]
 
+import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import download_file, extract_zip
@@ -171,7 +172,7 @@ class JobsAPIAsync(ResourceBase):
         *,
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
-        show_progress: bool = False,
+        show_progress: bool | None = None,
     ) -> Job:
         """Wait until the job is complete or the timeout is reached.
 
@@ -183,13 +184,23 @@ class JobsAPIAsync(ResourceBase):
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
                 Defaults to None (indefinite).
-            show_progress: If True, display an animated progress spinner alongisde
-                the job status while polling. Defaults to False.
+            show_progress: If True, display an animated progress spinner alongside
+                the job status while polling. Defaults to True for sync, False
+                for async. Use ``sift_client.show_progress = False`` to disable
+                globally for sync.
 
         Returns:
             The Job in the completed state.
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
+        if show_progress is None:
+            global_setting = _sift_client_module.show_progress
+            if global_setting is not None:
+                show_progress = global_setting
+            elif getattr(self, "_is_sync", False):
+                show_progress = True
+            else:
+                show_progress = False
 
         start = time.monotonic()
         with alive_bar(
@@ -221,7 +232,7 @@ class JobsAPIAsync(ResourceBase):
         timeout_secs: int | None = None,
         output_dir: str | Path | None = None,
         extract: bool = True,
-        show_progress: bool = False,
+        show_progress: bool | None = None,
     ) -> list[Path]:
         """Wait for a job to complete and download the result files.
 
@@ -239,7 +250,9 @@ class JobsAPIAsync(ResourceBase):
                 extracted files. Non-zip files are returned as-is regardless
                 of this flag.
             show_progress: If True, display an animated progress spinner
-                while waiting and a download progress bar. Defaults to False.
+                while waiting and a download progress bar. Defaults to True
+                for sync, False for async. Use ``sift_client.show_progress = False``
+                to disable globally for sync.
 
         Returns:
             List of paths to the downloaded/extracted files.
@@ -249,6 +262,14 @@ class JobsAPIAsync(ResourceBase):
             TimeoutError: If the job does not complete within timeout_secs.
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
+        if show_progress is None:
+            global_setting = _sift_client_module.show_progress
+            if global_setting is not None:
+                show_progress = global_setting
+            elif getattr(self, "_is_sync", False):
+                show_progress = True
+            else:
+                show_progress = False
 
         completed_job = await self.wait_until_complete(
             job=job_id,
