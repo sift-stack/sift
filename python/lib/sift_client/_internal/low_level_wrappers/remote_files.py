@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any, cast
 
-import requests
 from sift.remote_files.v1.remote_files_pb2 import (
     BatchDeleteRemoteFilesRequest,
     DeleteRemoteFileRequest,
@@ -182,24 +180,3 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request
         )
         return response.download_url
-
-    async def download_remote_file(self, file_attachment: FileAttachment) -> bytes:
-        """Download a remote file.
-
-        Args:
-            file_attachment: The FileAttachment to download.
-
-        Returns:
-            The downloaded file.
-        """
-        url = await self.get_remote_file_download_url(file_attachment._id_or_error)
-
-        # Run the synchronous requests.get in a thread pool to avoid blocking
-        def _download():
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.content
-
-        # Use run_in_executor for Python 3.8 compatibility (asyncio.to_thread was added in 3.9)
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _download)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import mimetypes
 from pathlib import Path
@@ -9,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from requests_toolbelt import MultipartEncoder
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.util.executor import run_sync_function
 from sift_client.transport import WithRestClient
 
 if TYPE_CHECKING:
@@ -100,9 +100,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
                 mimetype = "application/octet-stream"  # fallback to generic 'binary data' MIME type
 
         # Run the synchronous file upload in a thread pool to avoid blocking the event loop
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None,
+        return await run_sync_function(
             self._upload_file_sync,
             posix_path,
             file_name,
