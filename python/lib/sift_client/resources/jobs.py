@@ -186,7 +186,7 @@ class JobsAPIAsync(ResourceBase):
                 Defaults to None (indefinite).
             show_progress: If True, display an animated progress spinner alongside
                 the job status while polling. Defaults to True for sync, False
-                for async. Use ``sift_client.show_progress = False`` to disable
+                for async. Use ``sift_client.config.show_progress = False`` to disable
                 globally for sync.
 
         Returns:
@@ -194,7 +194,7 @@ class JobsAPIAsync(ResourceBase):
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
         if show_progress is None:
-            global_setting = _sift_client_module.show_progress
+            global_setting = _sift_client_module.config.show_progress
             if global_setting is not None:
                 show_progress = global_setting
             elif getattr(self, "_is_sync", False):
@@ -251,7 +251,7 @@ class JobsAPIAsync(ResourceBase):
                 of this flag.
             show_progress: If True, display an animated progress spinner
                 while waiting and a download progress bar. Defaults to True
-                for sync, False for async. Use ``sift_client.show_progress = False``
+                for sync, False for async. Use ``sift_client.config.show_progress = False``
                 to disable globally for sync.
 
         Returns:
@@ -263,7 +263,7 @@ class JobsAPIAsync(ResourceBase):
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
         if show_progress is None:
-            global_setting = _sift_client_module.show_progress
+            global_setting = _sift_client_module.config.show_progress
             if global_setting is not None:
                 show_progress = global_setting
             elif getattr(self, "_is_sync", False):

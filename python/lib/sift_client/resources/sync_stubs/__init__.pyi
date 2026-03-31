@@ -878,7 +878,7 @@ class JobsAPI:
                 of this flag.
             show_progress: If True, display an animated progress spinner
                 while waiting and a download progress bar. Defaults to True
-                for sync, False for async. Use ``sift_client.show_progress = False``
+                for sync, False for async. Use ``sift_client.config.show_progress = False``
                 to disable globally for sync.
 
         Returns:
@@ -910,7 +910,7 @@ class JobsAPI:
                 Defaults to None (indefinite).
             show_progress: If True, display an animated progress spinner alongside
                 the job status while polling. Defaults to True for sync, False
-                for async. Use ``sift_client.show_progress = False`` to disable
+                for async. Use ``sift_client.config.show_progress = False`` to disable
                 globally for sync.
 
         Returns:

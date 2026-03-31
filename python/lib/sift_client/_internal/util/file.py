@@ -44,6 +44,8 @@ def download_file(
         with alive_bar(
             total_bytes,
             title="Downloading",
+            spinner="dots_waves",
+            spinner_length=7,
             unit="B",
             scale="SI",
             disable=not show_progress,

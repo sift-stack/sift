@@ -578,15 +578,15 @@ class TestJobsAPISync:
             assert result.job_status == JobStatus.FINISHED
 
         def test_namespace_override_disables_progress(self, jobs_api_sync):
-            """Setting sift_client.show_progress=False overrides the sync default."""
+            """Setting sift_client.config.show_progress=False overrides the sync default."""
             import sift_client
 
             mock_job = MagicMock()
             mock_job.job_status = JobStatus.FINISHED
 
-            original = sift_client.show_progress
+            original = sift_client.config.show_progress
             try:
-                sift_client.show_progress = False
+                sift_client.config.show_progress = False
                 with patch(
                     "sift_client.resources.jobs.JobsAPIAsync.get",
                     new_callable=AsyncMock,
@@ -594,7 +594,7 @@ class TestJobsAPISync:
                 ):
                     result = jobs_api_sync.wait_until_complete(job="job-1")
             finally:
-                sift_client.show_progress = original
+                sift_client.config.show_progress = original
 
             assert result.job_status == JobStatus.FINISHED
 
