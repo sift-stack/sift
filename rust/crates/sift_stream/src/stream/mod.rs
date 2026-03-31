@@ -114,8 +114,12 @@ pub trait Transport: private::Sealed {
     ///
     /// # Errors
     ///
-    /// Returns [`SendError<Self::Message>`] containing the undelivered message if the
-    /// backing channel is closed before delivery completes.
+    /// Returns [`SendError<Self::Message>`] containing a potentially undelivered message.
+    ///
+    /// Depending on the implementation of [`Transport`], the undelivered message is not
+    /// necessarily the message that was provided to the current invocation of [`Self::send`].
+    ///
+    /// See implementation documentation for details.
     async fn send(
         &mut self,
         stream_id: &Uuid,
@@ -129,8 +133,12 @@ pub trait Transport: private::Sealed {
     ///
     /// # Errors
     ///
-    /// Returns [`SendError<Vec<Self::Message>>`] containing every message that was not
-    /// delivered: the failing message followed by any that had not yet been attempted.
+    /// Returns [`SendError<Vec<Self::Message>>`] containing potentially undelivered messages.
+    ///
+    /// Depending on the implementation of [`Transport`], the undelivered messages are not
+    /// necessarily the messages that were provided to the current invocation of [`Self::send_requests`].
+    ///
+    /// See implementation documentation for details.
     async fn send_requests<I>(
         &mut self,
         stream_id: &Uuid,
@@ -146,10 +154,15 @@ pub trait Transport: private::Sealed {
     ///
     /// # Errors
     ///
-    /// Returns [`TrySendError<Self::Message>`] with the undelivered message:
+    /// Returns [`TrySendError<Self::Message>`] containing a potentially undelivered message:
     /// - [`TrySendError::Full`] — the channel is at capacity; consider retrying with
     ///   [`send`](Transport::send) to apply backpressure instead.
     /// - [`TrySendError::Closed`] — the channel has been closed.
+    ///
+    /// Depending on the implementation of [`Transport`], the undelivered messages are not
+    /// necessarily the messages that were provided to the current invocation of [`Self::try_send`].
+    ///
+    /// See implementation documentation for details.
     fn try_send(
         &mut self,
         stream_id: &Uuid,
@@ -164,9 +177,14 @@ pub trait Transport: private::Sealed {
     ///
     /// # Errors
     ///
-    /// Returns [`TrySendError<Vec<Self::Message>>`] with every message that was not delivered:
+    /// Returns [`TrySendError<Vec<Self::Message>>`] containing potentially undelivered messages.
     /// - [`TrySendError::Full`] — the channel was at capacity for one of the messages.
     /// - [`TrySendError::Closed`] — the channel was closed.
+    ///
+    /// Depending on the implementation of [`Transport`], the undelivered messages are not
+    /// necessarily the messages that were provided to the current invocation of [`Self::try_send_requests`].
+    ///
+    /// See implementation documentation for details.
     fn try_send_requests<I>(
         &mut self,
         stream_id: &Uuid,

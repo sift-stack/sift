@@ -178,6 +178,18 @@ impl Transport for LiveStreaming {
     type Encoder = IngestionConfigEncoder;
     type Message = IngestWithConfigDataStreamRequest;
 
+    /// Sends a message, awaiting capacity if the stream is busy.
+    ///
+    /// This mode prioritizes freshness: newer messages always make it into the stream, and
+    /// older buffered messages are displaced to make room when necessary. As a result, if
+    /// the stream is closed while a displaced message is being handled, **the message
+    /// returned inside `Err` may be older than the message provided**. An error is only
+    /// returned on stream close; normal backpressure is handled transparently by waiting.
+    ///
+    /// Because displaced messages are not automatically retried, enabling file backup
+    /// recovery mode is strongly recommended. When enabled, displaced messages are written
+    /// to a local file and can be replayed to Sift at a later time, ensuring no data goes
+    /// unrecorded.
     async fn send(
         &mut self,
         stream_id: &Uuid,
@@ -200,6 +212,17 @@ impl Transport for LiveStreaming {
         Ok(())
     }
 
+    /// Attempts to send a message without blocking.
+    ///
+    /// Returns immediately with `TrySendError::Full` or `TrySendError::Closed` if the
+    /// stream cannot accept data right now.
+    ///
+    /// This mode prioritizes freshness: newer messages always make it into the stream, and
+    /// older buffered messages are displaced to make room when necessary. If such a
+    /// displacement occurs and the stream is full or closed at that point, **the message
+    /// returned inside `Err` may be older than the message provided**. Enabling file
+    /// backup recovery mode is strongly recommended so that any displaced messages are
+    /// written to a local file and can be replayed to Sift later.
     fn try_send(
         &mut self,
         stream_id: &Uuid,
@@ -228,6 +251,13 @@ impl Transport for LiveStreaming {
         Ok(())
     }
 
+    /// Sends a batch of messages in order, awaiting capacity for each one.
+    ///
+    /// On stream close, stops immediately and returns the undelivered messages starting
+    /// from the point of failure. Because this mode may displace older buffered messages
+    /// to make room for newer ones (see [`send`](Self::send)), the first element of the
+    /// returned `Vec` may be an older displaced message rather than the one that was being
+    /// sent at the time of failure.
     async fn send_requests<I>(
         &mut self,
         stream_id: &Uuid,
@@ -248,6 +278,13 @@ impl Transport for LiveStreaming {
         Ok(())
     }
 
+    /// Attempts to send a batch of messages in order without blocking.
+    ///
+    /// Stops and returns on the first failure. The returned `Vec` contains the undelivered
+    /// messages starting from the point of failure. Because this mode may displace older
+    /// buffered messages to make room for newer ones (see [`try_send`](Self::try_send)),
+    /// the first element may be an older displaced message rather than the one that was
+    /// being sent at the time of failure.
     fn try_send_requests<I>(
         &mut self,
         stream_id: &Uuid,

@@ -136,6 +136,12 @@ impl Transport for FileBackup {
     type Encoder = IngestionConfigEncoder;
     type Message = IngestWithConfigDataStreamRequest;
 
+    /// Sends a message to be written to the backup file, awaiting capacity if the stream
+    /// is busy.
+    ///
+    /// Returns an error only if the stream has been closed, in which case the original
+    /// message is returned inside `Err`. Normal backpressure is handled transparently by
+    /// waiting.
     async fn send(
         &mut self,
         stream_id: &Uuid,
@@ -154,6 +160,11 @@ impl Transport for FileBackup {
         Ok(())
     }
 
+    /// Attempts to send a message without blocking.
+    ///
+    /// Returns immediately with `TrySendError::Full` if the stream is at capacity, or
+    /// `TrySendError::Closed` if the stream has been closed. In either case the original
+    /// message is returned unchanged.
     fn try_send(
         &mut self,
         stream_id: &Uuid,
@@ -175,6 +186,12 @@ impl Transport for FileBackup {
         }
     }
 
+    /// Sends a batch of messages in order to be written to the backup file, awaiting
+    /// capacity for each one.
+    ///
+    /// On stream close, stops immediately and returns the undelivered messages starting
+    /// from the point of failure. The first element of the returned `Vec` is always the
+    /// message that failed to send.
     async fn send_requests<I>(
         &mut self,
         stream_id: &Uuid,
@@ -195,6 +212,11 @@ impl Transport for FileBackup {
         Ok(())
     }
 
+    /// Attempts to send a batch of messages in order without blocking.
+    ///
+    /// Stops and returns on the first failure. The returned `Vec` contains the undelivered
+    /// messages starting from the point of failure, with the first element always being
+    /// the message that failed to send.
     fn try_send_requests<I>(
         &mut self,
         stream_id: &Uuid,
