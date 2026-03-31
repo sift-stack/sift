@@ -193,16 +193,17 @@ class JobsAPIAsync(ResourceBase):
 
         start = time.monotonic()
         with alive_bar(
-            title="Processing job",
+            title=f"Job {job_id}: polling",
             bar=None,
-            spinner_length=5,
+            spinner_length=7,
+            spinner="dots_waves",
             monitor=False,
             stats=False,
             disable=not show_progress,
         ) as bar:
             while True:
                 job = await self.get(job_id)
-                bar.title(f"Job status: {job.job_status.value}")
+                bar.title(f"Job {job_id} ({job.job_type.value.lower()}): {job.job_status.value}")
                 bar()
                 if job.job_status in (JobStatus.FINISHED, JobStatus.FAILED, JobStatus.CANCELLED):
                     return job

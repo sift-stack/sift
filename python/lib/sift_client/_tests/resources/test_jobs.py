@@ -7,6 +7,7 @@ These tests demonstrate and validate the usage of the Jobs API including:
 - Error handling and edge cases
 """
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -393,6 +394,24 @@ class TestJobsAPIAsync:
                         timeout_secs=0.1,
                     )
 
+        @pytest.mark.asyncio
+        async def test_concurrent_wait_with_progress_disabled(self, jobs_api_async):
+            """Concurrent wait_until_complete calls with show_progress=False should not raise."""
+            mock_job = MagicMock()
+            mock_job.job_status = JobStatus.FINISHED
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                return_value=mock_job,
+            ):
+                results = await asyncio.gather(
+                    jobs_api_async.wait_until_complete(job="job-1", show_progress=False),
+                    jobs_api_async.wait_until_complete(job="job-2", show_progress=False),
+                )
+
+            assert all(r.job_status == JobStatus.FINISHED for r in results)
+
     class TestJobProperties:
         """Tests for job property methods."""
 
@@ -526,6 +545,37 @@ class TestJobsAPISync:
 
             if jobs:
                 assert isinstance(jobs[0], Job)
+
+    class TestWaitUntilComplete:
+        """Tests for wait_until_complete through the sync wrapper."""
+
+        def test_wait_with_progress_enabled(self, jobs_api_sync):
+            """show_progress=True works through the sync wrapper without error."""
+            mock_job = MagicMock()
+            mock_job.job_status = JobStatus.FINISHED
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                return_value=mock_job,
+            ):
+                result = jobs_api_sync.wait_until_complete(job="job-1", show_progress=True)
+
+            assert result.job_status == JobStatus.FINISHED
+
+        def test_wait_with_progress_disabled(self, jobs_api_sync):
+            """show_progress=False works through the sync wrapper without error."""
+            mock_job = MagicMock()
+            mock_job.job_status = JobStatus.FINISHED
+
+            with patch(
+                "sift_client.resources.jobs.JobsAPIAsync.get",
+                new_callable=AsyncMock,
+                return_value=mock_job,
+            ):
+                result = jobs_api_sync.wait_until_complete(job="job-1", show_progress=False)
+
+            assert result.job_status == JobStatus.FINISHED
 
 
 class TestWaitAndDownload:
