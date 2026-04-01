@@ -132,14 +132,18 @@ client = SiftClient(connection_config=config)
 5. **Use type hints** to get full IDE support and catch errors early
 """
 
+from __future__ import annotations
+
 import logging
 
 from sift_client.client import SiftClient
+from sift_client.config import config
 from sift_client.transport import SiftConnectionConfig
 
 __all__ = [
     "SiftClient",
     "SiftConnectionConfig",
+    "config",
 ]
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
