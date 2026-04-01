@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(slots=True)
 class Config:
     """Global configuration for the Sift client library.
 
@@ -27,11 +27,6 @@ class Config:
     ``None`` (default) shows bars for sync calls and hides them for async.
     Set to ``False`` to disable everywhere.
     """
-
-    def __setattr__(self, name: str, value: object) -> None:
-        if name not in {f.name for f in fields(self)}:
-            raise AttributeError(f"Unknown setting: {name!r}")
-        super().__setattr__(name, value)
 
 
 config = Config()
