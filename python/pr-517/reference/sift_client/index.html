@@ -751,13 +751,41 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.config" class="md-nav__link">
+  <a href="#sift_client.Config" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;config
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Config
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label=" Config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.Config.show_progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;show_progress
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.Config.__setattr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__setattr__
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1640,13 +1668,41 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.config" class="md-nav__link">
+  <a href="#sift_client.Config" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;config
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Config
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label=" Config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.Config.show_progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;show_progress
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.Config.__setattr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__setattr__
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2164,6 +2220,19 @@ type-safe access to properties and convenience methods for common operations.</p
       </thead>
       <tbody>
           <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            Config
+
+
+  
+      dataclass
+   (sift_client.Config)" href="#sift_client.Config">Config</a></code></td>
+            <td class="doc-class-details">
+              <div class="doc-md-description">
+                <p>Global configuration for the Sift client library.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.SiftClient)" href="#sift_client.SiftClient">SiftClient</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
@@ -2187,6 +2256,48 @@ type-safe access to properties and convenience methods for common operations.</p
 
 
 
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="sift_client.Config" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">Config</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#sift_client.Config" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Config</span><span class="p">(</span><span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Global configuration for the Sift client library.</p>
+<p>This is a singleton dataclass, use the module-level <code>config</code> instance
+rather than creating your own::</p>
+<div class="language-text highlight"><pre><span></span><code>import sift_client
+
+sift_client.config.show_progress = False
+</code></pre></div>
+<p>Setting an attribute that doesn't exist raises <code>AttributeError</code> so
+typos are caught immediately.</p>
+
+
 <table>
       <thead>
         <tr>
@@ -2196,22 +2307,62 @@ type-safe access to properties and convenience methods for common operations.</p
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            config
+            <td><code><a class="autorefs autorefs-internal" title="            show_progress
 
 
   
-      module-attribute
-   (sift_client.config)" href="#sift_client.config">config</a></code></td>
+      class-attribute
+      instance-attribute
+   (sift_client.Config.show_progress)" href="#sift_client.Config.show_progress">show_progress</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                
+                <p>Controls progress-bar display for job polling and
+file downloads. <code>None</code> (default) shows bars for sync calls
+and hides them for async. Set to <code>False</code> to disable everywhere.</p>
               </div>
               <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span> | None</code>
+                  </span>
               </p>
             </td>
           </tr>
       </tbody>
     </table>
+
+
+
+
+
+
+
+
+
+
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">METHOD</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            __setattr__ (sift_client.Config.__setattr__)" href="#sift_client.Config.__setattr__">__setattr__</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  
+                </div>
+              </td>
+            </tr>
+      </tbody>
+    </table>
+
+
+
 
 
 
@@ -2227,16 +2378,17 @@ type-safe access to properties and convenience methods for common operations.</p
 
 
 
-<h2 id="sift_client.config" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">config</span>
+<h3 id="sift_client.Config.show_progress" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">show_progress</span>
 
 
   <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#sift_client.config" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n"><span title="sift_client.Config">Config</span></span><span class="p">()</span>
+<a href="#sift_client.Config.show_progress" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2246,6 +2398,33 @@ type-safe access to properties and convenience methods for common operations.</p
 </div>
 
 
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.Config.__setattr__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">__setattr__</span>
+
+
+<a href="#sift_client.Config.__setattr__" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n"><span title="object">object</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-class">
 
