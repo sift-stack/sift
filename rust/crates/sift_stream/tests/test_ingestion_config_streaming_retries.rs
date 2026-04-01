@@ -107,7 +107,7 @@ async fn test_retries_succeed() {
     // Send some messages while the server is returning errors.
     //
     // None of these messages should be captured by the mock server.
-    while num_streams_opened.load(Ordering::Relaxed) < 3 as u32 {
+    while num_streams_opened.load(Ordering::Relaxed) < 3_u32 {
         let msg = Flow::new(
             "flow",
             TimeValue::from(Local::now().to_utc()),

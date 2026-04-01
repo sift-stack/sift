@@ -253,7 +253,6 @@ mod tests {
                     ..Default::default()
                 },
             ],
-            ..Default::default()
         }
     }
 
@@ -373,7 +372,6 @@ mod tests {
                 data_type: ChannelDataType::Double.into(),
                 ..Default::default()
             }],
-            ..Default::default()
         }];
         let form = create_test_ingestion_config_form(asset_name, client_key, existing_flows);
 

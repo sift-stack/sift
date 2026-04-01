@@ -63,6 +63,14 @@ impl From<FlowPy> for Flow {
     }
 }
 
+// Helper: convert any error whose Display impl does not print the message payload into a PyErr.
+// All sift_stream send error types (SiftStreamSendError, SendError, TrySendError,
+// SiftStreamTrySendError) intentionally omit the inner T from their Display output, so
+// format!("{e}") is safe to use regardless of how large the undelivered message(s) may be.
+fn py_err(e: impl std::fmt::Display) -> PyErr {
+    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{e}"))
+}
+
 // PyO3 Method Implementations
 #[gen_stub_pymethods]
 #[pymethods]
@@ -79,10 +87,7 @@ impl SiftStreamPy {
             })?;
 
             let flow_rs: Flow = flow.into();
-            match stream.send(flow_rs).await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(SiftErrorWrapper(e).into()),
-            }
+            stream.send(flow_rs).await.map_err(py_err)
         })?;
 
         Ok(awaitable.into())
@@ -113,10 +118,7 @@ impl SiftStreamPy {
 
             for flow in flows_vec {
                 let flow_rs: Flow = flow.into();
-                match stream.send(flow_rs).await {
-                    Ok(_) => (),
-                    Err(e) => return Err(SiftErrorWrapper(e).into()),
-                }
+                stream.send(flow_rs).await.map_err(py_err)?;
             }
             Ok(())
         })?;
@@ -141,16 +143,13 @@ impl SiftStreamPy {
                 )
             })?;
 
-            match stream.send_requests(requests).await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(SiftErrorWrapper(e).into()),
-            }
+            stream.send_requests(requests).await.map_err(py_err)
         })?;
 
         Ok(awaitable.into())
     }
 
-    pub fn send_requests_nonblocking(&self, flows: &Bound<'_, PyAny>) -> PyResult<()> {
+    pub fn try_send_requests(&self, flows: &Bound<'_, PyAny>) -> PyResult<()> {
         let flow_iter = PyIterator::from_object(flows)?;
         let mut flows_vec: Vec<IngestWithConfigDataStreamRequest> = Vec::new();
         for item in flow_iter {
@@ -165,9 +164,7 @@ impl SiftStreamPy {
             )
         })?;
 
-        stream
-            .send_requests_nonblocking(flows_vec)
-            .map_err(|e| SiftErrorWrapper(e).into())
+        stream.try_send_requests(flows_vec).map_err(py_err)
     }
 
     pub fn get_metrics_snapshot(&self) -> PyResult<SiftStreamMetricsSnapshotPy> {

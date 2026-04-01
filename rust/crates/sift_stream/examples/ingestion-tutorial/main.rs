@@ -148,7 +148,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // NOTE: This approach uses `Flow` and `SiftStream::send()` for ease of use, and will
     // provide acceptable performance for most users
     // In cases where additional performance is required, a separate, more performant method
-    // is also available that uses `FlowBuilder` and `SiftStream::send_requests_nonblocking`
+    // is also available that uses `FlowBuilder` and `SiftStream::try_send_requests`
     // See `examples/quick-start/` for an example using this alternate approach
     let start = std::time::Instant::now();
     while start.elapsed() < INGEST_DURATION {

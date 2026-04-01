@@ -609,7 +609,9 @@ impl MetricsStreamingTask {
                     let metrics = self.metrics.snapshot();
                     let values = metrics.channel_values(&self.session_name);
                     let flow = Flow::new(METRICS_STREAMING_FLOW_NAME, TimeValue::now(), &values);
-                    self.stream.send(flow).await?;
+                    self.stream.send(flow).await.map_err(|e| {
+                        Error::new_msg(ErrorKind::StreamError, e.to_string())
+                    })?;
                 }
                 ctrl_msg = self.control_rx.recv() => {
                     match ctrl_msg {

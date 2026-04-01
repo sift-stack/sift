@@ -452,16 +452,16 @@ mod tests {
                 }
             }
 
-            if writer.should_rotate_file() {
-                if let Some(ctx) = writer.rotate_file().await.expect("failed to rotate file") {
-                    rotated_files.push(ctx.file_path);
-                }
+            if writer.should_rotate_file()
+                && let Some(ctx) = writer.rotate_file().await.expect("failed to rotate file")
+            {
+                rotated_files.push(ctx.file_path);
             }
         }
 
         // Should have created multiple files
         if !rotated_files.is_empty() {
-            assert!(rotated_files.len() > 0);
+            assert!(!rotated_files.is_empty());
             for file_path in &rotated_files {
                 assert!(file_path.exists());
             }

@@ -1,5 +1,6 @@
 use crate::FlowBuilder;
 use crate::metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot};
+use crate::stream::send_error::{SendError, TrySendError};
 use crate::stream::{Encodeable, Encoder, MetricsSnapshot, Transport};
 use crate::stream::{
     SiftStream,
@@ -56,34 +57,27 @@ pub struct LiveStreaming {
 // Seal the trait - only this crate can implement SiftStreamMode
 impl Sealed for LiveStreaming {}
 
-#[async_trait]
-impl Transport for LiveStreaming {
-    type Encoder = IngestionConfigEncoder;
-    type Message = IngestWithConfigDataStreamRequest;
-
-    /// Sends the message to Sift for live ingestion, while in parallel also sends a backup of the message to a file.
-    fn send(&mut self, stream_id: &Uuid, message: Self::Message) -> Result<()> {
+impl LiveStreaming {
+    fn prepare_message(
+        &mut self,
+        stream_id: &Uuid,
+        message: IngestWithConfigDataStreamRequest,
+    ) -> DataMessage {
         #[cfg(feature = "tracing")]
         {
             if !self.flows_seen.contains(&message.flow) {
                 self.metrics.unique_flows_received.increment();
                 self.flows_seen.insert(message.flow.clone());
-                tracing::info!(
-                    sift_stream_id = %stream_id,
-                    "flow '{}' being ingested for the first time",
-                    &message.flow,
-                );
+                tracing::info!(sift_stream_id = %stream_id, "flow '{}' being ingested for the first time", &message.flow);
             }
         }
 
-        // Track the channel depths.
         self.metrics
             .ingestion_channel_depth
             .set(self.stream_system.ingestion_tx.len() as u64);
         self.metrics
             .backup_channel_depth
             .set(self.stream_system.backup_tx.len() as u64);
-
         self.metrics.messages_received.increment();
 
         let data_msg = DataMessage {
@@ -91,83 +85,230 @@ impl Transport for LiveStreaming {
             request: Arc::new(message),
             dropped_for_ingestion: false,
         };
-
         self.message_id_counter += 1;
+        data_msg
+    }
 
-        // Send the message for backup first. If this fails, log an error and continue.
-        //
-        // Failure to backup can lead to data loss though it is preferable to attempt
-        // to stream the message to Sift rather than return the error and prevent both.
-        //
-        // TODO(tsift): Make this behavior optional via a builder arg.
-        if let Err(e) = self.stream_system.backup_tx.try_send(data_msg.clone()) {
-            #[cfg(feature = "tracing")]
-            tracing::warn!(
-                sift_stream_id = %stream_id,
-                "failed to send data to backup system, data will still be streamed to Sift: {e}"
-            );
-        }
-
-        self.metrics.messages_sent_to_backup.increment();
-
-        // Send the message for ingestion.
-        //
-        // If the channel is full, the oldest message will be removed in order to create space for the newer message.
-        // For ingestion, newer data is preferred over older data.
+    /// Used by `async fn send`. If an oldest message is evicted from the ingestion
+    /// channel, awaits until backup has space to accept it. Returns the undeliverable
+    /// message on backup channel close or ingestion channel close.
+    async fn dispatch_to_ingestion(
+        &mut self,
+        stream_id: &Uuid,
+        data_msg: DataMessage,
+    ) -> Option<IngestWithConfigDataStreamRequest> {
         match self.stream_system.ingestion_tx.force_send(data_msg) {
-            Ok(None) => Ok(()),
-            Ok(Some(mut oldest_message)) => {
-                #[cfg(feature = "tracing")]
-                tracing::debug!(
-                    sift_stream_id = %stream_id,
-                    "data channel full, dropping oldest message"
-                );
-
-                oldest_message.dropped_for_ingestion = true;
+            Ok(None) => None,
+            Ok(Some(mut oldest)) => {
+                oldest.dropped_for_ingestion = true;
                 self.metrics.old_messages_dropped_for_ingestion.increment();
-                self.metrics.messages_sent_to_backup.increment();
                 self.metrics.checkpoint.failed_checkpoint_count.increment();
-
-                // Re-send the oldest message to the backup to ensure it is re-ingested later despite being
-                // dropped from the ingestion channel.
-                //
-                // On failure, rely on metrics to track occurences. Logging can quickly become spammy as
-                // the system works through bursts of messages so logs are reduced to the debug level.
-                if let Err(e) = self
-                    .stream_system
-                    .backup_tx
-                    .try_send(oldest_message)
-                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
-                    .context("failed to send data to backup task system")
-                {
-                    self.metrics
-                        .old_messages_failed_adding_to_backup
-                        .increment();
-
-                    #[cfg(feature = "tracing")]
-                    tracing::debug!(
-                        sift_stream_id = %stream_id,
-                        "failed to send oldest data to backup task system: {e}"
-                    );
+                // Block until backup has space.
+                match self.stream_system.backup_tx.send(oldest).await {
+                    Ok(()) => {
+                        self.metrics.messages_sent_to_backup.increment();
+                        None
+                    }
+                    Err(async_channel::SendError(dm)) => {
+                        self.metrics
+                            .old_messages_failed_adding_to_backup
+                            .increment();
+                        #[cfg(feature = "tracing")]
+                        tracing::debug!(sift_stream_id = %stream_id, "backup channel closed while dispatching evicted message");
+                        Some(Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()))
+                    }
                 }
-
-                // Do not interupt ingestion.
-                Ok(())
             }
-            Err(e) => Err(Error::new_msg(
-                ErrorKind::StreamError,
-                format!("queueing data for ingestion failed: {e}"),
-            )),
+            Err(async_channel::SendError(dm)) => {
+                // ingestion channel closed — return the message to the caller
+                #[cfg(feature = "tracing")]
+                tracing::debug!(sift_stream_id = %stream_id, "ingestion channel closed");
+                Some(Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()))
+            }
         }
     }
 
-    fn send_requests<I>(&mut self, stream_id: &Uuid, requests: I) -> Result<()>
+    /// Used by `fn try_send`. If an oldest message is evicted from the ingestion
+    /// channel and backup is full or closed, returns the evicted message to the
+    /// caller. Also returns the message when the ingestion channel itself is closed.
+    fn try_dispatch_to_ingestion(
+        &mut self,
+        stream_id: &Uuid,
+        data_msg: DataMessage,
+    ) -> Option<IngestWithConfigDataStreamRequest> {
+        match self.stream_system.ingestion_tx.force_send(data_msg) {
+            Ok(None) => None,
+            Ok(Some(mut oldest)) => {
+                oldest.dropped_for_ingestion = true;
+                self.metrics.old_messages_dropped_for_ingestion.increment();
+                self.metrics.checkpoint.failed_checkpoint_count.increment();
+                match self.stream_system.backup_tx.try_send(oldest) {
+                    Ok(()) => {
+                        self.metrics.messages_sent_to_backup.increment();
+                        None
+                    }
+                    Err(async_channel::TrySendError::Full(dm)) => {
+                        self.metrics
+                            .old_messages_failed_adding_to_backup
+                            .increment();
+                        Some(Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()))
+                    }
+                    Err(async_channel::TrySendError::Closed(dm)) => {
+                        self.metrics
+                            .old_messages_failed_adding_to_backup
+                            .increment();
+                        #[cfg(feature = "tracing")]
+                        tracing::debug!(sift_stream_id = %stream_id, "backup channel closed while dispatching evicted message");
+                        Some(Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()))
+                    }
+                }
+            }
+            Err(async_channel::SendError(dm)) => {
+                // ingestion channel closed — return the message to the caller
+                #[cfg(feature = "tracing")]
+                tracing::debug!(sift_stream_id = %stream_id, "ingestion channel closed");
+                Some(Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()))
+            }
+        }
+    }
+}
+
+#[async_trait]
+impl Transport for LiveStreaming {
+    type Encoder = IngestionConfigEncoder;
+    type Message = IngestWithConfigDataStreamRequest;
+
+    /// Sends a message, awaiting capacity if the stream is busy.
+    ///
+    /// This mode prioritizes freshness: newer messages always make it into the stream, and
+    /// older buffered messages are displaced to make room when necessary. As a result, if
+    /// the stream is closed while a displaced message is being handled, **the message
+    /// returned inside `Err` may be older than the message provided**. An error is only
+    /// returned on stream close; normal backpressure is handled transparently by waiting.
+    ///
+    /// Because displaced messages are not automatically retried, enabling file backup
+    /// recovery mode is strongly recommended. When enabled, displaced messages are written
+    /// to a local file and can be replayed to Sift at a later time, ensuring no data goes
+    /// unrecorded.
+    async fn send(
+        &mut self,
+        stream_id: &Uuid,
+        message: Self::Message,
+    ) -> std::result::Result<(), SendError<Self::Message>> {
+        let data_msg = self.prepare_message(stream_id, message);
+
+        self.stream_system
+            .backup_tx
+            .send(data_msg.clone())
+            .await
+            .map_err(|async_channel::SendError(dm)| {
+                SendError(Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()))
+            })?;
+
+        self.metrics.messages_sent_to_backup.increment();
+        if let Some(displaced) = self.dispatch_to_ingestion(stream_id, data_msg).await {
+            return Err(SendError(displaced));
+        }
+        Ok(())
+    }
+
+    /// Attempts to send a message without blocking.
+    ///
+    /// Returns immediately with `TrySendError::Full` or `TrySendError::Closed` if the
+    /// stream cannot accept data right now.
+    ///
+    /// This mode prioritizes freshness: newer messages always make it into the stream, and
+    /// older buffered messages are displaced to make room when necessary. If such a
+    /// displacement occurs and the stream is full or closed at that point, **the message
+    /// returned inside `Err` may be older than the message provided**. Enabling file
+    /// backup recovery mode is strongly recommended so that any displaced messages are
+    /// written to a local file and can be replayed to Sift later.
+    fn try_send(
+        &mut self,
+        stream_id: &Uuid,
+        message: Self::Message,
+    ) -> std::result::Result<(), TrySendError<Self::Message>> {
+        let data_msg = self.prepare_message(stream_id, message);
+
+        match self.stream_system.backup_tx.try_send(data_msg.clone()) {
+            Ok(()) => {}
+            Err(async_channel::TrySendError::Full(dm)) => {
+                return Err(TrySendError::Full(
+                    Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()),
+                ));
+            }
+            Err(async_channel::TrySendError::Closed(dm)) => {
+                return Err(TrySendError::Closed(
+                    Arc::try_unwrap(dm.request).unwrap_or_else(|arc| (*arc).clone()),
+                ));
+            }
+        }
+
+        self.metrics.messages_sent_to_backup.increment();
+        if let Some(displaced) = self.try_dispatch_to_ingestion(stream_id, data_msg) {
+            return Err(TrySendError::Full(displaced));
+        }
+        Ok(())
+    }
+
+    /// Sends a batch of messages in order, awaiting capacity for each one.
+    ///
+    /// On stream close, stops immediately and returns the undelivered messages starting
+    /// from the point of failure. Because this mode may displace older buffered messages
+    /// to make room for newer ones (see [`send`](Self::send)), the first element of the
+    /// returned `Vec` may be an older displaced message rather than the one that was being
+    /// sent at the time of failure.
+    async fn send_requests<I>(
+        &mut self,
+        stream_id: &Uuid,
+        requests: I,
+    ) -> std::result::Result<(), SendError<Vec<Self::Message>>>
     where
         I: IntoIterator<Item = Self::Message> + Send,
         I::IntoIter: Send,
     {
-        for req in requests {
-            self.send(stream_id, req)?;
+        let mut iter = requests.into_iter();
+        while let Some(msg) = iter.next() {
+            if let Err(SendError(failed)) = self.send(stream_id, msg).await {
+                let mut undelivered = vec![failed];
+                undelivered.extend(iter);
+                return Err(SendError(undelivered));
+            }
+        }
+        Ok(())
+    }
+
+    /// Attempts to send a batch of messages in order without blocking.
+    ///
+    /// Stops and returns on the first failure. The returned `Vec` contains the undelivered
+    /// messages starting from the point of failure. Because this mode may displace older
+    /// buffered messages to make room for newer ones (see [`try_send`](Self::try_send)),
+    /// the first element may be an older displaced message rather than the one that was
+    /// being sent at the time of failure.
+    fn try_send_requests<I>(
+        &mut self,
+        stream_id: &Uuid,
+        requests: I,
+    ) -> std::result::Result<(), TrySendError<Vec<Self::Message>>>
+    where
+        I: IntoIterator<Item = Self::Message> + Send,
+        I::IntoIter: Send,
+    {
+        let mut iter = requests.into_iter();
+        while let Some(msg) = iter.next() {
+            match self.try_send(stream_id, msg) {
+                Ok(()) => {}
+                Err(TrySendError::Full(failed)) => {
+                    let mut undelivered = vec![failed];
+                    undelivered.extend(iter);
+                    return Err(TrySendError::Full(undelivered));
+                }
+                Err(TrySendError::Closed(failed)) => {
+                    let mut undelivered = vec![failed];
+                    undelivered.extend(iter);
+                    return Err(TrySendError::Closed(undelivered));
+                }
+            }
         }
         Ok(())
     }
@@ -561,5 +702,151 @@ impl Stream for DataStream {
             }
             Poll::Pending => Poll::Pending,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::stream::tasks::DataMessage;
+    use std::collections::HashSet;
+
+    fn make_request() -> IngestWithConfigDataStreamRequest {
+        IngestWithConfigDataStreamRequest {
+            ingestion_config_id: uuid::Uuid::new_v4().to_string(),
+            flow: "test_flow".to_string(),
+            timestamp: None,
+            channel_values: vec![],
+            run_id: String::new(),
+            end_stream_on_validation_error: false,
+            organization_id: String::new(),
+        }
+    }
+
+    fn make_live_streaming(
+        ingestion_capacity: usize,
+        backup_capacity: usize,
+    ) -> (
+        LiveStreaming,
+        async_channel::Receiver<DataMessage>,
+        async_channel::Receiver<DataMessage>,
+    ) {
+        let (control_tx, _) = broadcast::channel(10);
+        let (ingestion_tx, ingestion_rx) = async_channel::bounded(ingestion_capacity);
+        let (backup_tx, backup_rx) = async_channel::bounded(backup_capacity);
+
+        let system = StreamSystem {
+            backup_manager: tokio::spawn(async { Ok(()) }),
+            ingestion: tokio::spawn(async { Ok(()) }),
+            reingestion: tokio::spawn(async { Ok(()) }),
+            metrics_streaming: None,
+            control_tx,
+            ingestion_tx,
+            backup_tx,
+        };
+
+        let live = LiveStreaming {
+            message_id_counter: 0,
+            stream_system: system,
+            flows_seen: HashSet::new(),
+            metrics: Arc::new(crate::metrics::SiftStreamMetrics::default()),
+        };
+
+        (live, ingestion_rx, backup_rx)
+    }
+
+    #[tokio::test]
+    async fn test_try_send_backup_closed_returns_closed() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 10);
+        drop(backup_rx);
+        let stream_id = uuid::Uuid::new_v4();
+        let req = make_request();
+        let flow = req.flow.clone();
+        let err = live.try_send(&stream_id, req).unwrap_err();
+        assert!(err.is_closed(), "expected Closed, got {err}");
+        assert_eq!(err.into_inner().flow, flow);
+    }
+
+    #[tokio::test]
+    async fn test_try_send_backup_full_returns_full() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 1);
+        // Pre-fill the backup channel so the next try_send finds it full.
+        let dummy = DataMessage {
+            message_id: 0,
+            request: Arc::new(make_request()),
+            dropped_for_ingestion: false,
+        };
+        live.stream_system.backup_tx.try_send(dummy).unwrap();
+
+        let stream_id = uuid::Uuid::new_v4();
+        let req = make_request();
+        let flow = req.flow.clone();
+        let err = live.try_send(&stream_id, req).unwrap_err();
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().flow, flow);
+        drop(backup_rx);
+    }
+
+    #[tokio::test]
+    async fn test_send_backup_closed_returns_send_error() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 10);
+        drop(backup_rx);
+        let stream_id = uuid::Uuid::new_v4();
+        let req = make_request();
+        let flow = req.flow.clone();
+        let err = live.send(&stream_id, req).await.unwrap_err();
+        assert_eq!(err.into_inner().flow, flow);
+    }
+
+    #[tokio::test]
+    async fn test_send_blocks_until_backup_space_available() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 1);
+        // Fill the backup channel so send will have to wait.
+        let dummy = DataMessage {
+            message_id: 0,
+            request: Arc::new(make_request()),
+            dropped_for_ingestion: false,
+        };
+        live.stream_system.backup_tx.try_send(dummy).unwrap();
+
+        // After a short delay, consume the dummy so send can proceed.
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            let _ = backup_rx.recv().await;
+            // Keep the receiver alive so the channel stays open.
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        });
+
+        let stream_id = uuid::Uuid::new_v4();
+        live.send(&stream_id, make_request()).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_try_send_requests_returns_undelivered_on_full() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 1);
+        let dummy = DataMessage {
+            message_id: 0,
+            request: Arc::new(make_request()),
+            dropped_for_ingestion: false,
+        };
+        live.stream_system.backup_tx.try_send(dummy).unwrap();
+
+        let stream_id = uuid::Uuid::new_v4();
+        let reqs = vec![make_request(), make_request(), make_request()];
+        let err = live.try_send_requests(&stream_id, reqs).unwrap_err();
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().len(), 3);
+        drop(backup_rx);
+    }
+
+    #[tokio::test]
+    async fn test_send_requests_returns_undelivered_on_closed() {
+        let (mut live, _ingestion_rx, backup_rx) = make_live_streaming(10, 10);
+        drop(backup_rx);
+
+        let stream_id = uuid::Uuid::new_v4();
+        let reqs = vec![make_request(), make_request(), make_request()];
+        let err = live.send_requests(&stream_id, reqs).await.unwrap_err();
+        assert_eq!(err.into_inner().len(), 3);
     }
 }
