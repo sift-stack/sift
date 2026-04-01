@@ -6,6 +6,9 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from alive_progress import alive_bar  # type: ignore[import-untyped]
+
+import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client.resources._base import ResourceBase
@@ -63,6 +66,7 @@ class DataImportAPIAsync(ResourceBase):
         asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
+        show_progress: bool | None = None,
     ) -> DataImport:
         """Import data from a local file.
 
@@ -84,6 +88,9 @@ class DataImportAPIAsync(ResourceBase):
                 provided.
             run_id: Optional existing run ID. Only used when ``config`` is not
                 provided.
+            show_progress: If True, display a progress spinner while waiting
+                for the import to complete. Defaults to True for sync, False
+                for async.
 
         Returns:
             A :class:`DataImport` representing the import operation.
@@ -115,13 +122,14 @@ class DataImportAPIAsync(ResourceBase):
         await self._low_level_client.upload_file(upload_url, path)
         logger.info("Uploaded file to presigned URL for import %s", data_import_id)
 
-        return await self.wait_until_complete(data_import_id)
+        return await self.wait_until_complete(data_import_id, show_progress=show_progress)
 
     async def import_from_url(
         self,
         *,
         url: str,
         config: ImportConfig,
+        show_progress: bool | None = None,
     ) -> DataImport:
         """Import data from a remote URL (HTTP or S3).
 
@@ -132,6 +140,9 @@ class DataImportAPIAsync(ResourceBase):
             url: The URL to import from.
             config: Import configuration describing the file format and column
                 mapping.
+            show_progress: If True, display a progress spinner while waiting
+                for the import to complete. Defaults to True for sync, False
+                for async.
 
         Returns:
             A :class:`DataImport` representing the import operation.
@@ -140,7 +151,7 @@ class DataImportAPIAsync(ResourceBase):
         data_import_id = await self._low_level_client.create_from_url(url, config)
         logger.info("Created URL-based data import %s", data_import_id)
 
-        return await self.wait_until_complete(data_import_id)
+        return await self.wait_until_complete(data_import_id, show_progress=show_progress)
 
     async def get(self, data_import_id: str) -> DataImport:
         """Get a data import by ID.
@@ -266,6 +277,7 @@ class DataImportAPIAsync(ResourceBase):
         *,
         polling_interval_secs: int = 5,
         timeout_secs: int | None = None,
+        show_progress: bool | None = None,
     ) -> DataImport:
         """Wait until a data import reaches a terminal state.
 
@@ -277,6 +289,10 @@ class DataImportAPIAsync(ResourceBase):
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
                 Defaults to None (indefinite).
+            show_progress: If True, display an animated progress spinner alongside
+                the import status while polling. Defaults to True for sync, False
+                for async. Use ``sift_client.config.show_progress = False`` to disable
+                globally for sync.
 
         Returns:
             The DataImport in its terminal state.
@@ -284,15 +300,34 @@ class DataImportAPIAsync(ResourceBase):
         data_import_id = (
             data_import._id_or_error if isinstance(data_import, DataImport) else data_import
         )
+        if show_progress is None:
+            global_setting = _sift_client_module.config.show_progress
+            if global_setting is not None:
+                show_progress = global_setting
+            elif getattr(self, "_is_sync", False):
+                show_progress = True
+            else:
+                show_progress = False
 
         start = time.monotonic()
-        while True:
-            result = await self.get(data_import_id)
-            if result.is_complete:
-                return result
-            if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
-                raise TimeoutError(
-                    f"Data import '{data_import_id}' did not complete "
-                    f"within {timeout_secs} seconds."
-                )
-            await asyncio.sleep(polling_interval_secs)
+        with alive_bar(
+            title=f"Data Import ID {data_import_id}: polling",
+            bar=None,
+            spinner_length=7,
+            spinner="dots_waves",
+            monitor=False,
+            stats=False,
+            disable=not show_progress,
+        ) as bar:
+            while True:
+                result = await self.get(data_import_id)
+                bar.title(f"Data Import ID {data_import_id}: {result.status.name}")
+                bar()
+                if result.is_complete:
+                    return result
+                if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
+                    raise TimeoutError(
+                        f"Data import '{data_import_id}' did not complete "
+                        f"within {timeout_secs} seconds."
+                    )
+                await asyncio.sleep(polling_interval_secs)
