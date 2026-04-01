@@ -141,9 +141,9 @@ from sift_client.client import SiftClient
 from sift_client.transport import SiftConnectionConfig
 
 __all__ = [
+    "Config",
     "SiftClient",
     "SiftConnectionConfig",
-    "config",
 ]
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
