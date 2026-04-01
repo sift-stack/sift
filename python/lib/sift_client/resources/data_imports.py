@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
+from sift_client._internal.util.executor import run_sync_function
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
@@ -23,6 +24,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _DETECT_CONFIG_SAMPLE_SIZE = 65_536  # 64 KiB
+
+
+def _validate_config(config: ImportConfig) -> None:
+    """Validate an import config before sending it to the server."""
+    if isinstance(config, CsvImportConfig):
+        tc = config.time_column
+        if tc.format.name.startswith("RELATIVE_") and tc.relative_start_time is None:
+            raise ValueError(
+                f"'relative_start_time' is required when using a relative time format ({tc.format.name})."
+            )
 
 
 class DataImportAPIAsync(ResourceBase):
@@ -55,9 +66,8 @@ class DataImportAPIAsync(ResourceBase):
     ) -> DataImport:
         """Import data from a local file.
 
-        Creates a data import on the server and uploads the file to the
-        returned presigned URL. Returns a :class:`DataImport` that can be
-        polled for status via ``data_import.refresh()``.
+        Creates a data import on the server, uploads the file, and waits
+        for the import to complete. Returns the completed :class:`DataImport`.
 
         When ``config`` is omitted the file format is auto-detected via
         :meth:`detect_config` and a :class:`CsvImportConfig` is built using
@@ -88,9 +98,7 @@ class DataImportAPIAsync(ResourceBase):
 
         if config is None:
             if asset_name is None:
-                raise ValueError(
-                    "Either 'config' or 'asset_name' must be provided."
-                )
+                raise ValueError("Either 'config' or 'asset_name' must be provided.")
             detected = await self.detect_config(file_path)
             config = detected.model_copy(
                 update={
@@ -100,14 +108,14 @@ class DataImportAPIAsync(ResourceBase):
                 }
             )
 
+        _validate_config(config)
         data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
         logger.info("Created data import %s", data_import_id)
 
         await self._low_level_client.upload_file(upload_url, path)
         logger.info("Uploaded file to presigned URL for import %s", data_import_id)
 
-        data_import = await self._low_level_client.get(data_import_id)
-        return self._apply_client_to_instance(data_import)
+        return await self.wait_until_complete(data_import_id)
 
     async def import_from_url(
         self,
@@ -128,11 +136,11 @@ class DataImportAPIAsync(ResourceBase):
         Returns:
             A :class:`DataImport` representing the import operation.
         """
+        _validate_config(config)
         data_import_id = await self._low_level_client.create_from_url(url, config)
         logger.info("Created URL-based data import %s", data_import_id)
 
-        data_import = await self._low_level_client.get(data_import_id)
-        return self._apply_client_to_instance(data_import)
+        return await self.wait_until_complete(data_import_id)
 
     async def get(self, data_import_id: str) -> DataImport:
         """Get a data import by ID.
@@ -229,8 +237,11 @@ class DataImportAPIAsync(ResourceBase):
                 f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}"
             )
 
-        with open(path, "rb") as f:
-            sample = f.read(_DETECT_CONFIG_SAMPLE_SIZE)
+        def _read_sample() -> bytes:
+            with open(path, "rb") as f:
+                return f.read(_DETECT_CONFIG_SAMPLE_SIZE)
+
+        sample = await run_sync_function(_read_sample)
 
         response = await self._low_level_client.detect_config(sample, data_type_key.value)
 

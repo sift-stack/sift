@@ -171,9 +171,17 @@ class CsvImportConfig(BaseModel):
     @classmethod
     def _from_proto(cls, proto: CsvConfigProto) -> CsvImportConfig:
         """Create from a proto CsvConfig (e.g. from DetectConfig response)."""
+        relative_start_time = None
+        if proto.time_column.HasField("relative_start_time"):
+            from datetime import timezone
+
+            relative_start_time = proto.time_column.relative_start_time.ToDatetime(
+                tzinfo=timezone.utc
+            )
         time_column = CsvTimeColumn(
             column=proto.time_column.column_number,
             format=TimeFormat(proto.time_column.format),
+            relative_start_time=relative_start_time,
         )
         data_columns = [
             CsvDataColumn(
@@ -204,8 +212,8 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
     """A data import in the Sift system.
 
     Represents the status and metadata of an import operation. Use
-    ``client.data_import.upload()`` to create one, or ``client.data_import.get()``
-    to retrieve an existing import by ID.
+    ``client.data_import.import_from_path()`` to create one, or
+    ``client.data_import.get()`` to retrieve an existing import by ID.
     """
 
     # Required fields

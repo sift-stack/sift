@@ -24,7 +24,7 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
-    from sift_client.sift_types.data_import import CsvImportConfig, DataImport, DataImportStatus
+    from sift_client.sift_types.data_import import DataImport, DataImportStatus
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
