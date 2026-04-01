@@ -84,7 +84,7 @@ plugins:
             show_source: false
             find_stubs_package: true
             show_if_no_docstring: true
-            filters: "public"
+            filters: ["!^__(?!init)", "!^_[^_]"]
             show_submodules: false
             # Styling
             group_by_category: true
