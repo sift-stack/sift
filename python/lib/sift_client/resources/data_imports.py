@@ -26,8 +26,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_DETECT_CONFIG_SAMPLE_SIZE = 65_536  # 64 KiB
-
 
 def _validate_config(config: ImportConfig) -> None:
     """Validate an import config before sending it to the server."""
@@ -66,6 +64,8 @@ class DataImportAPIAsync(ResourceBase):
         asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
         show_progress: bool | None = None,
     ) -> DataImport:
         """Import data from a local file.
@@ -88,6 +88,8 @@ class DataImportAPIAsync(ResourceBase):
                 provided.
             run_id: Optional existing run ID. Only used when ``config`` is not
                 provided.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
             show_progress: If True, display a progress spinner while waiting
                 for the import to complete. Defaults to True for sync, False
                 for async.
@@ -110,7 +112,7 @@ class DataImportAPIAsync(ResourceBase):
             config = detected.model_copy(
                 update={
                     "asset_name": asset_name,
-                    "run_name": run_name,
+                    "run_name": run_name if run_name or run_id else path.name,
                     "run_id": run_id,
                 }
             )
@@ -122,13 +124,20 @@ class DataImportAPIAsync(ResourceBase):
         await self._low_level_client.upload_file(upload_url, path)
         logger.info("Uploaded file to presigned URL for import %s", data_import_id)
 
-        return await self.wait_until_complete(data_import_id, show_progress=show_progress)
+        return await self.wait_until_complete(
+            data_import_id,
+            polling_interval_secs=polling_interval_secs,
+            timeout_secs=timeout_secs,
+            show_progress=show_progress,
+        )
 
     async def import_from_url(
         self,
         *,
         url: str,
         config: ImportConfig,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
         show_progress: bool | None = None,
     ) -> DataImport:
         """Import data from a remote URL (HTTP or S3).
@@ -140,6 +149,8 @@ class DataImportAPIAsync(ResourceBase):
             url: The URL to import from.
             config: Import configuration describing the file format and column
                 mapping.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
             show_progress: If True, display a progress spinner while waiting
                 for the import to complete. Defaults to True for sync, False
                 for async.
@@ -151,7 +162,12 @@ class DataImportAPIAsync(ResourceBase):
         data_import_id = await self._low_level_client.create_from_url(url, config)
         logger.info("Created URL-based data import %s", data_import_id)
 
-        return await self.wait_until_complete(data_import_id, show_progress=show_progress)
+        return await self.wait_until_complete(
+            data_import_id,
+            polling_interval_secs=polling_interval_secs,
+            timeout_secs=timeout_secs,
+            show_progress=show_progress,
+        )
 
     async def get(self, data_import_id: str) -> DataImport:
         """Get a data import by ID.
@@ -250,7 +266,7 @@ class DataImportAPIAsync(ResourceBase):
 
         def _read_sample() -> bytes:
             with open(path, "rb") as f:
-                return f.read(_DETECT_CONFIG_SAMPLE_SIZE)
+                return f.read(65_536)  # 64 KiB
 
         sample = await run_sync_function(_read_sample)
 
@@ -267,7 +283,7 @@ class DataImportAPIAsync(ResourceBase):
                 config = config.model_copy(update={"data_columns": filtered})
             return config
 
-        # TODO: Add parquet_config and hdf5_config once their config types are added.
+        # TODO: Add other file format configs
 
         raise ValueError("Server returned an empty DetectConfig response.")
 
