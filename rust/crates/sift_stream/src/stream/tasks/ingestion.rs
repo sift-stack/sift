@@ -886,4 +886,96 @@ mod tests {
             "should have completed at least 2 checkpoints (1 for the final checkpoint)"
         );
     }
+
+    fn make_live_only_ingestion_task_config(
+        ingestion_channel: SiftChannel,
+        metrics: Arc<SiftStreamMetrics>,
+    ) -> IngestionTaskConfig {
+        IngestionTaskConfig {
+            session_name: "test-session".to_string(),
+            sift_stream_id: Uuid::new_v4(),
+            ingestion_channel,
+            enable_compression_for_ingestion: false,
+            metrics,
+            checkpoint_config: None,
+        }
+    }
+
+    /// Regression test: prior to the fix, constructing the checkpoint timer in live-only mode
+    /// would overflow (`now + Duration::MAX / 2`) and panic immediately on task start.
+    #[tokio::test]
+    async fn test_ingestion_task_live_only_shutdown() {
+        let (ingestion_channel, _mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let config = make_live_only_ingestion_task_config(ingestion_channel, metrics.clone());
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
+
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        send_messages_for_ingestion(&data_tx, 100).await;
+
+        data_tx.close();
+        assert!(
+            control_tx.send(ControlMessage::Shutdown).is_ok(),
+            "failed to send shutdown message to ingestion task"
+        );
+
+        let res = tokio::time::timeout(Duration::from_secs(10), handle).await;
+        assert!(
+            res.is_ok(),
+            "ingestion task should complete without panicking (no timer overflow)"
+        );
+
+        // The checkpoint timer must never fire in live-only mode, so SignalNextCheckpoint
+        // should never be emitted. (The final CheckpointComplete from shutdown is expected.)
+        while let Ok(msg) = control_rx.try_recv() {
+            assert!(
+                !matches!(msg, ControlMessage::SignalNextCheckpoint),
+                "live-only mode should not fire the checkpoint timer"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_ingestion_task_live_only_stream() {
+        let (ingestion_channel, mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let config = make_live_only_ingestion_task_config(ingestion_channel, metrics.clone());
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
+
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        send_messages_for_ingestion(&data_tx, 10).await;
+
+        data_tx.close();
+        assert!(
+            control_tx.send(ControlMessage::Shutdown).is_ok(),
+            "failed to send shutdown message to ingestion task"
+        );
+
+        assert!(
+            handle.await.is_ok(),
+            "ingestion task should complete successfully"
+        );
+
+        let captured = mock_service.get_captured_data();
+        assert_eq!(captured.len(), 10, "should have captured 10 messages");
+        assert_eq!(
+            metrics.messages_sent.get(),
+            10,
+            "should have sent 10 messages"
+        );
+    }
 }

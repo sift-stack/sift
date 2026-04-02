@@ -1,6 +1,6 @@
 use crate::{
-    Flow, FlowConfig, IngestionConfigForm, LiveStreamingWithBackups, RetryPolicy, SiftStream,
-    SiftStreamBuilder, TimeValue,
+    Flow, FlowConfig, IngestionConfigForm, LiveStreamingWithBackups, SiftStream, SiftStreamBuilder,
+    TimeValue,
     metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
     stream::{mode::ingestion_config::IngestionConfigEncoder, tasks::ControlMessage},
 };
