@@ -1,8 +1,7 @@
 use sift_rs::metadata;
 use sift_stream::{
     ChannelConfig, ChannelDataType, ChannelValue, Credentials, DiskBackupPolicy, Flow, FlowBuilder,
-    FlowConfig, IngestionConfigForm, RecoveryStrategy, RetryPolicy, RunForm, SiftStreamBuilder,
-    TimeValue,
+    FlowConfig, IngestionConfigForm, RunForm, SiftStreamBuilder, TimeValue,
 };
 use std::{
     env,
@@ -72,20 +71,16 @@ async fn run() -> Result<(), Box<dyn Error>> {
         metadata: Some(metadata),
     };
 
-    let recovery_strategy = RecoveryStrategy::RetryWithBackups {
-        retry_policy: RetryPolicy::default(),
-        disk_backup_policy: DiskBackupPolicy {
-            backups_dir: Some(PathBuf::from("/tmp/sift_backup")),
-            ..Default::default()
-        },
-    };
-
     // Initialize your Sift Stream
     let mut sift_stream = SiftStreamBuilder::new(credentials)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(recovery_strategy)
         .attach_run(run)
-        .build_file_backup()
+        .file_backup()
+        .disk_backup_policy(DiskBackupPolicy {
+            backups_dir: Some(PathBuf::from("/tmp/sift_backup")),
+            ..Default::default()
+        })
+        .build()
         .await?;
 
     // Stream telemetry to backup files using the [`SiftStream::send`] method.

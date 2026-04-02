@@ -3,10 +3,7 @@ use std::time::Duration;
 
 use crate::TimeValue;
 use crate::backup::DiskBackupPolicy;
-use crate::{
-    ChannelValue, Flow, FlowBuilder, IngestionConfigForm, RecoveryStrategy, RunForm,
-    SiftStreamBuilder,
-};
+use crate::{ChannelValue, Flow, FlowBuilder, IngestionConfigForm, RunForm, SiftStreamBuilder};
 use sift_rs::common::r#type::v1::ChannelDataType;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
 use tempdir::TempDir;
@@ -43,10 +40,9 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_with_run() {
     let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
         .attach_run(run)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .metrics_streaming_interval(None)
         .build()
         .await
@@ -122,10 +118,9 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_no_run() {
 
     let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .metrics_streaming_interval(None)
         .build()
         .await
@@ -212,10 +207,9 @@ async fn test_sift_stream_drop_without_finish() {
     let sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
         .attach_run(run)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .build()
         .await
         .expect("failed to build sift stream");
@@ -258,10 +252,9 @@ async fn test_sift_stream_builder_load_ingestion_config_with_no_flows() {
 
     let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .build()
         .await
         .expect("failed to build sift stream");
@@ -321,10 +314,9 @@ async fn test_sift_stream_builder_load_ingestion_config_with_flows() {
 
     let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .build()
         .await
         .expect("failed to build sift stream");
@@ -370,10 +362,9 @@ async fn test_sift_stream_builder_load_ingestion_config_with_new_flows() {
 
     let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .build()
         .await
         .expect("failed to build sift stream");
@@ -429,10 +420,9 @@ async fn test_sift_stream_try_send_smoke() {
 
     let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .metrics_streaming_interval(None)
         .build()
         .await
@@ -484,10 +474,9 @@ async fn test_sift_stream_ingestion_and_backup_channels_fill_up() {
 
     let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy,
-            disk_backup_policy,
-        })
+        .live_with_backups()
+        .retry_policy(retry_policy)
+        .disk_backup_policy(disk_backup_policy)
         .metrics_streaming_interval(None)
         .ingestion_data_channel_capacity(1)
         .backup_data_channel_capacity(1)
