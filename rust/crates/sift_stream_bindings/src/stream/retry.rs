@@ -1,8 +1,6 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
-use sift_stream::{
-    DiskBackupPolicy, RecoveryStrategy, RetryPolicy, backup::disk::RollingFilePolicy,
-};
+use sift_stream::{DiskBackupPolicy, RetryPolicy, backup::disk::RollingFilePolicy};
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -10,25 +8,22 @@ use sift_stream::{
 #[derive(Clone, Copy, Debug)]
 pub struct DurationPy {
     #[pyo3(get, set)]
-    secs: u64,
+    pub secs: u64,
     #[pyo3(get, set)]
-    nanos: u32,
+    pub nanos: u32,
 }
 
-/// Python binding for [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
-///
-/// This is a thin wrapper around the Rust `RecoveryStrategy` enum. For detailed documentation,
-/// see [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
-///
-/// A recovery strategy defines how the stream handles errors and failures, including
-/// retry policies and optional disk backups.
-///
-/// Note: PyO3 doesn't support nested enums, so this is implemented as a struct wrapper.
-#[gen_stub_pyclass]
-#[pyclass(from_py_object)]
-#[derive(Clone, Debug)]
-pub struct RecoveryStrategyPy {
-    inner: RecoveryStrategy,
+impl DurationPy {
+    pub(crate) fn from_secs(secs: u64) -> Self {
+        Self { secs, nanos: 0 }
+    }
+
+    pub(crate) fn from_millis(ms: u64) -> Self {
+        Self {
+            secs: ms / 1000,
+            nanos: ((ms % 1000) * 1_000_000) as u32,
+        }
+    }
 }
 
 /// Python binding for [`RetryPolicy`](sift_stream::RetryPolicy).
@@ -93,12 +88,6 @@ impl From<std::time::Duration> for DurationPy {
 impl From<DurationPy> for std::time::Duration {
     fn from(duration: DurationPy) -> Self {
         std::time::Duration::new(duration.secs, duration.nanos)
-    }
-}
-
-impl From<RecoveryStrategyPy> for RecoveryStrategy {
-    fn from(strategy: RecoveryStrategyPy) -> Self {
-        strategy.inner
     }
 }
 
@@ -175,37 +164,6 @@ impl DurationPy {
     #[new]
     pub fn new(secs: u64, nanos: u32) -> Self {
         Self { secs, nanos }
-    }
-}
-
-#[gen_stub_pymethods]
-#[pymethods]
-impl RecoveryStrategyPy {
-    #[staticmethod]
-    pub fn retry_only(retry_policy: RetryPolicyPy) -> Self {
-        Self {
-            inner: RecoveryStrategy::RetryOnly(retry_policy.into()),
-        }
-    }
-
-    #[staticmethod]
-    pub fn retry_with_backups(
-        retry_policy: RetryPolicyPy,
-        disk_backup_policy: DiskBackupPolicyPy,
-    ) -> Self {
-        Self {
-            inner: RecoveryStrategy::RetryWithBackups {
-                retry_policy: retry_policy.into(),
-                disk_backup_policy: disk_backup_policy.into(),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn default() -> Self {
-        Self {
-            inner: RecoveryStrategy::default(),
-        }
     }
 }
 

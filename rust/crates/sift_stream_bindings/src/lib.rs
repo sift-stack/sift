@@ -148,6 +148,10 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::FlowPy>()?;
     m.add_class::<stream::SiftStreamPy>()?;
     m.add_class::<stream::builder::SiftStreamBuilderPy>()?;
+    m.add_class::<stream::builder::StreamConfigBuilderPy>()?;
+    m.add_class::<stream::builder::LiveOnlyBuilderPy>()?;
+    m.add_class::<stream::builder::LiveWithBackupsBuilderPy>()?;
+    m.add_class::<stream::builder::FileBackupBuilderPy>()?;
     m.add_class::<stream::config::ChannelConfigPy>()?;
     m.add_class::<stream::config::ChannelIndexPy>()?;
     m.add_class::<stream::config::FlowConfigPy>()?;
@@ -166,7 +170,6 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::channel::ValuePy>()?;
     m.add_class::<stream::retry::DiskBackupPolicyPy>()?;
     m.add_class::<stream::retry::DurationPy>()?;
-    m.add_class::<stream::retry::RecoveryStrategyPy>()?;
     m.add_class::<stream::retry::RetryPolicyPy>()?;
     m.add_class::<stream::retry::RollingFilePolicyPy>()?;
     m.add_class::<stream::request::IngestWithConfigDataChannelValuePy>()?;

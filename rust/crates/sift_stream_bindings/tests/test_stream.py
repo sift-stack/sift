@@ -4,15 +4,36 @@ import pytest
 from sift_stream_bindings import (
     ChannelConfigPy,
     ChannelDataTypePy,
+    FileBackupBuilderPy,
     FlowConfigPy,
     FlowPy,
     IngestionConfigFormPy,
+    LiveOnlyBuilderPy,
+    LiveWithBackupsBuilderPy,
     RunFormPy,
     SiftStreamBuilderPy,
+    StreamConfigBuilderPy,
     TimeValuePy,
     ValuePy,
-    IngestWithConfigDataStreamRequestPy
+    IngestWithConfigDataStreamRequestPy,
 )
+
+
+def _make_ingestion_config() -> IngestionConfigFormPy:
+    channel = ChannelConfigPy(
+        name="temperature",
+        data_type=ChannelDataTypePy.Float,
+        unit="celsius",
+        description="Temperature sensor",
+        enum_types=[],
+        bit_field_elements=[],
+    )
+    flow = FlowConfigPy(name="sensors", channels=[channel])
+    return IngestionConfigFormPy(
+        asset_name="test-asset",
+        client_key="test-client-key",
+        flows=[flow],
+    )
 
 
 class TestFlow:
@@ -48,42 +69,12 @@ class TestSiftStreamBuilder:
         assert builder.uri == "https://api.example.com"
         assert builder.apikey == "test-api-key"
         assert builder.enable_tls is True
-        assert builder.ingestion_config is None
-        assert builder.recovery_strategy is None
-        assert builder.checkpoint_interval is None
 
-    def test_set_ingestion_config(self):
-        """Test setting ingestion config on builder."""
+    def test_ingestion_config_returns_stream_config_builder(self):
+        """Test that ingestion_config() advances to StreamConfigBuilderPy."""
         builder = SiftStreamBuilderPy("https://api.example.com", "test-api-key")
-
-        channel = ChannelConfigPy(
-            name="test_channel",
-            data_type=ChannelDataTypePy.Float,
-            unit="m/s",
-            description="Test channel",
-            enum_types=[],
-            bit_field_elements=[],
-        )
-
-        flow_config = FlowConfigPy(
-            name="test_flow",
-            channels=[channel],
-        )
-
-        ingestion_config = IngestionConfigFormPy(
-            asset_name="test-asset",
-            client_key="test-client-key",
-            flows=[flow_config],
-        )
-
-        builder.ingestion_config = ingestion_config
-        assert builder.ingestion_config is not None
-        assert builder.ingestion_config.asset_name == "test-asset"
-        assert builder.ingestion_config.client_key == "test-client-key"
-        assert len(builder.ingestion_config.flows) == 1
-        assert builder.ingestion_config.flows[0].name == "test_flow"
-        assert len(builder.ingestion_config.flows[0].channels) == 1
-        assert builder.ingestion_config.flows[0].channels[0].name == "test_channel"
+        config_builder = builder.ingestion_config(_make_ingestion_config())
+        assert isinstance(config_builder, StreamConfigBuilderPy)
 
     def test_set_run_form(self):
         """Test setting run form on builder."""
@@ -114,10 +105,141 @@ class TestSiftStreamBuilder:
 
     @pytest.mark.asyncio
     async def test_build_stream_no_ingestion_config(self):
-        """Test building a stream with no ingestion config."""
+        """Test that build() raises when no ingestion config is set."""
         builder = SiftStreamBuilderPy("https://api.example.com", "test-api-key")
-        with pytest.raises(RuntimeError, match="ingestion_config is required"):
+        with pytest.raises((RuntimeError, ValueError), match="ingestion_config"):
             await builder.build()
+
+
+class TestStreamConfigBuilder:
+    """Test StreamConfigBuilderPy and its mode selectors."""
+
+    def _make_config_builder(self) -> StreamConfigBuilderPy:
+        return SiftStreamBuilderPy(
+            "https://api.example.com", "test-api-key"
+        ).ingestion_config(_make_ingestion_config())
+
+    def test_live_only_returns_builder(self):
+        """Test that live_only() returns a LiveOnlyBuilderPy."""
+        config_builder = self._make_config_builder()
+        mode_builder = config_builder.live_only()
+        assert isinstance(mode_builder, LiveOnlyBuilderPy)
+
+    def test_live_with_backups_returns_builder(self):
+        """Test that live_with_backups() returns a LiveWithBackupsBuilderPy."""
+        config_builder = self._make_config_builder()
+        mode_builder = config_builder.live_with_backups()
+        assert isinstance(mode_builder, LiveWithBackupsBuilderPy)
+
+    def test_file_backup_returns_builder(self):
+        """Test that file_backup() returns a FileBackupBuilderPy."""
+        config_builder = self._make_config_builder()
+        mode_builder = config_builder.file_backup()
+        assert isinstance(mode_builder, FileBackupBuilderPy)
+
+    def test_set_run_on_config_builder(self):
+        """Test setting run info on StreamConfigBuilderPy."""
+        config_builder = self._make_config_builder()
+        config_builder.run_id = "my-run-id"
+        assert config_builder.run_id == "my-run-id"
+
+    def test_set_asset_tags_on_config_builder(self):
+        """Test setting asset tags on StreamConfigBuilderPy."""
+        config_builder = self._make_config_builder()
+        config_builder.asset_tags = ["tag1", "tag2"]
+        assert config_builder.asset_tags == ["tag1", "tag2"]
+
+
+class TestLiveOnlyBuilder:
+    """Test LiveOnlyBuilderPy default fields."""
+
+    def test_default_fields(self):
+        """Test that LiveOnlyBuilderPy initializes with expected defaults."""
+        mode_builder = (
+            SiftStreamBuilderPy("https://api.example.com", "test-api-key")
+            .ingestion_config(_make_ingestion_config())
+            .live_only()
+        )
+        assert isinstance(mode_builder.enable_compression_for_ingestion, bool)
+        assert mode_builder.enable_compression_for_ingestion is False
+        assert mode_builder.ingestion_data_channel_capacity > 0
+        assert mode_builder.control_channel_capacity > 0
+
+    def test_set_compression(self):
+        """Test toggling compression on LiveOnlyBuilderPy."""
+        mode_builder = (
+            SiftStreamBuilderPy("https://api.example.com", "test-api-key")
+            .ingestion_config(_make_ingestion_config())
+            .live_only()
+        )
+        mode_builder.enable_compression_for_ingestion = True
+        assert mode_builder.enable_compression_for_ingestion is True
+
+
+class TestLiveWithBackupsBuilder:
+    """Test LiveWithBackupsBuilderPy default fields."""
+
+    def test_default_fields(self):
+        """Test that LiveWithBackupsBuilderPy initializes with expected defaults."""
+        from sift_stream_bindings import DurationPy, RetryPolicyPy
+
+        mode_builder = (
+            SiftStreamBuilderPy("https://api.example.com", "test-api-key")
+            .ingestion_config(_make_ingestion_config())
+            .live_with_backups()
+        )
+        assert isinstance(mode_builder.checkpoint_interval, DurationPy)
+        assert isinstance(mode_builder.retry_policy, RetryPolicyPy)
+        assert mode_builder.ingestion_data_channel_capacity > 0
+        assert mode_builder.backup_data_channel_capacity > 0
+        assert mode_builder.control_channel_capacity > 0
+
+    def test_set_checkpoint_interval(self):
+        """Test setting checkpoint_interval on LiveWithBackupsBuilderPy."""
+        from sift_stream_bindings import DurationPy
+
+        mode_builder = (
+            SiftStreamBuilderPy("https://api.example.com", "test-api-key")
+            .ingestion_config(_make_ingestion_config())
+            .live_with_backups()
+        )
+        mode_builder.checkpoint_interval = DurationPy(30, 0)
+        assert mode_builder.checkpoint_interval.secs == 30
+
+
+class TestFileBackupBuilder:
+    """Test FileBackupBuilderPy default fields."""
+
+    def test_default_fields(self):
+        """Test that FileBackupBuilderPy initializes with expected defaults."""
+        from sift_stream_bindings import DiskBackupPolicyPy
+
+        mode_builder = (
+            SiftStreamBuilderPy("https://api.example.com", "test-api-key")
+            .ingestion_config(_make_ingestion_config())
+            .file_backup()
+        )
+        assert isinstance(mode_builder.disk_backup_policy, DiskBackupPolicyPy)
+        assert mode_builder.backup_data_channel_capacity > 0
+        assert mode_builder.control_channel_capacity > 0
+
+    def test_set_disk_backup_policy(self):
+        """Test setting disk_backup_policy on FileBackupBuilderPy."""
+        from sift_stream_bindings import DiskBackupPolicyPy, RollingFilePolicyPy
+
+        mode_builder = (
+            SiftStreamBuilderPy("https://api.example.com", "test-api-key")
+            .ingestion_config(_make_ingestion_config())
+            .file_backup()
+        )
+        policy = DiskBackupPolicyPy(
+            backups_dir="/tmp/test-backups",
+            max_backup_file_size=10 * 1024 * 1024,
+            rolling_file_policy=RollingFilePolicyPy(max_file_count=5),
+            retain_backups=False,
+        )
+        mode_builder.disk_backup_policy = policy
+        assert mode_builder.disk_backup_policy is not None
 
 
 class TestIngestWithConfigDataStreamRequest:

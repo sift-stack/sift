@@ -24,8 +24,7 @@ compile_error!(
 
 use sift_stream::{
     ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
-    IngestionConfigForm, MetricsServerBuilder, RecoveryStrategy, RunForm, SiftStreamBuilder,
-    TimeValue,
+    IngestionConfigForm, MetricsServerBuilder, RunForm, SiftStreamBuilder, TimeValue,
 };
 use std::{env, error::Error, net::SocketAddr, process::ExitCode, time::Duration};
 use tokio::signal;
@@ -100,8 +99,8 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // The metrics from this stream will be automatically registered with the HTTP server
     let mut sift_stream = SiftStreamBuilder::new(credentials)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::default())
         .attach_run(run)
+        .live_with_backups()
         .build()
         .await?;
 
