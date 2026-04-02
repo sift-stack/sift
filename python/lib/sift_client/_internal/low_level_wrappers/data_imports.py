@@ -90,7 +90,13 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient, WithRestClie
 
         def _do_upload() -> None:
             with open(file_path, "rb") as f:
-                response = rest_client.post(upload_url, data=f)
+                response = rest_client.post(
+                    upload_url,
+                    data=f,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{file_path.name}"'
+                    },  # Preserve original filename for server-side storage.
+                )
                 response.raise_for_status()
 
         await run_sync_function(_do_upload)
