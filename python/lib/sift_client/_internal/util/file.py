@@ -14,6 +14,32 @@ if TYPE_CHECKING:
     from sift_client.transport.rest_transport import RestClient
 
 
+def upload_file(
+    signed_url: str,
+    file_path: Path,
+    *,
+    rest_client: RestClient,
+) -> None:
+    """Upload a file to a presigned URL.
+
+    Args:
+        signed_url: The presigned URL to upload to.
+        file_path: Path to the file to upload.
+        rest_client: The SDK rest client to use for the upload.
+
+    Raises:
+        ValueError: If the upload request fails.
+    """
+    with open(file_path, "rb") as f:
+        response = rest_client.post(
+            signed_url,
+            data=f,
+            headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
+        )
+        if not response.ok:
+            raise ValueError(f"Upload failed ({response.status_code}): {response.text}")
+
+
 def download_file(
     signed_url: str,
     output_path: Path,

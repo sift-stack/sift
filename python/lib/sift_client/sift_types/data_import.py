@@ -11,6 +11,7 @@ from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_CSV,
     DATA_TYPE_KEY_HDF5,
     DATA_TYPE_KEY_PARQUET_FLATDATASET,
+    DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
     DATA_TYPE_KEY_TDMS,
 )
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
@@ -25,11 +26,6 @@ from sift_client.sift_types.channel import ChannelDataType
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-
-
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
 
 
 class TimeFormat(Enum):
@@ -62,7 +58,8 @@ class DataTypeKey(Enum):
     """Supported file types for data import detection."""
 
     CSV = DATA_TYPE_KEY_CSV
-    PARQUET = DATA_TYPE_KEY_PARQUET_FLATDATASET
+    PARQUET_FLATDATASET = DATA_TYPE_KEY_PARQUET_FLATDATASET
+    PARQUET_SINGLE_CHANNEL_PER_ROW = DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW
     TDMS = DATA_TYPE_KEY_TDMS
     CH10 = DATA_TYPE_KEY_CH10
     HDF5 = DATA_TYPE_KEY_HDF5
@@ -70,18 +67,11 @@ class DataTypeKey(Enum):
 
 EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
     ".csv": DataTypeKey.CSV,
-    ".parquet": DataTypeKey.PARQUET,
     ".tdms": DataTypeKey.TDMS,
     ".ch10": DataTypeKey.CH10,
-    ".ch11": DataTypeKey.CH10,
     ".h5": DataTypeKey.HDF5,
     ".hdf5": DataTypeKey.HDF5,
 }
-
-
-# ---------------------------------------------------------------------------
-# CSV config types
-# ---------------------------------------------------------------------------
 
 
 class CsvTimeColumn(BaseModel):
@@ -209,11 +199,6 @@ class CsvImportConfig(BaseModel):
             time_column=time_column,
             data_columns=data_columns,
         )
-
-
-# ---------------------------------------------------------------------------
-# DataImport resource type
-# ---------------------------------------------------------------------------
 
 
 class DataImport(BaseType[DataImportProto, "DataImport"]):

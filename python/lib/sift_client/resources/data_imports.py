@@ -11,12 +11,14 @@ from alive_progress import alive_bar  # type: ignore[import-untyped]
 import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
+from sift_client._internal.util.file import upload_file
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
     DataImport,
     DataImportStatus,
+    DataTypeKey,
 )
 from sift_client.util import cel_utils as cel
 
@@ -43,7 +45,6 @@ class DataImportAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = DataImportsLowLevelClient(
             grpc_client=self.client.grpc_client,
-            rest_client=self.client.rest_client,
         )
 
     async def import_from_path(
@@ -51,6 +52,7 @@ class DataImportAPIAsync(ResourceBase):
         *,
         file_path: str | Path,
         config: ImportConfig | None = None,
+        data_type: DataTypeKey | None = None,
         asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
@@ -70,8 +72,11 @@ class DataImportAPIAsync(ResourceBase):
         Args:
             file_path: Path to the local file to import.
             config: Import configuration describing the file format and column
-                mapping. When provided, ``asset_name``, ``run_name``, and
-                ``run_id`` are ignored.
+                mapping. When provided, ``asset_name``, ``run_name``,
+                ``run_id``, and ``data_type`` are ignored.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous. Only used
+                when ``config`` is not provided.
             asset_name: Name of the asset to import into. Required when
                 ``config`` is not provided.
             run_name: Optional run name. Only used when ``config`` is not
@@ -98,7 +103,7 @@ class DataImportAPIAsync(ResourceBase):
         if config is None:
             if asset_name is None:
                 raise ValueError("Either 'config' or 'asset_name' must be provided.")
-            detected = await self.detect_config(file_path)
+            detected = await self.detect_config(file_path, data_type=data_type)
             config = detected.model_copy(
                 update={
                     "asset_name": asset_name,
@@ -109,7 +114,9 @@ class DataImportAPIAsync(ResourceBase):
         data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
         logger.info("Created data import %s", data_import_id)
 
-        await self._low_level_client.upload_file(upload_url, path)
+        await run_sync_function(
+            lambda: upload_file(upload_url, path, rest_client=self.client.rest_client)
+        )
         logger.info("Uploaded file to presigned URL for import %s", data_import_id)
 
         return await self.wait_until_complete(
@@ -218,18 +225,25 @@ class DataImportAPIAsync(ResourceBase):
         )
         await self._low_level_client.retry(data_import_id)
 
-    async def detect_config(self, file_path: str | Path) -> ImportConfig:
+    async def detect_config(
+        self,
+        file_path: str | Path,
+        data_type: DataTypeKey | None = None,
+    ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
         Reads a sample of the file, sends it to the server's DetectConfig
         endpoint, and returns the detected configuration. The file format
-        is inferred from the file extension. You can inspect and modify the
-        result before passing it to :meth:`import_from_path`.
+        is inferred from the file extension when ``data_type`` is not
+        provided.
 
-        Supported extensions: .csv, .parquet, .tdms, .ch10, .ch11, .h5, .hdf5
+        For file types with multiple layouts (e.g. Parquet), ``data_type``
+        must be specified explicitly.
 
         Args:
             file_path: Path to the file to analyze.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous.
 
         Returns:
             The detected import config.
@@ -243,13 +257,17 @@ class DataImportAPIAsync(ResourceBase):
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        ext = path.suffix.lower()
-        data_type_key = EXTENSION_TO_DATA_TYPE_KEY.get(ext)
-        if data_type_key is None:
-            raise ValueError(
-                f"Unsupported file extension '{ext}'. "
-                f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}"
-            )
+        if data_type is not None:
+            data_type_key = data_type
+        else:
+            ext = path.suffix.lower()
+            data_type_key = EXTENSION_TO_DATA_TYPE_KEY.get(ext)
+            if data_type_key is None:
+                raise ValueError(
+                    f"Unsupported file extension '{ext}'. "
+                    f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}. "
+                    f"For other formats (e.g. Parquet), pass 'data_type' explicitly."
+                )
 
         def _read_sample() -> bytes:
             with open(path, "rb") as f:
