@@ -27,16 +27,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _validate_config(config: ImportConfig) -> None:
-    """Validate an import config before sending it to the server."""
-    if isinstance(config, CsvImportConfig):
-        tc = config.time_column
-        if tc.format.name.startswith("RELATIVE_") and tc.relative_start_time is None:
-            raise ValueError(
-                f"'relative_start_time' is required when using a relative time format ({tc.format.name})."
-            )
-
-
 class DataImportAPIAsync(ResourceBase):
     """High-level API for importing data into Sift.
 
@@ -112,12 +102,10 @@ class DataImportAPIAsync(ResourceBase):
             config = detected.model_copy(
                 update={
                     "asset_name": asset_name,
-                    "run_name": run_name if run_name or run_id else path.name,
+                    "run_name": run_name if run_name or run_id else path.stem,
                     "run_id": run_id,
                 }
             )
-
-        _validate_config(config)
         data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
         logger.info("Created data import %s", data_import_id)
 
@@ -158,7 +146,6 @@ class DataImportAPIAsync(ResourceBase):
         Returns:
             A :class:`DataImport` representing the import operation.
         """
-        _validate_config(config)
         data_import_id = await self._low_level_client.create_from_url(url, config)
         logger.info("Created URL-based data import %s", data_import_id)
 

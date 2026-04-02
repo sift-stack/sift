@@ -4,7 +4,7 @@ from datetime import datetime  # noqa: TC003
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_CH10,
@@ -107,6 +107,14 @@ class CsvTimeColumn(BaseModel):
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
         return proto
+
+    @model_validator(mode="after")
+    def _check_relative_start_time(self) -> CsvTimeColumn:
+        if self.format.name.startswith("RELATIVE_") and self.relative_start_time is None:
+            raise ValueError(
+                f"'relative_start_time' is required when using a relative time format ({self.format.name})."
+            )
+        return self
 
 
 class CsvDataColumn(BaseModel):
