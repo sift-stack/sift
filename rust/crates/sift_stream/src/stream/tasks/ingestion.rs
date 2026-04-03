@@ -1,19 +1,15 @@
 use crate::{
-    DiskBackupPolicy, Flow, FlowConfig, IngestionConfigForm, RecoveryStrategy, RetryPolicy,
-    SiftStream, SiftStreamBuilder, TimeValue,
+    RetryPolicy,
     backup::disk::{AsyncBackupsManager, BackupIngestTask},
-    metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
-    stream::mode::ingestion_config::{DataStream, IngestionConfigEncoder},
+    metrics::SiftStreamMetrics,
+    stream::mode::ingestion_config::DataStream,
 };
 use async_channel;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
-use sift_rs::{
-    CompressionEncoding,
-    ingest::v1::{IngestWithConfigDataStreamRequest, ingest_service_client::IngestServiceClient},
-};
+use sift_rs::{CompressionEncoding, ingest::v1::ingest_service_client::IngestServiceClient};
 use std::{
-    path::PathBuf,
+    future::Future,
     pin::Pin,
     sync::{
         Arc,
@@ -21,55 +17,10 @@ use std::{
     },
     time::Duration,
 };
-use tokio::{select, sync::broadcast, task::JoinHandle, time::Instant};
+use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
-/// Capacity for the data channel.
-pub(crate) const DATA_CHANNEL_CAPACITY: usize = 1024 * 100;
-
-/// Capacity for the control channel.
-pub(crate) const CONTROL_CHANNEL_CAPACITY: usize = 1024;
-
-/// Timeout for the checkpoint operation to complete.
-pub(crate) const CHECKPOINT_TIMEOUT: Duration = Duration::from_secs(10);
-
-/// Control messages sent between tasks via broadcast channel
-/// These are low-frequency control messages, not high-volume data messages
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ControlMessage {
-    /// Signal that the backup is full and a new checkpoint should be started.
-    BackupFull,
-
-    /// Request to re-ingest backup files
-    ReingestBackups { backup_files: Vec<PathBuf> },
-
-    /// Signal the next checkpoint.
-    SignalNextCheckpoint,
-
-    /// Signal to complete the checkpoint.
-    CheckpointComplete {
-        first_message_id: u64,
-        last_message_id: u64,
-    },
-
-    /// Signal the checkpoint needs re-ingestion.
-    CheckpointNeedsReingestion {
-        first_message_id: u64,
-        last_message_id: u64,
-    },
-
-    /// Shutdown signal for all tasks
-    Shutdown,
-}
-
-#[derive(Clone)]
-pub(crate) struct RecoveryConfig {
-    pub(crate) retry_policy: RetryPolicy,
-    pub(crate) backups_enabled: bool,
-    pub(crate) backups_directory: String,
-    pub(crate) backups_prefix: String,
-    pub(crate) backup_policy: DiskBackupPolicy,
-}
+use super::{CHECKPOINT_TIMEOUT, ControlMessage, DataMessage, RecoveryConfig};
 
 /// Configuration for the task-based SiftStream
 #[derive(Clone)]
@@ -87,14 +38,6 @@ pub(crate) struct TaskConfig {
     pub(crate) ingestion_data_channel_capacity: usize,
     pub(crate) backup_data_channel_capacity: usize,
     pub(crate) metrics_streaming_interval: Option<Duration>,
-}
-
-/// Data message with stream ID for routing
-#[derive(Debug, Clone)]
-pub(crate) struct DataMessage {
-    pub(crate) message_id: u64,
-    pub(crate) request: Arc<IngestWithConfigDataStreamRequest>,
-    pub(crate) dropped_for_ingestion: bool,
 }
 
 /// Handles for the three main tasks
@@ -198,7 +141,7 @@ pub(crate) async fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let metrics_control_rx = control_tx.subscribe();
     let metrics_streaming = if let Some(interval) = config.metrics_streaming_interval {
         let metrics_task =
-            MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
+            super::MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
         Some(tokio::spawn(async move {
             #[cfg(feature = "tracing")]
             tracing::info!(
@@ -509,146 +452,14 @@ impl IngestionTask {
     }
 }
 
-/// The asset to stream metrics for.
-const METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME: &str = "sift_app";
-
-/// The client key used for sift_stream metrics ingestion config.
-const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics";
-
-/// The flow name used for sift_stream metrics flow config.
-const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
-
-pub(crate) struct MetricsStreamingTask {
-    stream: SiftStream<IngestionConfigEncoder>,
-    control_rx: broadcast::Receiver<ControlMessage>,
-    session_name: String,
-    interval: Duration,
-    metrics: Arc<SiftStreamMetrics>,
-}
-
-impl MetricsStreamingTask {
-    pub(crate) async fn new(
-        control_rx: broadcast::Receiver<ControlMessage>,
-        interval: Duration,
-        config: TaskConfig,
-    ) -> Result<Self> {
-        use std::hash::{Hash, Hasher};
-        let session_name = config.session_name;
-
-        let channels = SiftStreamMetricsSnapshot::channel_configs(&session_name);
-
-        // Hash the channel names to create a unique client key for the ingestion config.
-        //
-        // Given the same "session_name", which influences the channel names, and the same metrics configuration,
-        // the ingestion config client key should be the same and re-used.
-        let mut hasher = std::hash::DefaultHasher::new();
-        channels.iter().for_each(|channel| {
-            channel.name.hash(&mut hasher);
-        });
-        let hash_key = hasher.finish();
-
-        let client_key = format!(
-            "{}-{}",
-            METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY, hash_key
-        );
-
-        let ingestion_config = IngestionConfigForm {
-            asset_name: METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME.to_string(),
-            client_key,
-            flows: vec![FlowConfig {
-                name: METRICS_STREAMING_FLOW_NAME.to_string(),
-                channels: SiftStreamMetricsSnapshot::channel_configs(&session_name),
-            }],
-        };
-
-        // Build a new [`SiftStream`] that is responsible for streaming metrics to Sift.
-        //
-        // Most builder parameters are carried over from the main stream being monitored, however,
-        // the differences are noted below:
-        //
-        // - Channel capacities are substantially lower since this stream deals with less throughput.
-        // - Metrics streaming interval is set to `None` to disable streaming.
-        // - The `setup-channel` is used for all gRPC channels in this stream since they are less
-        //   critical and thus can be multiplexed over a single connection.
-        //
-        // NOTE: The build future is boxed/pinned due to async recursion -- generally a sift-stream
-        // instance will be spawning a second sift-stream instance for streaming it's own metrics though
-        // the limit of recursion here is 2 since the metrics-streaming sift-stream doesn't itself
-        // spawn another sift-stream instance. Since this is only done during initialization, it is fine.
-        let stream_fut = Box::pin(
-            SiftStreamBuilder::from_channel(config.setup_channel.clone())
-                .metrics_streaming_interval(None)
-                .ingestion_config(ingestion_config)
-                .control_channel_capacity(100)
-                .ingestion_data_channel_capacity(1000)
-                .backup_data_channel_capacity(1000)
-                .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-                    retry_policy: config.recovery_config.retry_policy,
-                    disk_backup_policy: config.recovery_config.backup_policy,
-                })
-                .build(),
-        );
-
-        let stream = stream_fut.await?;
-
-        Ok(Self {
-            stream,
-            control_rx,
-            session_name,
-            interval,
-            metrics: config.metrics.clone(),
-        })
-    }
-
-    pub(crate) async fn run(mut self) -> Result<()> {
-        let mut interval = tokio::time::interval(self.interval);
-
-        loop {
-            select! {
-                _ = interval.tick() => {
-                    let metrics = self.metrics.snapshot();
-                    let values = metrics.channel_values(&self.session_name);
-                    let flow = Flow::new(METRICS_STREAMING_FLOW_NAME, TimeValue::now(), &values);
-                    self.stream.send(flow).await.map_err(|e| {
-                        Error::new_msg(ErrorKind::StreamError, e.to_string())
-                    })?;
-                }
-                ctrl_msg = self.control_rx.recv() => {
-                    match ctrl_msg {
-                        Ok(ControlMessage::Shutdown) => {
-                            break;
-                        }
-                        Err(e) => {
-                            #[cfg(feature = "tracing")]
-                            tracing::error!(
-                                error = %e,
-                                "metrics streaming task received error on control channel"
-                            );
-                            break;
-                        }
-                        _ => continue,
-                    }
-                }
-            }
-        }
-
-        #[cfg(feature = "tracing")]
-        tracing::info!("metrics streaming task shutting down");
-
-        self.stream
-            .finish()
-            .await
-            .map_err(|e| Error::new(ErrorKind::StreamError, e))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use sift_rs::ingest::v1::{
-        IngestWithConfigDataChannelValue, ingest_with_config_data_channel_value::Type,
+        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+        ingest_with_config_data_channel_value::Type,
     };
 
-    use crate::TimeValue;
+    use crate::{DiskBackupPolicy, TimeValue};
 
     use super::*;
 
