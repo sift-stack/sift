@@ -455,10 +455,11 @@ impl IngestionTask {
 #[cfg(test)]
 mod tests {
     use sift_rs::ingest::v1::{
-        IngestWithConfigDataChannelValue, ingest_with_config_data_channel_value::Type,
+        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+        ingest_with_config_data_channel_value::Type,
     };
 
-    use crate::TimeValue;
+    use crate::{DiskBackupPolicy, TimeValue};
 
     use super::*;
 
