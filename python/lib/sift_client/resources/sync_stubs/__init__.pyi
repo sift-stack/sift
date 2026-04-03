@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     import pandas as pd
     import pyarrow as pa
 
+    from sift_client._internal.low_level_wrappers.data_imports import (
+        ImportConfig,
+    )
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset, AssetUpdate
     from sift_client.sift_types.calculated_channel import (
@@ -21,6 +24,9 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.data_import import (
+        DataTypeKey,
+    )
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
@@ -618,6 +624,93 @@ class DataExportAPI:
 
         Returns:
             A Job handle for the pending export.
+        """
+        ...
+
+class DataImportAPI:
+    """Sync counterpart to `DataImportAPIAsync`.
+
+    High-level API for importing data into Sift.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the DataImportAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def detect_config(
+        self, file_path: str | Path, data_type: DataTypeKey | None = None
+    ) -> ImportConfig:
+        """Auto-detect import configuration from a file.
+
+        Reads a sample of the file, sends it to the server's DetectConfig
+        endpoint, and returns the detected configuration. The file format
+        is inferred from the file extension when ``data_type`` is not
+        provided.
+
+        For file types with multiple layouts (e.g. Parquet), ``data_type``
+        must be specified explicitly.
+
+        Args:
+            file_path: Path to the file to analyze.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous.
+
+        Returns:
+            The detected import config.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file extension is unsupported or detection
+                returns no config.
+        """
+        ...
+
+    def import_from_path(
+        self,
+        file_path: str | Path,
+        *,
+        config: ImportConfig | None = None,
+        data_type: DataTypeKey | None = None,
+        asset_name: str | None = None,
+        run_name: str | None = None,
+        run_id: str | None = None,
+    ) -> Job:
+        """Import data from a local file.
+
+        Creates a data import on the server, uploads the file, and returns
+        a :class:`Job` handle. Use ``job.wait_until_complete()`` to poll
+        for completion.
+
+        When ``config`` is omitted the file format is auto-detected via
+        :meth:`detect_config` and a :class:`CsvImportConfig` is built using
+        the provided ``asset_name`` and optional ``run_name`` / ``run_id``.
+
+        Args:
+            file_path: Path to the local file to import.
+            config: Import configuration describing the file format and column
+                mapping. When provided, ``asset_name``, ``run_name``,
+                ``run_id``, and ``data_type`` are ignored.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous. Only used
+                when ``config`` is not provided.
+            asset_name: Name of the asset to import into. Required when
+                ``config`` is not provided.
+            run_name: Optional run name. Only used when ``config`` is not
+                provided.
+            run_id: Optional existing run ID. Only used when ``config`` is not
+                provided.
+
+        Returns:
+            A :class:`Job` handle for the pending import.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If neither ``config`` nor ``asset_name`` is provided.
         """
         ...
 
