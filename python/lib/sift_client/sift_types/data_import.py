@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime  # noqa: TC003
 from enum import Enum
-from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
@@ -16,16 +15,10 @@ from sift.data_imports.v2.data_imports_pb2 import (
 )
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
-from sift.data_imports.v2.data_imports_pb2 import DataImport as DataImportProto
-from sift.data_imports.v2.data_imports_pb2 import DataImportStatus as DataImportStatusProto
 from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
 
 from sift_client._internal.util.timestamp import to_pb_timestamp
-from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelDataType
-
-if TYPE_CHECKING:
-    from sift_client.client import SiftClient
 
 
 class TimeFormat(Enum):
@@ -43,15 +36,6 @@ class TimeFormat(Enum):
     ABSOLUTE_UNIX_MILLISECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS
     ABSOLUTE_UNIX_MICROSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS
     ABSOLUTE_UNIX_NANOSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS
-
-
-class DataImportStatus(Enum):
-    """Status of a data import."""
-
-    PENDING = DataImportStatusProto.DATA_IMPORT_STATUS_PENDING
-    IN_PROGRESS = DataImportStatusProto.DATA_IMPORT_STATUS_IN_PROGRESS
-    SUCCEEDED = DataImportStatusProto.DATA_IMPORT_STATUS_SUCCEEDED
-    FAILED = DataImportStatusProto.DATA_IMPORT_STATUS_FAILED
 
 
 class DataTypeKey(Enum):
@@ -199,98 +183,3 @@ class CsvImportConfig(BaseModel):
             time_column=time_column,
             data_columns=data_columns,
         )
-
-
-class DataImport(BaseType[DataImportProto, "DataImport"]):
-    """A data import in the Sift system.
-
-    Represents the status and metadata of an import operation. Use
-    ``client.data_import.import_from_path()`` to create one, or
-    ``client.data_import.get()`` to retrieve an existing import by ID.
-    """
-
-    # Required fields
-    status: DataImportStatus
-    created_date: datetime
-    modified_date: datetime
-
-    # Optional fields
-    error_message: str | None
-    run_id: str | None
-    report_id: str | None
-    asset_id: str | None
-    data_start_time: datetime | None
-    data_stop_time: datetime | None
-
-    # Config used for this import
-    csv_config: CsvImportConfig | None
-
-    @classmethod
-    def _from_proto(
-        cls, proto: DataImportProto, sift_client: SiftClient | None = None
-    ) -> DataImport:
-        from datetime import timezone
-
-        return cls(
-            proto=proto,
-            id_=proto.data_import_id,
-            status=DataImportStatus(proto.status),
-            error_message=proto.error_message or None,
-            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
-            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
-            run_id=proto.run_id if proto.HasField("_run_id") else None,
-            report_id=proto.report_id if proto.HasField("_report_id") else None,
-            asset_id=proto.asset_id if proto.HasField("_asset_id") else None,
-            data_start_time=(
-                proto.data_start_time.ToDatetime(tzinfo=timezone.utc)
-                if proto.HasField("_data_start_time")
-                else None
-            ),
-            data_stop_time=(
-                proto.data_stop_time.ToDatetime(tzinfo=timezone.utc)
-                if proto.HasField("_data_stop_time")
-                else None
-            ),
-            csv_config=(
-                CsvImportConfig._from_proto(proto.csv_config)
-                if proto.HasField("csv_config")
-                else None
-            ),
-            _client=sift_client,
-        )
-
-    @property
-    def is_pending(self) -> bool:
-        """Return True if the import is pending."""
-        return self.status == DataImportStatus.PENDING
-
-    @property
-    def is_in_progress(self) -> bool:
-        """Return True if the import is in progress."""
-        return self.status == DataImportStatus.IN_PROGRESS
-
-    @property
-    def is_succeeded(self) -> bool:
-        """Return True if the import succeeded."""
-        return self.status == DataImportStatus.SUCCEEDED
-
-    @property
-    def is_failed(self) -> bool:
-        """Return True if the import failed."""
-        return self.status == DataImportStatus.FAILED
-
-    @property
-    def is_complete(self) -> bool:
-        """Return True if the import reached a terminal state (succeeded or failed)."""
-        return self.status in (DataImportStatus.SUCCEEDED, DataImportStatus.FAILED)
-
-    def refresh(self) -> DataImport:
-        """Refresh this import with the latest data from the API."""
-        updated = self.client.data_import.get(self._id_or_error)
-        self._update(updated)
-        return self
-
-    def retry(self) -> None:
-        """Retry a failed import."""
-        self.client.data_import.retry(self._id_or_error)
-        self.refresh()

@@ -24,7 +24,9 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
-    from sift_client.sift_types.data_import import DataImport, DataImportStatus
+    from sift_client.sift_types.data_import import (
+        DataTypeKey,
+    )
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
@@ -629,9 +631,6 @@ class DataImportAPI:
     """Sync counterpart to `DataImportAPIAsync`.
 
     High-level API for importing data into Sift.
-
-    Supports importing data from local files or remote URLs. Returns a
-    `DataImport` object that can be polled for status.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -643,18 +642,23 @@ class DataImportAPI:
         ...
 
     def _run(self, coro): ...
-    def detect_config(self, file_path: str | Path) -> ImportConfig:
+    def detect_config(
+        self, file_path: str | Path, data_type: DataTypeKey | None = None
+    ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
         Reads a sample of the file, sends it to the server's DetectConfig
         endpoint, and returns the detected configuration. The file format
-        is inferred from the file extension. You can inspect and modify the
-        result before passing it to :meth:`import_from_path`.
+        is inferred from the file extension when ``data_type`` is not
+        provided.
 
-        Supported extensions: .csv, .parquet, .tdms, .ch10, .ch11, .h5, .hdf5
+        For file types with multiple layouts (e.g. Parquet), ``data_type``
+        must be specified explicitly.
 
         Args:
             file_path: Path to the file to analyze.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous.
 
         Returns:
             The detected import config.
@@ -666,31 +670,21 @@ class DataImportAPI:
         """
         ...
 
-    def get(self, data_import_id: str) -> DataImport:
-        """Get a data import by ID.
-
-        Args:
-            data_import_id: The ID of the data import.
-
-        Returns:
-            The DataImport.
-        """
-        ...
-
     def import_from_path(
         self,
-        *,
         file_path: str | Path,
+        *,
         config: ImportConfig | None = None,
+        data_type: DataTypeKey | None = None,
         asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
-    ) -> DataImport:
+    ) -> Job:
         """Import data from a local file.
 
-        Creates a data import on the server and uploads the file to the
-        returned presigned URL. Returns a :class:`DataImport` that can be
-        polled for status via ``data_import.refresh()``.
+        Creates a data import on the server, uploads the file, and returns
+        a :class:`Job` handle. Use ``job.wait_until_complete()`` to poll
+        for completion.
 
         When ``config`` is omitted the file format is auto-detected via
         :meth:`detect_config` and a :class:`CsvImportConfig` is built using
@@ -699,8 +693,11 @@ class DataImportAPI:
         Args:
             file_path: Path to the local file to import.
             config: Import configuration describing the file format and column
-                mapping. When provided, ``asset_name``, ``run_name``, and
-                ``run_id`` are ignored.
+                mapping. When provided, ``asset_name``, ``run_name``,
+                ``run_id``, and ``data_type`` are ignored.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous. Only used
+                when ``config`` is not provided.
             asset_name: Name of the asset to import into. Required when
                 ``config`` is not provided.
             run_name: Optional run name. Only used when ``config`` is not
@@ -709,83 +706,11 @@ class DataImportAPI:
                 provided.
 
         Returns:
-            A :class:`DataImport` representing the import operation.
+            A :class:`Job` handle for the pending import.
 
         Raises:
             FileNotFoundError: If the file does not exist.
             ValueError: If neither ``config`` nor ``asset_name`` is provided.
-        """
-        ...
-
-    def import_from_url(self, *, url: str, config: ImportConfig) -> DataImport:
-        """Import data from a remote URL (HTTP or S3).
-
-        Returns a :class:`DataImport` that can be polled for status via
-        ``data_import.refresh()``.
-
-        Args:
-            url: The URL to import from.
-            config: Import configuration describing the file format and column
-                mapping.
-
-        Returns:
-            A :class:`DataImport` representing the import operation.
-        """
-        ...
-
-    def list_(
-        self,
-        *,
-        data_import_ids: list[str] | None = None,
-        status: DataImportStatus | None = None,
-        filter_query: str | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-    ) -> list[DataImport]:
-        """List data imports with optional filtering.
-
-        Args:
-            data_import_ids: Filter to imports with any of these IDs.
-            status: Filter to imports with this status.
-            filter_query: Explicit CEL filter string.
-            order_by: Ordering string (e.g. "created_date desc").
-            limit: Maximum number of imports to return. If None, returns all.
-
-        Returns:
-            A list of DataImport objects matching the filter criteria.
-        """
-        ...
-
-    def retry(self, data_import: str | DataImport) -> None:
-        """Retry a failed data import.
-
-        Only works for URL-based imports in a failed state.
-
-        Args:
-            data_import: The DataImport or data_import_id to retry.
-        """
-        ...
-
-    def wait_until_complete(
-        self,
-        data_import: str | DataImport,
-        *,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-    ) -> DataImport:
-        """Wait until a data import reaches a terminal state.
-
-        Polls the import status at the given interval until the import is
-        SUCCEEDED or FAILED, returning the completed DataImport.
-
-        Args:
-            data_import: The DataImport or data_import_id to wait for.
-            polling_interval_secs: Seconds between status polls. Defaults to 5s.
-            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-                Defaults to None (indefinite).
-
-        Returns:
-            The DataImport in its terminal state.
         """
         ...
 

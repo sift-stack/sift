@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, cast
 
 from sift.data_imports.v2.data_imports_pb2 import (
@@ -8,16 +7,11 @@ from sift.data_imports.v2.data_imports_pb2 import (
     CreateDataImportFromUploadResponse,
     DetectConfigRequest,
     DetectConfigResponse,
-    GetDataImportRequest,
-    GetDataImportResponse,
-    ListDataImportsRequest,
-    ListDataImportsResponse,
-    RetryDataImportRequest,
 )
 from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.data_import import CsvImportConfig, DataImport
+from sift_client.sift_types.data_import import CsvImportConfig
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
@@ -38,9 +32,6 @@ def _set_config_on_request(
         request.csv_config.CopyFrom(config._to_proto())
     else:
         raise TypeError(f"Unsupported import config type: {type(config).__name__}")
-
-
-logger = logging.getLogger(__name__)
 
 
 class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -69,87 +60,6 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("CreateDataImportFromUploadResponse", response)
         return response.data_import_id, response.upload_url
 
-    async def get(self, data_import_id: str) -> DataImport:
-        """Get a data import by ID.
-
-        Args:
-            data_import_id: The ID of the data import.
-
-        Returns:
-            The DataImport.
-        """
-        request = GetDataImportRequest(data_import_id=data_import_id)
-        response = await self._grpc_client.get_stub(DataImportServiceStub).GetDataImport(request)
-        response = cast("GetDataImportResponse", response)
-        return DataImport._from_proto(response.data_import)
-
-    async def list_(
-        self,
-        *,
-        page_size: int | None = None,
-        page_token: str | None = None,
-        query_filter: str = "",
-        order_by: str = "",
-    ) -> tuple[list[DataImport], str]:
-        """List data imports with optional filtering and pagination.
-
-        Args:
-            page_size: Maximum number of results per page.
-            page_token: Token for the next page of results.
-            query_filter: CEL filter string.
-            order_by: Ordering string (e.g. "created_date desc").
-
-        Returns:
-            A tuple of (list of DataImports, next_page_token).
-        """
-        request = ListDataImportsRequest(
-            filter=query_filter,
-            order_by=order_by,
-        )
-        if page_size is not None:
-            request.page_size = page_size
-        if page_token:
-            request.page_token = page_token
-
-        response = await self._grpc_client.get_stub(DataImportServiceStub).ListDataImports(request)
-        response = cast("ListDataImportsResponse", response)
-        data_imports = [DataImport._from_proto(di) for di in response.data_imports]
-        return data_imports, response.next_page_token
-
-    async def list_all(
-        self,
-        *,
-        query_filter: str = "",
-        order_by: str = "",
-        max_results: int | None = None,
-    ) -> list[DataImport]:
-        """List all data imports, handling pagination automatically.
-
-        Args:
-            query_filter: CEL filter string.
-            order_by: Ordering string (e.g. "created_date desc").
-            max_results: Maximum total results to return.
-
-        Returns:
-            A list of all matching DataImports.
-        """
-        return await self._handle_pagination(
-            func=self.list_,
-            kwargs={"query_filter": query_filter, "order_by": order_by},
-            max_results=max_results,
-        )
-
-    async def retry(self, data_import_id: str) -> None:
-        """Retry a failed data import.
-
-        Only works for URL-based imports in a failed state.
-
-        Args:
-            data_import_id: The ID of the data import to retry.
-        """
-        request = RetryDataImportRequest(data_import_id=data_import_id)
-        await self._grpc_client.get_stub(DataImportServiceStub).RetryDataImport(request)
-
     async def detect_config(
         self, data: bytes, data_type_key: DataTypeKey.ValueType
     ) -> DetectConfigResponse:
@@ -160,8 +70,7 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             data_type_key: The file type hint.
 
         Returns:
-            The raw DetectConfigResponse proto. The caller (resource API)
-            is responsible for converting to a sift_type.
+            The raw DetectConfigResponse proto.
         """
         request = DetectConfigRequest(data=data, type=data_type_key)
         response = await self._grpc_client.get_stub(DataImportServiceStub).DetectConfig(request)

@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-import asyncio
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from alive_progress import alive_bar  # type: ignore[import-untyped]
-
-import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import upload_file
@@ -15,23 +10,17 @@ from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
-    DataImport,
-    DataImportStatus,
     DataTypeKey,
 )
-from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client._internal.low_level_wrappers.data_imports import ImportConfig
     from sift_client.client import SiftClient
+    from sift_client.sift_types.job import Job
 
 
 class DataImportAPIAsync(ResourceBase):
-    """High-level API for importing data into Sift.
-
-    Supports importing data from local files. Returns a
-    `DataImport` object that can be polled for status.
-    """
+    """High-level API for importing data into Sift."""
 
     def __init__(self, sift_client: SiftClient):
         """Initialize the DataImportAPI.
@@ -46,21 +35,19 @@ class DataImportAPIAsync(ResourceBase):
 
     async def import_from_path(
         self,
-        *,
         file_path: str | Path,
+        *,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-        show_progress: bool | None = None,
-    ) -> DataImport:
+    ) -> Job:
         """Import data from a local file.
 
-        Creates a data import on the server, uploads the file, and waits
-        for the import to complete. Returns the completed :class:`DataImport`.
+        Creates a data import on the server, uploads the file, and returns
+        a :class:`Job` handle. Use ``job.wait_until_complete()`` to poll
+        for completion.
 
         When ``config`` is omitted the file format is auto-detected via
         :meth:`detect_config` and a :class:`CsvImportConfig` is built using
@@ -80,14 +67,9 @@ class DataImportAPIAsync(ResourceBase):
                 provided.
             run_id: Optional existing run ID. Only used when ``config`` is not
                 provided.
-            polling_interval_secs: Seconds between status polls. Defaults to 5s.
-            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-            show_progress: If True, display a progress spinner while waiting
-                for the import to complete. Defaults to True for sync, False
-                for async.
 
         Returns:
-            A :class:`DataImport` representing the import operation.
+            A :class:`Job` handle for the pending import.
 
         Raises:
             FileNotFoundError: If the file does not exist.
@@ -108,79 +90,14 @@ class DataImportAPIAsync(ResourceBase):
                     "run_id": run_id,
                 }
             )
-        data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
+        _, upload_url = await self._low_level_client.create_from_upload(config)
 
-        await run_sync_function(
+        response = await run_sync_function(
             lambda: upload_file(upload_url, path, rest_client=self.client.rest_client)
         )
-        # job_id = response["job_id"]
+        job_id = response["job_id"]
 
-        return await self.wait_until_complete(
-            data_import_id,
-            polling_interval_secs=polling_interval_secs,
-            timeout_secs=timeout_secs,
-            show_progress=show_progress,
-        )
-
-    async def get(self, data_import_id: str) -> DataImport:
-        """Get a data import by ID.
-
-        Args:
-            data_import_id: The ID of the data import.
-
-        Returns:
-            The DataImport.
-        """
-        data_import = await self._low_level_client.get(data_import_id)
-        return self._apply_client_to_instance(data_import)
-
-    async def list_(
-        self,
-        *,
-        data_import_ids: list[str] | None = None,
-        status: DataImportStatus | None = None,
-        filter_query: str | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-    ) -> list[DataImport]:
-        """List data imports with optional filtering.
-
-        Args:
-            data_import_ids: Filter to imports with any of these IDs.
-            status: Filter to imports with this status.
-            filter_query: Explicit CEL filter string.
-            order_by: Ordering string (e.g. "created_date desc").
-            limit: Maximum number of imports to return. If None, returns all.
-
-        Returns:
-            A list of DataImport objects matching the filter criteria.
-        """
-        filter_parts = []
-        if data_import_ids:
-            filter_parts.append(cel.in_("data_import_id", data_import_ids))
-        if status is not None:
-            filter_parts.append(cel.equals("status", str(status.value)))
-        if filter_query:
-            filter_parts.append(filter_query)
-        query_filter = cel.and_(*filter_parts)
-
-        data_imports = await self._low_level_client.list_all(
-            query_filter=query_filter or "",
-            order_by=order_by or "",
-            max_results=limit,
-        )
-        return self._apply_client_to_instances(data_imports)
-
-    async def retry(self, data_import: str | DataImport) -> None:
-        """Retry a failed data import.
-
-        Args:
-            data_import: The DataImport or data_import_id to retry.
-        """
-        data_import_id = (
-            data_import._id_or_error if isinstance(data_import, DataImport) else data_import
-        )
-        await self._low_level_client.retry(data_import_id)
+        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def detect_config(
         self,
@@ -214,16 +131,22 @@ class DataImportAPIAsync(ResourceBase):
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        if data_type is not None:
+        ext = path.suffix.lower()
+        if ext in (".parquet", ".pqt"):
+            if data_type is None:
+                raise ValueError(
+                    "Parquet files require 'data_type' to be specified. "
+                    "Use DataTypeKey.PARQUET_FLATDATASET or DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW."
+                )
+            data_type_key = data_type
+        elif data_type is not None:
             data_type_key = data_type
         else:
-            ext = path.suffix.lower()
             data_type_key = EXTENSION_TO_DATA_TYPE_KEY.get(ext)
             if data_type_key is None:
                 raise ValueError(
                     f"Unsupported file extension '{ext}'. "
-                    f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}. "
-                    f"For other formats (e.g. Parquet), pass 'data_type' explicitly."
+                    f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}"
                 )
 
         def _read_sample() -> bytes:
@@ -248,64 +171,3 @@ class DataImportAPIAsync(ResourceBase):
         # TODO: Add other file format configs
 
         raise ValueError("Server returned an empty DetectConfig response.")
-
-    async def wait_until_complete(
-        self,
-        data_import: str | DataImport,
-        *,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-        show_progress: bool | None = None,
-    ) -> DataImport:
-        """Wait until a data import reaches a terminal state.
-
-        Polls the import status at the given interval until the import is
-        SUCCEEDED or FAILED, returning the completed DataImport.
-
-        Args:
-            data_import: The DataImport or data_import_id to wait for.
-            polling_interval_secs: Seconds between status polls. Defaults to 5s.
-            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-                Defaults to None (indefinite).
-            show_progress: If True, display an animated progress spinner alongside
-                the import status while polling. Defaults to True for sync, False
-                for async. Use ``sift_client.config.show_progress = False`` to disable
-                globally for sync.
-
-        Returns:
-            The DataImport in its terminal state.
-        """
-        data_import_id = (
-            data_import._id_or_error if isinstance(data_import, DataImport) else data_import
-        )
-        if show_progress is None:
-            global_setting = _sift_client_module.config.show_progress
-            if global_setting is not None:
-                show_progress = global_setting
-            elif getattr(self, "_is_sync", False):
-                show_progress = True
-            else:
-                show_progress = False
-
-        start = time.monotonic()
-        with alive_bar(
-            title=f"Data Import ID {data_import_id}: polling",
-            bar=None,
-            spinner_length=7,
-            spinner="dots_waves",
-            monitor=False,
-            stats=False,
-            disable=not show_progress,
-        ) as bar:
-            while True:
-                result = await self.get(data_import_id)
-                bar.title(f"Data Import ID {data_import_id}: {result.status.name}")
-                bar()
-                if result.is_complete:
-                    return result
-                if timeout_secs is not None and (time.monotonic() - start) >= timeout_secs:
-                    raise TimeoutError(
-                        f"Data import '{data_import_id}' did not complete "
-                        f"within {timeout_secs} seconds."
-                    )
-                await asyncio.sleep(polling_interval_secs)
