@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -26,13 +25,11 @@ if TYPE_CHECKING:
     from sift_client._internal.low_level_wrappers.data_imports import ImportConfig
     from sift_client.client import SiftClient
 
-logger = logging.getLogger(__name__)
-
 
 class DataImportAPIAsync(ResourceBase):
     """High-level API for importing data into Sift.
 
-    Supports importing data from local files or remote URLs. Returns a
+    Supports importing data from local files. Returns a
     `DataImport` object that can be polled for status.
     """
 
@@ -112,49 +109,11 @@ class DataImportAPIAsync(ResourceBase):
                 }
             )
         data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
-        logger.info("Created data import %s", data_import_id)
 
         await run_sync_function(
             lambda: upload_file(upload_url, path, rest_client=self.client.rest_client)
         )
-        logger.info("Uploaded file to presigned URL for import %s", data_import_id)
-
-        return await self.wait_until_complete(
-            data_import_id,
-            polling_interval_secs=polling_interval_secs,
-            timeout_secs=timeout_secs,
-            show_progress=show_progress,
-        )
-
-    async def import_from_url(
-        self,
-        *,
-        url: str,
-        config: ImportConfig,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-        show_progress: bool | None = None,
-    ) -> DataImport:
-        """Import data from a remote URL (HTTP or S3).
-
-        Returns a :class:`DataImport` that can be polled for status via
-        ``data_import.refresh()``.
-
-        Args:
-            url: The URL to import from.
-            config: Import configuration describing the file format and column
-                mapping.
-            polling_interval_secs: Seconds between status polls. Defaults to 5s.
-            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-            show_progress: If True, display a progress spinner while waiting
-                for the import to complete. Defaults to True for sync, False
-                for async.
-
-        Returns:
-            A :class:`DataImport` representing the import operation.
-        """
-        data_import_id = await self._low_level_client.create_from_url(url, config)
-        logger.info("Created URL-based data import %s", data_import_id)
+        # job_id = response["job_id"]
 
         return await self.wait_until_complete(
             data_import_id,
@@ -214,8 +173,6 @@ class DataImportAPIAsync(ResourceBase):
 
     async def retry(self, data_import: str | DataImport) -> None:
         """Retry a failed data import.
-
-        Only works for URL-based imports in a failed state.
 
         Args:
             data_import: The DataImport or data_import_id to retry.

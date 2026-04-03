@@ -216,7 +216,6 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
 
     # Optional fields
     error_message: str | None
-    source_url: str | None
     run_id: str | None
     report_id: str | None
     asset_id: str | None
@@ -239,7 +238,6 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
             error_message=proto.error_message or None,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
-            source_url=proto.source_url or None,
             run_id=proto.run_id if proto.HasField("_run_id") else None,
             report_id=proto.report_id if proto.HasField("_report_id") else None,
             asset_id=proto.asset_id if proto.HasField("_asset_id") else None,
@@ -293,6 +291,6 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
         return self
 
     def retry(self) -> None:
-        """Retry this import. Only works for URL-based imports in a failed state."""
+        """Retry a failed import."""
         self.client.data_import.retry(self._id_or_error)
         self.refresh()

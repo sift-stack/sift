@@ -19,13 +19,16 @@ def upload_file(
     file_path: Path,
     *,
     rest_client: RestClient,
-) -> None:
+) -> dict:
     """Upload a file to a presigned URL.
 
     Args:
         signed_url: The presigned URL to upload to.
         file_path: Path to the file to upload.
         rest_client: The SDK rest client to use for the upload.
+
+    Returns:
+        The parsed JSON response from the server.
 
     Raises:
         ValueError: If the upload request fails.
@@ -38,6 +41,7 @@ def upload_file(
         )
         if not response.ok:
             raise ValueError(f"Upload failed ({response.status_code}): {response.text}")
+        return response.json()
 
 
 def download_file(

@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING, cast
 from sift.data_imports.v2.data_imports_pb2 import (
     CreateDataImportFromUploadRequest,
     CreateDataImportFromUploadResponse,
-    CreateDataImportFromUrlRequest,
-    CreateDataImportFromUrlResponse,
     DetectConfigRequest,
     DetectConfigResponse,
     GetDataImportRequest,
@@ -32,7 +30,7 @@ ImportConfig = CsvImportConfig
 
 
 def _set_config_on_request(
-    request: CreateDataImportFromUploadRequest | CreateDataImportFromUrlRequest,
+    request: CreateDataImportFromUploadRequest,
     config: ImportConfig,
 ) -> None:
     """Set the appropriate config field on a proto request based on the config type."""
@@ -70,24 +68,6 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).CreateDataImportFromUpload(request)
         response = cast("CreateDataImportFromUploadResponse", response)
         return response.data_import_id, response.upload_url
-
-    async def create_from_url(self, url: str, config: ImportConfig) -> str:
-        """Create a data import from a remote URL.
-
-        Args:
-            url: The URL to import from (HTTP or S3).
-            config: The import configuration.
-
-        Returns:
-            The data_import_id.
-        """
-        request = CreateDataImportFromUrlRequest(url=url)
-        _set_config_on_request(request, config)
-        response = await self._grpc_client.get_stub(DataImportServiceStub).CreateDataImportFromUrl(
-            request
-        )
-        response = cast("CreateDataImportFromUrlResponse", response)
-        return response.data_import_id
 
     async def get(self, data_import_id: str) -> DataImport:
         """Get a data import by ID.
