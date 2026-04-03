@@ -1,15 +1,12 @@
-use crate::{
-    DiskBackupPolicy, RetryPolicy,
-};
+use crate::{DiskBackupPolicy, RetryPolicy};
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
 use std::{path::PathBuf, sync::Arc, time::Duration};
-use tokio::sync::broadcast;
 
 pub(crate) mod builder;
 pub(crate) mod ingestion;
 pub(crate) mod metrics;
 
-pub(crate) use ingestion::{IngestionTask, StreamSystem, TaskConfig, start_tasks};
+pub(crate) use ingestion::{StreamSystem, TaskConfig, start_tasks};
 pub(crate) use metrics::MetricsStreamingTask;
 
 /// Capacity for the data channel.

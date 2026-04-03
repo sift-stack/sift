@@ -1,5 +1,6 @@
 use crate::{
-    Flow, IngestionConfigForm, FlowConfig, RecoveryStrategy, SiftStream, SiftStreamBuilder, TimeValue,
+    Flow, FlowConfig, IngestionConfigForm, RecoveryStrategy, SiftStream, SiftStreamBuilder,
+    TimeValue,
     metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
     stream::mode::ingestion_config::IngestionConfigEncoder,
 };

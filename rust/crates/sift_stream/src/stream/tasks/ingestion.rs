@@ -1,19 +1,15 @@
 use crate::{
-    DiskBackupPolicy, RetryPolicy, SiftStream, SiftStreamBuilder,
+    RetryPolicy,
     backup::disk::{AsyncBackupsManager, BackupIngestTask},
     metrics::SiftStreamMetrics,
-    stream::mode::ingestion_config::{DataStream, IngestionConfigEncoder},
+    stream::mode::ingestion_config::DataStream,
 };
 use async_channel;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
-use sift_rs::{
-    CompressionEncoding,
-    ingest::v1::{IngestWithConfigDataStreamRequest, ingest_service_client::IngestServiceClient},
-};
+use sift_rs::{CompressionEncoding, ingest::v1::ingest_service_client::IngestServiceClient};
 use std::{
     future::Future,
-    path::PathBuf,
     pin::Pin,
     sync::{
         Arc,
@@ -25,7 +21,6 @@ use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
 use super::{CHECKPOINT_TIMEOUT, ControlMessage, DataMessage, RecoveryConfig};
-use crate::metrics::SiftStreamMetricsSnapshot;
 
 /// Configuration for the task-based SiftStream
 #[derive(Clone)]
