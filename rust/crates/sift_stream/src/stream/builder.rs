@@ -1,6 +1,9 @@
 use super::{
     RetryPolicy, SiftStream, helpers,
-    mode::{file_backup::FileBackup, ingestion_config::LiveStreaming},
+    mode::{
+        file_backup::FileBackup, live_only::LiveStreamingOnly,
+        live_with_backups::LiveStreamingWithBackups,
+    },
     run::{load_run_by_form, load_run_by_id},
 };
 use std::collections::HashMap;
@@ -12,7 +15,10 @@ use crate::{
     metrics::SiftStreamMetrics,
     stream::{
         mode::ingestion_config::IngestionConfigEncoder,
-        tasks::{CONTROL_CHANNEL_CAPACITY, DATA_CHANNEL_CAPACITY, RecoveryConfig, TaskConfig},
+        tasks::{
+            CONTROL_CHANNEL_CAPACITY, DATA_CHANNEL_CAPACITY, LiveOnlyTaskConfig,
+            LiveWithBackupsTaskConfig, RecoveryConfig,
+        },
     },
 };
 use config_loader::load_ingestion_config;
@@ -166,7 +172,7 @@ impl StreamConfigBuilder {
         self
     }
 
-    /// Selects live-only mode: a single bounded ingestion channel with direct
+    /// Selects `LiveStreamingOnly` mode: a single bounded ingestion channel with direct
     /// backpressure. No disk backups, no checkpointing, no retry policy.
     pub fn live_only(self) -> LiveOnlyBuilder {
         LiveOnlyBuilder {
@@ -178,7 +184,7 @@ impl StreamConfigBuilder {
         }
     }
 
-    /// Selects live-with-backups mode: dual channel with checkpointing, retry policy,
+    /// Selects `LiveStreamingWithBackups` mode: dual channel with checkpointing, retry policy,
     /// and optional disk backups.
     pub fn live_with_backups(self) -> LiveWithBackupsBuilder {
         LiveWithBackupsBuilder {
@@ -206,7 +212,7 @@ impl StreamConfigBuilder {
     }
 }
 
-/// Builder for live-only mode.
+/// Builder for [LiveStreamingOnly] mode.
 ///
 /// Created by [StreamConfigBuilder::live_only]. Call [LiveOnlyBuilder::build] to finalize.
 pub struct LiveOnlyBuilder {
@@ -243,46 +249,23 @@ impl LiveOnlyBuilder {
         self
     }
 
-    /// Performs setup and returns a [SiftStream] configured for live-only streaming.
-    pub async fn build(self) -> Result<SiftStream<IngestionConfigEncoder, LiveStreaming>> {
-        // Build reingestion channel before consuming self.base
-        let reingestion_channel_pre = if let Some(ref creds) = self.base.credentials {
-            let mut builder = SiftChannelBuilder::new(creds.clone());
-            if self.base.enable_tls {
-                builder = builder.use_tls(true);
-            }
-            Some(builder.build()?)
-        } else {
-            None
-        };
-
+    /// Performs setup and returns a [SiftStream] configured for `LiveStreamingOnly`.
+    pub async fn build(self) -> Result<SiftStream<IngestionConfigEncoder, LiveStreamingOnly>> {
         let setup = setup_common(self.base).await?;
-        let reingestion_channel =
-            reingestion_channel_pre.unwrap_or_else(|| setup.setup_channel.clone());
 
-        let task_config = TaskConfig {
+        let task_config = LiveOnlyTaskConfig {
             session_name: setup.session_name,
             sift_stream_id: setup.sift_stream_id,
             setup_channel: setup.setup_channel,
             ingestion_channel: setup.ingestion_channel,
-            reingestion_channel,
             metrics: setup.metrics.clone(),
-            checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             enable_compression_for_ingestion: self.enable_compression_for_ingestion,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy::default(),
-                backups_enabled: false,
-                backups_directory: String::new(),
-                backups_prefix: String::new(),
-                backup_policy: DiskBackupPolicy::default(),
-            },
-            control_channel_capacity: self.control_channel_capacity,
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
-            backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
+            control_channel_capacity: self.control_channel_capacity,
             metrics_streaming_interval: self.metrics_streaming_interval,
         };
 
-        SiftStream::new(
+        SiftStream::new_live_only(
             setup.ingestion_config,
             setup.flows_by_name,
             setup.run,
@@ -293,7 +276,7 @@ impl LiveOnlyBuilder {
     }
 }
 
-/// Builder for live-with-backups mode.
+/// Builder for [LiveStreamingWithBackups] mode.
 ///
 /// Created by [StreamConfigBuilder::live_with_backups]. Call [LiveWithBackupsBuilder::build] to finalize.
 pub struct LiveWithBackupsBuilder {
@@ -361,8 +344,12 @@ impl LiveWithBackupsBuilder {
         self
     }
 
-    /// Performs setup and returns a [SiftStream] configured for live streaming with backups.
-    pub async fn build(self) -> Result<SiftStream<IngestionConfigEncoder, LiveStreaming>> {
+    /// Performs setup and returns a [SiftStream] configured for `LiveStreamingWithBackups`.
+    pub async fn build(
+        self,
+    ) -> Result<SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>> {
+        // Build the reingestion channel before consuming self.base.
+        // With credentials we create a dedicated channel; with a shared channel we clone it.
         let reingestion_channel_pre = if let Some(ref creds) = self.base.credentials {
             let mut builder = SiftChannelBuilder::new(creds.clone());
             if self.base.enable_tls {
@@ -374,6 +361,7 @@ impl LiveWithBackupsBuilder {
         };
 
         let setup = setup_common(self.base).await?;
+
         let reingestion_channel =
             reingestion_channel_pre.unwrap_or_else(|| setup.setup_channel.clone());
 
@@ -388,7 +376,15 @@ impl LiveWithBackupsBuilder {
             (String::new(), String::new())
         };
 
-        let task_config = TaskConfig {
+        let recovery_config = RecoveryConfig {
+            retry_policy: self.retry_policy,
+            backups_enabled,
+            backups_directory,
+            backups_prefix,
+            backup_policy: self.disk_backup_policy,
+        };
+
+        let task_config = LiveWithBackupsTaskConfig {
             session_name: setup.session_name,
             sift_stream_id: setup.sift_stream_id,
             setup_channel: setup.setup_channel,
@@ -397,20 +393,14 @@ impl LiveWithBackupsBuilder {
             metrics: setup.metrics.clone(),
             checkpoint_interval: self.checkpoint_interval,
             enable_compression_for_ingestion: self.enable_compression_for_ingestion,
-            recovery_config: RecoveryConfig {
-                retry_policy: self.retry_policy,
-                backups_enabled,
-                backups_directory,
-                backups_prefix,
-                backup_policy: self.disk_backup_policy,
-            },
+            recovery_config,
             control_channel_capacity: self.control_channel_capacity,
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
             backup_data_channel_capacity: self.backup_data_channel_capacity,
             metrics_streaming_interval: self.metrics_streaming_interval,
         };
 
-        SiftStream::new(
+        SiftStream::new_live_with_backups(
             setup.ingestion_config,
             setup.flows_by_name,
             setup.run,

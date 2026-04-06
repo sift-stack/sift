@@ -424,7 +424,6 @@
 //! indefinite number of retries on a file until a successful ingestion response is recieved by Sift. Files are
 //! deleted as specified per the [DiskBackupPolicy] retention policy only once re-ingestion has been confirmed.
 //!
-//!
 //! ### Data Integrity
 //!
 //! **Important Note**: This section only pertains to the disk-based-backup strategy.
@@ -547,7 +546,9 @@ pub use stream::{
     flow::{ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder},
     mode::{
         file_backup::FileBackup,
-        ingestion_config::{Flow, IngestionConfigEncoder, LiveStreaming},
+        ingestion_config::{Flow, IngestionConfigEncoder},
+        live_only::LiveStreamingOnly,
+        live_with_backups::LiveStreamingWithBackups,
     },
     send_error::{SendError, SiftStreamSendError, SiftStreamTrySendError, TrySendError},
     time::TimeValue,

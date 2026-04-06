@@ -233,6 +233,7 @@ impl StreamConfigBuilderPy {
     /// Requires `disk_backup_policy.backups_dir` to be set on the returned builder.
     pub fn file_backup(&self) -> FileBackupBuilderPy {
         FileBackupBuilderPy {
+            base: self.clone(),
             disk_backup_policy: DiskBackupPolicyPy::default(),
             backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
@@ -378,6 +379,7 @@ impl LiveWithBackupsBuilderPy {
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct FileBackupBuilderPy {
+    base: StreamConfigBuilderPy,
     #[pyo3(get, set)]
     pub disk_backup_policy: DiskBackupPolicyPy,
     #[pyo3(get, set)]
@@ -390,4 +392,33 @@ pub struct FileBackupBuilderPy {
 
 #[gen_stub_pymethods]
 #[pymethods]
-impl FileBackupBuilderPy {}
+impl FileBackupBuilderPy {
+    pub fn build(&self, py: Python) -> PyResult<Py<PyAny>> {
+        let base = self.base.clone();
+        let disk_backup_policy: DiskBackupPolicy = self.disk_backup_policy.clone().into();
+        let backup_cap = self.backup_data_channel_capacity;
+        let control_cap = self.control_channel_capacity;
+        let metrics_interval = self
+            .metrics_streaming_interval
+            .map(std::time::Duration::from);
+
+        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let config_builder = make_stream_config_builder(base)?;
+
+            let mode_builder = config_builder
+                .file_backup()
+                .disk_backup_policy(disk_backup_policy)
+                .backup_data_channel_capacity(backup_cap)
+                .control_channel_capacity(control_cap)
+                .metrics_streaming_interval(metrics_interval);
+
+            mode_builder
+                .build()
+                .await
+                .map(SiftStreamPy::from)
+                .map_err(|e| crate::error::SiftErrorWrapper(e).into())
+        })?;
+
+        Ok(awaitable.into())
+    }
+}

@@ -1,13 +1,13 @@
 use crate::{
-    Flow, FlowConfig, IngestionConfigForm, SiftStream, SiftStreamBuilder, TimeValue,
+    Flow, FlowConfig, IngestionConfigForm, LiveStreamingWithBackups, SiftStream, SiftStreamBuilder,
+    TimeValue,
     metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
     stream::{mode::ingestion_config::IngestionConfigEncoder, tasks::ControlMessage},
 };
+use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use std::{sync::Arc, time::Duration};
 use tokio::{select, sync::broadcast};
-
-use super::ingestion::TaskConfig;
 
 /// The asset to stream metrics for.
 const METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME: &str = "sift_app";
@@ -19,7 +19,7 @@ const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics
 const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
 
 pub(crate) struct MetricsStreamingTask {
-    stream: SiftStream<IngestionConfigEncoder>,
+    stream: SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>,
     control_rx: broadcast::Receiver<ControlMessage>,
     session_name: String,
     interval: Duration,
@@ -28,12 +28,13 @@ pub(crate) struct MetricsStreamingTask {
 
 impl MetricsStreamingTask {
     pub(crate) async fn new(
+        setup_channel: SiftChannel,
         control_rx: broadcast::Receiver<ControlMessage>,
+        session_name: String,
         interval: Duration,
-        config: TaskConfig,
+        metrics: Arc<SiftStreamMetrics>,
     ) -> Result<Self> {
         use std::hash::{Hash, Hasher};
-        let session_name = config.session_name;
 
         let channels = SiftStreamMetricsSnapshot::channel_configs(&session_name);
 
@@ -76,7 +77,7 @@ impl MetricsStreamingTask {
         // the limit of recursion here is 2 since the metrics-streaming sift-stream doesn't itself
         // spawn another sift-stream instance. Since this is only done during initialization, it is fine.
         let stream_fut = Box::pin(
-            SiftStreamBuilder::from_channel(config.setup_channel.clone())
+            SiftStreamBuilder::from_channel(setup_channel.clone())
                 .ingestion_config(ingestion_config)
                 .live_with_backups()
                 .metrics_streaming_interval(None)
@@ -93,7 +94,7 @@ impl MetricsStreamingTask {
             control_rx,
             session_name,
             interval,
-            metrics: config.metrics.clone(),
+            metrics,
         })
     }
 

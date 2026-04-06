@@ -2,13 +2,9 @@ use crate::stream::mode::ingestion_config::IngestionConfigEncoder;
 use crate::stream::send_error::{SendError, TrySendError};
 use crate::stream::{SiftStream, Transport, private::Sealed};
 use crate::{
-    DiskBackupPolicy, RetryPolicy,
-    backup::disk::{
-        RollingFilePolicy,
-        file_writer::{FileWriter, FileWriterConfig},
-    },
+    backup::disk::file_writer::{FileWriter, FileWriterConfig},
     metrics::SiftStreamMetrics,
-    stream::{flow::FlowDescriptor, tasks::RecoveryConfig},
+    stream::flow::FlowDescriptor,
 };
 use async_channel::{Receiver, Sender};
 use async_trait::async_trait;
@@ -282,7 +278,7 @@ impl FileBackup {
     /// Creates a new [`FileBackup`] and spawns the background file-writing task.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        backups_directory: PathBuf,
+        _backups_directory: PathBuf,
         file_writer_config: FileWriterConfig,
         channel_capacity: usize,
         metrics: Arc<SiftStreamMetrics>,
@@ -310,37 +306,14 @@ impl FileBackup {
         // Start metrics streaming task if interval is configured
         let metrics_streaming = if let Some(interval) = metrics_streaming_interval {
             let control_rx = control_tx.subscribe();
-            let task_config = crate::stream::tasks::TaskConfig {
-                session_name: session_name.clone(),
-                sift_stream_id,
-                setup_channel: setup_channel.clone(),
-                ingestion_channel: setup_channel.clone(),
-                reingestion_channel: setup_channel,
-                metrics: metrics.clone(),
-                checkpoint_interval: Duration::from_secs(60), // Not used for metrics streaming
-                enable_compression_for_ingestion: false,      // Not used for metrics streaming
-                recovery_config: RecoveryConfig {
-                    retry_policy: RetryPolicy::default(),
-                    backups_enabled: true,
-                    backups_directory: String::new(),
-                    backups_prefix: String::new(),
-                    backup_policy: DiskBackupPolicy {
-                        backups_dir: Some(backups_directory),
-                        max_backup_file_size: 1024 * 1024 * 50, // 50MB
-                        rolling_file_policy: RollingFilePolicy::default(),
-                        retain_backups: false,
-                    },
-                },
-                control_channel_capacity,
-                ingestion_data_channel_capacity: 1000,
-                backup_data_channel_capacity: 1000,
-                metrics_streaming_interval: None, // Disable nested metrics streaming
-            };
+            let metrics_clone = metrics.clone();
             Some(tokio::spawn(async move {
                 let metrics_task = crate::stream::tasks::MetricsStreamingTask::new(
+                    setup_channel,
                     control_rx,
+                    session_name.clone(),
                     interval,
-                    task_config,
+                    metrics_clone,
                 )
                 .await?;
 
