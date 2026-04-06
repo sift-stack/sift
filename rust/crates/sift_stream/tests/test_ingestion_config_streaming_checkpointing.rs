@@ -81,6 +81,7 @@ async fn test_sending_data() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
@@ -148,6 +149,7 @@ async fn test_checkpointing() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .checkpoint_interval(checkpoint_interval)
         .build()
         .await

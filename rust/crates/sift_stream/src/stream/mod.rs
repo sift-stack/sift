@@ -208,8 +208,9 @@ pub trait Transport: private::Sealed {
 /// - Backups (disabled by default)
 /// - Tracing and ingestion metrics
 ///
-/// To initialize a [SiftStream] users will use [builder::SiftStreamBuilder]. Refer to the
-/// [crate-level documentation](crate) for further details and examples.
+/// To initialize a [SiftStream] users will use [builder::SiftStreamBuilder] together with
+/// [builder::StreamConfigBuilder]. Refer to the [crate-level documentation](crate) for further
+/// details and examples.
 pub struct SiftStream<E, T = LiveStreaming> {
     grpc_channel: SiftChannel,
     encoder: E,
@@ -257,9 +258,8 @@ where
 
     /// Send telemetry with backpressure.
     ///
-    /// Encodes `message` and then awaits until the backing channel has capacity. For
-    /// [`LiveStreaming`](crate::LiveStreaming) this is the **backup channel**; for
-    /// [`FileBackup`](crate::FileBackup) this is the write channel.
+    /// Encodes `message` and then awaits until the backing channel has capacity. See the
+    /// [`Transport`] implementation for specific details on backpressure.
     ///
     /// Use this method when you want the caller to slow down naturally when the pipeline
     /// is under load. For a non-blocking alternative see [`try_send`](SiftStream::try_send).

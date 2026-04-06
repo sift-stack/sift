@@ -1,14 +1,13 @@
 use crate::{
-    Flow, FlowConfig, IngestionConfigForm, RecoveryStrategy, SiftStream, SiftStreamBuilder,
-    TimeValue,
+    Flow, FlowConfig, IngestionConfigForm, SiftStream, SiftStreamBuilder, TimeValue,
     metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
-    stream::mode::ingestion_config::IngestionConfigEncoder,
+    stream::{mode::ingestion_config::IngestionConfigEncoder, tasks::ControlMessage},
 };
 use sift_error::prelude::*;
 use std::{sync::Arc, time::Duration};
 use tokio::{select, sync::broadcast};
 
-use super::{ControlMessage, ingestion::TaskConfig};
+use super::ingestion::TaskConfig;
 
 /// The asset to stream metrics for.
 const METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME: &str = "sift_app";
@@ -78,15 +77,12 @@ impl MetricsStreamingTask {
         // spawn another sift-stream instance. Since this is only done during initialization, it is fine.
         let stream_fut = Box::pin(
             SiftStreamBuilder::from_channel(config.setup_channel.clone())
-                .metrics_streaming_interval(None)
                 .ingestion_config(ingestion_config)
+                .live_with_backups()
+                .metrics_streaming_interval(None)
                 .control_channel_capacity(100)
                 .ingestion_data_channel_capacity(1000)
                 .backup_data_channel_capacity(1000)
-                .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-                    retry_policy: config.recovery_config.retry_policy,
-                    disk_backup_policy: config.recovery_config.backup_policy,
-                })
                 .build(),
         );
 
