@@ -315,6 +315,7 @@ where = ["lib"]
 [tool.setuptools.package-data]
 sift_grafana = ["py.typed"]
 sift_py = ["py.typed"]
+sift = ["py.typed"]
 sift_client = ["py.typed", "resources/sync_stubs/*.pyi"]
 
 [tool.ruff]
