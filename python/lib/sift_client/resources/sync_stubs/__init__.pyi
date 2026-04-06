@@ -679,12 +679,14 @@ class DataImportAPI:
         asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        show_progress: bool | None = None,
     ) -> Job:
         """Import data from a local file.
 
-        Creates a data import on the server, uploads the file, and returns
-        a :class:`Job` handle. Use ``job.wait_until_complete()`` to poll
-        for completion.
+        Creates a data import on the server, uploads the file, and waits
+        for the import to complete.
 
         When ``config`` is omitted the file format is auto-detected via
         :meth:`detect_config` and a :class:`CsvImportConfig` is built using
@@ -704,9 +706,13 @@ class DataImportAPI:
                 provided.
             run_id: Optional existing run ID. Only used when ``config`` is not
                 provided.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+            show_progress: If True, display a progress spinner while waiting.
+                Defaults to True for sync, False for async.
 
         Returns:
-            A :class:`Job` handle for the pending import.
+            The completed :class:`Job`.
 
         Raises:
             FileNotFoundError: If the file does not exist.

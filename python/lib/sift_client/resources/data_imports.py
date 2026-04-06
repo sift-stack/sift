@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import upload_file
@@ -42,12 +43,14 @@ class DataImportAPIAsync(ResourceBase):
         asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        show_progress: bool | None = None,
     ) -> Job:
         """Import data from a local file.
 
-        Creates a data import on the server, uploads the file, and returns
-        a :class:`Job` handle. Use ``job.wait_until_complete()`` to poll
-        for completion.
+        Creates a data import on the server, uploads the file, and waits
+        for the import to complete.
 
         When ``config`` is omitted the file format is auto-detected via
         :meth:`detect_config` and a :class:`CsvImportConfig` is built using
@@ -67,9 +70,13 @@ class DataImportAPIAsync(ResourceBase):
                 provided.
             run_id: Optional existing run ID. Only used when ``config`` is not
                 provided.
+            polling_interval_secs: Seconds between status polls. Defaults to 5s.
+            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
+            show_progress: If True, display a progress spinner while waiting.
+                Defaults to True for sync, False for async.
 
         Returns:
-            A :class:`Job` handle for the pending import.
+            The completed :class:`Job`.
 
         Raises:
             FileNotFoundError: If the file does not exist.
@@ -95,9 +102,21 @@ class DataImportAPIAsync(ResourceBase):
         response = await run_sync_function(
             lambda: upload_file(upload_url, path, rest_client=self.client.rest_client)
         )
-        job_id = response["job_id"]
+        job_id = response["jobId"]
 
-        return await self.client.async_.jobs.get(job_id=job_id)
+        if show_progress is None:
+            global_setting = _sift_client_module.config.show_progress
+            if global_setting is not None:
+                show_progress = global_setting
+            else:
+                show_progress = getattr(self, "_is_sync", False)
+
+        return await self.client.async_.jobs.wait_until_complete(
+            job_id,
+            polling_interval_secs=polling_interval_secs,
+            timeout_secs=timeout_secs,
+            show_progress=show_progress,
+        )
 
     async def detect_config(
         self,
