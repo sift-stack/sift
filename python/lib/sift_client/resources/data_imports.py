@@ -174,12 +174,12 @@ class DataImportAPIAsync(ResourceBase):
         elif data_type is not None:
             data_type_key = data_type
         else:
-            data_type_key = EXTENSION_TO_DATA_TYPE_KEY.get(ext)
-            if data_type_key is None:
+            if ext not in EXTENSION_TO_DATA_TYPE_KEY:
                 raise ValueError(
                     f"Unsupported file extension '{ext}'. "
                     f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}"
                 )
+            data_type_key = EXTENSION_TO_DATA_TYPE_KEY[ext]
 
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,
@@ -206,22 +206,26 @@ class DataImportAPIAsync(ResourceBase):
         response = await self._low_level_client.detect_config(sample, data_type_key.value)
 
         if response.HasField("csv_config"):
-            config = CsvImportConfig._from_proto(response.csv_config)
+            csv_config = CsvImportConfig._from_proto(response.csv_config)
             # Filter out the time column from data_columns to avoid overlap.
-            time_col = config.time_column.column
-            config.data_columns = [dc for dc in config.data_columns if dc.column != time_col]
-            return config
+            time_col = csv_config.time_column.column
+            csv_config.data_columns = [
+                dc for dc in csv_config.data_columns if dc.column != time_col
+            ]
+            return csv_config
 
         if response.HasField("parquet_config"):
             proto = response.parquet_config
             if proto.HasField("flat_dataset"):
-                config = ParquetFlatDatasetImportConfig._from_proto(
+                parquet_config = ParquetFlatDatasetImportConfig._from_proto(
                     proto, footer_offset=footer_offset, footer_length=footer_length
                 )
                 # Filter out the time column from data_columns to avoid overlap.
-                time_path = config.time_column.path
+                time_path = parquet_config.time_column.path
                 if time_path:
-                    config.data_columns = [dc for dc in config.data_columns if dc.path != time_path]
+                    parquet_config.data_columns = [
+                        dc for dc in parquet_config.data_columns if dc.path != time_path
+                    ]
                 else:
                     # The backend only detects arrow timestamp types. Fall back to
                     # looking for an integer column whose name contains "time",
@@ -233,21 +237,21 @@ class DataImportAPIAsync(ResourceBase):
                         ChannelDataType.UINT_64,
                     }
                     match = None
-                    for dc in config.data_columns:
+                    for dc in parquet_config.data_columns:
                         if dc.data_type in _integer_types and dc.name.lower().startswith("time"):
                             match = dc
                             break
                     if match is None:
-                        for dc in config.data_columns:
+                        for dc in parquet_config.data_columns:
                             if dc.data_type in _integer_types and "time" in dc.name.lower():
                                 match = dc
                                 break
                     if match is not None:
-                        config.time_column = ParquetTimeColumn(path=match.path)
-                        config.data_columns = [
-                            c for c in config.data_columns if c.path != match.path
+                        parquet_config.time_column = ParquetTimeColumn(path=match.path)
+                        parquet_config.data_columns = [
+                            c for c in parquet_config.data_columns if c.path != match.path
                         ]
-                return config
+                return parquet_config
             elif proto.HasField("single_channel_per_row"):
                 return ParquetSingleChannelPerRowImportConfig._from_proto(
                     proto, footer_offset=footer_offset, footer_length=footer_length
