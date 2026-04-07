@@ -11,7 +11,7 @@
 
 use sift_stream::{
     ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
-    IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder, TimeValue,
+    IngestionConfigForm, RunForm, SiftStreamBuilder, TimeValue,
 };
 use std::{
     env,
@@ -138,8 +138,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //   - A run to attach incoming data to
     let mut sift_stream = SiftStreamBuilder::new(credentials)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::default())
         .attach_run(run)
+        .live_with_backups()
         .build()
         .await?;
 

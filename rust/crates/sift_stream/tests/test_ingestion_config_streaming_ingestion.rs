@@ -77,6 +77,7 @@ async fn test_sending_raw_ingest_request() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
@@ -135,6 +136,7 @@ async fn test_sending_flow() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
@@ -194,6 +196,7 @@ async fn test_sending_flow_not_in_flow_cache() {
             client_key: "test_client_key".to_string(),
             flows: expected_flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
