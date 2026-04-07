@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime  # noqa: TC003
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_CH10,
@@ -86,8 +86,6 @@ class CsvTimeColumn(BaseModel):
         relative_start_time: Required when using a relative time format.
     """
 
-    model_config = ConfigDict(frozen=True)
-
     column: int
     format: TimeFormat
     relative_start_time: datetime | None = None
@@ -121,8 +119,6 @@ class CsvDataColumn(BaseModel):
         description: Optional channel description.
     """
 
-    model_config = ConfigDict(frozen=True)
-
     column: int
     name: str
     data_type: ChannelDataType
@@ -141,8 +137,6 @@ class CsvImportConfig(BaseModel):
         time_column: Time column configuration.
         data_columns: List of data column definitions.
     """
-
-    model_config = ConfigDict(frozen=True)
 
     asset_name: str
     run_name: str | None = None
@@ -222,8 +216,6 @@ class ParquetTimeColumn(BaseModel):
         relative_start_time: Required when using a relative time format.
     """
 
-    model_config = ConfigDict(frozen=True)
-
     path: str
     format: TimeFormat = TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
     relative_start_time: datetime | None = None
@@ -274,8 +266,6 @@ class ParquetDataColumn(BaseModel):
         description: Optional channel description.
     """
 
-    model_config = ConfigDict(frozen=True)
-
     path: str
     name: str
     data_type: ChannelDataType
@@ -300,8 +290,6 @@ class ParquetFlatDatasetImportConfig(BaseModel):
             automatically when using :meth:`~DataImportAPIAsync.detect_config`.
         complex_types_import_mode: How to handle complex Parquet types.
     """
-
-    model_config = ConfigDict(frozen=True)
 
     asset_name: str
     run_name: str | None = None
@@ -384,8 +372,6 @@ class ParquetSingleChannelConfig(BaseModel):
         description: Optional channel description.
     """
 
-    model_config = ConfigDict(frozen=True)
-
     data_path: str
     name: str
     data_type: ChannelDataType
@@ -400,8 +386,6 @@ class ParquetMultiChannelConfig(BaseModel):
         name_path: The column path that identifies the channel name per row.
         data_path: The column path containing channel data.
     """
-
-    model_config = ConfigDict(frozen=True)
 
     name_path: str
     data_path: str
@@ -426,8 +410,6 @@ class ParquetSingleChannelPerRowImportConfig(BaseModel):
             automatically when using :meth:`~DataImportAPIAsync.detect_config`.
         complex_types_import_mode: How to handle complex Parquet types.
     """
-
-    model_config = ConfigDict(frozen=True)
 
     asset_name: str
     run_name: str | None = None

@@ -92,14 +92,13 @@ class DataImportAPIAsync(ResourceBase):
         if config is None:
             config = await self.detect_config(file_path, data_type=data_type)
 
-        updates: dict = {"asset_name": asset_name}
-        if run_name is not None:
-            updates["run_name"] = run_name
-        elif run_id is not None:
-            updates["run_id"] = run_id
-        elif not getattr(config, "run_name", None) and not getattr(config, "run_id", None):
-            updates["run_name"] = path.name
-        config = config.model_copy(update=updates)
+        config.asset_name = asset_name
+        if run_id is not None:
+            config.run_id = run_id
+        elif run_name is not None:
+            config.run_name = run_name
+        elif not config.run_name and not config.run_id:
+            config.run_name = path.name
 
         if isinstance(
             config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
@@ -108,12 +107,8 @@ class DataImportAPIAsync(ResourceBase):
                 footer_bytes, footer_offset = await run_sync_function(
                     lambda: extract_parquet_footer(path)
                 )
-                config = config.model_copy(
-                    update={
-                        "footer_offset": footer_offset,
-                        "footer_length": len(footer_bytes),
-                    }
-                )
+                config.footer_offset = footer_offset
+                config.footer_length = len(footer_bytes)
 
         _, upload_url = await self._low_level_client.create_from_upload(config)
 
@@ -214,9 +209,7 @@ class DataImportAPIAsync(ResourceBase):
             config = CsvImportConfig._from_proto(response.csv_config)
             # Filter out the time column from data_columns to avoid overlap.
             time_col = config.time_column.column
-            filtered = [dc for dc in config.data_columns if dc.column != time_col]
-            if len(filtered) != len(config.data_columns):
-                config = config.model_copy(update={"data_columns": filtered})
+            config.data_columns = [dc for dc in config.data_columns if dc.column != time_col]
             return config
 
         if response.HasField("parquet_config"):
@@ -228,9 +221,7 @@ class DataImportAPIAsync(ResourceBase):
                 # Filter out the time column from data_columns to avoid overlap.
                 time_path = config.time_column.path
                 if time_path:
-                    filtered = [dc for dc in config.data_columns if dc.path != time_path]
-                    if len(filtered) != len(config.data_columns):
-                        config = config.model_copy(update={"data_columns": filtered})
+                    config.data_columns = [dc for dc in config.data_columns if dc.path != time_path]
                 else:
                     # The backend only detects arrow timestamp types. Fall back to
                     # looking for an integer column whose name contains "time",
@@ -252,14 +243,10 @@ class DataImportAPIAsync(ResourceBase):
                                 match = dc
                                 break
                     if match is not None:
-                        config = config.model_copy(
-                            update={
-                                "time_column": ParquetTimeColumn(path=match.path),
-                                "data_columns": [
-                                    c for c in config.data_columns if c.path != match.path
-                                ],
-                            }
-                        )
+                        config.time_column = ParquetTimeColumn(path=match.path)
+                        config.data_columns = [
+                            c for c in config.data_columns if c.path != match.path
+                        ]
                 return config
             elif proto.HasField("single_channel_per_row"):
                 return ParquetSingleChannelPerRowImportConfig._from_proto(
