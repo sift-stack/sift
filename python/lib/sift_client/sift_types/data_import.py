@@ -146,6 +146,23 @@ class CsvImportConfig(BaseModel):
     time_column: CsvTimeColumn
     data_columns: list[CsvDataColumn]
 
+    def get_column(self, name: str) -> CsvDataColumn:
+        """Look up a data column by name.
+
+        Args:
+            name: The channel name to search for.
+
+        Returns:
+            The matching data column.
+
+        Raises:
+            KeyError: If no column with the given name exists.
+        """
+        for dc in self.data_columns:
+            if dc.name == name:
+                return dc
+        raise KeyError(f"No data column named '{name}'")
+
     def _to_proto(self) -> CsvConfigProto:
         return CsvConfigProto(
             asset_name=self.asset_name,
@@ -300,6 +317,23 @@ class ParquetFlatDatasetImportConfig(BaseModel):
     footer_offset: int = 0
     footer_length: int = 0
     complex_types_import_mode: ParquetComplexTypesImportMode = ParquetComplexTypesImportMode.IGNORE
+
+    def get_column(self, name: str) -> ParquetDataColumn:
+        """Look up a data column by name.
+
+        Args:
+            name: The channel name to search for.
+
+        Returns:
+            The matching data column.
+
+        Raises:
+            KeyError: If no column with the given name exists.
+        """
+        for dc in self.data_columns:
+            if dc.name == name:
+                return dc
+        raise KeyError(f"No data column named '{name}'")
 
     def _to_proto(self) -> ParquetConfigProto:
         flat_dataset = ParquetFlatDatasetConfigProto(
