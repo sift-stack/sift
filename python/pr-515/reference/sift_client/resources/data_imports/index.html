@@ -2164,8 +2164,8 @@ returns no config.</p>
 <a href="#sift_client.resources.data_imports.DataImportAPIAsync.import_from_path" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_from_path</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">asset_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
 
 
@@ -2192,8 +2192,9 @@ returns no config.</p>
 <p>Creates a data import on the server, uploads the file, and waits
 for the import to complete.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-:meth:<code>detect_config</code>. The <code>asset_name</code> is always applied to
-the config. If neither <code>run_name</code> nor <code>run_id</code> is provided
+:meth:<code>detect_config</code>. When <code>asset_name</code> is provided it overrides
+the config value; otherwise the config's <code>asset_name</code> is used.
+If neither <code>run_name</code> nor <code>run_id</code> is provided
 (and none is set on the config), <code>run_name</code> defaults to the
 filename.</p>
 
@@ -2228,12 +2229,17 @@ filename.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Name of the asset to import data into.</p>
+                <p>Name of the asset to import data into. Optional
+when <code>config</code> already has <code>asset_name</code> set.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span></code>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
                   </span>
               </p>
             </td>
