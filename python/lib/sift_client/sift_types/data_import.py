@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime  # noqa: TC003
 from enum import Enum
+from typing import Union
 
 from pydantic import BaseModel, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
@@ -499,3 +500,11 @@ class ParquetSingleChannelPerRowImportConfig(BaseModel):
             if mode
             else ParquetComplexTypesImportMode.IGNORE,
         )
+
+
+# Note: Using Union instead of | syntax for Python 3.9 compatibility at module level.
+# While `from __future__ import annotations` allows | in type hints (they're strings),
+# module-level type aliases are evaluated at runtime and require Union in Python <3.10.
+ImportConfig = Union[
+    CsvImportConfig, ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig
+]

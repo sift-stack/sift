@@ -13,6 +13,7 @@ from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.data_import import (
     CsvImportConfig,
+    ImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
 )
@@ -22,11 +23,6 @@ if TYPE_CHECKING:
     from sift.data_imports.v2.data_imports_pb2 import DataTypeKey
 
     from sift_client.transport.grpc_transport import GrpcClient
-
-# Union of all supported config types. Extend this as new formats are added.
-ImportConfig = (
-    CsvImportConfig | ParquetFlatDatasetImportConfig | ParquetSingleChannelPerRowImportConfig
-)
 
 
 def _set_config_on_request(

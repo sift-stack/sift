@@ -13,13 +13,13 @@ from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
     DataTypeKey,
+    ImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
     ParquetTimeColumn,
 )
 
 if TYPE_CHECKING:
-    from sift_client._internal.low_level_wrappers.data_imports import ImportConfig
     from sift_client.client import SiftClient
     from sift_client.sift_types.job import Job
 
