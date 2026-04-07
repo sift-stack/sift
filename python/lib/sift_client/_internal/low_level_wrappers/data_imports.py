@@ -11,7 +11,11 @@ from sift.data_imports.v2.data_imports_pb2 import (
 from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.data_import import CsvImportConfig
+from sift_client.sift_types.data_import import (
+    CsvImportConfig,
+    ParquetFlatDatasetImportConfig,
+    ParquetSingleChannelPerRowImportConfig,
+)
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
@@ -20,7 +24,9 @@ if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
 
 # Union of all supported config types. Extend this as new formats are added.
-ImportConfig = CsvImportConfig
+ImportConfig = (
+    CsvImportConfig | ParquetFlatDatasetImportConfig | ParquetSingleChannelPerRowImportConfig
+)
 
 
 def _set_config_on_request(
@@ -30,6 +36,10 @@ def _set_config_on_request(
     """Set the appropriate config field on a proto request based on the config type."""
     if isinstance(config, CsvImportConfig):
         request.csv_config.CopyFrom(config._to_proto())
+    elif isinstance(
+        config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
+    ):
+        request.parquet_config.CopyFrom(config._to_proto())
     else:
         raise TypeError(f"Unsupported import config type: {type(config).__name__}")
 

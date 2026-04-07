@@ -12,9 +12,28 @@ from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_PARQUET_FLATDATASET,
     DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
     DATA_TYPE_KEY_TDMS,
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH,
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES,
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE,
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING,
 )
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
+from sift.data_imports.v2.data_imports_pb2 import ParquetConfig as ParquetConfigProto
+from sift.data_imports.v2.data_imports_pb2 import ParquetDataColumn as ParquetDataColumnProto
+from sift.data_imports.v2.data_imports_pb2 import (
+    ParquetFlatDatasetConfig as ParquetFlatDatasetConfigProto,
+)
+from sift.data_imports.v2.data_imports_pb2 import (
+    ParquetSingleChannelPerRowConfig as ParquetSingleChannelPerRowConfigProto,
+)
+from sift.data_imports.v2.data_imports_pb2 import (
+    ParquetSingleChannelPerRowMultiChannelConfig as ParquetSingleChannelPerRowMultiChannelConfigProto,
+)
+from sift.data_imports.v2.data_imports_pb2 import (
+    ParquetSingleChannelPerRowSingleChannelConfig as ParquetSingleChannelPerRowSingleChannelConfigProto,
+)
+from sift.data_imports.v2.data_imports_pb2 import ParquetTimeColumn as ParquetTimeColumnProto
 from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
 
 from sift_client._internal.util.timestamp import to_pb_timestamp
@@ -182,4 +201,319 @@ class CsvImportConfig(BaseModel):
             first_data_row=proto.first_data_row or 2,
             time_column=time_column,
             data_columns=data_columns,
+        )
+
+
+class ParquetComplexTypesImportMode(Enum):
+    """Controls how complex Parquet types (maps, lists, structs) are imported."""
+
+    IGNORE = PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE
+    BOTH = PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH
+    STRING = PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING
+    BYTES = PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES
+
+
+class ParquetTimeColumn(BaseModel):
+    """Time column configuration for Parquet imports.
+
+    Attributes:
+        path: The column path in the Parquet schema (e.g. ``"timestamp"``).
+        format: The time format used in this column.
+        relative_start_time: Required when using a relative time format.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    format: TimeFormat = TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+    relative_start_time: datetime | None = None
+
+    def _to_proto(self) -> ParquetTimeColumnProto:
+        if not self.path:
+            raise ValueError("ParquetTimeColumn.path must be set before importing.")
+        proto = ParquetTimeColumnProto(
+            path=self.path,
+            format=self.format.value,
+        )
+        if self.relative_start_time is not None:
+            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+        return proto
+
+    @classmethod
+    def _from_proto(cls, proto: ParquetTimeColumnProto) -> ParquetTimeColumn:
+        relative_start_time = None
+        if proto.HasField("relative_start_time"):
+            from datetime import timezone
+
+            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+
+        fmt = TimeFormat(proto.format) if proto.format else TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+        return cls(
+            path=proto.path or "",
+            format=fmt,
+            relative_start_time=relative_start_time,
+        )
+
+    @model_validator(mode="after")
+    def _check_relative_start_time(self) -> ParquetTimeColumn:
+        if self.format.name.startswith("RELATIVE_") and self.relative_start_time is None:
+            raise ValueError(
+                f"'relative_start_time' is required when using a relative time format ({self.format.name})."
+            )
+        return self
+
+
+class ParquetDataColumn(BaseModel):
+    """A data column definition for Parquet flat dataset imports.
+
+    Attributes:
+        path: The column path in the Parquet schema.
+        name: Channel name.
+        data_type: The data type of the channel values.
+        units: Optional units string.
+        description: Optional channel description.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    name: str
+    data_type: ChannelDataType
+    units: str = ""
+    description: str = ""
+
+
+class ParquetFlatDatasetImportConfig(BaseModel):
+    """Configuration for importing a Parquet file with a flat dataset layout.
+
+    Each column in the file maps to a separate channel.
+
+    Attributes:
+        asset_name: Name of the asset to import data into.
+        run_name: Name for the run. Ignored if ``run_id`` is set.
+        run_id: ID of an existing run to append data to.
+        time_column: Time column configuration.
+        data_columns: List of data column definitions.
+        footer_offset: Byte offset where the Parquet footer begins. Populated
+            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+        footer_length: Length of the Parquet footer in bytes. Populated
+            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+        complex_types_import_mode: How to handle complex Parquet types.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    asset_name: str
+    run_name: str | None = None
+    run_id: str | None = None
+    time_column: ParquetTimeColumn
+    data_columns: list[ParquetDataColumn]
+    footer_offset: int = 0
+    footer_length: int = 0
+    complex_types_import_mode: ParquetComplexTypesImportMode = ParquetComplexTypesImportMode.IGNORE
+
+    def _to_proto(self) -> ParquetConfigProto:
+        flat_dataset = ParquetFlatDatasetConfigProto(
+            time_column=self.time_column._to_proto(),
+            data_columns=[
+                ParquetDataColumnProto(
+                    path=dc.path,
+                    channel_config=ChannelConfigProto(
+                        name=dc.name,
+                        data_type=dc.data_type.value,
+                        units=dc.units,
+                        description=dc.description,
+                    ),
+                )
+                for dc in self.data_columns
+            ],
+        )
+        return ParquetConfigProto(
+            asset_name=self.asset_name,
+            run_name=self.run_name or "",
+            run_id=self.run_id or "",
+            flat_dataset=flat_dataset,
+            footer_offset=self.footer_offset,
+            footer_length=self.footer_length,
+            complex_types_import_mode=self.complex_types_import_mode.value,
+        )
+
+    @classmethod
+    def _from_proto(
+        cls,
+        proto: ParquetConfigProto,
+        footer_offset: int = 0,
+        footer_length: int = 0,
+    ) -> ParquetFlatDatasetImportConfig:
+        """Create from a proto ParquetConfig with a flat_dataset config."""
+        fd = proto.flat_dataset
+        time_column = ParquetTimeColumn._from_proto(fd.time_column)
+        data_columns = [
+            ParquetDataColumn(
+                path=dc.path,
+                name=dc.channel_config.name,
+                data_type=ChannelDataType(dc.channel_config.data_type),
+                units=dc.channel_config.units,
+                description=dc.channel_config.description,
+            )
+            for dc in fd.data_columns
+        ]
+        mode = proto.complex_types_import_mode
+        return cls(
+            asset_name=proto.asset_name,
+            run_name=proto.run_name or None,
+            run_id=proto.run_id or None,
+            time_column=time_column,
+            data_columns=data_columns,
+            footer_offset=footer_offset or proto.footer_offset,
+            footer_length=footer_length or proto.footer_length,
+            complex_types_import_mode=ParquetComplexTypesImportMode(mode)
+            if mode
+            else ParquetComplexTypesImportMode.IGNORE,
+        )
+
+
+class ParquetSingleChannelConfig(BaseModel):
+    """Configuration for a single-channel Parquet single-channel-per-row import.
+
+    Attributes:
+        data_path: The column path containing channel data.
+        name: Channel name.
+        data_type: The data type of the channel values.
+        units: Optional units string.
+        description: Optional channel description.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    data_path: str
+    name: str
+    data_type: ChannelDataType
+    units: str = ""
+    description: str = ""
+
+
+class ParquetMultiChannelConfig(BaseModel):
+    """Configuration for a multi-channel Parquet single-channel-per-row import.
+
+    Attributes:
+        name_path: The column path that identifies the channel name per row.
+        data_path: The column path containing channel data.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name_path: str
+    data_path: str
+
+
+class ParquetSingleChannelPerRowImportConfig(BaseModel):
+    """Configuration for importing a Parquet file where each row represents
+    a single channel's data point.
+
+    Exactly one of ``single_channel`` or ``multi_channel`` must be set.
+
+    Attributes:
+        asset_name: Name of the asset to import data into.
+        run_name: Name for the run. Ignored if ``run_id`` is set.
+        run_id: ID of an existing run to append data to.
+        time_column: Time column configuration.
+        single_channel: Set when the entire file contains data for one channel.
+        multi_channel: Set when each row identifies its channel via a name column.
+        footer_offset: Byte offset where the Parquet footer begins. Populated
+            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+        footer_length: Length of the Parquet footer in bytes. Populated
+            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+        complex_types_import_mode: How to handle complex Parquet types.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    asset_name: str
+    run_name: str | None = None
+    run_id: str | None = None
+    time_column: ParquetTimeColumn
+    single_channel: ParquetSingleChannelConfig | None = None
+    multi_channel: ParquetMultiChannelConfig | None = None
+    footer_offset: int = 0
+    footer_length: int = 0
+    complex_types_import_mode: ParquetComplexTypesImportMode = ParquetComplexTypesImportMode.IGNORE
+
+    def _to_proto(self) -> ParquetConfigProto:
+        scpr = ParquetSingleChannelPerRowConfigProto(
+            time_column=self.time_column._to_proto(),
+        )
+        if self.single_channel is not None:
+            sc = self.single_channel
+            scpr.single_channel.CopyFrom(
+                ParquetSingleChannelPerRowSingleChannelConfigProto(
+                    data_path=sc.data_path,
+                    channel=ChannelConfigProto(
+                        name=sc.name,
+                        data_type=sc.data_type.value,
+                        units=sc.units,
+                        description=sc.description,
+                    ),
+                )
+            )
+        elif self.multi_channel is not None:
+            scpr.multi_channel.CopyFrom(
+                ParquetSingleChannelPerRowMultiChannelConfigProto(
+                    name_path=self.multi_channel.name_path,
+                    data_path=self.multi_channel.data_path,
+                )
+            )
+        return ParquetConfigProto(
+            asset_name=self.asset_name,
+            run_name=self.run_name or "",
+            run_id=self.run_id or "",
+            single_channel_per_row=scpr,
+            footer_offset=self.footer_offset,
+            footer_length=self.footer_length,
+            complex_types_import_mode=self.complex_types_import_mode.value,
+        )
+
+    @classmethod
+    def _from_proto(
+        cls,
+        proto: ParquetConfigProto,
+        footer_offset: int = 0,
+        footer_length: int = 0,
+    ) -> ParquetSingleChannelPerRowImportConfig:
+        """Create from a proto ParquetConfig with a single_channel_per_row config."""
+        scpr = proto.single_channel_per_row
+
+        time_column = ParquetTimeColumn._from_proto(scpr.time_column)
+
+        single_channel = None
+        multi_channel = None
+        if scpr.HasField("single_channel"):
+            sc = scpr.single_channel
+            single_channel = ParquetSingleChannelConfig(
+                data_path=sc.data_path,
+                name=sc.channel.name,
+                data_type=ChannelDataType(sc.channel.data_type),
+                units=sc.channel.units,
+                description=sc.channel.description,
+            )
+        elif scpr.HasField("multi_channel"):
+            mc = scpr.multi_channel
+            multi_channel = ParquetMultiChannelConfig(
+                name_path=mc.name_path,
+                data_path=mc.data_path,
+            )
+
+        mode = proto.complex_types_import_mode
+        return cls(
+            asset_name=proto.asset_name,
+            run_name=proto.run_name or None,
+            run_id=proto.run_id or None,
+            time_column=time_column,
+            single_channel=single_channel,
+            multi_channel=multi_channel,
+            footer_offset=footer_offset or proto.footer_offset,
+            footer_length=footer_length or proto.footer_length,
+            complex_types_import_mode=ParquetComplexTypesImportMode(mode)
+            if mode
+            else ParquetComplexTypesImportMode.IGNORE,
         )

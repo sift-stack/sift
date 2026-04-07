@@ -673,10 +673,10 @@ class DataImportAPI:
     def import_from_path(
         self,
         file_path: str | Path,
+        asset_name: str,
         *,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
-        asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
         polling_interval_secs: int = 5,
@@ -689,23 +689,23 @@ class DataImportAPI:
         for the import to complete.
 
         When ``config`` is omitted the file format is auto-detected via
-        :meth:`detect_config` and a :class:`CsvImportConfig` is built using
-        the provided ``asset_name`` and optional ``run_name`` / ``run_id``.
+        :meth:`detect_config`. The ``asset_name`` is always applied to
+        the config. If neither ``run_name`` nor ``run_id`` is provided
+        (and none is set on the config), ``run_name`` defaults to the
+        filename.
 
         Args:
             file_path: Path to the local file to import.
+            asset_name: Name of the asset to import data into.
             config: Import configuration describing the file format and column
-                mapping. When provided, ``asset_name``, ``run_name``,
-                ``run_id``, and ``data_type`` are ignored.
+                mapping. When provided, ``data_type`` is ignored.
             data_type: Explicit data type key. Required for formats like
                 Parquet where the extension alone is ambiguous. Only used
                 when ``config`` is not provided.
-            asset_name: Name of the asset to import into. Required when
-                ``config`` is not provided.
-            run_name: Optional run name. Only used when ``config`` is not
-                provided.
-            run_id: Optional existing run ID. Only used when ``config`` is not
-                provided.
+            run_name: Run name to use. Overrides any value on the config.
+                Defaults to the filename if neither ``run_name`` nor
+                ``run_id`` is set.
+            run_id: Existing run ID to use. Overrides any value on the config.
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
             show_progress: If True, display a progress spinner while waiting.
@@ -716,7 +716,6 @@ class DataImportAPI:
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If neither ``config`` nor ``asset_name`` is provided.
         """
         ...
 

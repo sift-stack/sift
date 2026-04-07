@@ -6,12 +6,16 @@ from typing import TYPE_CHECKING
 import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
-from sift_client._internal.util.file import upload_file
+from sift_client._internal.util.file import extract_parquet_footer, upload_file
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
     DataTypeKey,
+    ParquetFlatDatasetImportConfig,
+    ParquetSingleChannelPerRowImportConfig,
+    ParquetTimeColumn,
 )
 
 if TYPE_CHECKING:
@@ -37,10 +41,10 @@ class DataImportAPIAsync(ResourceBase):
     async def import_from_path(
         self,
         file_path: str | Path,
+        asset_name: str,
         *,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
-        asset_name: str | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
         polling_interval_secs: int = 5,
@@ -53,23 +57,23 @@ class DataImportAPIAsync(ResourceBase):
         for the import to complete.
 
         When ``config`` is omitted the file format is auto-detected via
-        :meth:`detect_config` and a :class:`CsvImportConfig` is built using
-        the provided ``asset_name`` and optional ``run_name`` / ``run_id``.
+        :meth:`detect_config`. The ``asset_name`` is always applied to
+        the config. If neither ``run_name`` nor ``run_id`` is provided
+        (and none is set on the config), ``run_name`` defaults to the
+        filename.
 
         Args:
             file_path: Path to the local file to import.
+            asset_name: Name of the asset to import data into.
             config: Import configuration describing the file format and column
-                mapping. When provided, ``asset_name``, ``run_name``,
-                ``run_id``, and ``data_type`` are ignored.
+                mapping. When provided, ``data_type`` is ignored.
             data_type: Explicit data type key. Required for formats like
                 Parquet where the extension alone is ambiguous. Only used
                 when ``config`` is not provided.
-            asset_name: Name of the asset to import into. Required when
-                ``config`` is not provided.
-            run_name: Optional run name. Only used when ``config`` is not
-                provided.
-            run_id: Optional existing run ID. Only used when ``config`` is not
-                provided.
+            run_name: Run name to use. Overrides any value on the config.
+                Defaults to the filename if neither ``run_name`` nor
+                ``run_id`` is set.
+            run_id: Existing run ID to use. Overrides any value on the config.
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
             show_progress: If True, display a progress spinner while waiting.
@@ -80,23 +84,37 @@ class DataImportAPIAsync(ResourceBase):
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If neither ``config`` nor ``asset_name`` is provided.
         """
         path = Path(file_path)
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {file_path}")
 
         if config is None:
-            if asset_name is None:
-                raise ValueError("Either 'config' or 'asset_name' must be provided.")
-            detected = await self.detect_config(file_path, data_type=data_type)
-            config = detected.model_copy(
-                update={
-                    "asset_name": asset_name,
-                    "run_name": run_name if run_name or run_id else path.stem,
-                    "run_id": run_id,
-                }
-            )
+            config = await self.detect_config(file_path, data_type=data_type)
+
+        updates: dict = {"asset_name": asset_name}
+        if run_name is not None:
+            updates["run_name"] = run_name
+        elif run_id is not None:
+            updates["run_id"] = run_id
+        elif not getattr(config, "run_name", None) and not getattr(config, "run_id", None):
+            updates["run_name"] = path.name
+        config = config.model_copy(update=updates)
+
+        if isinstance(
+            config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
+        ):
+            if config.footer_offset == 0 and config.footer_length == 0:
+                footer_bytes, footer_offset = await run_sync_function(
+                    lambda: extract_parquet_footer(path)
+                )
+                config = config.model_copy(
+                    update={
+                        "footer_offset": footer_offset,
+                        "footer_length": len(footer_bytes),
+                    }
+                )
+
         _, upload_url = await self._low_level_client.create_from_upload(config)
 
         response = await run_sync_function(
@@ -168,25 +186,84 @@ class DataImportAPIAsync(ResourceBase):
                     f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}"
                 )
 
-        def _read_sample() -> bytes:
-            with open(path, "rb") as f:
-                return f.read(65_536)  # 64 KiB
+        is_parquet = data_type_key in (
+            DataTypeKey.PARQUET_FLATDATASET,
+            DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW,
+        )
 
-        sample = await run_sync_function(_read_sample)
+        footer_offset = 0
+        footer_length = 0
+
+        if is_parquet:
+            footer_bytes, footer_offset = await run_sync_function(
+                lambda: extract_parquet_footer(path)
+            )
+            sample = footer_bytes
+            footer_length = len(footer_bytes)
+        else:
+
+            def _read_sample() -> bytes:
+                with open(path, "rb") as f:
+                    return f.read(65_536)  # 64 KiB
+
+            sample = await run_sync_function(_read_sample)
 
         response = await self._low_level_client.detect_config(sample, data_type_key.value)
 
         if response.HasField("csv_config"):
             config = CsvImportConfig._from_proto(response.csv_config)
-            # The server's DetectConfig may include the time column in
-            # data_columns, but CreateDataImportFromUpload rejects that
-            # overlap. Filter it out so the config is import-ready.
+            # Filter out the time column from data_columns to avoid overlap.
             time_col = config.time_column.column
             filtered = [dc for dc in config.data_columns if dc.column != time_col]
             if len(filtered) != len(config.data_columns):
                 config = config.model_copy(update={"data_columns": filtered})
             return config
 
-        # TODO: Add other file format configs
+        if response.HasField("parquet_config"):
+            proto = response.parquet_config
+            if proto.HasField("flat_dataset"):
+                config = ParquetFlatDatasetImportConfig._from_proto(
+                    proto, footer_offset=footer_offset, footer_length=footer_length
+                )
+                # Filter out the time column from data_columns to avoid overlap.
+                time_path = config.time_column.path
+                if time_path:
+                    filtered = [dc for dc in config.data_columns if dc.path != time_path]
+                    if len(filtered) != len(config.data_columns):
+                        config = config.model_copy(update={"data_columns": filtered})
+                else:
+                    # The backend only detects arrow timestamp types. Fall back to
+                    # looking for an integer column whose name contains "time",
+                    # preferring columns that start with "time".
+                    _integer_types = {
+                        ChannelDataType.INT_32,
+                        ChannelDataType.INT_64,
+                        ChannelDataType.UINT_32,
+                        ChannelDataType.UINT_64,
+                    }
+                    match = None
+                    for dc in config.data_columns:
+                        if dc.data_type in _integer_types and dc.name.lower().startswith("time"):
+                            match = dc
+                            break
+                    if match is None:
+                        for dc in config.data_columns:
+                            if dc.data_type in _integer_types and "time" in dc.name.lower():
+                                match = dc
+                                break
+                    if match is not None:
+                        config = config.model_copy(
+                            update={
+                                "time_column": ParquetTimeColumn(path=match.path),
+                                "data_columns": [
+                                    c for c in config.data_columns if c.path != match.path
+                                ],
+                            }
+                        )
+                return config
+            elif proto.HasField("single_channel_per_row"):
+                return ParquetSingleChannelPerRowImportConfig._from_proto(
+                    proto, footer_offset=footer_offset, footer_length=footer_length
+                )
 
         raise ValueError("Server returned an empty DetectConfig response.")

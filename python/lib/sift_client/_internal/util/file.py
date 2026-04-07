@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import struct
 import warnings
 import zipfile
 from typing import TYPE_CHECKING
@@ -112,3 +114,27 @@ def extract_zip(zip_path: Path, output_dir: Path, *, delete_zip: bool = True) ->
         except OSError:
             warnings.warn(f"Failed to delete zip file '{zip_path}'", SiftWarning, stacklevel=2)
     return [output_dir / name for name in names if not name.endswith("/")]
+
+
+def extract_parquet_footer(path: Path) -> tuple[bytes, int]:
+    """Extract the Parquet footer bytes and compute the footer offset.
+
+    Args:
+        path: Path to the Parquet file.
+
+    Returns:
+        A tuple of (footer_bytes, footer_offset).
+
+    Raises:
+        ValueError: If the file is not a valid Parquet file.
+    """
+    with open(path, "rb") as f:
+        f.seek(-8, 2)
+        footer_tail = f.read(8)
+        footer_len = struct.unpack("<I", footer_tail[:4])[0]
+        magic = footer_tail[4:]
+        if magic != b"PAR1":
+            raise ValueError(f"Invalid Parquet file: missing magic bytes in {path}")
+        f.seek(-(footer_len + 8), 2)
+        footer_bytes = f.read(footer_len)
+    return footer_bytes, os.path.getsize(path) - len(footer_bytes) - 8
