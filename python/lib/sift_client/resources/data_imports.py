@@ -41,8 +41,8 @@ class DataImportAPIAsync(ResourceBase):
     async def import_from_path(
         self,
         file_path: str | Path,
-        asset_name: str,
         *,
+        asset_name: str | None = None,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         run_name: str | None = None,
@@ -57,14 +57,16 @@ class DataImportAPIAsync(ResourceBase):
         for the import to complete.
 
         When ``config`` is omitted the file format is auto-detected via
-        :meth:`detect_config`. The ``asset_name`` is always applied to
-        the config. If neither ``run_name`` nor ``run_id`` is provided
+        :meth:`detect_config`. When ``asset_name`` is provided it overrides
+        the config value; otherwise the config's ``asset_name`` is used.
+        If neither ``run_name`` nor ``run_id`` is provided
         (and none is set on the config), ``run_name`` defaults to the
         filename.
 
         Args:
             file_path: Path to the local file to import.
-            asset_name: Name of the asset to import data into.
+            asset_name: Name of the asset to import data into. Optional
+                when ``config`` already has ``asset_name`` set.
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored.
             data_type: Explicit data type key. Required for formats like
@@ -92,7 +94,10 @@ class DataImportAPIAsync(ResourceBase):
         if config is None:
             config = await self.detect_config(file_path, data_type=data_type)
 
-        config.asset_name = asset_name
+        if asset_name is not None:
+            config.asset_name = asset_name
+        elif not config.asset_name:
+            raise ValueError("'asset_name' is required when not set on the config.")
         if run_id is not None:
             config.run_id = run_id
         elif run_name is not None:
@@ -199,7 +204,7 @@ class DataImportAPIAsync(ResourceBase):
 
             def _read_sample() -> bytes:
                 with open(path, "rb") as f:
-                    return f.read(65_536)  # 64 KiB
+                    return f.read(1048576)  # 1MiB
 
             sample = await run_sync_function(_read_sample)
 
