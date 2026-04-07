@@ -2154,10 +2154,10 @@ returns no config.</p>
 <a href="#sift_client.resources.data_imports.DataImportAPIAsync.import_from_path" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_from_path</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.data_imports.ImportConfig">ImportConfig</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">asset_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">asset_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.data_imports.ImportConfig">ImportConfig</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -2177,8 +2177,10 @@ returns no config.</p>
 <p>Creates a data import on the server, uploads the file, and waits
 for the import to complete.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-:meth:<code>detect_config</code> and a :class:<code>CsvImportConfig</code> is built using
-the provided <code>asset_name</code> and optional <code>run_name</code> / <code>run_id</code>.</p>
+:meth:<code>detect_config</code>. The <code>asset_name</code> is always applied to
+the config. If neither <code>run_name</code> nor <code>run_id</code> is provided
+(and none is set on the config), <code>run_name</code> defaults to the
+filename.</p>
 
 
 <table>
@@ -2207,13 +2209,28 @@ the provided <code>asset_name</code> and optional <code>run_name</code> / <code>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>asset_name</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Name of the asset to import data into.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>config</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Import configuration describing the file format and column
-mapping. When provided, <code>asset_name</code>, <code>run_name</code>,
-<code>run_id</code>, and <code>data_type</code> are ignored.</p>
+mapping. When provided, <code>data_type</code> is ignored.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2251,33 +2268,13 @@ when <code>config</code> is not provided.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>asset_name</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Name of the asset to import into. Required when
-<code>config</code> is not provided.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="str">str</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
                 <code>run_name</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Optional run name. Only used when <code>config</code> is not
-provided.</p>
+                <p>Run name to use. Overrides any value on the config.
+Defaults to the filename if neither <code>run_name</code> nor
+<code>run_id</code> is set.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2297,8 +2294,7 @@ provided.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Optional existing run ID. Only used when <code>config</code> is not
-provided.</p>
+                <p>Existing run ID to use. Overrides any value on the config.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2423,18 +2419,6 @@ Defaults to True for sync, False for async.</p>
             <td class="doc-raises-details">
               <div class="doc-md-description">
                 <p>If the file does not exist.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-              <span class="doc-raises-annotation">
-                  <code><span title="ValueError">ValueError</span></code>
-              </span>
-            </td>
-            <td class="doc-raises-details">
-              <div class="doc-md-description">
-                <p>If neither <code>config</code> nor <code>asset_name</code> is provided.</p>
               </div>
             </td>
           </tr>
