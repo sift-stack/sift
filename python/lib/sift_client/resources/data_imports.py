@@ -212,6 +212,8 @@ class DataImportAPIAsync(ResourceBase):
             csv_config.data_columns = [
                 dc for dc in csv_config.data_columns if dc.column != time_col
             ]
+            if not csv_config.data_columns:
+                raise ValueError(f"No data columns detected in '{path.name}'.")
             return csv_config
 
         if response.HasField("parquet_config"):
@@ -228,8 +230,7 @@ class DataImportAPIAsync(ResourceBase):
                     ]
                 else:
                     # The backend only detects arrow timestamp types. Fall back to
-                    # looking for an integer column whose name contains "time",
-                    # preferring columns that start with "time".
+                    # an integer column whose name starts with "time".
                     _integer_types = {
                         ChannelDataType.INT_32,
                         ChannelDataType.INT_64,
@@ -241,16 +242,18 @@ class DataImportAPIAsync(ResourceBase):
                         if dc.data_type in _integer_types and dc.name.lower().startswith("time"):
                             match = dc
                             break
-                    if match is None:
-                        for dc in parquet_config.data_columns:
-                            if dc.data_type in _integer_types and "time" in dc.name.lower():
-                                match = dc
-                                break
                     if match is not None:
                         parquet_config.time_column = ParquetTimeColumn(path=match.path)
                         parquet_config.data_columns = [
                             c for c in parquet_config.data_columns if c.path != match.path
                         ]
+                if not parquet_config.time_column.path:
+                    raise ValueError(
+                        f"No time column detected in '{path.name}'. "
+                        "Set the time column manually on the config before importing."
+                    )
+                if not parquet_config.data_columns:
+                    raise ValueError(f"No data columns detected in '{path.name}'.")
                 return parquet_config
             elif proto.HasField("single_channel_per_row"):
                 return ParquetSingleChannelPerRowImportConfig._from_proto(
