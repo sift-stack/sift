@@ -177,6 +177,67 @@ class TestDataTypeKey:
         assert EXTENSION_TO_DATA_TYPE_KEY[".hdf5"] == DataTypeKey.HDF5
 
 
+class TestDetectConfigValidation:
+    """Tests for validation checks applied after detect_config."""
+
+    def test_csv_no_data_columns_raises(self):
+        """If all columns are filtered out, detect_config should raise."""
+        config = CsvImportConfig(
+            asset_name="",
+            time_column=CsvTimeColumn(column=1, format=TimeFormat.ABSOLUTE_RFC3339),
+            data_columns=[],
+        )
+        assert not config.data_columns
+
+    def test_parquet_empty_time_column_path(self):
+        """An empty time column path indicates detection failed."""
+        config = ParquetFlatDatasetImportConfig(
+            asset_name="",
+            time_column=ParquetTimeColumn(path=""),
+            data_columns=[
+                ParquetDataColumn(
+                    path="cpu_util", name="cpu_util", data_type=ChannelDataType.DOUBLE
+                ),
+            ],
+        )
+        assert not config.time_column.path
+
+    def test_parquet_no_data_columns(self):
+        """A config with no data columns indicates detection found nothing useful."""
+        config = ParquetFlatDatasetImportConfig(
+            asset_name="",
+            time_column=ParquetTimeColumn(path="timestamp"),
+            data_columns=[],
+        )
+        assert not config.data_columns
+
+    def test_parquet_integer_time_column_fallback(self):
+        """An integer column starting with 'time' should be usable as the time column."""
+        config = ParquetFlatDatasetImportConfig(
+            asset_name="",
+            time_column=ParquetTimeColumn(path=""),
+            data_columns=[
+                ParquetDataColumn(path="time_ns", name="time_ns", data_type=ChannelDataType.INT_64),
+                ParquetDataColumn(
+                    path="cpu_util", name="cpu_util", data_type=ChannelDataType.DOUBLE
+                ),
+            ],
+        )
+        _integer_types = {
+            ChannelDataType.INT_32,
+            ChannelDataType.INT_64,
+            ChannelDataType.UINT_32,
+            ChannelDataType.UINT_64,
+        }
+        match = None
+        for dc in config.data_columns:
+            if dc.data_type in _integer_types and dc.name.lower().startswith("time"):
+                match = dc
+                break
+        assert match is not None
+        assert match.path == "time_ns"
+
+
 class TestRunPrecedence:
     def test_run_id_ignored_when_none(self, csv_config):
         csv_config.run_id = None
