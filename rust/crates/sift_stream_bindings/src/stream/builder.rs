@@ -12,7 +12,6 @@ use sift_stream::{
 const DATA_CHANNEL_CAPACITY: usize = 1024 * 100;
 const CONTROL_CHANNEL_CAPACITY: usize = 1024;
 
-// Type Definitions
 /// Python binding for [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
 ///
 /// This is a thin wrapper around the Rust `SiftStreamBuilder` type. For detailed documentation,
@@ -124,10 +123,6 @@ impl SiftStreamBuilderPy {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Shared helper
-// ──────────────────────────────────────────────────────────────────────────────
-
 /// Constructs a [`StreamConfigBuilder`] from the shared base configuration stored in
 /// each mode builder. Consumes the [`StreamConfigBuilderPy`] so callers should clone
 /// `self.base` before passing it in.
@@ -165,10 +160,6 @@ fn make_stream_config_builder(base: StreamConfigBuilderPy) -> PyResult<StreamCon
 
     Ok(config_builder)
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// StreamConfigBuilderPy
-// ──────────────────────────────────────────────────────────────────────────────
 
 /// Holds shared configuration (run, asset tags/metadata) and provides mode selection.
 ///
@@ -242,10 +233,6 @@ impl StreamConfigBuilderPy {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// LiveOnlyBuilderPy
-// ──────────────────────────────────────────────────────────────────────────────
-
 /// Builder for `LiveStreamingOnly` mode.
 ///
 /// Created by [`StreamConfigBuilderPy.live_only()`]. Call [`LiveOnlyBuilderPy.build()`]
@@ -296,10 +283,6 @@ impl LiveOnlyBuilderPy {
         Ok(awaitable.into())
     }
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// LiveWithBackupsBuilderPy
-// ──────────────────────────────────────────────────────────────────────────────
 
 /// Builder for `LiveStreamingWithBackups` mode.
 ///
@@ -367,10 +350,6 @@ impl LiveWithBackupsBuilderPy {
         Ok(awaitable.into())
     }
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// FileBackupBuilderPy
-// ──────────────────────────────────────────────────────────────────────────────
 
 /// Builder for `FileBackup` mode.
 ///

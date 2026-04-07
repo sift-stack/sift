@@ -23,10 +23,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Inner enum — holds any of the three concrete SiftStream transport types
-// ──────────────────────────────────────────────────────────────────────────────
-
 enum SiftStreamInner {
     LiveOnly(SiftStream<IngestionConfigEncoder, LiveStreamingOnly>),
     LiveWithBackups(SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>),
@@ -63,10 +59,6 @@ fn stream_finished_err() -> PyErr {
     PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Stream has already been finished")
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Type Definitions
-// ──────────────────────────────────────────────────────────────────────────────
-
 /// Python binding for [`SiftStream`](sift_stream::SiftStream).
 ///
 /// This is a thin wrapper around the Rust `SiftStream` type. For detailed documentation,
@@ -93,10 +85,6 @@ pub struct SiftStreamPy {
 pub struct FlowPy {
     inner: Flow,
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Trait Implementations
-// ──────────────────────────────────────────────────────────────────────────────
 
 impl From<SiftStream<IngestionConfigEncoder, LiveStreamingOnly>> for SiftStreamPy {
     fn from(stream: SiftStream<IngestionConfigEncoder, LiveStreamingOnly>) -> Self {
@@ -128,20 +116,12 @@ impl From<FlowPy> for Flow {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Helper
-// ──────────────────────────────────────────────────────────────────────────────
-
 // All sift_stream send error types (SiftStreamSendError, SendError, TrySendError,
 // SiftStreamTrySendError) intentionally omit the inner T from their Display output, so
 // format!("{e}") is safe to use regardless of how large the undelivered message(s) may be.
 fn py_err(e: impl std::fmt::Display) -> PyErr {
     PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{e}"))
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// PyO3 Method Implementations
-// ──────────────────────────────────────────────────────────────────────────────
 
 #[gen_stub_pymethods]
 #[pymethods]
