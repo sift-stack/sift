@@ -18791,7 +18791,12 @@ returns no config.</p>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_from_path</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
 
 
@@ -18799,8 +18804,13 @@ returns no config.</p>
       module-attribute
    (sift_client.sift_types.data_import.ImportConfig)" href="../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
@@ -18821,11 +18831,10 @@ completion before proceeding.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
 <code>detect_config</code> (CSV and Parquet only). For other formats
 (TDMS, HDF5, CH10), <code>config</code> must be provided.
-When <code>asset_name</code> is provided it overrides
-the config value; otherwise the config's <code>asset_name</code> is used.
-If neither <code>run_name</code> nor <code>run_id</code> is provided
-(and none is set on the config), <code>run_name</code> defaults to the
-filename.</p>
+When <code>asset</code> is provided it overrides the config value;
+otherwise the config's <code>asset_name</code> is used.
+If neither <code>run</code> nor <code>run_name</code> is provided (and none is
+set on the config), <code>run_name</code> defaults to the filename.</p>
 
 
 <table>
@@ -18854,17 +18863,22 @@ filename.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>asset_name</code>
+                <code>asset</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Name of the asset to import data into. Optional
+                <p>Asset object or asset name to import data into. Optional
 when <code>config</code> already has <code>asset_name</code> set.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | None</code>
+                      <code><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -18923,18 +18937,22 @@ when <code>config</code> is not provided.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>run_name</code>
+                <code>run</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Run name to use. Overrides any value on the config.
-Defaults to the filename if neither <code>run_name</code> nor
-<code>run_id</code> is set.</p>
+                <p><code>Run</code> object or run ID string to import into an existing
+run. Mutually exclusive with <code>run_name</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | None</code>
+                      <code><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -18945,11 +18963,12 @@ Defaults to the filename if neither <code>run_name</code> nor
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>run_id</code>
+                <code>run_name</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Existing run ID to use. Overrides any value on the config.</p>
+                <p>Name for a new run. Defaults to the filename if
+neither <code>run</code> nor <code>run_name</code> is set.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -19481,7 +19500,12 @@ returns no config.</p>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_from_path</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
 
 
@@ -19489,8 +19513,13 @@ returns no config.</p>
       module-attribute
    (sift_client.sift_types.data_import.ImportConfig)" href="../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
@@ -19511,11 +19540,10 @@ completion before proceeding.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
 <code>detect_config</code> (CSV and Parquet only). For other formats
 (TDMS, HDF5, CH10), <code>config</code> must be provided.
-When <code>asset_name</code> is provided it overrides
-the config value; otherwise the config's <code>asset_name</code> is used.
-If neither <code>run_name</code> nor <code>run_id</code> is provided
-(and none is set on the config), <code>run_name</code> defaults to the
-filename.</p>
+When <code>asset</code> is provided it overrides the config value;
+otherwise the config's <code>asset_name</code> is used.
+If neither <code>run</code> nor <code>run_name</code> is provided (and none is
+set on the config), <code>run_name</code> defaults to the filename.</p>
 
 
 <table>
@@ -19544,17 +19572,22 @@ filename.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>asset_name</code>
+                <code>asset</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Name of the asset to import data into. Optional
+                <p>Asset object or asset name to import data into. Optional
 when <code>config</code> already has <code>asset_name</code> set.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | None</code>
+                      <code><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -19613,18 +19646,22 @@ when <code>config</code> is not provided.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>run_name</code>
+                <code>run</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Run name to use. Overrides any value on the config.
-Defaults to the filename if neither <code>run_name</code> nor
-<code>run_id</code> is set.</p>
+                <p><code>Run</code> object or run ID string to import into an existing
+run. Mutually exclusive with <code>run_name</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | None</code>
+                      <code><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -19635,11 +19672,12 @@ Defaults to the filename if neither <code>run_name</code> nor
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>run_id</code>
+                <code>run_name</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Existing run ID to use. Overrides any value on the config.</p>
+                <p>Name for a new run. Defaults to the filename if
+neither <code>run</code> nor <code>run_name</code> is set.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
