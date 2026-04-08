@@ -16,15 +16,28 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
-/// Transport for real-time streaming with disk backups and checkpointing.
+/// Transport for real-time streaming with periodic checkpointing and optional disk backups.
 ///
-/// Maintains two internal channels:
-/// - **backup channel** — bounded; `send` awaits here for backpressure.
-/// - **ingestion channel** — force-send; oldest message is evicted if full
-///   (prioritizes message freshness over completeness).
+/// Maintains two internal bounded channels:
 ///
-/// Use this when durability through disk backups and checkpoint-based recovery
-/// is required.
+/// - **backup channel** — the primary durability path and the sole source of backpressure.
+///   [`send`](crate::SiftStream::send) awaits when this channel is full. Capacity is set via
+///   [`LiveWithBackupsBuilder::backup_data_channel_capacity`](crate::LiveWithBackupsBuilder::backup_data_channel_capacity)
+///   (default: [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY)).
+/// - **ingestion channel** — forwards messages to the gRPC task using force-send. When full,
+///   the **oldest buffered message is evicted** rather than blocking the caller. Evicted
+///   messages are redirected to the backup channel. Capacity is set via
+///   [`LiveWithBackupsBuilder::ingestion_data_channel_capacity`](crate::LiveWithBackupsBuilder::ingestion_data_channel_capacity).
+///
+/// Because of force-send eviction, the message inside a [`SendError`](crate::SendError) or
+/// [`TrySendError`](crate::TrySendError) returned by [`send`](crate::SiftStream::send) /
+/// [`try_send`](crate::SiftStream::try_send) may be an **older displaced message**, not
+/// necessarily the one passed to the current call.
+///
+/// **Disk backups are optional.** Checkpointing and retry are active regardless of whether
+/// disk backups are enabled. Disk backups activate only when `disk_backup_policy.backups_dir`
+/// is set via
+/// [`LiveWithBackupsBuilder::disk_backup_policy`](crate::LiveWithBackupsBuilder::disk_backup_policy).
 pub struct LiveStreamingWithBackups {
     message_id_counter: u64,
     backup_tx: async_channel::Sender<DataMessage>,
@@ -158,13 +171,17 @@ impl Transport for LiveStreamingWithBackups {
     type Encoder = IngestionConfigEncoder;
     type Message = IngestWithConfigDataStreamRequest;
 
-    /// Sends a message, awaiting capacity if the stream is busy.
+    /// Sends a message, awaiting capacity on the **backup channel** if it is full.
     ///
-    /// This mode prioritizes freshness: newer messages always make it into the stream, and
-    /// older buffered messages are displaced to make room when necessary. As a result, if
-    /// the stream is closed while a displaced message is being handled, **the message
-    /// returned inside `Err` may be older than the message provided**. An error is only
-    /// returned on stream close; normal backpressure is handled transparently by waiting.
+    /// Backpressure comes exclusively from the bounded backup channel. Once the backup
+    /// channel accepts the message, the message is dispatched to the ingestion channel via
+    /// force-send: if the ingestion channel is full, the **oldest buffered message in the
+    /// ingestion channel** is evicted and redirected to the backup channel — the caller does
+    /// not block for this step.
+    ///
+    /// An error is returned only when a channel has closed (stream shutdown). Because of
+    /// force-send eviction, **the message returned inside `Err` may be an older displaced
+    /// message**, not necessarily the one passed to this call.
     async fn send(
         &mut self,
         stream_id: &Uuid,
@@ -188,13 +205,16 @@ impl Transport for LiveStreamingWithBackups {
 
     /// Attempts to send a message without blocking.
     ///
-    /// Returns immediately with `TrySendError::Full` or `TrySendError::Closed` if the
-    /// stream cannot accept data right now.
+    /// Returns immediately with `TrySendError::Full` if the **backup channel** is at
+    /// capacity, or `TrySendError::Closed` if the backup channel has been closed. If the
+    /// backup channel accepts the message, force-send dispatch to the ingestion channel
+    /// proceeds: if the ingestion channel is full, the oldest buffered message is evicted and
+    /// a non-blocking attempt is made to redirect it to the backup channel. If that
+    /// redirection also fails (backup full or closed), the evicted message is returned as
+    /// `TrySendError::Full`.
     ///
-    /// This mode prioritizes freshness: newer messages always make it into the stream, and
-    /// older buffered messages are displaced to make room when necessary. If such a
-    /// displacement occurs and the stream is full or closed at that point, **the message
-    /// returned inside `Err` may be older than the message provided**.
+    /// Because of force-send eviction, **the message returned inside `Err` may be an older
+    /// displaced message**, not necessarily the one passed to this call.
     fn try_send(
         &mut self,
         stream_id: &Uuid,
@@ -273,9 +293,15 @@ impl Transport for LiveStreamingWithBackups {
         Ok(())
     }
 
-    /// This will conclude the stream and return when Sift has sent its final response. It is
-    /// important that this method be called in order to obtain the final checkpoint
-    /// acknowledgement from Sift, otherwise some tail-end data may fail to send.
+    /// Closes both internal channels, signals shutdown, and awaits all background tasks.
+    ///
+    /// Dropping both channels causes the ingestion task to drain any already-queued messages
+    /// before acting on the shutdown signal, so all messages sent before `finish` is called
+    /// will be processed. This method also triggers the final checkpoint, which requests
+    /// delivery confirmation from Sift for all data up to this point.
+    ///
+    /// Always call `finish` when done sending — dropping a [`SiftStream`](crate::SiftStream)
+    /// without calling it may result in tail-end data not reaching Sift.
     async fn finish(self, stream_id: &Uuid) -> Result<()> {
         drop(self.ingestion_tx);
         drop(self.backup_tx);

@@ -16,13 +16,15 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
-/// Transport for real-time streaming without disk backups.
+/// Transport for real-time streaming over a single bounded ingestion channel.
 ///
-/// Sends messages directly to the ingestion task over a single bounded channel.
-/// Backpressure is applied naturally: `send` awaits until the channel has capacity.
+/// Messages are delivered directly to the gRPC ingestion task. No messages are evicted or
+/// displaced; the caller blocks until the ingestion task drains capacity.
 ///
-/// Use this when durability through disk backups is not required and you want the
-/// simplest possible setup.
+/// **Backpressure**: [`send`](crate::SiftStream::send) awaits when the **ingestion channel**
+/// is full. The channel capacity is set via
+/// [`LiveOnlyBuilder::ingestion_data_channel_capacity`](crate::LiveOnlyBuilder::ingestion_data_channel_capacity)
+/// (default: [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY)).
 pub struct LiveStreamingOnly {
     message_id_counter: u64,
     ingestion_tx: async_channel::Sender<DataMessage>,
@@ -70,11 +72,11 @@ impl Transport for LiveStreamingOnly {
     type Encoder = IngestionConfigEncoder;
     type Message = IngestWithConfigDataStreamRequest;
 
-    /// Sends a message, awaiting capacity if the ingestion channel is full.
+    /// Sends a message, awaiting capacity on the **ingestion channel** if it is full.
     ///
-    /// Backpressure is applied directly on the ingestion channel — no displacement or
-    /// backup occurs. Use [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups)
-    /// if you need disk-backup durability.
+    /// Backpressure comes from the bounded ingestion channel. No messages are evicted or
+    /// displaced — the caller blocks until the ingestion task drains capacity. Returns an
+    /// error only if the channel is closed (i.e. the stream is shutting down).
     async fn send(
         &mut self,
         stream_id: &Uuid,

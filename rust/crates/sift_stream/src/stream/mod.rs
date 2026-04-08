@@ -43,11 +43,21 @@ pub use send_error::{SendError, SiftStreamSendError, SiftStreamTrySendError, Try
 #[cfg(test)]
 mod test;
 
-/// A trait that how metrics are accessed.
+/// Provides a point-in-time snapshot of stream metrics.
+///
+/// Implemented by [`IngestionConfigEncoder`](crate::IngestionConfigEncoder). Snapshots are
+/// non-blocking and do not affect stream operation. Obtain one via
+/// [`SiftStream::get_metrics_snapshot`].
 pub trait MetricsSnapshot: private::Sealed {
     fn snapshot(&self) -> SiftStreamMetricsSnapshot;
 }
 
+/// Implemented by types that can be encoded and sent via [`SiftStream::send`].
+///
+/// The two concrete implementations are [`Flow`](crate::mode::ingestion_config::Flow) and
+/// [`FlowBuilder`](crate::flow::FlowBuilder). The associated `Encoder` type links each
+/// encodeable to the specific encoder implementation that processes it — external types cannot
+/// implement this trait because `Encoder` is sealed.
 pub trait Encodeable {
     type Output: Send + Sync;
     type Encoder: Encoder<Message = Self::Output>;
@@ -72,13 +82,12 @@ pub trait Encoder: private::Sealed {
 ///
 /// Three concrete implementations are provided:
 ///
-/// - [`LiveStreamingOnly`](crate::LiveStreamingOnly) — delivers messages via a gRPC stream to
-///   Sift in real-time. Backpressure is applied directly on the single ingestion channel.
-///   Use this when disk-backup durability is not required.
-/// - [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups) — delivers messages via a
-///   gRPC stream to Sift in real-time, with disk backups and periodic checkpointing. Backpressure
-///   is applied by disk-backups for data durability.
-/// - [`FileBackup`](crate::FileBackup) — writes messages to rolling disk backup files without
+/// - [`LiveStreamingOnly`](crate::LiveStreamingOnly) — delivers messages to Sift in real-time
+///   over a single bounded ingestion channel. No checkpointing, no disk backups.
+/// - [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups) — delivers messages to Sift
+///   in real-time with periodic checkpointing and optional disk backups. Uses a dual-channel
+///   architecture; see below.
+/// - [`FileBackup`](crate::FileBackup) — writes messages to rolling disk files without
 ///   streaming live to Sift.
 ///
 /// ## Send API
@@ -95,15 +104,31 @@ pub trait Encoder: private::Sealed {
 /// In every failure case the undelivered message(s) are returned inside the error variant so
 /// that the caller can decide whether to retry, log, buffer locally, or discard them.
 ///
+/// ## Backpressure sources
+///
+/// The channel that applies backpressure to [`send`](Transport::send) differs per mode. Knowing
+/// which channel to tune is important when adjusting capacity via the mode builders:
+///
+/// | Mode | [`send`](Transport::send) awaits on | Capacity setting |
+/// |---|---|---|
+/// | [`LiveStreamingOnly`](crate::LiveStreamingOnly) | ingestion channel | [`ingestion_data_channel_capacity`](crate::LiveOnlyBuilder::ingestion_data_channel_capacity) |
+/// | [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups) | backup channel only — ingestion uses force-send | [`backup_data_channel_capacity`](crate::LiveWithBackupsBuilder::backup_data_channel_capacity) |
+/// | [`FileBackup`](crate::FileBackup) | write channel | [`backup_data_channel_capacity`](crate::FileBackupBuilder::backup_data_channel_capacity) |
+///
 /// ## Channel semantics for `LiveStreamingWithBackups`
 ///
 /// `LiveStreamingWithBackups` maintains two internal bounded channels:
 ///
-/// - **backup channel** — the primary durability path. All four send methods operate on this
-///   channel first. Errors reported by the send API always reflect the state of this channel.
-/// - **ingestion channel** — forwards messages to the gRPC task. This channel uses a
-///   *force-send* strategy: if it is full, the oldest in-flight message is evicted to make
-///   room. It never blocks and never returns `Full`.
+/// - **backup channel** — the primary durability path. [`send`](Transport::send) awaits here.
+///   All errors reported by the send API reflect the state of this channel.
+/// - **ingestion channel** — forwards messages to the gRPC task using a *force-send* strategy:
+///   when full, the **oldest buffered message is evicted** to make room for the incoming one.
+///   It never causes [`send`](Transport::send) to await and never returns `Full`. Evicted
+///   messages are redirected to the backup channel.
+///
+/// Because of force-send eviction, the message returned inside an error variant from
+/// [`send`](Transport::send) or [`send_requests`](Transport::send_requests) may be an **older
+/// displaced message**, not necessarily the one you just sent.
 ///
 /// This trait is sealed: only implementations within this crate are permitted.
 #[async_trait]
@@ -204,15 +229,17 @@ pub trait Transport: private::Sealed {
     async fn finish(self, stream_id: &Uuid) -> Result<()>;
 }
 
-/// [SiftStream] is a smart wrapper over an actual gRPC stream that makes it robust and more
-/// ergonomic to work with. Some additional behaviors that [SiftStream] supports are:
-/// - Checkpointing
-/// - Retries (disabled by default)
-/// - Backups (disabled by default)
-/// - Tracing and ingestion metrics
+/// Generic wrapper over a telemetry transport that provides a consistent send API regardless
+/// of the underlying mode.
 ///
-/// To initialize a [SiftStream] users will use [builder::SiftStreamBuilder]. Refer to the
-/// [crate-level documentation](crate) for further details and examples.
+/// `E` is the encoder (e.g. [`IngestionConfigEncoder`](crate::IngestionConfigEncoder)) and `T`
+/// is the transport (e.g. [`LiveStreamingOnly`](crate::LiveStreamingOnly),
+/// [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups), or
+/// [`FileBackup`](crate::FileBackup)). The available features — checkpointing, retry, disk
+/// backups — depend entirely on the transport mode chosen at build time.
+///
+/// Construct a `SiftStream` via [`SiftStreamBuilder`](builder::SiftStreamBuilder). Refer to the
+/// [crate-level documentation](crate) for mode comparison, examples, and tuning guidance.
 pub struct SiftStream<E, T> {
     grpc_channel: SiftChannel,
     encoder: E,

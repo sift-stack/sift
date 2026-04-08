@@ -6,31 +6,33 @@ pub const DEFAULT_MAX_BACKUP_SIZE: usize = 500 * 2_usize.pow(20);
 /// Default rolling file count - None (unlimited files)
 pub const DEFAULT_BACKUP_FILE_COUNT: Option<usize> = None;
 
-/// A policy that is used to configure the disk backup behavior of a Sift stream. Most users wanting disk
-/// backups should opt to use the default policy provided by [DiskBackupPolicy::default], however, they are able
-/// to completely configure their own.
-/// - `backups_dir` is the directory where the backups will get created. If `backups_dir` is
-///   `None`, then the user's [data
-///   directory](https://docs.rs/dirs/latest/dirs/fn.data_dir.html) is used. If `backups_dir` is provided but
-///   doesn't exist, then there will be an attempt to create that directory.
+/// Configures the disk backup behavior for a [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups)
+/// or [`FileBackup`](crate::FileBackup) stream.
 ///
-/// - `max_backup_file_size` is the maximum size that an individual backup file is allowed to be, befor the
-///   file is rolled if using rolling backups, or a checkpoint forced if the max file count is exceeded.
-///   Defaults to 500 MiB
-///
-/// - `rolling_file_policy` is the rolling backup file policy to use
-///
-/// - `retain_backups` will retain backup files indefinitely, instead of deleting them once a checkpoint
-///   has been cleared or the data has otherwise been confirmed to be ingested in Sift.
-///
-/// **Important Note**: The `max_backup_file_size` does not represent that actual amount of
-/// space on disk which is affected by operating system-level compression and block allocation;
-/// instead the byte-length is the actual measure.
+/// Most users should start with [`DiskBackupPolicy::default`] and override only the fields
+/// that need to change.
 #[derive(Debug, Clone)]
 pub struct DiskBackupPolicy {
+    /// Directory in which backup files are created.
+    ///
+    /// If `None`, the platform's [user data directory](https://docs.rs/dirs/latest/dirs/fn.data_dir.html)
+    /// is used. If a path is provided but does not exist, an attempt is made to create it.
+    ///
+    /// For [`FileBackup`](crate::FileBackup) this field must be `Some` or [`build`](crate::FileBackupBuilder::build) will return an error.
     pub backups_dir: Option<PathBuf>,
+    /// Maximum uncompressed byte length of a single backup file before it is rolled.
+    ///
+    /// When this threshold is reached the current file is closed and a new one is opened. If
+    /// the rolling file count limit is also reached, a checkpoint is forced instead.
+    /// Defaults to [`DEFAULT_MAX_BACKUP_SIZE`] (500 MiB).
+    ///
+    /// **Note**: This is the raw byte length of the encoded data, not the amount of space
+    /// consumed on disk (which is affected by OS-level compression and block allocation).
     pub max_backup_file_size: usize,
+    /// Policy governing how many rolling backup files are retained at once.
     pub rolling_file_policy: RollingFilePolicy,
+    /// When `true`, backup files are retained indefinitely rather than being deleted after
+    /// a successful checkpoint or confirmed re-ingestion.
     pub retain_backups: bool,
 }
 
@@ -45,13 +47,16 @@ impl Default for DiskBackupPolicy {
     }
 }
 
-/// A policy that is used to configure the rolling file policy of a Sift stream. Most users wanting disk
-/// backups should opt to use the default policy provided by [RollingFilePolicy::default], however, they are able
-/// to completely configure their own.
-/// - `max_file_count` is the maximum number of files allowed to exist for a backup. Once this count is reached
-///   a checkpoint is forced, and the files are either cleared or re-ingested. None signifies unlimited files
+/// Configures the rolling file behavior within a [`DiskBackupPolicy`].
+///
+/// Most users should start with [`RollingFilePolicy::default`] (unlimited files).
 #[derive(Debug, Clone)]
 pub struct RollingFilePolicy {
+    /// Maximum number of backup files that may exist simultaneously.
+    ///
+    /// Once this limit is reached a checkpoint is forced; files are then either deleted or
+    /// re-ingested depending on the checkpoint outcome and [`DiskBackupPolicy::retain_backups`].
+    /// `None` means unlimited files (the default).
     pub max_file_count: Option<usize>,
 }
 
