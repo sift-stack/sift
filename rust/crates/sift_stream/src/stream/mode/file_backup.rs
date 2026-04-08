@@ -2,13 +2,9 @@ use crate::stream::mode::ingestion_config::IngestionConfigEncoder;
 use crate::stream::send_error::{SendError, TrySendError};
 use crate::stream::{SiftStream, Transport, private::Sealed};
 use crate::{
-    DiskBackupPolicy, RetryPolicy,
-    backup::disk::{
-        RollingFilePolicy,
-        file_writer::{FileWriter, FileWriterConfig},
-    },
+    backup::disk::file_writer::{FileWriter, FileWriterConfig},
     metrics::SiftStreamMetrics,
-    stream::{flow::FlowDescriptor, tasks::RecoveryConfig},
+    stream::flow::FlowDescriptor,
 };
 use async_channel::{Receiver, Sender};
 use async_trait::async_trait;
@@ -282,7 +278,6 @@ impl FileBackup {
     /// Creates a new [`FileBackup`] and spawns the background file-writing task.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        backups_directory: PathBuf,
         file_writer_config: FileWriterConfig,
         channel_capacity: usize,
         metrics: Arc<SiftStreamMetrics>,
@@ -310,37 +305,14 @@ impl FileBackup {
         // Start metrics streaming task if interval is configured
         let metrics_streaming = if let Some(interval) = metrics_streaming_interval {
             let control_rx = control_tx.subscribe();
-            let task_config = crate::stream::tasks::TaskConfig {
-                session_name: session_name.clone(),
-                sift_stream_id,
-                setup_channel: setup_channel.clone(),
-                ingestion_channel: setup_channel.clone(),
-                reingestion_channel: setup_channel,
-                metrics: metrics.clone(),
-                checkpoint_interval: Duration::from_secs(60), // Not used for metrics streaming
-                enable_compression_for_ingestion: false,      // Not used for metrics streaming
-                recovery_config: RecoveryConfig {
-                    retry_policy: RetryPolicy::default(),
-                    backups_enabled: true,
-                    backups_directory: String::new(),
-                    backups_prefix: String::new(),
-                    backup_policy: DiskBackupPolicy {
-                        backups_dir: Some(backups_directory),
-                        max_backup_file_size: 1024 * 1024 * 50, // 50MB
-                        rolling_file_policy: RollingFilePolicy::default(),
-                        retain_backups: false,
-                    },
-                },
-                control_channel_capacity,
-                ingestion_data_channel_capacity: 1000,
-                backup_data_channel_capacity: 1000,
-                metrics_streaming_interval: None, // Disable nested metrics streaming
-            };
+            let metrics_clone = metrics.clone();
             Some(tokio::spawn(async move {
                 let metrics_task = crate::stream::tasks::MetricsStreamingTask::new(
+                    setup_channel,
                     control_rx,
+                    session_name.clone(),
                     interval,
-                    task_config,
+                    metrics_clone,
                 )
                 .await?;
 
@@ -404,7 +376,6 @@ impl SiftStream<IngestionConfigEncoder, FileBackup> {
         };
 
         let file_backup = FileBackup::new(
-            backups_directory,
             file_writer_config,
             channel_capacity,
             metrics.clone(),
@@ -471,14 +442,12 @@ mod tests {
 
     /// Helper function to create a FileBackupMode for tests
     async fn create_test_file_backup_mode(
-        backups_directory: PathBuf,
         file_writer_config: FileWriterConfig,
         channel_capacity: usize,
         metrics: Arc<SiftStreamMetrics>,
     ) -> FileBackup {
         let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
         FileBackup::new(
-            backups_directory,
             file_writer_config,
             channel_capacity,
             metrics,
@@ -762,7 +731,6 @@ mod tests {
     async fn test_file_backup_metrics_streaming_task_completes_when_control_channel_closed() {
         let (setup_channel, _) = create_mock_grpc_channel_with_service().await;
         let temp_dir = TempDir::new("test_file_backup").unwrap();
-        let backups_directory = temp_dir.path().to_path_buf();
         let file_writer_config = FileWriterConfig {
             directory: temp_dir.path().to_path_buf(),
             prefix: "test".to_string(),
@@ -771,7 +739,6 @@ mod tests {
         let metrics = Arc::new(SiftStreamMetrics::default());
 
         let file_backup = FileBackup::new(
-            backups_directory,
             file_writer_config,
             10,
             metrics,
@@ -817,13 +784,8 @@ mod tests {
             max_size: 1024 * 1024, // 1MB
         };
 
-        let mut mode = create_test_file_backup_mode(
-            temp_dir.path().to_path_buf(),
-            file_writer_config,
-            1024 * 100,
-            metrics.clone(),
-        )
-        .await;
+        let mut mode =
+            create_test_file_backup_mode(file_writer_config, 1024 * 100, metrics.clone()).await;
 
         let request = create_test_request("test_flow", &ingestion_config.ingestion_config_id);
 
@@ -854,13 +816,8 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = create_test_file_backup_mode(
-            temp_dir.path().to_path_buf(),
-            file_writer_config,
-            1024 * 100,
-            metrics.clone(),
-        )
-        .await;
+        let mut mode =
+            create_test_file_backup_mode(file_writer_config, 1024 * 100, metrics.clone()).await;
 
         // Send requests with different flows
         let request1 = create_test_request("flow1", &ingestion_config.ingestion_config_id);
@@ -896,13 +853,8 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = create_test_file_backup_mode(
-            temp_dir.path().to_path_buf(),
-            file_writer_config,
-            1024 * 100,
-            metrics.clone(),
-        )
-        .await;
+        let mut mode =
+            create_test_file_backup_mode(file_writer_config, 1024 * 100, metrics.clone()).await;
 
         let requests = vec![
             create_test_request("flow1", &ingestion_config.ingestion_config_id),
@@ -942,13 +894,8 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = create_test_file_backup_mode(
-            temp_dir.path().to_path_buf(),
-            file_writer_config,
-            1024 * 100,
-            metrics.clone(),
-        )
-        .await;
+        let mut mode =
+            create_test_file_backup_mode(file_writer_config, 1024 * 100, metrics.clone()).await;
 
         let descriptor =
             create_test_flow_descriptor(flow_name, &ingestion_config.ingestion_config_id);
@@ -984,13 +931,8 @@ mod tests {
             max_size: 1024 * 1024,
         };
 
-        let mut mode = create_test_file_backup_mode(
-            temp_dir.path().to_path_buf(),
-            file_writer_config,
-            1024 * 100,
-            metrics.clone(),
-        )
-        .await;
+        let mut mode =
+            create_test_file_backup_mode(file_writer_config, 1024 * 100, metrics.clone()).await;
 
         let descriptor =
             create_test_flow_descriptor("unknown_flow", &ingestion_config.ingestion_config_id);

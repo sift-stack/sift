@@ -1,4 +1,3 @@
-use crate::stream::mode::ingestion_config::LiveStreaming;
 use crate::stream::run::{RunSelector, load_run_by_form, load_run_by_id};
 use async_trait::async_trait;
 use sift_connect::SiftChannel;
@@ -71,12 +70,16 @@ pub trait Encoder: private::Sealed {
 
 /// Defines how encoded telemetry messages are delivered to their destination.
 ///
-/// Two concrete implementations are provided:
+/// Three concrete implementations are provided:
 ///
-/// - [`LiveStreaming`](crate::LiveStreaming) — delivers messages via a gRPC stream to Sift in
-///   real-time, with optional disk backups and periodic checkpointing.
+/// - [`LiveStreamingOnly`](crate::LiveStreamingOnly) — delivers messages via a gRPC stream to
+///   Sift in real-time. Backpressure is applied directly on the single ingestion channel.
+///   Use this when disk-backup durability is not required.
+/// - [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups) — delivers messages via a
+///   gRPC stream to Sift in real-time, with disk backups and periodic checkpointing. Backpressure
+///   is applied by disk-backups for data durability.
 /// - [`FileBackup`](crate::FileBackup) — writes messages to rolling disk backup files without
-///   connecting to Sift.
+///   streaming live to Sift.
 ///
 /// ## Send API
 ///
@@ -92,9 +95,9 @@ pub trait Encoder: private::Sealed {
 /// In every failure case the undelivered message(s) are returned inside the error variant so
 /// that the caller can decide whether to retry, log, buffer locally, or discard them.
 ///
-/// ## Channel semantics for `LiveStreaming`
+/// ## Channel semantics for `LiveStreamingWithBackups`
 ///
-/// `LiveStreaming` maintains two internal bounded channels:
+/// `LiveStreamingWithBackups` maintains two internal bounded channels:
 ///
 /// - **backup channel** — the primary durability path. All four send methods operate on this
 ///   channel first. Errors reported by the send API always reflect the state of this channel.
@@ -208,10 +211,9 @@ pub trait Transport: private::Sealed {
 /// - Backups (disabled by default)
 /// - Tracing and ingestion metrics
 ///
-/// To initialize a [SiftStream] users will use [builder::SiftStreamBuilder] together with
-/// [builder::StreamConfigBuilder]. Refer to the [crate-level documentation](crate) for further
-/// details and examples.
-pub struct SiftStream<E, T = LiveStreaming> {
+/// To initialize a [SiftStream] users will use [builder::SiftStreamBuilder]. Refer to the
+/// [crate-level documentation](crate) for further details and examples.
+pub struct SiftStream<E, T> {
     grpc_channel: SiftChannel,
     encoder: E,
     transport: T,

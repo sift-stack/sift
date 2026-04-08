@@ -196,6 +196,7 @@ class FileBackupBuilderPy:
     backup_data_channel_capacity: builtins.int
     control_channel_capacity: builtins.int
     metrics_streaming_interval: typing.Optional[DurationPy]
+    def build(self) -> typing.Any: ...
 
 @typing.final
 class FlowBuilderPy:

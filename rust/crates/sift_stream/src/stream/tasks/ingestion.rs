@@ -1,10 +1,11 @@
 use crate::{
     RetryPolicy,
-    backup::disk::{AsyncBackupsManager, BackupIngestTask},
     metrics::SiftStreamMetrics,
-    stream::mode::ingestion_config::DataStream,
+    stream::{
+        mode::ingestion_config::DataStream,
+        tasks::{CHECKPOINT_TIMEOUT, ControlMessage, DataMessage},
+    },
 };
-use async_channel;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{CompressionEncoding, ingest::v1::ingest_service_client::IngestServiceClient};
@@ -17,175 +18,59 @@ use std::{
     },
     time::Duration,
 };
-use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
+use tokio::{sync::broadcast, time::Instant};
 use uuid::Uuid;
 
-use super::{CHECKPOINT_TIMEOUT, ControlMessage, DataMessage, RecoveryConfig};
+enum CheckpointTimer {
+    Active(tokio::time::Interval),
+    Disabled,
+}
 
-/// Configuration for the task-based SiftStream
-#[derive(Clone)]
-pub(crate) struct TaskConfig {
+impl CheckpointTimer {
+    async fn tick(&mut self) {
+        match self {
+            Self::Active(interval) => {
+                interval.tick().await;
+            }
+            Self::Disabled => std::future::pending::<()>().await,
+        }
+    }
+
+    fn reset_immediately(&mut self) {
+        if let Self::Active(interval) = self {
+            interval.reset_immediately();
+        }
+    }
+}
+
+/// Only the fields the IngestionTask itself reads during its run loop.
+pub(crate) struct IngestionTaskConfig {
+    #[allow(dead_code)]
     pub(crate) session_name: String,
     pub(crate) sift_stream_id: Uuid,
-    pub(crate) setup_channel: SiftChannel,
     pub(crate) ingestion_channel: SiftChannel,
-    pub(crate) reingestion_channel: SiftChannel,
-    pub(crate) metrics: Arc<SiftStreamMetrics>,
-    pub(crate) checkpoint_interval: Duration,
     pub(crate) enable_compression_for_ingestion: bool,
-    pub(crate) recovery_config: RecoveryConfig,
-    pub(crate) control_channel_capacity: usize,
-    pub(crate) ingestion_data_channel_capacity: usize,
-    pub(crate) backup_data_channel_capacity: usize,
-    pub(crate) metrics_streaming_interval: Option<Duration>,
-}
-
-/// Handles for the three main tasks
-pub(crate) struct StreamSystem {
-    pub(crate) backup_manager: JoinHandle<Result<()>>,
-    pub(crate) ingestion: JoinHandle<Result<()>>,
-    pub(crate) reingestion: JoinHandle<Result<()>>,
-    pub(crate) metrics_streaming: Option<JoinHandle<Result<()>>>,
-    pub(crate) control_tx: broadcast::Sender<ControlMessage>,
-    pub(crate) ingestion_tx: async_channel::Sender<DataMessage>,
-    pub(crate) backup_tx: async_channel::Sender<DataMessage>,
-}
-
-/// Creates and starts all three tasks
-pub(crate) async fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
-    // Create broadcast channel for control messages (low frequency)
-    let (control_tx, _control_rx) = broadcast::channel(config.control_channel_capacity);
-
-    // Create data channel for high-frequency data messages
-    let (ingestion_tx, ingestion_rx) =
-        async_channel::bounded(config.ingestion_data_channel_capacity);
-    let (backup_tx, backup_rx) = async_channel::bounded(config.backup_data_channel_capacity);
-
-    // Clone the sender for each task
-    let backup_control_tx = control_tx.clone();
-    let ingestion_control_tx = control_tx.clone();
-    let reingestion_control_tx = control_tx.clone();
-
-    // Start backup manager task
-    let backup_config = config.clone();
-    let backup_control_rx = backup_control_tx.subscribe();
-    let backup_data_rx = backup_rx.clone();
-
-    let mut backup_manager = AsyncBackupsManager::new(
-        backup_config.recovery_config.backups_enabled,
-        &backup_config.recovery_config.backups_directory,
-        &backup_config.recovery_config.backups_prefix,
-        backup_config.recovery_config.backup_policy,
-        backup_control_tx,
-        backup_control_rx,
-        backup_data_rx,
-        backup_config.metrics.clone(),
-    )
-    .await?;
-
-    let backup_manager = tokio::spawn(async move {
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = %config.sift_stream_id,
-            "backup manager task started"
-        );
-
-        backup_manager.run().await
-    });
-
-    // Start gRPC client task
-    let ingestion_config = config.clone();
-    let ingestion_data_rx = ingestion_rx.clone();
-    let mut ingestion_task =
-        IngestionTask::new(ingestion_control_tx, ingestion_data_rx, ingestion_config);
-    let ingestion = tokio::spawn(async move {
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = %config.sift_stream_id,
-            "ingestion task started"
-        );
-        ingestion_task.run().await
-    });
-
-    // Re-ingestion task has it's own retry policy to give more time to re-ingest backup files
-    // when the network is slow or may be out for only a minute or two.
-    let reingestion_config = config.clone();
-    let reingest_retry_policy = RetryPolicy {
-        max_attempts: 12,
-        initial_backoff: Duration::from_millis(100),
-        max_backoff: Duration::from_secs(15),
-        backoff_multiplier: 5,
-    };
-    let reingestion_task = BackupIngestTask::new(
-        reingestion_control_tx.subscribe(),
-        reingestion_config.reingestion_channel,
-        reingestion_config.enable_compression_for_ingestion,
-        reingest_retry_policy,
-        reingestion_config
-            .recovery_config
-            .backup_policy
-            .retain_backups,
-        reingestion_config.metrics.clone(),
-    );
-    let reingestion = tokio::spawn(async move {
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = %config.sift_stream_id,
-            "backup re-ingestion task started"
-        );
-        reingestion_task.run().await
-    });
-
-    // Start metrics streaming task if an interval is configured.
-    let metrics_config = config.clone();
-    let metrics_control_rx = control_tx.subscribe();
-    let metrics_streaming = if let Some(interval) = config.metrics_streaming_interval {
-        let metrics_task =
-            super::MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
-        Some(tokio::spawn(async move {
-            #[cfg(feature = "tracing")]
-            tracing::info!(
-                sift_stream_id = %config.sift_stream_id,
-                "metrics streaming task started"
-            );
-
-            metrics_task.run().await
-        }))
-    } else {
-        None
-    };
-
-    #[cfg(feature = "tracing")]
-    tracing::info!(
-        sift_stream_id = %config.sift_stream_id,
-        "Sift streaming successfully initialized"
-    );
-
-    Ok(StreamSystem {
-        backup_manager,
-        ingestion,
-        reingestion,
-        metrics_streaming,
-        control_tx,
-        ingestion_tx,
-        backup_tx,
-    })
+    pub(crate) metrics: Arc<SiftStreamMetrics>,
+    pub(crate) retry_policy: RetryPolicy,
+    /// Present only in LiveStreamingWithBackups mode. When None, the task
+    /// never sets up a checkpoint timer and ignores all checkpoint control messages.
+    pub(crate) checkpoint_interval: Option<Duration>,
 }
 
 pub(crate) struct IngestionTask {
     control_tx: broadcast::Sender<ControlMessage>,
     control_rx: broadcast::Receiver<ControlMessage>,
     data_rx: async_channel::Receiver<DataMessage>,
-    config: TaskConfig,
+    config: IngestionTaskConfig,
 }
 
 impl IngestionTask {
     pub(crate) fn new(
         control_tx: broadcast::Sender<ControlMessage>,
+        control_rx: broadcast::Receiver<ControlMessage>,
         data_rx: async_channel::Receiver<DataMessage>,
-        config: TaskConfig,
+        config: IngestionTaskConfig,
     ) -> Self {
-        let control_rx = control_tx.subscribe();
         Self {
             control_tx,
             control_rx,
@@ -196,10 +81,12 @@ impl IngestionTask {
 
     pub(crate) async fn run(&mut self) -> Result<()> {
         let now = tokio::time::Instant::now();
-        let mut timer = tokio::time::interval_at(
-            now + self.config.checkpoint_interval,
-            self.config.checkpoint_interval,
-        );
+
+        // When checkpoint_config is None (live-only mode), there is no checkpoint timer.
+        let mut timer = match self.config.checkpoint_interval.as_ref() {
+            Some(c) => CheckpointTimer::Active(tokio::time::interval_at(now + *c, *c)),
+            None => CheckpointTimer::Disabled,
+        };
 
         let mut stream_created_at = now;
         let mut current_wait = Duration::ZERO;
@@ -375,25 +262,23 @@ impl IngestionTask {
             .checkpoint
             .failed_checkpoint_count
             .increment();
-        self.control_tx
-            .send(ControlMessage::CheckpointNeedsReingestion {
-                first_message_id,
-                last_message_id,
-            })
-            .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
+
+        if self.config.checkpoint_interval.is_some() {
+            self.control_tx
+                .send(ControlMessage::CheckpointNeedsReingestion {
+                    first_message_id,
+                    last_message_id,
+                })
+                .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
+        }
 
         // If the stream was healthy for sufficiently long, reset the wait time used for exponential backoff.
-        let backoff = if stream_created_at.elapsed()
-            > self.config.recovery_config.retry_policy.max_backoff * 2
-        {
+        let backoff = if stream_created_at.elapsed() > self.config.retry_policy.max_backoff * 2 {
             self.config.metrics.cur_retry_count.set(0);
             Duration::ZERO
         } else {
             self.config.metrics.cur_retry_count.add(1);
-            self.config
-                .recovery_config
-                .retry_policy
-                .backoff(current_wait)
+            self.config.retry_policy.backoff(current_wait)
         };
 
         Ok(backoff)
@@ -455,20 +340,35 @@ impl IngestionTask {
 #[cfg(test)]
 mod tests {
     use sift_rs::ingest::v1::{
-        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
-        ingest_with_config_data_channel_value::Type,
+        IngestWithConfigDataChannelValue, ingest_with_config_data_channel_value::Type,
     };
 
-    use crate::{DiskBackupPolicy, TimeValue};
+    use crate::{TimeValue, stream::retry::RetryPolicy};
 
     use super::*;
+
+    fn make_ingestion_task_config(
+        ingestion_channel: SiftChannel,
+        metrics: Arc<SiftStreamMetrics>,
+        checkpoint_interval: Duration,
+    ) -> IngestionTaskConfig {
+        IngestionTaskConfig {
+            session_name: "test-session".to_string(),
+            sift_stream_id: Uuid::new_v4(),
+            ingestion_channel,
+            enable_compression_for_ingestion: false,
+            metrics,
+            retry_policy: RetryPolicy::default(),
+            checkpoint_interval: Some(checkpoint_interval),
+        }
+    }
 
     async fn send_messages_for_ingestion(
         data_tx: &async_channel::Sender<DataMessage>,
         count: usize,
     ) {
         for i in 0..count {
-            let request = IngestWithConfigDataStreamRequest {
+            let request = sift_rs::ingest::v1::IngestWithConfigDataStreamRequest {
                 ingestion_config_id: "test-0".to_string(),
                 flow: "some_flow".to_string(),
                 timestamp: Some(*TimeValue::now()),
@@ -505,35 +405,16 @@ mod tests {
     async fn test_ingestion_task_shutdown() {
         let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
-        let reingestion_channel = ingestion_channel.clone();
-        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
-        let config = TaskConfig {
-            session_name: "test-session".to_string(),
-            sift_stream_id: Uuid::new_v4(),
-            setup_channel,
-            ingestion_channel,
-            reingestion_channel,
-            metrics: metrics.clone(),
-            checkpoint_interval,
-            enable_compression_for_ingestion: false,
-            control_channel_capacity: 128,
-            ingestion_data_channel_capacity: 128,
-            backup_data_channel_capacity: 128,
-            metrics_streaming_interval: None,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy::default(),
-                backups_enabled: true,
-                backups_directory: "backup_directory".to_string(),
-                backups_prefix: "prefix".to_string(),
-                backup_policy: DiskBackupPolicy::default(),
-            },
-        };
+        let config =
+            make_ingestion_task_config(ingestion_channel, metrics.clone(), checkpoint_interval);
 
-        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
 
         // Wait for the ingestion task to drain the data channel.
         let handle = tokio::spawn(async move { ingestion_task.run().await });
@@ -577,35 +458,16 @@ mod tests {
     async fn test_ingestion_task_shutdown_ungracefully() {
         let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
-        let reingestion_channel = ingestion_channel.clone();
-        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
-        let config = TaskConfig {
-            session_name: "test-session".to_string(),
-            sift_stream_id: Uuid::new_v4(),
-            setup_channel,
-            ingestion_channel,
-            reingestion_channel,
-            metrics: metrics.clone(),
-            checkpoint_interval,
-            enable_compression_for_ingestion: false,
-            control_channel_capacity: 128,
-            ingestion_data_channel_capacity: 128,
-            backup_data_channel_capacity: 128,
-            metrics_streaming_interval: None,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy::default(),
-                backups_enabled: true,
-                backups_directory: "backup_directory".to_string(),
-                backups_prefix: "prefix".to_string(),
-                backup_policy: DiskBackupPolicy::default(),
-            },
-        };
+        let config =
+            make_ingestion_task_config(ingestion_channel, metrics.clone(), checkpoint_interval);
 
-        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
 
         // Wait for the ingestion task to drain the data channel.
         let handle = tokio::spawn(async move { ingestion_task.run().await });
@@ -643,35 +505,16 @@ mod tests {
     async fn test_ingestion_task_shutdown_errors() {
         let (ingestion_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
-        let reingestion_channel = ingestion_channel.clone();
-        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
-        let config = TaskConfig {
-            session_name: "test-session".to_string(),
-            sift_stream_id: Uuid::new_v4(),
-            setup_channel,
-            ingestion_channel,
-            reingestion_channel,
-            metrics: metrics.clone(),
-            checkpoint_interval,
-            enable_compression_for_ingestion: false,
-            control_channel_capacity: 128,
-            ingestion_data_channel_capacity: 128,
-            backup_data_channel_capacity: 128,
-            metrics_streaming_interval: None,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy::default(),
-                backups_enabled: true,
-                backups_directory: "backup_directory".to_string(),
-                backups_prefix: "prefix".to_string(),
-                backup_policy: DiskBackupPolicy::default(),
-            },
-        };
+        let config =
+            make_ingestion_task_config(ingestion_channel, metrics.clone(), checkpoint_interval);
 
-        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
 
         // Set the mock service to return errors.
         mock_service.set_num_errors_to_return(2);
@@ -725,34 +568,15 @@ mod tests {
     async fn test_ingestion_task_stream() {
         let (ingestion_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
-        let reingestion_channel = ingestion_channel.clone();
-        let setup_channel = ingestion_channel.clone();
         let (control_tx, _control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let config = TaskConfig {
-            session_name: "test-session".to_string(),
-            sift_stream_id: Uuid::new_v4(),
-            setup_channel,
-            ingestion_channel,
-            reingestion_channel,
-            metrics: metrics.clone(),
-            checkpoint_interval: Duration::from_secs(60),
-            enable_compression_for_ingestion: false,
-            control_channel_capacity: 128,
-            ingestion_data_channel_capacity: 128,
-            backup_data_channel_capacity: 128,
-            metrics_streaming_interval: None,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy::default(),
-                backups_enabled: true,
-                backups_directory: "backup_directory".to_string(),
-                backups_prefix: "prefix".to_string(),
-                backup_policy: DiskBackupPolicy::default(),
-            },
-        };
+        let config =
+            make_ingestion_task_config(ingestion_channel, metrics.clone(), Duration::from_secs(60));
 
-        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
         let handle = tokio::spawn(async move { ingestion_task.run().await });
 
         // Send some messages for ingestion.
@@ -808,45 +632,32 @@ mod tests {
     async fn test_ingestion_task_stream_retries() {
         let (ingestion_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
-        let reingestion_channel = ingestion_channel.clone();
-        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_millis(100);
-        let config = TaskConfig {
+        let config = IngestionTaskConfig {
             session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
-            setup_channel,
             ingestion_channel,
-            reingestion_channel,
-            metrics: metrics.clone(),
-            checkpoint_interval,
             enable_compression_for_ingestion: false,
-            control_channel_capacity: 128,
-            ingestion_data_channel_capacity: 128,
-            backup_data_channel_capacity: 128,
-            metrics_streaming_interval: None,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy {
-                    max_attempts: 3,
-                    initial_backoff: Duration::from_millis(1),
-                    max_backoff: Duration::from_millis(100),
-                    backoff_multiplier: 5,
-                },
-                backups_enabled: true,
-                backups_directory: "backup_directory".to_string(),
-                backups_prefix: "prefix".to_string(),
-                backup_policy: DiskBackupPolicy::default(),
+            metrics: metrics.clone(),
+            retry_policy: RetryPolicy {
+                max_attempts: 3,
+                initial_backoff: Duration::from_millis(1),
+                max_backoff: Duration::from_millis(100),
+                backoff_multiplier: 5,
             },
+            checkpoint_interval: Some(checkpoint_interval),
         };
 
         // Ingestion is continuously retried, limited by the max retry duration only.
-        mock_service.set_num_errors_to_return(
-            config.recovery_config.retry_policy.max_attempts as usize + 1,
-        );
+        let max_attempts = config.retry_policy.max_attempts as usize;
+        mock_service.set_num_errors_to_return(max_attempts + 1);
 
-        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
 
         // Wait for the ingestion task to drain the data channel.
         let handle = tokio::spawn(async move { ingestion_task.run().await });
@@ -905,35 +716,16 @@ mod tests {
     async fn test_ingestion_task_checkpoints() {
         let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
-        let reingestion_channel = ingestion_channel.clone();
-        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_millis(100);
-        let config = TaskConfig {
-            session_name: "test-session".to_string(),
-            sift_stream_id: Uuid::new_v4(),
-            setup_channel,
-            ingestion_channel,
-            reingestion_channel,
-            metrics: metrics.clone(),
-            checkpoint_interval,
-            enable_compression_for_ingestion: false,
-            control_channel_capacity: 128,
-            ingestion_data_channel_capacity: 128,
-            backup_data_channel_capacity: 128,
-            metrics_streaming_interval: None,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy::default(),
-                backups_enabled: true,
-                backups_directory: "backup_directory".to_string(),
-                backups_prefix: "prefix".to_string(),
-                backup_policy: DiskBackupPolicy::default(),
-            },
-        };
+        let config =
+            make_ingestion_task_config(ingestion_channel, metrics.clone(), checkpoint_interval);
 
-        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
 
         // Wait for the ingestion task to drain the data channel.
         let handle = tokio::spawn(async move { ingestion_task.run().await });
@@ -989,35 +781,16 @@ mod tests {
     async fn test_ingestion_task_backup_full() {
         let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
-        let reingestion_channel = ingestion_channel.clone();
-        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
-        let config = TaskConfig {
-            session_name: "test-session".to_string(),
-            sift_stream_id: Uuid::new_v4(),
-            setup_channel,
-            ingestion_channel,
-            reingestion_channel,
-            metrics: metrics.clone(),
-            checkpoint_interval,
-            enable_compression_for_ingestion: false,
-            control_channel_capacity: 128,
-            ingestion_data_channel_capacity: 128,
-            backup_data_channel_capacity: 128,
-            metrics_streaming_interval: None,
-            recovery_config: RecoveryConfig {
-                retry_policy: RetryPolicy::default(),
-                backups_enabled: true,
-                backups_directory: "backup_directory".to_string(),
-                backups_prefix: "prefix".to_string(),
-                backup_policy: DiskBackupPolicy::default(),
-            },
-        };
+        let config =
+            make_ingestion_task_config(ingestion_channel, metrics.clone(), checkpoint_interval);
 
-        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
 
         // Wait for the ingestion task to drain the data channel.
         let handle = tokio::spawn(async move { ingestion_task.run().await });
@@ -1073,6 +846,99 @@ mod tests {
         assert!(
             complete_count >= 2,
             "should have completed at least 2 checkpoints (1 for the final checkpoint)"
+        );
+    }
+
+    fn make_live_only_ingestion_task_config(
+        ingestion_channel: SiftChannel,
+        metrics: Arc<SiftStreamMetrics>,
+    ) -> IngestionTaskConfig {
+        IngestionTaskConfig {
+            session_name: "test-session".to_string(),
+            sift_stream_id: Uuid::new_v4(),
+            ingestion_channel,
+            enable_compression_for_ingestion: false,
+            metrics,
+            retry_policy: RetryPolicy::default(),
+            checkpoint_interval: None,
+        }
+    }
+
+    /// Regression test: prior to the fix, constructing the checkpoint timer in live-only mode
+    /// would overflow (`now + Duration::MAX / 2`) and panic immediately on task start.
+    #[tokio::test]
+    async fn test_ingestion_task_live_only_shutdown() {
+        let (ingestion_channel, _mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let config = make_live_only_ingestion_task_config(ingestion_channel, metrics.clone());
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
+
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        send_messages_for_ingestion(&data_tx, 100).await;
+
+        data_tx.close();
+        assert!(
+            control_tx.send(ControlMessage::Shutdown).is_ok(),
+            "failed to send shutdown message to ingestion task"
+        );
+
+        let res = tokio::time::timeout(Duration::from_secs(10), handle).await;
+        assert!(
+            res.is_ok(),
+            "ingestion task should complete without panicking (no timer overflow)"
+        );
+
+        // The checkpoint timer must never fire in live-only mode, so SignalNextCheckpoint
+        // should never be emitted. (The final CheckpointComplete from shutdown is expected.)
+        while let Ok(msg) = control_rx.try_recv() {
+            assert!(
+                !matches!(msg, ControlMessage::SignalNextCheckpoint),
+                "live-only mode should not fire the checkpoint timer"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_ingestion_task_live_only_stream() {
+        let (ingestion_channel, mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let config = make_live_only_ingestion_task_config(ingestion_channel, metrics.clone());
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
+
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        send_messages_for_ingestion(&data_tx, 10).await;
+
+        data_tx.close();
+        assert!(
+            control_tx.send(ControlMessage::Shutdown).is_ok(),
+            "failed to send shutdown message to ingestion task"
+        );
+
+        assert!(
+            handle.await.is_ok(),
+            "ingestion task should complete successfully"
+        );
+
+        let captured = mock_service.get_captured_data();
+        assert_eq!(captured.len(), 10, "should have captured 10 messages");
+        assert_eq!(
+            metrics.messages_sent.get(),
+            10,
+            "should have sent 10 messages"
         );
     }
 }
