@@ -18,8 +18,11 @@ from sift.data_imports.v2.data_imports_pb2 import (
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING,
 )
+from sift.data_imports.v2.data_imports_pb2 import Ch10Config as Ch10ConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
+from sift.data_imports.v2.data_imports_pb2 import Hdf5Config as Hdf5ConfigProto
+from sift.data_imports.v2.data_imports_pb2 import Hdf5DataConfig as Hdf5DataConfigProto
 from sift.data_imports.v2.data_imports_pb2 import ParquetConfig as ParquetConfigProto
 from sift.data_imports.v2.data_imports_pb2 import ParquetDataColumn as ParquetDataColumnProto
 from sift.data_imports.v2.data_imports_pb2 import (
@@ -35,6 +38,7 @@ from sift.data_imports.v2.data_imports_pb2 import (
     ParquetSingleChannelPerRowSingleChannelConfig as ParquetSingleChannelPerRowSingleChannelConfigProto,
 )
 from sift.data_imports.v2.data_imports_pb2 import ParquetTimeColumn as ParquetTimeColumnProto
+from sift.data_imports.v2.data_imports_pb2 import TDMSConfig as TDMSConfigProto
 from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
 
 from sift_client._internal.util.timestamp import to_pb_timestamp
@@ -536,9 +540,152 @@ class ParquetSingleChannelPerRowImportConfig(BaseModel):
         )
 
 
+class Ch10ImportConfig(BaseModel):
+    """Configuration for importing a CH10 file.
+
+    Attributes:
+        asset_name: Name of the asset to import data into.
+        run_name: Name for the run.
+        scale_values: Whether to apply EU (engineering unit) scaling to channel values.
+    """
+
+    asset_name: str
+    run_name: str | None = None
+    scale_values: bool = False
+
+    def _to_proto(self) -> Ch10ConfigProto:
+        return Ch10ConfigProto(
+            asset_name=self.asset_name,
+            run_name=self.run_name or "",
+            scale_values=self.scale_values,
+        )
+
+
+class TdmsImportConfig(BaseModel):
+    """Configuration for importing a TDMS file.
+
+    Attributes:
+        asset_name: Name of the asset to import data into.
+        run_name: Name for the run. Ignored if ``run_id`` is set.
+        run_id: ID of an existing run to append data to.
+        start_time_override: Override the ``wf_start_time`` metadata field for all channels.
+            Useful when waveform channels have ``wf_increment`` but no ``wf_start_time``.
+        file_size: The file size in bytes. Required if the file has truncated chunks.
+    """
+
+    asset_name: str
+    run_name: str | None = None
+    run_id: str | None = None
+    start_time_override: datetime | None = None
+    file_size: int | None = None
+
+    def _to_proto(self) -> TDMSConfigProto:
+        proto = TDMSConfigProto(
+            asset_name=self.asset_name,
+            run_name=self.run_name or "",
+            run_id=self.run_id or "",
+        )
+        if self.start_time_override is not None:
+            proto.start_time_override.CopyFrom(to_pb_timestamp(self.start_time_override))
+        if self.file_size is not None:
+            proto.file_size = self.file_size
+        return proto
+
+
+class Hdf5DataColumn(BaseModel):
+    """A dataset mapping for HDF5 imports.
+
+    Each entry maps a time/value dataset pair to a channel.
+
+    Attributes:
+        time_dataset: HDF5 path to the time dataset.
+        time_index: Column index within the time dataset. Defaults to 0.
+        value_dataset: HDF5 path to the value dataset.
+        value_index: Column index within the value dataset. Defaults to 0.
+        name: Channel name.
+        data_type: The data type of the channel values.
+        units: Optional units string.
+        description: Optional channel description.
+        time_field: For compound dataset types, the field name to use for time.
+        value_field: For compound dataset types, the field name to use for value.
+    """
+
+    time_dataset: str
+    time_index: int = 0
+    value_dataset: str
+    value_index: int = 0
+    name: str
+    data_type: ChannelDataType
+    units: str = ""
+    description: str = ""
+    time_field: str | None = None
+    value_field: str | None = None
+
+
+class Hdf5ImportConfig(BaseModel):
+    """Configuration for importing an HDF5 file.
+
+    Attributes:
+        asset_name: Name of the asset to import data into.
+        run_name: Name for the run. Ignored if ``run_id`` is set.
+        run_id: ID of an existing run to append data to.
+        data: List of dataset mappings, each pairing a time and value dataset to a channel.
+        time_format: The time format used across all time datasets.
+        relative_start_time: Required when using a relative time format.
+    """
+
+    asset_name: str
+    run_name: str | None = None
+    run_id: str | None = None
+    data: list[Hdf5DataColumn]
+    time_format: TimeFormat
+    relative_start_time: datetime | None = None
+
+    @model_validator(mode="after")
+    def _check_relative_start_time(self) -> Hdf5ImportConfig:
+        if self.time_format.name.startswith("RELATIVE_") and self.relative_start_time is None:
+            raise ValueError(
+                f"'relative_start_time' is required when using a relative time format ({self.time_format.name})."
+            )
+        return self
+
+    def _to_proto(self) -> Hdf5ConfigProto:
+        proto = Hdf5ConfigProto(
+            asset_name=self.asset_name,
+            run_name=self.run_name or "",
+            run_id=self.run_id or "",
+            time_format=self.time_format.value,
+            data=[
+                Hdf5DataConfigProto(
+                    time_dataset=d.time_dataset,
+                    time_index=d.time_index,
+                    value_dataset=d.value_dataset,
+                    value_index=d.value_index,
+                    channel_config=ChannelConfigProto(
+                        name=d.name,
+                        data_type=d.data_type.value,
+                        units=d.units,
+                        description=d.description,
+                    ),
+                    time_field=d.time_field,
+                    value_field=d.value_field,
+                )
+                for d in self.data
+            ],
+        )
+        if self.relative_start_time is not None:
+            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+        return proto
+
+
 # Note: Using Union instead of | syntax for Python 3.9 compatibility at module level.
 # While `from __future__ import annotations` allows | in type hints (they're strings),
 # module-level type aliases are evaluated at runtime and require Union in Python <3.10.
 ImportConfig = Union[
-    CsvImportConfig, ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig
+    CsvImportConfig,
+    ParquetFlatDatasetImportConfig,
+    ParquetSingleChannelPerRowImportConfig,
+    Ch10ImportConfig,
+    TdmsImportConfig,
+    Hdf5ImportConfig,
 ]

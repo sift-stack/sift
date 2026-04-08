@@ -57,7 +57,9 @@ class DataImportAPIAsync(ResourceBase):
         for the import to complete.
 
         When ``config`` is omitted the file format is auto-detected via
-        :meth:`detect_config`. When ``asset_name`` is provided it overrides
+        :meth:`detect_config` (CSV and Parquet only). For other formats
+        (TDMS, HDF5, CH10), ``config`` must be provided.
+        When ``asset_name`` is provided it overrides
         the config value; otherwise the config's ``asset_name`` is used.
         If neither ``run_name`` nor ``run_id`` is provided
         (and none is set on the config), ``run_name`` defaults to the
@@ -98,11 +100,16 @@ class DataImportAPIAsync(ResourceBase):
             config.asset_name = asset_name
         elif not config.asset_name:
             raise ValueError("'asset_name' is required when not set on the config.")
+        has_run_id = hasattr(config, "run_id")
         if run_id is not None:
+            if not has_run_id:
+                raise ValueError(
+                    f"'run_id' is not supported for {type(config).__name__}. Use 'run_name' instead."
+                )
             config.run_id = run_id
         elif run_name is not None:
             config.run_name = run_name
-        elif not config.run_name and not config.run_id:
+        elif not config.run_name and not getattr(config, "run_id", None):
             config.run_name = path.name
 
         if isinstance(
@@ -147,6 +154,11 @@ class DataImportAPIAsync(ResourceBase):
         endpoint, and returns the detected configuration. The file format
         is inferred from the file extension when ``data_type`` is not
         provided.
+
+        Only CSV and Parquet files are currently supported for auto-detection.
+        For other formats (TDMS, HDF5, CH10), create the config manually
+        using :class:`TdmsImportConfig`, :class:`Hdf5ImportConfig`, or
+        :class:`Ch10ImportConfig`.
 
         For file types with multiple layouts (e.g. Parquet), ``data_type``
         must be specified explicitly.
