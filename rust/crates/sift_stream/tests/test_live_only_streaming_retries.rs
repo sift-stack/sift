@@ -7,7 +7,6 @@ use sift_rs::{
     },
     ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
-use sift_stream::backup::DiskBackupPolicy;
 use sift_stream::{
     ChannelValue, Flow, IngestionConfigForm, RetryPolicy, SiftStreamBuilder, TimeValue,
 };
@@ -18,7 +17,6 @@ use std::{
     },
     time::Duration,
 };
-use tempdir::TempDir;
 
 mod common;
 use common::prelude::*;
@@ -57,7 +55,7 @@ impl IngestService for IngestServiceMock {
 }
 
 #[tokio::test]
-async fn test_retries_succeed() {
+async fn test_live_only_retries_succeed() {
     let return_error = Arc::new(AtomicBool::new(true));
 
     let num_messages_received = Arc::new(AtomicU32::default());
@@ -80,27 +78,19 @@ async fn test_retries_succeed() {
         }],
     }];
 
-    let tmp_dir = TempDir::new("test_retries_succeed").expect("failed to create tempdir");
-    let tmp_dir_path = tmp_dir.path();
-
-    let disk_backup_policy = DiskBackupPolicy {
-        backups_dir: Some(tmp_dir_path.to_path_buf()),
-        ..Default::default()
-    };
     let mut sift_stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
             asset_name: "test_asset".to_string(),
             client_key: "test_client_key".to_string(),
             flows,
         })
-        .live_with_backups()
+        .live_only()
         .retry_policy(RetryPolicy {
             max_attempts: 2,
             initial_backoff: Duration::from_millis(1),
             backoff_multiplier: 2,
             max_backoff: Duration::from_millis(100),
         })
-        .disk_backup_policy(disk_backup_policy)
         .metrics_streaming_interval(None)
         .build()
         .await
@@ -124,7 +114,7 @@ async fn test_retries_succeed() {
 
     return_error.swap(false, Ordering::Relaxed);
 
-    // After recover, send more messages to verify correct recovery.
+    // After recovery, send more messages to verify correct recovery.
     let num_messages = 100;
     for _ in 0..num_messages {
         let msg = Flow::new(
@@ -141,7 +131,7 @@ async fn test_retries_succeed() {
 
     assert!(
         num_messages_received.load(Ordering::Relaxed) >= num_messages as u32,
-        "expected no messages to be dropped, got {} (may include re-ingested messages from failed streams)",
+        "expected no messages to be dropped, got {}",
         num_messages_received.load(Ordering::Relaxed),
     );
 
@@ -152,7 +142,7 @@ async fn test_retries_succeed() {
 }
 
 #[tokio::test]
-pub async fn test_retries_exhausted() {
+pub async fn test_live_only_retries_exhausted() {
     let return_error = Arc::new(AtomicBool::new(true));
 
     let num_messages_received = Arc::new(AtomicU32::default());
@@ -183,13 +173,14 @@ pub async fn test_retries_exhausted() {
             client_key: "test_client_key".to_string(),
             flows,
         })
-        .live_with_backups()
+        .live_only()
         .retry_policy(RetryPolicy {
             max_attempts: retry_attempts,
             initial_backoff: Duration::from_millis(1),
             backoff_multiplier: 2,
             max_backoff: Duration::from_millis(100),
         })
+        .metrics_streaming_interval(None)
         .build()
         .await
         .expect("failed to build sift stream");
@@ -202,7 +193,7 @@ pub async fn test_retries_exhausted() {
         );
         assert!(
             sift_stream.send(msg).await.is_ok(),
-            "we should have successfully recovered and not gotten an error"
+            "sending should succeed even after retries are exhausted"
         );
         tokio::time::sleep(Duration::from_millis(100)).await;
     }

@@ -1,7 +1,9 @@
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingest::v1::{
-        IngestWithConfigDataChannelValue,
+        IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
+        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+        IngestWithConfigDataStreamResponse,
         ingest_with_config_data_channel_value::Type as RawChannelValue,
     },
     ingestion_configs::v2::{ChannelConfig, FlowConfig},

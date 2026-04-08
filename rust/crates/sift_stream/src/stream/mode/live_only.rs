@@ -382,4 +382,63 @@ mod tests {
         let stream_id = uuid::Uuid::new_v4();
         transport.finish(&stream_id).await.unwrap();
     }
+
+    #[tokio::test]
+    async fn test_message_id_increments_on_each_send() {
+        let (mut transport, ingestion_rx) = make_live_streaming_only(10);
+        let stream_id = uuid::Uuid::new_v4();
+
+        for _ in 0..5 {
+            transport.send(&stream_id, make_request()).await.unwrap();
+        }
+
+        let mut ids: Vec<u64> = Vec::new();
+        while let Ok(msg) = ingestion_rx.try_recv() {
+            ids.push(msg.message_id);
+        }
+        assert_eq!(ids, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[tokio::test]
+    async fn test_try_send_requests_stops_at_first_full() {
+        let (mut transport, _ingestion_rx) = make_live_streaming_only(1);
+
+        // Pre-fill the channel to capacity.
+        let dummy = DataMessage {
+            message_id: 99,
+            request: Arc::new(make_request()),
+            dropped_for_ingestion: false,
+        };
+        transport.ingestion_tx.try_send(dummy).unwrap();
+
+        let stream_id = uuid::Uuid::new_v4();
+        let reqs = vec![make_request(), make_request(), make_request()];
+        let err = transport.try_send_requests(&stream_id, reqs).unwrap_err();
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_try_send_requests_stops_at_first_closed() {
+        let (mut transport, ingestion_rx) = make_live_streaming_only(10);
+        drop(ingestion_rx);
+
+        let stream_id = uuid::Uuid::new_v4();
+        let reqs = vec![make_request(), make_request(), make_request()];
+        let err = transport.try_send_requests(&stream_id, reqs).unwrap_err();
+        assert!(err.is_closed(), "expected Closed, got {err}");
+        assert_eq!(err.into_inner().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_send_requests_stops_at_first_closed() {
+        let (mut transport, ingestion_rx) = make_live_streaming_only(10);
+        drop(ingestion_rx);
+
+        let stream_id = uuid::Uuid::new_v4();
+        let reqs = vec![make_request(), make_request(), make_request()];
+        let err = transport.send_requests(&stream_id, reqs).await.unwrap_err();
+        // All three returned: the one that failed plus the remaining two.
+        assert_eq!(err.into_inner().len(), 3);
+    }
 }
