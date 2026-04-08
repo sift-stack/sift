@@ -160,6 +160,14 @@ class DataImportAPIAsync(ResourceBase):
         using :class:`TdmsImportConfig`, :class:`Hdf5ImportConfig`, or
         :class:`Ch10ImportConfig`.
 
+        For CSV files, the server can parse an optional JSON metadata row
+        that auto-populates channel names, units, descriptions, data types,
+        and enum definitions. Each cell in the row is a JSON object
+        describing that column. When present, ``first_data_row`` in the
+        returned config will be set to the row after the metadata row.
+        Note that enum type definitions are applied server-side during
+        import but are not included in the returned config.
+
         For file types with multiple layouts (e.g. Parquet), ``data_type``
         must be specified explicitly.
 
