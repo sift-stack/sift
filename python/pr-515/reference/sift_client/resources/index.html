@@ -18650,6 +18650,13 @@ provided.</p>
 For other formats (TDMS, HDF5, CH10), create the config manually
 using :class:<code>TdmsImportConfig</code>, :class:<code>Hdf5ImportConfig</code>, or
 :class:<code>Ch10ImportConfig</code>.</p>
+<p>For CSV files, the server can parse an optional JSON metadata row
+that auto-populates channel names, units, descriptions, data types,
+and enum definitions. Each cell in the row is a JSON object
+describing that column. When present, <code>first_data_row</code> in the
+returned config will be set to the row after the metadata row.
+Note that enum type definitions are applied server-side during
+import but are not included in the returned config.</p>
 <p>For file types with multiple layouts (e.g. Parquet), <code>data_type</code>
 must be specified explicitly.</p>
 
@@ -19368,6 +19375,13 @@ provided.</p>
 For other formats (TDMS, HDF5, CH10), create the config manually
 using :class:<code>TdmsImportConfig</code>, :class:<code>Hdf5ImportConfig</code>, or
 :class:<code>Ch10ImportConfig</code>.</p>
+<p>For CSV files, the server can parse an optional JSON metadata row
+that auto-populates channel names, units, descriptions, data types,
+and enum definitions. Each cell in the row is a JSON object
+describing that column. When present, <code>first_data_row</code> in the
+returned config will be set to the row after the metadata row.
+Note that enum type definitions are applied server-side during
+import but are not included in the returned config.</p>
 <p>For file types with multiple layouts (e.g. Parquet), <code>data_type</code>
 must be specified explicitly.</p>
 
