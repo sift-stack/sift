@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
@@ -48,17 +47,15 @@ class DataImportAPIAsync(ResourceBase):
         data_type: DataTypeKey | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
-        polling_interval_secs: int = 5,
-        timeout_secs: int | None = None,
-        show_progress: bool | None = None,
     ) -> Job:
         """Import data from a local file.
 
-        Creates a data import on the server, uploads the file, and waits
-        for the import to complete.
+        Creates a data import on the server, uploads the file, and returns
+        a ``Job`` handle. Use ``job.wait_until_complete()`` to poll for
+        completion if needed.
 
         When ``config`` is omitted the file format is auto-detected via
-        :meth:`detect_config` (CSV and Parquet only). For other formats
+        ``detect_config`` (CSV and Parquet only). For other formats
         (TDMS, HDF5, CH10), ``config`` must be provided.
         When ``asset_name`` is provided it overrides
         the config value; otherwise the config's ``asset_name`` is used.
@@ -79,13 +76,9 @@ class DataImportAPIAsync(ResourceBase):
                 Defaults to the filename if neither ``run_name`` nor
                 ``run_id`` is set.
             run_id: Existing run ID to use. Overrides any value on the config.
-            polling_interval_secs: Seconds between status polls. Defaults to 5s.
-            timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
-            show_progress: If True, display a progress spinner while waiting.
-                Defaults to True for sync, False for async.
 
         Returns:
-            The completed :class:`Job`.
+            A ``Job`` handle for the pending import.
 
         Raises:
             FileNotFoundError: If the file does not exist.
@@ -129,19 +122,7 @@ class DataImportAPIAsync(ResourceBase):
         )
         job_id = response["jobId"]
 
-        if show_progress is None:
-            global_setting = _sift_client_module.config.show_progress
-            if global_setting is not None:
-                show_progress = global_setting
-            else:
-                show_progress = getattr(self, "_is_sync", False)
-
-        return await self.client.async_.jobs.wait_until_complete(
-            job_id,
-            polling_interval_secs=polling_interval_secs,
-            timeout_secs=timeout_secs,
-            show_progress=show_progress,
-        )
+        return await self.client.async_.jobs.get(job_id=job_id)
 
     async def detect_config(
         self,
@@ -157,8 +138,8 @@ class DataImportAPIAsync(ResourceBase):
 
         Only CSV and Parquet files are currently supported for auto-detection.
         For other formats (TDMS, HDF5, CH10), create the config manually
-        using :class:`TdmsImportConfig`, :class:`Hdf5ImportConfig`, or
-        :class:`Ch10ImportConfig`.
+        using ``TdmsImportConfig``, ``Hdf5ImportConfig``, or
+        ``Ch10ImportConfig``.
 
         For CSV files, the server can parse an optional JSON metadata row
         that auto-populates channel names, units, descriptions, data types,

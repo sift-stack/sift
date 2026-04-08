@@ -307,9 +307,9 @@ class ParquetFlatDatasetImportConfig(BaseModel):
         time_column: Time column configuration.
         data_columns: List of data column definitions.
         footer_offset: Byte offset where the Parquet footer begins. Populated
-            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+            automatically when using ``detect_config``.
         footer_length: Length of the Parquet footer in bytes. Populated
-            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+            automatically when using ``detect_config``.
         complex_types_import_mode: How to handle complex Parquet types.
     """
 
@@ -444,9 +444,9 @@ class ParquetSingleChannelPerRowImportConfig(BaseModel):
         single_channel: Set when the entire file contains data for one channel.
         multi_channel: Set when each row identifies its channel via a name column.
         footer_offset: Byte offset where the Parquet footer begins. Populated
-            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+            automatically when using ``detect_config``.
         footer_length: Length of the Parquet footer in bytes. Populated
-            automatically when using :meth:`~DataImportAPIAsync.detect_config`.
+            automatically when using ``detect_config``.
         complex_types_import_mode: How to handle complex Parquet types.
     """
 
