@@ -305,7 +305,9 @@ impl RunService for MockRunService {
         &self,
         _: Request<UpdateRunRequest>,
     ) -> Result<Response<UpdateRunResponse>, Status> {
-        Err(Status::unimplemented("Not implemented for test"))
+        Ok(Response::new(UpdateRunResponse {
+            run: Some(Self::run()),
+        }))
     }
     async fn delete_run(
         &self,

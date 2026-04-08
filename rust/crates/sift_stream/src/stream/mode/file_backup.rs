@@ -1022,8 +1022,6 @@ mod tests {
         stream.finish().await.unwrap();
     }
 
-    // --- Transport send/try_send error-path tests ---
-
     /// Build a minimal FileBackup backed by a controlled channel.
     /// The spawned write task simply drains messages into a black hole so it
     /// never blocks, but the *caller* also gets the Receiver so they can

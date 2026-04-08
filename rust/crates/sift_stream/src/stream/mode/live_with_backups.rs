@@ -359,6 +359,7 @@ impl SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stream::tasks::ControlMessage;
     use crate::stream::tasks::DataMessage;
     use tokio::sync::broadcast;
 
@@ -491,5 +492,190 @@ mod tests {
         let reqs = vec![make_request(), make_request(), make_request()];
         let err = live.send_requests(&stream_id, reqs).await.unwrap_err();
         assert_eq!(err.into_inner().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_send_evicts_oldest_when_ingestion_full() {
+        // ingestion capacity=1 pre-filled; backup has plenty of room.
+        let (mut transport, ingestion_rx, backup_rx) = make_live_streaming_with_backups(1, 10);
+
+        // Pre-fill ingestion with a sentinel message.
+        let old_msg = DataMessage {
+            message_id: 99,
+            request: Arc::new(IngestWithConfigDataStreamRequest {
+                ingestion_config_id: uuid::Uuid::new_v4().to_string(),
+                flow: "old_flow".to_string(),
+                timestamp: None,
+                channel_values: vec![],
+                run_id: String::new(),
+                end_stream_on_validation_error: false,
+                organization_id: String::new(),
+            }),
+            dropped_for_ingestion: false,
+        };
+        transport.ingestion_tx.try_send(old_msg).unwrap();
+
+        // Sending a new message should:
+        //   1. send it to backup (backup_rx[0])
+        //   2. force-send it into ingestion, evicting the old message
+        //   3. send the evicted old message to backup (backup_rx[1])
+        let stream_id = uuid::Uuid::new_v4();
+        let new_req = make_request(); // flow = "test_flow"
+        transport.send(&stream_id, new_req).await.unwrap();
+
+        // Ingestion should contain the new message.
+        let in_msg = ingestion_rx.try_recv().unwrap();
+        assert_eq!(in_msg.message_id, 0);
+        assert!(!in_msg.dropped_for_ingestion);
+
+        // Backup first receives the new message (sent before dispatch_to_ingestion)…
+        let backup_first = backup_rx.try_recv().unwrap();
+        assert_eq!(backup_first.message_id, 0);
+        assert!(!backup_first.dropped_for_ingestion);
+
+        // …then the evicted old message.
+        let backup_evicted = backup_rx.try_recv().unwrap();
+        assert_eq!(backup_evicted.message_id, 99);
+        assert!(backup_evicted.dropped_for_ingestion);
+        assert_eq!(backup_evicted.request.flow, "old_flow");
+    }
+
+    #[tokio::test]
+    async fn test_try_send_evicts_oldest_to_backup_when_ingestion_full() {
+        let (mut transport, ingestion_rx, backup_rx) = make_live_streaming_with_backups(1, 10);
+
+        let old_msg = DataMessage {
+            message_id: 99,
+            request: Arc::new(IngestWithConfigDataStreamRequest {
+                ingestion_config_id: uuid::Uuid::new_v4().to_string(),
+                flow: "old_flow".to_string(),
+                timestamp: None,
+                channel_values: vec![],
+                run_id: String::new(),
+                end_stream_on_validation_error: false,
+                organization_id: String::new(),
+            }),
+            dropped_for_ingestion: false,
+        };
+        transport.ingestion_tx.try_send(old_msg).unwrap();
+
+        let stream_id = uuid::Uuid::new_v4();
+        transport.try_send(&stream_id, make_request()).unwrap();
+
+        let in_msg = ingestion_rx.try_recv().unwrap();
+        assert_eq!(in_msg.message_id, 0);
+        assert!(!in_msg.dropped_for_ingestion);
+
+        let backup_first = backup_rx.try_recv().unwrap();
+        assert_eq!(backup_first.message_id, 0);
+
+        let backup_evicted = backup_rx.try_recv().unwrap();
+        assert_eq!(backup_evicted.message_id, 99);
+        assert!(backup_evicted.dropped_for_ingestion);
+        assert_eq!(backup_evicted.request.flow, "old_flow");
+    }
+
+    #[tokio::test]
+    async fn test_send_returns_err_when_ingestion_closed() {
+        let (mut transport, ingestion_rx, _backup_rx) = make_live_streaming_with_backups(10, 10);
+        // Close the ingestion channel.
+        drop(ingestion_rx);
+
+        let stream_id = uuid::Uuid::new_v4();
+        let req = make_request();
+        let flow = req.flow.clone();
+        // send() first succeeds writing to backup, then fails when dispatching to ingestion.
+        let err = transport.send(&stream_id, req).await.unwrap_err();
+        assert_eq!(err.into_inner().flow, flow);
+    }
+
+    #[tokio::test]
+    async fn test_try_send_returns_full_when_evicted_and_backup_full() {
+        // backup capacity=1, ingestion capacity=1 (pre-filled).
+        // When try_send is called:
+        //   backup accepts the new msg  (now full)
+        //   force_send evicts old_msg from ingestion
+        //   backup.try_send(old_msg) → Full (backup already has one item)
+        //   try_send returns Full containing the evicted OLD message.
+        let (mut transport, _ingestion_rx, backup_rx) = make_live_streaming_with_backups(1, 1);
+
+        let old_msg = DataMessage {
+            message_id: 99,
+            request: Arc::new(IngestWithConfigDataStreamRequest {
+                ingestion_config_id: uuid::Uuid::new_v4().to_string(),
+                flow: "old_flow".to_string(),
+                timestamp: None,
+                channel_values: vec![],
+                run_id: String::new(),
+                end_stream_on_validation_error: false,
+                organization_id: String::new(),
+            }),
+            dropped_for_ingestion: false,
+        };
+        transport.ingestion_tx.try_send(old_msg).unwrap();
+
+        let stream_id = uuid::Uuid::new_v4();
+        let err = transport.try_send(&stream_id, make_request()).unwrap_err();
+        // The returned message is the evicted (older) one.
+        assert!(err.is_full(), "expected Full, got {err}");
+        assert_eq!(err.into_inner().flow, "old_flow");
+
+        drop(backup_rx);
+    }
+
+    #[tokio::test]
+    async fn test_message_id_counter_increments_monotonically() {
+        let (mut transport, _ingestion_rx, _backup_rx) = make_live_streaming_with_backups(10, 10);
+        let stream_id = uuid::Uuid::new_v4();
+
+        for _ in 0..5 {
+            transport.send(&stream_id, make_request()).await.unwrap();
+        }
+
+        assert_eq!(transport.message_id_counter, 5);
+    }
+
+    #[tokio::test]
+    async fn test_finish_awaits_all_three_tasks() {
+        use std::sync::atomic::{AtomicU32, Ordering};
+
+        let completed = Arc::new(AtomicU32::new(0));
+        // Keep a broadcast receiver alive so control_tx.send() doesn't fail.
+        let (control_tx, _ctrl_rx) = broadcast::channel::<ControlMessage>(10);
+        let (ingestion_tx, _) = async_channel::bounded::<DataMessage>(10);
+        let (backup_tx, _) = async_channel::bounded::<DataMessage>(10);
+
+        macro_rules! counting_task {
+            ($counter:expr) => {{
+                let c = $counter.clone();
+                tokio::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                    c.fetch_add(1, Ordering::Relaxed);
+                    Ok(())
+                })
+            }};
+        }
+
+        let transport = LiveStreamingWithBackups {
+            message_id_counter: 0,
+            backup_tx,
+            ingestion_tx,
+            control_tx,
+            ingestion_task: counting_task!(completed),
+            backup_manager: counting_task!(completed),
+            reingestion_task: counting_task!(completed),
+            metrics_streaming: None,
+            flows_seen: std::collections::HashSet::new(),
+            metrics: Arc::new(crate::metrics::SiftStreamMetrics::default()),
+        };
+
+        let stream_id = uuid::Uuid::new_v4();
+        transport.finish(&stream_id).await.unwrap();
+
+        assert_eq!(
+            completed.load(Ordering::Relaxed),
+            3,
+            "finish() must await all three internal tasks before returning"
+        );
     }
 }

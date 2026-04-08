@@ -467,4 +467,59 @@ mod tests {
             }
         }
     }
+
+    #[tokio::test]
+    async fn test_file_writer_write_to_nonexistent_directory_fails() {
+        let config = FileWriterConfig {
+            directory: std::path::PathBuf::from("/nonexistent/path/that/does/not/exist"),
+            prefix: "test".to_string(),
+            max_size: 1024,
+        };
+
+        let mut writer = FileWriter::new(config);
+        let request = create_test_request("test_flow");
+
+        let result = writer.write_request(&request).await;
+        assert!(
+            result.is_err(),
+            "writing to a nonexistent directory must return an error"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_file_writer_context_resets_after_rotation() {
+        let temp_dir = TempDir::new("test_file_writer_reset").unwrap();
+        let config = FileWriterConfig {
+            directory: temp_dir.path().to_path_buf(),
+            prefix: "test".to_string(),
+            max_size: 100, // very small to force rotation quickly
+        };
+
+        let mut writer = FileWriter::new(config);
+        let request = create_test_request("test_flow");
+
+        // Write until the size threshold is reached.
+        while !writer.should_rotate_file() {
+            writer.write_request(&request).await.unwrap();
+        }
+
+        let count_before = writer.current_file_ctx.message_count;
+        let size_before = writer.current_file_ctx.file_size;
+        assert!(count_before > 0);
+        assert!(size_before > 0);
+
+        // Rotate — the returned context should match what was in the writer.
+        let ctx = writer.rotate_file().await.unwrap().unwrap();
+        assert_eq!(ctx.message_count, count_before);
+        assert_eq!(ctx.file_size, size_before);
+
+        // After rotation the context must be reset to zero.
+        assert_eq!(writer.current_file_ctx.message_count, 0);
+        assert_eq!(writer.current_file_ctx.file_size, 0);
+        assert!(writer.current_file.is_none());
+
+        // A fresh write should start a new file with message_count == 1.
+        writer.write_request(&request).await.unwrap();
+        assert_eq!(writer.current_file_ctx.message_count, 1);
+    }
 }
