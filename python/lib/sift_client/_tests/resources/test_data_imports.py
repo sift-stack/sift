@@ -7,13 +7,17 @@ import pytest
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
+    Ch10ImportConfig,
     CsvDataColumn,
     CsvImportConfig,
     CsvTimeColumn,
     DataTypeKey,
+    Hdf5DataColumn,
+    Hdf5ImportConfig,
     ParquetDataColumn,
     ParquetFlatDatasetImportConfig,
     ParquetTimeColumn,
+    TdmsImportConfig,
     TimeFormat,
 )
 
@@ -251,3 +255,175 @@ class TestRunPrecedence:
         csv_config.run_name = "ignored"
         proto = csv_config._to_proto()
         assert proto.run_id == "run_123"
+
+
+class TestCh10Config:
+    def test_to_proto(self):
+        config = Ch10ImportConfig(asset_name="my_asset", run_name="run1", scale_values=True)
+        proto = config._to_proto()
+        assert proto.asset_name == "my_asset"
+        assert proto.run_name == "run1"
+        assert proto.scale_values is True
+
+    def test_to_proto_defaults(self):
+        config = Ch10ImportConfig(asset_name="my_asset")
+        proto = config._to_proto()
+        assert proto.run_name == ""
+        assert proto.scale_values is False
+
+    def test_no_run_id_field(self):
+        config = Ch10ImportConfig(asset_name="my_asset")
+        assert not hasattr(config, "run_id")
+
+
+class TestTdmsConfig:
+    def test_to_proto(self):
+        config = TdmsImportConfig(
+            asset_name="my_asset",
+            run_name="run1",
+            run_id="run_123",
+            start_time_override=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            file_size=12345,
+        )
+        proto = config._to_proto()
+        assert proto.asset_name == "my_asset"
+        assert proto.run_id == "run_123"
+        assert proto.file_size == 12345
+        assert proto.HasField("start_time_override")
+
+    def test_to_proto_optional_fields_unset(self):
+        config = TdmsImportConfig(asset_name="my_asset", run_name="run1")
+        proto = config._to_proto()
+        assert proto.run_name == "run1"
+        assert proto.run_id == ""
+        assert not proto.HasField("start_time_override")
+        assert proto.file_size == 0
+
+    def test_run_id_takes_precedence(self):
+        config = TdmsImportConfig(asset_name="a", run_name="ignored", run_id="run_123")
+        proto = config._to_proto()
+        assert proto.run_id == "run_123"
+
+
+class TestHdf5Config:
+    def test_to_proto(self):
+        config = Hdf5ImportConfig(
+            asset_name="my_asset",
+            run_name="run1",
+            time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
+            data=[
+                Hdf5DataColumn(
+                    time_dataset="/time",
+                    value_dataset="/voltage",
+                    name="voltage",
+                    data_type=ChannelDataType.DOUBLE,
+                    units="V",
+                    description="Voltage reading",
+                ),
+            ],
+        )
+        proto = config._to_proto()
+        assert proto.asset_name == "my_asset"
+        assert len(proto.data) == 1
+        assert proto.data[0].time_dataset == "/time"
+        assert proto.data[0].value_dataset == "/voltage"
+        assert proto.data[0].channel_config.name == "voltage"
+        assert proto.data[0].channel_config.units == "V"
+        assert proto.data[0].channel_config.description == "Voltage reading"
+
+    def test_to_proto_compound_fields(self):
+        config = Hdf5ImportConfig(
+            asset_name="my_asset",
+            time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
+            data=[
+                Hdf5DataColumn(
+                    time_dataset="/data",
+                    value_dataset="/data",
+                    name="current",
+                    data_type=ChannelDataType.FLOAT,
+                    time_field="ts",
+                    value_field="val",
+                ),
+            ],
+        )
+        proto = config._to_proto()
+        assert proto.data[0].time_field == "ts"
+        assert proto.data[0].value_field == "val"
+
+    def test_to_proto_compound_fields_unset(self):
+        config = Hdf5ImportConfig(
+            asset_name="my_asset",
+            time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
+            data=[
+                Hdf5DataColumn(
+                    time_dataset="/time",
+                    value_dataset="/voltage",
+                    name="voltage",
+                    data_type=ChannelDataType.DOUBLE,
+                ),
+            ],
+        )
+        proto = config._to_proto()
+        assert not proto.data[0].HasField("time_field")
+        assert not proto.data[0].HasField("value_field")
+
+    def test_to_proto_multiple_datasets(self):
+        config = Hdf5ImportConfig(
+            asset_name="my_asset",
+            time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
+            data=[
+                Hdf5DataColumn(
+                    time_dataset="/time",
+                    value_dataset="/voltage",
+                    name="voltage",
+                    data_type=ChannelDataType.DOUBLE,
+                ),
+                Hdf5DataColumn(
+                    time_dataset="/time",
+                    value_dataset="/current",
+                    value_index=1,
+                    name="current",
+                    data_type=ChannelDataType.FLOAT,
+                ),
+            ],
+        )
+        proto = config._to_proto()
+        assert len(proto.data) == 2
+        assert proto.data[1].value_dataset == "/current"
+        assert proto.data[1].value_index == 1
+
+    def test_relative_time_requires_start_time(self):
+        with pytest.raises(ValueError, match="relative_start_time"):
+            Hdf5ImportConfig(
+                asset_name="my_asset",
+                time_format=TimeFormat.RELATIVE_SECONDS,
+                data=[],
+            )
+
+    def test_relative_time_with_start_time(self):
+        config = Hdf5ImportConfig(
+            asset_name="my_asset",
+            time_format=TimeFormat.RELATIVE_SECONDS,
+            relative_start_time=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            data=[],
+        )
+        proto = config._to_proto()
+        assert proto.HasField("relative_start_time")
+
+    def test_absolute_time_no_start_time_required(self):
+        config = Hdf5ImportConfig(
+            asset_name="my_asset",
+            time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
+            data=[],
+        )
+        assert config.relative_start_time is None
+        proto = config._to_proto()
+        assert not proto.HasField("relative_start_time")
+
+
+class TestExtensionMap:
+    def test_tdms_extension(self):
+        assert EXTENSION_TO_DATA_TYPE_KEY[".tdms"] == DataTypeKey.TDMS
+
+    def test_ch10_extension(self):
+        assert EXTENSION_TO_DATA_TYPE_KEY[".ch10"] == DataTypeKey.CH10
