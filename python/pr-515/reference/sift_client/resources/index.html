@@ -18648,8 +18648,8 @@ is inferred from the file extension when <code>data_type</code> is not
 provided.</p>
 <p>Only CSV and Parquet files are currently supported for auto-detection.
 For other formats (TDMS, HDF5, CH10), create the config manually
-using :class:<code>TdmsImportConfig</code>, :class:<code>Hdf5ImportConfig</code>, or
-:class:<code>Ch10ImportConfig</code>.</p>
+using <code>TdmsImportConfig</code>, <code>Hdf5ImportConfig</code>, or
+<code>Ch10ImportConfig</code>.</p>
 <p>For CSV files, the server can parse an optional JSON metadata row
 that auto-populates channel names, units, descriptions, data types,
 and enum definitions. Each cell in the row is a JSON object
@@ -18801,10 +18801,7 @@ returns no config.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -18815,10 +18812,11 @@ returns no config.</p>
     <div class="doc doc-contents ">
 
         <p>Import data from a local file.</p>
-<p>Creates a data import on the server, uploads the file, and waits
-for the import to complete.</p>
+<p>Creates a data import on the server, uploads the file, and returns
+a <code>Job</code> handle. Use <code>job.wait_until_complete()</code> to poll for
+completion if needed.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-:meth:<code>detect_config</code> (CSV and Parquet only). For other formats
+<code>detect_config</code> (CSV and Parquet only). For other formats
 (TDMS, HDF5, CH10), <code>config</code> must be provided.
 When <code>asset_name</code> is provided it overrides
 the config value; otherwise the config's <code>asset_name</code> is used.
@@ -18962,67 +18960,6 @@ Defaults to the filename if neither <code>run_name</code> nor
               </p>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>polling_interval_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Seconds between status polls. Defaults to 5s.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>5</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>timeout_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Maximum seconds to wait. If None, polls indefinitely.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>show_progress</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>If True, display a progress spinner while waiting.
-Defaults to True for sync, False for async.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="bool">bool</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -19048,7 +18985,7 @@ Defaults to True for sync, False for async.</p>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>The completed :class:<code>Job</code>.</p>
+                <p>A <code>Job</code> handle for the pending import.</p>
               </div>
             </td>
           </tr>
@@ -19373,8 +19310,8 @@ is inferred from the file extension when <code>data_type</code> is not
 provided.</p>
 <p>Only CSV and Parquet files are currently supported for auto-detection.
 For other formats (TDMS, HDF5, CH10), create the config manually
-using :class:<code>TdmsImportConfig</code>, :class:<code>Hdf5ImportConfig</code>, or
-:class:<code>Ch10ImportConfig</code>.</p>
+using <code>TdmsImportConfig</code>, <code>Hdf5ImportConfig</code>, or
+<code>Ch10ImportConfig</code>.</p>
 <p>For CSV files, the server can parse an optional JSON metadata row
 that auto-populates channel names, units, descriptions, data types,
 and enum definitions. Each cell in the row is a JSON object
@@ -19530,10 +19467,7 @@ returns no config.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">polling_interval_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">timeout_secs</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -19544,10 +19478,11 @@ returns no config.</p>
     <div class="doc doc-contents ">
 
         <p>Import data from a local file.</p>
-<p>Creates a data import on the server, uploads the file, and waits
-for the import to complete.</p>
+<p>Creates a data import on the server, uploads the file, and returns
+a <code>Job</code> handle. Use <code>job.wait_until_complete()</code> to poll for
+completion if needed.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-:meth:<code>detect_config</code> (CSV and Parquet only). For other formats
+<code>detect_config</code> (CSV and Parquet only). For other formats
 (TDMS, HDF5, CH10), <code>config</code> must be provided.
 When <code>asset_name</code> is provided it overrides
 the config value; otherwise the config's <code>asset_name</code> is used.
@@ -19691,67 +19626,6 @@ Defaults to the filename if neither <code>run_name</code> nor
               </p>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>polling_interval_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Seconds between status polls. Defaults to 5s.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>5</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>timeout_secs</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Maximum seconds to wait. If None, polls indefinitely.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>show_progress</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>If True, display a progress spinner while waiting.
-Defaults to True for sync, False for async.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="bool">bool</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -19777,7 +19651,7 @@ Defaults to True for sync, False for async.</p>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>The completed :class:<code>Job</code>.</p>
+                <p>A <code>Job</code> handle for the pending import.</p>
               </div>
             </td>
           </tr>
