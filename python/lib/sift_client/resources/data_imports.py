@@ -120,12 +120,7 @@ class DataImportAPIAsync(ResourceBase):
         if isinstance(
             config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
         ):
-            if config.footer_offset == 0 and config.footer_length == 0:
-                footer_bytes, footer_offset = await run_sync_function(
-                    lambda: extract_parquet_footer(path)
-                )
-                config.footer_offset = footer_offset
-                config.footer_length = len(footer_bytes)
+            await _prepare_parquet_config(config, path)
 
         if show_progress is None:
             show_progress = resolve_show_progress(is_sync=getattr(self, "_is_sync", False))
@@ -191,23 +186,7 @@ class DataImportAPIAsync(ResourceBase):
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        ext = path.suffix.lower()
-        if ext in (".parquet", ".pqt"):
-            if data_type is None:
-                raise ValueError(
-                    "Parquet files require 'data_type' to be specified. "
-                    "Use DataTypeKey.PARQUET_FLATDATASET or DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW."
-                )
-            data_type_key = data_type
-        elif data_type is not None:
-            data_type_key = data_type
-        else:
-            if ext not in EXTENSION_TO_DATA_TYPE_KEY:
-                raise ValueError(
-                    f"Unsupported file extension '{ext}'. "
-                    f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}"
-                )
-            data_type_key = EXTENSION_TO_DATA_TYPE_KEY[ext]
+        data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
 
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,
@@ -234,58 +213,99 @@ class DataImportAPIAsync(ResourceBase):
         response = await self._low_level_client.detect_config(sample, data_type_key.value)
 
         if response.HasField("csv_config"):
-            csv_config = CsvImportConfig._from_proto(response.csv_config)
-            # Filter out the time column from data_columns to avoid overlap.
-            time_col = csv_config.time_column.column
-            csv_config.data_columns = [
-                dc for dc in csv_config.data_columns if dc.column != time_col
-            ]
-            if not csv_config.data_columns:
-                raise ValueError(f"No data columns detected in '{path.name}'.")
-            return csv_config
+            return _parse_csv_detect_response(response.csv_config, path.name)
 
         if response.HasField("parquet_config"):
-            proto = response.parquet_config
-            if proto.HasField("flat_dataset"):
-                parquet_config = ParquetFlatDatasetImportConfig._from_proto(
-                    proto, footer_offset=footer_offset, footer_length=footer_length
-                )
-                # Filter out the time column from data_columns to avoid overlap.
-                time_path = parquet_config.time_column.path
-                if time_path:
-                    parquet_config.data_columns = [
-                        dc for dc in parquet_config.data_columns if dc.path != time_path
-                    ]
-                else:
-                    # The backend only detects arrow timestamp types. Fall back to
-                    # an integer column whose name starts with "time".
-                    _integer_types = {
-                        ChannelDataType.INT_32,
-                        ChannelDataType.INT_64,
-                        ChannelDataType.UINT_32,
-                        ChannelDataType.UINT_64,
-                    }
-                    match = None
-                    for dc in parquet_config.data_columns:
-                        if dc.data_type in _integer_types and dc.name.lower().startswith("time"):
-                            match = dc
-                            break
-                    if match is not None:
-                        parquet_config.time_column = ParquetTimeColumn(path=match.path)
-                        parquet_config.data_columns = [
-                            c for c in parquet_config.data_columns if c.path != match.path
-                        ]
-                if not parquet_config.time_column.path:
-                    raise ValueError(
-                        f"No time column detected in '{path.name}'. "
-                        "Set the time column manually on the config before importing."
-                    )
-                if not parquet_config.data_columns:
-                    raise ValueError(f"No data columns detected in '{path.name}'.")
-                return parquet_config
-            elif proto.HasField("single_channel_per_row"):
-                return ParquetSingleChannelPerRowImportConfig._from_proto(
-                    proto, footer_offset=footer_offset, footer_length=footer_length
-                )
+            return _parse_parquet_detect_response(
+                response.parquet_config, path.name, footer_offset, footer_length
+            )
 
         raise ValueError("Server returned an empty DetectConfig response.")
+
+
+def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeKey:
+    """Resolve the data type key from file extension and explicit override."""
+    if ext in (".parquet", ".pqt"):
+        if data_type is None:
+            raise ValueError(
+                "Parquet files require 'data_type' to be specified. "
+                "Use DataTypeKey.PARQUET_FLATDATASET or DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW."
+            )
+        return data_type
+    if data_type is not None:
+        return data_type
+    if ext not in EXTENSION_TO_DATA_TYPE_KEY:
+        raise ValueError(
+            f"Unsupported file extension '{ext}'. "
+            f"Supported: {', '.join(sorted(EXTENSION_TO_DATA_TYPE_KEY))}. "
+            "You can also specify 'data_type' explicitly using a DataTypeKey value."
+        )
+    return EXTENSION_TO_DATA_TYPE_KEY[ext]
+
+
+def _parse_csv_detect_response(proto, filename: str) -> CsvImportConfig:
+    """Parse a CSV DetectConfig response into a config."""
+    csv_config = CsvImportConfig._from_proto(proto)
+    time_col = csv_config.time_column.column
+    csv_config.data_columns = [dc for dc in csv_config.data_columns if dc.column != time_col]
+    if not csv_config.data_columns:
+        raise ValueError(f"No data columns detected in '{filename}'.")
+    return csv_config
+
+
+def _parse_parquet_detect_response(
+    proto, filename: str, footer_offset: int, footer_length: int
+) -> ParquetFlatDatasetImportConfig | ParquetSingleChannelPerRowImportConfig:
+    """Parse a Parquet DetectConfig response into a config."""
+    if proto.HasField("flat_dataset"):
+        parquet_config = ParquetFlatDatasetImportConfig._from_proto(
+            proto, footer_offset=footer_offset, footer_length=footer_length
+        )
+        time_path = parquet_config.time_column.path
+        if time_path:
+            parquet_config.data_columns = [
+                dc for dc in parquet_config.data_columns if dc.path != time_path
+            ]
+        else:
+            # The backend only detects arrow timestamp types. Fall back to
+            # an integer column whose name starts with "time".
+            _integer_types = {
+                ChannelDataType.INT_32,
+                ChannelDataType.INT_64,
+                ChannelDataType.UINT_32,
+                ChannelDataType.UINT_64,
+            }
+            match = None
+            for dc in parquet_config.data_columns:
+                if dc.data_type in _integer_types and dc.name.lower().startswith("time"):
+                    match = dc
+                    break
+            if match is not None:
+                parquet_config.time_column = ParquetTimeColumn(path=match.path)
+                parquet_config.data_columns = [
+                    c for c in parquet_config.data_columns if c.path != match.path
+                ]
+        if not parquet_config.time_column.path:
+            raise ValueError(
+                f"No time column detected in '{filename}'. "
+                "Set the time column manually on the config before importing."
+            )
+        if not parquet_config.data_columns:
+            raise ValueError(f"No data columns detected in '{filename}'.")
+        return parquet_config
+    elif proto.HasField("single_channel_per_row"):
+        return ParquetSingleChannelPerRowImportConfig._from_proto(
+            proto, footer_offset=footer_offset, footer_length=footer_length
+        )
+    raise ValueError(f"Unsupported parquet layout in DetectConfig response for '{filename}'.")
+
+
+async def _prepare_parquet_config(
+    config: ParquetFlatDatasetImportConfig | ParquetSingleChannelPerRowImportConfig,
+    path: Path,
+) -> None:
+    """Populate parquet footer fields on the config if not already set."""
+    if config.footer_offset == 0 and config.footer_length == 0:
+        footer_bytes, footer_offset = await run_sync_function(lambda: extract_parquet_footer(path))
+        config.footer_offset = footer_offset
+        config.footer_length = len(footer_bytes)
