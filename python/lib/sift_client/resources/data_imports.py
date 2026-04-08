@@ -5,7 +5,11 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
-from sift_client._internal.util.file import extract_parquet_footer, upload_file
+from sift_client._internal.util.file import (
+    extract_parquet_footer,
+    resolve_show_progress,
+    upload_file,
+)
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
@@ -47,12 +51,15 @@ class DataImportAPIAsync(ResourceBase):
         data_type: DataTypeKey | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
+        show_progress: bool | None = None,
     ) -> Job:
         """Import data from a local file.
 
         Creates a data import on the server, uploads the file, and returns
-        a ``Job`` handle. Use ``job.wait_until_complete()`` to poll for
-        completion if needed.
+        a ``Job`` handle after uploading the file. The import processes
+        server-side and typically completes shortly after upload. Use
+        ``job.wait_until_complete()`` only if you need to confirm
+        completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV and Parquet only). For other formats
@@ -76,6 +83,8 @@ class DataImportAPIAsync(ResourceBase):
                 Defaults to the filename if neither ``run_name`` nor
                 ``run_id`` is set.
             run_id: Existing run ID to use. Overrides any value on the config.
+            show_progress: If True, display a progress spinner during upload.
+                Defaults to True for sync, False for async.
 
         Returns:
             A ``Job`` handle for the pending import.
@@ -115,10 +124,18 @@ class DataImportAPIAsync(ResourceBase):
                 config.footer_offset = footer_offset
                 config.footer_length = len(footer_bytes)
 
+        if show_progress is None:
+            show_progress = resolve_show_progress(is_sync=getattr(self, "_is_sync", False))
+
         _, upload_url = await self._low_level_client.create_from_upload(config)
 
         response = await run_sync_function(
-            lambda: upload_file(upload_url, path, rest_client=self.client.rest_client)
+            lambda: upload_file(
+                upload_url,
+                path,
+                rest_client=self.client.rest_client,
+                show_progress=show_progress,
+            )
         )
         job_id = response["jobId"]
 

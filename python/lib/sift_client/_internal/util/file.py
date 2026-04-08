@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from alive_progress import alive_bar  # type: ignore[import-untyped]
 
+import sift_client as _sift_client_module
 from sift_client.errors import SiftWarning
 
 if TYPE_CHECKING:
@@ -16,11 +17,24 @@ if TYPE_CHECKING:
     from sift_client.transport.rest_transport import RestClient
 
 
+def resolve_show_progress(*, is_sync: bool) -> bool:
+    """Resolve the show_progress setting from the global config.
+
+    Returns the global ``sift_client.config.show_progress`` value when set,
+    otherwise defaults to ``is_sync``.
+    """
+    global_setting = _sift_client_module.config.show_progress
+    if global_setting is not None:
+        return global_setting
+    return is_sync
+
+
 def upload_file(
     signed_url: str,
     file_path: Path,
     *,
     rest_client: RestClient,
+    show_progress: bool = False,
 ) -> dict:
     """Upload a file to a presigned URL.
 
@@ -28,6 +42,7 @@ def upload_file(
         signed_url: The presigned URL to upload to.
         file_path: Path to the file to upload.
         rest_client: The SDK rest client to use for the upload.
+        show_progress: If True, display a progress spinner during upload.
 
     Returns:
         The parsed JSON response from the server.
@@ -35,15 +50,24 @@ def upload_file(
     Raises:
         ValueError: If the upload request fails.
     """
-    with open(file_path, "rb") as f:
-        response = rest_client.post(
-            signed_url,
-            data=f,
-            headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
-        )
-        if not response.ok:
-            raise ValueError(f"Upload failed ({response.status_code}): {response.text}")
-        return response.json()
+    with alive_bar(
+        title=f"Upload [{file_path.name}]",
+        bar=None,
+        spinner="dots_waves",
+        spinner_length=7,
+        monitor=False,
+        stats=False,
+        disable=not show_progress,
+    ):
+        with open(file_path, "rb") as f:
+            response = rest_client.post(
+                signed_url,
+                data=f,
+                headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
+            )
+            if not response.ok:
+                raise ValueError(f"Upload failed ({response.status_code}): {response.text}")
+            return response.json()
 
 
 def download_file(

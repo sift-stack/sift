@@ -690,12 +690,15 @@ class DataImportAPI:
         data_type: DataTypeKey | None = None,
         run_name: str | None = None,
         run_id: str | None = None,
+        show_progress: bool | None = None,
     ) -> Job:
         """Import data from a local file.
 
         Creates a data import on the server, uploads the file, and returns
-        a ``Job`` handle. Use ``job.wait_until_complete()`` to poll for
-        completion if needed.
+        a ``Job`` handle after uploading the file. The import processes
+        server-side and typically completes shortly after upload. Use
+        ``job.wait_until_complete()`` only if you need to confirm
+        completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV and Parquet only). For other formats
@@ -719,6 +722,8 @@ class DataImportAPI:
                 Defaults to the filename if neither ``run_name`` nor
                 ``run_id`` is set.
             run_id: Existing run ID to use. Overrides any value on the config.
+            show_progress: If True, display a progress spinner during upload.
+                Defaults to True for sync, False for async.
 
         Returns:
             A ``Job`` handle for the pending import.
