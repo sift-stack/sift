@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+import json
 import logging
+import re
+import uuid
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from google.protobuf import json_format
 from sift.test_reports.v1.test_reports_pb2 import (
     CreateTestMeasurementRequest,
     CreateTestMeasurementResponse,
     CreateTestMeasurementsRequest,
     CreateTestMeasurementsResponse,
+    CreateTestReportRequest,
     CreateTestReportResponse,
     CreateTestStepRequest,
     CreateTestStepResponse,
@@ -31,6 +38,9 @@ from sift.test_reports.v1.test_reports_pb2 import (
     UpdateTestStepRequest,
     UpdateTestStepResponse,
 )
+from sift.test_reports.v1.test_reports_pb2 import TestMeasurement as TestMeasurementProto
+from sift.test_reports.v1.test_reports_pb2 import TestReport as TestReportProto
+from sift.test_reports.v1.test_reports_pb2 import TestStep as TestStepProto
 from sift.test_reports.v1.test_reports_pb2_grpc import TestReportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
@@ -68,6 +78,273 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client)
 
+    @staticmethod
+    def _log_request_to_file(
+        log_file: str | Path,
+        request_type: str,
+        request: Any,
+        response_id: str | None = None,
+    ) -> None:
+        """Log a request to a file in JSON format.
+
+        Args:
+            log_file: Path to the log file.
+            request_type: Type of request being logged.
+            request: The protobuf request to log.
+            response_id: Optional ID from the simulated response, embedded in the tag
+                for create operations so replay can map previously simulated IDs used by simulated updates.
+        """
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        tag = f"{request_type}:{response_id}" if response_id else request_type
+        with open(log_path, "a") as f:
+            request_dict = json_format.MessageToDict(request)
+            request_json = json.dumps(request_dict, separators=(",", ":"))
+            f.write(f"[{tag}] {request_json}\n")
+
+    @staticmethod
+    def simulate_create_test_report_response(
+        request: CreateTestReportRequest,
+    ) -> TestReportProto:
+        """Simulate a CreateTestReport response by constructing a TestReportProto from the request.
+
+        Args:
+            request: The CreateTestReportRequest.
+
+        Returns:
+            A simulated TestReportProto.
+        """
+        proto = TestReportProto(
+            test_report_id=str(uuid.uuid4()),
+            status=request.status,
+            name=request.name,
+            test_system_name=request.test_system_name,
+            test_case=request.test_case,
+            serial_number=request.serial_number,
+            part_number=request.part_number,
+            system_operator=request.system_operator,
+            run_id=request.run_id,
+            is_archived=False,
+        )
+        proto.start_time.CopyFrom(request.start_time)
+        proto.end_time.CopyFrom(request.end_time)
+        proto.metadata.extend(request.metadata)
+        return proto
+
+    @staticmethod
+    def simulate_update_test_report_response(
+        request: UpdateTestReportRequest,
+        existing: TestReport | None = None,
+    ) -> TestReport:
+        """Simulate an UpdateTestReport response.
+
+        Args:
+            request: The UpdateTestReportRequest containing the updates.
+            existing: Optional existing TestReport to merge updates into.
+                If not provided, returns a TestReport from the request proto.
+
+        Returns:
+            An updated TestReport with the specified fields modified.
+        """
+        if existing is None:
+            return TestReport._from_proto(request.test_report)
+
+        from datetime import timezone
+
+        from sift_client.sift_types.test_report import TestStatus
+        from sift_client.util.metadata import metadata_proto_to_dict
+
+        update_mask_paths = set(request.update_mask.paths)
+        proto = request.test_report
+        updates: dict[str, Any] = {}
+
+        if "name" in update_mask_paths:
+            updates["name"] = proto.name
+        if "test_system_name" in update_mask_paths:
+            updates["test_system_name"] = proto.test_system_name
+        if "test_case" in update_mask_paths:
+            updates["test_case"] = proto.test_case
+        if "status" in update_mask_paths:
+            updates["status"] = TestStatus(proto.status)
+        if "start_time" in update_mask_paths:
+            updates["start_time"] = proto.start_time.ToDatetime(tzinfo=timezone.utc)
+        if "end_time" in update_mask_paths:
+            updates["end_time"] = proto.end_time.ToDatetime(tzinfo=timezone.utc)
+        if "serial_number" in update_mask_paths:
+            updates["serial_number"] = proto.serial_number if proto.serial_number else None
+        if "part_number" in update_mask_paths:
+            updates["part_number"] = proto.part_number if proto.part_number else None
+        if "system_operator" in update_mask_paths:
+            updates["system_operator"] = proto.system_operator if proto.system_operator else None
+        if "run_id" in update_mask_paths:
+            updates["run_id"] = proto.run_id if proto.run_id else None
+        if "metadata" in update_mask_paths:
+            updates["metadata"] = metadata_proto_to_dict(proto.metadata)
+        if "is_archived" in update_mask_paths:
+            updates["is_archived"] = proto.is_archived
+
+        return existing.model_copy(update=updates)
+
+    @staticmethod
+    def simulate_create_test_step_response(
+        request: CreateTestStepRequest,
+    ) -> TestStepProto:
+        """Simulate a CreateTestStep response by constructing a TestStepProto from the request.
+
+        Args:
+            request: The CreateTestStepRequest.
+
+        Returns:
+            A simulated TestStepProto.
+        """
+        proto = TestStepProto()
+        proto.CopyFrom(request.test_step)
+        proto.test_step_id = str(uuid.uuid4())
+        return proto
+
+    @staticmethod
+    def simulate_update_test_step_response(
+        request: UpdateTestStepRequest,
+        existing: TestStep | None = None,
+    ) -> TestStep:
+        """Simulate an UpdateTestStep response.
+
+        Args:
+            request: The UpdateTestStepRequest containing the updates.
+            existing: Optional existing TestStep to merge updates into.
+                If not provided, returns a TestStep from the request proto.
+
+        Returns:
+            An updated TestStep with the specified fields modified.
+        """
+        if existing is None:
+            return TestStep._from_proto(request.test_step)
+
+        from datetime import timezone
+
+        from sift_client.sift_types.test_report import ErrorInfo, TestStatus
+
+        update_mask_paths = set(request.update_mask.paths)
+        proto = request.test_step
+        updates: dict[str, Any] = {}
+
+        if "name" in update_mask_paths:
+            updates["name"] = proto.name
+        if "status" in update_mask_paths:
+            updates["status"] = TestStatus(proto.status)
+        if "start_time" in update_mask_paths:
+            updates["start_time"] = proto.start_time.ToDatetime(tzinfo=timezone.utc)
+        if "end_time" in update_mask_paths:
+            updates["end_time"] = proto.end_time.ToDatetime(tzinfo=timezone.utc)
+        if "description" in update_mask_paths:
+            updates["description"] = proto.description if proto.description else None
+        if "error_info" in update_mask_paths:
+            if proto.HasField("error_info"):
+                updates["error_info"] = ErrorInfo(
+                    error_code=proto.error_info.error_code,
+                    error_message=proto.error_info.error_message,
+                )
+            else:
+                updates["error_info"] = None
+
+        return existing.model_copy(update=updates)
+
+    @staticmethod
+    def simulate_create_test_measurement_response(
+        request: CreateTestMeasurementRequest,
+    ) -> TestMeasurementProto:
+        """Simulate a CreateTestMeasurement response by constructing a TestMeasurementProto from the request.
+
+        Args:
+            request: The CreateTestMeasurementRequest.
+
+        Returns:
+            A simulated TestMeasurementProto.
+        """
+        proto = TestMeasurementProto()
+        proto.CopyFrom(request.test_measurement)
+        proto.measurement_id = str(uuid.uuid4())
+        return proto
+
+    @staticmethod
+    def simulate_create_test_measurements_response(
+        request: CreateTestMeasurementsRequest,
+    ) -> tuple[int, list[str]]:
+        """Simulate a CreateTestMeasurements response.
+
+        Args:
+            request: The CreateTestMeasurementsRequest.
+
+        Returns:
+            A tuple of (measurements_created_count, measurement_ids).
+        """
+        measurement_ids = [str(uuid.uuid4()) for _ in request.test_measurements]
+        return len(measurement_ids), measurement_ids
+
+    @staticmethod
+    def simulate_update_test_measurement_response(
+        request: UpdateTestMeasurementRequest,
+        existing: TestMeasurement | None = None,
+    ) -> TestMeasurement:
+        """Simulate an UpdateTestMeasurement response.
+
+        Args:
+            request: The UpdateTestMeasurementRequest containing the updates.
+            existing: Optional existing TestMeasurement to merge updates into.
+                If not provided, returns a TestMeasurement from the request proto.
+
+        Returns:
+            An updated TestMeasurement with the specified fields modified.
+        """
+        if existing is None:
+            return TestMeasurement._from_proto(request.test_measurement)
+
+        from datetime import timezone
+
+        from sift_client.sift_types.test_report import NumericBounds, TestMeasurementType
+
+        update_mask_paths = set(request.update_mask.paths)
+        proto = request.test_measurement
+        updates: dict[str, Any] = {}
+
+        if "name" in update_mask_paths:
+            updates["name"] = proto.name
+        if "passed" in update_mask_paths:
+            updates["passed"] = proto.passed
+        if "timestamp" in update_mask_paths:
+            updates["timestamp"] = proto.timestamp.ToDatetime(tzinfo=timezone.utc)
+        if "measurement_type" in update_mask_paths:
+            updates["measurement_type"] = TestMeasurementType(proto.measurement_type)
+        if "numeric_value" in update_mask_paths:
+            updates["numeric_value"] = (
+                proto.numeric_value if proto.HasField("numeric_value") else None
+            )
+        if "string_value" in update_mask_paths:
+            updates["string_value"] = (
+                proto.string_value if proto.HasField("string_value") else None
+            )
+        if "boolean_value" in update_mask_paths:
+            updates["boolean_value"] = (
+                proto.boolean_value if proto.HasField("boolean_value") else None
+            )
+        if "unit" in update_mask_paths:
+            updates["unit"] = proto.unit.abbreviated_name if proto.HasField("unit") else None
+        if "numeric_bounds" in update_mask_paths:
+            if proto.HasField("numeric_bounds"):
+                updates["numeric_bounds"] = NumericBounds(
+                    min=proto.numeric_bounds.min if proto.numeric_bounds.HasField("min") else None,
+                    max=proto.numeric_bounds.max if proto.numeric_bounds.HasField("max") else None,
+                )
+            else:
+                updates["numeric_bounds"] = None
+        if "string_bounds" in update_mask_paths:
+            if proto.HasField("string_bounds"):
+                updates["string_expected_value"] = proto.string_bounds.expected_value
+            else:
+                updates["string_expected_value"] = None
+
+        return existing.model_copy(update=updates)
+
     async def import_test_report(self, remote_file_id: str) -> TestReport:
         """Import a test report from an already-uploaded file.
 
@@ -92,16 +369,31 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         *,
         test_report: TestReportCreate,
+        log_file: str | Path | None = None,
+        simulate: bool = False,
     ) -> TestReport:
         """Create a new test report.
 
         Args:
             test_report: The test report to create.
+            log_file: If set, log the request to this file.
+            simulate: If True, return a simulated response instead of making an API call.
+                If log_file is set, simulate is implicitly True.
 
         Returns:
             The created TestReport.
         """
         request = test_report.to_proto()
+
+        if simulate or log_file is not None:
+            simulated_proto = self.simulate_create_test_report_response(request)
+            if log_file is not None:
+                self._log_request_to_file(
+                    log_file, "CreateTestReport", request,
+                    response_id=simulated_proto.test_report_id,
+                )
+            return TestReport._from_proto(simulated_proto)
+
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestReport(request)
         grpc_test_report = cast("CreateTestReportResponse", response).test_report
         return TestReport._from_proto(grpc_test_report)
@@ -188,17 +480,34 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size=page_size,
         )
 
-    async def update_test_report(self, update: TestReportUpdate) -> TestReport:
+    async def update_test_report(
+        self,
+        update: TestReportUpdate,
+        log_file: str | Path | None = None,
+        simulate: bool = False,
+        existing: TestReport | None = None,
+    ) -> TestReport:
         """Update an existing test report.
 
         Args:
             update: The updates to apply.
+            log_file: If set, log the request to this file.
+            simulate: If True, return a simulated response instead of making an API call.
+                If log_file is set, simulate is implicitly True.
+            existing: The full existing TestReport for simulation merge. If not provided,
+                the simulated response will only contain the updated fields.
 
         Returns:
             The updated TestReport.
         """
         test_report_proto, field_mask = update.to_proto_with_mask()
         request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
+
+        if simulate or log_file is not None:
+            if log_file is not None:
+                self._log_request_to_file(log_file, "UpdateTestReport", request)
+            return self.simulate_update_test_report_response(request, existing=existing)
+
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestReport(request)
         grpc_test_report = cast("UpdateTestReportResponse", response).test_report
         return TestReport._from_proto(grpc_test_report)
@@ -220,16 +529,34 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     # Test Steps
 
-    async def create_test_step(self, test_step: TestStepCreate) -> TestStep:
+    async def create_test_step(
+        self,
+        test_step: TestStepCreate,
+        log_file: str | Path | None = None,
+        simulate: bool = False,
+    ) -> TestStep:
         """Create a new test step.
 
         Args:
             test_step: The test step to create.
+            log_file: If set, log the request to this file.
+            simulate: If True, return a simulated response instead of making an API call.
+                If log_file is set, simulate is implicitly True.
 
         Returns:
             The created TestStep.
         """
         request = CreateTestStepRequest(test_step=test_step.to_proto())
+
+        if simulate or log_file is not None:
+            simulated_proto = self.simulate_create_test_step_response(request)
+            if log_file is not None:
+                self._log_request_to_file(
+                    log_file, "CreateTestStep", request,
+                    response_id=simulated_proto.test_step_id,
+                )
+            return TestStep._from_proto(simulated_proto)
+
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestStep(request)
         grpc_test_step = cast("CreateTestStepResponse", response).test_step
         return TestStep._from_proto(grpc_test_step)
@@ -296,11 +623,22 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size=page_size,
         )
 
-    async def update_test_step(self, update: TestStepUpdate) -> TestStep:
+    async def update_test_step(
+        self,
+        update: TestStepUpdate,
+        log_file: str | Path | None = None,
+        simulate: bool = False,
+        existing: TestStep | None = None,
+    ) -> TestStep:
         """Update an existing test step.
 
         Args:
             update: The updates to apply.
+            log_file: If set, log the request to this file.
+            simulate: If True, return a simulated response instead of making an API call.
+                If log_file is set, simulate is implicitly True.
+            existing: The full existing TestStep for simulation merge. If not provided,
+                the simulated response will only contain the updated fields.
 
         Returns:
             The updated TestStep.
@@ -310,6 +648,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if has_error_info:
             field_mask.paths.append("error_info")
         request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
+
+        if simulate or log_file is not None:
+            if log_file is not None:
+                self._log_request_to_file(log_file, "UpdateTestStep", request)
+            return self.simulate_update_test_step_response(request, existing=existing)
+
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestStep(request)
         grpc_test_step = cast("UpdateTestStepResponse", response).test_step
         return TestStep._from_proto(grpc_test_step)
@@ -332,17 +676,33 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     # Test Measurements
 
     async def create_test_measurement(
-        self, test_measurement: TestMeasurementCreate
+        self,
+        test_measurement: TestMeasurementCreate,
+        log_file: str | Path | None = None,
+        simulate: bool = False,
     ) -> TestMeasurement:
         """Create a new test measurement.
 
         Args:
             test_measurement: The test measurement to create.
+            log_file: If set, log the request to this file.
+            simulate: If True, return a simulated response instead of making an API call.
+                If log_file is set, simulate is implicitly True.
 
         Returns:
             The created TestMeasurement.
         """
         request = CreateTestMeasurementRequest(test_measurement=test_measurement.to_proto())
+
+        if simulate or log_file is not None:
+            simulated_proto = self.simulate_create_test_measurement_response(request)
+            if log_file is not None:
+                self._log_request_to_file(
+                    log_file, "CreateTestMeasurement", request,
+                    response_id=simulated_proto.measurement_id,
+                )
+            return TestMeasurement._from_proto(simulated_proto)
+
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestMeasurement(
             request
         )
@@ -350,18 +710,34 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return TestMeasurement._from_proto(grpc_test_measurement)
 
     async def create_test_measurements(
-        self, test_measurements: list[TestMeasurementCreate]
+        self,
+        test_measurements: list[TestMeasurementCreate],
+        log_file: str | Path | None = None,
+        simulate: bool = False,
     ) -> tuple[int, list[str]]:
         """Create multiple test measurements in a single request.
 
         Args:
             test_measurements: The test measurements to create.
+            log_file: If set, log the request to this file.
+            simulate: If True, return a simulated response instead of making an API call.
+                If log_file is set, simulate is implicitly True.
 
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
         """
         measurement_protos = [tm.to_proto() for tm in test_measurements]
         request = CreateTestMeasurementsRequest(test_measurements=measurement_protos)
+
+        if simulate or log_file is not None:
+            count, measurement_ids = self.simulate_create_test_measurements_response(request)
+            if log_file is not None:
+                self._log_request_to_file(
+                    log_file, "CreateTestMeasurements", request,
+                    response_id=",".join(measurement_ids),
+                )
+            return count, measurement_ids
+
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestMeasurements(
             request
         )
@@ -432,11 +808,22 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size=page_size,
         )
 
-    async def update_test_measurement(self, update: TestMeasurementUpdate) -> TestMeasurement:
+    async def update_test_measurement(
+        self,
+        update: TestMeasurementUpdate,
+        log_file: str | Path | None = None,
+        simulate: bool = False,
+        existing: TestMeasurement | None = None,
+    ) -> TestMeasurement:
         """Update an existing test measurement.
 
         Args:
             update: The updates to apply.
+            log_file: If set, log the request to this file.
+            simulate: If True, return a simulated response instead of making an API call.
+                If log_file is set, simulate is implicitly True.
+            existing: The full existing TestMeasurement for simulation merge. If not provided,
+                the simulated response will only contain the updated fields.
 
         Returns:
             The updated TestMeasurement.
@@ -445,6 +832,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = UpdateTestMeasurementRequest(
             test_measurement=test_measurement_proto, update_mask=field_mask
         )
+
+        if simulate or log_file is not None:
+            if log_file is not None:
+                self._log_request_to_file(log_file, "UpdateTestMeasurement", request)
+            return self.simulate_update_test_measurement_response(request, existing=existing)
+
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestMeasurement(
             request
         )
@@ -465,3 +858,233 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = DeleteTestMeasurementRequest(measurement_id=measurement_id)
         await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestMeasurement(request)
+
+    async def replay_log_file(
+        self,
+        log_file: str | Path,
+    ) -> ReplayResult:
+        """Replay a log file by parsing each entry, simulating the results, then creating for real.
+
+        This method reads a log file created by the simulation logging, reconstructs
+        all the objects via simulation, and then creates them via the actual API.
+        IDs are mapped from simulated to real during the creation process.
+
+        Args:
+            log_file: Path to the log file to replay.
+
+        Returns:
+            A ReplayResult containing the created report, steps, and measurements.
+        """
+        log_path = Path(log_file)
+        if not log_path.exists():
+            raise FileNotFoundError(f"Log file not found: {log_file}")
+
+        simulated_report: TestReport | None = None
+        simulated_steps_by_id: dict[str, TestStep] = {}
+        simulated_steps_order: list[str] = []
+        simulated_measurements_by_id: dict[str, TestMeasurement] = {}
+        simulated_measurements_order: list[str] = []
+
+        line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
+
+        with open(log_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+
+                match = line_pattern.match(line)
+                if not match:
+                    logger.warning(f"Skipping malformed log line: {line[:100]}...")
+                    continue
+
+                request_type = match.group(1)
+                response_id = match.group(2)
+                json_str = match.group(3)
+
+                if request_type == "CreateTestReport":
+                    request = CreateTestReportRequest()
+                    json_format.Parse(json_str, request)
+                    simulated_proto = self.simulate_create_test_report_response(request)
+                    if response_id:
+                        simulated_proto.test_report_id = response_id
+                    simulated_report = TestReport._from_proto(simulated_proto)
+
+                elif request_type == "CreateTestStep":
+                    request = CreateTestStepRequest()
+                    json_format.Parse(json_str, request)
+                    simulated_proto = self.simulate_create_test_step_response(request)
+                    if response_id:
+                        simulated_proto.test_step_id = response_id
+                    step = TestStep._from_proto(simulated_proto)
+                    simulated_steps_by_id[step._id_or_error] = step
+                    simulated_steps_order.append(step._id_or_error)
+
+                elif request_type == "CreateTestMeasurement":
+                    request = CreateTestMeasurementRequest()
+                    json_format.Parse(json_str, request)
+                    simulated_proto = self.simulate_create_test_measurement_response(request)
+                    if response_id:
+                        simulated_proto.measurement_id = response_id
+                    measurement = TestMeasurement._from_proto(simulated_proto)
+                    simulated_measurements_by_id[measurement._id_or_error] = measurement
+                    simulated_measurements_order.append(measurement._id_or_error)
+
+                elif request_type == "CreateTestMeasurements":
+                    request = CreateTestMeasurementsRequest()
+                    json_format.Parse(json_str, request)
+                    original_ids = response_id.split(",") if response_id else []
+                    for i, tm_proto in enumerate(request.test_measurements):
+                        single_request = CreateTestMeasurementRequest(test_measurement=tm_proto)
+                        simulated_proto = self.simulate_create_test_measurement_response(
+                            single_request
+                        )
+                        if i < len(original_ids):
+                            simulated_proto.measurement_id = original_ids[i]
+                        measurement = TestMeasurement._from_proto(simulated_proto)
+                        simulated_measurements_by_id[measurement._id_or_error] = measurement
+                        simulated_measurements_order.append(measurement._id_or_error)
+
+                elif request_type == "UpdateTestReport":
+                    if simulated_report is None:
+                        raise ValueError("UpdateTestReport found before CreateTestReport")
+                    request = UpdateTestReportRequest()
+                    json_format.Parse(json_str, request)
+                    simulated_report = self.simulate_update_test_report_response(
+                        request, existing=simulated_report
+                    )
+
+                elif request_type == "UpdateTestStep":
+                    request = UpdateTestStepRequest()
+                    json_format.Parse(json_str, request)
+                    step_id = request.test_step.test_step_id
+                    if step_id not in simulated_steps_by_id:
+                        raise ValueError(f"UpdateTestStep for unknown step: {step_id}")
+                    simulated_steps_by_id[step_id] = self.simulate_update_test_step_response(
+                        request, existing=simulated_steps_by_id[step_id]
+                    )
+
+                elif request_type == "UpdateTestMeasurement":
+                    request = UpdateTestMeasurementRequest()
+                    json_format.Parse(json_str, request)
+                    measurement_id = request.test_measurement.measurement_id
+                    if measurement_id not in simulated_measurements_by_id:
+                        raise ValueError(
+                            f"UpdateTestMeasurement for unknown measurement: {measurement_id}"
+                        )
+                    simulated_measurements_by_id[measurement_id] = (
+                        self.simulate_update_test_measurement_response(
+                            request, existing=simulated_measurements_by_id[measurement_id]
+                        )
+                    )
+
+                else:
+                    logger.warning(f"Unknown request type: {request_type}")
+
+        # Send the test report to the server, making sure to update the IDs to real ones as we go.
+        if simulated_report is None:
+            raise ValueError("No CreateTestReport found in log file")
+
+        simulated_step_id_map: dict[str, str] = {}
+
+        real_report = await self._create_report_from_simulated(simulated_report)
+        real_report_id = real_report._id_or_error
+
+        real_steps: list[TestStep] = []
+        for sim_step_id in simulated_steps_order:
+            sim_step = simulated_steps_by_id[sim_step_id]
+            real_parent_step_id = (
+                simulated_step_id_map.get(sim_step.parent_step_id, sim_step.parent_step_id)
+                if sim_step.parent_step_id
+                else None
+            )
+            step_create = self._step_create_from_simulated(
+                sim_step, real_report_id, real_parent_step_id
+            )
+            real_step = await self.create_test_step(step_create)
+            real_steps.append(real_step)
+            simulated_step_id_map[sim_step_id] = real_step._id_or_error
+
+        real_measurements: list[TestMeasurement] = []
+        for sim_measurement_id in simulated_measurements_order:
+            sim_measurement = simulated_measurements_by_id[sim_measurement_id]
+            real_step_id = simulated_step_id_map.get(
+                sim_measurement.test_step_id, sim_measurement.test_step_id
+            )
+            measurement_create = self._measurement_create_from_simulated(
+                sim_measurement, real_step_id
+            )
+            real_measurement = await self.create_test_measurement(measurement_create)
+            real_measurements.append(real_measurement)
+
+        return ReplayResult(
+            report=real_report,
+            steps=real_steps,
+            measurements=real_measurements,
+        )
+
+    async def _create_report_from_simulated(self, simulated: TestReport) -> TestReport:
+        """Create a real test report from a simulated one."""
+        report_create = TestReportCreate(
+            name=simulated.name,
+            test_system_name=simulated.test_system_name,
+            test_case=simulated.test_case,
+            start_time=simulated.start_time,
+            end_time=simulated.end_time,
+            status=simulated.status,
+            serial_number=simulated.serial_number,
+            part_number=simulated.part_number,
+            system_operator=simulated.system_operator,
+            run_id=simulated.run_id,
+            metadata=simulated.metadata,
+        )
+        return await self.create_test_report(test_report=report_create)
+
+    @staticmethod
+    def _step_create_from_simulated(
+        simulated: TestStep,
+        real_report_id: str,
+        real_parent_step_id: str | None,
+    ) -> TestStepCreate:
+        """Create a TestStepCreate from a simulated TestStep with updated IDs."""
+        return TestStepCreate(
+            test_report_id=real_report_id,
+            name=simulated.name,
+            step_type=simulated.step_type,
+            step_path=simulated.step_path,
+            status=simulated.status,
+            start_time=simulated.start_time,
+            end_time=simulated.end_time,
+            parent_step_id=real_parent_step_id,
+            description=simulated.description,
+            error_info=simulated.error_info,
+        )
+
+    @staticmethod
+    def _measurement_create_from_simulated(
+        simulated: TestMeasurement,
+        real_step_id: str,
+    ) -> TestMeasurementCreate:
+        """Create a TestMeasurementCreate from a simulated TestMeasurement with updated step ID."""
+        return TestMeasurementCreate(
+            name=simulated.name,
+            test_step_id=real_step_id,
+            passed=simulated.passed,
+            timestamp=simulated.timestamp,
+            measurement_type=simulated.measurement_type,
+            numeric_value=simulated.numeric_value,
+            string_value=simulated.string_value,
+            boolean_value=simulated.boolean_value,
+            unit=simulated.unit,
+            numeric_bounds=simulated.numeric_bounds,
+            string_expected_value=simulated.string_expected_value,
+        )
+
+
+@dataclass
+class ReplayResult:
+    """Result of replaying a log file."""
+
+    report: TestReport
+    steps: list[TestStep] = field(default_factory=list)
+    measurements: list[TestMeasurement] = field(default_factory=list)

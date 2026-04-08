@@ -3,9 +3,11 @@ from __future__ import annotations
 import getpass
 import os
 import socket
+import tempfile
 import traceback
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -36,6 +38,8 @@ class ReportContext(AbstractContextManager):
     """Context manager for a new TestReport. See usage example in __init__.py."""
 
     report: TestReport
+    client: SiftClient
+    log_file: Path | None
     step_is_open: bool
     step_stack: list[TestStep]
     step_number_at_depth: dict[int, int]
@@ -49,6 +53,7 @@ class ReportContext(AbstractContextManager):
         test_system_name: str | None = None,
         system_operator: str | None = None,
         test_case: str | None = None,
+        log_file: str | Path | bool | None = None,
     ):
         """Initialize a new report context.
 
@@ -58,12 +63,22 @@ class ReportContext(AbstractContextManager):
             test_system_name: The name of the test system. Will default to the hostname if not provided.
             system_operator: The operator of the test system. Will default to the current user if not provided.
             test_case: The name of the test case. Will default to the basename of the file containing the test if not provided.
+            log_file: If True, create a temp log file. If a path, use that path.
+                All create/update operations will be logged to this file.
         """
+        self.client = client
         self.step_is_open = False
         self.step_stack = []
         self.step_number_at_depth = {}
         self.open_step_results = {}
         self.any_failures = False
+
+        if log_file is True:
+            self.log_file = Path(tempfile.mktemp(suffix=".jsonl"))
+        elif log_file:
+            self.log_file = Path(log_file)
+        else:
+            self.log_file = None
 
         # Create the report.
         test_case = test_case if test_case else os.path.basename(__file__)
@@ -78,7 +93,7 @@ class ReportContext(AbstractContextManager):
             status=TestStatus.IN_PROGRESS,
             system_operator=system_operator,
         )
-        self.report = client.test_results.create(create)
+        self.report = client.test_results.create(create, log_file=self.log_file)
 
     def __enter__(self):
         return self
@@ -91,7 +106,9 @@ class ReportContext(AbstractContextManager):
             update["status"] = TestStatus.FAILED
         else:
             update["status"] = TestStatus.PASSED
-        self.report.update(update)
+        self.report.update(update, log_file=self.log_file)
+        if self.log_file:
+            replay_result = self.client.test_results.replay_log_file(self.log_file)
         return True
 
     def new_step(
@@ -126,7 +143,7 @@ class ReportContext(AbstractContextManager):
         step_path = self.get_next_step_path()
         parent_step = self.step_stack[-1] if self.step_stack else None
 
-        step = self.report.client.test_results.create_step(
+        step = self.client.test_results.create_step(
             TestStepCreate(
                 test_report_id=str(self.report.id_),
                 name=name,
@@ -137,7 +154,8 @@ class ReportContext(AbstractContextManager):
                 end_time=datetime.now(timezone.utc),
                 description=description,
                 parent_step_id=parent_step.id_ if parent_step else None,
-            )
+            ),
+            log_file=self.log_file,
         )
 
         # Update the step tracking structures.
@@ -217,7 +235,7 @@ class NewStep(AbstractContextManager):
             assertion_as_fail_not_error: Mark steps with assertion errors as failed instead of error+traceback (some users want assertions to work as simple failures especially when using pytest).
         """
         self.report_context = report_context
-        self.client = report_context.report.client
+        self.client = report_context.client
         self.current_step = self.report_context.create_step(name, description)
         self.assertion_as_fail_not_error = assertion_as_fail_not_error
 
@@ -275,7 +293,8 @@ class NewStep(AbstractContextManager):
                 "status": status,
                 "end_time": datetime.now(timezone.utc),
                 "error_info": error_info,
-            }
+            },
+            log_file=self.report_context.log_file,
         )
 
         return result
@@ -322,7 +341,9 @@ class NewStep(AbstractContextManager):
             unit=unit,
         )
         evaluate_measurement_bounds(create, value, bounds)
-        measurement = self.client.test_results.create_measurement(create)
+        measurement = self.client.test_results.create_measurement(
+            create, log_file=self.report_context.log_file
+        )
         self.report_context.record_step_outcome(measurement.passed, self.current_step)
 
         return measurement.passed
