@@ -2027,6 +2027,10 @@ You're not viewing the latest version.
 endpoint, and returns the detected configuration. The file format
 is inferred from the file extension when <code>data_type</code> is not
 provided.</p>
+<p>Only CSV and Parquet files are currently supported for auto-detection.
+For other formats (TDMS, HDF5, CH10), create the config manually
+using :class:<code>TdmsImportConfig</code>, :class:<code>Hdf5ImportConfig</code>, or
+:class:<code>Ch10ImportConfig</code>.</p>
 <p>For file types with multiple layouts (e.g. Parquet), <code>data_type</code>
 must be specified explicitly.</p>
 
@@ -2192,7 +2196,9 @@ returns no config.</p>
 <p>Creates a data import on the server, uploads the file, and waits
 for the import to complete.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-:meth:<code>detect_config</code>. When <code>asset_name</code> is provided it overrides
+:meth:<code>detect_config</code> (CSV and Parquet only). For other formats
+(TDMS, HDF5, CH10), <code>config</code> must be provided.
+When <code>asset_name</code> is provided it overrides
 the config value; otherwise the config's <code>asset_name</code> is used.
 If neither <code>run_name</code> nor <code>run_id</code> is provided
 (and none is set on the config), <code>run_name</code> defaults to the
