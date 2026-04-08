@@ -10,9 +10,10 @@ use sift_stream::{
     ChannelValue, Flow, IngestionConfigForm, SiftStreamBuilder, TimeValue, stream::run::RunSelector,
 };
 use std::sync::{
-    Arc, Mutex,
+    Arc,
     atomic::{AtomicU32, Ordering},
 };
+use tokio::sync::Mutex;
 use tokio_stream::StreamExt;
 
 mod common;
@@ -75,10 +76,7 @@ impl IngestService for RunIdCapturingIngestService {
     ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
         let mut stream = request.into_inner();
         while let Ok(Some(msg)) = stream.try_next().await {
-            self.captured_run_ids
-                .lock()
-                .unwrap()
-                .push(msg.run_id.clone());
+            self.captured_run_ids.lock().await.push(msg.run_id.clone());
         }
         Ok(Response::new(IngestWithConfigDataStreamResponse {}))
     }
@@ -202,7 +200,7 @@ async fn test_live_only_run_id_propagated_from_builder() {
 
     stream.finish().await.expect("finish failed");
 
-    let ids = captured_run_ids.lock().unwrap();
+    let ids = captured_run_ids.lock().await;
     assert!(
         !ids.is_empty(),
         "at least one message should have been received"
@@ -266,7 +264,7 @@ async fn test_live_only_detach_run_clears_run_id() {
 
     stream.finish().await.expect("finish failed");
 
-    let ids = captured_run_ids.lock().unwrap();
+    let ids = captured_run_ids.lock().await;
     assert_eq!(ids.len(), 2, "expected exactly 2 messages");
     assert_eq!(ids[0], "123", "first message must carry run_id from mock");
     assert_eq!(

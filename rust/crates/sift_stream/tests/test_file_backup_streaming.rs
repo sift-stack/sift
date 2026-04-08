@@ -68,12 +68,12 @@ fn count_messages_in_dir(dir: &std::path::Path) -> usize {
     let mut total = 0usize;
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.is_file() {
-            if let Ok(f) = std::fs::File::open(&path) {
-                let decoder =
-                    BackupsDecoder::<IngestWithConfigDataStreamRequest, _>::new(BufReader::new(f));
-                total += decoder.filter(|r| r.is_ok()).count();
-            }
+        if path.is_file()
+            && let Ok(f) = std::fs::File::open(&path)
+        {
+            let decoder =
+                BackupsDecoder::<IngestWithConfigDataStreamRequest, _>::new(BufReader::new(f));
+            total += decoder.filter(|r| r.is_ok()).count();
         }
     }
     total
