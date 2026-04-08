@@ -13,9 +13,6 @@ if TYPE_CHECKING:
     import pandas as pd
     import pyarrow as pa
 
-    from sift_client._internal.low_level_wrappers.data_imports import (
-        ImportConfig,
-    )
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset, AssetUpdate
     from sift_client.sift_types.calculated_channel import (
@@ -26,6 +23,7 @@ if TYPE_CHECKING:
     from sift_client.sift_types.channel import Channel
     from sift_client.sift_types.data_import import (
         DataTypeKey,
+        ImportConfig,
     )
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
@@ -673,8 +671,8 @@ class DataImportAPI:
     def import_from_path(
         self,
         file_path: str | Path,
-        asset_name: str,
         *,
+        asset_name: str | None = None,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         run_name: str | None = None,
@@ -689,14 +687,16 @@ class DataImportAPI:
         for the import to complete.
 
         When ``config`` is omitted the file format is auto-detected via
-        :meth:`detect_config`. The ``asset_name`` is always applied to
-        the config. If neither ``run_name`` nor ``run_id`` is provided
+        :meth:`detect_config`. When ``asset_name`` is provided it overrides
+        the config value; otherwise the config's ``asset_name`` is used.
+        If neither ``run_name`` nor ``run_id`` is provided
         (and none is set on the config), ``run_name`` defaults to the
         filename.
 
         Args:
             file_path: Path to the local file to import.
-            asset_name: Name of the asset to import data into.
+            asset_name: Name of the asset to import data into. Optional
+                when ``config`` already has ``asset_name`` set.
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored.
             data_type: Explicit data type key. Required for formats like
