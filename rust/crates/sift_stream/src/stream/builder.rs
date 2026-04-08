@@ -181,6 +181,7 @@ impl StreamConfigBuilder {
             metrics_streaming_interval: Some(DEFAULT_METRICS_STREAMING_INTERVAL),
             ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
+            retry_policy: RetryPolicy::default(),
         }
     }
 
@@ -221,6 +222,7 @@ pub struct LiveOnlyBuilder {
     metrics_streaming_interval: Option<Duration>,
     ingestion_data_channel_capacity: usize,
     control_channel_capacity: usize,
+    retry_policy: RetryPolicy,
 }
 
 impl LiveOnlyBuilder {
@@ -249,6 +251,12 @@ impl LiveOnlyBuilder {
         self
     }
 
+    /// Sets the retry policy. Defaults to [RetryPolicy::default].
+    pub fn retry_policy(mut self, policy: RetryPolicy) -> Self {
+        self.retry_policy = policy;
+        self
+    }
+
     /// Performs setup and returns a [SiftStream] configured for `LiveStreamingOnly`.
     pub async fn build(self) -> Result<SiftStream<IngestionConfigEncoder, LiveStreamingOnly>> {
         let setup = setup_common(self.base).await?;
@@ -263,6 +271,7 @@ impl LiveOnlyBuilder {
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
             control_channel_capacity: self.control_channel_capacity,
             metrics_streaming_interval: self.metrics_streaming_interval,
+            retry_policy: self.retry_policy,
         };
 
         SiftStream::new_live_only(
@@ -377,7 +386,6 @@ impl LiveWithBackupsBuilder {
         };
 
         let recovery_config = RecoveryConfig {
-            retry_policy: self.retry_policy,
             backups_enabled,
             backups_directory,
             backups_prefix,
@@ -393,6 +401,7 @@ impl LiveWithBackupsBuilder {
             metrics: setup.metrics.clone(),
             checkpoint_interval: self.checkpoint_interval,
             enable_compression_for_ingestion: self.enable_compression_for_ingestion,
+            retry_policy: self.retry_policy,
             recovery_config,
             control_channel_capacity: self.control_channel_capacity,
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,

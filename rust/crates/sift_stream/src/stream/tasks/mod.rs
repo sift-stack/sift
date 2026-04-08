@@ -5,7 +5,7 @@ pub(crate) mod metrics;
 pub(crate) use builder::{LiveOnlyTaskConfig, LiveWithBackupsTaskConfig, TaskBuilder};
 pub(crate) use metrics::MetricsStreamingTask;
 
-use crate::{DiskBackupPolicy, RetryPolicy};
+use crate::DiskBackupPolicy;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 /// Capacity for the data channel.
@@ -48,7 +48,6 @@ pub(crate) enum ControlMessage {
 
 #[derive(Clone)]
 pub(crate) struct RecoveryConfig {
-    pub(crate) retry_policy: RetryPolicy,
     pub(crate) backups_enabled: bool,
     pub(crate) backups_directory: String,
     pub(crate) backups_prefix: String,

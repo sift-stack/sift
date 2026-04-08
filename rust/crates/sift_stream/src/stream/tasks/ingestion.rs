@@ -1,8 +1,9 @@
 use crate::{
+    RetryPolicy,
     metrics::SiftStreamMetrics,
     stream::{
         mode::ingestion_config::DataStream,
-        tasks::{CHECKPOINT_TIMEOUT, ControlMessage, DataMessage, RecoveryConfig},
+        tasks::{CHECKPOINT_TIMEOUT, ControlMessage, DataMessage},
     },
 };
 use sift_connect::SiftChannel;
@@ -50,15 +51,10 @@ pub(crate) struct IngestionTaskConfig {
     pub(crate) ingestion_channel: SiftChannel,
     pub(crate) enable_compression_for_ingestion: bool,
     pub(crate) metrics: Arc<SiftStreamMetrics>,
+    pub(crate) retry_policy: RetryPolicy,
     /// Present only in LiveStreamingWithBackups mode. When None, the task
     /// never sets up a checkpoint timer and ignores all checkpoint control messages.
-    pub(crate) checkpoint_config: Option<CheckpointConfig>,
-}
-
-/// Checkpoint-specific fields; grouped so absence is unambiguous.
-pub(crate) struct CheckpointConfig {
-    pub(crate) checkpoint_interval: Duration,
-    pub(crate) recovery_config: RecoveryConfig,
+    pub(crate) checkpoint_interval: Option<Duration>,
 }
 
 pub(crate) struct IngestionTask {
@@ -87,11 +83,8 @@ impl IngestionTask {
         let now = tokio::time::Instant::now();
 
         // When checkpoint_config is None (live-only mode), there is no checkpoint timer.
-        let mut timer = match self.config.checkpoint_config.as_ref() {
-            Some(c) => CheckpointTimer::Active(tokio::time::interval_at(
-                now + c.checkpoint_interval,
-                c.checkpoint_interval,
-            )),
+        let mut timer = match self.config.checkpoint_interval.as_ref() {
+            Some(c) => CheckpointTimer::Active(tokio::time::interval_at(now + *c, *c)),
             None => CheckpointTimer::Disabled,
         };
 
@@ -270,34 +263,25 @@ impl IngestionTask {
             .failed_checkpoint_count
             .increment();
 
-        if let Some(ref checkpoint_config) = self.config.checkpoint_config {
+        if self.config.checkpoint_interval.is_some() {
             self.control_tx
                 .send(ControlMessage::CheckpointNeedsReingestion {
                     first_message_id,
                     last_message_id,
                 })
                 .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
-
-            // If the stream was healthy for sufficiently long, reset the wait time used for exponential backoff.
-            let backoff = if stream_created_at.elapsed()
-                > checkpoint_config.recovery_config.retry_policy.max_backoff * 2
-            {
-                self.config.metrics.cur_retry_count.set(0);
-                Duration::ZERO
-            } else {
-                self.config.metrics.cur_retry_count.add(1);
-                checkpoint_config
-                    .recovery_config
-                    .retry_policy
-                    .backoff(current_wait)
-            };
-
-            Ok(backoff)
-        } else {
-            // In live-only mode there is no backup manager; no reingestion signal is sent.
-            self.config.metrics.cur_retry_count.add(1);
-            Ok(Duration::ZERO)
         }
+
+        // If the stream was healthy for sufficiently long, reset the wait time used for exponential backoff.
+        let backoff = if stream_created_at.elapsed() > self.config.retry_policy.max_backoff * 2 {
+            self.config.metrics.cur_retry_count.set(0);
+            Duration::ZERO
+        } else {
+            self.config.metrics.cur_retry_count.add(1);
+            self.config.retry_policy.backoff(current_wait)
+        };
+
+        Ok(backoff)
     }
 
     /// Shuts down the ingestion task by awaiting the stream one last time and sending the final checkpoint complete signal to the backup manager.
@@ -359,7 +343,7 @@ mod tests {
         IngestWithConfigDataChannelValue, ingest_with_config_data_channel_value::Type,
     };
 
-    use crate::{DiskBackupPolicy, TimeValue, stream::retry::RetryPolicy};
+    use crate::{TimeValue, stream::retry::RetryPolicy};
 
     use super::*;
 
@@ -374,16 +358,8 @@ mod tests {
             ingestion_channel,
             enable_compression_for_ingestion: false,
             metrics,
-            checkpoint_config: Some(CheckpointConfig {
-                checkpoint_interval,
-                recovery_config: RecoveryConfig {
-                    retry_policy: RetryPolicy::default(),
-                    backups_enabled: true,
-                    backups_directory: "backup_directory".to_string(),
-                    backups_prefix: "prefix".to_string(),
-                    backup_policy: DiskBackupPolicy::default(),
-                },
-            }),
+            retry_policy: RetryPolicy::default(),
+            checkpoint_interval: Some(checkpoint_interval),
         }
     }
 
@@ -666,31 +642,17 @@ mod tests {
             ingestion_channel,
             enable_compression_for_ingestion: false,
             metrics: metrics.clone(),
-            checkpoint_config: Some(CheckpointConfig {
-                checkpoint_interval,
-                recovery_config: RecoveryConfig {
-                    retry_policy: RetryPolicy {
-                        max_attempts: 3,
-                        initial_backoff: Duration::from_millis(1),
-                        max_backoff: Duration::from_millis(100),
-                        backoff_multiplier: 5,
-                    },
-                    backups_enabled: true,
-                    backups_directory: "backup_directory".to_string(),
-                    backups_prefix: "prefix".to_string(),
-                    backup_policy: DiskBackupPolicy::default(),
-                },
-            }),
+            retry_policy: RetryPolicy {
+                max_attempts: 3,
+                initial_backoff: Duration::from_millis(1),
+                max_backoff: Duration::from_millis(100),
+                backoff_multiplier: 5,
+            },
+            checkpoint_interval: Some(checkpoint_interval),
         };
 
         // Ingestion is continuously retried, limited by the max retry duration only.
-        let max_attempts = config
-            .checkpoint_config
-            .as_ref()
-            .unwrap()
-            .recovery_config
-            .retry_policy
-            .max_attempts as usize;
+        let max_attempts = config.retry_policy.max_attempts as usize;
         mock_service.set_num_errors_to_return(max_attempts + 1);
 
         let control_rx_task = control_tx.subscribe();
@@ -897,7 +859,8 @@ mod tests {
             ingestion_channel,
             enable_compression_for_ingestion: false,
             metrics,
-            checkpoint_config: None,
+            retry_policy: RetryPolicy::default(),
+            checkpoint_interval: None,
         }
     }
 

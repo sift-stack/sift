@@ -4,7 +4,7 @@ use crate::{
     metrics::SiftStreamMetrics,
     stream::tasks::{
         ControlMessage, DataMessage, RecoveryConfig,
-        ingestion::{CheckpointConfig, IngestionTask, IngestionTaskConfig},
+        ingestion::{IngestionTask, IngestionTaskConfig},
         metrics::MetricsStreamingTask,
     },
 };
@@ -24,6 +24,7 @@ pub(crate) struct LiveOnlyTaskConfig {
     pub(crate) enable_compression_for_ingestion: bool,
     pub(crate) ingestion_data_channel_capacity: usize,
     pub(crate) control_channel_capacity: usize,
+    pub(crate) retry_policy: RetryPolicy,
     pub(crate) metrics_streaming_interval: Option<Duration>,
 }
 
@@ -48,6 +49,7 @@ pub(crate) struct LiveWithBackupsTaskConfig {
     pub(crate) backup_data_channel_capacity: usize,
     pub(crate) control_channel_capacity: usize,
     pub(crate) checkpoint_interval: Duration,
+    pub(crate) retry_policy: RetryPolicy,
     pub(crate) recovery_config: RecoveryConfig,
     pub(crate) metrics_streaming_interval: Option<Duration>,
 }
@@ -80,7 +82,8 @@ impl TaskBuilder {
             ingestion_channel: config.ingestion_channel,
             enable_compression_for_ingestion: config.enable_compression_for_ingestion,
             metrics: config.metrics.clone(),
-            checkpoint_config: None, // no checkpointing in live-only mode
+            retry_policy: config.retry_policy,
+            checkpoint_interval: None, // no checkpointing in live-only mode
         };
         let control_rx = control_tx.subscribe();
         let ingestion_task =
@@ -158,10 +161,8 @@ impl TaskBuilder {
             ingestion_channel: config.ingestion_channel,
             enable_compression_for_ingestion: config.enable_compression_for_ingestion,
             metrics: config.metrics.clone(),
-            checkpoint_config: Some(CheckpointConfig {
-                checkpoint_interval: config.checkpoint_interval,
-                recovery_config: config.recovery_config.clone(),
-            }),
+            retry_policy: config.retry_policy,
+            checkpoint_interval: Some(config.checkpoint_interval),
         };
         let mut ingestion_task = IngestionTask::new(
             ingestion_control_tx,
