@@ -11,6 +11,7 @@ from sift_client._internal.util.file import (
     upload_file,
 )
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
@@ -22,6 +23,7 @@ from sift_client.sift_types.data_import import (
     ParquetSingleChannelPerRowImportConfig,
     ParquetTimeColumn,
 )
+from sift_client.sift_types.run import Run
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -46,11 +48,11 @@ class DataImportAPIAsync(ResourceBase):
         self,
         file_path: str | Path,
         *,
-        asset_name: str | None = None,
+        asset: Asset | str | None = None,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
+        run: Run | str | None = None,
         run_name: str | None = None,
-        run_id: str | None = None,
         show_progress: bool | None = None,
     ) -> Job:
         """Import data from a local file.
@@ -64,25 +66,24 @@ class DataImportAPIAsync(ResourceBase):
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV and Parquet only). For other formats
         (TDMS, HDF5, CH10), ``config`` must be provided.
-        When ``asset_name`` is provided it overrides
-        the config value; otherwise the config's ``asset_name`` is used.
-        If neither ``run_name`` nor ``run_id`` is provided
-        (and none is set on the config), ``run_name`` defaults to the
-        filename.
+        When ``asset`` is provided it overrides the config value;
+        otherwise the config's ``asset_name`` is used.
+        If neither ``run`` nor ``run_name`` is provided (and none is
+        set on the config), ``run_name`` defaults to the filename.
 
         Args:
             file_path: Path to the local file to import.
-            asset_name: Name of the asset to import data into. Optional
+            asset: Asset object or asset name to import data into. Optional
                 when ``config`` already has ``asset_name`` set.
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored.
             data_type: Explicit data type key. Required for formats like
                 Parquet where the extension alone is ambiguous. Only used
                 when ``config`` is not provided.
-            run_name: Run name to use. Overrides any value on the config.
-                Defaults to the filename if neither ``run_name`` nor
-                ``run_id`` is set.
-            run_id: Existing run ID to use. Overrides any value on the config.
+            run: ``Run`` object or run ID string to import into an existing
+                run. Mutually exclusive with ``run_name``.
+            run_name: Name for a new run. Defaults to the filename if
+                neither ``run`` nor ``run_name`` is set.
             show_progress: If True, display a progress spinner during upload.
                 Defaults to True for sync, False for async.
 
@@ -99,16 +100,18 @@ class DataImportAPIAsync(ResourceBase):
         if config is None:
             config = await self.detect_config(file_path, data_type=data_type)
 
-        if asset_name is not None:
-            config.asset_name = asset_name
+        if asset is not None:
+            config.asset_name = asset.name if isinstance(asset, Asset) else asset
         elif not config.asset_name:
-            raise ValueError("'asset_name' is required when not set on the config.")
-        if run_id is not None:
+            raise ValueError("'asset' is required when not set on the config.")
+        if run is not None and run_name is not None:
+            raise ValueError("'run' and 'run_name' are mutually exclusive.")
+        if run is not None:
             if isinstance(config, Ch10ImportConfig):
                 raise ValueError(
-                    "'run_id' is not supported for Ch10ImportConfig. Use 'run_name' instead."
+                    "'run' is not supported for Ch10ImportConfig. Use 'run_name' instead."
                 )
-            config.run_id = run_id
+            config.run_id = run._id_or_error if isinstance(run, Run) else run
         elif run_name is not None:
             config.run_name = run_name
         elif not config.run_name and (isinstance(config, Ch10ImportConfig) or not config.run_id):
