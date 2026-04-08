@@ -11,6 +11,7 @@ from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
+    Ch10ImportConfig,
     CsvImportConfig,
     DataTypeKey,
     ImportConfig,
@@ -100,16 +101,15 @@ class DataImportAPIAsync(ResourceBase):
             config.asset_name = asset_name
         elif not config.asset_name:
             raise ValueError("'asset_name' is required when not set on the config.")
-        has_run_id = hasattr(config, "run_id")
         if run_id is not None:
-            if not has_run_id:
+            if isinstance(config, Ch10ImportConfig):
                 raise ValueError(
-                    f"'run_id' is not supported for {type(config).__name__}. Use 'run_name' instead."
+                    "'run_id' is not supported for Ch10ImportConfig. Use 'run_name' instead."
                 )
             config.run_id = run_id
         elif run_name is not None:
             config.run_name = run_name
-        elif not config.run_name and not getattr(config, "run_id", None):
+        elif not config.run_name and (isinstance(config, Ch10ImportConfig) or not config.run_id):
             config.run_name = path.name
 
         if isinstance(
