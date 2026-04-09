@@ -148,6 +148,7 @@ class TestResultsTest:
                 test_measurement=mock_test_measurement,
                 update=update,
                 update_step=True,
+                log_file=None,
             )
             mock_update.assert_called_once_with(updated_measurement)
             assert result is mock_test_measurement
@@ -171,6 +172,7 @@ class TestResultsTest:
             mock_client.test_results.update.assert_called_once_with(
                 test_report=mock_test_report,
                 update=update,
+                log_file=None,
             )
             mock_update.assert_called_once_with(updated_report)
 

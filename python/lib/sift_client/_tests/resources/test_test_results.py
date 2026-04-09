@@ -246,8 +246,7 @@ class TestResultsTest:
             {"status": TestStatus.PASSED},
         )
 
-        # Compare simulated vs actual
-        assert simulated_step3.status == step3.status
+        compare_test_step_fields(simulated_step3, step3)
 
         # Update the step using class function.
         step3_1 = step3_1.update(
@@ -377,8 +376,7 @@ class TestResultsTest:
             update_step=True,
         )
 
-        # Compare simulated vs actual
-        assert simulated_measurement2.passed == measurement2.passed
+        compare_test_measurement_fields(simulated_measurement2, measurement2)
 
         assert measurement2.passed == False
         assert measurement2.string_expected_value == "1.10.4"
@@ -439,8 +437,7 @@ class TestResultsTest:
             update=TestReportUpdate(**update_kwargs),
         )
 
-        # Compare simulated vs actual for the fields that were updated
-        assert simulated_report.end_time == updated_report.end_time
+        compare_test_report_fields(simulated_report, updated_report)
 
         # Update the report using class function.
         updated_report = updated_report.update(

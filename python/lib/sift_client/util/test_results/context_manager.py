@@ -118,7 +118,6 @@ class ReportContext(AbstractContextManager):
                 self.client.test_results.replay_log_file(self.log_file)
                 fp = os.path.abspath(self.log_file)
                 tmp_dir = tempfile.gettempdir()
-                raise Exception("test")
                 if fp.startswith(tmp_dir):
                     os.remove(fp)
             except Exception as e:
