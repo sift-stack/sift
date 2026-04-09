@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from datetime import datetime  # noqa: TC003
 from enum import Enum
 from typing import Union
@@ -82,7 +83,27 @@ EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
 }
 
 
-class CsvTimeColumn(BaseModel):
+class TimeColumnBase(BaseModel, ABC):
+    """Base class for time column configurations.
+
+    Attributes:
+        format: The time format used in this column.
+        relative_start_time: Required when using a relative time format.
+    """
+
+    format: TimeFormat
+    relative_start_time: datetime | None = None
+
+    @model_validator(mode="after")
+    def _check_relative_start_time(self) -> TimeColumnBase:
+        if self.format.name.startswith("RELATIVE_") and self.relative_start_time is None:
+            raise ValueError(
+                f"'relative_start_time' is required when using a relative time format ({self.format.name})."
+            )
+        return self
+
+
+class CsvTimeColumn(TimeColumnBase):
     """Time column configuration for CSV imports.
 
     Attributes:
@@ -92,8 +113,6 @@ class CsvTimeColumn(BaseModel):
     """
 
     column: int
-    format: TimeFormat
-    relative_start_time: datetime | None = None
 
     def _to_proto(self) -> CsvTimeColumnProto:
         proto = CsvTimeColumnProto(
@@ -103,14 +122,6 @@ class CsvTimeColumn(BaseModel):
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
         return proto
-
-    @model_validator(mode="after")
-    def _check_relative_start_time(self) -> CsvTimeColumn:
-        if self.format.name.startswith("RELATIVE_") and self.relative_start_time is None:
-            raise ValueError(
-                f"'relative_start_time' is required when using a relative time format ({self.format.name})."
-            )
-        return self
 
 
 class CsvDataColumn(BaseModel):
@@ -131,21 +142,29 @@ class CsvDataColumn(BaseModel):
     description: str = ""
 
 
-class CsvImportConfig(BaseModel):
-    """Configuration for importing a CSV file.
+class ImportConfigBase(BaseModel, ABC):
+    """Base class for all import configurations.
 
     Attributes:
         asset_name: Name of the asset to import data into.
         run_name: Name for the run. Ignored if ``run_id`` is set.
         run_id: ID of an existing run to append data to.
-        first_data_row: The first row containing data (1-indexed). Defaults to 2 to skip a header row.
-        time_column: Time column configuration.
-        data_columns: List of data column definitions.
     """
 
     asset_name: str
     run_name: str | None = None
     run_id: str | None = None
+
+
+class CsvImportConfig(ImportConfigBase):
+    """Configuration for importing a CSV file.
+
+    Attributes:
+        first_data_row: The first row containing data (1-indexed). Defaults to 2 to skip a header row.
+        time_column: Time column configuration.
+        data_columns: List of data column definitions.
+    """
+
     first_data_row: int = 2
     time_column: CsvTimeColumn
     data_columns: list[CsvDataColumn]
@@ -229,7 +248,7 @@ class ParquetComplexTypesImportMode(Enum):
     BYTES = PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES
 
 
-class ParquetTimeColumn(BaseModel):
+class ParquetTimeColumn(TimeColumnBase):
     """Time column configuration for Parquet imports.
 
     Attributes:
@@ -240,7 +259,6 @@ class ParquetTimeColumn(BaseModel):
 
     path: str
     format: TimeFormat = TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
-    relative_start_time: datetime | None = None
 
     def _to_proto(self) -> ParquetTimeColumnProto:
         if not self.path:
@@ -268,14 +286,6 @@ class ParquetTimeColumn(BaseModel):
             relative_start_time=relative_start_time,
         )
 
-    @model_validator(mode="after")
-    def _check_relative_start_time(self) -> ParquetTimeColumn:
-        if self.format.name.startswith("RELATIVE_") and self.relative_start_time is None:
-            raise ValueError(
-                f"'relative_start_time' is required when using a relative time format ({self.format.name})."
-            )
-        return self
-
 
 class ParquetDataColumn(BaseModel):
     """A data column definition for Parquet flat dataset imports.
@@ -295,15 +305,12 @@ class ParquetDataColumn(BaseModel):
     description: str = ""
 
 
-class ParquetFlatDatasetImportConfig(BaseModel):
+class ParquetFlatDatasetImportConfig(ImportConfigBase):
     """Configuration for importing a Parquet file with a flat dataset layout.
 
     Each column in the file maps to a separate channel.
 
     Attributes:
-        asset_name: Name of the asset to import data into.
-        run_name: Name for the run. Ignored if ``run_id`` is set.
-        run_id: ID of an existing run to append data to.
         time_column: Time column configuration.
         data_columns: List of data column definitions.
         footer_offset: Byte offset where the Parquet footer begins. Populated
@@ -313,9 +320,6 @@ class ParquetFlatDatasetImportConfig(BaseModel):
         complex_types_import_mode: How to handle complex Parquet types.
     """
 
-    asset_name: str
-    run_name: str | None = None
-    run_id: str | None = None
     time_column: ParquetTimeColumn
     data_columns: list[ParquetDataColumn]
     footer_offset: int = 0
@@ -430,16 +434,13 @@ class ParquetMultiChannelConfig(BaseModel):
     data_path: str
 
 
-class ParquetSingleChannelPerRowImportConfig(BaseModel):
+class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
     """Configuration for importing a Parquet file where each row represents
     a single channel's data point.
 
     Exactly one of ``single_channel`` or ``multi_channel`` must be set.
 
     Attributes:
-        asset_name: Name of the asset to import data into.
-        run_name: Name for the run. Ignored if ``run_id`` is set.
-        run_id: ID of an existing run to append data to.
         time_column: Time column configuration.
         single_channel: Set when the entire file contains data for one channel.
         multi_channel: Set when each row identifies its channel via a name column.
@@ -450,9 +451,6 @@ class ParquetSingleChannelPerRowImportConfig(BaseModel):
         complex_types_import_mode: How to handle complex Parquet types.
     """
 
-    asset_name: str
-    run_name: str | None = None
-    run_id: str | None = None
     time_column: ParquetTimeColumn
     single_channel: ParquetSingleChannelConfig | None = None
     multi_channel: ParquetMultiChannelConfig | None = None
@@ -540,17 +538,13 @@ class ParquetSingleChannelPerRowImportConfig(BaseModel):
         )
 
 
-class Ch10ImportConfig(BaseModel):
+class Ch10ImportConfig(ImportConfigBase):
     """Configuration for importing a CH10 file.
 
     Attributes:
-        asset_name: Name of the asset to import data into.
-        run_name: Name for the run.
         scale_values: Whether to apply EU (engineering unit) scaling to channel values.
     """
 
-    asset_name: str
-    run_name: str | None = None
     scale_values: bool = False
 
     def _to_proto(self) -> Ch10ConfigProto:
@@ -561,21 +555,15 @@ class Ch10ImportConfig(BaseModel):
         )
 
 
-class TdmsImportConfig(BaseModel):
+class TdmsImportConfig(ImportConfigBase):
     """Configuration for importing a TDMS file.
 
     Attributes:
-        asset_name: Name of the asset to import data into.
-        run_name: Name for the run. Ignored if ``run_id`` is set.
-        run_id: ID of an existing run to append data to.
         start_time_override: Override the ``wf_start_time`` metadata field for all channels.
             Useful when waveform channels have ``wf_increment`` but no ``wf_start_time``.
         file_size: The file size in bytes. Required if the file has truncated chunks.
     """
 
-    asset_name: str
-    run_name: str | None = None
-    run_id: str | None = None
     start_time_override: datetime | None = None
     file_size: int | None = None
 
@@ -622,21 +610,15 @@ class Hdf5DataColumn(BaseModel):
     value_field: str | None = None
 
 
-class Hdf5ImportConfig(BaseModel):
+class Hdf5ImportConfig(ImportConfigBase):
     """Configuration for importing an HDF5 file.
 
     Attributes:
-        asset_name: Name of the asset to import data into.
-        run_name: Name for the run. Ignored if ``run_id`` is set.
-        run_id: ID of an existing run to append data to.
         data: List of dataset mappings, each pairing a time and value dataset to a channel.
         time_format: The time format used across all time datasets.
         relative_start_time: Required when using a relative time format.
     """
 
-    asset_name: str
-    run_name: str | None = None
-    run_id: str | None = None
     data: list[Hdf5DataColumn]
     time_format: TimeFormat
     relative_start_time: datetime | None = None
@@ -678,9 +660,6 @@ class Hdf5ImportConfig(BaseModel):
         return proto
 
 
-# Note: Using Union instead of | syntax for Python 3.9 compatibility at module level.
-# While `from __future__ import annotations` allows | in type hints (they're strings),
-# module-level type aliases are evaluated at runtime and require Union in Python <3.10.
 ImportConfig = Union[
     CsvImportConfig,
     ParquetFlatDatasetImportConfig,

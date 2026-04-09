@@ -271,9 +271,9 @@ class TestCh10Config:
         assert proto.run_name == ""
         assert proto.scale_values is False
 
-    def test_no_run_id_field(self):
+    def test_run_id_inherited_but_unused(self):
         config = Ch10ImportConfig(asset_name="my_asset")
-        assert not hasattr(config, "run_id")
+        assert config.run_id is None
 
 
 class TestTdmsConfig:
