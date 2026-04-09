@@ -708,12 +708,41 @@ class DataImportAPI:
         If neither ``run`` nor ``run_name`` is provided (and none is
         set on the config), ``run_name`` defaults to the filename.
 
+        Examples:
+            Import a CSV file with auto-detected config:
+
+                job = client.data_imports.import_from_path(
+                    "data.csv",
+                    asset=my_asset,
+                )
+
+            Auto-detect config, inspect and patch before importing:
+
+                config = client.data_imports.detect_config("data.csv")
+
+                # Fix a column data type
+                config.get_column("temperature").data_type = ChannelDataType.FLOAT
+
+                # Remove an unwanted column
+                config.data_columns = [
+                    dc for dc in config.data_columns if dc.name != "internal_id"
+                ]
+
+                job = client.data_imports.import_from_path(
+                    "data.csv",
+                    asset=my_asset,
+                    config=config,
+                )
+
         Args:
             file_path: Path to the local file to import.
             asset: Asset object or asset name to import data into. Optional
                 when ``config`` already has ``asset_name`` set.
             config: Import configuration describing the file format and column
-                mapping. When provided, ``data_type`` is ignored.
+                mapping. When provided, ``data_type`` is ignored. If omitted,
+                the config is auto-detected via ``detect_config``. You can
+                call ``detect_config`` yourself to inspect and modify the
+                config before passing it here.
             data_type: Explicit data type key. Required for formats like
                 Parquet where the extension alone is ambiguous. Only used
                 when ``config`` is not provided.
