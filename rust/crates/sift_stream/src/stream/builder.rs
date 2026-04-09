@@ -204,7 +204,7 @@ impl StreamConfigBuilder {
     }
 
     /// Selects [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups) mode: dual-channel
-    /// architecture with checkpointing, retry, and optional disk backups.
+    /// architecture with checkpointing, retry, and disk backups.
     ///
     /// [`send`](crate::SiftStream::send) awaits when the **backup channel** is full; the
     /// ingestion channel uses force-send and never blocks. Capacities are configured via
@@ -378,9 +378,9 @@ impl LiveWithBackupsBuilder {
     /// and the gRPC ingestion task.
     ///
     /// This channel uses force-send: when full, the **oldest buffered message is evicted** (not
-    /// the caller) to preserve message freshness. It never causes [`send`](crate::SiftStream::send)
-    /// to await. Defaults to [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY).
-    /// Smaller values increase the likelihood of message eviction under load.
+    /// the caller) to preserve message freshness. Defaults to
+    /// [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY). Smaller values
+    /// increase the likelihood of message eviction under load.
     pub fn ingestion_data_channel_capacity(mut self, capacity: usize) -> Self {
         self.ingestion_data_channel_capacity = capacity;
         self
@@ -429,19 +429,15 @@ impl LiveWithBackupsBuilder {
         let reingestion_channel =
             reingestion_channel_pre.unwrap_or_else(|| setup.setup_channel.clone());
 
-        let backups_enabled = self.disk_backup_policy.backups_dir.is_some();
-        let (backups_directory, backups_prefix) = if backups_enabled {
+        let (backups_directory, backups_prefix) = {
             let mut dir_name = sanitize_name(&setup.asset_name);
             if let Some(run) = setup.run.as_ref() {
                 dir_name.push_str(&format!("/{}", sanitize_name(&run.name)));
             }
             (dir_name, setup.ingestion_config.client_key.clone())
-        } else {
-            (String::new(), String::new())
         };
 
         let recovery_config = RecoveryConfig {
-            backups_enabled,
             backups_directory,
             backups_prefix,
             backup_policy: self.disk_backup_policy,

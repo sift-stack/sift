@@ -18,8 +18,8 @@ use uuid::Uuid;
 
 /// Transport for real-time streaming over a single bounded ingestion channel.
 ///
-/// Messages are delivered directly to the gRPC ingestion task. No messages are evicted or
-/// displaced; the caller blocks until the ingestion task drains capacity.
+/// Messages are delivered directly to the gRPC ingestion task. The caller blocks
+/// until the ingestion task drains capacity.
 ///
 /// **Backpressure**: [`send`](crate::SiftStream::send) awaits when the **ingestion channel**
 /// is full. The channel capacity is set via
@@ -74,9 +74,9 @@ impl Transport for LiveStreamingOnly {
 
     /// Sends a message, awaiting capacity on the **ingestion channel** if it is full.
     ///
-    /// Backpressure comes from the bounded ingestion channel. No messages are evicted or
-    /// displaced — the caller blocks until the ingestion task drains capacity. Returns an
-    /// error only if the channel is closed (i.e. the stream is shutting down).
+    /// Backpressure comes from the bounded ingestion channel. The caller blocks until
+    /// the ingestion task drains capacity. Returns an error only if the channel is
+    /// closed (i.e. the stream is shutting down).
     async fn send(
         &mut self,
         stream_id: &Uuid,

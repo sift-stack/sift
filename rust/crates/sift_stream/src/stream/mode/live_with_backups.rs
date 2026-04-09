@@ -16,7 +16,7 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
-/// Transport for real-time streaming with periodic checkpointing and optional disk backups.
+/// Transport for real-time streaming with periodic checkpointing and disk backups.
 ///
 /// Maintains two internal bounded channels:
 ///
@@ -33,11 +33,6 @@ use uuid::Uuid;
 /// [`TrySendError`](crate::TrySendError) returned by [`send`](crate::SiftStream::send) /
 /// [`try_send`](crate::SiftStream::try_send) may be an **older displaced message**, not
 /// necessarily the one passed to the current call.
-///
-/// **Disk backups are optional.** Checkpointing and retry are active regardless of whether
-/// disk backups are enabled. Disk backups activate only when `disk_backup_policy.backups_dir`
-/// is set via
-/// [`LiveWithBackupsBuilder::disk_backup_policy`](crate::LiveWithBackupsBuilder::disk_backup_policy).
 pub struct LiveStreamingWithBackups {
     message_id_counter: u64,
     backup_tx: async_channel::Sender<DataMessage>,
@@ -176,8 +171,8 @@ impl Transport for LiveStreamingWithBackups {
     /// Backpressure comes exclusively from the bounded backup channel. Once the backup
     /// channel accepts the message, the message is dispatched to the ingestion channel via
     /// force-send: if the ingestion channel is full, the **oldest buffered message in the
-    /// ingestion channel** is evicted and redirected to the backup channel — the caller does
-    /// not block for this step.
+    /// ingestion channel** is evicted and redirected to the backup channel, again awaiting
+    /// for capacity for the displaced message.
     ///
     /// An error is returned only when a channel has closed (stream shutdown). Because of
     /// force-send eviction, **the message returned inside `Err` may be an older displaced

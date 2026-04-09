@@ -191,7 +191,7 @@ fn make_stream_config_builder(base: StreamConfigBuilderPy) -> PyResult<StreamCon
 /// - [`StreamConfigBuilderPy.live_only()`] — single channel, direct backpressure, retry; no
 ///   checkpointing or disk backups
 /// - [`StreamConfigBuilderPy.live_with_backups()`] — dual channel with checkpointing, retry,
-///   and optional disk backups
+///   and disk backups
 /// - [`StreamConfigBuilderPy.file_backup()`] — writes directly to disk, no network ingestion
 #[gen_stub_pyclass]
 #[pyclass(skip_from_py_object)]
@@ -233,7 +233,7 @@ impl StreamConfigBuilderPy {
     }
 
     /// Selects `LiveStreamingWithBackups` mode: dual channel with checkpointing, retry policy,
-    /// and optional disk backups.
+    /// and disk backups.
     pub fn live_with_backups(&self) -> LiveWithBackupsBuilderPy {
         LiveWithBackupsBuilderPy {
             base: self.clone(),

@@ -85,7 +85,7 @@ pub trait Encoder: private::Sealed {
 /// - [`LiveStreamingOnly`](crate::LiveStreamingOnly) — delivers messages to Sift in real-time
 ///   over a single bounded ingestion channel. No checkpointing, no disk backups.
 /// - [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups) — delivers messages to Sift
-///   in real-time with periodic checkpointing and optional disk backups. Uses a dual-channel
+///   in real-time with periodic checkpointing and disk backups. Uses a dual-channel
 ///   architecture; see below.
 /// - [`FileBackup`](crate::FileBackup) — writes messages to rolling disk files without
 ///   streaming live to Sift.
@@ -120,11 +120,9 @@ pub trait Encoder: private::Sealed {
 /// `LiveStreamingWithBackups` maintains two internal bounded channels:
 ///
 /// - **backup channel** — the primary durability path. [`send`](Transport::send) awaits here.
-///   All errors reported by the send API reflect the state of this channel.
 /// - **ingestion channel** — forwards messages to the gRPC task using a *force-send* strategy:
 ///   when full, the **oldest buffered message is evicted** to make room for the incoming one.
-///   It never causes [`send`](Transport::send) to await and never returns `Full`. Evicted
-///   messages are redirected to the backup channel.
+///   Evicted messages are redirected to the backup channel.
 ///
 /// Because of force-send eviction, the message returned inside an error variant from
 /// [`send`](Transport::send) or [`send_requests`](Transport::send_requests) may be an **older

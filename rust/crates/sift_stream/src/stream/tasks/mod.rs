@@ -48,7 +48,6 @@ pub(crate) enum ControlMessage {
 
 #[derive(Clone)]
 pub(crate) struct RecoveryConfig {
-    pub(crate) backups_enabled: bool,
     pub(crate) backups_directory: String,
     pub(crate) backups_prefix: String,
     pub(crate) backup_policy: DiskBackupPolicy,

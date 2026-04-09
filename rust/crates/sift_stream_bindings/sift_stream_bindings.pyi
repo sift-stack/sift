@@ -64,86 +64,97 @@ class ChannelBitFieldElementPy:
     name: builtins.str
     index: builtins.int
     bit_count: builtins.int
-    def __new__(cls, name:builtins.str, index:builtins.int, bit_count:builtins.int) -> ChannelBitFieldElementPy: ...
+    def __new__(
+        cls, name: builtins.str, index: builtins.int, bit_count: builtins.int
+    ) -> ChannelBitFieldElementPy: ...
 
 @typing.final
 class ChannelConfigPy:
     r"""
     Python binding for [`ChannelConfig`](sift_rs::ingestion_configs::v2::ChannelConfig).
-    
+
     This is a thin wrapper around the Rust `ChannelConfig` type. For detailed documentation,
     see [`ChannelConfig`](sift_rs::ingestion_configs::v2::ChannelConfig).
-    
+
     A `ChannelConfig` defines the schema for a single telemetry channel, including its
     name, data type, unit, and description.
     """
+
     name: builtins.str
     unit: builtins.str
     description: builtins.str
     data_type: ChannelDataTypePy
     enum_types: builtins.list[ChannelEnumTypePy]
     bit_field_elements: builtins.list[ChannelBitFieldElementPy]
-    def __new__(cls, name:builtins.str, unit:builtins.str, description:builtins.str, data_type:ChannelDataTypePy, enum_types:typing.Sequence[ChannelEnumTypePy], bit_field_elements:typing.Sequence[ChannelBitFieldElementPy]) -> ChannelConfigPy: ...
+    def __new__(
+        cls,
+        name: builtins.str,
+        unit: builtins.str,
+        description: builtins.str,
+        data_type: ChannelDataTypePy,
+        enum_types: typing.Sequence[ChannelEnumTypePy],
+        bit_field_elements: typing.Sequence[ChannelBitFieldElementPy],
+    ) -> ChannelConfigPy: ...
 
 @typing.final
 class ChannelEnumPy:
     r"""
     Python binding for channel enum values.
-    
+
     Represents a specific enumeration value for an enum channel. Enum channels use
     numeric values to represent discrete states.
     """
-    def __new__(cls, val:builtins.int) -> ChannelEnumPy: ...
+    def __new__(cls, val: builtins.int) -> ChannelEnumPy: ...
 
 @typing.final
 class ChannelEnumTypePy:
     name: builtins.str
     key: builtins.int
-    def __new__(cls, name:builtins.str, key:builtins.int) -> ChannelEnumTypePy: ...
+    def __new__(cls, name: builtins.str, key: builtins.int) -> ChannelEnumTypePy: ...
 
 @typing.final
-class ChannelIndexPy:
-    ...
+class ChannelIndexPy: ...
 
 @typing.final
 class ChannelValuePy:
     r"""
     Python binding for [`ChannelValue`](sift_stream::ChannelValue).
-    
+
     This is a thin wrapper around the Rust `ChannelValue` type. For detailed documentation,
     see [`ChannelValue`](sift_stream::ChannelValue).
-    
+
     A `ChannelValue` pairs a channel name with its typed value, used when constructing
     [`Flow`](sift_stream::Flow) instances.
     """
+
     name: builtins.str
     value: ValuePy
-    def __new__(cls, name:builtins.str, value:ValuePy) -> ChannelValuePy: ...
+    def __new__(cls, name: builtins.str, value: ValuePy) -> ChannelValuePy: ...
 
 @typing.final
 class ChannelValueTypePy:
     @staticmethod
-    def bool(value:builtins.bool) -> ChannelValueTypePy: ...
+    def bool(value: builtins.bool) -> ChannelValueTypePy: ...
     @staticmethod
-    def string(value:builtins.str) -> ChannelValueTypePy: ...
+    def string(value: builtins.str) -> ChannelValueTypePy: ...
     @staticmethod
-    def float(value:builtins.float) -> ChannelValueTypePy: ...
+    def float(value: builtins.float) -> ChannelValueTypePy: ...
     @staticmethod
-    def double(value:builtins.float) -> ChannelValueTypePy: ...
+    def double(value: builtins.float) -> ChannelValueTypePy: ...
     @staticmethod
-    def int32(value:builtins.int) -> ChannelValueTypePy: ...
+    def int32(value: builtins.int) -> ChannelValueTypePy: ...
     @staticmethod
-    def uint32(value:builtins.int) -> ChannelValueTypePy: ...
+    def uint32(value: builtins.int) -> ChannelValueTypePy: ...
     @staticmethod
-    def int64(value:builtins.int) -> ChannelValueTypePy: ...
+    def int64(value: builtins.int) -> ChannelValueTypePy: ...
     @staticmethod
-    def uint64(value:builtins.int) -> ChannelValueTypePy: ...
+    def uint64(value: builtins.int) -> ChannelValueTypePy: ...
     @staticmethod
-    def enum_value(value:builtins.int) -> ChannelValueTypePy: ...
+    def enum_value(value: builtins.int) -> ChannelValueTypePy: ...
     @staticmethod
-    def bitfield(value:typing.Sequence[builtins.int]) -> ChannelValueTypePy: ...
+    def bitfield(value: typing.Sequence[builtins.int]) -> ChannelValueTypePy: ...
     @staticmethod
-    def bytes(value:typing.Sequence[builtins.int]) -> ChannelValueTypePy: ...
+    def bytes(value: typing.Sequence[builtins.int]) -> ChannelValueTypePy: ...
     @staticmethod
     def empty() -> ChannelValueTypePy: ...
 
@@ -163,18 +174,25 @@ class CheckpointMetricsSnapshotPy:
 class DiskBackupPolicyPy:
     r"""
     Python binding for [`DiskBackupPolicy`](sift_stream::backup::DiskBackupPolicy).
-    
+
     This is a thin wrapper around the Rust `DiskBackupPolicy` type. For detailed documentation,
     see [`DiskBackupPolicy`](sift_stream::backup::DiskBackupPolicy).
-    
+
     A disk backup policy configures how telemetry data is backed up to disk, including
     backup directory, file size limits, and retention policies.
     """
+
     backups_dir: typing.Optional[builtins.str]
     max_backup_file_size: builtins.int
     rolling_file_policy: RollingFilePolicyPy
     retain_backups: builtins.bool
-    def __new__(cls, backups_dir:typing.Optional[builtins.str], max_backup_file_size:builtins.int, rolling_file_policy:RollingFilePolicyPy, retain_backups:builtins.bool) -> DiskBackupPolicyPy: ...
+    def __new__(
+        cls,
+        backups_dir: typing.Optional[builtins.str],
+        max_backup_file_size: builtins.int,
+        rolling_file_policy: RollingFilePolicyPy,
+        retain_backups: builtins.bool,
+    ) -> DiskBackupPolicyPy: ...
     @staticmethod
     def default() -> DiskBackupPolicyPy: ...
 
@@ -182,16 +200,17 @@ class DiskBackupPolicyPy:
 class DurationPy:
     secs: builtins.int
     nanos: builtins.int
-    def __new__(cls, secs:builtins.int, nanos:builtins.int) -> DurationPy: ...
+    def __new__(cls, secs: builtins.int, nanos: builtins.int) -> DurationPy: ...
 
 @typing.final
 class FileBackupBuilderPy:
     r"""
     Builder for `FileBackup` mode.
-    
+
     Created by [`StreamConfigBuilderPy.file_backup()`]. Call [`FileBackupBuilderPy.build()`]
     to finalize. Requires `disk_backup_policy.backups_dir` to be set.
     """
+
     disk_backup_policy: DiskBackupPolicyPy
     backup_data_channel_capacity: builtins.int
     control_channel_capacity: builtins.int
@@ -200,20 +219,20 @@ class FileBackupBuilderPy:
 
 @typing.final
 class FlowBuilderPy:
-    def __new__(cls, descriptor:FlowDescriptorPy) -> FlowBuilderPy: ...
-    def attach_run_id(self, run_id:builtins.str) -> None:
+    def __new__(cls, descriptor: FlowDescriptorPy) -> FlowBuilderPy: ...
+    def attach_run_id(self, run_id: builtins.str) -> None:
         r"""
         Attaches a run ID to the flow.
         """
-    def set(self, index:ChannelIndexPy, value:ValuePy) -> None:
+    def set(self, index: ChannelIndexPy, value: ValuePy) -> None:
         r"""
         Sets the value of the channel with the given index.
         """
-    def set_with_key(self, key:builtins.str, value:ValuePy) -> None:
+    def set_with_key(self, key: builtins.str, value: ValuePy) -> None:
         r"""
         Sets the value of the channel with the given key.
         """
-    def request(self, now:TimeValuePy) -> IngestWithConfigDataStreamRequestWrapperPy:
+    def request(self, now: TimeValuePy) -> IngestWithConfigDataStreamRequestWrapperPy:
         r"""
         Builds an IngestWithConfigDataStreamRequest, consuming the builder.
         """
@@ -222,24 +241,29 @@ class FlowBuilderPy:
 class FlowConfigPy:
     r"""
     Python binding for [`FlowConfig`](sift_rs::ingestion_configs::v2::FlowConfig).
-    
+
     This is a thin wrapper around the Rust `FlowConfig` type. For detailed documentation,
     see [`FlowConfig`](sift_rs::ingestion_configs::v2::FlowConfig).
-    
+
     A `FlowConfig` defines the schema for a flow, which is a named group of channels
     that are often telemetered together.
     """
+
     name: builtins.str
     channels: builtins.list[ChannelConfigPy]
-    def __new__(cls, name:builtins.str, channels:typing.Sequence[ChannelConfigPy]) -> FlowConfigPy: ...
+    def __new__(
+        cls, name: builtins.str, channels: typing.Sequence[ChannelConfigPy]
+    ) -> FlowConfigPy: ...
 
 @typing.final
 class FlowDescriptorBuilderPy:
-    def __new__(cls, ingestion_config_id:builtins.str, name:builtins.str) -> FlowDescriptorBuilderPy: ...
-    def add(self, key:builtins.str, field_type:ChannelDataTypePy) -> ChannelIndexPy:
+    def __new__(
+        cls, ingestion_config_id: builtins.str, name: builtins.str
+    ) -> FlowDescriptorBuilderPy: ...
+    def add(self, key: builtins.str, field_type: ChannelDataTypePy) -> ChannelIndexPy:
         r"""
         Adds a new channel to the flow.
-        
+
         This returns the index of the channel in the flow.
         """
     def build(self) -> FlowDescriptorPy:
@@ -249,7 +273,7 @@ class FlowDescriptorBuilderPy:
 
 @typing.final
 class FlowDescriptorPy:
-    def get(self, key:builtins.str) -> typing.Optional[ChannelDataTypePy]:
+    def get(self, key: builtins.str) -> typing.Optional[ChannelDataTypePy]:
         r"""
         Gets the type of the channel with the given key.
         """
@@ -262,38 +286,45 @@ class FlowDescriptorPy:
 class FlowPy:
     r"""
     Python binding for [`Flow`](sift_stream::Flow).
-    
+
     This is a thin wrapper around the Rust `Flow` type. For detailed documentation,
     see [`Flow`](sift_stream::Flow).
-    
+
     A `Flow` represents a single telemetry message containing channel values that share
     a common timestamp.
     """
-    def __new__(cls, flow_name:builtins.str, timestamp:TimeValuePy, values:typing.Sequence[ChannelValuePy]) -> FlowPy: ...
+    def __new__(
+        cls,
+        flow_name: builtins.str,
+        timestamp: TimeValuePy,
+        values: typing.Sequence[ChannelValuePy],
+    ) -> FlowPy: ...
 
 @typing.final
 class IngestWithConfigDataChannelValuePy:
     ty: ChannelValueTypePy
     @staticmethod
-    def bool(value:builtins.bool) -> IngestWithConfigDataChannelValuePy: ...
+    def bool(value: builtins.bool) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def string(value:builtins.str) -> IngestWithConfigDataChannelValuePy: ...
+    def string(value: builtins.str) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def float(value:builtins.float) -> IngestWithConfigDataChannelValuePy: ...
+    def float(value: builtins.float) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def double(value:builtins.float) -> IngestWithConfigDataChannelValuePy: ...
+    def double(value: builtins.float) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def int32(value:builtins.int) -> IngestWithConfigDataChannelValuePy: ...
+    def int32(value: builtins.int) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def uint32(value:builtins.int) -> IngestWithConfigDataChannelValuePy: ...
+    def uint32(value: builtins.int) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def int64(value:builtins.int) -> IngestWithConfigDataChannelValuePy: ...
+    def int64(value: builtins.int) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def uint64(value:builtins.int) -> IngestWithConfigDataChannelValuePy: ...
+    def uint64(value: builtins.int) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def enum_value(value:builtins.int) -> IngestWithConfigDataChannelValuePy: ...
+    def enum_value(value: builtins.int) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
-    def bitfield(value:typing.Sequence[builtins.int]) -> IngestWithConfigDataChannelValuePy: ...
+    def bitfield(
+        value: typing.Sequence[builtins.int],
+    ) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
     def empty() -> IngestWithConfigDataChannelValuePy: ...
 
@@ -306,36 +337,51 @@ class IngestWithConfigDataStreamRequestPy:
     run_id: builtins.str
     end_stream_on_validation_error: builtins.bool
     organization_id: builtins.str
-    def __new__(cls, ingestion_config_id:builtins.str, flow:builtins.str, timestamp:typing.Optional[TimeValuePy], channel_values:typing.Sequence[IngestWithConfigDataChannelValuePy], run_id:builtins.str, end_stream_on_validation_error:builtins.bool, organization_id:builtins.str) -> IngestWithConfigDataStreamRequestPy: ...
+    def __new__(
+        cls,
+        ingestion_config_id: builtins.str,
+        flow: builtins.str,
+        timestamp: typing.Optional[TimeValuePy],
+        channel_values: typing.Sequence[IngestWithConfigDataChannelValuePy],
+        run_id: builtins.str,
+        end_stream_on_validation_error: builtins.bool,
+        organization_id: builtins.str,
+    ) -> IngestWithConfigDataStreamRequestPy: ...
 
 @typing.final
-class IngestWithConfigDataStreamRequestWrapperPy:
-    ...
+class IngestWithConfigDataStreamRequestWrapperPy: ...
 
 @typing.final
 class IngestionConfigFormPy:
     r"""
     Python binding for [`IngestionConfigForm`](sift_stream::stream::builder::IngestionConfigForm).
-    
+
     This is a thin wrapper around the Rust `IngestionConfigForm` type. For detailed documentation,
     see [`IngestionConfigForm`](sift_stream::stream::builder::IngestionConfigForm).
-    
+
     An `IngestionConfigForm` is used to create a new ingestion config or retrieve an existing
     one based on the `client_key`. It defines the schema of an asset's telemetry.
     """
+
     asset_name: builtins.str
     flows: builtins.list[FlowConfigPy]
     client_key: builtins.str
-    def __new__(cls, asset_name:builtins.str, client_key:builtins.str, flows:typing.Sequence[FlowConfigPy]) -> IngestionConfigFormPy: ...
+    def __new__(
+        cls,
+        asset_name: builtins.str,
+        client_key: builtins.str,
+        flows: typing.Sequence[FlowConfigPy],
+    ) -> IngestionConfigFormPy: ...
 
 @typing.final
 class LiveOnlyBuilderPy:
     r"""
     Builder for `LiveStreamingOnly` mode.
-    
+
     Created by [`StreamConfigBuilderPy.live_only()`]. Call [`LiveOnlyBuilderPy.build()`]
     to finalize.
     """
+
     enable_compression_for_ingestion: builtins.bool
     metrics_streaming_interval: typing.Optional[DurationPy]
     ingestion_data_channel_capacity: builtins.int
@@ -346,10 +392,11 @@ class LiveOnlyBuilderPy:
 class LiveWithBackupsBuilderPy:
     r"""
     Builder for `LiveStreamingWithBackups` mode.
-    
+
     Created by [`StreamConfigBuilderPy.live_with_backups()`]. Call
     [`LiveWithBackupsBuilderPy.build()`] to finalize.
     """
+
     checkpoint_interval: DurationPy
     retry_policy: RetryPolicyPy
     disk_backup_policy: DiskBackupPolicyPy
@@ -364,30 +411,39 @@ class LiveWithBackupsBuilderPy:
 class MetadataPy:
     key: builtins.str
     value: MetadataValuePy
-    def __new__(cls, key:builtins.str, value:MetadataValuePy) -> MetadataPy: ...
+    def __new__(cls, key: builtins.str, value: MetadataValuePy) -> MetadataPy: ...
 
 @typing.final
 class RetryPolicyPy:
     r"""
     Python binding for [`RetryPolicy`](sift_stream::RetryPolicy).
-    
+
     This is a thin wrapper around the Rust `RetryPolicy` type. For detailed documentation,
     see [`RetryPolicy`](sift_stream::RetryPolicy).
-    
+
     A retry policy configures the retry behavior of a Sift stream, including the number
     of attempts and exponential backoff parameters.
     """
+
     max_attempts: builtins.int
     initial_backoff: DurationPy
     max_backoff: DurationPy
     backoff_multiplier: builtins.int
-    def __new__(cls, max_attempts:builtins.int, initial_backoff:DurationPy, max_backoff:DurationPy, backoff_multiplier:builtins.int) -> RetryPolicyPy: ...
+    def __new__(
+        cls,
+        max_attempts: builtins.int,
+        initial_backoff: DurationPy,
+        max_backoff: DurationPy,
+        backoff_multiplier: builtins.int,
+    ) -> RetryPolicyPy: ...
     @staticmethod
     def default() -> RetryPolicyPy: ...
 
 @typing.final
 class RollingFilePolicyPy:
-    def __new__(cls, max_file_count:typing.Optional[builtins.int]) -> RollingFilePolicyPy: ...
+    def __new__(
+        cls, max_file_count: typing.Optional[builtins.int]
+    ) -> RollingFilePolicyPy: ...
     @staticmethod
     def default() -> RollingFilePolicyPy: ...
 
@@ -395,39 +451,48 @@ class RollingFilePolicyPy:
 class RunFormPy:
     r"""
     Python binding for [`RunForm`](sift_stream::stream::builder::RunForm).
-    
+
     This is a thin wrapper around the Rust `RunForm` type. For detailed documentation,
     see [`RunForm`](sift_stream::stream::builder::RunForm).
-    
+
     A `RunForm` is used to create a new run or retrieve an existing run based on the
     `client_key`. If a run with the given `client_key` exists, it will be updated
     with any changed fields.
     """
+
     name: builtins.str
     client_key: builtins.str
     description: typing.Optional[builtins.str]
     tags: typing.Optional[builtins.list[builtins.str]]
     metadata: typing.Optional[builtins.list[MetadataPy]]
-    def __new__(cls, name:builtins.str, client_key:builtins.str, description:typing.Optional[builtins.str], tags:typing.Optional[typing.Sequence[builtins.str]], metadata:typing.Optional[typing.Sequence[MetadataPy]]) -> RunFormPy: ...
+    def __new__(
+        cls,
+        name: builtins.str,
+        client_key: builtins.str,
+        description: typing.Optional[builtins.str],
+        tags: typing.Optional[typing.Sequence[builtins.str]],
+        metadata: typing.Optional[typing.Sequence[MetadataPy]],
+    ) -> RunFormPy: ...
 
 @typing.final
 class RunSelectorPy:
     @staticmethod
-    def by_id(run_id:builtins.str) -> RunSelectorPy: ...
+    def by_id(run_id: builtins.str) -> RunSelectorPy: ...
     @staticmethod
-    def by_form(form:RunFormPy) -> RunSelectorPy: ...
+    def by_form(form: RunFormPy) -> RunSelectorPy: ...
 
 @typing.final
 class SiftStreamBuilderPy:
     r"""
     Python binding for [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
-    
+
     This is a thin wrapper around the Rust `SiftStreamBuilder` type. For detailed documentation,
     see [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
-    
+
     The builder provides a fluent API for configuring and creating a [`SiftStreamPy`] instance
     with various options including ingestion configs, retry policies, checkpoint intervals, and more.
     """
+
     uri: builtins.str
     apikey: builtins.str
     enable_tls: builtins.bool
@@ -436,9 +501,11 @@ class SiftStreamBuilderPy:
     run_id: typing.Optional[builtins.str]
     asset_tags: typing.Optional[builtins.list[builtins.str]]
     metadata: typing.Optional[builtins.list[MetadataPy]]
-    def __new__(cls, uri:builtins.str, apikey:builtins.str) -> SiftStreamBuilderPy: ...
+    def __new__(
+        cls, uri: builtins.str, apikey: builtins.str
+    ) -> SiftStreamBuilderPy: ...
     def build(self) -> typing.Any: ...
-    def ingestion_config(self, config:IngestionConfigFormPy) -> StreamConfigBuilderPy:
+    def ingestion_config(self, config: IngestionConfigFormPy) -> StreamConfigBuilderPy:
         r"""
         Sets the ingestion config and advances to [`StreamConfigBuilderPy`] where shared options
         (run, asset tags/metadata) and the streaming mode can be configured.
@@ -466,22 +533,26 @@ class SiftStreamMetricsSnapshotPy:
 class SiftStreamPy:
     r"""
     Python binding for [`SiftStream`](sift_stream::SiftStream).
-    
+
     This is a thin wrapper around the Rust `SiftStream` type. For detailed documentation,
     see [`SiftStream`](sift_stream::SiftStream).
-    
+
     The Python binding provides the same functionality as the Rust type, with methods
     adapted for Python's async/await syntax.
     """
-    def send(self, flow:FlowPy) -> typing.Any: ...
-    def batch_send(self, flows:typing.Any) -> typing.Any: ...
-    def send_requests(self, requests:typing.Sequence[IngestWithConfigDataStreamRequestPy]) -> typing.Any: ...
-    def try_send_requests(self, flows:typing.Any) -> None: ...
+    def send(self, flow: FlowPy) -> typing.Any: ...
+    def batch_send(self, flows: typing.Any) -> typing.Any: ...
+    def send_requests(
+        self, requests: typing.Sequence[IngestWithConfigDataStreamRequestPy]
+    ) -> typing.Any: ...
+    def try_send_requests(self, flows: typing.Any) -> None: ...
     def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy: ...
-    def add_new_flows(self, flow_configs:typing.Sequence[FlowConfigPy]) -> typing.Any: ...
-    def get_flow_descriptor(self, flow_name:builtins.str) -> FlowDescriptorPy: ...
+    def add_new_flows(
+        self, flow_configs: typing.Sequence[FlowConfigPy]
+    ) -> typing.Any: ...
+    def get_flow_descriptor(self, flow_name: builtins.str) -> FlowDescriptorPy: ...
     def get_flows(self) -> builtins.dict[builtins.str, FlowDescriptorPy]: ...
-    def attach_run(self, run_selector:RunSelectorPy) -> typing.Any: ...
+    def attach_run(self, run_selector: RunSelectorPy) -> typing.Any: ...
     def detach_run(self) -> None: ...
     def run(self) -> typing.Optional[builtins.str]: ...
     def finish(self) -> typing.Any: ...
@@ -490,14 +561,15 @@ class SiftStreamPy:
 class StreamConfigBuilderPy:
     r"""
     Holds shared configuration (run, asset tags/metadata) and provides mode selection.
-    
+
     Created by [`SiftStreamBuilderPy.ingestion_config()`]. Call one of the mode selectors
     to advance to a mode-specific builder:
-    
+
     - [`StreamConfigBuilderPy.live_only()`] — single channel, direct backpressure, no disk backups
     - [`StreamConfigBuilderPy.live_with_backups()`] — dual channel with checkpointing and disk backups
     - [`StreamConfigBuilderPy.file_backup()`] — writes directly to disk, no network ingestion
     """
+
     run: typing.Optional[RunFormPy]
     run_id: typing.Optional[builtins.str]
     asset_tags: typing.Optional[builtins.list[builtins.str]]
@@ -510,7 +582,7 @@ class StreamConfigBuilderPy:
     def live_with_backups(self) -> LiveWithBackupsBuilderPy:
         r"""
         Selects `LiveStreamingWithBackups` mode: dual channel with checkpointing, retry policy,
-        and optional disk backups.
+        and disk backups.
         """
     def file_backup(self) -> FileBackupBuilderPy:
         r"""
@@ -522,59 +594,59 @@ class StreamConfigBuilderPy:
 class TimeValuePy:
     r"""
     Python binding for [`TimeValue`](sift_stream::stream::time::TimeValue).
-    
+
     This is a thin wrapper around the Rust `TimeValue` type. For detailed documentation,
     see [`TimeValue`](sift_stream::stream::time::TimeValue).
-    
+
     `TimeValue` represents a timestamp that can be constructed from various time
     representations (Unix timestamps, RFC3339 strings, etc.). All times are stored
     and transmitted as UTC.
     """
     def __new__(cls) -> TimeValuePy: ...
     @staticmethod
-    def from_timestamp(secs:builtins.int, nsecs:builtins.int) -> TimeValuePy: ...
+    def from_timestamp(secs: builtins.int, nsecs: builtins.int) -> TimeValuePy: ...
     @staticmethod
-    def from_timestamp_millis(millis:builtins.int) -> TimeValuePy: ...
+    def from_timestamp_millis(millis: builtins.int) -> TimeValuePy: ...
     @staticmethod
-    def from_timestamp_micros(micros:builtins.int) -> TimeValuePy: ...
+    def from_timestamp_micros(micros: builtins.int) -> TimeValuePy: ...
     @staticmethod
-    def from_timestamp_nanos(nanos:builtins.int) -> TimeValuePy: ...
+    def from_timestamp_nanos(nanos: builtins.int) -> TimeValuePy: ...
     @staticmethod
-    def from_rfc3339(val:builtins.str) -> TimeValuePy: ...
+    def from_rfc3339(val: builtins.str) -> TimeValuePy: ...
 
 @typing.final
 class ValuePy:
     r"""
     Python binding for [`Value`](sift_stream::Value).
-    
+
     This is a thin wrapper around the Rust `Value` enum. For detailed documentation,
     see [`Value`](sift_stream::Value).
-    
+
     `Value` represents a typed value emitted by a channel, supporting all standard
     telemetry data types (bool, numbers, strings, enums, bitfields).
     """
     @staticmethod
     def Empty() -> ValuePy: ...
     @staticmethod
-    def Bool(value:typing.Optional[builtins.bool]) -> ValuePy: ...
+    def Bool(value: typing.Optional[builtins.bool]) -> ValuePy: ...
     @staticmethod
-    def String(value:typing.Optional[builtins.str]) -> ValuePy: ...
+    def String(value: typing.Optional[builtins.str]) -> ValuePy: ...
     @staticmethod
-    def Float(value:typing.Optional[builtins.float]) -> ValuePy: ...
+    def Float(value: typing.Optional[builtins.float]) -> ValuePy: ...
     @staticmethod
-    def Double(value:typing.Optional[builtins.float]) -> ValuePy: ...
+    def Double(value: typing.Optional[builtins.float]) -> ValuePy: ...
     @staticmethod
-    def Int32(value:typing.Optional[builtins.int]) -> ValuePy: ...
+    def Int32(value: typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def Int64(value:typing.Optional[builtins.int]) -> ValuePy: ...
+    def Int64(value: typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def Uint32(value:typing.Optional[builtins.int]) -> ValuePy: ...
+    def Uint32(value: typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def Uint64(value:typing.Optional[builtins.int]) -> ValuePy: ...
+    def Uint64(value: typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def Enum(value:typing.Optional[builtins.int]) -> ValuePy: ...
+    def Enum(value: typing.Optional[builtins.int]) -> ValuePy: ...
     @staticmethod
-    def BitField(value:typing.Optional[typing.Sequence[builtins.int]]) -> ValuePy: ...
+    def BitField(value: typing.Optional[typing.Sequence[builtins.int]]) -> ValuePy: ...
     def is_empty(self) -> builtins.bool: ...
     def is_bool(self) -> builtins.bool: ...
     def is_string(self) -> builtins.bool: ...
@@ -618,12 +690,8 @@ class MetadataValuePy(Enum):
     Number = ...
     Boolean = ...
 
-    def __new__(cls, obj:typing.Any) -> MetadataValuePy: ...
-
+    def __new__(cls, obj: typing.Any) -> MetadataValuePy: ...
     def __str__(self) -> builtins.str: ...
-
     def is_string(self) -> builtins.bool: ...
-
     def is_number(self) -> builtins.bool: ...
-
     def is_boolean(self) -> builtins.bool: ...

@@ -80,20 +80,17 @@
 //! Three transport modes are available, selected via the builder chain. Each mode determines
 //! the channel architecture, backpressure behavior, and durability guarantees:
 //!
-//! | Builder method | Transport type | Backpressure source | Checkpointing | Disk backup |
+//! | Builder method | Transport type | Backpressure source | Checkpointing | Disk backup | Retries |
 //! |---|---|---|---|---|
-//! | `.live_only()` | [`LiveStreamingOnly`] | ingestion channel | No | No |
-//! | `.live_with_backups()` | [`LiveStreamingWithBackups`] | backup channel | Yes | Optional |
-//! | `.file_backup()` | [`FileBackup`] | write channel | No | Yes (required) |
+//! | `.live_only()` | [`LiveStreamingOnly`] | ingestion channel | No | No | Yes |
+//! | `.live_with_backups()` | [`LiveStreamingWithBackups`] | backup channel | Yes | Yes | Yes |
+//! | `.file_backup()` | [`FileBackup`] | write channel | No | Yes | N/A |
 //!
 //! ### `live_only` — [`LiveStreamingOnly`]
 //!
 //! Streams to Sift in real-time over a single bounded ingestion channel. Backpressure is applied
 //! directly when that channel is full: [`send`](stream::SiftStream::send) awaits until the
-//! ingestion task drains capacity. No checkpointing, no disk backups. Retry is available but
-//! no data recovery occurs between checkpoints.
-//!
-//! Use this when you want the simplest possible setup and can tolerate data loss on failure.
+//! ingestion task drains capacity. Supports retries.
 //!
 //! ```ignore
 //! let stream = SiftStreamBuilder::new(credentials)
@@ -108,11 +105,8 @@
 //! Streams to Sift in real-time using a dual-channel architecture: a bounded backup channel
 //! and a bounded ingestion channel. Backpressure is applied on the **backup channel**; the
 //! ingestion channel uses force-send and never blocks — when full it evicts the oldest buffered
-//! message to preserve freshness. Supports checkpointing and an optional disk backup strategy
-//! for recovery across failures.
-//!
-//! Use this when you need periodic delivery confirmation from Sift and/or recovery from
-//! network or service outages.
+//! message to preserve freshness. Supports retries, checkpointing, and an disk backup strategy
+//! for intermittent network failures.
 //!
 //! ```ignore
 //! let stream = SiftStreamBuilder::new(credentials)
@@ -127,7 +121,7 @@
 //! Writes telemetry to rolling disk files without any network ingestion. Backpressure is
 //! applied on the bounded write channel: [`send`](stream::SiftStream::send) awaits until the
 //! file-writer task drains capacity. Data written in this mode can be ingested into Sift later
-//! using separate tooling.
+//! using the `sift-cli` tool.
 //!
 //! Useful for CI/CD workflows where data only needs to reach Sift if a test fails, or in
 //! environments where network connectivity is unavailable during the recording session.
