@@ -21,6 +21,13 @@ use crate::{TimeValue, Value};
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ChannelIndex(usize);
 
+#[cfg(test)]
+impl ChannelIndex {
+    pub(crate) fn as_usize(self) -> usize {
+        self.0
+    }
+}
+
 /// Describes the schema of a flow, providing a convenient, performant, and correct way to
 /// build the flow being described.
 ///
