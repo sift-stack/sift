@@ -452,6 +452,16 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
     footer_length: int = 0
     complex_types_import_mode: ParquetComplexTypesImportMode = ParquetComplexTypesImportMode.IGNORE
 
+    @model_validator(mode="after")
+    def _check_channel_config(self) -> ParquetSingleChannelPerRowImportConfig:
+        if self.single_channel is None and self.multi_channel is None:
+            raise ValueError("Exactly one of 'single_channel' or 'multi_channel' must be set.")
+        if self.single_channel is not None and self.multi_channel is not None:
+            raise ValueError(
+                "Exactly one of 'single_channel' or 'multi_channel' must be set, not both."
+            )
+        return self
+
     def _to_proto(self) -> ParquetConfigProto:
         scpr = ParquetSingleChannelPerRowConfigProto(
             time_column=self.time_column._to_proto(),
