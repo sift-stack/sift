@@ -219,8 +219,8 @@ class DataImportAPIAsync(ResourceBase):
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If the file extension is unsupported or detection
-                returns no config.
+            ValueError: If the file extension is unsupported or no
+                supported configuration could be detected.
         """
         path = Path(file_path)
         if not path.is_file():
@@ -260,7 +260,11 @@ class DataImportAPIAsync(ResourceBase):
                 response.parquet_config, path.name, footer_offset, footer_length
             )
 
-        raise ValueError("Server returned an empty DetectConfig response.")
+        raise ValueError(
+            f"No supported configuration detected for '{path.name}'. "
+            "Auto-detection supports CSV and Parquet files. "
+            "For other formats, provide a config manually."
+        )
 
 
 def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeKey:

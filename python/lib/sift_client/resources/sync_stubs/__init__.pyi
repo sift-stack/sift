@@ -687,8 +687,8 @@ class DataImportAPI:
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If the file extension is unsupported or detection
-                returns no config.
+            ValueError: If the file extension is unsupported or no
+                supported configuration could be detected.
         """
         ...
 
