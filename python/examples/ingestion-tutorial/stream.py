@@ -178,7 +178,11 @@ async def main() -> None:
         ingestion_config=ingestion_config,
         run=run,
     ) as ingest_client:
-        # Continue streaming until the user terminates the program
+        # Continue streaming until the user terminates the program.
+        # On Ctrl+C, Python's asyncio raises CancelledError (not
+        # KeyboardInterrupt) inside awaiting coroutines.  Catching it
+        # here lets the async-with context manager exit cleanly and
+        # call finish() via __aexit__.
         try:
             while True:
                 now = datetime.now(timezone.utc)
@@ -214,10 +218,8 @@ async def main() -> None:
 
                 # Control sampling rate
                 await asyncio.sleep(SEND_INTERVAL_SECONDS)
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, asyncio.CancelledError):
             pass
-        finally:
-            await ingest_client.finish()
 
     print("Streaming session closed.")
 
@@ -225,5 +227,11 @@ async def main() -> None:
 # Standard Python entry point
 # ---------------------------------------------------------------------
 # asyncio.run() starts the async ingestion workflow.
+# The outer exception handler suppresses noise from the async shutdown
+# sequence that may occur after the streaming client has already been
+# finished by the context manager.
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, RuntimeError):
+        print("\nStreaming stopped by user.")
