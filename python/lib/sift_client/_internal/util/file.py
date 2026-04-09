@@ -65,8 +65,7 @@ def upload_file(
                 data=f,
                 headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
             )
-            if not response.ok:
-                raise ValueError(f"Upload failed ({response.status_code}): {response.text}")
+            response.raise_for_status()
             return response.json()
 
 

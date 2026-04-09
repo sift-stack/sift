@@ -166,7 +166,7 @@ class DataImportAPIAsync(ResourceBase):
         )
         job_id = response.get("jobId")
         if not job_id:
-            raise ValueError("Upload succeeded but server response did not include a job ID.")
+            raise RuntimeError("Upload succeeded but server response did not include a job ID.")
 
         return await self.client.async_.jobs.get(job_id=job_id)
 
