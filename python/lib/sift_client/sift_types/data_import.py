@@ -182,6 +182,8 @@ class CsvImportConfig(ImportConfigBase):
         raise KeyError(f"No data column named '{name}'")
 
     def _to_proto(self) -> CsvConfigProto:
+        if not self.data_columns:
+            raise ValueError("Config has no data columns. Add at least one before importing.")
         return CsvConfigProto(
             asset_name=self.asset_name,
             run_name=self.run_name or "",
@@ -334,6 +336,8 @@ class ParquetFlatDatasetImportConfig(ImportConfigBase):
         raise KeyError(f"No data column named '{name}'")
 
     def _to_proto(self) -> ParquetConfigProto:
+        if not self.data_columns:
+            raise ValueError("Config has no data columns. Add at least one before importing.")
         flat_dataset = ParquetFlatDatasetConfigProto(
             time_column=self.time_column._to_proto(),
             data_columns=[

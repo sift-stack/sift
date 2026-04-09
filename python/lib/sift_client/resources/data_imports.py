@@ -253,7 +253,7 @@ class DataImportAPIAsync(ResourceBase):
         response = await self._low_level_client.detect_config(sample, data_type_key.value)
 
         if response.HasField("csv_config"):
-            return _parse_csv_detect_response(response.csv_config, path.name)
+            return _parse_csv_detect_response(response.csv_config)
 
         if response.HasField("parquet_config"):
             return _parse_parquet_detect_response(
@@ -287,13 +287,11 @@ def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeK
     return EXTENSION_TO_DATA_TYPE_KEY[ext]
 
 
-def _parse_csv_detect_response(proto, filename: str) -> CsvImportConfig:
+def _parse_csv_detect_response(proto) -> CsvImportConfig:
     """Parse a CSV DetectConfig response into a config."""
     csv_config = CsvImportConfig._from_proto(proto)
     time_col = csv_config.time_column.column
     csv_config.data_columns = [dc for dc in csv_config.data_columns if dc.column != time_col]
-    if not csv_config.data_columns:
-        raise ValueError(f"No data columns detected in '{filename}'.")
     return csv_config
 
 
@@ -329,13 +327,6 @@ def _parse_parquet_detect_response(
                 parquet_config.data_columns = [
                     c for c in parquet_config.data_columns if c.path != match.path
                 ]
-        if not parquet_config.time_column.path:
-            raise ValueError(
-                f"No time column detected in '{filename}'. "
-                "Set the time column manually on the config before importing."
-            )
-        if not parquet_config.data_columns:
-            raise ValueError(f"No data columns detected in '{filename}'.")
         return parquet_config
     elif proto.HasField("single_channel_per_row"):
         return ParquetSingleChannelPerRowImportConfig._from_proto(
