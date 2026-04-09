@@ -732,7 +732,7 @@ class DataImportAPI:
                 config = client.data_imports.detect_config("data.csv")
 
                 # Fix a column data type
-                config.get_column("temperature").data_type = ChannelDataType.FLOAT
+                config["temperature"].data_type = ChannelDataType.FLOAT
 
                 # Remove an unwanted column
                 config.data_columns = [

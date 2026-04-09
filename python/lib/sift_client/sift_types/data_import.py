@@ -169,17 +169,12 @@ class CsvImportConfig(ImportConfigBase):
     time_column: CsvTimeColumn
     data_columns: list[CsvDataColumn]
 
-    def get_column(self, name: str) -> CsvDataColumn:
-        """Look up a data column by name.
+    def __getitem__(self, name: str) -> CsvDataColumn:
+        """Look up a data column by channel name.
 
-        Args:
-            name: The channel name to search for.
+        Example::
 
-        Returns:
-            The matching data column.
-
-        Raises:
-            KeyError: If no column with the given name exists.
+            config["temperature"].data_type = ChannelDataType.FLOAT
         """
         for dc in self.data_columns:
             if dc.name == name:
@@ -326,17 +321,12 @@ class ParquetFlatDatasetImportConfig(ImportConfigBase):
     footer_length: int = 0
     complex_types_import_mode: ParquetComplexTypesImportMode = ParquetComplexTypesImportMode.IGNORE
 
-    def get_column(self, name: str) -> ParquetDataColumn:
-        """Look up a data column by name.
+    def __getitem__(self, name: str) -> ParquetDataColumn:
+        """Look up a data column by channel name.
 
-        Args:
-            name: The channel name to search for.
+        Example::
 
-        Returns:
-            The matching data column.
-
-        Raises:
-            KeyError: If no column with the given name exists.
+            config["temperature"].data_type = ChannelDataType.FLOAT
         """
         for dc in self.data_columns:
             if dc.name == name:

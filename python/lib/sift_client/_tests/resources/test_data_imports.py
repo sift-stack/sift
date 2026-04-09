@@ -58,31 +58,31 @@ def parquet_config():
     )
 
 
-class TestGetColumn:
-    def test_csv_get_column(self, csv_config):
-        col = csv_config.get_column("cpu_util")
+class TestGetItem:
+    def test_csv_getitem(self, csv_config):
+        col = csv_config["cpu_util"]
         assert col.name == "cpu_util"
         assert col.data_type == ChannelDataType.DOUBLE
 
-    def test_csv_get_column_not_found(self, csv_config):
+    def test_csv_getitem_not_found(self, csv_config):
         with pytest.raises(KeyError, match="nonexistent"):
-            csv_config.get_column("nonexistent")
+            csv_config["nonexistent"]
 
-    def test_csv_get_column_mutate(self, csv_config):
-        csv_config.get_column("status_flags").data_type = ChannelDataType.STRING
+    def test_csv_getitem_mutate(self, csv_config):
+        csv_config["status_flags"].data_type = ChannelDataType.STRING
         assert csv_config.data_columns[1].data_type == ChannelDataType.STRING
 
-    def test_parquet_get_column(self, parquet_config):
-        col = parquet_config.get_column("temperature")
+    def test_parquet_getitem(self, parquet_config):
+        col = parquet_config["temperature"]
         assert col.name == "temperature"
         assert col.data_type == ChannelDataType.FLOAT
 
-    def test_parquet_get_column_not_found(self, parquet_config):
+    def test_parquet_getitem_not_found(self, parquet_config):
         with pytest.raises(KeyError, match="nonexistent"):
-            parquet_config.get_column("nonexistent")
+            parquet_config["nonexistent"]
 
-    def test_parquet_get_column_mutate(self, parquet_config):
-        parquet_config.get_column("cpu_util").name = "cpu_utilization"
+    def test_parquet_getitem_mutate(self, parquet_config):
+        parquet_config["cpu_util"].name = "cpu_utilization"
         assert parquet_config.data_columns[0].name == "cpu_utilization"
 
 
