@@ -122,6 +122,8 @@ pub struct SiftStreamMetricsSnapshot {
     pub old_messages_failed_adding_to_backup: u64,
     /// Current retry attempt count
     pub cur_retry_count: u64,
+    /// Count of stream completions per gRPC status code, indexed by code value (0=Ok .. 16=Unauthenticated)
+    pub grpc_status_counts: [u64; 17],
     /// Depth of the ingestion channel
     pub ingestion_channel_depth: u64,
     /// Depth of the backup channel
@@ -386,6 +388,7 @@ pub struct SiftStreamMetrics {
     pub(crate) old_messages_dropped_for_ingestion: U64Counter,
     pub(crate) old_messages_failed_adding_to_backup: U64Counter,
     pub(crate) cur_retry_count: U64Signal,
+    pub(crate) grpc_status_counts: [U64Counter; 17],
     pub(crate) ingestion_channel_depth: U64Signal,
     pub(crate) backup_channel_depth: U64Signal,
     pub(crate) checkpoint: CheckpointMetrics,
@@ -430,6 +433,7 @@ impl SiftStreamMetrics {
             old_messages_dropped_for_ingestion,
             old_messages_failed_adding_to_backup,
             cur_retry_count,
+            grpc_status_counts: std::array::from_fn(|i| self.grpc_status_counts[i].get()),
             ingestion_channel_depth,
             backup_channel_depth,
             checkpoint: self.checkpoint.snapshot(),
@@ -511,6 +515,108 @@ impl SiftStreamMetricsSnapshot {
             ChannelConfig {
                 name: format!("{channel_prefix}.cur_retry_count"),
                 description: "Current retry count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.ok"),
+                description: "gRPC status code Ok (0) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.cancelled"),
+                description: "gRPC status code Cancelled (1) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.unknown"),
+                description: "gRPC status code Unknown (2) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.invalid_argument"),
+                description: "gRPC status code InvalidArgument (3) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.deadline_exceeded"),
+                description: "gRPC status code DeadlineExceeded (4) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.not_found"),
+                description: "gRPC status code NotFound (5) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.already_exists"),
+                description: "gRPC status code AlreadyExists (6) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.permission_denied"),
+                description: "gRPC status code PermissionDenied (7) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.resource_exhausted"),
+                description: "gRPC status code ResourceExhausted (8) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.failed_precondition"),
+                description: "gRPC status code FailedPrecondition (9) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.aborted"),
+                description: "gRPC status code Aborted (10) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.out_of_range"),
+                description: "gRPC status code OutOfRange (11) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.unimplemented"),
+                description: "gRPC status code Unimplemented (12) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.internal"),
+                description: "gRPC status code Internal (13) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.unavailable"),
+                description: "gRPC status code Unavailable (14) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.data_loss"),
+                description: "gRPC status code DataLoss (15) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.unauthenticated"),
+                description: "gRPC status code Unauthenticated (16) count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
@@ -679,6 +785,74 @@ impl SiftStreamMetricsSnapshot {
                 self.cur_retry_count,
             ),
             ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.ok"),
+                self.grpc_status_counts[0],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.cancelled"),
+                self.grpc_status_counts[1],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.unknown"),
+                self.grpc_status_counts[2],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.invalid_argument"),
+                self.grpc_status_counts[3],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.deadline_exceeded"),
+                self.grpc_status_counts[4],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.not_found"),
+                self.grpc_status_counts[5],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.already_exists"),
+                self.grpc_status_counts[6],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.permission_denied"),
+                self.grpc_status_counts[7],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.resource_exhausted"),
+                self.grpc_status_counts[8],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.failed_precondition"),
+                self.grpc_status_counts[9],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.aborted"),
+                self.grpc_status_counts[10],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.out_of_range"),
+                self.grpc_status_counts[11],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.unimplemented"),
+                self.grpc_status_counts[12],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.internal"),
+                self.grpc_status_counts[13],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.unavailable"),
+                self.grpc_status_counts[14],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.data_loss"),
+                self.grpc_status_counts[15],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.unauthenticated"),
+                self.grpc_status_counts[16],
+            ),
+            ChannelValue::new(
                 &format!("{channel_prefix}.ingestion_channel_depth"),
                 self.ingestion_channel_depth,
             ),
@@ -779,6 +953,7 @@ impl Default for SiftStreamMetrics {
             old_messages_dropped_for_ingestion: U64Counter::default(),
             old_messages_failed_adding_to_backup: U64Counter::default(),
             cur_retry_count: U64Signal::default(),
+            grpc_status_counts: Default::default(),
             ingestion_channel_depth: U64Signal::default(),
             backup_channel_depth: U64Signal::default(),
             checkpoint: CheckpointMetrics::default(),

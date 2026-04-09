@@ -8,7 +8,10 @@ use crate::{
 };
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
-use sift_rs::{CompressionEncoding, ingest::v1::ingest_service_client::IngestServiceClient};
+use sift_rs::{
+    CompressionEncoding, GrpcCode, GrpcStatus,
+    ingest::v1::ingest_service_client::IngestServiceClient,
+};
 use std::{
     future::Future,
     pin::Pin,
@@ -138,7 +141,6 @@ impl IngestionTask {
 
                     // Currently the stream result is not used, so to simplify we return a unit value.
                     res.map(|_| ())
-                        .map_err(|e| Error::new(ErrorKind::StreamError, e))
                 }));
 
                 #[cfg(feature = "tracing")]
@@ -153,6 +155,7 @@ impl IngestionTask {
                 res = stream.as_mut().unwrap() => {
                     match res {
                         Ok(_) => {
+                            self.config.metrics.grpc_status_counts[0].increment();
                             self.config.metrics.cur_retry_count.set(0);
                             current_wait = Duration::ZERO;
                         }
@@ -192,19 +195,15 @@ impl IngestionTask {
                                 sift_stream_id = %self.config.sift_stream_id,
                                 "checkpoint succeeded - data streamed to Sift successfully"
                             );
+                            self.config.metrics.grpc_status_counts[0].increment();
                             self.config.metrics.cur_retry_count.set(0);
                         }
                         Ok(Err(e)) => {
                             current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
                         }
-                        Err(elapsed) => {
-                            #[cfg(feature = "tracing")]
-                            tracing::error!(
-                                sift_stream_id = %self.config.sift_stream_id,
-                                error = %elapsed,
-                                "timed out waiting for checkpoint completion from Sift"
-                            );
-                            current_wait = self.handle_failed_stream(&Error::new(ErrorKind::StreamError, elapsed), stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
+                        Err(_elapsed) => {
+                            let timeout_status = GrpcStatus::deadline_exceeded("checkpoint timed out waiting for Sift");
+                            current_wait = self.handle_failed_stream(&timeout_status, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
                         }
                     }
 
@@ -216,7 +215,7 @@ impl IngestionTask {
                     match ctrl_msg {
                         Ok(ControlMessage::BackupFull) => {
                             #[cfg(feature = "tracing")]
-                            tracing::info!(
+                            tracing::trace!(
                                 sift_stream_id = %self.config.sift_stream_id,
                                 "backup full"
                             );
@@ -243,19 +242,28 @@ impl IngestionTask {
     /// Handle a failed stream operation, sending the re-ingest signal and logging the error and incrementing metrics.
     fn handle_failed_stream(
         &mut self,
-        e: &Error,
+        status: &GrpcStatus,
         stream_created_at: Instant,
         current_wait: Duration,
         first_message_id: u64,
         last_message_id: u64,
     ) -> Result<Duration> {
+        let code_idx = (i32::from(status.code())).clamp(0, 16) as usize;
+        self.config.metrics.grpc_status_counts[code_idx].increment();
+
         #[cfg(feature = "tracing")]
-        tracing::error!(
-            sift_stream_id = %self.config.sift_stream_id,
-            retry_counter = self.config.metrics.cur_retry_count.get(),
-            error = %e,
-            "stream failed - failed to ingest data to Sift - if backups are enabled, backup files will be re-ingested"
-        );
+        {
+            let msg = match status.code() {
+                GrpcCode::Cancelled => "stream connection went idle",
+                _ => "stream connection is being reset",
+            };
+            tracing::warn!(
+                sift_stream_id = %self.config.sift_stream_id,
+                retry_counter = self.config.metrics.cur_retry_count.get(),
+                grpc_status = ?status.code(),
+                msg
+            );
+        }
 
         self.config
             .metrics
@@ -285,7 +293,7 @@ impl IngestionTask {
     }
 
     /// Shuts down the ingestion task by awaiting the stream one last time and sending the final checkpoint complete signal to the backup manager.
-    async fn shutdown<T: Future<Output = Result<()>> + Send + 'static>(
+    async fn shutdown<T: Future<Output = std::result::Result<(), GrpcStatus>> + Send + 'static>(
         &mut self,
         mut stream: Option<Pin<Box<T>>>,
         first_message_id: Arc<AtomicU64>,
