@@ -655,13 +655,24 @@ class DataImportAPI:
         using ``TdmsImportConfig``, ``Hdf5ImportConfig``, or
         ``Ch10ImportConfig``.
 
-        For CSV files, the server can parse an optional JSON metadata row
-        that auto-populates channel names, units, descriptions, data types,
-        and enum definitions. Each cell in the row is a JSON object
-        describing that column. When present, ``first_data_row`` in the
-        returned config will be set to the row after the metadata row.
-        Note that enum type definitions are applied server-side during
-        import but are not included in the returned config.
+        For CSV files, the server scans the first two rows for an optional
+        JSON metadata row. Row 1 is checked first; row 2 is checked only
+        if row 1 is not valid metadata. A row qualifies as metadata when
+        every cell contains valid JSON that describes either a time column
+        or a data column. When present, ``first_data_row`` in the returned
+        config is set to the row after the metadata row.
+
+        Each data column cell is a JSON ``ChannelConfig``::
+
+            {"name": "speed", "units": "m/s", "dataType": "CHANNEL_DATA_TYPE_DOUBLE"}
+
+        The time column cell is a JSON ``CsvTimeColumn``::
+
+            {"format": "TIME_FORMAT_ABSOLUTE_RFC3339"}
+
+        Enum type definitions and bit field elements can also be specified
+        in the metadata row; they are applied server-side during import
+        but are not included in the returned config.
 
         For file types with multiple layouts (e.g. Parquet), ``data_type``
         must be specified explicitly.
