@@ -2278,6 +2278,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.TestResultsAPI.replay_log_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replay_log_file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.sync_stubs.TestResultsAPI.unarchive" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3931,6 +3942,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;list_steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.TestResultsAPI.replay_log_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replay_log_file
       
     </span>
   </a>
@@ -17639,6 +17661,14 @@ so this would need to be implemented if the API supports it.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            replay_log_file (sift_client.resources.sync_stubs.TestResultsAPI.replay_log_file)" href="#sift_client.resources.sync_stubs.TestResultsAPI.replay_log_file">replay_log_file</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Replay a log file by parsing each entry, simulating the results, then creating for real.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            unarchive (sift_client.resources.sync_stubs.TestResultsAPI.unarchive)" href="#sift_client.resources.sync_stubs.TestResultsAPI.unarchive">unarchive</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -17760,12 +17790,15 @@ so this would need to be implemented if the API supports it.</p>
 
 
 <a href="#sift_client.resources.sync_stubs.TestResultsAPI.create" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create</span><span class="p">(</span><span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReportCreate
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReportCreate
 
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestReportCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportCreate">TestReportCreate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+   (sift_client.sift_types.test_report.TestReportCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportCreate">TestReportCreate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
 
 
   
@@ -17803,6 +17836,26 @@ so this would need to be implemented if the API supports it.</p>
   
       pydantic-model
    (sift_client.sift_types.test_report.TestReportCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportCreate">TestReportCreate</a> | <span title="dict">dict</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If set, log the request to this file and return a simulated response.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
                   </span>
               </p>
             </td>
@@ -17860,7 +17913,8 @@ so this would need to be implemented if the API supports it.</p>
       pydantic-model
    (sift_client.sift_types.test_report.TestMeasurementCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementCreate">TestMeasurementCreate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update_step</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
 
 
   
@@ -17922,6 +17976,26 @@ so this would need to be implemented if the API supports it.</p>
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If set, log the request to this file and return a simulated response.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -17974,7 +18048,8 @@ so this would need to be implemented if the API supports it.</p>
   
       pydantic-model
    (sift_client.sift_types.test_report.TestMeasurementCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementCreate">TestMeasurementCreate</a></span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">,</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">,</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -18007,6 +18082,26 @@ so this would need to be implemented if the API supports it.</p>
   
       pydantic-model
    (sift_client.sift_types.test_report.TestMeasurementCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementCreate">TestMeasurementCreate</a>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If set, log the request to this file and return a simulated response.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
                   </span>
               </p>
             </td>
@@ -18051,12 +18146,15 @@ so this would need to be implemented if the API supports it.</p>
 
 
 <a href="#sift_client.resources.sync_stubs.TestResultsAPI.create_step" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_step</span><span class="p">(</span><span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepCreate
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_step</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepCreate
 
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestStepCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepCreate">TestStepCreate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+   (sift_client.sift_types.test_report.TestStepCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepCreate">TestStepCreate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
 
 
   
@@ -18094,6 +18192,26 @@ so this would need to be implemented if the API supports it.</p>
   
       pydantic-model
    (sift_client.sift_types.test_report.TestStepCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepCreate">TestStepCreate</a> | <span title="dict">dict</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If set, log the request to this file and return a simulated response.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
                   </span>
               </p>
             </td>
@@ -19860,6 +19978,81 @@ raises an error.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sift_client.resources.sync_stubs.TestResultsAPI.replay_log_file" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">replay_log_file</span>
+
+
+<a href="#sift_client.resources.sync_stubs.TestResultsAPI.replay_log_file" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">replay_log_file</span><span class="p">(</span><span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Replay a log file by parsing each entry, simulating the results, then creating for real.</p>
+<p>This method reads a log file created by the simulation logging, reconstructs
+all the objects via simulation, and then creates them via the actual API.
+IDs are mapped from simulated to real during the creation process.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Path to the log file to replay.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>A ReplayResult containing the created report, steps, and measurements.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sift_client.resources.sync_stubs.TestResultsAPI.unarchive" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">unarchive</span>
 
@@ -19941,7 +20134,8 @@ raises an error.</p>
   
       pydantic-model
    (sift_client.sift_types.test_report.TestReportUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportUpdate">TestReportUpdate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
 
 
   
@@ -20000,6 +20194,26 @@ raises an error.</p>
   
       pydantic-model
    (sift_client.sift_types.test_report.TestReportUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportUpdate">TestReportUpdate</a> | <span title="dict">dict</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If set, log the request to this file and return a simulated response.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
                   </span>
               </p>
             </td>
@@ -20063,7 +20277,8 @@ raises an error.</p>
       pydantic-model
    (sift_client.sift_types.test_report.TestMeasurementUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementUpdate">TestMeasurementUpdate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">update_step</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
 
 
   
@@ -20146,6 +20361,26 @@ raises an error.</p>
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If set, log the request to this file and return a simulated response.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -20197,13 +20432,15 @@ raises an error.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepUpdate
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepUpdate
 
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestStepUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepUpdate">TestStepUpdate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+   (sift_client.sift_types.test_report.TestStepUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepUpdate">TestStepUpdate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
 
 
   
@@ -20262,6 +20499,26 @@ raises an error.</p>
   
       pydantic-model
    (sift_client.sift_types.test_report.TestStepUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepUpdate">TestStepUpdate</a> | <span title="dict">dict</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If set, log the request to this file and return a simulated response.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
                   </span>
               </p>
             </td>
