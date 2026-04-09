@@ -248,7 +248,12 @@ impl IngestionTask {
         first_message_id: u64,
         last_message_id: u64,
     ) -> Result<Duration> {
-        let code_idx = (i32::from(status.code())).clamp(0, 16) as usize;
+        let code = i32::from(status.code());
+        let code_idx = if (0..=16).contains(&code) {
+            code as usize
+        } else {
+            17
+        };
         self.config.metrics.grpc_status_counts[code_idx].increment();
 
         #[cfg(feature = "tracing")]

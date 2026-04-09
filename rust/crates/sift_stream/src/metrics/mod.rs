@@ -122,8 +122,8 @@ pub struct SiftStreamMetricsSnapshot {
     pub old_messages_failed_adding_to_backup: u64,
     /// Current retry attempt count
     pub cur_retry_count: u64,
-    /// Count of stream completions per gRPC status code, indexed by code value (0=Ok .. 16=Unauthenticated)
-    pub grpc_status_counts: [u64; 17],
+    /// Count of stream completions per gRPC status code, indexed by code value (0=Ok .. 16=Unauthenticated, 17=UnknownGrpcCode)
+    pub grpc_status_counts: [u64; 18],
     /// Depth of the ingestion channel
     pub ingestion_channel_depth: u64,
     /// Depth of the backup channel
@@ -388,7 +388,7 @@ pub struct SiftStreamMetrics {
     pub(crate) old_messages_dropped_for_ingestion: U64Counter,
     pub(crate) old_messages_failed_adding_to_backup: U64Counter,
     pub(crate) cur_retry_count: U64Signal,
-    pub(crate) grpc_status_counts: [U64Counter; 17],
+    pub(crate) grpc_status_counts: [U64Counter; 18],
     pub(crate) ingestion_channel_depth: U64Signal,
     pub(crate) backup_channel_depth: U64Signal,
     pub(crate) checkpoint: CheckpointMetrics,
@@ -617,6 +617,12 @@ impl SiftStreamMetricsSnapshot {
             ChannelConfig {
                 name: format!("{channel_prefix}.grpc_status_counts.unauthenticated"),
                 description: "gRPC status code Unauthenticated (16) count".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.grpc_status_counts.unknown_grpc_code"),
+                description: "Unknown gRPC status code (>16) count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
@@ -851,6 +857,10 @@ impl SiftStreamMetricsSnapshot {
             ChannelValue::new(
                 &format!("{channel_prefix}.grpc_status_counts.unauthenticated"),
                 self.grpc_status_counts[16],
+            ),
+            ChannelValue::new(
+                &format!("{channel_prefix}.grpc_status_counts.unknown_grpc_code"),
+                self.grpc_status_counts[17],
             ),
             ChannelValue::new(
                 &format!("{channel_prefix}.ingestion_channel_depth"),
