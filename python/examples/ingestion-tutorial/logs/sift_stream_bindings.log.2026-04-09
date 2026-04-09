@@ -1,0 +1,32 @@
+2026-04-09T22:54:59.024798Z  INFO sift_stream::stream::builder::config_loader: created new ingestion config ingestion_config_id="4056f804-215c-4124-8f97-948b117e7ea8" flow_names="vehicle_metrics"
+2026-04-09T22:54:59.152065Z  INFO sift_stream::stream::run: created new run run_id="a67f8fd6-2fb3-460b-b4ea-c7f966745291" run_name="robot_vehicle_20260409T225457_c0f09698_run"
+2026-04-09T22:54:59.152812Z  INFO sift_stream::stream::tasks: backup manager task started sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:54:59.152831Z  INFO sift_stream::stream::tasks: ingestion task started sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:54:59.152834Z  INFO sift_stream::stream::tasks: creating new stream sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:54:59.152838Z  INFO sift_stream::stream::tasks: successfully initialized a new stream to Sift sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:54:59.152910Z  INFO sift_stream::stream::tasks: backup re-ingestion task started sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:55:00.481257Z  INFO sift_stream::stream::builder::config_loader: created new ingestion config ingestion_config_id="bd0273a5-af08-4ea7-a9fb-add2e8cad88f" flow_names="sift-stream-metrics-flow"
+2026-04-09T22:55:00.481790Z  INFO sift_stream::stream::tasks: backup manager task started sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:00.481818Z  INFO sift_stream::stream::tasks: ingestion task started sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:00.481831Z  INFO sift_stream::stream::tasks: creating new stream sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:00.481851Z  INFO sift_stream::stream::tasks: successfully initialized a new stream to Sift sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:00.482034Z  INFO sift_stream::stream::tasks: Sift streaming successfully initialized sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:00.483943Z  INFO sift_stream::stream::tasks: Sift streaming successfully initialized sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:55:00.485167Z  INFO sift_stream::stream::tasks: backup re-ingestion task started sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:00.485196Z  INFO sift_stream::stream::tasks: metrics streaming task started sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:55:00.486168Z  INFO sift_stream::stream::mode::ingestion_config: flow 'vehicle_metrics' being ingested for the first time sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:55:00.487187Z  INFO sift_stream::stream::mode::ingestion_config: flow 'sift-stream-metrics-flow' being ingested for the first time sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:20.786294Z  INFO sift_stream::stream::tasks: metrics streaming task shutting down
+2026-04-09T22:55:20.786301Z  INFO sift_stream::backup::disk::async_manager: backup manager shutting down
+2026-04-09T22:55:20.786310Z  INFO sift_stream::backup::disk::async_manager: backup manager cleanup started
+2026-04-09T22:55:20.786319Z  INFO sift_stream::backup::disk::async_manager: re-ingestion task shutting down
+2026-04-09T22:55:20.786346Z  INFO sift_stream::stream::tasks: ingestion task shutting down sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:55:20.786354Z  INFO sift_stream::backup::disk::async_manager: re-ingestion task shutting down
+2026-04-09T22:55:20.786703Z  INFO sift_stream::stream::tasks: ingestion task shutting down sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:20.786716Z  INFO sift_stream::backup::disk::async_manager: backup manager shutting down
+2026-04-09T22:55:20.786722Z  INFO sift_stream::backup::disk::async_manager: backup manager cleanup started
+2026-04-09T22:55:20.820635Z  INFO sift_stream::stream::tasks: final stream completed successfully sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:20.820670Z  INFO sift_stream::stream::tasks: final stream completed successfully sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798
+2026-04-09T22:55:20.827512Z  INFO sift_stream::backup::disk::async_manager: no backup files need to be re-ingested
+2026-04-09T22:55:20.827547Z  INFO sift_stream::stream::mode::ingestion_config: successfully shutdown streaming system sift_stream_id=0e47795c-4ca9-4bcf-ad8a-93d1ff4eef40
+2026-04-09T22:55:20.827583Z  INFO sift_stream::stream::mode::ingestion_config: successfully shutdown streaming system sift_stream_id=84b0c6e3-9b23-4f0b-bc20-11c4576cd798

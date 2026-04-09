@@ -179,40 +179,45 @@ async def main() -> None:
         run=run,
     ) as ingest_client:
         # Continue streaming until the user terminates the program
-        while True:
-            now = datetime.now(timezone.utc)
+        try:
+            while True:
+                now = datetime.now(timezone.utc)
 
-            # Generate mock telemetry values
-            # ---------------------------------------------------------
-            # In a real system, these would come from sensors,
-            # hardware interfaces, or production metrics.
-            velocity = random.uniform(0, 10)
-            temperature = random.uniform(20, 40)
+                # Generate mock telemetry values
+                # ---------------------------------------------------------
+                # In a real system, these would come from sensors,
+                # hardware interfaces, or production metrics.
+                velocity = random.uniform(0, 10)
+                temperature = random.uniform(20, 40)
 
-            # Build and send a FlowPy directly using sift_stream_bindings types
-            # ---------------------------------------------------------
-            # Using FlowPy, ChannelValuePy, ValuePy, and TimeValuePy directly
-            # avoids the CPU-bound conversion overhead of the ergonomic
-            # flow_config.as_flow() helper.
-            await ingest_client.send(
-                FlowPy(
-                    flow_name=FLOW_NAME,
-                    timestamp=TimeValuePy.from_timestamp_millis(int(now.timestamp() * 1000)),
-                    values=[
-                        ChannelValuePy(name="velocity", value=ValuePy.Double(velocity)),
-                        ChannelValuePy(name="temperature", value=ValuePy.Double(temperature)),
-                    ],
+                # Build and send a FlowPy directly using sift_stream_bindings types
+                # ---------------------------------------------------------
+                # Using FlowPy, ChannelValuePy, ValuePy, and TimeValuePy directly
+                # avoids the CPU-bound conversion overhead of the ergonomic
+                # flow_config.as_flow() helper.
+                await ingest_client.send(
+                    FlowPy(
+                        flow_name=FLOW_NAME,
+                        timestamp=TimeValuePy.from_timestamp_millis(int(now.timestamp() * 1000)),
+                        values=[
+                            ChannelValuePy(name="velocity", value=ValuePy.Double(velocity)),
+                            ChannelValuePy(name="temperature", value=ValuePy.Double(temperature)),
+                        ],
+                    )
                 )
-            )
 
-            print(
-                f"[SENT {now.isoformat()}] "
-                f"velocity={velocity:.2f} m/s | "
-                f"temperature={temperature:.2f} C"
-            )
+                print(
+                    f"[SENT {now.isoformat()}] "
+                    f"velocity={velocity:.2f} m/s | "
+                    f"temperature={temperature:.2f} C"
+                )
 
-            # Control sampling rate
-            await asyncio.sleep(SEND_INTERVAL_SECONDS)
+                # Control sampling rate
+                await asyncio.sleep(SEND_INTERVAL_SECONDS)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            await ingest_client.finish()
 
     print("Streaming session closed.")
 
@@ -221,7 +226,4 @@ async def main() -> None:
 # ---------------------------------------------------------------------
 # asyncio.run() starts the async ingestion workflow.
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\nStreaming stopped by user.")
+    asyncio.run(main())
