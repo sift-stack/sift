@@ -2031,13 +2031,21 @@ provided.</p>
 For other formats (TDMS, HDF5, CH10), create the config manually
 using <code>TdmsImportConfig</code>, <code>Hdf5ImportConfig</code>, or
 <code>Ch10ImportConfig</code>.</p>
-<p>For CSV files, the server can parse an optional JSON metadata row
-that auto-populates channel names, units, descriptions, data types,
-and enum definitions. Each cell in the row is a JSON object
-describing that column. When present, <code>first_data_row</code> in the
-returned config will be set to the row after the metadata row.
-Note that enum type definitions are applied server-side during
-import but are not included in the returned config.</p>
+<p>For CSV files, the server scans the first two rows for an optional
+JSON metadata row. Row 1 is checked first; row 2 is checked only
+if row 1 is not valid metadata. A row qualifies as metadata when
+every cell contains valid JSON that describes either a time column
+or a data column. When present, <code>first_data_row</code> in the returned
+config is set to the row after the metadata row.</p>
+<p>Each data column cell is a JSON <code>ChannelConfig</code>::</p>
+<div class="language-text highlight"><pre><span></span><code>{&quot;name&quot;: &quot;speed&quot;, &quot;units&quot;: &quot;m/s&quot;, &quot;dataType&quot;: &quot;CHANNEL_DATA_TYPE_DOUBLE&quot;}
+</code></pre></div>
+<p>The time column cell is a JSON <code>CsvTimeColumn</code>::</p>
+<div class="language-text highlight"><pre><span></span><code>{&quot;format&quot;: &quot;TIME_FORMAT_ABSOLUTE_RFC3339&quot;}
+</code></pre></div>
+<p>Enum type definitions and bit field elements can also be specified
+in the metadata row; they are applied server-side during import
+but are not included in the returned config.</p>
 <p>For file types with multiple layouts (e.g. Parquet), <code>data_type</code>
 must be specified explicitly.</p>
 
