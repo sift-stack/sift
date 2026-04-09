@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import getpass
+import logging
 import os
 import socket
 import tempfile
@@ -8,7 +9,6 @@ import traceback
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
 from pathlib import Path
-import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
