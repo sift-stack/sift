@@ -7,6 +7,8 @@ from sift.data_imports.v2.data_imports_pb2 import (
     CreateDataImportFromUploadResponse,
     DetectConfigRequest,
     DetectConfigResponse,
+    GetDataImportRequest,
+    GetDataImportResponse,
 )
 from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 
@@ -74,6 +76,19 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).CreateDataImportFromUpload(request)
         response = cast("CreateDataImportFromUploadResponse", response)
         return response.data_import_id, response.upload_url
+
+    async def get(self, data_import_id: str) -> GetDataImportResponse:
+        """Get a data import by ID.
+
+        Args:
+            data_import_id: The ID of the data import.
+
+        Returns:
+            The GetDataImportResponse proto.
+        """
+        request = GetDataImportRequest(data_import_id=data_import_id)
+        response = await self._grpc_client.get_stub(DataImportServiceStub).GetDataImport(request)
+        return cast("GetDataImportResponse", response)
 
     async def detect_config(
         self, data: bytes, data_type_key: DataTypeKey.ValueType

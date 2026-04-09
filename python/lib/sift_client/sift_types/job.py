@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.run import Run
 
 
 class JobType(str, Enum):
@@ -314,6 +315,22 @@ class Job(BaseType[JobProto, "Job"]):
         )
         self._update(completed_job)
         return self
+
+    def get_import_run(self) -> Run:
+        """Get the run created by this data import job.
+
+        Returns:
+            The Run associated with this import.
+
+        Raises:
+            ValueError: If this is not a data import job or the import
+                has no associated run.
+        """
+        if self.job_type != JobType.DATA_IMPORT:
+            raise ValueError("get_import_run() is only valid for data import jobs.")
+        if not isinstance(self.job_details, DataImportDetails):
+            raise ValueError("Job does not have data import details.")
+        return self.client.data_import.get_run(self.job_details.data_import_id)
 
     def wait_and_download(
         self,

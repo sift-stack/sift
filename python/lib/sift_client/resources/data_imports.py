@@ -170,6 +170,29 @@ class DataImportAPIAsync(ResourceBase):
 
         return await self.client.async_.jobs.get(job_id=job_id)
 
+    async def get_run(self, data_import_id: str) -> Run:
+        """Get the run associated with a data import.
+
+        The ``data_import_id`` is available on the job returned by
+        ``import_from_path`` via ``job.job_details.data_import_id``.
+        For a more ergonomic approach, use ``job.get_import_run()``
+        which calls this method internally.
+
+        Args:
+            data_import_id: The ID of the data import.
+
+        Returns:
+            The Run created by or associated with the import.
+
+        Raises:
+            ValueError: If the data import has no associated run.
+        """
+        response = await self._low_level_client.get(data_import_id)
+        run_id = response.data_import.run_id
+        if not run_id:
+            raise ValueError("Data import does not have an associated run.")
+        return await self.client.async_.runs.get(run_id=run_id)
+
     async def detect_config(
         self,
         file_path: str | Path,
