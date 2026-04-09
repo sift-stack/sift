@@ -179,7 +179,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if "run_id" in update_mask_paths:
             updates["run_id"] = proto.run_id if proto.run_id else None
         if "metadata" in update_mask_paths:
-            updates["metadata"] = metadata_proto_to_dict(proto.metadata)
+            updates["metadata"] = metadata_proto_to_dict(proto.metadata)  # type: ignore
         if "is_archived" in update_mask_paths:
             updates["is_archived"] = proto.is_archived
 
@@ -889,78 +889,79 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 json_str = match.group(3)
 
                 if request_type == "CreateTestReport":
-                    request = CreateTestReportRequest()
-                    json_format.Parse(json_str, request)
-                    simulated_proto = self.simulate_create_test_report_response(request)
+                    create_report_req = CreateTestReportRequest()
+                    json_format.Parse(json_str, create_report_req)
+                    report_proto = self.simulate_create_test_report_response(create_report_req)
                     if response_id:
-                        simulated_proto.test_report_id = response_id
-                    simulated_report = TestReport._from_proto(simulated_proto)
+                        report_proto.test_report_id = response_id
+                    simulated_report = TestReport._from_proto(report_proto)
 
                 elif request_type == "CreateTestStep":
-                    request = CreateTestStepRequest()
-                    json_format.Parse(json_str, request)
-                    simulated_proto = self.simulate_create_test_step_response(request)
+                    create_step_req = CreateTestStepRequest()
+                    json_format.Parse(json_str, create_step_req)
+                    step_proto = self.simulate_create_test_step_response(create_step_req)
                     if response_id:
-                        simulated_proto.test_step_id = response_id
-                    step = TestStep._from_proto(simulated_proto)
+                        step_proto.test_step_id = response_id
+                    step = TestStep._from_proto(step_proto)
                     simulated_steps_by_id[step._id_or_error] = step
                     simulated_steps_order.append(step._id_or_error)
 
                 elif request_type == "CreateTestMeasurement":
-                    request = CreateTestMeasurementRequest()
-                    json_format.Parse(json_str, request)
-                    simulated_proto = self.simulate_create_test_measurement_response(request)
+                    create_meas_req = CreateTestMeasurementRequest()
+                    json_format.Parse(json_str, create_meas_req)
+                    meas_proto = self.simulate_create_test_measurement_response(create_meas_req)
                     if response_id:
-                        simulated_proto.measurement_id = response_id
-                    measurement = TestMeasurement._from_proto(simulated_proto)
+                        meas_proto.measurement_id = response_id
+                    measurement = TestMeasurement._from_proto(meas_proto)
                     simulated_measurements_by_id[measurement._id_or_error] = measurement
                     simulated_measurements_order.append(measurement._id_or_error)
 
                 elif request_type == "CreateTestMeasurements":
-                    request = CreateTestMeasurementsRequest()
-                    json_format.Parse(json_str, request)
+                    create_batch_req = CreateTestMeasurementsRequest()
+                    json_format.Parse(json_str, create_batch_req)
                     original_ids = response_id.split(",") if response_id else []
-                    for i, tm_proto in enumerate(request.test_measurements):
+                    for i, tm_proto in enumerate(create_batch_req.test_measurements):
                         single_request = CreateTestMeasurementRequest(test_measurement=tm_proto)
-                        simulated_proto = self.simulate_create_test_measurement_response(
+                        batch_meas_proto = self.simulate_create_test_measurement_response(
                             single_request
                         )
                         if i < len(original_ids):
-                            simulated_proto.measurement_id = original_ids[i]
-                        measurement = TestMeasurement._from_proto(simulated_proto)
+                            batch_meas_proto.measurement_id = original_ids[i]
+                        measurement = TestMeasurement._from_proto(batch_meas_proto)
                         simulated_measurements_by_id[measurement._id_or_error] = measurement
                         simulated_measurements_order.append(measurement._id_or_error)
 
                 elif request_type == "UpdateTestReport":
                     if simulated_report is None:
                         raise ValueError("UpdateTestReport found before CreateTestReport")
-                    request = UpdateTestReportRequest()
-                    json_format.Parse(json_str, request)
+                    update_report_req = UpdateTestReportRequest()
+                    json_format.Parse(json_str, update_report_req)
                     simulated_report = self.simulate_update_test_report_response(
-                        request, existing=simulated_report
+                        update_report_req, existing=simulated_report
                     )
 
                 elif request_type == "UpdateTestStep":
-                    request = UpdateTestStepRequest()
-                    json_format.Parse(json_str, request)
-                    step_id = request.test_step.test_step_id
+                    update_step_req = UpdateTestStepRequest()
+                    json_format.Parse(json_str, update_step_req)
+                    step_id = update_step_req.test_step.test_step_id
                     if step_id not in simulated_steps_by_id:
                         raise ValueError(f"UpdateTestStep for unknown step: {step_id}")
                     simulated_steps_by_id[step_id] = self.simulate_update_test_step_response(
-                        request, existing=simulated_steps_by_id[step_id]
+                        update_step_req, existing=simulated_steps_by_id[step_id]
                     )
 
                 elif request_type == "UpdateTestMeasurement":
-                    request = UpdateTestMeasurementRequest()
-                    json_format.Parse(json_str, request)
-                    measurement_id = request.test_measurement.measurement_id
+                    update_meas_req = UpdateTestMeasurementRequest()
+                    json_format.Parse(json_str, update_meas_req)
+                    measurement_id = update_meas_req.test_measurement.measurement_id
                     if measurement_id not in simulated_measurements_by_id:
                         raise ValueError(
                             f"UpdateTestMeasurement for unknown measurement: {measurement_id}"
                         )
                     simulated_measurements_by_id[measurement_id] = (
                         self.simulate_update_test_measurement_response(
-                            request, existing=simulated_measurements_by_id[measurement_id]
+                            update_meas_req,
+                            existing=simulated_measurements_by_id[measurement_id],
                         )
                     )
 
