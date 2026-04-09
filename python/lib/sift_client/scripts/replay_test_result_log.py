@@ -9,6 +9,7 @@ from sift_client import SiftClient, SiftConnectionConfig
 
 
 def main() -> None:
+    """Replay a test result simulation log file against the Sift API."""
     parser = argparse.ArgumentParser(
         description="Replay a test result simulation log file against the Sift API.",
     )
