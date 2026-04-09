@@ -77,33 +77,67 @@
 //!
 //! ## Stream Modes
 //!
-//! SiftStream supports two different modes of operation, each with different use cases:
+//! Three transport modes are available, selected via the builder chain. Each mode determines
+//! the channel architecture, backpressure behavior, and durability guarantees:
 //!
-//! ### IngestionConfigMode
+//! | Builder method | Transport type | Backpressure source | Checkpointing | Disk backup | Retries |
+//! |---|---|---|---|---|
+//! | `.live_only()` | [`LiveStreamingOnly`] | ingestion channel | No | No | Yes |
+//! | `.live_with_backups()` | [`LiveStreamingWithBackups`] | backup channel | Yes | Yes | Yes |
+//! | `.file_backup()` | [`FileBackup`] | write channel | No | Yes | N/A |
 //!
-//! [IngestionConfigMode] is the default streaming mode that sends telemetry data directly to Sift
-//! via gRPC streams. This mode supports:
-//! - Real-time streaming to Sift
-//! - Optional disk backups for data recovery
-//! - Checkpointing to confirm data receipt
-//! - Retry policies for handling network outages
+//! ### `live_only` — [`LiveStreamingOnly`]
 //!
-//! This mode is entered with `.live_only().build()` or `.live_with_backups().build()` and is
-//! suitable for most use cases where you want to stream data to Sift in real-time.
+//! Streams to Sift in real-time over a single bounded ingestion channel. Backpressure is applied
+//! directly when that channel is full: [`send`](stream::SiftStream::send) awaits until the
+//! ingestion task drains capacity. Supports retries.
 //!
-//! ### FileBackupMode
+//! ```ignore
+//! let stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .live_only()
+//!     .build()
+//!     .await?;
+//! ```
 //!
-//! [FileBackupMode] is a specialized mode that only writes telemetry data to backup files on disk
-//! without streaming to Sift. This mode is useful for:
-//! - CI/CD workflows where data is only needed/uploaded to Sift if a test fails
-//! - Situations where network connectivity is unreliable
-//! - Creating backup files for later ingestion
+//! ### `live_with_backups` — [`LiveStreamingWithBackups`]
 //!
-//! This mode is entered with `.file_backup().build()`. Data written in this mode can be ingested
-//! into Sift later using separate tooling.
+//! Streams to Sift in real-time using a dual-channel architecture: a bounded backup channel
+//! and a bounded ingestion channel. Backpressure is applied on the **backup channel**; the
+//! ingestion channel uses force-send and never blocks — when full it evicts the oldest buffered
+//! message to preserve freshness. Supports retries, checkpointing, and an disk backup strategy
+//! for intermittent network failures.
 //!
-//! **Note**: When using `FileBackupMode`, you must set `disk_backup_policy.backups_dir` via
-//! [FileBackupBuilder::disk_backup_policy], as the directory is required for file management.
+//! ```ignore
+//! let stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .live_with_backups()
+//!     .build()
+//!     .await?;
+//! ```
+//!
+//! ### `file_backup` — [`FileBackup`]
+//!
+//! Writes telemetry to rolling disk files without any network ingestion. Backpressure is
+//! applied on the bounded write channel: [`send`](stream::SiftStream::send) awaits until the
+//! file-writer task drains capacity. Data written in this mode can be ingested into Sift later
+//! using the `sift-cli` tool.
+//!
+//! Useful for CI/CD workflows where data only needs to reach Sift if a test fails, or in
+//! environments where network connectivity is unavailable during the recording session.
+//! `disk_backup_policy.backups_dir` must be set via [FileBackupBuilder::disk_backup_policy].
+//!
+//! ```ignore
+//! let stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .file_backup()
+//!     .disk_backup_policy(DiskBackupPolicy {
+//!         backups_dir: Some(PathBuf::from("/data/backups")),
+//!         ..Default::default()
+//!     })
+//!     .build()
+//!     .await?;
+//! ```
 //!
 //! ## Ingestion Configs
 //!
@@ -530,7 +564,7 @@
 //! - `metrics-unstable`: Enables the ability for the user to access SiftStream metrics from each [SiftStream] instance,
 //!   or through a light-weight HTML metrics server, if enabled. See [metrics](#metrics)
 
-/// Concerned with streaming telemetry into Sift.
+/// Concerned with streaming telemetry to Sift.
 pub mod stream;
 pub use sift_rs::{
     common::r#type::v1::ChannelDataType,

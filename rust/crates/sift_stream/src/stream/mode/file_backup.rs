@@ -89,8 +89,20 @@ impl FileBackupWriter {
     }
 }
 
-/// Dependencies specifically for file-backup based streaming. Users shouldn't have to
-/// interact with this directly.
+/// Transport that writes messages to rolling disk files without live network ingestion.
+///
+/// Messages are queued on a single bounded write channel and consumed by a background
+/// file-writer task that manages rolling files according to the configured
+/// [`DiskBackupPolicy`](crate::DiskBackupPolicy).
+///
+/// **Backpressure**: [`send`](crate::SiftStream::send) awaits when the **write channel**
+/// is full. The channel capacity is set via
+/// [`FileBackupBuilder::backup_data_channel_capacity`](crate::FileBackupBuilder::backup_data_channel_capacity)
+/// (default: [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY)).
+///
+/// Use this mode for CI/CD workflows where data only needs to reach Sift if a test fails,
+/// or in environments where network connectivity is unavailable during the recording session.
+/// Data written by this mode can be ingested into Sift later using separate tooling.
 pub struct FileBackup {
     write_tx: Sender<Arc<IngestWithConfigDataStreamRequest>>,
     write_task: JoinHandle<Result<()>>,
@@ -132,12 +144,13 @@ impl Transport for FileBackup {
     type Encoder = IngestionConfigEncoder;
     type Message = IngestWithConfigDataStreamRequest;
 
-    /// Sends a message to be written to the backup file, awaiting capacity if the stream
-    /// is busy.
+    /// Sends a message to be written to disk, awaiting capacity on the **write channel**
+    /// if it is full.
     ///
-    /// Returns an error only if the stream has been closed, in which case the original
-    /// message is returned inside `Err`. Normal backpressure is handled transparently by
-    /// waiting.
+    /// Backpressure comes from the bounded write channel between the caller and the
+    /// background file-writer task. Returns an error only if the channel is closed (i.e.
+    /// the stream is shutting down), in which case the original message is returned inside
+    /// `Err`.
     async fn send(
         &mut self,
         stream_id: &Uuid,
@@ -158,9 +171,9 @@ impl Transport for FileBackup {
 
     /// Attempts to send a message without blocking.
     ///
-    /// Returns immediately with `TrySendError::Full` if the stream is at capacity, or
-    /// `TrySendError::Closed` if the stream has been closed. In either case the original
-    /// message is returned unchanged.
+    /// Returns immediately with `TrySendError::Full` if the **write channel** is at
+    /// capacity, or `TrySendError::Closed` if the channel has been closed. In either case
+    /// the original message is returned unchanged inside the error variant.
     fn try_send(
         &mut self,
         stream_id: &Uuid,

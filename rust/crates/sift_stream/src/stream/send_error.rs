@@ -67,10 +67,12 @@ impl<T> TrySendError<T> {
         }
     }
 
+    /// Returns `true` if this is the [`Closed`](TrySendError::Closed) variant.
     pub fn is_closed(&self) -> bool {
         matches!(self, TrySendError::Closed(_))
     }
 
+    /// Returns `true` if this is the [`Full`](TrySendError::Full) variant.
     pub fn is_full(&self) -> bool {
         matches!(self, TrySendError::Full(_))
     }

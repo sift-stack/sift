@@ -132,7 +132,6 @@ impl TaskBuilder {
         let backup_data_rx = backup_rx.clone();
 
         let mut backup_manager_task = AsyncBackupsManager::new(
-            config.recovery_config.backups_enabled,
             &config.recovery_config.backups_directory,
             &config.recovery_config.backups_prefix,
             config.recovery_config.backup_policy.clone(),

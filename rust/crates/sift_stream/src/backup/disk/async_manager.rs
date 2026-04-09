@@ -34,9 +34,6 @@ fn ranges_overlap<T: PartialOrd>(rh: &RangeInclusive<T>, lh: &RangeInclusive<T>)
 /// Configuration for how to manage backups.
 #[derive(Clone)]
 struct BackupConfig {
-    /// Flag indicating if backups are enabled.
-    enabled: bool,
-
     /// The directory to store backup files in.
     directory: PathBuf,
 
@@ -163,7 +160,6 @@ impl AsyncBackupsManager {
     /// * `metrics` - The metrics for the backup manager
     #[allow(clippy::too_many_arguments)]
     pub(crate) async fn new(
-        enabled: bool,
         new_dir_name: &str,
         backup_prefix: &str,
         disk_backup_policy: DiskBackupPolicy,
@@ -189,7 +185,6 @@ impl AsyncBackupsManager {
         }
 
         let backup_info = BackupConfig {
-            enabled,
             directory: backups_dir,
             prefix: backup_prefix.to_string(),
             max_size: disk_backup_policy.max_backup_file_size,
@@ -320,10 +315,6 @@ impl AsyncBackupsManager {
     /// Process pending checkpoints that have been reached by the current backup state.
     /// Checkpoints are processed in order as backup files catch up to them.
     async fn process_pending_checkpoints(&mut self) -> Result<()> {
-        if !self.backup_config.enabled {
-            return Ok(());
-        }
-
         // Get the highest message_id that has been backed up
         // This is either from the current file context or the last file in the buffer
         let current_last_backed_message_id = if self.current_file.is_some() {
@@ -454,10 +445,6 @@ impl AsyncBackupsManager {
 
     /// Process a data message for backup.
     async fn handle_data_message(&mut self, msg: &DataMessage) -> Result<()> {
-        if !self.backup_config.enabled {
-            return Ok(());
-        }
-
         // If the message has already been committed (confirmed by a successful checkpoint),
         // there is no need to back it up.
         //
@@ -927,7 +914,6 @@ mod test {
         let (_, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -940,10 +926,6 @@ mod test {
         .unwrap();
 
         // Verify the backup manager configuration.
-        assert!(
-            backup_manager.backup_config.enabled,
-            "backup manager should be enabled"
-        );
         assert_eq!(
             backup_manager.backup_config.directory,
             tmp_dir_path.join("test")
@@ -962,56 +944,6 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_async_manager_disabled() {
-        let tmp_dir = TempDir::new("test_async_manager").unwrap();
-        let tmp_dir_path = tmp_dir.path();
-        let backup_policy = DiskBackupPolicy {
-            backups_dir: Some(tmp_dir_path.to_path_buf()),
-            max_backup_file_size: 64,
-            rolling_file_policy: RollingFilePolicy {
-                max_file_count: Some(10),
-            },
-            retain_backups: false,
-        };
-        let (control_tx, control_rx) = broadcast::channel(1024);
-        let (_data_tx, data_rx) = async_channel::bounded(1024);
-        let metrics = Arc::new(SiftStreamMetrics::default());
-        let mut backup_manager = AsyncBackupsManager::new(
-            false,
-            "test",
-            "test",
-            backup_policy.clone(),
-            control_tx,
-            control_rx,
-            data_rx,
-            metrics,
-        )
-        .await
-        .unwrap();
-
-        // Handle a few messages to fill up some backup files.
-        for i in 0..10 {
-            let data_msg = create_test_data_message(i as u64, false);
-            assert!(
-                backup_manager.handle_data_message(&data_msg).await.is_ok(),
-                "data message should be handled"
-            );
-            assert!(
-                backup_manager.current_file.is_none(),
-                "current file should be none"
-            );
-            assert_eq!(
-                backup_manager.current_file_ctx.file_size, 0,
-                "current file metadata should have a size of 0"
-            );
-            assert_eq!(
-                backup_manager.current_file_ctx.message_count, 0,
-                "current file metadata should have no messages"
-            );
-        }
-    }
-
-    #[tokio::test]
     async fn test_async_manager_create_backup_file() {
         let tmp_dir = TempDir::new("test_async_manager").unwrap();
         let tmp_dir_path = tmp_dir.path();
@@ -1027,7 +959,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -1082,7 +1013,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -1163,7 +1093,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1230,7 +1159,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1305,7 +1233,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1380,7 +1307,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1432,7 +1358,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            false,
             "test",
             "test",
             backup_policy.clone(),
@@ -1483,7 +1408,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1566,7 +1490,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1612,7 +1535,6 @@ mod test {
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1672,7 +1594,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -1740,7 +1661,6 @@ mod test {
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy.clone(),
@@ -1883,7 +1803,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -1988,7 +1907,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2074,7 +1992,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2145,7 +2062,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2223,7 +2139,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2328,7 +2243,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2432,7 +2346,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2499,7 +2412,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2613,7 +2525,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2690,7 +2601,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2760,7 +2670,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -2814,7 +2723,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,
@@ -3336,7 +3244,6 @@ mod test {
         let (_data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut backup_manager = AsyncBackupsManager::new(
-            true,
             "test",
             "test",
             backup_policy,

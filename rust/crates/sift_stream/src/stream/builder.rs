@@ -39,28 +39,43 @@ pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
 /// The default metrics streaming interval (500 milliseconds) to use if left unspecified.
 pub const DEFAULT_METRICS_STREAMING_INTERVAL: Duration = Duration::from_millis(500);
 
-/// A form to create a new ingestion config or retrieve an existing ingestion config based on the
-/// `client_key` provided. The `client_key` is an arbitrary user-sourced identifier that is
-/// expected to be unique across the user's organization; it's used to uniquely identify a
-/// particular ingestion config which defines the schema of an asset's telemetry. See the
-/// [top-level documentation](crate#ingestion-configs) for further details.
+/// A form to create a new ingestion config or retrieve an existing one by `client_key`.
+///
+/// The `client_key` is an arbitrary, user-defined identifier that must be unique within your
+/// organization. It acts as a stable handle for the schema: passing the same `client_key` again
+/// retrieves the existing ingestion config rather than creating a duplicate. Use it for
+/// client-side versioning (e.g. `"mars-rover0-ingestion-config-v2"`).
+///
+/// See the [top-level documentation](crate#ingestion-configs) for compatibility rules and
+/// guidance on when to bump the `client_key`.
 #[derive(Debug, Clone)]
 pub struct IngestionConfigForm {
+    /// Name of the asset whose telemetry this ingestion config describes.
     pub asset_name: String,
+    /// Unique, user-defined key that identifies this ingestion config within the organization.
     pub client_key: String,
+    /// Ordered list of flow configurations that define the telemetry schema.
     pub flows: Vec<FlowConfig>,
 }
 
-/// A form to create a new run or retrieve an existing run based on the `client_key` provided. This
-/// is used in [StreamConfigBuilder::attach_run]. Note that if there is an existing run with the
-/// given `client_key`, any other fields that are updated in this [RunForm] will be updated in
-/// Sift, with the exception of `Option` fields that are `None`.
+/// A form to create a new run or retrieve an existing one by `client_key`.
+///
+/// Used with [StreamConfigBuilder::attach_run]. If a run with the given `client_key` already
+/// exists, any non-`None` fields in this form will be applied as updates in Sift. `Option`
+/// fields left as `None` are left unchanged on the existing run.
 #[derive(Debug, Clone, Default)]
 pub struct RunForm {
+    /// Display name for the run.
     pub name: String,
+    /// Unique, user-defined key that identifies this run. Used to upsert: creates a new run or
+    /// retrieves the existing one with this key.
     pub client_key: String,
+    /// Optional human-readable description. If `None` on an existing run, the existing
+    /// description is preserved.
     pub description: Option<String>,
+    /// Optional list of tags to associate with the run.
     pub tags: Option<Vec<String>>,
+    /// Optional metadata key-value pairs to associate with the run.
     pub metadata: Option<Vec<MetadataValue>>,
 }
 
@@ -172,8 +187,11 @@ impl StreamConfigBuilder {
         self
     }
 
-    /// Selects `LiveStreamingOnly` mode: a single bounded ingestion channel with direct
-    /// backpressure. No disk backups, no checkpointing, no retry policy.
+    /// Selects [`LiveStreamingOnly`](crate::LiveStreamingOnly) mode: a single bounded ingestion
+    /// channel with direct backpressure and retry. No checkpointing, no disk backups.
+    ///
+    /// [`send`](crate::SiftStream::send) awaits when the ingestion channel is full. Capacity is
+    /// configured via [`LiveOnlyBuilder::ingestion_data_channel_capacity`].
     pub fn live_only(self) -> LiveOnlyBuilder {
         LiveOnlyBuilder {
             base: self,
@@ -185,8 +203,13 @@ impl StreamConfigBuilder {
         }
     }
 
-    /// Selects `LiveStreamingWithBackups` mode: dual channel with checkpointing, retry policy,
-    /// and optional disk backups.
+    /// Selects [`LiveStreamingWithBackups`](crate::LiveStreamingWithBackups) mode: dual-channel
+    /// architecture with checkpointing, retry, and disk backups.
+    ///
+    /// [`send`](crate::SiftStream::send) awaits when the **backup channel** is full; the
+    /// ingestion channel uses force-send and never blocks. Capacities are configured via
+    /// [`LiveWithBackupsBuilder::backup_data_channel_capacity`] and
+    /// [`LiveWithBackupsBuilder::ingestion_data_channel_capacity`].
     pub fn live_with_backups(self) -> LiveWithBackupsBuilder {
         LiveWithBackupsBuilder {
             base: self,
@@ -201,7 +224,13 @@ impl StreamConfigBuilder {
         }
     }
 
-    /// Selects `FileBackup` mode: writes all data to disk files without network ingestion.
+    /// Selects [`FileBackup`](crate::FileBackup) mode: writes all data to rolling disk files
+    /// without network ingestion.
+    ///
+    /// [`send`](crate::SiftStream::send) awaits when the write channel is full. Capacity is
+    /// configured via [`FileBackupBuilder::backup_data_channel_capacity`].
+    /// `disk_backup_policy.backups_dir` must be set before calling
+    /// [`FileBackupBuilder::build`].
     pub fn file_backup(self) -> FileBackupBuilder {
         FileBackupBuilder {
             base: self,
@@ -239,13 +268,23 @@ impl LiveOnlyBuilder {
         self
     }
 
-    /// Sets the ingestion data channel capacity.
+    /// Sets the capacity of the ingestion channel — the bounded queue between the caller and the
+    /// gRPC ingestion task.
+    ///
+    /// [`send`](crate::SiftStream::send) awaits when this channel is full, applying backpressure
+    /// to the caller. Defaults to [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY).
+    /// Increase for high-throughput producers to absorb bursts; decrease to reduce memory usage
+    /// at the cost of earlier backpressure.
     pub fn ingestion_data_channel_capacity(mut self, capacity: usize) -> Self {
         self.ingestion_data_channel_capacity = capacity;
         self
     }
 
-    /// Sets the control channel capacity.
+    /// Sets the capacity of the control channel — the broadcast channel used to send internal
+    /// signals such as shutdown.
+    ///
+    /// Defaults to [`CONTROL_CHANNEL_CAPACITY`](crate::stream::tasks::CONTROL_CHANNEL_CAPACITY).
+    /// Most users do not need to change this.
     pub fn control_channel_capacity(mut self, capacity: usize) -> Self {
         self.control_channel_capacity = capacity;
         self
@@ -335,19 +374,35 @@ impl LiveWithBackupsBuilder {
         self
     }
 
-    /// Sets the ingestion data channel capacity.
+    /// Sets the capacity of the ingestion channel — the bounded queue between the backup manager
+    /// and the gRPC ingestion task.
+    ///
+    /// This channel uses force-send: when full, the **oldest buffered message is evicted** (not
+    /// the caller) to preserve message freshness. Defaults to
+    /// [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY). Smaller values
+    /// increase the likelihood of message eviction under load.
     pub fn ingestion_data_channel_capacity(mut self, capacity: usize) -> Self {
         self.ingestion_data_channel_capacity = capacity;
         self
     }
 
-    /// Sets the backup data channel capacity.
+    /// Sets the capacity of the backup channel — the primary bounded queue between the caller
+    /// and the backup manager task.
+    ///
+    /// [`send`](crate::SiftStream::send) awaits when this channel is full, applying backpressure
+    /// to the caller. Defaults to [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY).
+    /// Increase for high-throughput producers to absorb bursts; decrease to reduce memory usage
+    /// at the cost of earlier backpressure.
     pub fn backup_data_channel_capacity(mut self, capacity: usize) -> Self {
         self.backup_data_channel_capacity = capacity;
         self
     }
 
-    /// Sets the control channel capacity.
+    /// Sets the capacity of the control channel — the broadcast channel used to send internal
+    /// signals such as shutdown and checkpoint triggers.
+    ///
+    /// Defaults to [`CONTROL_CHANNEL_CAPACITY`](crate::stream::tasks::CONTROL_CHANNEL_CAPACITY).
+    /// Most users do not need to change this.
     pub fn control_channel_capacity(mut self, capacity: usize) -> Self {
         self.control_channel_capacity = capacity;
         self
@@ -374,19 +429,15 @@ impl LiveWithBackupsBuilder {
         let reingestion_channel =
             reingestion_channel_pre.unwrap_or_else(|| setup.setup_channel.clone());
 
-        let backups_enabled = self.disk_backup_policy.backups_dir.is_some();
-        let (backups_directory, backups_prefix) = if backups_enabled {
+        let (backups_directory, backups_prefix) = {
             let mut dir_name = sanitize_name(&setup.asset_name);
             if let Some(run) = setup.run.as_ref() {
                 dir_name.push_str(&format!("/{}", sanitize_name(&run.name)));
             }
             (dir_name, setup.ingestion_config.client_key.clone())
-        } else {
-            (String::new(), String::new())
         };
 
         let recovery_config = RecoveryConfig {
-            backups_enabled,
             backups_directory,
             backups_prefix,
             backup_policy: self.disk_backup_policy,
@@ -441,13 +492,23 @@ impl FileBackupBuilder {
         self
     }
 
-    /// Sets the backup data channel capacity.
+    /// Sets the capacity of the write channel — the bounded queue between the caller and the
+    /// background file-writer task.
+    ///
+    /// [`send`](crate::SiftStream::send) awaits when this channel is full, applying backpressure
+    /// to the caller. Defaults to [`DATA_CHANNEL_CAPACITY`](crate::stream::tasks::DATA_CHANNEL_CAPACITY).
+    /// Increase for high-throughput producers to absorb bursts; decrease to reduce memory usage
+    /// at the cost of earlier backpressure.
     pub fn backup_data_channel_capacity(mut self, capacity: usize) -> Self {
         self.backup_data_channel_capacity = capacity;
         self
     }
 
-    /// Sets the control channel capacity.
+    /// Sets the capacity of the control channel — the broadcast channel used to send internal
+    /// signals such as shutdown.
+    ///
+    /// Defaults to [`CONTROL_CHANNEL_CAPACITY`](crate::stream::tasks::CONTROL_CHANNEL_CAPACITY).
+    /// Most users do not need to change this.
     pub fn control_channel_capacity(mut self, capacity: usize) -> Self {
         self.control_channel_capacity = capacity;
         self
