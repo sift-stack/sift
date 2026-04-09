@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.13.0"
+version = "0.14.0"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -48,6 +48,9 @@ Homepage = "https://github.com/sift-stack/sift/tree/main/python"
 Documentation = "https://docs.siftstack.com/sift_py/sift_py.html"
 Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
+
+[project.scripts]
+replay-test-result-log = "sift_client.scripts.replay_test_result_log:main"
 
 [project.optional-dependencies]
 # AUTO GENERATED EXTRAS — EDIT [tool.sift.extras] ONLY

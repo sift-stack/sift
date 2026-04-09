@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import getpass
+import logging
 import os
 import socket
+import subprocess
 import tempfile
 import traceback
 from contextlib import AbstractContextManager
@@ -32,6 +34,8 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from sift_client.client import SiftClient
+
+logger = logging.getLogger(__name__)
 
 
 class ReportContext(AbstractContextManager):
@@ -74,7 +78,9 @@ class ReportContext(AbstractContextManager):
         self.any_failures = False
 
         if log_file is True:
-            self.log_file = Path(tempfile.mktemp(suffix=".jsonl"))
+            tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
+            self.log_file = Path(tmp.name)
+            logger.info(f"Created temporary log file: {self.log_file}")
         elif log_file:
             self.log_file = Path(log_file)
         else:
@@ -95,7 +101,28 @@ class ReportContext(AbstractContextManager):
         )
         self.report = client.test_results.create(create, log_file=self.log_file)
 
+    def _open_replay_proc(self):
+        if self.log_file is not None:
+            # To avoid GRPC forking errors, temporarily redirect stderr at the fd level before forking, so the child inherits /dev/null on fd 2 when the atfork handler fires.
+            saved_stderr = os.dup(2)
+            devnull_fd = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull_fd, 2)
+            os.close(devnull_fd)
+            try:
+                self._replay_proc = subprocess.Popen(
+                    ["replay-test-result-log", "--incremental", str(self.log_file)],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            finally:
+                os.dup2(saved_stderr, 2)
+                os.close(saved_stderr)
+        else:
+            self._replay_proc = None
+
     def __enter__(self):
+        self._open_replay_proc()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -107,8 +134,15 @@ class ReportContext(AbstractContextManager):
         else:
             update["status"] = TestStatus.PASSED
         self.report.update(update, log_file=self.log_file)
-        if self.log_file:
-            replay_result = self.client.test_results.replay_log_file(self.log_file)
+
+        if self._replay_proc is not None:
+            try:
+                self._replay_proc.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                logger.warning("Replay process did not exit in 10s, killing it")
+                self._replay_proc.kill()
+                self._replay_proc.wait()
+
         return True
 
     def new_step(

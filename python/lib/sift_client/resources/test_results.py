@@ -70,15 +70,12 @@ class TestResultsAPIAsync(ResourceBase):
         self,
         test_report: TestReportCreate | dict,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestReport:
         """Create a new test report.
 
         Args:
             test_report: The test report to create (can be TestReport or TestReportCreate).
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestReport.
@@ -88,7 +85,6 @@ class TestResultsAPIAsync(ResourceBase):
         created_report = await self._low_level_client.create_test_report(
             test_report=test_report,
             log_file=log_file,
-            simulate=simulate,
         )
         return self._apply_client_to_instance(created_report)
 
@@ -238,16 +234,13 @@ class TestResultsAPIAsync(ResourceBase):
         test_report: str | TestReport,
         update: TestReportUpdate | dict,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestReport:
         """Update a TestReport.
 
         Args:
             test_report: The TestReport or test report ID to update.
             update: Updates to apply to the TestReport.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The updated TestReport.
@@ -261,7 +254,7 @@ class TestResultsAPIAsync(ResourceBase):
         update.resource_id = test_report_id
         existing = test_report if isinstance(test_report, TestReport) else None
         updated_test_report = await self._low_level_client.update_test_report(
-            update, log_file=log_file, simulate=simulate, existing=existing
+            update, log_file=log_file, existing=existing
         )
         return self._apply_client_to_instance(updated_test_report)
 
@@ -296,15 +289,12 @@ class TestResultsAPIAsync(ResourceBase):
         self,
         test_step: TestStepCreate | dict,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestStep:
         """Create a new test step.
 
         Args:
             test_step: The test step to create (can be TestStep or TestStepCreate).
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestStep.
@@ -312,7 +302,7 @@ class TestResultsAPIAsync(ResourceBase):
         if isinstance(test_step, dict):
             test_step = TestStepCreate.model_validate(test_step)
         test_step_result = await self._low_level_client.create_test_step(
-            test_step, log_file=log_file, simulate=simulate
+            test_step, log_file=log_file
         )
         return self._apply_client_to_instance(test_step_result)
 
@@ -418,16 +408,13 @@ class TestResultsAPIAsync(ResourceBase):
         test_step: str | TestStep,
         update: TestStepUpdate | dict,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestStep:
         """Update a TestStep.
 
         Args:
             test_step: The TestStep or test step ID to update.
             update: Updates to apply to the TestStep.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The updated TestStep.
@@ -440,7 +427,7 @@ class TestResultsAPIAsync(ResourceBase):
         update.resource_id = test_step_id
         existing = test_step if isinstance(test_step, TestStep) else None
         updated_test_step = await self._low_level_client.update_test_step(
-            update, log_file=log_file, simulate=simulate, existing=existing
+            update, log_file=log_file, existing=existing
         )
         return self._apply_client_to_instance(updated_test_step)
 
@@ -460,16 +447,13 @@ class TestResultsAPIAsync(ResourceBase):
         test_measurement: TestMeasurementCreate | dict,
         update_step: bool = False,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestMeasurement:
         """Create a new test measurement.
 
         Args:
             test_measurement: The test measurement to create (can be TestMeasurement or TestMeasurementCreate).
             update_step: Whether to update the step to failed if the measurement is being created is failed.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestMeasurement.
@@ -477,10 +461,10 @@ class TestResultsAPIAsync(ResourceBase):
         if isinstance(test_measurement, dict):
             test_measurement = TestMeasurementCreate.model_validate(test_measurement)
         test_measurement_result = await self._low_level_client.create_test_measurement(
-            test_measurement, log_file=log_file, simulate=simulate
+            test_measurement, log_file=log_file
         )
         measurement = self._apply_client_to_instance(test_measurement_result)
-        if update_step and log_file is None and not simulate:
+        if update_step and log_file is None:
             step = await self.get_step(test_step=test_measurement_result.test_step_id)
             if step.status == TestStatus.PASSED and not measurement.passed:
                 await self.update_step(test_step=step, update={"status": TestStatus.FAILED})
@@ -490,21 +474,18 @@ class TestResultsAPIAsync(ResourceBase):
         self,
         test_measurements: list[TestMeasurementCreate],
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> tuple[int, list[str]]:
         """Create multiple test measurements in a single request.
 
         Args:
             test_measurements: The test measurements to create.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
         """
         return await self._low_level_client.create_test_measurements(
-            test_measurements, log_file=log_file, simulate=simulate
+            test_measurements, log_file=log_file
         )
 
     async def list_measurements(
@@ -594,7 +575,6 @@ class TestResultsAPIAsync(ResourceBase):
         update: TestMeasurementUpdate | dict,
         update_step: bool = False,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestMeasurement:
         """Update a TestMeasurement.
 
@@ -602,9 +582,7 @@ class TestResultsAPIAsync(ResourceBase):
             test_measurement: The TestMeasurement or measurement ID to update.
             update: Updates to apply to the TestMeasurement.
             update_step: Whether to update the step to failed if the measurement is being updated to failed.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The updated TestMeasurement.
@@ -614,17 +592,10 @@ class TestResultsAPIAsync(ResourceBase):
 
         update.resource_id = test_measurement.id_
         updated_test_measurement = await self._low_level_client.update_test_measurement(
-            update, log_file=log_file, simulate=simulate, existing=test_measurement
+            update, log_file=log_file, existing=test_measurement
         )
         updated_test_measurement = self._apply_client_to_instance(updated_test_measurement)
-        # If measurement is being updated to failed, see if step is passed and update it to failed if so
-        if (
-            update_step
-            and log_file is None
-            and not simulate
-            and update.passed is not None
-            and not update.passed
-        ):
+        if update_step and log_file is None and update.passed is not None and not update.passed:
             step = await self.get_step(test_step=updated_test_measurement.test_step_id)
             if step.status == TestStatus.PASSED:
                 await self.update_step(test_step=step, update={"status": TestStatus.FAILED})
@@ -648,20 +619,27 @@ class TestResultsAPIAsync(ResourceBase):
     async def replay_log_file(
         self,
         log_file: str | Path,
+        *,
+        incremental: bool = False,
     ) -> ReplayResult:
-        """Replay a log file by parsing each entry, simulating the results, then creating for real.
+        """Replay a log file, creating real API objects from the logged simulation data.
 
-        This method reads a log file created by the simulation logging, reconstructs
-        all the objects via simulation, and then creates them via the actual API.
-        IDs are mapped from simulated to real during the creation process.
+        Two modes are available:
+
+        * **batch** (default): Parse the entire log, reconstruct objects via
+          simulation, then create them all via the API in one pass.
+        * **incremental**: Walk the log line-by-line, issuing the real API call
+          for each entry. The ``LogTracking`` header is updated after every
+          successful call so a subsequent invocation picks up where it left off.
 
         Args:
             log_file: Path to the log file to replay.
+            incremental: If True, use incremental mode.
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
         """
-        result = await self._low_level_client.replay_log_file(log_file)
+        result = await self._low_level_client.replay_log_file(log_file, incremental=incremental)
         result.report = self._apply_client_to_instance(result.report)
         result.steps = self._apply_client_to_instances(result.steps)
         result.measurements = self._apply_client_to_instances(result.measurements)

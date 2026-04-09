@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     import pandas as pd
     import pyarrow as pa
 
+    from sift_client._internal.low_level_wrappers.test_results import (
+        ReplayResult,
+    )
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset, AssetUpdate
     from sift_client.sift_types.calculated_channel import (
@@ -1703,11 +1706,14 @@ class TestResultsAPI:
         """
         ...
 
-    def create(self, test_report: TestReportCreate | dict) -> TestReport:
+    def create(
+        self, test_report: TestReportCreate | dict, log_file: str | Path | None = None
+    ) -> TestReport:
         """Create a new test report.
 
         Args:
             test_report: The test report to create (can be TestReport or TestReportCreate).
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestReport.
@@ -1715,13 +1721,17 @@ class TestResultsAPI:
         ...
 
     def create_measurement(
-        self, test_measurement: TestMeasurementCreate | dict, update_step: bool = False
+        self,
+        test_measurement: TestMeasurementCreate | dict,
+        update_step: bool = False,
+        log_file: str | Path | None = None,
     ) -> TestMeasurement:
         """Create a new test measurement.
 
         Args:
             test_measurement: The test measurement to create (can be TestMeasurement or TestMeasurementCreate).
             update_step: Whether to update the step to failed if the measurement is being created is failed.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestMeasurement.
@@ -1729,23 +1739,27 @@ class TestResultsAPI:
         ...
 
     def create_measurements(
-        self, test_measurements: list[TestMeasurementCreate]
+        self, test_measurements: list[TestMeasurementCreate], log_file: str | Path | None = None
     ) -> tuple[int, list[str]]:
         """Create multiple test measurements in a single request.
 
         Args:
             test_measurements: The test measurements to create.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
         """
         ...
 
-    def create_step(self, test_step: TestStepCreate | dict) -> TestStep:
+    def create_step(
+        self, test_step: TestStepCreate | dict, log_file: str | Path | None = None
+    ) -> TestStep:
         """Create a new test step.
 
         Args:
             test_step: The test step to create (can be TestStep or TestStepCreate).
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestStep.
@@ -1949,6 +1963,26 @@ class TestResultsAPI:
         """
         ...
 
+    def replay_log_file(self, log_file: str | Path, *, incremental: bool = False) -> ReplayResult:
+        """Replay a log file, creating real API objects from the logged simulation data.
+
+        Two modes are available:
+
+        * **batch** (default): Parse the entire log, reconstruct objects via
+          simulation, then create them all via the API in one pass.
+        * **incremental**: Walk the log line-by-line, issuing the real API call
+          for each entry. The ``LogTracking`` header is updated after every
+          successful call so a subsequent invocation picks up where it left off.
+
+        Args:
+            log_file: Path to the log file to replay.
+            incremental: If True, use incremental mode.
+
+        Returns:
+            A ReplayResult containing the created report, steps, and measurements.
+        """
+        ...
+
     def unarchive(self, *, test_report: str | TestReport) -> TestReport:
         """Unarchive a test report.
 
@@ -1957,12 +1991,18 @@ class TestResultsAPI:
         """
         ...
 
-    def update(self, test_report: str | TestReport, update: TestReportUpdate | dict) -> TestReport:
+    def update(
+        self,
+        test_report: str | TestReport,
+        update: TestReportUpdate | dict,
+        log_file: str | Path | None = None,
+    ) -> TestReport:
         """Update a TestReport.
 
         Args:
             test_report: The TestReport or test report ID to update.
             update: Updates to apply to the TestReport.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The updated TestReport.
@@ -1974,6 +2014,7 @@ class TestResultsAPI:
         test_measurement: TestMeasurement,
         update: TestMeasurementUpdate | dict,
         update_step: bool = False,
+        log_file: str | Path | None = None,
     ) -> TestMeasurement:
         """Update a TestMeasurement.
 
@@ -1981,18 +2022,25 @@ class TestResultsAPI:
             test_measurement: The TestMeasurement or measurement ID to update.
             update: Updates to apply to the TestMeasurement.
             update_step: Whether to update the step to failed if the measurement is being updated to failed.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The updated TestMeasurement.
         """
         ...
 
-    def update_step(self, test_step: str | TestStep, update: TestStepUpdate | dict) -> TestStep:
+    def update_step(
+        self,
+        test_step: str | TestStep,
+        update: TestStepUpdate | dict,
+        log_file: str | Path | None = None,
+    ) -> TestStep:
         """Update a TestStep.
 
         Args:
             test_step: The TestStep or test step ID to update.
             update: Updates to apply to the TestStep.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The updated TestStep.

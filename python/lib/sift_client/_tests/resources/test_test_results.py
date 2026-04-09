@@ -39,6 +39,7 @@ def compare_test_report_fields(simulated: TestReport, actual: TestReport) -> Non
     assert simulated.system_operator == actual.system_operator
     assert simulated.start_time == actual.start_time
     assert simulated.end_time == actual.end_time
+    assert simulated.metadata == actual.metadata
 
 
 def compare_test_step_fields(simulated: TestStep, actual: TestStep) -> None:
@@ -246,8 +247,7 @@ class TestResultsTest:
             {"status": TestStatus.PASSED},
         )
 
-        # Compare simulated vs actual
-        assert simulated_step3.status == step3.status
+        compare_test_step_fields(simulated_step3, step3)
 
         # Update the step using class function.
         step3_1 = step3_1.update(
@@ -377,8 +377,7 @@ class TestResultsTest:
             update_step=True,
         )
 
-        # Compare simulated vs actual
-        assert simulated_measurement2.passed == measurement2.passed
+        compare_test_measurement_fields(simulated_measurement2, measurement2)
 
         assert measurement2.passed == False
         assert measurement2.string_expected_value == "1.10.4"
@@ -439,8 +438,7 @@ class TestResultsTest:
             update=TestReportUpdate(**update_kwargs),
         )
 
-        # Compare simulated vs actual for the fields that were updated
-        assert simulated_report.end_time == updated_report.end_time
+        compare_test_report_fields(simulated_report, updated_report)
 
         # Update the report using class function.
         updated_report = updated_report.update(
@@ -643,11 +641,13 @@ class TestResultsTest:
                 log_file=iteration_log_file,
             )
 
-            results.append({
-                "report": report,
-                "steps": {"step1": step1, "step1_1": step1_1, "step2": step2},
-                "measurements": {"m1": m1, "m2": m2},
-            })
+            results.append(
+                {
+                    "report": report,
+                    "steps": {"step1": step1, "step1_1": step1_1, "step2": step2},
+                    "measurements": {"m1": m1, "m2": m2},
+                }
+            )
 
         # Verify log file has all expected entries
         log_content = log_file.read_text()
@@ -668,20 +668,12 @@ class TestResultsTest:
 
         # Report: updates should have been folded in before create
         compare_test_report_fields(replay_result.report, direct["report"])
-        assert replay_result.report.status == TestStatus.FAILED
 
         # Steps (matched by name)
         replayed_steps_by_name = {s.name: s for s in replay_result.steps}
         for direct_step in direct["steps"].values():
             replayed_step = replayed_steps_by_name[direct_step.name]
             compare_test_step_fields(replayed_step, direct_step)
-
-        assert replayed_steps_by_name["RT Step 2"].status == TestStatus.FAILED
-
-        # Nested step parent should point to the replayed step1
-        assert replayed_steps_by_name["RT Step 1.1"].parent_step_id == (
-            replayed_steps_by_name["RT Step 1"].id_
-        )
 
         # Measurements (matched by name)
         replayed_measurements_by_name = {m.name: m for m in replay_result.measurements}

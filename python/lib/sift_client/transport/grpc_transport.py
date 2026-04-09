@@ -9,11 +9,12 @@ from __future__ import annotations
 import asyncio
 import atexit
 import logging
+import os
 import threading
 from typing import Any
 from urllib.parse import urlparse
 
-from sift_client._internal.grpc.transport import (
+from sift_client._internal.grpc_transport.transport import (
     SiftChannelConfig,
     use_sift_async_channel,
 )
@@ -98,6 +99,8 @@ class GrpcClient:
         Args:
             config: The gRPC client configuration.
         """
+        os.environ.setdefault("GRPC_ENABLE_FORK_SUPPORT", "0")
+
         self._config = config
         # map each asyncio loop to its async channel and stub dict
         self._channels_async: dict[asyncio.AbstractEventLoop, Any] = {}

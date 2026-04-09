@@ -25,7 +25,9 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         # Skipped steps won't invoke the method/fixtures at all, so we need to manually record a step.
         if REPORT_CONTEXT:
             with REPORT_CONTEXT.new_step(name=item.name) as new_step:
-                new_step.current_step.update({"status": TestStatus.SKIPPED}, log_file=REPORT_CONTEXT.log_file)
+                new_step.current_step.update(
+                    {"status": TestStatus.SKIPPED}, log_file=REPORT_CONTEXT.log_file
+                )
     setattr(item, "rep_" + report.when, call)
 
 
@@ -59,6 +61,14 @@ def report_context(
 ) -> Generator[ReportContext | None, None, None]:
     """Create a report context for the session."""
     yield from _report_context_impl(sift_client, request)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def report_context_no_logging(
+    sift_client: SiftClient, request: pytest.FixtureRequest
+) -> Generator[ReportContext | None, None, None]:
+    """Create a report context for the session without log file."""
+    yield from _report_context_impl(sift_client, request, log_file=None)
 
 
 def _step_impl(
