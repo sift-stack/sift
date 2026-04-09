@@ -1,7 +1,7 @@
 use crate::{
-    Flow, FlowConfig, IngestionConfigForm, LiveStreamingWithBackups, SiftStream, SiftStreamBuilder,
-    TimeValue,
-    metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
+    FlowBuilder, FlowConfig, FlowDescriptor, IngestionConfigForm, LiveStreamingWithBackups,
+    SiftStream, SiftStreamBuilder,
+    metrics::{MetricsFlowIndices, SiftStreamMetrics, SiftStreamMetricsSnapshot},
     stream::{mode::ingestion_config::IngestionConfigEncoder, tasks::ControlMessage},
 };
 use sift_connect::SiftChannel;
@@ -21,9 +21,10 @@ const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
 pub(crate) struct MetricsStreamingTask {
     stream: SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>,
     control_rx: broadcast::Receiver<ControlMessage>,
-    session_name: String,
     interval: Duration,
     metrics: Arc<SiftStreamMetrics>,
+    flow_descriptor: FlowDescriptor<String>,
+    flow_indices: MetricsFlowIndices,
 }
 
 impl MetricsStreamingTask {
@@ -89,12 +90,16 @@ impl MetricsStreamingTask {
 
         let stream = stream_fut.await?;
 
+        let flow_descriptor = stream.get_flow_descriptor(METRICS_STREAMING_FLOW_NAME)?;
+        let flow_indices = MetricsFlowIndices::new(&flow_descriptor, &session_name)?;
+
         Ok(Self {
             stream,
             control_rx,
-            session_name,
             interval,
             metrics,
+            flow_descriptor,
+            flow_indices,
         })
     }
 
@@ -104,10 +109,12 @@ impl MetricsStreamingTask {
         loop {
             select! {
                 _ = interval.tick() => {
-                    let metrics = self.metrics.snapshot();
-                    let values = metrics.channel_values(&self.session_name);
-                    let flow = Flow::new(METRICS_STREAMING_FLOW_NAME, TimeValue::now(), &values);
-                    self.stream.send(flow).await.map_err(|e| {
+                    let snapshot = self.metrics.snapshot();
+                    let mut builder = FlowBuilder::new(&self.flow_descriptor);
+                    snapshot.populate_flow(&self.flow_indices, &mut builder).map_err(|e| {
+                        Error::new_msg(ErrorKind::StreamError, e.to_string())
+                    })?;
+                    self.stream.send(builder).await.map_err(|e| {
                         Error::new_msg(ErrorKind::StreamError, e.to_string())
                     })?;
                 }
