@@ -8,6 +8,7 @@ import traceback
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
 from pathlib import Path
+import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -32,6 +33,8 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from sift_client.client import SiftClient
+
+logger = logging.getLogger(__name__)
 
 
 class ReportContext(AbstractContextManager):
@@ -74,7 +77,9 @@ class ReportContext(AbstractContextManager):
         self.any_failures = False
 
         if log_file is True:
-            self.log_file = Path(tempfile.mktemp(suffix=".jsonl"))
+            tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
+            self.log_file = Path(tmp.name)
+            logger.info(f"Created temporary log file: {self.log_file}")
         elif log_file:
             self.log_file = Path(log_file)
         else:
@@ -108,7 +113,17 @@ class ReportContext(AbstractContextManager):
             update["status"] = TestStatus.PASSED
         self.report.update(update, log_file=self.log_file)
         if self.log_file:
-            replay_result = self.client.test_results.replay_log_file(self.log_file)
+            try:
+                # Try replaying the log file and clean up the file if it's a temporary file.
+                self.client.test_results.replay_log_file(self.log_file)
+                fp = os.path.abspath(self.log_file)
+                tmp_dir = tempfile.gettempdir()
+                if fp.startswith(tmp_dir):
+                    os.remove(fp)
+            except Exception as e:
+                logger.error(f"Error replaying log file: {self.log_file}.\n  Can replay with `replay-test-results-log {self.log_file}`.")
+                logger.error(traceback.format_exc())
+
         return True
 
     def new_step(

@@ -370,22 +370,19 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         test_report: TestReportCreate,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestReport:
         """Create a new test report.
 
         Args:
             test_report: The test report to create.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestReport.
         """
         request = test_report.to_proto()
 
-        if simulate or log_file is not None:
+        if log_file is not None:
             simulated_proto = self.simulate_create_test_report_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -484,16 +481,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         update: TestReportUpdate,
         log_file: str | Path | None = None,
-        simulate: bool = False,
         existing: TestReport | None = None,
     ) -> TestReport:
         """Update an existing test report.
 
         Args:
             update: The updates to apply.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
             existing: The full existing TestReport for simulation merge. If not provided,
                 the simulated response will only contain the updated fields.
 
@@ -503,7 +497,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         test_report_proto, field_mask = update.to_proto_with_mask()
         request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
 
-        if simulate or log_file is not None:
+        if log_file is not None:
             if log_file is not None:
                 self._log_request_to_file(log_file, "UpdateTestReport", request)
             return self.simulate_update_test_report_response(request, existing=existing)
@@ -533,22 +527,19 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         test_step: TestStepCreate,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestStep:
         """Create a new test step.
 
         Args:
             test_step: The test step to create.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestStep.
         """
         request = CreateTestStepRequest(test_step=test_step.to_proto())
 
-        if simulate or log_file is not None:
+        if log_file is not None:
             simulated_proto = self.simulate_create_test_step_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -627,16 +618,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         update: TestStepUpdate,
         log_file: str | Path | None = None,
-        simulate: bool = False,
         existing: TestStep | None = None,
     ) -> TestStep:
         """Update an existing test step.
 
         Args:
             update: The updates to apply.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
             existing: The full existing TestStep for simulation merge. If not provided,
                 the simulated response will only contain the updated fields.
 
@@ -649,7 +637,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             field_mask.paths.append("error_info")
         request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
 
-        if simulate or log_file is not None:
+        if log_file is not None:
             if log_file is not None:
                 self._log_request_to_file(log_file, "UpdateTestStep", request)
             return self.simulate_update_test_step_response(request, existing=existing)
@@ -679,22 +667,19 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         test_measurement: TestMeasurementCreate,
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> TestMeasurement:
         """Create a new test measurement.
 
         Args:
             test_measurement: The test measurement to create.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             The created TestMeasurement.
         """
         request = CreateTestMeasurementRequest(test_measurement=test_measurement.to_proto())
 
-        if simulate or log_file is not None:
+        if log_file is not None:
             simulated_proto = self.simulate_create_test_measurement_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -713,15 +698,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         test_measurements: list[TestMeasurementCreate],
         log_file: str | Path | None = None,
-        simulate: bool = False,
     ) -> tuple[int, list[str]]:
         """Create multiple test measurements in a single request.
 
         Args:
             test_measurements: The test measurements to create.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
 
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
@@ -729,7 +711,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         measurement_protos = [tm.to_proto() for tm in test_measurements]
         request = CreateTestMeasurementsRequest(test_measurements=measurement_protos)
 
-        if simulate or log_file is not None:
+        if log_file is not None:
             count, measurement_ids = self.simulate_create_test_measurements_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -812,16 +794,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         update: TestMeasurementUpdate,
         log_file: str | Path | None = None,
-        simulate: bool = False,
         existing: TestMeasurement | None = None,
     ) -> TestMeasurement:
         """Update an existing test measurement.
 
         Args:
             update: The updates to apply.
-            log_file: If set, log the request to this file.
-            simulate: If True, return a simulated response instead of making an API call.
-                If log_file is set, simulate is implicitly True.
+            log_file: If set, log the request to this file and return a simulated response.
             existing: The full existing TestMeasurement for simulation merge. If not provided,
                 the simulated response will only contain the updated fields.
 
@@ -833,7 +812,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             test_measurement=test_measurement_proto, update_mask=field_mask
         )
 
-        if simulate or log_file is not None:
+        if log_file is not None:
             if log_file is not None:
                 self._log_request_to_file(log_file, "UpdateTestMeasurement", request)
             return self.simulate_update_test_measurement_response(request, existing=existing)
@@ -887,6 +866,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
 
+        # Parse the log file and simulate the responses (without calling the API).
         with open(log_path) as f:
             for line in f:
                 line = line.strip()
