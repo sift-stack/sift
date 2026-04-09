@@ -123,7 +123,9 @@ class ReportContext(AbstractContextManager):
                     os.remove(fp)
             except Exception as e:
                 logger.error(e)
-                logger.error(f"Error replaying log file: {self.log_file}.\n  Can replay with `replay-test-result-log {self.log_file}`.")
+                logger.error(
+                    f"Error replaying log file: {self.log_file}.\n  Can replay with `replay-test-result-log {self.log_file}`."
+                )
                 raise e
 
         return True

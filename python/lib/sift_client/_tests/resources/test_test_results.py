@@ -643,11 +643,13 @@ class TestResultsTest:
                 log_file=iteration_log_file,
             )
 
-            results.append({
-                "report": report,
-                "steps": {"step1": step1, "step1_1": step1_1, "step2": step2},
-                "measurements": {"m1": m1, "m2": m2},
-            })
+            results.append(
+                {
+                    "report": report,
+                    "steps": {"step1": step1, "step1_1": step1_1, "step2": step2},
+                    "measurements": {"m1": m1, "m2": m2},
+                }
+            )
 
         # Verify log file has all expected entries
         log_content = log_file.read_text()

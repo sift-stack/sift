@@ -25,7 +25,9 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         # Skipped steps won't invoke the method/fixtures at all, so we need to manually record a step.
         if REPORT_CONTEXT:
             with REPORT_CONTEXT.new_step(name=item.name) as new_step:
-                new_step.current_step.update({"status": TestStatus.SKIPPED}, log_file=REPORT_CONTEXT.log_file)
+                new_step.current_step.update(
+                    {"status": TestStatus.SKIPPED}, log_file=REPORT_CONTEXT.log_file
+                )
     setattr(item, "rep_" + report.when, call)
 
 

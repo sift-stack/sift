@@ -595,12 +595,7 @@ class TestResultsAPIAsync(ResourceBase):
             update, log_file=log_file, existing=test_measurement
         )
         updated_test_measurement = self._apply_client_to_instance(updated_test_measurement)
-        if (
-            update_step
-            and log_file is None
-            and update.passed is not None
-            and not update.passed
-        ):
+        if update_step and log_file is None and update.passed is not None and not update.passed:
             step = await self.get_step(test_step=updated_test_measurement.test_step_id)
             if step.status == TestStatus.PASSED:
                 await self.update_step(test_step=step, update={"status": TestStatus.FAILED})

@@ -320,9 +320,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 proto.numeric_value if proto.HasField("numeric_value") else None
             )
         if "string_value" in update_mask_paths:
-            updates["string_value"] = (
-                proto.string_value if proto.HasField("string_value") else None
-            )
+            updates["string_value"] = proto.string_value if proto.HasField("string_value") else None
         if "boolean_value" in update_mask_paths:
             updates["boolean_value"] = (
                 proto.boolean_value if proto.HasField("boolean_value") else None
@@ -386,7 +384,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulated_proto = self.simulate_create_test_report_response(request)
             if log_file is not None:
                 self._log_request_to_file(
-                    log_file, "CreateTestReport", request,
+                    log_file,
+                    "CreateTestReport",
+                    request,
                     response_id=simulated_proto.test_report_id,
                 )
             return TestReport._from_proto(simulated_proto)
@@ -543,7 +543,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulated_proto = self.simulate_create_test_step_response(request)
             if log_file is not None:
                 self._log_request_to_file(
-                    log_file, "CreateTestStep", request,
+                    log_file,
+                    "CreateTestStep",
+                    request,
                     response_id=simulated_proto.test_step_id,
                 )
             return TestStep._from_proto(simulated_proto)
@@ -683,7 +685,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulated_proto = self.simulate_create_test_measurement_response(request)
             if log_file is not None:
                 self._log_request_to_file(
-                    log_file, "CreateTestMeasurement", request,
+                    log_file,
+                    "CreateTestMeasurement",
+                    request,
                     response_id=simulated_proto.measurement_id,
                 )
             return TestMeasurement._from_proto(simulated_proto)
@@ -715,7 +719,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             count, measurement_ids = self.simulate_create_test_measurements_response(request)
             if log_file is not None:
                 self._log_request_to_file(
-                    log_file, "CreateTestMeasurements", request,
+                    log_file,
+                    "CreateTestMeasurements",
+                    request,
                     response_id=",".join(measurement_ids),
                 )
             return count, measurement_ids
