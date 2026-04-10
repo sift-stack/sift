@@ -362,17 +362,17 @@ def _parse_parquet_detect_response(
                 ]
         return parquet_config
     elif proto.HasField("single_channel_per_row"):
-        parquet_config = ParquetSingleChannelPerRowImportConfig._from_proto(
+        parquet_scpr_config = ParquetSingleChannelPerRowImportConfig._from_proto(
             proto, footer_offset=footer_offset, footer_length=footer_length
         )
-        if not parquet_config.time_column.path:
+        if not parquet_scpr_config.time_column.path:
             inferred = _infer_time_column(
                 (col.column_config.name, ChannelDataType(col.column_config.data_type), col.path)
                 for col in proto.single_channel_per_row.columns
             )
             if inferred is not None:
-                parquet_config.time_column = ParquetTimeColumn(path=inferred)
-        return parquet_config
+                parquet_scpr_config.time_column = ParquetTimeColumn(path=inferred)
+        return parquet_scpr_config
     raise ValueError(f"Unsupported parquet layout in DetectConfig response for '{filename}'.")
 
 
