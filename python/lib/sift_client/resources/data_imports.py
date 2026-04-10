@@ -26,6 +26,8 @@ from sift_client.sift_types.data_import import (
 from sift_client.sift_types.run import Run
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.job import Job
 
@@ -318,6 +320,24 @@ def _parse_csv_detect_response(proto) -> CsvImportConfig:
     return csv_config
 
 
+def _infer_time_column(columns: Iterable[tuple[str, ChannelDataType, str]]) -> str | None:
+    """Find a likely time column from a sequence of (name, data_type, path) tuples.
+
+    The backend only detects arrow timestamp types. This falls back to the first
+    integer column whose name starts with "time".
+    """
+    _integer_types = {
+        ChannelDataType.INT_32,
+        ChannelDataType.INT_64,
+        ChannelDataType.UINT_32,
+        ChannelDataType.UINT_64,
+    }
+    for name, data_type, path in columns:
+        if data_type in _integer_types and name.lower().startswith("time"):
+            return path
+    return None
+
+
 def _parse_parquet_detect_response(
     proto, filename: str, footer_offset: int, footer_length: int
 ) -> ParquetFlatDatasetImportConfig | ParquetSingleChannelPerRowImportConfig:
@@ -332,29 +352,27 @@ def _parse_parquet_detect_response(
                 dc for dc in parquet_config.data_columns if dc.path != time_path
             ]
         else:
-            # The backend only detects arrow timestamp types. Fall back to
-            # an integer column whose name starts with "time".
-            _integer_types = {
-                ChannelDataType.INT_32,
-                ChannelDataType.INT_64,
-                ChannelDataType.UINT_32,
-                ChannelDataType.UINT_64,
-            }
-            match = None
-            for dc in parquet_config.data_columns:
-                if dc.data_type in _integer_types and dc.name.lower().startswith("time"):
-                    match = dc
-                    break
-            if match is not None:
-                parquet_config.time_column = ParquetTimeColumn(path=match.path)
+            inferred = _infer_time_column(
+                (dc.name, dc.data_type, dc.path) for dc in parquet_config.data_columns
+            )
+            if inferred is not None:
+                parquet_config.time_column = ParquetTimeColumn(path=inferred)
                 parquet_config.data_columns = [
-                    c for c in parquet_config.data_columns if c.path != match.path
+                    c for c in parquet_config.data_columns if c.path != inferred
                 ]
         return parquet_config
     elif proto.HasField("single_channel_per_row"):
-        return ParquetSingleChannelPerRowImportConfig._from_proto(
+        parquet_config = ParquetSingleChannelPerRowImportConfig._from_proto(
             proto, footer_offset=footer_offset, footer_length=footer_length
         )
+        if not parquet_config.time_column.path:
+            inferred = _infer_time_column(
+                (col.column_config.name, ChannelDataType(col.column_config.data_type), col.path)
+                for col in proto.single_channel_per_row.columns
+            )
+            if inferred is not None:
+                parquet_config.time_column = ParquetTimeColumn(path=inferred)
+        return parquet_config
     raise ValueError(f"Unsupported parquet layout in DetectConfig response for '{filename}'.")
 
 

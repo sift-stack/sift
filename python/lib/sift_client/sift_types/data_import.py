@@ -432,7 +432,9 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
     """Configuration for importing a Parquet file where each row represents
     a single channel's data point.
 
-    Exactly one of ``single_channel`` or ``multi_channel`` must be set.
+    Exactly one of ``single_channel`` or ``multi_channel`` must be set before
+    importing. When returned by ``detect_config()``, neither field is populated
+    and must be filled in before passing the config to ``import_from_path()``.
 
     Attributes:
         time_column: Time column configuration.
@@ -454,8 +456,6 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
 
     @model_validator(mode="after")
     def _check_channel_config(self) -> ParquetSingleChannelPerRowImportConfig:
-        if self.single_channel is None and self.multi_channel is None:
-            raise ValueError("Exactly one of 'single_channel' or 'multi_channel' must be set.")
         if self.single_channel is not None and self.multi_channel is not None:
             raise ValueError(
                 "Exactly one of 'single_channel' or 'multi_channel' must be set, not both."
@@ -463,6 +463,12 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
         return self
 
     def _to_proto(self) -> ParquetConfigProto:
+        if self.single_channel is None and self.multi_channel is None:
+            raise ValueError(
+                "Either 'single_channel' or 'multi_channel' must be set before importing. "
+                "If this config was returned by detect_config(), set one of these fields "
+                "to specify the channel layout."
+            )
         scpr = ParquetSingleChannelPerRowConfigProto(
             time_column=self.time_column._to_proto(),
         )
