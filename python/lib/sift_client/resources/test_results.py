@@ -619,20 +619,27 @@ class TestResultsAPIAsync(ResourceBase):
     async def replay_log_file(
         self,
         log_file: str | Path,
+        *,
+        incremental: bool = False,
     ) -> ReplayResult:
-        """Replay a log file by parsing each entry, simulating the results, then creating for real.
+        """Replay a log file, creating real API objects from the logged simulation data.
 
-        This method reads a log file created by the simulation logging, reconstructs
-        all the objects via simulation, and then creates them via the actual API.
-        IDs are mapped from simulated to real during the creation process.
+        Two modes are available:
+
+        * **batch** (default): Parse the entire log, reconstruct objects via
+          simulation, then create them all via the API in one pass.
+        * **incremental**: Walk the log line-by-line, issuing the real API call
+          for each entry. The ``LogTracking`` header is updated after every
+          successful call so a subsequent invocation picks up where it left off.
 
         Args:
             log_file: Path to the log file to replay.
+            incremental: If True, use incremental mode.
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
         """
-        result = await self._low_level_client.replay_log_file(log_file)
+        result = await self._low_level_client.replay_log_file(log_file, incremental=incremental)
         result.report = self._apply_client_to_instance(result.report)
         result.steps = self._apply_client_to_instances(result.steps)
         result.measurements = self._apply_client_to_instances(result.measurements)

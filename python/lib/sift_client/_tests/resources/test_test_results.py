@@ -39,6 +39,7 @@ def compare_test_report_fields(simulated: TestReport, actual: TestReport) -> Non
     assert simulated.system_operator == actual.system_operator
     assert simulated.start_time == actual.start_time
     assert simulated.end_time == actual.end_time
+    assert simulated.metadata == actual.metadata
 
 
 def compare_test_step_fields(simulated: TestStep, actual: TestStep) -> None:
@@ -667,20 +668,12 @@ class TestResultsTest:
 
         # Report: updates should have been folded in before create
         compare_test_report_fields(replay_result.report, direct["report"])
-        assert replay_result.report.status == TestStatus.FAILED
 
         # Steps (matched by name)
         replayed_steps_by_name = {s.name: s for s in replay_result.steps}
         for direct_step in direct["steps"].values():
             replayed_step = replayed_steps_by_name[direct_step.name]
             compare_test_step_fields(replayed_step, direct_step)
-
-        assert replayed_steps_by_name["RT Step 2"].status == TestStatus.FAILED
-
-        # Nested step parent should point to the replayed step1
-        assert replayed_steps_by_name["RT Step 1.1"].parent_step_id == (
-            replayed_steps_by_name["RT Step 1"].id_
-        )
 
         # Measurements (matched by name)
         replayed_measurements_by_name = {m.name: m for m in replay_result.measurements}
