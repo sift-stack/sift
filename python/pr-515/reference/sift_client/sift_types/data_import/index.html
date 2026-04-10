@@ -8699,7 +8699,9 @@ automatically when using <code>detect_config</code>.</p>
 
         <p>Configuration for importing a Parquet file where each row represents
 a single channel's data point.</p>
-<p>Exactly one of <code>single_channel</code> or <code>multi_channel</code> must be set.</p>
+<p>Exactly one of <code>single_channel</code> or <code>multi_channel</code> must be set before
+importing. When returned by <code>detect_config()</code>, neither field is populated
+and must be filled in before passing the config to <code>import_from_path()</code>.</p>
 
 
 <table>
