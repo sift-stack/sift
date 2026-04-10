@@ -63,6 +63,14 @@ def report_context(
     yield from _report_context_impl(sift_client, request)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def report_context_no_logging(
+    sift_client: SiftClient, request: pytest.FixtureRequest
+) -> Generator[ReportContext | None, None, None]:
+    """Create a report context for the session without log file."""
+    yield from _report_context_impl(sift_client, request, log_file=None)
+
+
 def _step_impl(
     report_context: ReportContext, request: pytest.FixtureRequest
 ) -> Generator[NewStep | None, None, None]:

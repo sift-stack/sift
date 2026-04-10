@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timezone
 
 import numpy as np
@@ -16,9 +17,44 @@ from sift_client.util.test_results.bounds import (
     assign_value_to_measurement,
     evaluate_measurement_bounds,
 )
-from sift_client.util.test_results.context_manager import NewStep
+from sift_client.util.test_results.context_manager import NewStep, ReportContext
 
 pytestmark = pytest.mark.integration
+
+
+class TestLogReplay:
+    """Test that the incremental replay subprocess creates real API objects."""
+
+    def test_replay_creates_report(self, sift_client):
+        unique_name = f"replay-test-{datetime.now(timezone.utc).isoformat()}"
+
+        with ReportContext(
+            sift_client,
+            name=unique_name,
+            test_case="test_replay_creates_report",
+            log_file=True,
+        ) as rc:
+            with rc.new_step(name="Step A") as step_a:
+                with step_a.substep(name="Step A.1"):
+                    pass
+            with rc.new_step(name="Step B"):
+                pass
+
+        # Wait to ensure the report creation has completed.
+        time.sleep(2)
+
+        reports = sift_client.test_results.list_(name=unique_name)
+        assert len(reports) >= 1, f"Expected report '{unique_name}' to be created by replay"
+        replay_report = reports[0]
+        assert replay_report.name == unique_name
+
+        steps = sift_client.test_results.list_steps(test_reports=[replay_report])
+        step_names = {s.name for s in steps}
+        assert "Step A" in step_names
+        assert "Step A.1" in step_names
+        assert "Step B" in step_names
+
+        sift_client.test_results.delete(test_report=replay_report)
 
 
 class TestContextManager:

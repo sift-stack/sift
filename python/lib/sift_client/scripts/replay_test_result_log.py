@@ -3,9 +3,25 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
+import select
+import sys
+import tempfile
 
 from sift_client import SiftClient, SiftConnectionConfig
+
+logger = logging.getLogger(__name__)
+
+
+def _print_result(result) -> None:
+    print(f"Report: {result.report.name} (id={result.report.id_})")
+    print(f"Steps:  {len(result.steps)}")
+    for step in result.steps:
+        print(f"  - {step.step_path} [{step.status}]")
+    print(f"Measurements: {len(result.measurements)}")
+    for m in result.measurements:
+        print(f"  - {m.name}: passed={m.passed}")
 
 
 def main() -> None:
@@ -14,6 +30,11 @@ def main() -> None:
         description="Replay a test result simulation log file against the Sift API.",
     )
     parser.add_argument("log_file", help="Path to the .jsonl log file to replay.")
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Replay line-by-line, tracking progress so reruns pick up where they left off.",
+    )
     parser.add_argument("--grpc-url", default=os.getenv("SIFT_GRPC_URI", "localhost:50051"))
     parser.add_argument("--rest-url", default=os.getenv("SIFT_REST_URI", "localhost:8080"))
     parser.add_argument("--api-key", default=os.getenv("SIFT_API_KEY", ""))
@@ -30,15 +51,38 @@ def main() -> None:
         )
     )
 
-    result = client.test_results.replay_log_file(args.log_file)
+    try:
+        if args.incremental:
+            result = _incremental_loop(client, args.log_file)
+        else:
+            result = client.test_results.replay_log_file(args.log_file)
+            fp = os.path.abspath(args.log_file)
+            if fp.startswith(tempfile.gettempdir()):
+                os.remove(fp)
+        if result:
+            _print_result(result)
+    except Exception as e:
+        logger.error(e)
+        logger.error(
+            f"Error replaying log file: {args.log_file}.\n"
+            f"  Can replay with `replay-test-result-log {args.log_file}`."
+        )
+        raise
 
-    print(f"Report: {result.report.name} (id={result.report.id_})")
-    print(f"Steps:  {len(result.steps)}")
-    for step in result.steps:
-        print(f"  - {step.step_path} [{step.status}]")
-    print(f"Measurements: {len(result.measurements)}")
-    for m in result.measurements:
-        print(f"  - {m.name}: passed={m.passed}")
+
+def _incremental_loop(client: SiftClient, log_file: str):
+    """Replay incrementally in a loop until stdin is closed (EOF)."""
+    result = None
+    while True:
+        received_signal, _, _ = select.select([sys.stdin], [], [], 1.0)
+        result = client.test_results.replay_log_file(log_file, incremental=True)
+        if received_signal:
+            break
+    logger.info(f"Replay completed: {result}")
+    fp = os.path.abspath(log_file)
+    if fp.startswith(tempfile.gettempdir()):
+        os.remove(fp)
+    return result
 
 
 if __name__ == "__main__":
