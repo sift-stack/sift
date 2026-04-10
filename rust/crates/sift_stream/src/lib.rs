@@ -600,5 +600,11 @@ pub mod metrics;
 #[cfg(feature = "metrics-unstable")]
 pub use metrics::{MetricsServerBuilder, SiftStreamMetricsSnapshot};
 
+pub mod logging;
+pub use logging::LogLevel;
+
+#[cfg(feature = "tracing")]
+pub(crate) mod telemetry;
+
 #[cfg(test)]
 mod test;

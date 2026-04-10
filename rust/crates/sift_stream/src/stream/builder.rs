@@ -12,6 +12,7 @@ mod config_loader;
 use crate::{
     FlowDescriptor,
     backup::{disk::DiskBackupPolicy, sanitize_name},
+    logging::{LogEvent, LogLevel},
     metrics::SiftStreamMetrics,
     stream::{
         mode::ingestion_config::IngestionConfigEncoder,
@@ -32,6 +33,9 @@ use sift_rs::{
 };
 use std::{sync::Arc, time::Duration};
 use uuid::Uuid;
+
+/// Capacity of the bounded log event channel created per stream.
+const LOG_CHANNEL_CAPACITY: usize = 512;
 
 /// The default checkpoint interval (1 minute) to use if left unspecified.
 pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
@@ -137,6 +141,10 @@ impl SiftStreamBuilder {
             asset_metadata: None,
             run: None,
             run_id: None,
+            log_level_filter: LogLevel::default(),
+            #[cfg(feature = "tracing")]
+            scoped_dispatch_base: None,
+            disable_scoped_dispatch: false,
         }
     }
 }
@@ -158,6 +166,15 @@ pub struct StreamConfigBuilder {
     pub(crate) asset_metadata: Option<Vec<MetadataValue>>,
     pub(crate) run: Option<RunForm>,
     pub(crate) run_id: Option<String>,
+    /// Minimum log level forwarded to Sift via the telemetry layer. Defaults to `Info`.
+    pub(crate) log_level_filter: LogLevel,
+    /// A pre-built dispatch to use as the forwarding target for the scoped dispatch.
+    /// If `None`, the current global dispatch is captured at build time.
+    #[cfg(feature = "tracing")]
+    pub(crate) scoped_dispatch_base: Option<tracing::Dispatch>,
+    /// When `true`, the scoped dispatch is not created for this stream.
+    /// Set by the internal metrics sub-stream builder to prevent recursive event capture.
+    pub(crate) disable_scoped_dispatch: bool,
 }
 
 impl StreamConfigBuilder {
@@ -184,6 +201,39 @@ impl StreamConfigBuilder {
     /// metadata unchanged.
     pub fn add_asset_metadata(mut self, metadata: Vec<MetadataValue>) -> Self {
         self.asset_metadata = Some(metadata);
+        self
+    }
+
+    /// Sets the minimum log level forwarded to Sift via the internal telemetry layer.
+    ///
+    /// Events below this level are still emitted to the normal tracing subscriber (e.g. the
+    /// user's console logger) but will not be captured for streaming to Sift.
+    /// Defaults to [`LogLevel::Info`](crate::logging::LogLevel::Info).
+    pub fn log_level_filter(mut self, level: LogLevel) -> Self {
+        self.log_level_filter = level;
+        self
+    }
+
+    /// Provide a custom dispatch as the base for the scoped dispatch composition.
+    ///
+    /// The builder will layer `SiftTelemetryLayer` on top of this dispatch when constructing
+    /// the scoped subscriber used by background tasks. If not called, the current global
+    /// dispatch is captured at build time and used as the forwarding target.
+    ///
+    /// Use this to include additional layers (e.g. your own telemetry) alongside
+    /// sift_stream's internal telemetry layer.
+    #[cfg(feature = "tracing")]
+    pub fn with_scoped_dispatch_base(mut self, dispatch: tracing::Dispatch) -> Self {
+        self.scoped_dispatch_base = Some(dispatch);
+        self
+    }
+
+    /// Disable scoped dispatch entirely for this stream.
+    ///
+    /// Used internally when constructing the metrics sub-stream to prevent
+    /// `SiftTelemetryLayer` from capturing the metrics infrastructure's own events.
+    pub(crate) fn disable_scoped_dispatch(mut self) -> Self {
+        self.disable_scoped_dispatch = true;
         self
     }
 
@@ -311,6 +361,9 @@ impl LiveOnlyBuilder {
             control_channel_capacity: self.control_channel_capacity,
             metrics_streaming_interval: self.metrics_streaming_interval,
             retry_policy: self.retry_policy,
+            #[cfg(feature = "tracing")]
+            scoped_dispatch: setup.scoped_dispatch,
+            log_rx: setup.log_rx,
         };
 
         SiftStream::new_live_only(
@@ -458,6 +511,9 @@ impl LiveWithBackupsBuilder {
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
             backup_data_channel_capacity: self.backup_data_channel_capacity,
             metrics_streaming_interval: self.metrics_streaming_interval,
+            #[cfg(feature = "tracing")]
+            scoped_dispatch: setup.scoped_dispatch,
+            log_rx: setup.log_rx,
         };
 
         SiftStream::new_live_with_backups(
@@ -567,6 +623,13 @@ struct CommonSetup {
     metrics: Arc<SiftStreamMetrics>,
     session_name: String,
     sift_stream_id: Uuid,
+    /// Scoped dispatch to install on spawned background task futures.
+    /// `None` when the `tracing` feature is disabled or `disable_scoped_dispatch` was set.
+    #[cfg(feature = "tracing")]
+    scoped_dispatch: Option<tracing::Dispatch>,
+    /// Receiver for log events captured by the scoped dispatch.
+    /// `None` when the `tracing` feature is disabled or `disable_scoped_dispatch` was set.
+    log_rx: Option<async_channel::Receiver<LogEvent>>,
 }
 
 /// Performs setup steps common to all mode builders:
@@ -652,6 +715,32 @@ async fn setup_common(base: StreamConfigBuilder) -> Result<CommonSetup> {
     let session_name = format!("stream.{}.{}", asset_name, ingestion_config.client_key);
     let sift_stream_id = Uuid::new_v4();
 
+    // Build the scoped dispatch and log channel (tracing feature only).
+    #[cfg(feature = "tracing")]
+    let (scoped_dispatch, log_rx) = {
+        use tracing_subscriber::layer::SubscriberExt;
+        if base.disable_scoped_dispatch {
+            (None, None)
+        } else {
+            let (log_tx, log_rx) = async_channel::bounded::<LogEvent>(LOG_CHANNEL_CAPACITY);
+            let base_dispatch = base
+                .scoped_dispatch_base
+                .unwrap_or_else(|| tracing::dispatcher::get_default(|d| d.clone()));
+            let subscriber = tracing_subscriber::registry()
+                .with(crate::telemetry::SiftTelemetryLayer::new(
+                    log_tx,
+                    base.log_level_filter,
+                    metrics.clone(),
+                ))
+                .with(crate::telemetry::DispatchForwardingLayer(base_dispatch));
+            let dispatch = tracing::Dispatch::new(subscriber);
+            (Some(dispatch), Some(log_rx))
+        }
+    };
+
+    #[cfg(not(feature = "tracing"))]
+    let log_rx: Option<async_channel::Receiver<LogEvent>> = None;
+
     Ok(CommonSetup {
         setup_channel,
         ingestion_channel,
@@ -662,6 +751,9 @@ async fn setup_common(base: StreamConfigBuilder) -> Result<CommonSetup> {
         metrics,
         session_name,
         sift_stream_id,
+        #[cfg(feature = "tracing")]
+        scoped_dispatch,
+        log_rx,
     })
 }
 
