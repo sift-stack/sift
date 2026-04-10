@@ -33,10 +33,11 @@ struct LogFlowIndices {
 }
 
 impl LogFlowIndices {
-    fn new(descriptor: &FlowDescriptor<String>) -> Result<Self> {
+    fn new(descriptor: &FlowDescriptor<String>, channel_prefix: &str) -> Result<Self> {
         let m = descriptor.mapping();
-        let get = |key: &str| -> Result<ChannelIndex> {
-            m.get(key).copied().ok_or_else(|| {
+        let get = |suffix: &str| -> Result<ChannelIndex> {
+            let key = format!("{channel_prefix}.{suffix}");
+            m.get(&key).copied().ok_or_else(|| {
                 Error::new_msg(
                     ErrorKind::NotFoundError,
                     format!("log channel '{key}' not found in flow descriptor"),
@@ -44,30 +45,32 @@ impl LogFlowIndices {
             })
         };
         Ok(Self {
-            level: get("level")?,
-            target: get("target")?,
-            message: get("message")?,
+            level: get("tracing_event.level")?,
+            target: get("tracing_event.target")?,
+            message: get("tracing_event.message")?,
         })
     }
 }
 
-/// Returns the channel configs for the log event flow.
-fn log_channel_configs() -> Vec<ChannelConfig> {
+/// Returns the channel configs for the log event flow, namespaced under `channel_prefix`.
+///
+/// Channel names follow the same `{prefix}.{field}` convention used by the metrics flow.
+fn log_channel_configs(channel_prefix: &str) -> Vec<ChannelConfig> {
     vec![
         ChannelConfig {
-            name: "level".into(),
+            name: format!("{channel_prefix}.tracing_event.level"),
             description: "Log level (ERROR, WARN, INFO, DEBUG, TRACE)".into(),
             data_type: ChannelDataType::String.into(),
             ..Default::default()
         },
         ChannelConfig {
-            name: "target".into(),
+            name: format!("{channel_prefix}.tracing_event.target"),
             description: "Source module target of the log event".into(),
             data_type: ChannelDataType::String.into(),
             ..Default::default()
         },
         ChannelConfig {
-            name: "message".into(),
+            name: format!("{channel_prefix}.tracing_event.message"),
             description: "Log message, including any structured key-value fields".into(),
             data_type: ChannelDataType::String.into(),
             ..Default::default()
@@ -136,7 +139,7 @@ impl MetricsStreamingTask {
             c.name.hash(&mut hasher);
         });
         if log_rx.is_some() {
-            log_channel_configs().iter().for_each(|c| {
+            log_channel_configs(&session_name).iter().for_each(|c| {
                 c.name.hash(&mut hasher);
             });
         }
@@ -155,7 +158,7 @@ impl MetricsStreamingTask {
         if log_rx.is_some() {
             flows.push(FlowConfig {
                 name: LOG_FLOW_NAME.to_string(),
-                channels: log_channel_configs(),
+                channels: log_channel_configs(&session_name),
             });
         }
 
@@ -196,7 +199,7 @@ impl MetricsStreamingTask {
         let (log_flow_descriptor, log_flow_indices, log_rx) = match log_rx {
             Some(rx) => {
                 let desc = stream.get_flow_descriptor(LOG_FLOW_NAME)?;
-                let indices = LogFlowIndices::new(&desc)?;
+                let indices = LogFlowIndices::new(&desc, &session_name)?;
                 (Some(desc), Some(indices), Some(rx))
             }
             None => (None, None, None),
@@ -331,12 +334,14 @@ mod tests {
         ingest::v1::ingest_with_config_data_channel_value::Type, ingestion_configs::v2::FlowConfig,
     };
 
+    const TEST_PREFIX: &str = "stream.test_asset.test_key";
+
     fn make_log_descriptor() -> FlowDescriptor<String> {
         FlowDescriptor::try_from((
             "test-ingestion-config-id",
             FlowConfig {
                 name: LOG_FLOW_NAME.to_string(),
-                channels: log_channel_configs(),
+                channels: log_channel_configs(TEST_PREFIX),
             },
         ))
         .unwrap()
@@ -354,16 +359,23 @@ mod tests {
         }
     }
 
-    // ── log_channel_configs ───────────────────────────────────────────────────
-
     #[test]
     fn log_channel_configs_returns_three_string_channels() {
-        let configs = log_channel_configs();
+        let configs = log_channel_configs(TEST_PREFIX);
         assert_eq!(configs.len(), 3);
         let names: Vec<&str> = configs.iter().map(|c| c.name.as_str()).collect();
-        assert!(names.contains(&"level"), "missing 'level' channel");
-        assert!(names.contains(&"target"), "missing 'target' channel");
-        assert!(names.contains(&"message"), "missing 'message' channel");
+        assert!(
+            names.contains(&"stream.test_asset.test_key.tracing_event.level"),
+            "missing prefixed 'level' channel; got: {names:?}"
+        );
+        assert!(
+            names.contains(&"stream.test_asset.test_key.tracing_event.target"),
+            "missing prefixed 'target' channel; got: {names:?}"
+        );
+        assert!(
+            names.contains(&"stream.test_asset.test_key.tracing_event.message"),
+            "missing prefixed 'message' channel; got: {names:?}"
+        );
         for c in &configs {
             assert_eq!(
                 c.data_type,
@@ -374,29 +386,27 @@ mod tests {
         }
     }
 
-    // ── LogFlowIndices ────────────────────────────────────────────────────────
-
     #[test]
     fn log_flow_indices_new_succeeds_with_complete_descriptor() {
         let descriptor = make_log_descriptor();
-        assert!(LogFlowIndices::new(&descriptor).is_ok());
+        assert!(LogFlowIndices::new(&descriptor, TEST_PREFIX).is_ok());
     }
 
     #[test]
     fn log_flow_indices_new_fails_when_channel_missing() {
-        // Descriptor with only "level" and "target" — "message" is absent.
+        // Descriptor with only the prefixed "level" and "target" — "message" is absent.
         let partial_descriptor = FlowDescriptor::try_from((
             "test-ingestion-config-id",
             FlowConfig {
                 name: LOG_FLOW_NAME.to_string(),
                 channels: vec![
                     ChannelConfig {
-                        name: "level".into(),
+                        name: format!("{TEST_PREFIX}.tracing_event.level"),
                         data_type: ChannelDataType::String as i32,
                         ..Default::default()
                     },
                     ChannelConfig {
-                        name: "target".into(),
+                        name: format!("{TEST_PREFIX}.tracing_event.target"),
                         data_type: ChannelDataType::String as i32,
                         ..Default::default()
                     },
@@ -404,15 +414,13 @@ mod tests {
             },
         ))
         .unwrap();
-        assert!(LogFlowIndices::new(&partial_descriptor).is_err());
+        assert!(LogFlowIndices::new(&partial_descriptor, TEST_PREFIX).is_err());
     }
-
-    // ── encode_log_event ──────────────────────────────────────────────────────
 
     #[test]
     fn encode_log_event_no_fields_leaves_message_unchanged() {
         let descriptor = make_log_descriptor();
-        let indices = LogFlowIndices::new(&descriptor).unwrap();
+        let indices = LogFlowIndices::new(&descriptor, TEST_PREFIX).unwrap();
         let event = make_event("something happened", vec![]);
         let request = encode_log_event(&event, &indices, &descriptor).request(TimeValue::default());
 
@@ -425,7 +433,7 @@ mod tests {
     #[test]
     fn encode_log_event_appends_fields_as_key_value_pairs() {
         let descriptor = make_log_descriptor();
-        let indices = LogFlowIndices::new(&descriptor).unwrap();
+        let indices = LogFlowIndices::new(&descriptor, TEST_PREFIX).unwrap();
         let event = make_event(
             "base message",
             vec![
@@ -444,7 +452,7 @@ mod tests {
     #[test]
     fn encode_log_event_sets_level_and_target_channels() {
         let descriptor = make_log_descriptor();
-        let indices = LogFlowIndices::new(&descriptor).unwrap();
+        let indices = LogFlowIndices::new(&descriptor, TEST_PREFIX).unwrap();
         let event = make_event("msg", vec![]);
         let request = encode_log_event(&event, &indices, &descriptor).request(TimeValue::default());
 

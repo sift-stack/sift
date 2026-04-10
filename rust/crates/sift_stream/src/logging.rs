@@ -164,8 +164,6 @@ mod tests {
         }
     }
 
-    // ── LogLevel ──────────────────────────────────────────────────────────────
-
     #[test]
     fn log_level_ordering() {
         assert!(LogLevel::Error < LogLevel::Warn);
@@ -192,8 +190,6 @@ mod tests {
         assert_eq!(LogLevel::from(&tracing::Level::DEBUG), LogLevel::Debug);
         assert_eq!(LogLevel::from(&tracing::Level::TRACE), LogLevel::Trace);
     }
-
-    // ── LogDeduplicator ───────────────────────────────────────────────────────
 
     #[test]
     fn dedup_first_event_is_emitted() {

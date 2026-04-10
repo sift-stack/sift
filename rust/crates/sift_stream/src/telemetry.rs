@@ -102,10 +102,8 @@ impl<S: tracing::Subscriber> tracing_subscriber::layer::Layer<S> for SiftTelemet
 /// dispatch.
 ///
 /// Only events with a `sift_stream` target prefix are forwarded. Third-party library events
-/// (h2, hyper, tonic, etc.) emitted from within the tasks are intentionally not forwarded:
-/// those were already not reaching user subscribers in the pre-scoped world (tokio spawned
-/// tasks do not propagate thread-local subscribers), so this preserves existing behavior and
-/// avoids unintended side effects such as flooding test subscribers with low-level TRACE spam.
+/// (h2, hyper, tonic, etc.) emitted from within the tasks are intentionally not forwarded to
+/// avoid unintended side effects such as flooding subscribers with low-level TRACE spam.
 ///
 /// **Limitation**: span lifecycle is not forwarded. This is acceptable for sift_stream's
 /// background tasks which do not create spans.
@@ -134,8 +132,6 @@ mod tests {
         atomic::{AtomicU32, Ordering},
     };
     use tracing_subscriber::layer::SubscriberExt;
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     fn make_layer(
         capacity: usize,
@@ -175,8 +171,6 @@ mod tests {
         fn enter(&self, _: &tracing::span::Id) {}
         fn exit(&self, _: &tracing::span::Id) {}
     }
-
-    // ── SiftTelemetryLayer ────────────────────────────────────────────────────
 
     #[test]
     fn layer_captures_sift_stream_event() {
@@ -287,8 +281,6 @@ mod tests {
             "exactly one drop should be counted"
         );
     }
-
-    // ── DispatchForwardingLayer ───────────────────────────────────────────────
 
     #[test]
     fn forwarding_layer_forwards_sift_stream_events_to_base() {
