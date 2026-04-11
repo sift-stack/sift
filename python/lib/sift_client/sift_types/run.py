@@ -143,7 +143,8 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         """Import data from a file into this run.
 
         Convenience method that calls ``client.data_imports.import_from_path``
-        with this run pre-filled.
+        with this run pre-filled. If the run has exactly one asset,
+        ``asset`` is inferred automatically.
 
         Args:
             file_path: Path to the local file to import.
@@ -155,6 +156,9 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         Returns:
             A ``Job`` handle for the pending import.
         """
+        if asset is None and len(self.asset_ids) == 1:
+            asset = self.asset_ids[0]
+
         return self.client.data_import.import_from_path(
             file_path,
             asset=asset,
