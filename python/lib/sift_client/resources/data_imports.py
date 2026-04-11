@@ -294,15 +294,13 @@ class DataImportAPIAsync(ResourceBase):
 
 def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeKey:
     """Resolve the data type key from file extension and explicit override."""
-    if ext in (".parquet", ".pqt"):
-        if data_type is None:
-            raise ValueError(
-                "Parquet files require 'data_type' to be specified. "
-                "Use DataTypeKey.PARQUET_FLATDATASET or DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW."
-            )
-        return data_type
     if data_type is not None:
         return data_type
+    if ext in (".parquet", ".pqt"):
+        raise ValueError(
+            "Parquet files require 'data_type' to be specified. "
+            "Use DataTypeKey.PARQUET_FLATDATASET or DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW."
+        )
     if ext not in EXTENSION_TO_DATA_TYPE_KEY:
         raise ValueError(
             f"Unsupported file extension '{ext}'. "
