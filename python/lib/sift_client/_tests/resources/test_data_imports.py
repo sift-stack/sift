@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+from sift_client.resources import DataImportAPI, DataImportAPIAsync
 from sift_client.resources.data_imports import _resolve_data_type_key
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
@@ -21,6 +22,14 @@ from sift_client.sift_types.data_import import (
     TdmsImportConfig,
     TimeFormat,
 )
+
+
+@pytest.mark.integration
+def test_client_binding(sift_client):
+    assert sift_client.data_import
+    assert isinstance(sift_client.data_import, DataImportAPI)
+    assert sift_client.async_.data_import
+    assert isinstance(sift_client.async_.data_import, DataImportAPIAsync)
 
 
 @pytest.fixture
