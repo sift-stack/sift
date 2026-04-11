@@ -157,7 +157,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
             A ``Job`` handle for the pending import.
         """
         if asset is None and len(self.asset_ids) == 1:
-            asset = self.asset_ids[0]
+            asset = self.client.assets.get(asset_id=self.asset_ids[0])
 
         return self.client.data_import.import_from_path(
             file_path,

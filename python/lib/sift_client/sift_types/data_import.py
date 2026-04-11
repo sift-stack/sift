@@ -108,8 +108,6 @@ class CsvTimeColumn(TimeColumnBase):
 
     Attributes:
         column: The 1-indexed column number of the time column.
-        format: The time format used in this column.
-        relative_start_time: Required when using a relative time format.
     """
 
     column: int
@@ -250,8 +248,7 @@ class ParquetTimeColumn(TimeColumnBase):
 
     Attributes:
         path: The column path in the Parquet schema (e.g. ``"timestamp"``).
-        format: The time format used in this column.
-        relative_start_time: Required when using a relative time format.
+        format: The time format. Defaults to ``ABSOLUTE_UNIX_NANOSECONDS``.
     """
 
     path: str
