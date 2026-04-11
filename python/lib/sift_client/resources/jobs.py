@@ -11,7 +11,7 @@ from alive_progress import alive_bar  # type: ignore[import-untyped]
 
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
-from sift_client._internal.util.file import download_file, extract_zip, resolve_show_progress
+from sift_client._internal.util.file import download_file, extract_zip
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.job import DataExportStatusDetails, Job, JobStatus, JobType
 from sift_client.util import cel_utils as cel
@@ -193,7 +193,7 @@ class JobsAPIAsync(ResourceBase):
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
         if show_progress is None:
-            show_progress = resolve_show_progress(is_sync=getattr(self, "_is_sync", False))
+            show_progress = self._show_progress()
 
         start = time.monotonic()
         with alive_bar(
@@ -256,7 +256,7 @@ class JobsAPIAsync(ResourceBase):
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
         if show_progress is None:
-            show_progress = resolve_show_progress(is_sync=getattr(self, "_is_sync", False))
+            show_progress = self._show_progress()
 
         completed_job = await self.wait_until_complete(
             job=job_id,

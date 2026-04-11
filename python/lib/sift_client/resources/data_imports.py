@@ -5,11 +5,7 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
-from sift_client._internal.util.file import (
-    extract_parquet_footer,
-    resolve_show_progress,
-    upload_file,
-)
+from sift_client._internal.util.file import extract_parquet_footer, upload_file
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType
@@ -154,7 +150,7 @@ class DataImportAPIAsync(ResourceBase):
             await _prepare_parquet_config(config, path)
 
         if show_progress is None:
-            show_progress = resolve_show_progress(is_sync=getattr(self, "_is_sync", False))
+            show_progress = self._show_progress()
 
         _, upload_url = await self._low_level_client.create_from_upload(config)
 
