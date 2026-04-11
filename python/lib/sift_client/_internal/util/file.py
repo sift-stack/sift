@@ -17,6 +17,23 @@ if TYPE_CHECKING:
     from sift_client.transport.rest_transport import RestClient
 
 
+class _ProgressReader:
+    """Wraps a file object to report read progress to an alive_bar callback."""
+
+    def __init__(self, file_object, progress_bar):
+        self._file_object = file_object
+        self._progress_bar = progress_bar
+
+    def read(self, size=-1):
+        chunk = self._file_object.read(size)
+        if chunk:
+            self._progress_bar(len(chunk))
+        return chunk
+
+    def __getattr__(self, name):
+        return getattr(self._file_object, name)
+
+
 def resolve_show_progress(*, is_sync: bool) -> bool:
     """Resolve the show_progress setting from the global config.
 
@@ -50,19 +67,22 @@ def upload_file(
     Raises:
         ValueError: If the upload request fails.
     """
+    file_size = file_path.stat().st_size
+
     with alive_bar(
+        file_size,
         title=f"Upload [{file_path.name}]",
-        bar=None,
         spinner="dots_waves",
         spinner_length=7,
-        monitor=False,
-        stats=False,
+        unit="B",
+        scale="SI",
         disable=not show_progress,
-    ):
-        with open(file_path, "rb") as f:
+    ) as bar:
+        with open(file_path, "rb") as file:
+            wrapped = _ProgressReader(file, bar)
             response = rest_client.post(
                 signed_url,
-                data=f,
+                data=wrapped,
                 headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
             )
             response.raise_for_status()
