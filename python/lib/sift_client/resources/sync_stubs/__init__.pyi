@@ -1963,7 +1963,7 @@ class TestResultsAPI:
         """
         ...
 
-    def replay_log_file(self, log_file: str | Path) -> ReplayResult:
+    def import_log_file(self, log_file: str | Path) -> ReplayResult:
         """Replay a log file by parsing each entry, simulating the results, then creating for real.
 
         This method reads a log file created by the simulation logging, reconstructs

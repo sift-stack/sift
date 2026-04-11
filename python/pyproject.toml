@@ -50,7 +50,7 @@ Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.scripts]
-replay-test-result-log = "sift_client.scripts.replay_test_result_log:main"
+import-test-result-log = "sift_client.scripts.import_test_result_log:main"
 
 [project.optional-dependencies]
 # AUTO GENERATED EXTRAS — EDIT [tool.sift.extras] ONLY

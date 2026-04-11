@@ -616,7 +616,7 @@ class TestResultsAPIAsync(ResourceBase):
             raise TypeError(f"measurement_id must be a string not {type(measurement_id)}")
         await self._low_level_client.delete_test_measurement(measurement_id=measurement_id)
 
-    async def replay_log_file(
+    async def import_log_file(
         self,
         log_file: str | Path,
     ) -> ReplayResult:
@@ -632,7 +632,7 @@ class TestResultsAPIAsync(ResourceBase):
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
         """
-        result = await self._low_level_client.replay_log_file(log_file)
+        result = await self._low_level_client.import_log_file(log_file)
         result.report = self._apply_client_to_instance(result.report)
         result.steps = self._apply_client_to_instances(result.steps)
         result.measurements = self._apply_client_to_instances(result.measurements)

@@ -115,7 +115,7 @@ class ReportContext(AbstractContextManager):
         if self.log_file:
             try:
                 # Try replaying the log file and clean up the file if it's a temporary file.
-                self.client.test_results.replay_log_file(self.log_file)
+                self.client.test_results.import_log_file(self.log_file)
                 fp = os.path.abspath(self.log_file)
                 tmp_dir = tempfile.gettempdir()
                 if fp.startswith(tmp_dir):
@@ -123,9 +123,9 @@ class ReportContext(AbstractContextManager):
             except Exception as e:
                 logger.error(e)
                 logger.error(
-                    f"Error replaying log file: {self.log_file}.\n  Can replay with `replay-test-result-log {self.log_file}`."
+                    f"Error replaying log file: {self.log_file}.\n  Can replay with `import-test-result-log {self.log_file}`."
                 )
-                raise e
+                raise
 
         return True
 

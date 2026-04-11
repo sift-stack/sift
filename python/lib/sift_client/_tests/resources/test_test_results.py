@@ -4,11 +4,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
+from unittest.mock import MagicMock
 
 import grpc
 import pytest
 from grpc import aio as aiogrpc
 
+from sift_client._internal.low_level_wrappers.test_results import TestResultsLowLevelClient
 from sift_client.resources import TestResultsAPI, TestResultsAPIAsync
 from sift_client.sift_types.test_report import (
     ErrorInfo,
@@ -534,7 +536,13 @@ class TestResultsTest:
         assert found_report.id_ == test_report.id_
         self.test_reports["imported_test_report"] = found_report
 
-    def test_replay_log_file_round_trip(self, sift_client, nostromo_run, tmp_path):
+    def test_delete_test_reports(self, sift_client):
+        for test_report in self.test_reports.values():
+            sift_client.test_results.delete(test_report=test_report)
+
+
+class TestImportLogFile:
+    def test_import_log_file_round_trip(self, sift_client, nostromo_run, tmp_path):
         """Create a report with steps, nested steps, and measurements twice:
         once with a log file and once without. Then replay the log and compare.
         """
@@ -657,7 +665,7 @@ class TestResultsTest:
         assert "[UpdateTestReport]" in log_content
 
         # Replay the log file to create real resources
-        replay_result = sift_client.test_results.replay_log_file(log_file)
+        replay_result = sift_client.test_results.import_log_file(log_file)
 
         assert replay_result.report.id_ is not None
         assert len(replay_result.steps) == 3
@@ -688,10 +696,25 @@ class TestResultsTest:
             replayed_m = replayed_measurements_by_name[direct_m.name]
             compare_test_measurement_fields(replayed_m, direct_m)
 
-        # Clean up both reports
-        self.test_reports["replay_report"] = replay_result.report
-        self.test_reports["direct_report"] = direct["report"]
+    @pytest.mark.asyncio
+    async def test_malformed_log_line_raises(self, tmp_path):
+        """import_log_file raises ValueError on a line that doesn't match the expected format."""
+        log_file = tmp_path / "bad.jsonl"
+        log_file.write_text("this is not a valid log line\n")
 
-    def test_delete_test_reports(self, sift_client):
-        for test_report in self.test_reports.values():
-            sift_client.test_results.delete(test_report=test_report)
+        client = TestResultsLowLevelClient(grpc_client=MagicMock())
+        with pytest.raises(ValueError, match="malformed log line"):
+            await client.import_log_file(log_file)
+
+    @pytest.mark.asyncio
+    async def test_malformed_line_after_valid_lines_raises(self, tmp_path):
+        """A malformed line after valid entries still raises."""
+        log_file = tmp_path / "mixed.jsonl"
+        log_file.write_text(
+            '[CreateTestReport] {"name":"r","testCase":"c","testSystemName":"s"}\n'
+            "totally broken line\n"
+        )
+
+        client = TestResultsLowLevelClient(grpc_client=MagicMock())
+        with pytest.raises(ValueError, match="malformed log line"):
+            await client.import_log_file(log_file)

@@ -844,7 +844,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = DeleteTestMeasurementRequest(measurement_id=measurement_id)
         await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestMeasurement(request)
 
-    async def replay_log_file(
+    async def import_log_file(
         self,
         log_file: str | Path,
     ) -> ReplayResult:
@@ -881,8 +881,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
                 match = line_pattern.match(line)
                 if not match:
-                    logger.warning(f"Skipping malformed log line: {line[:100]}...")
-                    continue
+                    raise ValueError(f"Skipping malformed log line: {line[:100]}...")
 
                 request_type = match.group(1)
                 response_id = match.group(2)
@@ -1066,6 +1065,15 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             numeric_bounds=simulated.numeric_bounds,
             string_expected_value=simulated.string_expected_value,
         )
+
+
+def _client_version() -> str:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("sift_stack_py")
+    except PackageNotFoundError:
+        return "unknown"
 
 
 @dataclass
