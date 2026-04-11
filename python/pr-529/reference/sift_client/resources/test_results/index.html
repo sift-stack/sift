@@ -1344,6 +1344,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.test_results.TestResultsAPIAsync.import_log_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;import_log_file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.test_results.TestResultsAPIAsync.list_" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1370,17 +1381,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;list_steps
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.test_results.TestResultsAPIAsync.replay_log_file" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replay_log_file
       
     </span>
   </a>
@@ -2002,6 +2002,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.test_results.TestResultsAPIAsync.import_log_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;import_log_file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.test_results.TestResultsAPIAsync.list_" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2028,17 +2039,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;list_steps
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.test_results.TestResultsAPIAsync.replay_log_file" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replay_log_file
       
     </span>
   </a>
@@ -2396,6 +2396,19 @@ You're not viewing the latest version.
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            import_log_file
+
+
+  
+      async
+   (sift_client.resources.test_results.TestResultsAPIAsync.import_log_file)" href="#sift_client.resources.test_results.TestResultsAPIAsync.import_log_file">import_log_file</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Replay a log file by parsing each entry, simulating the results, then creating for real.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            list_
 
 
@@ -2431,19 +2444,6 @@ You're not viewing the latest version.
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>List test steps with optional filtering.</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            replay_log_file
-
-
-  
-      async
-   (sift_client.resources.test_results.TestResultsAPIAsync.replay_log_file)" href="#sift_client.resources.test_results.TestResultsAPIAsync.replay_log_file">replay_log_file</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Replay a log file by parsing each entry, simulating the results, then creating for real.</p>
                 </div>
               </td>
             </tr>
@@ -3724,6 +3724,85 @@ raises an error.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sift_client.resources.test_results.TestResultsAPIAsync.import_log_file" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">import_log_file</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#sift_client.resources.test_results.TestResultsAPIAsync.import_log_file" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_log_file</span><span class="p">(</span><span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Replay a log file by parsing each entry, simulating the results, then creating for real.</p>
+<p>This method reads a log file created by the simulation logging, reconstructs
+all the objects via simulation, and then creates them via the actual API.
+IDs are mapped from simulated to real during the creation process.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Path to the log file to replay.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>A ReplayResult containing the created report, steps, and measurements.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sift_client.resources.test_results.TestResultsAPIAsync.list_" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">list_</span>
 
@@ -4958,85 +5037,6 @@ raises an error.</p>
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>A list of TestSteps that matches the filter.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sift_client.resources.test_results.TestResultsAPIAsync.replay_log_file" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">replay_log_file</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-async"><code>async</code></small>
-  </span>
-
-<a href="#sift_client.resources.test_results.TestResultsAPIAsync.replay_log_file" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">replay_log_file</span><span class="p">(</span><span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Replay a log file by parsing each entry, simulating the results, then creating for real.</p>
-<p>This method reads a log file created by the simulation logging, reconstructs
-all the objects via simulation, and then creates them via the actual API.
-IDs are mapped from simulated to real during the creation process.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">PARAMETER</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>log_file</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Path to the log file to replay.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RETURNS</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>A ReplayResult containing the created report, steps, and measurements.</p>
               </div>
             </td>
           </tr>
