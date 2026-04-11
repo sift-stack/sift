@@ -103,6 +103,36 @@ class TimeColumnBase(BaseModel, ABC):
         return self
 
 
+class DataColumnBase(BaseModel, ABC):
+    """Base class for data column definitions.
+
+    Attributes:
+        name: Channel name.
+        data_type: The data type of the channel values.
+        units: Optional units string.
+        description: Optional channel description.
+    """
+
+    name: str
+    data_type: ChannelDataType
+    units: str = ""
+    description: str = ""
+
+
+class ImportConfigBase(BaseModel, ABC):
+    """Base class for all import configurations.
+
+    Attributes:
+        asset_name: Name of the asset to import data into.
+        run_name: Name for the run. Ignored if ``run_id`` is set.
+        run_id: ID of an existing run to append data to.
+    """
+
+    asset_name: str
+    run_name: str | None = None
+    run_id: str | None = None
+
+
 class CsvTimeColumn(TimeColumnBase):
     """Time column configuration for CSV imports.
 
@@ -122,36 +152,14 @@ class CsvTimeColumn(TimeColumnBase):
         return proto
 
 
-class CsvDataColumn(BaseModel):
+class CsvDataColumn(DataColumnBase):
     """A data column definition for CSV imports.
 
     Attributes:
         column: The 1-indexed column number.
-        name: Channel name.
-        data_type: The data type of the channel values.
-        units: Optional units string.
-        description: Optional channel description.
     """
 
     column: int
-    name: str
-    data_type: ChannelDataType
-    units: str = ""
-    description: str = ""
-
-
-class ImportConfigBase(BaseModel, ABC):
-    """Base class for all import configurations.
-
-    Attributes:
-        asset_name: Name of the asset to import data into.
-        run_name: Name for the run. Ignored if ``run_id`` is set.
-        run_id: ID of an existing run to append data to.
-    """
-
-    asset_name: str
-    run_name: str | None = None
-    run_id: str | None = None
 
 
 class CsvImportConfig(ImportConfigBase):
@@ -281,22 +289,14 @@ class ParquetTimeColumn(TimeColumnBase):
         )
 
 
-class ParquetDataColumn(BaseModel):
+class ParquetDataColumn(DataColumnBase):
     """A data column definition for Parquet flat dataset imports.
 
     Attributes:
         path: The column path in the Parquet schema.
-        name: Channel name.
-        data_type: The data type of the channel values.
-        units: Optional units string.
-        description: Optional channel description.
     """
 
     path: str
-    name: str
-    data_type: ChannelDataType
-    units: str = ""
-    description: str = ""
 
 
 class ParquetFlatDatasetImportConfig(ImportConfigBase):
@@ -395,22 +395,14 @@ class ParquetFlatDatasetImportConfig(ImportConfigBase):
         )
 
 
-class ParquetSingleChannelConfig(BaseModel):
+class ParquetSingleChannelConfig(DataColumnBase):
     """Configuration for a single-channel Parquet single-channel-per-row import.
 
     Attributes:
         data_path: The column path containing channel data.
-        name: Channel name.
-        data_type: The data type of the channel values.
-        units: Optional units string.
-        description: Optional channel description.
     """
 
     data_path: str
-    name: str
-    data_type: ChannelDataType
-    units: str = ""
-    description: str = ""
 
 
 class ParquetMultiChannelConfig(BaseModel):
@@ -587,7 +579,7 @@ class TdmsImportConfig(ImportConfigBase):
         return proto
 
 
-class Hdf5DataColumn(BaseModel):
+class Hdf5DataColumn(DataColumnBase):
     """A dataset mapping for HDF5 imports.
 
     Each entry maps a time/value dataset pair to a channel.
@@ -597,10 +589,6 @@ class Hdf5DataColumn(BaseModel):
         time_index: Column index within the time dataset. Defaults to 0.
         value_dataset: HDF5 path to the value dataset.
         value_index: Column index within the value dataset. Defaults to 0.
-        name: Channel name.
-        data_type: The data type of the channel values.
-        units: Optional units string.
-        description: Optional channel description.
         time_field: For compound dataset types, the field name to use for time.
         value_field: For compound dataset types, the field name to use for value.
     """
@@ -609,10 +597,6 @@ class Hdf5DataColumn(BaseModel):
     time_index: int = 0
     value_dataset: str
     value_index: int = 0
-    name: str
-    data_type: ChannelDataType
-    units: str = ""
-    description: str = ""
     time_field: str | None = None
     value_field: str | None = None
 
