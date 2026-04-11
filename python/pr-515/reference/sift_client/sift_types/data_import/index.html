@@ -5647,44 +5647,6 @@ You're not viewing the latest version.
               </p>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            format
-
-
-  
-      pydantic-field
-   (sift_client.sift_types.data_import.CsvTimeColumn.format)" href="#sift_client.sift_types.data_import.CsvTimeColumn.format">format</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                <p>The time format used in this column.</p>
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            relative_start_time
-
-
-  
-      pydantic-field
-   (sift_client.sift_types.data_import.CsvTimeColumn.relative_start_time)" href="#sift_client.sift_types.data_import.CsvTimeColumn.relative_start_time">relative_start_time</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                <p>Required when using a relative time format.</p>
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="datetime.datetime">datetime</span> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -9260,31 +9222,12 @@ automatically when using <code>detect_config</code>.</p>
    (sift_client.sift_types.data_import.ParquetTimeColumn.format)" href="#sift_client.sift_types.data_import.ParquetTimeColumn.format">format</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>The time format used in this column.</p>
+                <p>The time format. Defaults to <code>ABSOLUTE_UNIX_NANOSECONDS</code>.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            relative_start_time
-
-
-  
-      pydantic-field
-   (sift_client.sift_types.data_import.ParquetTimeColumn.relative_start_time)" href="#sift_client.sift_types.data_import.ParquetTimeColumn.relative_start_time">relative_start_time</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                <p>Required when using a relative time format.</p>
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="datetime.datetime">datetime</span> | None</code>
                   </span>
               </p>
             </td>
