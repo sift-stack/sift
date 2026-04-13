@@ -21,6 +21,10 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.data_import import (
+        DataTypeKey,
+        ImportConfig,
+    )
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
@@ -618,6 +622,171 @@ class DataExportAPI:
 
         Returns:
             A Job handle for the pending export.
+        """
+        ...
+
+class DataImportAPI:
+    """Sync counterpart to `DataImportAPIAsync`.
+
+    High-level API for importing data into Sift.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the DataImportAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def detect_config(
+        self, file_path: str | Path, data_type: DataTypeKey | None = None
+    ) -> ImportConfig:
+        """Auto-detect import configuration from a file.
+
+        Reads a sample of the file, sends it to the server's DetectConfig
+        endpoint, and returns the detected configuration. The file format
+        is inferred from the file extension when ``data_type`` is not
+        provided.
+
+        Only CSV and Parquet files are currently supported for auto-detection.
+        For other formats (TDMS, HDF5), create the config manually
+        using ``TdmsImportConfig`` or ``Hdf5ImportConfig``.
+
+        For CSV files, the server scans the first two rows for an optional
+        JSON metadata row. Row 1 is checked first; row 2 is checked only
+        if row 1 is not valid metadata. A row qualifies as metadata when
+        every cell contains valid JSON that describes either a time column
+        or a data column. When present, ``first_data_row`` in the returned
+        config is set to the row after the metadata row.
+
+        Each data column cell is a JSON ``ChannelConfig``::
+
+            {"name": "speed", "units": "m/s", "dataType": "CHANNEL_DATA_TYPE_DOUBLE"}
+
+        The time column cell is a JSON ``CsvTimeColumn``::
+
+            {"format": "TIME_FORMAT_ABSOLUTE_RFC3339"}
+
+        Enum type definitions and bit field elements can also be specified
+        in the metadata row; they are applied server-side during import
+        but are not included in the returned config.
+
+        For file types with multiple layouts (e.g. Parquet), ``data_type``
+        must be specified explicitly.
+
+        Args:
+            file_path: Path to the file to analyze.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous.
+
+        Returns:
+            The detected import config.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file extension is unsupported or no
+                supported configuration could be detected.
+        """
+        ...
+
+    def get_run(self, data_import_id: str) -> Run:
+        """Get the run associated with a data import.
+
+        The ``data_import_id`` is available on the job returned by
+        ``import_from_path`` via ``job.job_details.data_import_id``.
+        For a more ergonomic approach, use ``job.get_import_run()``
+        which calls this method internally.
+
+        Args:
+            data_import_id: The ID of the data import.
+
+        Returns:
+            The Run created by or associated with the import.
+
+        Raises:
+            ValueError: If the data import has no associated run.
+        """
+        ...
+
+    def import_from_path(
+        self,
+        file_path: str | Path,
+        *,
+        asset: Asset | str | None = None,
+        config: ImportConfig | None = None,
+        data_type: DataTypeKey | None = None,
+        run: Run | str | None = None,
+        run_name: str | None = None,
+        show_progress: bool | None = None,
+    ) -> Job:
+        """Import data from a local file.
+
+        Creates a data import on the server, uploads the file, and returns
+        a ``Job`` handle after uploading the file. The import processes
+        server-side and typically completes shortly after upload. Use
+        ``job.wait_until_complete()`` only if you need to confirm
+        completion before proceeding.
+
+        When ``config`` is omitted the file format is auto-detected via
+        ``detect_config`` (CSV and Parquet only). For other formats
+        (TDMS and HDF5), ``config`` must be provided.
+        When ``asset`` is provided it overrides the config value;
+        otherwise the config's ``asset_name`` is used.
+        If neither ``run`` nor ``run_name`` is provided (and none is
+        set on the config), ``run_name`` defaults to the filename.
+
+        Examples:
+            Import a CSV file with auto-detected config:
+
+                job = client.data_imports.import_from_path(
+                    "data.csv",
+                    asset=my_asset,
+                )
+
+            Auto-detect config, inspect and patch before importing:
+
+                config = client.data_imports.detect_config("data.csv")
+
+                # Fix a column data type
+                config["temperature"].data_type = ChannelDataType.FLOAT
+
+                # Remove an unwanted column
+                config.data_columns = [
+                    dc for dc in config.data_columns if dc.name != "internal_id"
+                ]
+
+                job = client.data_imports.import_from_path(
+                    "data.csv",
+                    asset=my_asset,
+                    config=config,
+                )
+
+        Args:
+            file_path: Path to the local file to import.
+            asset: Asset object or asset name to import data into. Optional
+                when ``config`` already has ``asset_name`` set.
+            config: Import configuration describing the file format and column
+                mapping. When provided, ``data_type`` is ignored. If omitted,
+                the config is auto-detected via ``detect_config``. You can
+                call ``detect_config`` yourself to inspect and modify the
+                config before passing it here.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous. Only used
+                when ``config`` is not provided.
+            run: ``Run`` object or run ID string to import into an existing
+                run. Mutually exclusive with ``run_name``.
+            run_name: Name for a new run. Defaults to the filename if
+                neither ``run`` nor ``run_name`` is set.
+            show_progress: If True, display a progress spinner during upload.
+                Defaults to True for sync, False for async.
+
+        Returns:
+            A ``Job`` handle for the pending import.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
         """
         ...
 
