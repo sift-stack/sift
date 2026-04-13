@@ -14,7 +14,6 @@ from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.data_import import (
-    Ch10ImportConfig,
     CsvImportConfig,
     Hdf5ImportConfig,
     ImportConfig,
@@ -41,8 +40,6 @@ def _set_config_on_request(
         config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
     ):
         request.parquet_config.CopyFrom(config._to_proto())
-    elif isinstance(config, Ch10ImportConfig):
-        request.ch10_config.CopyFrom(config._to_proto())
     elif isinstance(config, TdmsImportConfig):
         request.tdms_config.CopyFrom(config._to_proto())
     elif isinstance(config, Hdf5ImportConfig):

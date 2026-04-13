@@ -8,7 +8,6 @@ from typing import Union
 from pydantic import BaseModel, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.data_imports.v2.data_imports_pb2 import (
-    DATA_TYPE_KEY_CH10,
     DATA_TYPE_KEY_CSV,
     DATA_TYPE_KEY_HDF5,
     DATA_TYPE_KEY_PARQUET_FLATDATASET,
@@ -19,7 +18,6 @@ from sift.data_imports.v2.data_imports_pb2 import (
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING,
 )
-from sift.data_imports.v2.data_imports_pb2 import Ch10Config as Ch10ConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
 from sift.data_imports.v2.data_imports_pb2 import Hdf5Config as Hdf5ConfigProto
@@ -70,14 +68,12 @@ class DataTypeKey(Enum):
     PARQUET_FLATDATASET = DATA_TYPE_KEY_PARQUET_FLATDATASET
     PARQUET_SINGLE_CHANNEL_PER_ROW = DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW
     TDMS = DATA_TYPE_KEY_TDMS
-    CH10 = DATA_TYPE_KEY_CH10
     HDF5 = DATA_TYPE_KEY_HDF5
 
 
 EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
     ".csv": DataTypeKey.CSV,
     ".tdms": DataTypeKey.TDMS,
-    ".ch10": DataTypeKey.CH10,
     ".h5": DataTypeKey.HDF5,
     ".hdf5": DataTypeKey.HDF5,
 }
@@ -537,23 +533,6 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
         )
 
 
-class Ch10ImportConfig(ImportConfigBase):
-    """Configuration for importing a CH10 file.
-
-    Attributes:
-        scale_values: Whether to apply EU (engineering unit) scaling to channel values.
-    """
-
-    scale_values: bool = False
-
-    def _to_proto(self) -> Ch10ConfigProto:
-        return Ch10ConfigProto(
-            asset_name=self.asset_name,
-            run_name=self.run_name or "",
-            scale_values=self.scale_values,
-        )
-
-
 class TdmsImportConfig(ImportConfigBase):
     """Configuration for importing a TDMS file.
 
@@ -655,7 +634,6 @@ ImportConfig = Union[
     CsvImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
-    Ch10ImportConfig,
     TdmsImportConfig,
     Hdf5ImportConfig,
 ]

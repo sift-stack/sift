@@ -11,7 +11,6 @@ from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
-    Ch10ImportConfig,
     CsvImportConfig,
     DataTypeKey,
     ImportConfig,
@@ -63,7 +62,7 @@ class DataImportAPIAsync(ResourceBase):
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV and Parquet only). For other formats
-        (TDMS, HDF5, CH10), ``config`` must be provided.
+        (TDMS and HDF5), ``config`` must be provided.
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -134,14 +133,10 @@ class DataImportAPIAsync(ResourceBase):
         if run is not None and run_name is not None:
             raise ValueError("'run' and 'run_name' are mutually exclusive.")
         if run is not None:
-            if isinstance(config, Ch10ImportConfig):
-                raise ValueError(
-                    "'run' is not supported for Ch10ImportConfig. Use 'run_name' instead."
-                )
             config.run_id = run._id_or_error if isinstance(run, Run) else run
         elif run_name is not None:
             config.run_name = run_name
-        elif not config.run_name and (isinstance(config, Ch10ImportConfig) or not config.run_id):
+        elif not config.run_name and not config.run_id:
             config.run_name = path.name
 
         if isinstance(
@@ -204,9 +199,8 @@ class DataImportAPIAsync(ResourceBase):
         provided.
 
         Only CSV and Parquet files are currently supported for auto-detection.
-        For other formats (TDMS, HDF5, CH10), create the config manually
-        using ``TdmsImportConfig``, ``Hdf5ImportConfig``, or
-        ``Ch10ImportConfig``.
+        For other formats (TDMS, HDF5), create the config manually
+        using ``TdmsImportConfig`` or ``Hdf5ImportConfig``.
 
         For CSV files, the server scans the first two rows for an optional
         JSON metadata row. Row 1 is checked first; row 2 is checked only
