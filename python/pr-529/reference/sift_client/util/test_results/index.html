@@ -1596,6 +1596,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.report_context_no_logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;report_context_no_logging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.util.test_results.step" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2375,6 +2386,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.report_context_no_logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;report_context_no_logging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.util.test_results.step" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2479,6 +2501,7 @@ You're not viewing the latest version.
 <li>If you want each module(file) to be marked as a step w/ each test as a substep, import the <code>module_substep</code> fixture as well.</li>
 <li>The <code>report_context</code> fixture requires a fixture <code>sift_client</code> returning an <code>SiftClient</code> instance to be passed in.</li>
 </ul>
+<p>Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you should import the <code>report_context_no_logging</code> fixture instead.</p>
 <h6 id="sift_client.util.test_results--example-at-top-of-your-test-file-or-in-your-conftestpy-file">Example at top of your test file or in your conftest.py file:<a class="headerlink" href="#sift_client.util.test_results--example-at-top-of-your-test-file-or-in-your-conftestpy-file" title="Permanent link">&para;</a></h6>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
@@ -2637,6 +2660,14 @@ You're not viewing the latest version.
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Create a report context for the session. Doesn't run if the client has no connection to the Sift server.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            report_context_no_logging (sift_client.util.test_results.report_context_no_logging)" href="#sift_client.util.test_results.report_context_no_logging">report_context_no_logging</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Create a report context for the session with logging disabled.</p>
                 </div>
               </td>
             </tr>
@@ -4654,6 +4685,28 @@ All create/update operations will be logged to this file.</p>
     <div class="doc doc-contents ">
 
         <p>Create a report context for the session. Doesn't run if the client has no connection to the Sift server.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.test_results.report_context_no_logging" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">report_context_no_logging</span>
+
+
+<a href="#sift_client.util.test_results.report_context_no_logging" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">report_context_no_logging</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">sift_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="../../client/#sift_client.client.SiftClient">SiftClient</a></span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="#sift_client.util.test_results.ReportContext">ReportContext</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create a report context for the session with logging disabled.</p>
 
 
     </div>
