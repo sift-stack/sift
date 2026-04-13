@@ -73,6 +73,7 @@ gen_python_modules() {
   echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$python_lib/google/__init__.py"
 
   rm -rf "${python_lib}/__init__.py"
+  touch "${python_lib}/sift/py.typed"
   if [[ -d "$python_gen_dir" ]]; then
     rm -rf "$python_gen_dir"
   fi
