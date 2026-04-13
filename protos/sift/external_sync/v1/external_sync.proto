@@ -48,6 +48,17 @@ service ExternalSyncService {
       description: "List all tokens created by org"
     };
   }
+
+  // Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+  // has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+  // Organization is taken from request context.
+  rpc GetIsOrgExternallyProvisioned(GetIsOrgExternallyProvisionedRequest) returns (GetIsOrgExternallyProvisionedResponse) {
+    option (google.api.http) = {get: "/api/v1/external-sync:is-org-externally-provisioned"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetIsOrgExternallyProvisioned"
+      description: "Returns whether the organization is configured for external (SCIM) user provisioning"
+    };
+  }
 }
 
 message ExternalSync {
@@ -123,4 +134,10 @@ message ListExternalSyncTokensRequest {
 message ListExternalSyncTokensResponse {
   repeated ExternalSyncToken external_sync_tokens = 1 [(google.api.field_behavior) = REQUIRED];
   string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GetIsOrgExternallyProvisionedRequest {}
+
+message GetIsOrgExternallyProvisionedResponse {
+  bool is_externally_provisioned = 1 [(google.api.field_behavior) = REQUIRED];
 }
