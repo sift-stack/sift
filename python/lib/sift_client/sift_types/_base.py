@@ -194,7 +194,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                 del repeated_field[:]  # Remove all existing items
                 try:
                     repeated_field.extend(value)  # Add all new values
-                except TypeError as e:
+                except TypeError:
                     if field_name in self.__class__._to_proto_helpers:
                         assert self.__class__._to_proto_helpers[field_name].converter, (
                             f"Expecting to run a coverter given a helper was defined for: {field_name}"
@@ -205,7 +205,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                                 self.__class__._to_proto_helpers[field_name].converter(**item)  # type: ignore
                             )
                     else:
-                        raise e
+                        raise
                 paths.append(path)
             else:
                 try:

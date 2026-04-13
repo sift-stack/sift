@@ -14,14 +14,19 @@ import grpc
 import grpc.aio as grpc_aio
 from typing_extensions import NotRequired, TypeAlias
 
-from sift_client._internal.grpc._async_interceptors.metadata import MetadataAsyncInterceptor
-from sift_client._internal.grpc._interceptors.metadata import Metadata, MetadataInterceptor
+from sift_client._internal.grpc_transport._async_interceptors.metadata import (
+    MetadataAsyncInterceptor,
+)
+from sift_client._internal.grpc_transport._interceptors.metadata import (
+    Metadata,
+    MetadataInterceptor,
+)
 
 if TYPE_CHECKING:
-    from sift_client._internal.grpc._async_interceptors.base import ClientAsyncInterceptor
-    from sift_client._internal.grpc._interceptors.base import ClientInterceptor
-from sift_client._internal.grpc._retry import RetryPolicy
-from sift_client._internal.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
+    from sift_client._internal.grpc_transport._async_interceptors.base import ClientAsyncInterceptor
+    from sift_client._internal.grpc_transport._interceptors.base import ClientInterceptor
+from sift_client._internal.grpc_transport._retry import RetryPolicy
+from sift_client._internal.grpc_transport.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 
 SiftChannel: TypeAlias = grpc.Channel
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel

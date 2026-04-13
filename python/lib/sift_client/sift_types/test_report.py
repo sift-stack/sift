@@ -37,6 +37,8 @@ from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sift_client.client import SiftClient
 
 
@@ -195,11 +197,17 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
 
         return proto
 
-    def update(self, update: TestStepUpdate | dict) -> TestStep:
+    def update(
+        self,
+        update: TestStepUpdate | dict,
+        log_file: str | Path | None = None,
+    ) -> TestStep:
         """Update the TestStep."""
         if not self.client:
             raise ValueError("Client not set")
-        updated_test_step = self.client.test_results.update_step(test_step=self, update=update)
+        updated_test_step = self.client.test_results.update_step(
+            test_step=self, update=update, log_file=log_file
+        )
         self._update(updated_test_step)
         return self
 
@@ -405,19 +413,23 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
         return proto
 
     def update(
-        self, update: TestMeasurementUpdate | dict, update_step: bool = False
+        self,
+        update: TestMeasurementUpdate | dict,
+        update_step: bool = False,
+        log_file: str | Path | None = None,
     ) -> TestMeasurement:
         """Update the TestMeasurement.
 
         Args:
             update: The update to apply to the TestMeasurement.
             update_step: Whether to update the TestStep's status to failed if the TestMeasurement is being updated to failed.
+            log_file: If set, log the request to this file instead of making an API call.
 
         Returns:
             The updated TestMeasurement.
         """
         updated_test_measurement = self.client.test_results.update_measurement(
-            test_measurement=self, update=update, update_step=update_step
+            test_measurement=self, update=update, update_step=update_step, log_file=log_file
         )
         self._update(updated_test_measurement)
         return self
@@ -590,9 +602,15 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
 
         return proto
 
-    def update(self, update: TestReportUpdate | dict) -> TestReport:
+    def update(
+        self,
+        update: TestReportUpdate | dict,
+        log_file: str | Path | None = None,
+    ) -> TestReport:
         """Update the TestReport."""
-        updated_test_report = self.client.test_results.update(test_report=self, update=update)
+        updated_test_report = self.client.test_results.update(
+            test_report=self, update=update, log_file=log_file
+        )
         self._update(updated_test_report)
         return self
 

@@ -25,12 +25,16 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         # Skipped steps won't invoke the method/fixtures at all, so we need to manually record a step.
         if REPORT_CONTEXT:
             with REPORT_CONTEXT.new_step(name=item.name) as new_step:
-                new_step.current_step.update({"status": TestStatus.SKIPPED})
+                new_step.current_step.update(
+                    {"status": TestStatus.SKIPPED}, log_file=REPORT_CONTEXT.log_file
+                )
     setattr(item, "rep_" + report.when, call)
 
 
 def _report_context_impl(
-    sift_client: SiftClient, request: pytest.FixtureRequest
+    sift_client: SiftClient,
+    request: pytest.FixtureRequest,
+    log_file: str | Path | bool | None = True,
 ) -> Generator[ReportContext | None, None, None]:
     test_path = Path(request.config.invocation_params.args[0])
     base_name = (
@@ -43,6 +47,7 @@ def _report_context_impl(
         sift_client,
         name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
         test_case=str(test_case),
+        log_file=log_file,
     ) as context:
         # Set a global so we can access this in pytest hooks.
         global REPORT_CONTEXT
@@ -55,7 +60,15 @@ def report_context(
     sift_client: SiftClient, request: pytest.FixtureRequest
 ) -> Generator[ReportContext | None, None, None]:
     """Create a report context for the session."""
-    yield from _report_context_impl(sift_client, request)
+    yield from _report_context_impl(sift_client, request, log_file=True)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def report_context_no_logging(
+    sift_client: SiftClient, request: pytest.FixtureRequest
+) -> Generator[ReportContext | None, None, None]:
+    """Create a report context for the session with logging disabled."""
+    yield from _report_context_impl(sift_client, request, log_file=None)
 
 
 def _step_impl(

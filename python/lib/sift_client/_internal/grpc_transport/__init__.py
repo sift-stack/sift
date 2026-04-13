@@ -4,7 +4,7 @@ This module is primarily concerned with configuring and initializing gRPC connec
 Example of establishing a connection to Sift's gRPC APi:
 
 ```python
-from sift_client._internal.grpc.transport import SiftChannelConfig, use_sift_channel
+from sift_client._internal.grpc_transport.transport import SiftChannelConfig, use_sift_channel
 
 # Be sure not to include the url scheme i.e. 'https://' in the uri.
 sift_channel_config = SiftChannelConfig(uri=SIFT_BASE_URI, apikey=SIFT_API_KEY)

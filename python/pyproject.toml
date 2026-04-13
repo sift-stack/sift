@@ -49,6 +49,9 @@ Documentation = "https://docs.siftstack.com/sift_py/sift_py.html"
 Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
+[project.scripts]
+import-test-result-log = "sift_client.scripts.import_test_result_log:main"
+
 [project.optional-dependencies]
 # AUTO GENERATED EXTRAS — EDIT [tool.sift.extras] ONLY
 all = [
