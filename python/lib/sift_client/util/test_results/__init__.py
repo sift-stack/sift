@@ -58,6 +58,8 @@ The report context and steps can also be accessed in pytest by importing the `re
   - If you want each module(file) to be marked as a step w/ each test as a substep, import the `module_substep` fixture as well.
 - The `report_context` fixture requires a fixture `sift_client` returning an `SiftClient` instance to be passed in.
 
+Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you should import the `report_context_no_logging` fixture instead.
+
 ###### Example at top of your test file or in your conftest.py file:
 
 ```python
@@ -102,6 +104,7 @@ from .pytest_util import (
     pytest_runtest_makereport,
     report_context,
     report_context_check_connection,
+    report_context_no_logging,
     step,
     step_check_connection,
 )
@@ -115,6 +118,7 @@ __all__ = [
     "pytest_runtest_makereport",
     "report_context",
     "report_context_check_connection",
+    "report_context_no_logging",
     "step",
     "step_check_connection",
 ]

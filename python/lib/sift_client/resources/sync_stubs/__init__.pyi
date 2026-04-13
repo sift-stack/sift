@@ -1832,6 +1832,21 @@ class TestResultsAPI:
         """
         ...
 
+    def import_log_file(self, log_file: str | Path) -> ReplayResult:
+        """Replay a log file by parsing each entry, simulating the results, then creating for real.
+
+        This method reads a log file created by the simulation logging, reconstructs
+        all the objects via simulation, and then creates them via the actual API.
+        IDs are mapped from simulated to real during the creation process.
+
+        Args:
+            log_file: Path to the log file to replay.
+
+        Returns:
+            A ReplayResult containing the created report, steps, and measurements.
+        """
+        ...
+
     def list_(
         self,
         *,
@@ -1960,21 +1975,6 @@ class TestResultsAPI:
 
         Returns:
             A list of TestSteps that matches the filter.
-        """
-        ...
-
-    def import_log_file(self, log_file: str | Path) -> ReplayResult:
-        """Replay a log file by parsing each entry, simulating the results, then creating for real.
-
-        This method reads a log file created by the simulation logging, reconstructs
-        all the objects via simulation, and then creates them via the actual API.
-        IDs are mapped from simulated to real during the creation process.
-
-        Args:
-            log_file: Path to the log file to replay.
-
-        Returns:
-            A ReplayResult containing the created report, steps, and measurements.
         """
         ...
 
