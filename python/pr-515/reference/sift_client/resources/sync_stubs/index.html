@@ -8962,9 +8962,8 @@ endpoint, and returns the detected configuration. The file format
 is inferred from the file extension when <code>data_type</code> is not
 provided.</p>
 <p>Only CSV and Parquet files are currently supported for auto-detection.
-For other formats (TDMS, HDF5, CH10), create the config manually
-using <code>TdmsImportConfig</code>, <code>Hdf5ImportConfig</code>, or
-<code>Ch10ImportConfig</code>.</p>
+For other formats (TDMS, HDF5), create the config manually
+using <code>TdmsImportConfig</code> or <code>Hdf5ImportConfig</code>.</p>
 <p>For CSV files, the server scans the first two rows for an optional
 JSON metadata row. Row 1 is checked first; row 2 is checked only
 if row 1 is not valid metadata. A row qualifies as metadata when
@@ -9263,7 +9262,7 @@ server-side and typically completes shortly after upload. Use
 completion before proceeding.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
 <code>detect_config</code> (CSV and Parquet only). For other formats
-(TDMS, HDF5, CH10), <code>config</code> must be provided.
+(TDMS and HDF5), <code>config</code> must be provided.
 When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
