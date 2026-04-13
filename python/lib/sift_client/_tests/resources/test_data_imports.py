@@ -8,7 +8,6 @@ from sift_client.resources import DataImportAPI, DataImportAPIAsync
 from sift_client.resources.data_imports import _resolve_data_type_key
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
-    Ch10ImportConfig,
     CsvDataColumn,
     CsvImportConfig,
     CsvTimeColumn,
@@ -129,21 +128,6 @@ class TestTimeColumnValidation:
     def test_absolute_time_does_not_require_start_time(self):
         col = CsvTimeColumn(column=1, format=TimeFormat.ABSOLUTE_RFC3339)
         assert col.relative_start_time is None
-
-
-class TestCh10Config:
-    def test_to_proto(self):
-        config = Ch10ImportConfig(asset_name="my_asset", run_name="run1", scale_values=True)
-        proto = config._to_proto()
-        assert proto.asset_name == "my_asset"
-        assert proto.run_name == "run1"
-        assert proto.scale_values is True
-
-    def test_to_proto_defaults(self):
-        config = Ch10ImportConfig(asset_name="my_asset")
-        proto = config._to_proto()
-        assert proto.run_name == ""
-        assert proto.scale_values is False
 
 
 class TestTdmsConfig:

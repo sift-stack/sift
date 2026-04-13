@@ -651,9 +651,8 @@ class DataImportAPI:
         provided.
 
         Only CSV and Parquet files are currently supported for auto-detection.
-        For other formats (TDMS, HDF5, CH10), create the config manually
-        using ``TdmsImportConfig``, ``Hdf5ImportConfig``, or
-        ``Ch10ImportConfig``.
+        For other formats (TDMS, HDF5), create the config manually
+        using ``TdmsImportConfig`` or ``Hdf5ImportConfig``.
 
         For CSV files, the server scans the first two rows for an optional
         JSON metadata row. Row 1 is checked first; row 2 is checked only
@@ -732,7 +731,7 @@ class DataImportAPI:
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV and Parquet only). For other formats
-        (TDMS, HDF5, CH10), ``config`` must be provided.
+        (TDMS and HDF5), ``config`` must be provided.
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
