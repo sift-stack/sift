@@ -261,6 +261,39 @@ func (m *ListExternalSyncTokensResponse) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *GetIsOrgExternallyProvisionedRequest) CloneVT() *GetIsOrgExternallyProvisionedRequest {
+	if m == nil {
+		return (*GetIsOrgExternallyProvisionedRequest)(nil)
+	}
+	r := new(GetIsOrgExternallyProvisionedRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetIsOrgExternallyProvisionedRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) CloneVT() *GetIsOrgExternallyProvisionedResponse {
+	if m == nil {
+		return (*GetIsOrgExternallyProvisionedResponse)(nil)
+	}
+	r := new(GetIsOrgExternallyProvisionedResponse)
+	r.IsExternallyProvisioned = m.IsExternallyProvisioned
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *ExternalSync) EqualVT(that *ExternalSync) bool {
 	if this == that {
 		return true
@@ -576,6 +609,41 @@ func (this *ListExternalSyncTokensResponse) EqualMessageVT(thatMsg proto.Message
 	}
 	return this.EqualVT(that)
 }
+func (this *GetIsOrgExternallyProvisionedRequest) EqualVT(that *GetIsOrgExternallyProvisionedRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetIsOrgExternallyProvisionedRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*GetIsOrgExternallyProvisionedRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *GetIsOrgExternallyProvisionedResponse) EqualVT(that *GetIsOrgExternallyProvisionedResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.IsExternallyProvisioned != that.IsExternallyProvisioned {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetIsOrgExternallyProvisionedResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*GetIsOrgExternallyProvisionedResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -590,6 +658,10 @@ type ExternalSyncServiceClient interface {
 	GenerateToken(ctx context.Context, in *GenerateTokenRequest, opts ...grpc.CallOption) (*GenerateTokenResponse, error)
 	GetExternalSync(ctx context.Context, in *GetExternalSyncRequest, opts ...grpc.CallOption) (*GetExternalSyncResponse, error)
 	ListExternalSyncTokens(ctx context.Context, in *ListExternalSyncTokensRequest, opts ...grpc.CallOption) (*ListExternalSyncTokensResponse, error)
+	// Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+	// has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+	// Organization is taken from request context.
+	GetIsOrgExternallyProvisioned(ctx context.Context, in *GetIsOrgExternallyProvisionedRequest, opts ...grpc.CallOption) (*GetIsOrgExternallyProvisionedResponse, error)
 }
 
 type externalSyncServiceClient struct {
@@ -636,6 +708,15 @@ func (c *externalSyncServiceClient) ListExternalSyncTokens(ctx context.Context, 
 	return out, nil
 }
 
+func (c *externalSyncServiceClient) GetIsOrgExternallyProvisioned(ctx context.Context, in *GetIsOrgExternallyProvisionedRequest, opts ...grpc.CallOption) (*GetIsOrgExternallyProvisionedResponse, error) {
+	out := new(GetIsOrgExternallyProvisionedResponse)
+	err := c.cc.Invoke(ctx, "/sift.external_sync.v1.ExternalSyncService/GetIsOrgExternallyProvisioned", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExternalSyncServiceServer is the server API for ExternalSyncService service.
 // All implementations must embed UnimplementedExternalSyncServiceServer
 // for forward compatibility
@@ -644,6 +725,10 @@ type ExternalSyncServiceServer interface {
 	GenerateToken(context.Context, *GenerateTokenRequest) (*GenerateTokenResponse, error)
 	GetExternalSync(context.Context, *GetExternalSyncRequest) (*GetExternalSyncResponse, error)
 	ListExternalSyncTokens(context.Context, *ListExternalSyncTokensRequest) (*ListExternalSyncTokensResponse, error)
+	// Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+	// has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+	// Organization is taken from request context.
+	GetIsOrgExternallyProvisioned(context.Context, *GetIsOrgExternallyProvisionedRequest) (*GetIsOrgExternallyProvisionedResponse, error)
 	mustEmbedUnimplementedExternalSyncServiceServer()
 }
 
@@ -662,6 +747,9 @@ func (UnimplementedExternalSyncServiceServer) GetExternalSync(context.Context, *
 }
 func (UnimplementedExternalSyncServiceServer) ListExternalSyncTokens(context.Context, *ListExternalSyncTokensRequest) (*ListExternalSyncTokensResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListExternalSyncTokens not implemented")
+}
+func (UnimplementedExternalSyncServiceServer) GetIsOrgExternallyProvisioned(context.Context, *GetIsOrgExternallyProvisionedRequest) (*GetIsOrgExternallyProvisionedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetIsOrgExternallyProvisioned not implemented")
 }
 func (UnimplementedExternalSyncServiceServer) mustEmbedUnimplementedExternalSyncServiceServer() {}
 
@@ -748,6 +836,24 @@ func _ExternalSyncService_ListExternalSyncTokens_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExternalSyncService_GetIsOrgExternallyProvisioned_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIsOrgExternallyProvisionedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExternalSyncServiceServer).GetIsOrgExternallyProvisioned(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sift.external_sync.v1.ExternalSyncService/GetIsOrgExternallyProvisioned",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExternalSyncServiceServer).GetIsOrgExternallyProvisioned(ctx, req.(*GetIsOrgExternallyProvisionedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ExternalSyncService_ServiceDesc is the grpc.ServiceDesc for ExternalSyncService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -770,6 +876,10 @@ var ExternalSyncService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListExternalSyncTokens",
 			Handler:    _ExternalSyncService_ListExternalSyncTokens_Handler,
+		},
+		{
+			MethodName: "GetIsOrgExternallyProvisioned",
+			Handler:    _ExternalSyncService_GetIsOrgExternallyProvisioned_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1365,6 +1475,82 @@ func (m *ListExternalSyncTokensResponse) MarshalToSizedBufferVT(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
+func (m *GetIsOrgExternallyProvisionedRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetIsOrgExternallyProvisionedRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetIsOrgExternallyProvisionedRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsExternallyProvisioned {
+		i--
+		if m.IsExternallyProvisioned {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ExternalSync) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1954,6 +2140,82 @@ func (m *ListExternalSyncTokensResponse) MarshalToSizedBufferVTStrict(dAtA []byt
 	return len(dAtA) - i, nil
 }
 
+func (m *GetIsOrgExternallyProvisionedRequest) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetIsOrgExternallyProvisionedRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *GetIsOrgExternallyProvisionedRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsExternallyProvisioned {
+		i--
+		if m.IsExternallyProvisioned {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ExternalSync) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2183,6 +2445,29 @@ func (m *ListExternalSyncTokensResponse) SizeVT() (n int) {
 	l = len(m.NextPageToken)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetIsOrgExternallyProvisionedRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetIsOrgExternallyProvisionedResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.IsExternallyProvisioned {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3575,6 +3860,128 @@ func (m *ListExternalSyncTokensResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.NextPageToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetIsOrgExternallyProvisionedRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetIsOrgExternallyProvisionedResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsExternallyProvisioned", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsExternallyProvisioned = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5040,6 +5447,128 @@ func (m *ListExternalSyncTokensResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.NextPageToken = stringValue
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetIsOrgExternallyProvisionedRequest) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetIsOrgExternallyProvisionedResponse) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetIsOrgExternallyProvisionedResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsExternallyProvisioned", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsExternallyProvisioned = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

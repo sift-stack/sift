@@ -39,6 +39,15 @@ class ExternalSyncServiceStub:
         sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse,
     ]
 
+    GetIsOrgExternallyProvisioned: grpc.UnaryUnaryMultiCallable[
+        sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedRequest,
+        sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedResponse,
+    ]
+    """Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+    has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+    Organization is taken from request context.
+    """
+
 class ExternalSyncServiceAsyncStub:
     SyncOrganization: grpc.aio.UnaryUnaryMultiCallable[
         sift.external_sync.v1.external_sync_pb2.SyncOrganizationRequest,
@@ -59,6 +68,15 @@ class ExternalSyncServiceAsyncStub:
         sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensRequest,
         sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse,
     ]
+
+    GetIsOrgExternallyProvisioned: grpc.aio.UnaryUnaryMultiCallable[
+        sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedRequest,
+        sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedResponse,
+    ]
+    """Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+    has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+    Organization is taken from request context.
+    """
 
 class ExternalSyncServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -88,5 +106,16 @@ class ExternalSyncServiceServicer(metaclass=abc.ABCMeta):
         request: sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse, collections.abc.Awaitable[sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse]]: ...
+
+    @abc.abstractmethod
+    def GetIsOrgExternallyProvisioned(
+        self,
+        request: sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedResponse, collections.abc.Awaitable[sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedResponse]]:
+        """Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+        has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+        Organization is taken from request context.
+        """
 
 def add_ExternalSyncServiceServicer_to_server(servicer: ExternalSyncServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

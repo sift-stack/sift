@@ -261,3 +261,28 @@ class ListExternalSyncTokensResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["external_sync_tokens", b"external_sync_tokens", "next_page_token", b"next_page_token"]) -> None: ...
 
 global___ListExternalSyncTokensResponse = ListExternalSyncTokensResponse
+
+@typing.final
+class GetIsOrgExternallyProvisionedRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___GetIsOrgExternallyProvisionedRequest = GetIsOrgExternallyProvisionedRequest
+
+@typing.final
+class GetIsOrgExternallyProvisionedResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    IS_EXTERNALLY_PROVISIONED_FIELD_NUMBER: builtins.int
+    is_externally_provisioned: builtins.bool
+    def __init__(
+        self,
+        *,
+        is_externally_provisioned: builtins.bool = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["is_externally_provisioned", b"is_externally_provisioned"]) -> None: ...
+
+global___GetIsOrgExternallyProvisionedResponse = GetIsOrgExternallyProvisionedResponse
