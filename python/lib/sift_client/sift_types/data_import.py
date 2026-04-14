@@ -7,6 +7,7 @@ from typing import Union
 
 from pydantic import BaseModel, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
+from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypeProto
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_CSV,
     DATA_TYPE_KEY_HDF5,
@@ -570,6 +571,7 @@ class TdmsDataColumn(DataColumnBase):
     time_channel_name: str | None = None
     scaled: bool | None = None
     complex_component: TdmsComplexComponent | None = None
+    enum_types: dict[str, int] | None = None
 
 
 class TdmsImportConfig(ImportConfigBase):
@@ -615,15 +617,20 @@ class TdmsImportConfig(ImportConfigBase):
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
         for d in self.data:
+            channel_config = ChannelConfigProto(
+                name=d.name,
+                data_type=d.data_type.value,
+                units=d.units,
+                description=d.description,
+            )
+            if d.enum_types:
+                channel_config.enum_types.extend(
+                    ChannelEnumTypeProto(name=name, key=key) for name, key in d.enum_types.items()
+                )
             entry = TdmsDataConfigProto(
                 group_name=d.group_name,
                 channel_name=d.channel_name,
-                channel_config=ChannelConfigProto(
-                    name=d.name,
-                    data_type=d.data_type.value,
-                    units=d.units,
-                    description=d.description,
-                ),
+                channel_config=channel_config,
             )
             if d.time_channel_name is not None:
                 entry.time_channel_name = d.time_channel_name
@@ -655,6 +662,7 @@ class TdmsImportConfig(ImportConfigBase):
             complex_component = None
             if d.complex_component and d.complex_component != TDMS_COMPLEX_COMPONENT_UNSPECIFIED:
                 complex_component = TdmsComplexComponent(d.complex_component)
+            enum_types = {e.name: e.key for e in ch.enum_types} if ch.enum_types else None
             data.append(
                 TdmsDataColumn(
                     group_name=d.group_name,
@@ -668,6 +676,7 @@ class TdmsImportConfig(ImportConfigBase):
                     else None,
                     scaled=d.scaled if d.HasField("scaled") else None,
                     complex_component=complex_component,
+                    enum_types=enum_types,
                 )
             )
 
