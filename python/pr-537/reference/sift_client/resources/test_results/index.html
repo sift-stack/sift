@@ -3761,7 +3761,9 @@ raises an error.</p>
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.import_log_file" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_log_file</span><span class="p">(</span><span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_log_file</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span> <span class="n">incremental</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3786,12 +3788,32 @@ IDs are mapped from simulated to real during the creation process.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Path to the log file to replay.</p>
+                <p>Path to the log file to import.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>incremental</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>(internal tooling) If True, goes line by line and calls every event vs. reading the entire file at once and sending resultant test report.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
                   </span>
               </p>
             </td>
