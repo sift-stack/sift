@@ -593,6 +593,18 @@ class Hdf5ImportConfig(ImportConfigBase):
     time_format: TimeFormat
     relative_start_time: datetime | None = None
 
+    def __getitem__(self, name: str) -> Hdf5DataColumn:
+        """Look up a data column by channel name.
+
+        Example::
+
+            config["temperature"].data_type = ChannelDataType.FLOAT
+        """
+        for dc in self.data:
+            if dc.name == name:
+                return dc
+        raise KeyError(f"No data column named '{name}'")
+
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> Hdf5ImportConfig:
         if self.time_format.name.startswith("RELATIVE_") and self.relative_start_time is None:
