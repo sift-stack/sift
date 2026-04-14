@@ -283,6 +283,10 @@ exclude = [
 # No official typing stubs for Python gRPC libraries yet.
 # https://github.com/grpc/grpc/issues/29041
 [[tool.mypy.overrides]]
+module = "h5py"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "grpc_testing"
 ignore_missing_imports = true
 ignore_errors = true
