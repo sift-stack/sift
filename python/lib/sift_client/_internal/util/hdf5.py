@@ -40,13 +40,7 @@ def _detect_attr(dataset: h5py.Dataset, candidates: list[str], default: str = ""
     for attr in candidates:
         val = dataset.attrs.get(attr)
         if val is not None:
-            return (
-                val.decode()
-                if isinstance(val, bytes)
-                else str(val)
-                if not isinstance(val, str)
-                else val
-            )
+            return val
     return default
 
 
