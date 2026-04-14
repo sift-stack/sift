@@ -62,8 +62,10 @@ Note: FedRAMP users: report_context will log test results to a temp file to avoi
 
 #### Configuration
 
-- Git metadata: You can configure the test results by passing the `--sift-test-results-git-metadata` flag to pytest in your commandline, conftest.py file, or as an addopt in your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration).
-- Log file: You can configure the log file by passing the `--sift-test-results-log-file` flag to pytest in your commandline, conftest.py file, or as an addopt in your pyproject.toml file.
+Import the `pytest_addoption` function to add configuration options for Test Results or add the options to your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration).
+
+- Git metadata: Include git metadata(repo, branch, commit) in the test results. Default is False. You can configure the test results by passing the `--sift-test-results-git-metadata` .
+- Log file: Write test results to a file. This happens automatically but you can configure specify a specific log file by passing `--sift-test-results-log-file=<path>` or disable logging by passing `--sift-test-results-log-file=false`.
 
 ###### Example at top of your test file or in your conftest.py file:
 
@@ -80,7 +82,7 @@ def sift_client() -> SiftClient:
 
     return client
 
-from sift_client.util.test_results import pytest_runtest_makereport, report_context, step, module_substep
+from sift_client.util.test_results import pytest_addoption, pytest_runtest_makereport, report_context, step, module_substep
 ```
 
 ###### Then in your test file:
