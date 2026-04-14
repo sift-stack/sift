@@ -129,6 +129,10 @@ pub struct SiftStreamMetricsSnapshot {
     pub ingestion_channel_depth: u64,
     /// Depth of the backup channel
     pub backup_channel_depth: u64,
+    /// Total log events dropped because the log channel was full
+    pub logs_dropped_channel_full: u64,
+    /// Current depth of the log event channel
+    pub log_channel_depth: u64,
     /// Checkpoint-specific metrics
     pub checkpoint: CheckpointMetricsSnapshot,
     /// Backup-specific metrics
@@ -392,6 +396,8 @@ pub struct SiftStreamMetrics {
     pub(crate) grpc_status_counts: [U64Counter; 18],
     pub(crate) ingestion_channel_depth: U64Signal,
     pub(crate) backup_channel_depth: U64Signal,
+    pub(crate) logs_dropped_channel_full: U64Counter,
+    pub(crate) log_channel_depth: U64Signal,
     pub(crate) checkpoint: CheckpointMetrics,
     pub(crate) backups: BackupMetrics,
 }
@@ -418,6 +424,8 @@ impl SiftStreamMetrics {
         let cur_retry_count = self.cur_retry_count.get();
         let ingestion_channel_depth = self.ingestion_channel_depth.get();
         let backup_channel_depth = self.backup_channel_depth.get();
+        let logs_dropped_channel_full = self.logs_dropped_channel_full.get();
+        let log_channel_depth = self.log_channel_depth.get();
 
         let stats = StreamingStats::calculate(self.creation_time, messages_sent, bytes_sent);
 
@@ -437,6 +445,8 @@ impl SiftStreamMetrics {
             grpc_status_counts: std::array::from_fn(|i| self.grpc_status_counts[i].get()),
             ingestion_channel_depth,
             backup_channel_depth,
+            logs_dropped_channel_full,
+            log_channel_depth,
             checkpoint: self.checkpoint.snapshot(),
             backups: self.backups.snapshot(),
         }
@@ -636,6 +646,18 @@ impl SiftStreamMetricsSnapshot {
             ChannelConfig {
                 name: format!("{channel_prefix}.backup_channel_depth"),
                 description: "Backup channel depth".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.logs_dropped_channel_full"),
+                description: "Log events dropped because the log channel was full".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.log_channel_depth"),
+                description: "Current depth of the log event channel".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
@@ -858,6 +880,11 @@ impl SiftStreamMetricsSnapshot {
             self.ingestion_channel_depth,
         )?;
         builder.set(indices.backup_channel_depth, self.backup_channel_depth)?;
+        builder.set(
+            indices.logs_dropped_channel_full,
+            self.logs_dropped_channel_full,
+        )?;
+        builder.set(indices.log_channel_depth, self.log_channel_depth)?;
         builder.set(indices.checkpoint.count, self.checkpoint.checkpoint_count)?;
         builder.set(
             indices.checkpoint.failed_count,
@@ -994,6 +1021,8 @@ pub(crate) struct MetricsFlowIndices {
     pub grpc_status_counts: MetricsGrpcStatusIndices,
     pub ingestion_channel_depth: ChannelIndex,
     pub backup_channel_depth: ChannelIndex,
+    pub logs_dropped_channel_full: ChannelIndex,
+    pub log_channel_depth: ChannelIndex,
     pub checkpoint: MetricsCheckpointFlowIndices,
     pub backups: MetricsBackupFlowIndices,
 }
@@ -1049,6 +1078,8 @@ impl MetricsFlowIndices {
             },
             ingestion_channel_depth: idx!("ingestion_channel_depth"),
             backup_channel_depth: idx!("backup_channel_depth"),
+            logs_dropped_channel_full: idx!("logs_dropped_channel_full"),
+            log_channel_depth: idx!("log_channel_depth"),
             checkpoint: MetricsCheckpointFlowIndices {
                 count: idx!("checkpoint.count"),
                 failed_count: idx!("checkpoint.failed_count"),
@@ -1092,6 +1123,8 @@ impl Default for SiftStreamMetrics {
             grpc_status_counts: Default::default(),
             ingestion_channel_depth: U64Signal::default(),
             backup_channel_depth: U64Signal::default(),
+            logs_dropped_channel_full: U64Counter::default(),
+            log_channel_depth: U64Signal::default(),
             checkpoint: CheckpointMetrics::default(),
             backups: BackupMetrics::default(),
         }
@@ -1149,33 +1182,35 @@ mod tests {
             grpc_status_counts: [
                 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
             ],
-            ingestion_channel_depth: 30,
-            backup_channel_depth: 31,
+            ingestion_channel_depth: 31,
+            backup_channel_depth: 32,
+            logs_dropped_channel_full: 33,
+            log_channel_depth: 34,
             checkpoint: CheckpointMetricsSnapshot {
-                checkpoint_count: 32,
-                failed_checkpoint_count: 33,
-                checkpoint_timer_reached_cnt: 34,
-                checkpoint_manually_reached_cnt: 35,
-                cur_elapsed_secs: 36.0,
-                cur_messages_sent: 37,
-                cur_message_rate: 38.0,
-                cur_bytes_sent: 39,
-                cur_byte_rate: 40.0,
+                checkpoint_count: 35,
+                failed_checkpoint_count: 36,
+                checkpoint_timer_reached_cnt: 37,
+                checkpoint_manually_reached_cnt: 38,
+                cur_elapsed_secs: 39.0,
+                cur_messages_sent: 40,
+                cur_message_rate: 41.0,
+                cur_bytes_sent: 42,
+                cur_byte_rate: 43.0,
             },
             backups: BackupMetricsSnapshot {
-                cur_checkpoint_file_count: 41,
-                cur_checkpoint_cur_file_size: 42,
-                cur_checkpoint_bytes: 43,
-                cur_checkpoint_messages: 44,
-                total_file_count: 45,
-                total_bytes: 46,
-                total_messages: 47,
+                cur_checkpoint_file_count: 44,
+                cur_checkpoint_cur_file_size: 45,
+                cur_checkpoint_bytes: 46,
+                cur_checkpoint_messages: 47,
+                total_file_count: 48,
+                total_bytes: 49,
+                total_messages: 50,
                 committed_message_id: 0,
                 queued_checkpoints: 0,
                 queued_file_ctxs: 0,
-                files_pending_ingestion: 48,
-                files_ingested: 49,
-                cur_ingest_retries: 50,
+                files_pending_ingestion: 51,
+                files_ingested: 52,
+                cur_ingest_retries: 53,
             },
         };
 
@@ -1220,13 +1255,15 @@ mod tests {
         assert_val!("cur_retry_count", Type::Uint64(12));
         assert_val!("grpc_status_counts.ok", Type::Uint64(13));
         assert_val!("grpc_status_counts.unauthenticated", Type::Uint64(29));
-        assert_val!("ingestion_channel_depth", Type::Uint64(30));
-        assert_val!("backup_channel_depth", Type::Uint64(31));
-        assert_val!("checkpoint.count", Type::Uint64(32));
-        assert_val!("checkpoint.cur_elapsed_secs", Type::Double(36.0));
-        assert_val!("checkpoint.cur_message_rate", Type::Double(38.0));
-        assert_val!("backups.cur_checkpoint_file_count", Type::Uint64(41));
-        assert_val!("backups.files_ingested", Type::Uint64(49));
-        assert_val!("backups.cur_ingest_retries", Type::Uint64(50));
+        assert_val!("ingestion_channel_depth", Type::Uint64(31));
+        assert_val!("backup_channel_depth", Type::Uint64(32));
+        assert_val!("logs_dropped_channel_full", Type::Uint64(33));
+        assert_val!("log_channel_depth", Type::Uint64(34));
+        assert_val!("checkpoint.count", Type::Uint64(35));
+        assert_val!("checkpoint.cur_elapsed_secs", Type::Double(39.0));
+        assert_val!("checkpoint.cur_message_rate", Type::Double(41.0));
+        assert_val!("backups.cur_checkpoint_file_count", Type::Uint64(44));
+        assert_val!("backups.files_ingested", Type::Uint64(52));
+        assert_val!("backups.cur_ingest_retries", Type::Uint64(53));
     }
 }

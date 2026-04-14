@@ -36,11 +36,12 @@ sift_pbfs = { workspace = true }
 tokio = { workspace = true, features = ["rt", "sync", "time", "macros", "fs"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tracing = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true, features = ["registry"] }
 uuid = { workspace = true }
 
 [features]
 default = ["tracing"]
-tracing = ["dep:tracing", "dep:bytesize"]
+tracing = ["dep:tracing", "dep:bytesize", "dep:tracing-subscriber"]
 metrics-unstable = ["dep:serde", "dep:serde_json", "dep:hyper", "dep:hyper-util"]
 unstable = []
 

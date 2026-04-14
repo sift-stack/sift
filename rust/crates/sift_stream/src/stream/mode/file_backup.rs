@@ -326,6 +326,7 @@ impl FileBackup {
                     session_name.clone(),
                     interval,
                     metrics_clone,
+                    None,
                 )
                 .await?;
 
