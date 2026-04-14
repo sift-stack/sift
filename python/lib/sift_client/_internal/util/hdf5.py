@@ -37,11 +37,8 @@ _NUMPY_TO_SIFT: dict[type, ChannelDataType] = {
 
 def _detect_attr(dataset: h5py.Dataset, candidates: list[str], default: str = "") -> str:
     """Return the first matching HDF5 attribute value, or *default*."""
-    for attr in candidates:
-        val = dataset.attrs.get(attr)
-        if val is not None:
-            return val
-    return default
+    possible = [dataset.attrs.get(attr) for attr in candidates if dataset.attrs.get(attr)]
+    return possible[0] if possible else default
 
 
 def _numpy_to_sift_type(dtype: np.dtype) -> ChannelDataType:
@@ -71,14 +68,8 @@ def detect_hdf5_config(file_path: str | Path) -> Hdf5ImportConfig:
             if not isinstance(obj, h5py.Dataset):
                 return
 
-            leaf_name = dataset_name.rsplit("/", 1)[-1]
-
             # Skip root "time" dataset — it's used as the time source, not a value channel.
             if dataset_name == "time" and obj.parent == h5file:
-                return
-
-            # Skip "timestamps" datasets — they're time sources, not value channels.
-            if leaf_name == "timestamps":
                 return
 
             n_fields = len(obj.dtype.names) if obj.dtype.names else 0
@@ -107,57 +98,24 @@ def detect_hdf5_config(file_path: str | Path) -> Hdf5ImportConfig:
                     seen_names.add(channel_name)
 
             elif n_fields in (0, 1):
-                # Resolve time dataset: prefer sibling "timestamps", fall back to root "time".
-                group = obj.parent
-                time_dataset = ""
-                if "timestamps" in group:
-                    group_name = dataset_name.rsplit("/", 1)[0] if "/" in dataset_name else ""
-                    time_dataset = f"{group_name}/timestamps" if group_name else "timestamps"
-                elif has_root_time:
-                    time_dataset = "time"
+                # Single column. Use root "time" as time dataset if available.
+                channel_name = _detect_attr(obj, _NAME_ATTRS, dataset_name)
+                if channel_name in seen_names:
+                    channel_name = f"{channel_name}.{dataset_name}"
 
-                # For 2D datasets (N x 2), treat column 0 as time and column 1 as value.
-                if obj.ndim == 2 and obj.shape[1] == 2:
-                    channel_name = _detect_attr(obj, _NAME_ATTRS, dataset_name)
-                    if channel_name in seen_names:
-                        channel_name = f"{channel_name}.{dataset_name}"
-
-                    columns.append(
-                        Hdf5DataColumn(
-                            name=channel_name,
-                            data_type=_numpy_to_sift_type(obj.dtype),
-                            units=_detect_attr(obj, _UNIT_ATTRS),
-                            description=_detect_attr(obj, _DESCRIPTION_ATTRS),
-                            time_dataset=dataset_name,
-                            value_dataset=dataset_name,
-                            time_index=0,
-                            value_index=1,
-                        )
+                columns.append(
+                    Hdf5DataColumn(
+                        name=channel_name,
+                        data_type=_numpy_to_sift_type(obj.dtype),
+                        units=_detect_attr(obj, _UNIT_ATTRS),
+                        description=_detect_attr(obj, _DESCRIPTION_ATTRS),
+                        time_dataset="time" if has_root_time else "",
+                        value_dataset=dataset_name,
+                        time_index=0,
+                        value_index=0,
                     )
-                    seen_names.add(channel_name)
-                else:
-                    # Use the group name as channel name for "values" leaf datasets.
-                    default_name = dataset_name
-                    if leaf_name == "values" and "/" in dataset_name:
-                        default_name = dataset_name.rsplit("/", 1)[0]
-
-                    channel_name = _detect_attr(obj, _NAME_ATTRS, default_name)
-                    if channel_name in seen_names:
-                        channel_name = f"{channel_name}.{dataset_name}"
-
-                    columns.append(
-                        Hdf5DataColumn(
-                            name=channel_name,
-                            data_type=_numpy_to_sift_type(obj.dtype),
-                            units=_detect_attr(obj, _UNIT_ATTRS),
-                            description=_detect_attr(obj, _DESCRIPTION_ATTRS),
-                            time_dataset=time_dataset,
-                            value_dataset=dataset_name,
-                            time_index=0,
-                            value_index=0,
-                        )
-                    )
-                    seen_names.add(channel_name)
+                )
+                seen_names.add(channel_name)
 
         h5file.visititems(_visit)
 
