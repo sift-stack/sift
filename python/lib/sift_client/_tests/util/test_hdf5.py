@@ -1,10 +1,4 @@
-"""Tests for detect_hdf5_config.
-
-These tests verify that the client-side detect_hdf5_config matches the
-backend hdf5.py detect_config 1-to-1. Any client-specific heuristics
-(e.g. sibling "timestamps" resolution, 2D dataset handling, "values"
-leaf naming) are intentionally NOT present and should not be added.
-"""
+"""Tests for detect_hdf5_config."""
 
 import h5py
 import numpy as np
@@ -12,7 +6,6 @@ import pytest
 
 from sift_client._internal.util.hdf5 import detect_hdf5_config
 from sift_client.sift_types.channel import ChannelDataType
-from sift_client.sift_types.data_import import TimeFormat
 
 
 @pytest.fixture
@@ -128,13 +121,12 @@ class TestDetectHdf5Config:
         assert config.data[0].units == "V"
         assert config.data[0].description == "Supply voltage"
 
-    def test_returns_correct_wrapper_type(self, create_hdf5_file):
-        """Config wrapper uses correct time format and empty asset_name."""
+    def test_unsupported_dtype_raises(self, create_hdf5_file):
+        """Unsupported numpy dtypes raise ValueError rather than silently dropping data."""
 
         def populate(hdf5_file):
-            hdf5_file.create_dataset("x", data=np.array([1.0, 2.0]))
+            hdf5_file.create_dataset("time", data=np.arange(5, dtype="<i8"))
+            hdf5_file.create_dataset("data", data=np.zeros(5, dtype=np.float16))
 
-        config = detect_hdf5_config(create_hdf5_file(populate))
-
-        assert config.asset_name == ""
-        assert config.time_format == TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+        with pytest.raises(ValueError, match="Unsupported numpy dtype"):
+            detect_hdf5_config(create_hdf5_file(populate))
