@@ -38,7 +38,7 @@ _NUMPY_TO_SIFT: dict[type, ChannelDataType] = {
 def _detect_attr(dataset: h5py.Dataset, candidates: list[str], default: str = "") -> str:
     """Return the first matching HDF5 attribute value, or *default*."""
     possible = [dataset.attrs.get(attr) for attr in candidates if dataset.attrs.get(attr)]
-    return possible[0] if possible else default
+    return str(possible[0]) if possible else default
 
 
 def _numpy_to_sift_type(dtype: np.dtype) -> ChannelDataType:
