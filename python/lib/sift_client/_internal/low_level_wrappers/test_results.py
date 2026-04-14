@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
 import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Generator, cast
 
 from google.protobuf import json_format
 from sift.test_reports.v1.test_reports_pb2 import (
@@ -77,30 +78,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client)
-
-    @staticmethod
-    def _log_request_to_file(
-        log_file: str | Path,
-        request_type: str,
-        request: Any,
-        response_id: str | None = None,
-    ) -> None:
-        """Log a request to a file in JSON format.
-
-        Args:
-            log_file: Path to the log file.
-            request_type: Type of request being logged.
-            request: The protobuf request to log.
-            response_id: Optional ID from the simulated response, embedded in the tag
-                for create operations so replay can map previously simulated IDs used by simulated updates.
-        """
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        tag = f"{request_type}:{response_id}" if response_id else request_type
-        with open(log_path, "a") as f:
-            request_dict = json_format.MessageToDict(request)
-            request_json = json.dumps(request_dict, separators=(",", ":"))
-            f.write(f"[{tag}] {request_json}\n")
 
     @staticmethod
     def simulate_create_test_report_response(
@@ -366,21 +343,28 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def create_test_report(
         self,
         *,
-        test_report: TestReportCreate,
+        test_report: TestReportCreate | None = None,
         log_file: str | Path | None = None,
+        request: CreateTestReportRequest | None = None,
+        simulate: bool = False,
     ) -> TestReport:
         """Create a new test report.
 
         Args:
             test_report: The test report to create.
             log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_report).
+            simulate: If True, return a simulated response without making an API call.
 
         Returns:
             The created TestReport.
         """
-        request = test_report.to_proto()
+        if request is None:
+            if test_report is None:
+                raise ValueError("Either test_report or request must be provided")
+            request = test_report.to_proto()
 
-        if log_file is not None:
+        if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_report_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -479,9 +463,11 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def update_test_report(
         self,
-        update: TestReportUpdate,
+        update: TestReportUpdate | None = None,
         log_file: str | Path | None = None,
         existing: TestReport | None = None,
+        request: UpdateTestReportRequest | None = None,
+        simulate: bool = False,
     ) -> TestReport:
         """Update an existing test report.
 
@@ -490,14 +476,19 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             log_file: If set, log the request to this file and return a simulated response.
             existing: The full existing TestReport for simulation merge. If not provided,
                 the simulated response will only contain the updated fields.
+            request: Raw protobuf request (mutually exclusive with update).
+            simulate: If True, return a simulated response without making an API call.
 
         Returns:
             The updated TestReport.
         """
-        test_report_proto, field_mask = update.to_proto_with_mask()
-        request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
+        if request is None:
+            if update is None:
+                raise ValueError("Either update or request must be provided")
+            test_report_proto, field_mask = update.to_proto_with_mask()
+            request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
 
-        if log_file is not None:
+        if log_file is not None or simulate:
             if log_file is not None:
                 self._log_request_to_file(log_file, "UpdateTestReport", request)
             return self.simulate_update_test_report_response(request, existing=existing)
@@ -525,21 +516,28 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def create_test_step(
         self,
-        test_step: TestStepCreate,
+        test_step: TestStepCreate | None = None,
         log_file: str | Path | None = None,
+        request: CreateTestStepRequest | None = None,
+        simulate: bool = False,
     ) -> TestStep:
         """Create a new test step.
 
         Args:
             test_step: The test step to create.
             log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_step).
+            simulate: If True, return a simulated response without making an API call.
 
         Returns:
             The created TestStep.
         """
-        request = CreateTestStepRequest(test_step=test_step.to_proto())
+        if request is None:
+            if test_step is None:
+                raise ValueError("Either test_step or request must be provided")
+            request = CreateTestStepRequest(test_step=test_step.to_proto())
 
-        if log_file is not None:
+        if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_step_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -618,9 +616,11 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def update_test_step(
         self,
-        update: TestStepUpdate,
+        update: TestStepUpdate | None = None,
         log_file: str | Path | None = None,
         existing: TestStep | None = None,
+        request: UpdateTestStepRequest | None = None,
+        simulate: bool = False,
     ) -> TestStep:
         """Update an existing test step.
 
@@ -629,17 +629,22 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             log_file: If set, log the request to this file and return a simulated response.
             existing: The full existing TestStep for simulation merge. If not provided,
                 the simulated response will only contain the updated fields.
+            request: Raw protobuf request (mutually exclusive with update).
+            simulate: If True, return a simulated response without making an API call.
 
         Returns:
             The updated TestStep.
         """
-        test_step_proto, field_mask = update.to_proto_with_mask()
-        has_error_info = test_step_proto.HasField("error_info")
-        if has_error_info:
-            field_mask.paths.append("error_info")
-        request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
+        if request is None:
+            if update is None:
+                raise ValueError("Either update or request must be provided")
+            test_step_proto, field_mask = update.to_proto_with_mask()
+            has_error_info = test_step_proto.HasField("error_info")
+            if has_error_info:
+                field_mask.paths.append("error_info")
+            request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
 
-        if log_file is not None:
+        if log_file is not None or simulate:
             if log_file is not None:
                 self._log_request_to_file(log_file, "UpdateTestStep", request)
             return self.simulate_update_test_step_response(request, existing=existing)
@@ -667,21 +672,28 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def create_test_measurement(
         self,
-        test_measurement: TestMeasurementCreate,
+        test_measurement: TestMeasurementCreate | None = None,
         log_file: str | Path | None = None,
+        request: CreateTestMeasurementRequest | None = None,
+        simulate: bool = False,
     ) -> TestMeasurement:
         """Create a new test measurement.
 
         Args:
             test_measurement: The test measurement to create.
             log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_measurement).
+            simulate: If True, return a simulated response without making an API call.
 
         Returns:
             The created TestMeasurement.
         """
-        request = CreateTestMeasurementRequest(test_measurement=test_measurement.to_proto())
+        if request is None:
+            if test_measurement is None:
+                raise ValueError("Either test_measurement or request must be provided")
+            request = CreateTestMeasurementRequest(test_measurement=test_measurement.to_proto())
 
-        if log_file is not None:
+        if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_measurement_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -700,22 +712,29 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def create_test_measurements(
         self,
-        test_measurements: list[TestMeasurementCreate],
+        test_measurements: list[TestMeasurementCreate] | None = None,
         log_file: str | Path | None = None,
+        request: CreateTestMeasurementsRequest | None = None,
+        simulate: bool = False,
     ) -> tuple[int, list[str]]:
         """Create multiple test measurements in a single request.
 
         Args:
             test_measurements: The test measurements to create.
             log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_measurements).
+            simulate: If True, return a simulated response without making an API call.
 
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
         """
-        measurement_protos = [tm.to_proto() for tm in test_measurements]
-        request = CreateTestMeasurementsRequest(test_measurements=measurement_protos)
+        if request is None:
+            if test_measurements is None:
+                raise ValueError("Either test_measurements or request must be provided")
+            measurement_protos = [tm.to_proto() for tm in test_measurements]
+            request = CreateTestMeasurementsRequest(test_measurements=measurement_protos)
 
-        if log_file is not None:
+        if log_file is not None or simulate:
             count, measurement_ids = self.simulate_create_test_measurements_response(request)
             if log_file is not None:
                 self._log_request_to_file(
@@ -798,9 +817,11 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def update_test_measurement(
         self,
-        update: TestMeasurementUpdate,
+        update: TestMeasurementUpdate | None = None,
         log_file: str | Path | None = None,
         existing: TestMeasurement | None = None,
+        request: UpdateTestMeasurementRequest | None = None,
+        simulate: bool = False,
     ) -> TestMeasurement:
         """Update an existing test measurement.
 
@@ -809,16 +830,21 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             log_file: If set, log the request to this file and return a simulated response.
             existing: The full existing TestMeasurement for simulation merge. If not provided,
                 the simulated response will only contain the updated fields.
+            request: Raw protobuf request (mutually exclusive with update).
+            simulate: If True, return a simulated response without making an API call.
 
         Returns:
             The updated TestMeasurement.
         """
-        test_measurement_proto, field_mask = update.to_proto_with_mask()
-        request = UpdateTestMeasurementRequest(
-            test_measurement=test_measurement_proto, update_mask=field_mask
-        )
+        if request is None:
+            if update is None:
+                raise ValueError("Either update or request must be provided")
+            test_measurement_proto, field_mask = update.to_proto_with_mask()
+            request = UpdateTestMeasurementRequest(
+                test_measurement=test_measurement_proto, update_mask=field_mask
+            )
 
-        if log_file is not None:
+        if log_file is not None or simulate:
             if log_file is not None:
                 self._log_request_to_file(log_file, "UpdateTestMeasurement", request)
             return self.simulate_update_test_measurement_response(request, existing=existing)
@@ -847,15 +873,23 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def import_log_file(
         self,
         log_file: str | Path,
+        incremental: bool = False,
     ) -> ReplayResult:
-        """Replay a log file by parsing each entry, simulating the results, then creating for real.
+        """Replay a log file, creating real API objects from the logged simulation data.
 
-        This method reads a log file created by the simulation logging, reconstructs
-        all the objects via simulation, and then creates them via the actual API.
-        IDs are mapped from simulated to real during the creation process.
+        Two modes are available:
+
+        * **batch** (default): Parse the entire log, reconstruct objects via
+          simulation, then create them all via the API in one pass. The
+          ``LogTracking`` header on line 0 is ignored.
+        * **incremental** (``incremental=True``): Walk the log line-by-line,
+          issuing the real API call for each entry as it is encountered.
+          ``LogTracking.last_uploaded_line`` is updated after every successful
+          call so that a subsequent invocation skips already-uploaded lines.
 
         Args:
             log_file: Path to the log file to replay.
+            incremental: If True, use incremental mode.
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
@@ -864,123 +898,168 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if not log_path.exists():
             raise FileNotFoundError(f"Log file not found: {log_file}")
 
-        simulated_report: TestReport | None = None
-        simulated_steps_by_id: dict[str, TestStep] = {}
-        simulated_steps_order: list[str] = []
-        simulated_measurements_by_id: dict[str, TestMeasurement] = {}
-        simulated_measurements_order: list[str] = []
+        if incremental:
+            return await self._incremental_import_log_file(log_path)
 
-        line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
+        return await self._batch_import_log_file(log_path)
 
-        # Parse the log file and simulate the responses (without calling the API).
-        with open(log_path) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
+    # ------------------------------------------------------------------
+    # Shared replay dispatch
+    # ------------------------------------------------------------------
 
-                match = line_pattern.match(line)
-                if not match:
-                    raise ValueError(f"Skipping malformed log line: {line[:100]}...")
+    async def _import_entry(
+        self,
+        request_type: str,
+        response_id: str | None,
+        json_str: str,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        """Process a single log entry, updating *state* in place.
 
-                request_type = match.group(1)
-                response_id = match.group(2)
-                json_str = match.group(3)
+        When *simulate* is True the create/update methods return simulated
+        responses (no network call).  When False they issue real gRPC calls.
+        *id_map* is updated so that subsequent entries can remap IDs that
+        were generated during the original simulation run.
+        """
 
-                if request_type == "CreateTestReport":
-                    create_report_req = CreateTestReportRequest()
-                    json_format.Parse(json_str, create_report_req)
-                    report_proto = self.simulate_create_test_report_response(create_report_req)
-                    if response_id:
-                        report_proto.test_report_id = response_id
-                    simulated_report = TestReport._from_proto(report_proto)
+        def _map_id(sid: str) -> str:
+            return id_map.get(sid, sid)
 
-                elif request_type == "CreateTestStep":
-                    create_step_req = CreateTestStepRequest()
-                    json_format.Parse(json_str, create_step_req)
-                    step_proto = self.simulate_create_test_step_response(create_step_req)
-                    if response_id:
-                        step_proto.test_step_id = response_id
-                    step = TestStep._from_proto(step_proto)
-                    simulated_steps_by_id[step._id_or_error] = step
-                    simulated_steps_order.append(step._id_or_error)
+        if request_type == "CreateTestReport":
+            create_report_req = CreateTestReportRequest()
+            json_format.Parse(json_str, create_report_req)
+            state.report = await self.create_test_report(
+                request=create_report_req, simulate=simulate
+            )
+            if response_id:
+                id_map[response_id] = state.report._id_or_error
 
-                elif request_type == "CreateTestMeasurement":
-                    create_meas_req = CreateTestMeasurementRequest()
-                    json_format.Parse(json_str, create_meas_req)
-                    meas_proto = self.simulate_create_test_measurement_response(create_meas_req)
-                    if response_id:
-                        meas_proto.measurement_id = response_id
-                    measurement = TestMeasurement._from_proto(meas_proto)
-                    simulated_measurements_by_id[measurement._id_or_error] = measurement
-                    simulated_measurements_order.append(measurement._id_or_error)
+        elif request_type == "CreateTestStep":
+            create_step_req = CreateTestStepRequest()
+            json_format.Parse(json_str, create_step_req)
+            create_step_req.test_step.test_report_id = _map_id(
+                create_step_req.test_step.test_report_id
+            )
+            if create_step_req.test_step.parent_step_id:
+                create_step_req.test_step.parent_step_id = _map_id(
+                    create_step_req.test_step.parent_step_id
+                )
+            step = await self.create_test_step(request=create_step_req, simulate=simulate)
+            if response_id:
+                id_map[response_id] = step._id_or_error
+            state.steps_by_id[step._id_or_error] = step
+            state.steps_order.append(step._id_or_error)
 
-                elif request_type == "CreateTestMeasurements":
-                    create_batch_req = CreateTestMeasurementsRequest()
-                    json_format.Parse(json_str, create_batch_req)
-                    original_ids = response_id.split(",") if response_id else []
-                    for i, tm_proto in enumerate(create_batch_req.test_measurements):
-                        single_request = CreateTestMeasurementRequest(test_measurement=tm_proto)
-                        batch_meas_proto = self.simulate_create_test_measurement_response(
-                            single_request
-                        )
-                        if i < len(original_ids):
-                            batch_meas_proto.measurement_id = original_ids[i]
-                        measurement = TestMeasurement._from_proto(batch_meas_proto)
-                        simulated_measurements_by_id[measurement._id_or_error] = measurement
-                        simulated_measurements_order.append(measurement._id_or_error)
+        elif request_type == "CreateTestMeasurement":
+            create_meas_req = CreateTestMeasurementRequest()
+            json_format.Parse(json_str, create_meas_req)
+            create_meas_req.test_measurement.test_step_id = _map_id(
+                create_meas_req.test_measurement.test_step_id
+            )
+            measurement = await self.create_test_measurement(
+                request=create_meas_req, simulate=simulate
+            )
+            if response_id:
+                id_map[response_id] = measurement._id_or_error
+            state.measurements_by_id[measurement._id_or_error] = measurement
+            state.measurements_order.append(measurement._id_or_error)
 
-                elif request_type == "UpdateTestReport":
-                    if simulated_report is None:
-                        raise ValueError("UpdateTestReport found before CreateTestReport")
-                    update_report_req = UpdateTestReportRequest()
-                    json_format.Parse(json_str, update_report_req)
-                    simulated_report = self.simulate_update_test_report_response(
-                        update_report_req, existing=simulated_report
-                    )
+        elif request_type == "CreateTestMeasurements":
+            create_batch_req = CreateTestMeasurementsRequest()
+            json_format.Parse(json_str, create_batch_req)
+            for tm in create_batch_req.test_measurements:
+                tm.test_step_id = _map_id(tm.test_step_id)
+            original_ids = response_id.split(",") if response_id else []
+            if simulate:
+                for i, tm_proto in enumerate(create_batch_req.test_measurements):
+                    single_req = CreateTestMeasurementRequest(test_measurement=tm_proto)
+                    meas = await self.create_test_measurement(request=single_req, simulate=True)
+                    if i < len(original_ids):
+                        id_map[original_ids[i]] = meas._id_or_error
+                    state.measurements_by_id[meas._id_or_error] = meas
+                    state.measurements_order.append(meas._id_or_error)
+            else:
+                _, real_ids = await self.create_test_measurements(request=create_batch_req)
+                for i, real_id in enumerate(real_ids):
+                    if i < len(original_ids):
+                        id_map[original_ids[i]] = real_id
 
-                elif request_type == "UpdateTestStep":
-                    update_step_req = UpdateTestStepRequest()
-                    json_format.Parse(json_str, update_step_req)
-                    step_id = update_step_req.test_step.test_step_id
-                    if step_id not in simulated_steps_by_id:
-                        raise ValueError(f"UpdateTestStep for unknown step: {step_id}")
-                    simulated_steps_by_id[step_id] = self.simulate_update_test_step_response(
-                        update_step_req, existing=simulated_steps_by_id[step_id]
-                    )
+        elif request_type == "UpdateTestReport":
+            if state.report is None:
+                raise ValueError("UpdateTestReport found before CreateTestReport")
+            update_report_req = UpdateTestReportRequest()
+            json_format.Parse(json_str, update_report_req)
+            update_report_req.test_report.test_report_id = _map_id(
+                update_report_req.test_report.test_report_id
+            )
+            state.report = await self.update_test_report(
+                request=update_report_req, simulate=simulate, existing=state.report
+            )
 
-                elif request_type == "UpdateTestMeasurement":
-                    update_meas_req = UpdateTestMeasurementRequest()
-                    json_format.Parse(json_str, update_meas_req)
-                    measurement_id = update_meas_req.test_measurement.measurement_id
-                    if measurement_id not in simulated_measurements_by_id:
-                        raise ValueError(
-                            f"UpdateTestMeasurement for unknown measurement: {measurement_id}"
-                        )
-                    simulated_measurements_by_id[measurement_id] = (
-                        self.simulate_update_test_measurement_response(
-                            update_meas_req,
-                            existing=simulated_measurements_by_id[measurement_id],
-                        )
-                    )
+        elif request_type == "UpdateTestStep":
+            update_step_req = UpdateTestStepRequest()
+            json_format.Parse(json_str, update_step_req)
+            orig_step_id = update_step_req.test_step.test_step_id
+            mapped_step_id = _map_id(orig_step_id)
+            update_step_req.test_step.test_step_id = mapped_step_id
+            existing_step = state.steps_by_id.get(mapped_step_id)
+            if simulate and existing_step is None:
+                raise ValueError(f"UpdateTestStep for unknown step: {orig_step_id}")
+            updated_step = await self.update_test_step(
+                request=update_step_req, simulate=simulate, existing=existing_step
+            )
+            if mapped_step_id in state.steps_by_id:
+                state.steps_by_id[mapped_step_id] = updated_step
 
-                else:
-                    logger.warning(f"Unknown request type: {request_type}")
+        elif request_type == "UpdateTestMeasurement":
+            update_meas_req = UpdateTestMeasurementRequest()
+            json_format.Parse(json_str, update_meas_req)
+            orig_meas_id = update_meas_req.test_measurement.measurement_id
+            mapped_meas_id = _map_id(orig_meas_id)
+            update_meas_req.test_measurement.measurement_id = mapped_meas_id
+            existing_meas = state.measurements_by_id.get(mapped_meas_id)
+            if simulate and existing_meas is None:
+                raise ValueError(f"UpdateTestMeasurement for unknown measurement: {orig_meas_id}")
+            updated_meas = await self.update_test_measurement(
+                request=update_meas_req, simulate=simulate, existing=existing_meas
+            )
+            if mapped_meas_id in state.measurements_by_id:
+                state.measurements_by_id[mapped_meas_id] = updated_meas
 
-        # Send the test report to the server, making sure to update the IDs to real ones as we go.
-        if simulated_report is None:
+    # ------------------------------------------------------------------
+    # Batch replay (default)
+    # ------------------------------------------------------------------
+
+    async def _batch_import_log_file(self, log_path: Path) -> ReplayResult:
+        id_map: dict[str, str] = {}
+        state = _ReplayState()
+
+        for request_type, response_id, json_str in self._iter_log_data_lines(log_path):
+            await self._import_entry(
+                request_type,
+                response_id,
+                json_str,
+                simulate=True,
+                id_map=id_map,
+                state=state,
+            )
+
+        if state.report is None:
             raise ValueError("No CreateTestReport found in log file")
 
-        simulated_step_id_map: dict[str, str] = {}
+        real_id_map: dict[str, str] = {}
 
-        real_report = await self._create_report_from_simulated(simulated_report)
+        real_report = await self._create_report_from_simulated(state.report)
         real_report_id = real_report._id_or_error
 
         real_steps: list[TestStep] = []
-        for sim_step_id in simulated_steps_order:
-            sim_step = simulated_steps_by_id[sim_step_id]
+        for sim_step_id in state.steps_order:
+            sim_step = state.steps_by_id[sim_step_id]
             real_parent_step_id = (
-                simulated_step_id_map.get(sim_step.parent_step_id, sim_step.parent_step_id)
+                real_id_map.get(sim_step.parent_step_id, sim_step.parent_step_id)
                 if sim_step.parent_step_id
                 else None
             )
@@ -989,12 +1068,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
             real_step = await self.create_test_step(step_create)
             real_steps.append(real_step)
-            simulated_step_id_map[sim_step_id] = real_step._id_or_error
+            real_id_map[sim_step_id] = real_step._id_or_error
 
         real_measurements: list[TestMeasurement] = []
-        for sim_measurement_id in simulated_measurements_order:
-            sim_measurement = simulated_measurements_by_id[sim_measurement_id]
-            real_step_id = simulated_step_id_map.get(
+        for sim_measurement_id in state.measurements_order:
+            sim_measurement = state.measurements_by_id[sim_measurement_id]
+            real_step_id = real_id_map.get(
                 sim_measurement.test_step_id, sim_measurement.test_step_id
             )
             measurement_create = self._measurement_create_from_simulated(
@@ -1008,6 +1087,75 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             steps=real_steps,
             measurements=real_measurements,
         )
+
+    # ------------------------------------------------------------------
+    # Incremental replay
+    # ------------------------------------------------------------------
+
+    async def _incremental_import_log_file(self, log_path: Path) -> ReplayResult:
+        """Replay line-by-line, issuing real API calls and updating tracking."""
+        with open(log_path) as f:
+            first_line = f.readline()
+        tracking = LogTracking.from_log_line(first_line) if first_line else LogTracking()
+
+        id_map = tracking.id_map
+        state = _ReplayState()
+
+        for line_num, (request_type, response_id, json_str) in enumerate(
+            self._iter_log_data_lines(log_path), start=tracking.last_uploaded_line + 1
+        ):
+            await self._import_entry(
+                request_type,
+                response_id,
+                json_str,
+                simulate=False,
+                id_map=id_map,
+                state=state,
+            )
+
+            tracking.last_uploaded_line = line_num
+            self._update_tracking(log_path, tracking)
+
+        if state.report is None:
+            raise ValueError("No CreateTestReport found in log file")
+
+        return ReplayResult(
+            report=state.report,
+            steps=[state.steps_by_id[sid] for sid in state.steps_order],
+            measurements=[state.measurements_by_id[mid] for mid in state.measurements_order],
+        )
+
+    # ------------------------------------------------------------------
+    # Log line parsing helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _iter_log_data_lines(
+        log_path: Path,
+    ) -> Generator[tuple[str, str | None, str], None, None]:
+        """Parse data lines from a log file, skipping the LogTracking header.
+
+        Yields (request_type, response_id, json_str) tuples.
+        The file is read entirely under a shared lock and then released
+        before yielding, so callers can safely acquire exclusive locks
+        during iteration (e.g. ``_update_tracking``).
+        """
+        line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
+        with open(log_path) as f:
+            fcntl.flock(f, fcntl.LOCK_SH)
+            raw_lines = f.readlines()
+
+        for raw_line in raw_lines:
+            line = raw_line.strip()
+            if not line:
+                continue
+            match = line_pattern.match(line)
+            if not match:
+                raise ValueError(f"Invalid log line: {line}")
+            request_type = match.group(1)
+            if request_type == "LogTracking":
+                continue
+            yield (request_type, match.group(2), match.group(3))
 
     async def _create_report_from_simulated(self, simulated: TestReport) -> TestReport:
         """Create a real test report from a simulated one."""
@@ -1066,6 +1214,42 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             string_expected_value=simulated.string_expected_value,
         )
 
+    @staticmethod
+    def _log_request_to_file(
+        log_file: str | Path,
+        request_type: str,
+        request: Any,
+        response_id: str | None = None,
+    ) -> None:
+        """Log a request to a file in JSON format.
+
+        Args:
+            log_file: Path to the log file.
+            request_type: Type of request being logged.
+            request: The protobuf request to log.
+            response_id: Optional ID from the simulated response, embedded in the tag
+                for create operations so replay can map previously simulated IDs used by simulated updates.
+        """
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        tag = f"{request_type}:{response_id}" if response_id else request_type
+        with open(log_path, "a") as f:
+            request_dict = json_format.MessageToDict(request)
+            request_json = json.dumps(request_dict, separators=(",", ":"))
+            f.write(f"[{tag}] {request_json}\n")
+
+    @staticmethod
+    def _update_tracking(log_file: str | Path, tracking: LogTracking) -> None:
+        """Rewrite the LogTracking header (line 0) in place."""
+        log_path = Path(log_file)
+        with open(log_path, "r+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            lines = f.readlines()
+            lines[0] = tracking.to_log_line()
+            f.seek(0)
+            f.writelines(lines)
+            f.truncate()
+
 
 def _client_version() -> str:
     from importlib.metadata import PackageNotFoundError, version
@@ -1074,6 +1258,46 @@ def _client_version() -> str:
         return version("sift_stack_py")
     except PackageNotFoundError:
         return "unknown"
+
+
+@dataclass
+class LogTracking:
+    """Tracking metadata stored as line 0 of a log file."""
+
+    last_uploaded_line: int = 0
+    id_map: dict[str, str] = field(default_factory=dict)
+    client_version: str = field(default_factory=_client_version)
+
+    def to_log_line(self) -> str:
+        data = {
+            "clientVersion": self.client_version,
+            "lastUploadedLine": self.last_uploaded_line,
+            "idMap": self.id_map,
+        }
+        return f"[LogTracking] {json.dumps(data, separators=(',', ':'))}\n"
+
+    @staticmethod
+    def from_log_line(line: str) -> LogTracking:
+        match = re.match(r"^\[LogTracking\]\s*(.+)$", line.strip())
+        if not match:
+            return LogTracking()
+        data = json.loads(match.group(1))
+        return LogTracking(
+            last_uploaded_line=data.get("lastUploadedLine", 0),
+            id_map=data.get("idMap", {}),
+            client_version=data.get("clientVersion", "unknown"),
+        )
+
+
+@dataclass
+class _ReplayState:
+    """Mutable state accumulated during log replay."""
+
+    report: TestReport | None = None
+    steps_by_id: dict[str, TestStep] = field(default_factory=dict)
+    steps_order: list[str] = field(default_factory=list)
+    measurements_by_id: dict[str, TestMeasurement] = field(default_factory=dict)
+    measurements_order: list[str] = field(default_factory=list)
 
 
 @dataclass

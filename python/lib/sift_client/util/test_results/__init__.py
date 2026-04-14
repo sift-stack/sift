@@ -58,7 +58,12 @@ The report context and steps can also be accessed in pytest by importing the `re
   - If you want each module(file) to be marked as a step w/ each test as a substep, import the `module_substep` fixture as well.
 - The `report_context` fixture requires a fixture `sift_client` returning an `SiftClient` instance to be passed in.
 
-Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you should import the `report_context_no_logging` fixture instead.
+Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you can disable logging by passing ``--sift-test-results-log-file=false``.
+
+#### Configuration
+
+- Git metadata: You can configure the test results by passing the `--sift-test-results-git-metadata` flag to pytest in your commandline, conftest.py file, or as an addopt in your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration).
+- Log file: You can configure the log file by passing the `--sift-test-results-log-file` flag to pytest in your commandline, conftest.py file, or as an addopt in your pyproject.toml file.
 
 ###### Example at top of your test file or in your conftest.py file:
 
@@ -101,10 +106,10 @@ from .pytest_util import (
     client_has_connection,
     module_substep,
     module_substep_check_connection,
+    pytest_addoption,
     pytest_runtest_makereport,
     report_context,
     report_context_check_connection,
-    report_context_no_logging,
     step,
     step_check_connection,
 )
@@ -115,10 +120,10 @@ __all__ = [
     "client_has_connection",
     "module_substep",
     "module_substep_check_connection",
+    "pytest_addoption",
     "pytest_runtest_makereport",
     "report_context",
     "report_context_check_connection",
-    "report_context_no_logging",
     "step",
     "step_check_connection",
 ]

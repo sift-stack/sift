@@ -697,24 +697,23 @@ class TestImportLogFile:
             compare_test_measurement_fields(replayed_m, direct_m)
 
     @pytest.mark.asyncio
-    async def test_malformed_log_line_raises(self, tmp_path):
-        """import_log_file raises ValueError on a line that doesn't match the expected format."""
+    async def test_malformed_log_line_skipped(self, tmp_path):
+        """Malformed lines are skipped; a file with no valid entries raises 'No CreateTestReport'."""
         log_file = tmp_path / "bad.jsonl"
-        log_file.write_text("this is not a valid log line\n")
-
-        client = TestResultsLowLevelClient(grpc_client=MagicMock())
-        with pytest.raises(ValueError, match="malformed log line"):
-            await client.import_log_file(log_file)
-
-    @pytest.mark.asyncio
-    async def test_malformed_line_after_valid_lines_raises(self, tmp_path):
-        """A malformed line after valid entries still raises."""
-        log_file = tmp_path / "mixed.jsonl"
         log_file.write_text(
-            '[CreateTestReport] {"name":"r","testCase":"c","testSystemName":"s"}\n'
-            "totally broken line\n"
+            '[LogTracking] {"lastUploadedLine":0,"idMap":{}}\nthis is not a valid log line\n'
         )
 
         client = TestResultsLowLevelClient(grpc_client=MagicMock())
-        with pytest.raises(ValueError, match="malformed log line"):
+        with pytest.raises(ValueError, match="Invalid log line: this is not a valid log lin"):
+            await client.import_log_file(log_file)
+
+    @pytest.mark.asyncio
+    async def test_empty_log_file_raises(self, tmp_path):
+        """A log file with only a LogTracking header and no entries raises."""
+        log_file = tmp_path / "empty.jsonl"
+        log_file.write_text('[LogTracking] {"lastUploadedLine":0,"idMap":{}}\n')
+
+        client = TestResultsLowLevelClient(grpc_client=MagicMock())
+        with pytest.raises(ValueError, match="No CreateTestReport found"):
             await client.import_log_file(log_file)
