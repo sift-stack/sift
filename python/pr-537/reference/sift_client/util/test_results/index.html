@@ -2537,9 +2537,10 @@ You're not viewing the latest version.
 </ul>
 <p>Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you can disable logging by passing <code>--sift-test-results-log-file=false</code>.</p>
 <h5 id="sift_client.util.test_results--configuration">Configuration<a class="headerlink" href="#sift_client.util.test_results--configuration" title="Permanent link">&para;</a></h5>
+<p>Import the <code>pytest_addoption</code> function to add configuration options for Test Results or add the options to your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration).</p>
 <ul>
-<li>Git metadata: You can configure the test results by passing the <code>--sift-test-results-git-metadata</code> flag to pytest in your commandline, conftest.py file, or as an addopt in your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration).</li>
-<li>Log file: You can configure the log file by passing the <code>--sift-test-results-log-file</code> flag to pytest in your commandline, conftest.py file, or as an addopt in your pyproject.toml file.</li>
+<li>Git metadata: Include git metadata(repo, branch, commit) in the test results. Default is False. You can configure the test results by passing the <code>--sift-test-results-git-metadata</code> .</li>
+<li>Log file: Write test results to a file. This happens automatically but you can configure specify a specific log file by passing <code>--sift-test-results-log-file=&lt;path&gt;</code> or disable logging by passing <code>--sift-test-results-log-file=false</code>.</li>
 </ul>
 <h6 id="sift_client.util.test_results--example-at-top-of-your-test-file-or-in-your-conftestpy-file">Example at top of your test file or in your conftest.py file:<a class="headerlink" href="#sift_client.util.test_results--example-at-top-of-your-test-file-or-in-your-conftestpy-file" title="Permanent link">&para;</a></h6>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
@@ -2554,7 +2555,7 @@ You're not viewing the latest version.
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
 </span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">return</span> <span class="n">client</span>
 </span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.util.test_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">pytest_runtest_makereport</span><span class="p">,</span> <span class="n">report_context</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">module_substep</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.util.test_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">pytest_addoption</span><span class="p">,</span> <span class="n">pytest_runtest_makereport</span><span class="p">,</span> <span class="n">report_context</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">module_substep</span>
 </span></code></pre></div>
 <h6 id="sift_client.util.test_results--then-in-your-test-file">Then in your test file:<a class="headerlink" href="#sift_client.util.test_results--then-in-your-test-file" title="Permanent link">&para;</a></h6>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Because step was already imported and set autouse=True, this test will automatically get a step created for it.</span>
