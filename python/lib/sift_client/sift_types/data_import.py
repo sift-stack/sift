@@ -589,7 +589,7 @@ class TdmsImportConfig(ImportConfigBase):
 
     start_time_override: datetime | None = None
     data: list[TdmsDataColumn] = []
-    fallback_method: TdmsFallbackMethod | None = None
+    fallback_method: TdmsFallbackMethod = TdmsFallbackMethod.FAIL_ON_ERROR
     time_format: TimeFormat | None = None
     relative_start_time: datetime | None = None
     import_file_properties: bool = False
@@ -610,8 +610,7 @@ class TdmsImportConfig(ImportConfigBase):
         )
         if self.start_time_override is not None:
             proto.start_time_override.CopyFrom(to_pb_timestamp(self.start_time_override))
-        if self.fallback_method is not None:
-            proto.fallback_method = self.fallback_method.value
+        proto.fallback_method = self.fallback_method.value
         if self.time_format is not None:
             proto.time_format = self.time_format.value
         if self.relative_start_time is not None:
