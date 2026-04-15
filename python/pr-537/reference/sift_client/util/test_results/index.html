@@ -2537,7 +2537,7 @@ You're not viewing the latest version.
 </ul>
 <p>Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you can disable logging by passing <code>--sift-test-results-log-file=false</code>.</p>
 <h5 id="sift_client.util.test_results--configuration">Configuration<a class="headerlink" href="#sift_client.util.test_results--configuration" title="Permanent link">&para;</a></h5>
-<p>Import the <code>pytest_addoption</code> function to add configuration options for Test Results or add the options to your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration).</p>
+<p>Import the <code>pytest_addoption</code> function to add configuration options for Test Results to the commandline or add the options to your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration). If ommitted, will use the default values described below.</p>
 <ul>
 <li>Git metadata: Include git metadata(repo, branch, commit) in the test results. Default is False. You can configure the test results by passing the <code>--sift-test-results-git-metadata</code> .</li>
 <li>Log file: Write test results to a file. This happens automatically but you can configure specify a specific log file by passing <code>--sift-test-results-log-file=&lt;path&gt;</code> or disable logging by passing <code>--sift-test-results-log-file=false</code>.</li>
