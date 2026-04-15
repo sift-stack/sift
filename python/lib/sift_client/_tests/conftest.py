@@ -79,8 +79,8 @@ def ci_pytest_tag(sift_client):
 
 
 from sift_client.util.test_results import (
-    pytest_addoption, # noqa: F401
     client_has_connection,  # noqa: F401
+    pytest_addoption,  # noqa: F401
     pytest_runtest_makereport,  # noqa: F401
 )
 from sift_client.util.test_results import (
