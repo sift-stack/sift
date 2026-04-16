@@ -168,7 +168,7 @@ file-imports = [
 ]
 hdf5 = [
     'h5py~=3.11',
-    'polars~=1.8',
+    'polars~=1.8',  # only used by sift_py; remove once sift_py is fully deprecated
 ]
 openssl = [
     'cffi~=1.14',
@@ -219,7 +219,7 @@ openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
 sift-stream = ["sift-stream-bindings==0.2.2"]
-hdf5 = ["h5py~=3.11", "polars~=1.8"]
+hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
 data-review = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
