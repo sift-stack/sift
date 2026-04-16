@@ -3,9 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import h5py
-import numpy as np
 
-from sift_client.sift_types.channel import ChannelDataType
+from sift_client._internal.util.numpy_types import numpy_to_sift_type
 from sift_client.sift_types.data_import import Hdf5DataColumn, Hdf5ImportConfig, TimeFormat
 
 # Common HDF5 attribute names used to detect channel metadata.
@@ -13,44 +12,11 @@ _NAME_ATTRS = ["Name", "name", "Title", "title", "Sensor", "sensor", "Channel", 
 _UNIT_ATTRS = ["Unit", "unit", "Units", "units"]
 _DESCRIPTION_ATTRS = ["Description", "description"]
 
-_NUMPY_TO_SIFT: dict[type, ChannelDataType] = {
-    np.bool_: ChannelDataType.BOOL,
-    np.int8: ChannelDataType.INT_32,
-    np.int16: ChannelDataType.INT_32,
-    np.int32: ChannelDataType.INT_32,
-    np.int64: ChannelDataType.INT_64,
-    np.uint8: ChannelDataType.UINT_32,
-    np.uint16: ChannelDataType.UINT_32,
-    np.uint32: ChannelDataType.UINT_32,
-    np.uint64: ChannelDataType.UINT_64,
-    np.float32: ChannelDataType.FLOAT,
-    np.float64: ChannelDataType.DOUBLE,
-    np.datetime64: ChannelDataType.INT_64,
-    np.complex64: ChannelDataType.FLOAT,
-    np.complex128: ChannelDataType.DOUBLE,
-    np.str_: ChannelDataType.STRING,
-    # HDF5/TDMS fixed-length strings are stored as np.bytes_; use STRING, not
-    # BYTES (np.void below handles truly opaque binary data).
-    np.bytes_: ChannelDataType.STRING,
-    # Numpy uses object dtype for variable-length strings; TDMS/HDF5 files
-    # cannot produce non-string object arrays.
-    np.object_: ChannelDataType.STRING,
-    np.void: ChannelDataType.BYTES,
-}
-
 
 def _detect_attr(dataset: h5py.Dataset, candidates: list[str], default: str = "") -> str:
     """Return the first matching HDF5 attribute value, or *default*."""
     possible = [dataset.attrs.get(attr) for attr in candidates if dataset.attrs.get(attr)]
     return str(possible[0]) if possible else default
-
-
-def _numpy_to_sift_type(dtype: np.dtype) -> ChannelDataType:
-    """Map a numpy dtype to a Sift ChannelDataType."""
-    sift_type = _NUMPY_TO_SIFT.get(dtype.type)
-    if sift_type is None:
-        raise ValueError(f"Unsupported numpy dtype: {dtype}")
-    return sift_type
 
 
 def detect_hdf5_config(file_path: str | Path) -> Hdf5ImportConfig:
@@ -88,7 +54,7 @@ def detect_hdf5_config(file_path: str | Path) -> Hdf5ImportConfig:
                     columns.append(
                         Hdf5DataColumn(
                             name=channel_name,
-                            data_type=_numpy_to_sift_type(obj.dtype[value_index]),
+                            data_type=numpy_to_sift_type(obj.dtype[value_index]),
                             units=_detect_attr(obj, _UNIT_ATTRS),
                             description=_detect_attr(obj, _DESCRIPTION_ATTRS),
                             time_dataset=dataset_name,
@@ -110,7 +76,7 @@ def detect_hdf5_config(file_path: str | Path) -> Hdf5ImportConfig:
                 columns.append(
                     Hdf5DataColumn(
                         name=channel_name,
-                        data_type=_numpy_to_sift_type(obj.dtype),
+                        data_type=numpy_to_sift_type(obj.dtype),
                         units=_detect_attr(obj, _UNIT_ATTRS),
                         description=_detect_attr(obj, _DESCRIPTION_ATTRS),
                         time_dataset="time" if has_root_time else "",

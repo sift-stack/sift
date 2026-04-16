@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 from nptdms import TdmsChannel, TdmsFile, TdmsGroup, types
 
+from sift_client._internal.util.numpy_types import numpy_to_sift_type
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     TdmsComplexComponent,
@@ -45,36 +46,6 @@ COMMON_WAVEFORM_TIME_UNITS = [
     "nanosecond",
     "nanoseconds",
 ]
-
-# Mapping from numpy scalar type to Sift channel data type.
-_NUMPY_TO_SIFT: dict[type, ChannelDataType] = {
-    np.bool_: ChannelDataType.BOOL,
-    np.int8: ChannelDataType.INT_32,
-    np.int16: ChannelDataType.INT_32,
-    np.int32: ChannelDataType.INT_32,
-    np.int64: ChannelDataType.INT_64,
-    np.uint8: ChannelDataType.UINT_32,
-    np.uint16: ChannelDataType.UINT_32,
-    np.uint32: ChannelDataType.UINT_32,
-    np.uint64: ChannelDataType.UINT_64,
-    np.float32: ChannelDataType.FLOAT,
-    np.float64: ChannelDataType.DOUBLE,
-    np.datetime64: ChannelDataType.INT_64,
-    np.complex64: ChannelDataType.FLOAT,
-    np.complex128: ChannelDataType.DOUBLE,
-    np.str_: ChannelDataType.STRING,
-    np.bytes_: ChannelDataType.STRING,
-    np.object_: ChannelDataType.STRING,
-    np.void: ChannelDataType.BYTES,
-}
-
-
-def _numpy_to_sift_type(dtype: np.dtype) -> ChannelDataType:
-    """Map a numpy dtype to a Sift ChannelDataType."""
-    sift_type = _NUMPY_TO_SIFT.get(dtype.type)
-    if sift_type is None:
-        raise ValueError(f"Unsupported numpy dtype: {dtype}")
-    return sift_type
 
 
 def detect_properties(channel: TdmsChannel, possible_props: list, default: str = "") -> str:
@@ -187,7 +158,7 @@ def detect_config(
                 candidates: list[tuple[str, ChannelDataType, TdmsComplexComponent | None]] = []
                 if np.issubdtype(channel.dtype, np.complexfloating):
                     # Split complex channel into separate .real and .imag channels.
-                    sift_type = _numpy_to_sift_type(channel.dtype)
+                    sift_type = numpy_to_sift_type(channel.dtype)
                     candidates.append(
                         (f"{channel_name}.real", sift_type, TdmsComplexComponent.REAL)
                     )
@@ -196,7 +167,7 @@ def detect_config(
                     )
                 else:
                     sift_type = (
-                        ChannelDataType.ENUM if enum_types else _numpy_to_sift_type(channel.dtype)
+                        ChannelDataType.ENUM if enum_types else numpy_to_sift_type(channel.dtype)
                     )
                     candidates.append((channel_name, sift_type, None))
 
