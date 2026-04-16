@@ -3,9 +3,6 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-
-https://github.com/sift-stack/sift/commit/e1305363e95cafb4c980fdd493f69e72660a52fb
-
 ## [v0.13.0] - March 24, 2026
 ### What's New
 #### SiftClient Export API
