@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
+from sift_client._internal.util.hdf5 import detect_hdf5_config
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType
@@ -61,8 +62,8 @@ class DataImportAPIAsync(ResourceBase):
         completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
-        ``detect_config`` (CSV and Parquet only). For other formats
-        (TDMS and HDF5), ``config`` must be provided.
+        ``detect_config`` (CSV, Parquet, and HDF5). For other formats
+        (TDMS), ``config`` must be provided.
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -198,9 +199,9 @@ class DataImportAPIAsync(ResourceBase):
         is inferred from the file extension when ``data_type`` is not
         provided.
 
-        Only CSV and Parquet files are currently supported for auto-detection.
-        For other formats (TDMS, HDF5), create the config manually
-        using ``TdmsImportConfig`` or ``Hdf5ImportConfig``.
+        CSV, Parquet, and HDF5 files are supported for auto-detection.
+        For other formats (TDMS), create the config manually
+        using ``TdmsImportConfig``.
 
         For CSV files, the server scans the first two rows for an optional
         JSON metadata row. Row 1 is checked first; row 2 is checked only
@@ -242,6 +243,9 @@ class DataImportAPIAsync(ResourceBase):
             raise FileNotFoundError(f"File not found: {file_path}")
 
         data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
+
+        if data_type_key == DataTypeKey.HDF5:
+            return await run_sync_function(lambda: detect_hdf5_config(path))
 
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,
