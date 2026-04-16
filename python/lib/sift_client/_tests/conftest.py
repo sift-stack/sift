@@ -78,17 +78,5 @@ def ci_pytest_tag(sift_client):
     return tag
 
 
-from sift_client.util.test_results import (
-    client_has_connection,  # noqa: F401
-    pytest_addoption,  # noqa: F401
-    pytest_runtest_makereport,  # noqa: F401
-)
-from sift_client.util.test_results import (
-    module_substep_check_connection as module_substep,  # noqa: F401
-)
-from sift_client.util.test_results import (
-    report_context_check_connection as report_context,  # noqa: F401
-)
-from sift_client.util.test_results import (
-    step_check_connection as step,  # noqa: F401
-)
+# Import all test results fixtures the way we expect customers to do.
+from sift_client.util.test_results import *  # noqa: F403
