@@ -95,8 +95,7 @@ def find_time_channel(group: TdmsGroup) -> str | None:
 
     Detection order:
     1. Group-level 'xchannel' property.
-    2. Any channel with TDMS TimeStamp data type.
-    3. Any channel matching a common time name.
+    2. Look for the time channel in the first index.
     """
     channels = group.channels()
     channel_names = {ch.name for ch in channels}
@@ -106,15 +105,9 @@ def find_time_channel(group: TdmsGroup) -> str | None:
     if xchannel and xchannel in channel_names:
         return xchannel
 
-    # 2. Native datetime type.
-    for ch in channels:
-        if ch.data_type == types.TimeStamp:
-            return ch.name
-
-    # 3. Common time names.
-    for name in TIME_CHANNEL_NAMES:
-        if name in channel_names:
-            return name
+    # 2. Native datetime type in first index
+    if channels and channels[0].data_type == types.TimeStamp:
+        return channels[0].name
 
     return None
 
