@@ -16,6 +16,39 @@ if TYPE_CHECKING:
 REPORT_CONTEXT: ReportContext | None = None
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register Sift-specific command-line options."""
+    parser.addoption(
+        "--sift-test-results-log-file",
+        default=None,
+        help="Path to write the Sift test result log file. "
+        "Use 'true' (default) to auto-create a temp file, "
+        "False, 'false', or 'none' to disable logging, "
+        "or a file path to write to a specific location.",
+    )
+    parser.addoption(
+        "--sift-test-results-git-metadata",
+        action="store_true",
+        default=True,
+        help="Include git metadata in the Sift test results.",
+    )
+
+
+def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool | None:
+    """Determine log_file value from --sift-test-results-log-file option."""
+    raw = None
+    if pytestconfig is not None:
+        raw = pytestconfig.getoption("--sift-test-results-log-file", default=None)
+    if raw is None:
+        return True
+    lower = str(raw).lower()
+    if lower in ("true", "1"):
+        return True
+    if lower in ("false", "none"):
+        return None
+    return Path(raw)
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
     """You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step."""
@@ -34,7 +67,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
 def _report_context_impl(
     sift_client: SiftClient,
     request: pytest.FixtureRequest,
-    log_file: str | Path | bool | None = True,
+    pytestconfig: pytest.Config | None = None,
 ) -> Generator[ReportContext | None, None, None]:
     test_path = Path(request.config.invocation_params.args[0])
     base_name = (
@@ -43,11 +76,18 @@ def _report_context_impl(
         else "pytest " + " ".join(request.config.invocation_params.args)
     )
     test_case = test_path if test_path.exists() else base_name
+    log_file = _resolve_log_file(pytestconfig)
+    include_git_metadata = (
+        bool(pytestconfig.getoption("--sift-test-results-git-metadata", default=False))
+        if pytestconfig
+        else False
+    )
     with ReportContext(
         sift_client,
         name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
         test_case=str(test_case),
         log_file=log_file,
+        include_git_metadata=include_git_metadata,
     ) as context:
         # Set a global so we can access this in pytest hooks.
         global REPORT_CONTEXT
@@ -57,18 +97,14 @@ def _report_context_impl(
 
 @pytest.fixture(scope="session", autouse=True)
 def report_context(
-    sift_client: SiftClient, request: pytest.FixtureRequest
+    sift_client: SiftClient, request: pytest.FixtureRequest, pytestconfig: pytest.Config
 ) -> Generator[ReportContext | None, None, None]:
-    """Create a report context for the session."""
-    yield from _report_context_impl(sift_client, request, log_file=True)
+    """Create a report context for the session.
 
-
-@pytest.fixture(scope="session", autouse=True)
-def report_context_no_logging(
-    sift_client: SiftClient, request: pytest.FixtureRequest
-) -> Generator[ReportContext | None, None, None]:
-    """Create a report context for the session with logging disabled."""
-    yield from _report_context_impl(sift_client, request, log_file=None)
+    The log file destination is controlled by ``--sift-test-results-log-file``.
+    Defaults to a temp file when not set.
+    """
+    yield from _report_context_impl(sift_client, request, pytestconfig=pytestconfig)
 
 
 def _step_impl(
@@ -127,11 +163,14 @@ def client_has_connection(sift_client):
 
 @pytest.fixture(scope="session", autouse=True)
 def report_context_check_connection(
-    sift_client: SiftClient, client_has_connection: bool, request: pytest.FixtureRequest
+    sift_client: SiftClient,
+    client_has_connection: bool,
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
 ) -> Generator[ReportContext | None, None, None]:
     """Create a report context for the session. Doesn't run if the client has no connection to the Sift server."""
     if client_has_connection:
-        yield from _report_context_impl(sift_client, request)
+        yield from _report_context_impl(sift_client, request, pytestconfig=pytestconfig)
     else:
         yield None
 

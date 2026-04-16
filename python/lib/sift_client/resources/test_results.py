@@ -619,6 +619,7 @@ class TestResultsAPIAsync(ResourceBase):
     async def import_log_file(
         self,
         log_file: str | Path,
+        incremental: bool = False,
     ) -> ReplayResult:
         """Replay a log file by parsing each entry, simulating the results, then creating for real.
 
@@ -627,12 +628,13 @@ class TestResultsAPIAsync(ResourceBase):
         IDs are mapped from simulated to real during the creation process.
 
         Args:
-            log_file: Path to the log file to replay.
+            log_file: Path to the log file to import.
+            incremental: (internal tooling) If True, goes line by line and calls every event vs. reading the entire file at once and sending resultant test report.
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
         """
-        result = await self._low_level_client.import_log_file(log_file)
+        result = await self._low_level_client.import_log_file(log_file, incremental=incremental)
         result.report = self._apply_client_to_instance(result.report)
         result.steps = self._apply_client_to_instances(result.steps)
         result.measurements = self._apply_client_to_instances(result.measurements)
