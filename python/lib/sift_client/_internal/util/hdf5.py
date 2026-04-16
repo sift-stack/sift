@@ -29,7 +29,11 @@ _NUMPY_TO_SIFT: dict[type, ChannelDataType] = {
     np.complex64: ChannelDataType.FLOAT,
     np.complex128: ChannelDataType.DOUBLE,
     np.str_: ChannelDataType.STRING,
+    # HDF5/TDMS fixed-length strings are stored as np.bytes_; use STRING, not
+    # BYTES (np.void below handles truly opaque binary data).
     np.bytes_: ChannelDataType.STRING,
+    # Numpy uses object dtype for variable-length strings; TDMS/HDF5 files
+    # cannot produce non-string object arrays.
     np.object_: ChannelDataType.STRING,
     np.void: ChannelDataType.BYTES,
 }
