@@ -679,7 +679,7 @@ class TdmsImportConfig(ImportConfigBase):
                 )
             )
 
-        fallback_method = None
+        fallback_method = TdmsFallbackMethod.FAIL_ON_ERROR
         if proto.fallback_method and proto.fallback_method != TDMS_FALLBACK_METHOD_UNSPECIFIED:
             fallback_method = TdmsFallbackMethod(proto.fallback_method)
 
