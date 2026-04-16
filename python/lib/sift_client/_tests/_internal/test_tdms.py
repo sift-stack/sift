@@ -97,8 +97,13 @@ class TestDetectConfig:
         assert config.data[0].time_channel_name == "timestamp"
         assert config.data[0].data_type == ChannelDataType.FLOAT
 
-    def test_common_time_name_detection(self, create_tdms_file):
-        """Channels named 'time', 'Time', etc. are detected as time channels."""
+    def test_common_time_name_not_detected(self, create_tdms_file):
+        """A channel named 'time' without TimeStamp dtype is NOT auto-detected.
+
+        The TDMS protocol requires either a group-level 'xchannel' property
+        or a native TimeStamp-typed first channel. Name-based fallbacks
+        were intentionally removed.
+        """
         path = create_tdms_file(
             groups=[
                 (
@@ -119,12 +124,8 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path)
-
-        channel_names = [d.name for d in config.data]
-        assert "data.time" not in channel_names
-        assert "data.pressure" in channel_names
-        assert config.data[0].time_channel_name == "time"
+        with pytest.raises(ValueError, match="No timing information"):
+            detect_config(path)
 
     def test_complex_channels_split(self, create_tdms_file):
         """Complex-valued channels are split into .real and .imag entries."""

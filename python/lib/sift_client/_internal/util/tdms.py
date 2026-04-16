@@ -18,9 +18,6 @@ from sift_client.sift_types.data_import import (
     TdmsImportConfig,
 )
 
-# Common names for dedicated time channels within a group
-TIME_CHANNEL_NAMES = ["time", "Time", "TIME", "timestamp", "Timestamp", "t", "T"]
-
 # Common property names used to detect the units of a channel in TDMS files.
 COMMON_UNIT_PROPS = [
     "unit_string",
