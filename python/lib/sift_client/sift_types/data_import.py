@@ -543,7 +543,10 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
 
 class TdmsFallbackMethod(Enum):
     """Controls handling of TDMS channels without timing information
-    during ``detect_tdms_config``.
+    during auto-detection.
+
+    Auto-detection runs when you call ``detect_tdms_config`` or when
+    you import a ``TdmsImportConfig`` with empty ``data``.
 
     A channel has timing information when the group defines an
     ``xchannel``, the first channel is a ``TimeStamp`` type, or the
