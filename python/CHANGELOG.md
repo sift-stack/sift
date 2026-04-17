@@ -3,69 +3,20 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v1.0.0] - April 16, 2026
-
-This is the first major release of `sift-stack-py`. `sift_client` has reached feature parity with `sift_py` and is now the recommended interface for all new development. `sift_py` (deprecated since [v0.10.0](#v0100---january-30-2026)) continues to work and ship in this release; all features previously available only in `sift_py`, including data imports and exports, are now available in `sift_client`.
-
-### Migrating from `sift_py` to `sift_client`
-
-`sift_client` introduces a unified, Pythonic interface and is not a drop-in replacement for `sift_py`. The major differences are summarized below. For complete examples, see the [sift_client documentation](https://sift-stack.github.io/sift/python/latest/#sift-client-api-new).
-
-#### Unified client vs. per-service classes
-
-`sift_py` exposed a separate service class per domain (`IngestionService`, `RuleService`, `AssetService`, `ReportTemplateService`, etc.). `sift_client` exposes a single `SiftClient` with resource accessors:
-
-```python
-# sift_py
-from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
-from sift_py.asset.service import AssetService
-
-with use_sift_channel(SiftChannelConfig(uri=uri, apikey=apikey)) as channel:
-    asset_service = AssetService(channel)
-    asset = asset_service.get_asset(asset_id="asset123")
-
-# sift_client
-from sift_client import SiftClient
-
-client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
-asset = client.assets.get(asset_id="asset123")
-```
-
-#### Sync and async interfaces
-
-`sift_py` is primarily synchronous, with async support limited to data queries and the gRPC channel. `sift_client` provides both sync and async interfaces for every resource:
-
-```python
-# Sync
-asset = client.assets.get(asset_id="asset123")
-
-# Async
-asset = await client.async_.assets.get(asset_id="asset123")
-```
-
-#### Typed Pydantic models with methods
-
-`sift_py` returned a mix of raw protobuf types and thin wrappers, with inconsistent update semantics. `sift_client` returns immutable Pydantic models with convenience methods and typed update models:
-
-```python
-asset = client.assets.get(asset_id="asset123")
-asset.archive(archive_runs=True)
-asset.update({"tags": ["production", "v2"]})
-```
+## [v0.14.0] - April 17, 2026
 
 ### What's New
 
 #### Data Import API in SiftClient
-The `sift_client` module now exposes a data import API supporting CSV, Parquet, TDMS, and HDF5.
+The `sift_client` module now exposes a data import API supporting CSV, Parquet, TDMS, and HDF5. With this addition, all features previously available only in `sift_py` are now available in `sift_client`, which remains the recommended interface for new development. `sift_py` (deprecated since [v0.10.0](#v0100---january-30-2026)) continues to work and ship in this release.
 
 #### Test Result Logging
-Adds optional logging of test result create and update events, with logging now running in a subprocess while a test runs.
+Test result create and update events can now be optionally written to a `.jsonl` log file during a test run, then replayed against the Sift API later via the new `import_test_result_log` script.
 
 #### Progress Indicators
 Adds progress indicators for job polling and file downloads for better visibility during long-running operations.
 
 ### Bugfixes
-- Fall back to `application/octet-stream` for unknown MIME types on file attachment uploads.
 - Add `py.typed` to the generated proto directory so type checkers pick up protobuf types correctly.
 - Update `sift-stream-bindings` to pick up upstream fixes.
 
