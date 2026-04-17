@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.14.0] - April 17, 2026
+## [v0.14.0] - April 20, 2026
 
 ### What's New
 
