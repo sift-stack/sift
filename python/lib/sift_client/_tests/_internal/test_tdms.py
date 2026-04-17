@@ -1,33 +1,36 @@
-"""Tests for detect_config (TDMS)."""
+"""Tests for detect_tdms_config."""
+
+import io
 
 import numpy as np
 import pytest
 from nptdms import ChannelObject, GroupObject, RootObject, TdmsWriter
 
-from sift_client._internal.util.tdms import detect_config
+from sift_client._internal.util.tdms import detect_tdms_config
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import TdmsComplexComponent, TdmsFallbackMethod
 
 
 @pytest.fixture
-def create_tdms_file(tmp_path):
-    """Return a helper that writes a TDMS file and returns its path."""
-    file_path = tmp_path / "test.tdms"
+def create_tdms_file():
+    """Return a helper that writes a TDMS file in memory and returns a BytesIO buffer."""
 
     def _create(root_props=None, groups=None):
-        """Write a TDMS file.
+        """Write a TDMS file to an in-memory buffer.
 
         Args:
             root_props: dict of root-level file properties.
             groups: list of (group_name, channels) tuples where channels is a list of
                 ChannelObject instances.
         """
+        buf = io.BytesIO()
         root = RootObject(properties=root_props or {})
-        with TdmsWriter(file_path) as writer:
+        with TdmsWriter(buf) as writer:
             for group_name, channels in groups or []:
                 group = GroupObject(group_name)
                 writer.write_segment([root, group, *channels])
-        return file_path
+        buf.seek(0)
+        return buf
 
     return _create
 
@@ -35,7 +38,7 @@ def create_tdms_file(tmp_path):
 class TestDetectConfig:
     def test_waveform_channels(self, create_tdms_file):
         """Channels with wf_start_offset and wf_increment are detected as waveform channels."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "sensors",
@@ -55,7 +58,7 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path)
+        config = detect_tdms_config(tdms)
 
         assert len(config.data) == 1
         assert config.data[0].name == "sensors.voltage"
@@ -66,7 +69,7 @@ class TestDetectConfig:
 
     def test_time_channel_detection(self, create_tdms_file):
         """A channel with TimeStamp type is used as the time source and excluded from data."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "group1",
@@ -89,7 +92,7 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path)
+        config = detect_tdms_config(tdms)
 
         channel_names = [d.name for d in config.data]
         assert "group1.timestamp" not in channel_names
@@ -104,7 +107,7 @@ class TestDetectConfig:
         or a native TimeStamp-typed first channel. Name-based fallbacks
         were intentionally removed.
         """
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "data",
@@ -125,11 +128,11 @@ class TestDetectConfig:
         )
 
         with pytest.raises(ValueError, match="No timing information"):
-            detect_config(path)
+            detect_tdms_config(tdms)
 
     def test_complex_channels_split(self, create_tdms_file):
         """Complex-valued channels are split into .real and .imag entries."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "rf",
@@ -149,7 +152,7 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path)
+        config = detect_tdms_config(tdms)
 
         assert len(config.data) == 2
         names = [d.name for d in config.data]
@@ -165,7 +168,7 @@ class TestDetectConfig:
 
     def test_unit_and_description_detection(self, create_tdms_file):
         """Units and descriptions are read from TDMS channel properties."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "sensors",
@@ -187,14 +190,14 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path)
+        config = detect_tdms_config(tdms)
 
         assert config.data[0].units == "V"
         assert config.data[0].description == "Channel: Supply voltage"
 
     def test_fallback_fail_on_error(self, create_tdms_file):
         """Channels without timing info raise ValueError when fallback is FAIL_ON_ERROR."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "data",
@@ -210,11 +213,11 @@ class TestDetectConfig:
         )
 
         with pytest.raises(ValueError, match="No timing information"):
-            detect_config(path, fallback_method=TdmsFallbackMethod.FAIL_ON_ERROR)
+            detect_tdms_config(tdms, fallback_method=TdmsFallbackMethod.FAIL_ON_ERROR)
 
     def test_fallback_ignore_error(self, create_tdms_file):
         """Channels without timing info are silently skipped when fallback is IGNORE_ERROR."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "data",
@@ -229,14 +232,14 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path, fallback_method=TdmsFallbackMethod.IGNORE_ERROR)
+        config = detect_tdms_config(tdms, fallback_method=TdmsFallbackMethod.IGNORE_ERROR)
 
         assert len(config.data) == 0
         assert config.fallback_method == TdmsFallbackMethod.IGNORE_ERROR
 
     def test_multiple_groups(self, create_tdms_file):
         """Channels from multiple groups are all detected with correct group_name."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "group_a",
@@ -271,7 +274,7 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path)
+        config = detect_tdms_config(tdms)
 
         assert len(config.data) == 2
         assert config.data[0].group_name == "group_a"
@@ -286,7 +289,7 @@ class TestDetectConfig:
         import json
 
         enum_config = json.dumps({"0": "Off", "1": "On", "2": "Error"})
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "status",
@@ -307,7 +310,7 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path)
+        config = detect_tdms_config(tdms)
 
         assert len(config.data) == 1
         assert config.data[0].data_type == ChannelDataType.ENUM
@@ -315,7 +318,7 @@ class TestDetectConfig:
 
     def test_asset_name_passthrough(self, create_tdms_file):
         """The asset_name parameter is set on the returned config."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "g",
@@ -335,13 +338,13 @@ class TestDetectConfig:
             ]
         )
 
-        config = detect_config(path, asset_name="my-asset")
+        config = detect_tdms_config(tdms, asset_name="my-asset")
 
         assert config.asset_name == "my-asset"
 
     def test_xchannel_property(self, create_tdms_file):
         """Group-level 'xchannel' property overrides time channel detection."""
-        path = create_tdms_file(
+        tdms = create_tdms_file(
             groups=[
                 (
                     "data",
@@ -368,7 +371,7 @@ class TestDetectConfig:
 
         from sift_client._internal.util.tdms import find_time_channel
 
-        with TdmsFile.open(path) as tdms_file:
+        with TdmsFile.open(tdms) as tdms_file:
             group = tdms_file["data"]
             # Simulate xchannel property
             group.properties["xchannel"] = "custom_time"

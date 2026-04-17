@@ -7,7 +7,7 @@ from sift_client._internal.low_level_wrappers.data_imports import DataImportsLow
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
 from sift_client._internal.util.hdf5 import detect_hdf5_config
-from sift_client._internal.util.tdms import detect_config as detect_tdms_config
+from sift_client._internal.util.tdms import detect_tdms_config
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType

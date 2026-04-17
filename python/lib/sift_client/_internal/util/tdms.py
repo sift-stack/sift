@@ -7,6 +7,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import BinaryIO
 from nptdms import TdmsChannel, TdmsFile, TdmsGroup, types
 
 from sift_client._internal.util.numpy_types import numpy_to_sift_type
@@ -103,15 +104,15 @@ def find_time_channel(group: TdmsGroup) -> str | None:
     return None
 
 
-def detect_config(
-    file_path: str | Path,
+def detect_tdms_config(
+    file_path: str | Path | BinaryIO,
     asset_name: str = "",
     fallback_method: TdmsFallbackMethod = TdmsFallbackMethod.FAIL_ON_ERROR,
 ) -> TdmsImportConfig:
     """Detect a TDMS import config by inspecting the file's channels.
 
     Args:
-        file_path: Path to the TDMS file.
+        file_path: Path to the TDMS file, or a binary file-like object.
         asset_name: The asset name to set on the config.
         fallback_method: How to handle channels with missing timing information.
 
