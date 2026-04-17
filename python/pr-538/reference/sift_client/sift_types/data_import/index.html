@@ -10275,7 +10275,9 @@ automatically when using <code>detect_config</code>.</p>
 
 
         <p>Controls handling of TDMS channels without timing information
-during <code>detect_tdms_config</code>.</p>
+during auto-detection.</p>
+<p>Auto-detection runs when you call <code>detect_tdms_config</code> or when
+you import a <code>TdmsImportConfig</code> with empty <code>data</code>.</p>
 <p>A channel has timing information when the group defines an
 <code>xchannel</code>, the first channel is a <code>TimeStamp</code> type, or the
 channel has waveform properties (<code>wf_start_offset</code> +
