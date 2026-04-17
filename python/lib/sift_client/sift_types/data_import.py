@@ -549,6 +549,12 @@ class TdmsFallbackMethod(Enum):
     ``xchannel``, the first channel is a ``TimeStamp`` type, or the
     channel has waveform properties (``wf_start_offset`` +
     ``wf_increment``).
+
+    Use ``IGNORE_ERROR`` when a file mixes timeseries and
+    non-timeseries data (e.g., binary blobs, spectra) and you want the
+    non-timeseries channels skipped. Alternatively, build
+    ``TdmsImportConfig.data`` explicitly to import only the valid
+    timeseries channels.
     """
 
     FAIL_ON_ERROR = TDMS_FALLBACK_METHOD_FAIL_ON_ERROR
