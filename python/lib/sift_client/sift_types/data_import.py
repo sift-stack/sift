@@ -542,10 +542,20 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
 
 
 class TdmsFallbackMethod(Enum):
-    """Controls behavior when TDMS channels lack timing information."""
+    """Controls handling of TDMS channels without timing information
+    during ``detect_tdms_config``.
+
+    A channel has timing information when the group defines an
+    ``xchannel``, the first channel is a ``TimeStamp`` type, or the
+    channel has waveform properties (``wf_start_offset`` +
+    ``wf_increment``).
+    """
 
     FAIL_ON_ERROR = TDMS_FALLBACK_METHOD_FAIL_ON_ERROR
+    """Raise if any channel lacks timing information."""
+
     IGNORE_ERROR = TDMS_FALLBACK_METHOD_IGNORE_ERROR
+    """Skip channels that lack timing information."""
 
 
 class TdmsComplexComponent(Enum):

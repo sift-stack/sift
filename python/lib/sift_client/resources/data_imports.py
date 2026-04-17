@@ -282,8 +282,7 @@ class DataImportAPIAsync(ResourceBase):
 
         raise ValueError(
             f"No supported configuration detected for '{path.name}'. "
-            "Auto-detection supports CSV and Parquet files. "
-            "For other formats, provide a config manually."
+            "Only CSV, Parquet, HDF5, and TDMS are supported by auto-detection."
         )
 
 
