@@ -137,12 +137,12 @@ class TestTdmsConfig:
             run_name="run1",
             run_id="run_123",
             start_time_override=datetime(2026, 1, 1, tzinfo=timezone.utc),
-            file_size=12345,
+            import_file_properties=True,
         )
         proto = config._to_proto()
         assert proto.asset_name == "my_asset"
         assert proto.run_id == "run_123"
-        assert proto.file_size == 12345
+        assert proto.import_file_properties is True
         assert proto.HasField("start_time_override")
 
     def test_to_proto_optional_fields_unset(self):
@@ -151,7 +151,7 @@ class TestTdmsConfig:
         assert proto.run_name == "run1"
         assert proto.run_id == ""
         assert not proto.HasField("start_time_override")
-        assert proto.file_size == 0
+        assert proto.import_file_properties is False
 
     def test_run_id_takes_precedence(self):
         config = TdmsImportConfig(asset_name="a", run_name="ignored", run_id="run_123")

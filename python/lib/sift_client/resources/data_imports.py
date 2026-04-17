@@ -7,6 +7,7 @@ from sift_client._internal.low_level_wrappers.data_imports import DataImportsLow
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
 from sift_client._internal.util.hdf5 import detect_hdf5_config
+from sift_client._internal.util.tdms import detect_tdms_config
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType
@@ -62,8 +63,7 @@ class DataImportAPIAsync(ResourceBase):
         completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
-        ``detect_config`` (CSV, Parquet, and HDF5). For other formats
-        (TDMS), ``config`` must be provided.
+        ``detect_config`` (CSV, Parquet, HDF5, and TDMS).
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -199,9 +199,8 @@ class DataImportAPIAsync(ResourceBase):
         is inferred from the file extension when ``data_type`` is not
         provided.
 
-        CSV, Parquet, and HDF5 files are supported for auto-detection.
-        For other formats (TDMS), create the config manually
-        using ``TdmsImportConfig``.
+        CSV, Parquet, HDF5, and TDMS files are supported for
+        auto-detection.
 
         For CSV files, the server scans the first two rows for an optional
         JSON metadata row. Row 1 is checked first; row 2 is checked only
@@ -246,6 +245,8 @@ class DataImportAPIAsync(ResourceBase):
 
         if data_type_key == DataTypeKey.HDF5:
             return await run_sync_function(lambda: detect_hdf5_config(path))
+        if data_type_key == DataTypeKey.TDMS:
+            return await run_sync_function(lambda: detect_tdms_config(path))
 
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,
@@ -281,8 +282,7 @@ class DataImportAPIAsync(ResourceBase):
 
         raise ValueError(
             f"No supported configuration detected for '{path.name}'. "
-            "Auto-detection supports CSV and Parquet files. "
-            "For other formats, provide a config manually."
+            "Only CSV, Parquet, HDF5, and TDMS are supported by auto-detection."
         )
 
 

@@ -7,6 +7,7 @@ from typing import Union
 
 from pydantic import BaseModel, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
+from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypeProto
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_CSV,
     DATA_TYPE_KEY_HDF5,
@@ -17,6 +18,12 @@ from sift.data_imports.v2.data_imports_pb2 import (
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING,
+    TDMS_COMPLEX_COMPONENT_IMAGINARY,
+    TDMS_COMPLEX_COMPONENT_REAL,
+    TDMS_COMPLEX_COMPONENT_UNSPECIFIED,
+    TDMS_FALLBACK_METHOD_FAIL_ON_ERROR,
+    TDMS_FALLBACK_METHOD_IGNORE_ERROR,
+    TDMS_FALLBACK_METHOD_UNSPECIFIED,
 )
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
@@ -38,6 +45,7 @@ from sift.data_imports.v2.data_imports_pb2 import (
 )
 from sift.data_imports.v2.data_imports_pb2 import ParquetTimeColumn as ParquetTimeColumnProto
 from sift.data_imports.v2.data_imports_pb2 import TDMSConfig as TDMSConfigProto
+from sift.data_imports.v2.data_imports_pb2 import TdmsDataConfig as TdmsDataConfigProto
 from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
 
 from sift_client._internal.util.timestamp import to_pb_timestamp
@@ -533,29 +541,182 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
         )
 
 
+class TdmsFallbackMethod(Enum):
+    """Controls handling of TDMS channels without timing information
+    during auto-detection.
+
+    Auto-detection runs when you call ``detect_tdms_config`` or when
+    you import a ``TdmsImportConfig`` with empty ``data``.
+
+    A channel has timing information when the group defines an
+    ``xchannel``, the first channel is a ``TimeStamp`` type, or the
+    channel has waveform properties (``wf_start_offset`` +
+    ``wf_increment``).
+
+    Use ``IGNORE_ERROR`` when a file mixes timeseries and
+    non-timeseries data (e.g., binary blobs, spectra) and you want the
+    non-timeseries channels skipped. Alternatively, build
+    ``TdmsImportConfig.data`` explicitly to import only the valid
+    timeseries channels.
+    """
+
+    FAIL_ON_ERROR = TDMS_FALLBACK_METHOD_FAIL_ON_ERROR
+    """Raise if any channel lacks timing information."""
+
+    IGNORE_ERROR = TDMS_FALLBACK_METHOD_IGNORE_ERROR
+    """Skip channels that lack timing information."""
+
+
+class TdmsComplexComponent(Enum):
+    """Selects which component to import from complex-valued TDMS data."""
+
+    REAL = TDMS_COMPLEX_COMPONENT_REAL
+    IMAGINARY = TDMS_COMPLEX_COMPONENT_IMAGINARY
+
+
+class TdmsDataColumn(DataColumnBase):
+    """Per-channel configuration for TDMS imports.
+
+    Attributes:
+        group_name: The TDMS group name.
+        channel_name: The TDMS channel name.
+        time_channel_name: Explicit time channel. If unset, assumes waveform properties.
+        scaled: Whether to import scaled or raw values. Defaults to True.
+        complex_component: Which component to import for complex types. Defaults to real.
+    """
+
+    group_name: str
+    channel_name: str
+    time_channel_name: str | None = None
+    scaled: bool | None = None
+    complex_component: TdmsComplexComponent | None = None
+    enum_types: dict[str, int] | None = None
+
+
 class TdmsImportConfig(ImportConfigBase):
     """Configuration for importing a TDMS file.
 
     Attributes:
         start_time_override: Override the ``wf_start_time`` metadata field for all channels.
             Useful when waveform channels have ``wf_increment`` but no ``wf_start_time``.
-        file_size: The file size in bytes. Required if the file has truncated chunks.
+        data: Per-channel configurations. If empty, ingests everything using the fallback method.
+        fallback_method: How to handle channels with missing timing information.
+        time_format: Time format for time channels not using the TDMS timestamp type.
+        relative_start_time: Relative start time for channels using a non-standard time channel.
+        import_file_properties: If true, imports TDMS file properties as run metadata.
     """
 
     start_time_override: datetime | None = None
-    file_size: int | None = None
+    data: list[TdmsDataColumn] = []
+    fallback_method: TdmsFallbackMethod = TdmsFallbackMethod.FAIL_ON_ERROR
+    time_format: TimeFormat | None = None
+    relative_start_time: datetime | None = None
+    import_file_properties: bool = False
+
+    def __getitem__(self, name: str) -> TdmsDataColumn:
+        """Look up a data column by channel name."""
+        for d in self.data:
+            if d.name == name:
+                return d
+        raise KeyError(f"No data column named '{name}'")
 
     def _to_proto(self) -> TDMSConfigProto:
         proto = TDMSConfigProto(
             asset_name=self.asset_name,
             run_name=self.run_name or "",
             run_id=self.run_id or "",
+            import_file_properties=self.import_file_properties,
         )
         if self.start_time_override is not None:
             proto.start_time_override.CopyFrom(to_pb_timestamp(self.start_time_override))
-        if self.file_size is not None:
-            proto.file_size = self.file_size
+        proto.fallback_method = self.fallback_method.value
+        if self.time_format is not None:
+            proto.time_format = self.time_format.value
+        if self.relative_start_time is not None:
+            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+        for d in self.data:
+            channel_config = ChannelConfigProto(
+                name=d.name,
+                data_type=d.data_type.value,
+                units=d.units,
+                description=d.description,
+            )
+            if d.enum_types:
+                channel_config.enum_types.extend(
+                    ChannelEnumTypeProto(name=name, key=key) for name, key in d.enum_types.items()
+                )
+            entry = TdmsDataConfigProto(
+                group_name=d.group_name,
+                channel_name=d.channel_name,
+                channel_config=channel_config,
+            )
+            if d.time_channel_name is not None:
+                entry.time_channel_name = d.time_channel_name
+            if d.scaled is not None:
+                entry.scaled = d.scaled
+            if d.complex_component is not None:
+                entry.complex_component = d.complex_component.value
+            proto.data.append(entry)
         return proto
+
+    @classmethod
+    def _from_proto(cls, proto: TDMSConfigProto) -> TdmsImportConfig:
+        """Create from a proto TDMSConfig (e.g. from DetectConfig response)."""
+        start_time_override = None
+        if proto.HasField("start_time_override"):
+            from datetime import timezone
+
+            start_time_override = proto.start_time_override.ToDatetime(tzinfo=timezone.utc)
+
+        relative_start_time = None
+        if proto.HasField("relative_start_time"):
+            from datetime import timezone
+
+            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+
+        data = []
+        for d in proto.data:
+            ch = d.channel_config
+            complex_component = None
+            if d.complex_component and d.complex_component != TDMS_COMPLEX_COMPONENT_UNSPECIFIED:
+                complex_component = TdmsComplexComponent(d.complex_component)
+            enum_types = {e.name: e.key for e in ch.enum_types} if ch.enum_types else None
+            data.append(
+                TdmsDataColumn(
+                    group_name=d.group_name,
+                    channel_name=d.channel_name,
+                    name=ch.name,
+                    data_type=ChannelDataType(ch.data_type),
+                    units=ch.units,
+                    description=ch.description,
+                    time_channel_name=d.time_channel_name
+                    if d.HasField("time_channel_name")
+                    else None,
+                    scaled=d.scaled if d.HasField("scaled") else None,
+                    complex_component=complex_component,
+                    enum_types=enum_types,
+                )
+            )
+
+        fallback_method = TdmsFallbackMethod.FAIL_ON_ERROR
+        if proto.fallback_method and proto.fallback_method != TDMS_FALLBACK_METHOD_UNSPECIFIED:
+            fallback_method = TdmsFallbackMethod(proto.fallback_method)
+
+        time_format = None
+        if proto.HasField("time_format"):
+            time_format = TimeFormat(proto.time_format)
+
+        return cls(
+            asset_name=proto.asset_name,
+            run_name=proto.run_name or None,
+            run_id=proto.run_id or None,
+            start_time_override=start_time_override,
+            data=data,
+            fallback_method=fallback_method,
+            time_format=time_format,
+            relative_start_time=relative_start_time,
+            import_file_properties=proto.import_file_properties,
+        )
 
 
 class Hdf5DataColumn(DataColumnBase):
