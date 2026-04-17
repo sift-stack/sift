@@ -5073,7 +5073,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            TdmsFallbackMethod (sift_client.sift_types.data_import.TdmsFallbackMethod)" href="#sift_client.sift_types.data_import.TdmsFallbackMethod">TdmsFallbackMethod</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Controls behavior when TDMS channels lack timing information.</p>
+                <p>Controls handling of TDMS channels without timing information</p>
               </div>
             </td>
           </tr>
@@ -10274,7 +10274,12 @@ automatically when using <code>detect_config</code>.</p>
 
 
 
-        <p>Controls behavior when TDMS channels lack timing information.</p>
+        <p>Controls handling of TDMS channels without timing information
+during <code>detect_tdms_config</code>.</p>
+<p>A channel has timing information when the group defines an
+<code>xchannel</code>, the first channel is a <code>TimeStamp</code> type, or the
+channel has waveform properties (<code>wf_start_offset</code> +
+<code>wf_increment</code>).</p>
 
 
 
@@ -10307,7 +10312,7 @@ automatically when using <code>detect_config</code>.</p>
    (sift_client.sift_types.data_import.TdmsFallbackMethod.FAIL_ON_ERROR)" href="#sift_client.sift_types.data_import.TdmsFallbackMethod.FAIL_ON_ERROR">FAIL_ON_ERROR</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                
+                <p>Raise if any channel lacks timing information.</p>
               </div>
               <p>
               </p>
@@ -10323,7 +10328,7 @@ automatically when using <code>detect_config</code>.</p>
    (sift_client.sift_types.data_import.TdmsFallbackMethod.IGNORE_ERROR)" href="#sift_client.sift_types.data_import.TdmsFallbackMethod.IGNORE_ERROR">IGNORE_ERROR</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                
+                <p>Skip channels that lack timing information.</p>
               </div>
               <p>
               </p>
@@ -10362,6 +10367,8 @@ automatically when using <code>detect_config</code>.</p>
 
     <div class="doc doc-contents ">
 
+        <p>Raise if any channel lacks timing information.</p>
+
     </div>
 
 </div>
@@ -10384,6 +10391,8 @@ automatically when using <code>detect_config</code>.</p>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
+
+        <p>Skip channels that lack timing information.</p>
 
     </div>
 
