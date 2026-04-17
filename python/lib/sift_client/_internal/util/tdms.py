@@ -27,23 +27,6 @@ COMMON_UNIT_PROPS = [
 # Common property names used to detect the description of a channel in TDMS files.
 COMMON_DESCRIPTION_PROPS = ["description", "NI_Description", "Description"]
 
-# Common unit strings that indicate a channel represents time (waveform x-axis).
-COMMON_WAVEFORM_TIME_UNITS = [
-    "s",
-    "sec",
-    "second",
-    "seconds",
-    "ms",
-    "millisecond",
-    "milliseconds",
-    "us",
-    "microsecond",
-    "microseconds",
-    "ns",
-    "nanosecond",
-    "nanoseconds",
-]
-
 
 def detect_properties(obj: TdmsChannel | TdmsGroup, possible_props: list, default: str = "") -> str:
     """Return the first matching property value from a list of possible property names."""
