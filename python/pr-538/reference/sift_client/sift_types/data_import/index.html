@@ -10280,6 +10280,11 @@ during <code>detect_tdms_config</code>.</p>
 <code>xchannel</code>, the first channel is a <code>TimeStamp</code> type, or the
 channel has waveform properties (<code>wf_start_offset</code> +
 <code>wf_increment</code>).</p>
+<p>Use <code>IGNORE_ERROR</code> when a file mixes timeseries and
+non-timeseries data (e.g., binary blobs, spectra) and you want the
+non-timeseries channels skipped. Alternatively, build
+<code>TdmsImportConfig.data</code> explicitly to import only the valid
+timeseries channels.</p>
 
 
 
