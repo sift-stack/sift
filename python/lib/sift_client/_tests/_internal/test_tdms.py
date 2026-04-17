@@ -190,7 +190,7 @@ class TestDetectConfig:
         config = detect_config(path)
 
         assert config.data[0].units == "V"
-        assert config.data[0].description == "Supply voltage"
+        assert config.data[0].description == "Channel: Supply voltage"
 
     def test_fallback_fail_on_error(self, create_tdms_file):
         """Channels without timing info raise ValueError when fallback is FAIL_ON_ERROR."""

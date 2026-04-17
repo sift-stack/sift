@@ -45,13 +45,22 @@ COMMON_WAVEFORM_TIME_UNITS = [
 ]
 
 
-def detect_properties(channel: TdmsChannel, possible_props: list, default: str = "") -> str:
+def detect_properties(obj: TdmsChannel | TdmsGroup, possible_props: list, default: str = "") -> str:
     """Return the first matching property value from a list of possible property names."""
     for prop in possible_props:
-        value = channel.properties.get(prop)
+        value = obj.properties.get(prop)
         if value:
             return value
     return default
+
+
+def create_description(group_description: str, channel_description: str) -> str:
+    """Combine TDMS group and channel descriptions into a single Sift description."""
+    group_description = group_description.strip()
+    channel_description = channel_description.strip()
+    group_entry = f"Group: {group_description}" if group_description else ""
+    channel_entry = f"Channel: {channel_description}" if channel_description else ""
+    return "\n".join([group_entry, channel_entry]).strip()
 
 
 def detect_enum_types(channel: TdmsChannel) -> dict[str, int] | None:
@@ -93,6 +102,8 @@ def find_time_channel(group: TdmsGroup) -> str | None:
     Detection order:
     1. Group-level 'xchannel' property.
     2. Look for the time channel in the first index.
+
+    https://www.ni.com/en/support/documentation/supplemental/12/writing-data-management-ready-tdms-files.html
     """
     channels = group.channels()
     channel_names = {ch.name for ch in channels}
@@ -130,6 +141,7 @@ def detect_config(
         for group in tdms_file.groups():
             group_name = group.name
             time_channel_name = find_time_channel(group)
+            group_description = detect_properties(group, COMMON_DESCRIPTION_PROPS)
 
             for channel in group.channels():
                 tdms_channel_name = channel.name
@@ -142,7 +154,8 @@ def detect_config(
                 channel_name = f"{group_name}.{tdms_channel_name}"
 
                 units = detect_properties(channel, COMMON_UNIT_PROPS)
-                description = detect_properties(channel, COMMON_DESCRIPTION_PROPS)
+                channel_description = detect_properties(channel, COMMON_DESCRIPTION_PROPS)
+                description = create_description(group_description, channel_description)
                 enum_types = detect_enum_types(channel)
 
                 candidates: list[tuple[str, ChannelDataType, TdmsComplexComponent | None]] = []
@@ -162,21 +175,10 @@ def detect_config(
                     candidates.append((channel_name, sift_type, None))
 
                 for name, data_type, complex_component in candidates:
-                    if is_waveform_time_channel(channel):
-                        data.append(
-                            TdmsDataColumn(
-                                group_name=group_name,
-                                channel_name=tdms_channel_name,
-                                name=name,
-                                data_type=data_type,
-                                units=units,
-                                description=description,
-                                time_channel_name=None,
-                                complex_component=complex_component,
-                                enum_types=enum_types,
-                            )
-                        )
-                    elif time_channel_name is not None:
+                    # If a time channel is present, that takes priority.
+                    # Some applications will generate invalid waveform
+                    # properties that are not meant to be used.
+                    if time_channel_name is not None:
                         data.append(
                             TdmsDataColumn(
                                 group_name=group_name,
@@ -186,6 +188,20 @@ def detect_config(
                                 units=units,
                                 description=description,
                                 time_channel_name=time_channel_name,
+                                complex_component=complex_component,
+                                enum_types=enum_types,
+                            )
+                        )
+                    elif is_waveform_time_channel(channel):
+                        data.append(
+                            TdmsDataColumn(
+                                group_name=group_name,
+                                channel_name=tdms_channel_name,
+                                name=name,
+                                data_type=data_type,
+                                units=units,
+                                description=description,
+                                time_channel_name=None,
                                 complex_component=complex_component,
                                 enum_types=enum_types,
                             )
