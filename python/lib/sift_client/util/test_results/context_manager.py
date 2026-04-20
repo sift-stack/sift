@@ -166,7 +166,17 @@ class ReportContext(AbstractContextManager):
         """Open a subprocess to import the log file."""
         with _quiet_fork_stderr():
             self._import_proc = subprocess.Popen(
-                ["import-test-result-log", "--incremental", str(self.log_file)],
+                [
+                    "import-test-result-log",
+                    "--incremental",
+                    str(self.log_file),
+                    "--grpc-url",
+                    self.client.grpc_client._config.url,
+                    "--rest-url",
+                    self.client.rest_client._config.url,
+                    "--api-key",
+                    self.client.grpc_client._config.api_key,
+                ],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
