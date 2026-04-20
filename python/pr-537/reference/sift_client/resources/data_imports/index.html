@@ -2116,9 +2116,8 @@ You're not viewing the latest version.
 endpoint, and returns the detected configuration. The file format
 is inferred from the file extension when <code>data_type</code> is not
 provided.</p>
-<p>CSV, Parquet, and HDF5 files are supported for auto-detection.
-For other formats (TDMS), create the config manually
-using <code>TdmsImportConfig</code>.</p>
+<p>CSV, Parquet, HDF5, and TDMS files are supported for
+auto-detection.</p>
 <p>For CSV files, the server scans the first two rows for an optional
 JSON metadata row. Row 1 is checked first; row 2 is checked only
 if row 1 is not valid metadata. A row qualifies as metadata when
@@ -2424,8 +2423,7 @@ server-side and typically completes shortly after upload. Use
 <code>job.wait_until_complete()</code> only if you need to confirm
 completion before proceeding.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-<code>detect_config</code> (CSV, Parquet, and HDF5). For other formats
-(TDMS), <code>config</code> must be provided.
+<code>detect_config</code> (CSV, Parquet, HDF5, and TDMS).
 When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
