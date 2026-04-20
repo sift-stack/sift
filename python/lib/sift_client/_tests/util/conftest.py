@@ -6,7 +6,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     # Flatten the list of lists into a single list of strings
     flat_options = [item for sublist in existing_options for item in sublist]
     if not any("--sift-test-results-log-file" in name for name in flat_options):
-        parser.addoption("--sift-test-results-log-file", action="store_true", default="false")
+        parser.addoption("--sift-test-results-log-file", action="store_true", default=False)
 
 
 def pytest_configure(config: pytest.Config) -> None:

@@ -717,3 +717,56 @@ class TestImportLogFile:
         client = TestResultsLowLevelClient(grpc_client=MagicMock())
         with pytest.raises(ValueError, match="No CreateTestReport found"):
             await client.import_log_file(log_file)
+
+    def test_concurrent_append_and_update_tracking_preserves_all_lines(self, tmp_path):
+        """Writer appends concurrently with updater rewriting the header.
+
+        Regression test for a race where ``log_request_to_file`` (append mode, no
+        lock) could have its freshly appended line clobbered by
+        ``update_tracking``'s read-modify-truncate cycle running under ``LOCK_EX``
+        on another process/thread. Both sides must take the exclusive lock.
+        """
+        import threading
+        import time
+
+        from sift.test_reports.v1.test_reports_pb2 import CreateTestReportRequest
+
+        from sift_client._internal.low_level_wrappers._test_results_log import (
+            LogTracking,
+            log_request_to_file,
+            update_tracking,
+        )
+
+        log_file = tmp_path / "race.jsonl"
+        log_file.touch()
+        update_tracking(log_file, LogTracking(last_uploaded_line=0))
+
+        n_appends = 500
+        stop = threading.Event()
+        request = CreateTestReportRequest()
+
+        def writer() -> None:
+            for i in range(n_appends):
+                log_request_to_file(log_file, "CreateTestReport", request, response_id=str(i))
+
+        def updater() -> None:
+            tracking = LogTracking(last_uploaded_line=0)
+            while not stop.is_set():
+                tracking.last_uploaded_line += 1
+                update_tracking(log_file, tracking)
+                time.sleep(0)
+
+        t_updater = threading.Thread(target=updater)
+        t_writer = threading.Thread(target=writer)
+        t_updater.start()
+        t_writer.start()
+        t_writer.join()
+        stop.set()
+        t_updater.join()
+
+        with open(log_file) as f:
+            lines = [line for line in f if line.strip()]
+        data_lines = [line for line in lines if not line.startswith("[LogTracking]")]
+        assert len(data_lines) == n_appends, (
+            f"expected {n_appends} appended data lines, found {len(data_lines)}"
+        )

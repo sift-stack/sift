@@ -27,10 +27,20 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "or a file path to write to a specific location.",
     )
     parser.addoption(
-        "--sift-test-results-git-metadata",
-        action="store_true",
+        "--no-sift-test-results-git-metadata",
+        action="store_false",
+        dest="sift_test_results_git_metadata",
         default=True,
-        help="Include git metadata in the Sift test results.",
+        help="Exclude git metadata from the Sift test results. "
+        "Git metadata (repo, branch, commit) is included by default.",
+    )
+    parser.addoption(
+        "--sift-test-results-check-connection",
+        action="store_true",
+        default=False,
+        help="Skip the sift test-result fixtures (report_context, step, module_substep) "
+        "when the Sift client has no connection to the server. Requires a "
+        "`client_has_connection` fixture to be available in the test session.",
     )
 
 
@@ -78,9 +88,9 @@ def _report_context_impl(
     test_case = test_path if test_path.exists() else base_name
     log_file = _resolve_log_file(pytestconfig)
     include_git_metadata = (
-        bool(pytestconfig.getoption("--sift-test-results-git-metadata", default=False))
+        bool(pytestconfig.getoption("sift_test_results_git_metadata", default=True))
         if pytestconfig
-        else False
+        else True
     )
     with ReportContext(
         sift_client,
@@ -95,6 +105,18 @@ def _report_context_impl(
         yield context
 
 
+def _check_connection_enabled(pytestconfig: pytest.Config | None) -> bool:
+    """Return True when the caller opted into `--sift-test-results-check-connection`."""
+    if pytestconfig is None:
+        return False
+    return bool(pytestconfig.getoption("sift_test_results_check_connection", default=False))
+
+
+def _has_sift_connection(request: pytest.FixtureRequest) -> bool:
+    """Resolve the `client_has_connection` fixture lazily; only called when the check is enabled."""
+    return bool(request.getfixturevalue("client_has_connection"))
+
+
 @pytest.fixture(scope="session", autouse=True)
 def report_context(
     sift_client: SiftClient, request: pytest.FixtureRequest, pytestconfig: pytest.Config
@@ -103,7 +125,14 @@ def report_context(
 
     The log file destination is controlled by ``--sift-test-results-log-file``.
     Defaults to a temp file when not set.
+
+    When ``--sift-test-results-check-connection`` is passed, this fixture will no-op
+    (yield None) if the Sift client has no connection to the server. That mode
+    requires a ``client_has_connection`` fixture to be available in the session.
     """
+    if _check_connection_enabled(pytestconfig) and not _has_sift_connection(request):
+        yield None
+        return
     yield from _report_context_impl(sift_client, request, pytestconfig=pytestconfig)
 
 
@@ -126,17 +155,39 @@ def _step_impl(
 
 @pytest.fixture(autouse=True)
 def step(
-    report_context: ReportContext, request: pytest.FixtureRequest
+    report_context: ReportContext | None,
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
 ) -> Generator[NewStep | None, None, None]:
-    """Create an outer step for the function."""
+    """Create an outer step for the function.
+
+    No-ops when ``--sift-test-results-check-connection`` is set and the client
+    has no connection (or when the session-scoped ``report_context`` resolved to None).
+    """
+    if report_context is None or (
+        _check_connection_enabled(pytestconfig) and not _has_sift_connection(request)
+    ):
+        yield None
+        return
     yield from _step_impl(report_context, request)
 
 
 @pytest.fixture(scope="module", autouse=True)
 def module_substep(
-    report_context: ReportContext, request: pytest.FixtureRequest
+    report_context: ReportContext | None,
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
 ) -> Generator[NewStep | None, None, None]:
-    """Create a step per module."""
+    """Create a step per module.
+
+    No-ops when ``--sift-test-results-check-connection`` is set and the client
+    has no connection (or when the session-scoped ``report_context`` resolved to None).
+    """
+    if report_context is None or (
+        _check_connection_enabled(pytestconfig) and not _has_sift_connection(request)
+    ):
+        yield None
+        return
     yield from _step_impl(report_context, request)
 
 
@@ -144,7 +195,8 @@ def module_substep(
 def client_has_connection(sift_client):
     """Check if the SiftClient has a connection to the Sift server.
 
-    Can be used to skip tests that require a connection to the Sift server.
+    Can be used to skip tests that require a connection to the Sift server, and is
+    consulted by the Sift fixtures when ``--sift-test-results-check-connection`` is set.
     """
     has_connection = False
     try:
@@ -153,45 +205,3 @@ def client_has_connection(sift_client):
     except Exception:
         has_connection = False
     return has_connection
-
-
-########################################################
-# The following fixtures will conditionally create a report if the client has a connection to the Sift server.
-# If you want to use these, you must also import or implement the client_has_connection fixture.
-########################################################
-
-
-@pytest.fixture(scope="session", autouse=True)
-def report_context_check_connection(
-    sift_client: SiftClient,
-    client_has_connection: bool,
-    request: pytest.FixtureRequest,
-    pytestconfig: pytest.Config,
-) -> Generator[ReportContext | None, None, None]:
-    """Create a report context for the session. Doesn't run if the client has no connection to the Sift server."""
-    if client_has_connection:
-        yield from _report_context_impl(sift_client, request, pytestconfig=pytestconfig)
-    else:
-        yield None
-
-
-@pytest.fixture(autouse=True)
-def step_check_connection(
-    report_context: ReportContext, client_has_connection: bool, request: pytest.FixtureRequest
-) -> Generator[NewStep | None, None, None]:
-    """Create an outer step for the function. Doesn't run if the client has no connection to the Sift server."""
-    if client_has_connection:
-        yield from _step_impl(report_context, request)
-    else:
-        yield None
-
-
-@pytest.fixture(scope="module", autouse=True)
-def module_substep_check_connection(
-    report_context: ReportContext, client_has_connection: bool, request: pytest.FixtureRequest
-) -> Generator[NewStep | None, None, None]:
-    """Create a step per module. Doesn't run if the client has no connection to the Sift server."""
-    if client_has_connection:
-        yield from _step_impl(report_context, request)
-    else:
-        yield None

@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-import fcntl
-import json
 import logging
-import re
 import uuid
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from google.protobuf import json_format
 from sift.test_reports.v1.test_reports_pb2 import (
@@ -44,6 +40,14 @@ from sift.test_reports.v1.test_reports_pb2 import TestReport as TestReportProto
 from sift.test_reports.v1.test_reports_pb2 import TestStep as TestStepProto
 from sift.test_reports.v1.test_reports_pb2_grpc import TestReportServiceStub
 
+from sift_client._internal.low_level_wrappers._test_results_log import (
+    LogTracking,
+    ReplayResult,
+    _ReplayState,
+    iter_log_data_lines,
+    log_request_to_file,
+    update_tracking,
+)
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.test_report import (
     TestMeasurement,
@@ -367,7 +371,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_report_response(request)
             if log_file is not None:
-                self._log_request_to_file(
+                log_request_to_file(
                     log_file,
                     "CreateTestReport",
                     request,
@@ -490,7 +494,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         if log_file is not None or simulate:
             if log_file is not None:
-                self._log_request_to_file(log_file, "UpdateTestReport", request)
+                log_request_to_file(log_file, "UpdateTestReport", request)
             return self.simulate_update_test_report_response(request, existing=existing)
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestReport(request)
@@ -540,7 +544,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_step_response(request)
             if log_file is not None:
-                self._log_request_to_file(
+                log_request_to_file(
                     log_file,
                     "CreateTestStep",
                     request,
@@ -646,7 +650,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         if log_file is not None or simulate:
             if log_file is not None:
-                self._log_request_to_file(log_file, "UpdateTestStep", request)
+                log_request_to_file(log_file, "UpdateTestStep", request)
             return self.simulate_update_test_step_response(request, existing=existing)
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestStep(request)
@@ -696,7 +700,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_measurement_response(request)
             if log_file is not None:
-                self._log_request_to_file(
+                log_request_to_file(
                     log_file,
                     "CreateTestMeasurement",
                     request,
@@ -737,7 +741,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             count, measurement_ids = self.simulate_create_test_measurements_response(request)
             if log_file is not None:
-                self._log_request_to_file(
+                log_request_to_file(
                     log_file,
                     "CreateTestMeasurements",
                     request,
@@ -846,7 +850,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         if log_file is not None or simulate:
             if log_file is not None:
-                self._log_request_to_file(log_file, "UpdateTestMeasurement", request)
+                log_request_to_file(log_file, "UpdateTestMeasurement", request)
             return self.simulate_update_test_measurement_response(request, existing=existing)
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestMeasurement(
@@ -884,8 +888,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
           ``LogTracking`` header on line 0 is ignored.
         * **incremental** (``incremental=True``): Walk the log line-by-line,
           issuing the real API call for each entry as it is encountered.
-          ``LogTracking.last_uploaded_line`` is updated after every successful
-          call so that a subsequent invocation skips already-uploaded lines.
+          ``LogTracking.last_uploaded_line`` is advanced only after the call
+          succeeds, so a failure during a line causes the entire line to be
+          retried on the next invocation; already-uploaded lines are skipped.
 
         Args:
             log_file: Path to the log file to replay.
@@ -924,110 +929,176 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *id_map* is updated so that subsequent entries can remap IDs that
         were generated during the original simulation run.
         """
+        handlers = {
+            "CreateTestReport": self._replay_create_report,
+            "CreateTestStep": self._replay_create_step,
+            "CreateTestMeasurement": self._replay_create_measurement,
+            "CreateTestMeasurements": self._replay_create_measurements,
+            "UpdateTestReport": self._replay_update_report,
+            "UpdateTestStep": self._replay_update_step,
+            "UpdateTestMeasurement": self._replay_update_measurement,
+        }
+        handler = handlers.get(request_type)
+        if handler is None:
+            return
+        await handler(json_str, response_id, simulate=simulate, id_map=id_map, state=state)
 
-        def _map_id(sid: str) -> str:
-            return id_map.get(sid, sid)
+    @staticmethod
+    def _map_id(id_map: dict[str, str], sid: str) -> str:
+        """Translate a simulated ID to its real counterpart, or return *sid* unchanged."""
+        return id_map.get(sid, sid)
 
-        if request_type == "CreateTestReport":
-            create_report_req = CreateTestReportRequest()
-            json_format.Parse(json_str, create_report_req)
-            state.report = await self.create_test_report(
-                request=create_report_req, simulate=simulate
-            )
-            if response_id:
-                id_map[response_id] = state.report._id_or_error
+    async def _replay_create_report(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestReportRequest()
+        json_format.Parse(json_str, request)
+        state.report = await self.create_test_report(request=request, simulate=simulate)
+        if response_id:
+            id_map[response_id] = state.report._id_or_error
 
-        elif request_type == "CreateTestStep":
-            create_step_req = CreateTestStepRequest()
-            json_format.Parse(json_str, create_step_req)
-            create_step_req.test_step.test_report_id = _map_id(
-                create_step_req.test_step.test_report_id
+    async def _replay_create_step(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestStepRequest()
+        json_format.Parse(json_str, request)
+        request.test_step.test_report_id = self._map_id(id_map, request.test_step.test_report_id)
+        if request.test_step.parent_step_id:
+            request.test_step.parent_step_id = self._map_id(
+                id_map, request.test_step.parent_step_id
             )
-            if create_step_req.test_step.parent_step_id:
-                create_step_req.test_step.parent_step_id = _map_id(
-                    create_step_req.test_step.parent_step_id
-                )
-            step = await self.create_test_step(request=create_step_req, simulate=simulate)
-            if response_id:
-                id_map[response_id] = step._id_or_error
-            state.steps_by_id[step._id_or_error] = step
-            state.steps_order.append(step._id_or_error)
+        step = await self.create_test_step(request=request, simulate=simulate)
+        if response_id:
+            id_map[response_id] = step._id_or_error
+        state.steps_by_id[step._id_or_error] = step
+        state.steps_order.append(step._id_or_error)
 
-        elif request_type == "CreateTestMeasurement":
-            create_meas_req = CreateTestMeasurementRequest()
-            json_format.Parse(json_str, create_meas_req)
-            create_meas_req.test_measurement.test_step_id = _map_id(
-                create_meas_req.test_measurement.test_step_id
-            )
-            measurement = await self.create_test_measurement(
-                request=create_meas_req, simulate=simulate
-            )
-            if response_id:
-                id_map[response_id] = measurement._id_or_error
-            state.measurements_by_id[measurement._id_or_error] = measurement
-            state.measurements_order.append(measurement._id_or_error)
+    async def _replay_create_measurement(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestMeasurementRequest()
+        json_format.Parse(json_str, request)
+        request.test_measurement.test_step_id = self._map_id(
+            id_map, request.test_measurement.test_step_id
+        )
+        measurement = await self.create_test_measurement(request=request, simulate=simulate)
+        if response_id:
+            id_map[response_id] = measurement._id_or_error
+        state.measurements_by_id[measurement._id_or_error] = measurement
+        state.measurements_order.append(measurement._id_or_error)
 
-        elif request_type == "CreateTestMeasurements":
-            create_batch_req = CreateTestMeasurementsRequest()
-            json_format.Parse(json_str, create_batch_req)
-            for tm in create_batch_req.test_measurements:
-                tm.test_step_id = _map_id(tm.test_step_id)
-            original_ids = response_id.split(",") if response_id else []
-            if simulate:
-                for i, tm_proto in enumerate(create_batch_req.test_measurements):
-                    single_req = CreateTestMeasurementRequest(test_measurement=tm_proto)
-                    meas = await self.create_test_measurement(request=single_req, simulate=True)
-                    if i < len(original_ids):
-                        id_map[original_ids[i]] = meas._id_or_error
-                    state.measurements_by_id[meas._id_or_error] = meas
-                    state.measurements_order.append(meas._id_or_error)
-            else:
-                _, real_ids = await self.create_test_measurements(request=create_batch_req)
-                for i, real_id in enumerate(real_ids):
-                    if i < len(original_ids):
-                        id_map[original_ids[i]] = real_id
+    async def _replay_create_measurements(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestMeasurementsRequest()
+        json_format.Parse(json_str, request)
+        for tm in request.test_measurements:
+            tm.test_step_id = self._map_id(id_map, tm.test_step_id)
+        original_ids = response_id.split(",") if response_id else []
+        if simulate:
+            # Batch endpoint has no simulate path; fan out to per-measurement simulate calls.
+            for i, tm_proto in enumerate(request.test_measurements):
+                single_req = CreateTestMeasurementRequest(test_measurement=tm_proto)
+                meas = await self.create_test_measurement(request=single_req, simulate=True)
+                if i < len(original_ids):
+                    id_map[original_ids[i]] = meas._id_or_error
+                state.measurements_by_id[meas._id_or_error] = meas
+                state.measurements_order.append(meas._id_or_error)
+        else:
+            _, real_ids = await self.create_test_measurements(request=request)
+            for i, real_id in enumerate(real_ids):
+                if i < len(original_ids):
+                    id_map[original_ids[i]] = real_id
 
-        elif request_type == "UpdateTestReport":
-            if state.report is None:
-                raise ValueError("UpdateTestReport found before CreateTestReport")
-            update_report_req = UpdateTestReportRequest()
-            json_format.Parse(json_str, update_report_req)
-            update_report_req.test_report.test_report_id = _map_id(
-                update_report_req.test_report.test_report_id
-            )
-            state.report = await self.update_test_report(
-                request=update_report_req, simulate=simulate, existing=state.report
-            )
+    async def _replay_update_report(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        if state.report is None:
+            raise ValueError("UpdateTestReport found before CreateTestReport")
+        request = UpdateTestReportRequest()
+        json_format.Parse(json_str, request)
+        request.test_report.test_report_id = self._map_id(
+            id_map, request.test_report.test_report_id
+        )
+        state.report = await self.update_test_report(
+            request=request, simulate=simulate, existing=state.report
+        )
 
-        elif request_type == "UpdateTestStep":
-            update_step_req = UpdateTestStepRequest()
-            json_format.Parse(json_str, update_step_req)
-            orig_step_id = update_step_req.test_step.test_step_id
-            mapped_step_id = _map_id(orig_step_id)
-            update_step_req.test_step.test_step_id = mapped_step_id
-            existing_step = state.steps_by_id.get(mapped_step_id)
-            if simulate and existing_step is None:
-                raise ValueError(f"UpdateTestStep for unknown step: {orig_step_id}")
-            updated_step = await self.update_test_step(
-                request=update_step_req, simulate=simulate, existing=existing_step
-            )
-            if mapped_step_id in state.steps_by_id:
-                state.steps_by_id[mapped_step_id] = updated_step
+    async def _replay_update_step(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = UpdateTestStepRequest()
+        json_format.Parse(json_str, request)
+        orig_step_id = request.test_step.test_step_id
+        mapped_step_id = self._map_id(id_map, orig_step_id)
+        request.test_step.test_step_id = mapped_step_id
+        existing_step = state.steps_by_id.get(mapped_step_id)
+        if simulate and existing_step is None:
+            raise ValueError(f"UpdateTestStep for unknown step: {orig_step_id}")
+        updated_step = await self.update_test_step(
+            request=request, simulate=simulate, existing=existing_step
+        )
+        if mapped_step_id in state.steps_by_id:
+            state.steps_by_id[mapped_step_id] = updated_step
 
-        elif request_type == "UpdateTestMeasurement":
-            update_meas_req = UpdateTestMeasurementRequest()
-            json_format.Parse(json_str, update_meas_req)
-            orig_meas_id = update_meas_req.test_measurement.measurement_id
-            mapped_meas_id = _map_id(orig_meas_id)
-            update_meas_req.test_measurement.measurement_id = mapped_meas_id
-            existing_meas = state.measurements_by_id.get(mapped_meas_id)
-            if simulate and existing_meas is None:
-                raise ValueError(f"UpdateTestMeasurement for unknown measurement: {orig_meas_id}")
-            updated_meas = await self.update_test_measurement(
-                request=update_meas_req, simulate=simulate, existing=existing_meas
-            )
-            if mapped_meas_id in state.measurements_by_id:
-                state.measurements_by_id[mapped_meas_id] = updated_meas
+    async def _replay_update_measurement(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = UpdateTestMeasurementRequest()
+        json_format.Parse(json_str, request)
+        orig_meas_id = request.test_measurement.measurement_id
+        mapped_meas_id = self._map_id(id_map, orig_meas_id)
+        request.test_measurement.measurement_id = mapped_meas_id
+        existing_meas = state.measurements_by_id.get(mapped_meas_id)
+        if simulate and existing_meas is None:
+            raise ValueError(f"UpdateTestMeasurement for unknown measurement: {orig_meas_id}")
+        updated_meas = await self.update_test_measurement(
+            request=request, simulate=simulate, existing=existing_meas
+        )
+        if mapped_meas_id in state.measurements_by_id:
+            state.measurements_by_id[mapped_meas_id] = updated_meas
 
     # ------------------------------------------------------------------
     # Batch replay (default)
@@ -1037,7 +1108,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map: dict[str, str] = {}
         state = _ReplayState()
 
-        for request_type, response_id, json_str in self._iter_log_data_lines(log_path):
+        for request_type, response_id, json_str in iter_log_data_lines(log_path):
             await self._import_entry(
                 request_type,
                 response_id,
@@ -1093,7 +1164,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     # ------------------------------------------------------------------
 
     async def _incremental_import_log_file(self, log_path: Path) -> ReplayResult:
-        """Replay line-by-line, issuing real API calls and updating tracking."""
+        """Replay line-by-line, issuing real API calls and updating tracking.
+
+        Resumes from ``LogTracking.last_uploaded_line`` so already-uploaded
+        entries are skipped on subsequent ticks rather than re-sent to the server.
+        Each data line is a single atomic API call; if replay of a line fails,
+        ``last_uploaded_line`` is not advanced so the whole line is retried next tick.
+        """
         with open(log_path) as f:
             first_line = f.readline()
         tracking = LogTracking.from_log_line(first_line) if first_line else LogTracking()
@@ -1101,8 +1178,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map = tracking.id_map
         state = _ReplayState()
 
-        for line_num, (request_type, response_id, json_str) in enumerate(
-            self._iter_log_data_lines(log_path), start=tracking.last_uploaded_line + 1
+        for request_type, response_id, json_str in iter_log_data_lines(
+            log_path, start_line=tracking.last_uploaded_line
         ):
             await self._import_entry(
                 request_type,
@@ -1113,8 +1190,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 state=state,
             )
 
-            tracking.last_uploaded_line = line_num
-            self._update_tracking(log_path, tracking)
+            tracking.last_uploaded_line += 1
+            update_tracking(log_path, tracking)
 
         if state.report is None:
             raise ValueError("No CreateTestReport found in log file")
@@ -1128,34 +1205,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     # ------------------------------------------------------------------
     # Log line parsing helpers
     # ------------------------------------------------------------------
-
-    @staticmethod
-    def _iter_log_data_lines(
-        log_path: Path,
-    ) -> Generator[tuple[str, str | None, str], None, None]:
-        """Parse data lines from a log file, skipping the LogTracking header.
-
-        Yields (request_type, response_id, json_str) tuples.
-        The file is read entirely under a shared lock and then released
-        before yielding, so callers can safely acquire exclusive locks
-        during iteration (e.g. ``_update_tracking``).
-        """
-        line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
-        with open(log_path) as f:
-            fcntl.flock(f, fcntl.LOCK_SH)
-            raw_lines = f.readlines()
-
-        for raw_line in raw_lines:
-            line = raw_line.strip()
-            if not line:
-                continue
-            match = line_pattern.match(line)
-            if not match:
-                raise ValueError(f"Invalid log line: {line}")
-            request_type = match.group(1)
-            if request_type == "LogTracking":
-                continue
-            yield (request_type, match.group(2), match.group(3))
 
     async def _create_report_from_simulated(self, simulated: TestReport) -> TestReport:
         """Create a real test report from a simulated one."""
@@ -1214,96 +1263,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             string_expected_value=simulated.string_expected_value,
         )
 
-    @staticmethod
-    def _log_request_to_file(
-        log_file: str | Path,
-        request_type: str,
-        request: Any,
-        response_id: str | None = None,
-    ) -> None:
-        """Log a request to a file in JSON format.
 
-        Args:
-            log_file: Path to the log file.
-            request_type: Type of request being logged.
-            request: The protobuf request to log.
-            response_id: Optional ID from the simulated response, embedded in the tag
-                for create operations so replay can map previously simulated IDs used by simulated updates.
-        """
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        tag = f"{request_type}:{response_id}" if response_id else request_type
-        with open(log_path, "a") as f:
-            request_dict = json_format.MessageToDict(request)
-            request_json = json.dumps(request_dict, separators=(",", ":"))
-            f.write(f"[{tag}] {request_json}\n")
-
-    @staticmethod
-    def _update_tracking(log_file: str | Path, tracking: LogTracking) -> None:
-        """Rewrite the LogTracking header (line 0) in place."""
-        log_path = Path(log_file)
-        with open(log_path, "r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            lines = f.readlines()
-            lines[0] = tracking.to_log_line()
-            f.seek(0)
-            f.writelines(lines)
-            f.truncate()
-
-
-def _client_version() -> str:
-    from importlib.metadata import PackageNotFoundError, version
-
-    try:
-        return version("sift_stack_py")
-    except PackageNotFoundError:
-        return "unknown"
-
-
-@dataclass
-class LogTracking:
-    """Tracking metadata stored as line 0 of a log file."""
-
-    last_uploaded_line: int = 0
-    id_map: dict[str, str] = field(default_factory=dict)
-    client_version: str = field(default_factory=_client_version)
-
-    def to_log_line(self) -> str:
-        data = {
-            "clientVersion": self.client_version,
-            "lastUploadedLine": self.last_uploaded_line,
-            "idMap": self.id_map,
-        }
-        return f"[LogTracking] {json.dumps(data, separators=(',', ':'))}\n"
-
-    @staticmethod
-    def from_log_line(line: str) -> LogTracking:
-        match = re.match(r"^\[LogTracking\]\s*(.+)$", line.strip())
-        if not match:
-            return LogTracking()
-        data = json.loads(match.group(1))
-        return LogTracking(
-            last_uploaded_line=data.get("lastUploadedLine", 0),
-            id_map=data.get("idMap", {}),
-            client_version=data.get("clientVersion", "unknown"),
-        )
-
-
-@dataclass
-class _ReplayState:
-    """Mutable state accumulated during log replay."""
-
-    report: TestReport | None = None
-    steps_by_id: dict[str, TestStep] = field(default_factory=dict)
-    steps_order: list[str] = field(default_factory=list)
-    measurements_by_id: dict[str, TestMeasurement] = field(default_factory=dict)
-    measurements_order: list[str] = field(default_factory=list)
-
-
-@dataclass
-class ReplayResult:
-    """Result of replaying a log file."""
-
-    report: TestReport
-    steps: list[TestStep] = field(default_factory=list)
-    measurements: list[TestMeasurement] = field(default_factory=list)
+__all__ = [
+    "LogTracking",
+    "ReplayResult",
+    "TestResultsLowLevelClient",
+]

@@ -11,6 +11,7 @@ import tempfile
 from typing import TYPE_CHECKING
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client.util.test_results.context_manager import log_replay_instructions
 
 if TYPE_CHECKING:
     from sift_client._internal.low_level_wrappers.test_results import ReplayResult
@@ -79,14 +80,9 @@ def main() -> None:
             fp = os.path.abspath(args.log_file)
             if fp.startswith(tempfile.gettempdir()):
                 os.remove(fp)
-        if result:
-            _print_result(result)
     except Exception as e:
         logger.error(e)
-        logger.error(
-            f"Error replaying log file: {args.log_file}.\n"
-            f"  Can replay with `replay-test-result-log {args.log_file}`."
-        )
+        log_replay_instructions(args.log_file)
         raise
 
     if result:
