@@ -14,6 +14,7 @@ use sift_rs::{
     },
 };
 
+use crate::cmd::import::parquet::detect::detect_flat_dataset_config;
 use crate::{
     cli::{FlatDatasetArgs, channel::DataType},
     cmd::{
@@ -40,18 +41,14 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
     let mut config = {
-        let footer = get_footer(&mut file, footer_md)?;
-        let resp = data_imports_client
-            .detect_config(DetectConfigRequest {
-                data: footer,
-                r#type: DataTypeKey::ParquetFlatdataset.into(),
-            })
-            .await
-            .context("failed to parse Parquet schema")?
-            .into_inner();
-
-        resp.parquet_config
-            .ok_or(anyhow!("unexpected empty Parquet config"))?
+        let flat_dataset_config = 
+            detect_flat_dataset_config(&file)
+            .context("failed to detect Parquet schema")?;
+        ParquetConfig {
+            config:
+            Some(Config::FlatDataset(flat_dataset_config)),
+            ..Default::default()
+        }
     };
 
     update_config_with_overrides(&mut config, &args)?;

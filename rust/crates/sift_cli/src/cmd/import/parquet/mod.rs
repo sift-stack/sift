@@ -5,6 +5,7 @@ use unix::{FooterMetadata, get_footer};
 use windows::{FooterMetadata, get_footer};
 
 pub mod flat_dataset;
+pub mod detect;
 
 #[cfg(not(target_os = "windows"))]
 mod unix {
