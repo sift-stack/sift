@@ -1,11 +1,11 @@
 #[cfg(not(target_os = "windows"))]
-use unix::{FooterMetadata, get_footer};
+use unix::{FooterMetadata};
 
 #[cfg(target_os = "windows")]
 use windows::{FooterMetadata, get_footer};
 
-pub mod flat_dataset;
 pub mod detect;
+pub mod flat_dataset;
 
 #[cfg(not(target_os = "windows"))]
 mod unix {
@@ -13,7 +13,6 @@ mod unix {
     use std::{
         fs::File,
         io::{Read, Seek, SeekFrom},
-        os::unix::fs::FileExt,
     };
 
     /// Metadata about the Parquet's footer
@@ -25,12 +24,7 @@ mod unix {
         pub length: u64,
     }
 
-    pub fn get_footer(file: &mut File, footer_metadata: FooterMetadata) -> Result<Vec<u8>> {
-        let FooterMetadata { length, offset } = footer_metadata;
-        let mut buf = vec![0u8; length as usize];
-        file.read_exact_at(&mut buf, offset)?;
-        Ok(buf)
-    }
+
 
     /// Note that this will advance the cursor.
     impl TryFrom<&mut File> for FooterMetadata {

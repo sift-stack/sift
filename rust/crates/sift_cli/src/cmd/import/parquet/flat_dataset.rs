@@ -8,9 +8,9 @@ use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
-        CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse, DataTypeKey,
-        DetectConfigRequest, ParquetComplexTypesImportMode, ParquetConfig, ParquetTimeColumn,
-        TimeFormat, data_import_service_client::DataImportServiceClient, parquet_config::Config,
+        CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse,
+        ParquetComplexTypesImportMode, ParquetConfig, ParquetTimeColumn, TimeFormat,
+        data_import_service_client::DataImportServiceClient, parquet_config::Config,
     },
 };
 
@@ -20,7 +20,7 @@ use crate::{
     cmd::{
         Context,
         import::{
-            parquet::{FooterMetadata, get_footer},
+            parquet::FooterMetadata,
             preview_import_config,
             utils::{
                 gzip_file, try_parse_bit_field_config, try_parse_enum_config, validate_time_format,
@@ -41,12 +41,10 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
     let mut config = {
-        let flat_dataset_config = 
-            detect_flat_dataset_config(&file)
-            .context("failed to detect Parquet schema")?;
+        let flat_dataset_config =
+            detect_flat_dataset_config(&file).context("failed to detect Parquet schema")?;
         ParquetConfig {
-            config:
-            Some(Config::FlatDataset(flat_dataset_config)),
+            config: Some(Config::FlatDataset(flat_dataset_config)),
             ..Default::default()
         }
     };
