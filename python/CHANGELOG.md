@@ -3,42 +3,50 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.14.0] - April 20, 2026
+## [v0.14.0] - April 22, 2026
 
 ### What's New
 
 #### Data Import API in SiftClient
 The `sift_client` module now exposes a data import API supporting CSV, Parquet, TDMS, and HDF5. With this addition, all features previously available only in `sift_py` are now available in `sift_client`, which remains the recommended interface for new development. `sift_py` (deprecated since [v0.10.0](#v0100---january-30-2026)) continues to work and ship in this release.
 
-Migrating from `sift_py`: the per-format upload services are replaced by a single `client.data_imports.import_from_path` method. Where `sift_py` required hand-building a config object for every import, `sift_client` auto-detects it from the file extension. Use the new public `client.data_imports.detect_config(...)` first if you need to inspect or patch the result. The call returns a Job you can optionally wait on.
-
+Migrating from `sift_py`: the per-format upload services (`CsvUploadService`, `ParquetUploadService`, `Hdf5UploadService`, `TdmsUploadService`) are replaced by a single `client.data_import.import_from_path` method. Where `sift_py` required hand-building a config object for every import, `sift_client` auto-detects it from the file extension. Use the new public `client.data_import.detect_config(...)` first if you need to inspect or patch the result before importing. `import_from_path` returns a `Job` you can optionally wait on.
 ```python
-# sift_py
+# sift_py (deprecated)
+from sift_py.data_import.csv import CsvUploadService
+from sift_py.rest import SiftRestConfig
+
+rest_conf: SiftRestConfig = {"uri": sift_uri, "apikey": apikey}
 csv_service = CsvUploadService(rest_conf)
-csv_service.upload("data.csv", csv_config)
+import_service = csv_service.simple_upload(asset_name="my_asset", path="data.csv")
+import_service.wait_until_complete()
 
 # sift_client
-client.data_imports.import_from_path("data.csv", asset=my_asset)
+from sift_client import SiftClient
+
+client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
+job = client.data_import.import_from_path("data.csv", asset="my_asset")
+job.wait_until_complete()
 ```
 
 #### Test Result Logging
-Test result create and update events can now be optionally written to a `.jsonl` log file during a test run, then replayed against the Sift API later via the new `import_test_result_log` script.
+Test result create and update events can now be optionally written to a `.jsonl` log file during a test run, then replayed against the Sift API later via the new `import-test-result-log` CLI command (installed with the package).
 
 #### Progress Indicators
 Adds progress indicators for job polling and file downloads for better visibility during long-running operations.
 
 ### Bugfixes
 - Add `py.typed` to the generated proto directory so type checkers pick up protobuf types correctly.
-- Update `sift-stream-bindings` to pick up upstream fixes.
 
 ### Full Changelog
 - [Add data import API to sift_client](https://github.com/sift-stack/sift/pull/515)
+- [Add HDF5 client-side detect_config](https://github.com/sift-stack/sift/pull/536)
+- [Add TDMS client-side detect_config](https://github.com/sift-stack/sift/pull/538)
 - [Add optional logging of test result create and update events](https://github.com/sift-stack/sift/pull/529)
 - [Add progress indicators for job polling and file downloads](https://github.com/sift-stack/sift/pull/517)
 - [Refactor files using run_in_executor](https://github.com/sift-stack/sift/pull/518)
 - [Update exports.proto to support parquet](https://github.com/sift-stack/sift/pull/510)
 - [Add py.typed file to proto dir](https://github.com/sift-stack/sift/pull/524)
-- [Update sift-stream-bindings version](https://github.com/sift-stack/sift/pull/513)
 
 ## [v0.13.0] - March 24, 2026
 ### What's New
