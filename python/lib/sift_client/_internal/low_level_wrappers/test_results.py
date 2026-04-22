@@ -46,7 +46,6 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
     _ReplayState,
     iter_log_data_lines,
     log_request_to_file,
-    update_tracking,
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.test_report import (
@@ -1166,15 +1165,14 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def _incremental_import_log_file(self, log_path: Path) -> ReplayResult:
         """Replay line-by-line, issuing real API calls and updating tracking.
 
-        Resumes from ``LogTracking.last_uploaded_line`` so already-uploaded
-        entries are skipped on subsequent ticks rather than re-sent to the server.
-        Each data line is a single atomic API call; if replay of a line fails,
-        ``last_uploaded_line`` is not advanced so the whole line is retried next tick.
+        Resumes from ``LogTracking.last_uploaded_line`` (loaded from the
+        ``<log>.tracking`` sidecar) so already-uploaded entries are skipped on
+        subsequent ticks rather than re-sent to the server. Each data line is a
+        single atomic API call; if replay of a line fails,
+        ``last_uploaded_line`` is not advanced so the whole line is retried
+        next tick.
         """
-        with open(log_path) as f:
-            first_line = f.readline()
-        tracking = LogTracking.from_log_line(first_line) if first_line else LogTracking()
-
+        tracking = LogTracking.load(log_path)
         id_map = tracking.id_map
         state = _ReplayState()
 
@@ -1191,7 +1189,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
 
             tracking.last_uploaded_line += 1
-            update_tracking(log_path, tracking)
+            tracking.save(log_path)
 
         if state.report is None:
             raise ValueError("No CreateTestReport found in log file")

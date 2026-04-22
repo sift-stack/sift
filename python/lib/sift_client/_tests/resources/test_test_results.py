@@ -698,11 +698,9 @@ class TestImportLogFile:
 
     @pytest.mark.asyncio
     async def test_malformed_log_line_skipped(self, tmp_path):
-        """Malformed lines are skipped; a file with no valid entries raises 'No CreateTestReport'."""
+        """Malformed lines raise a ValueError during iteration."""
         log_file = tmp_path / "bad.jsonl"
-        log_file.write_text(
-            '[LogTracking] {"lastUploadedLine":0,"idMap":{}}\nthis is not a valid log line\n'
-        )
+        log_file.write_text("this is not a valid log line\n")
 
         client = TestResultsLowLevelClient(grpc_client=MagicMock())
         with pytest.raises(ValueError, match="Invalid log line: this is not a valid log lin"):
@@ -710,21 +708,22 @@ class TestImportLogFile:
 
     @pytest.mark.asyncio
     async def test_empty_log_file_raises(self, tmp_path):
-        """A log file with only a LogTracking header and no entries raises."""
+        """A log file with no entries raises 'No CreateTestReport'."""
         log_file = tmp_path / "empty.jsonl"
-        log_file.write_text('[LogTracking] {"lastUploadedLine":0,"idMap":{}}\n')
+        log_file.touch()
 
         client = TestResultsLowLevelClient(grpc_client=MagicMock())
         with pytest.raises(ValueError, match="No CreateTestReport found"):
             await client.import_log_file(log_file)
 
-    def test_concurrent_append_and_update_tracking_preserves_all_lines(self, tmp_path):
-        """Writer appends concurrently with updater rewriting the header.
+    def test_concurrent_append_and_tracking_save_preserves_all_lines(self, tmp_path):
+        """Writer appending to the log shares no mutation point with the tracking sidecar.
 
-        Regression test for a race where ``log_request_to_file`` (append mode, no
-        lock) could have its freshly appended line clobbered by
-        ``update_tracking``'s read-modify-truncate cycle running under ``LOCK_EX``
-        on another process/thread. Both sides must take the exclusive lock.
+        With tracking moved out of the main log into ``<log>.tracking``, the log
+        file is strictly append-only -- there is no path by which concurrent
+        ``LogTracking.save`` calls can clobber appended lines. This test pins
+        that invariant: 500 writer appends run alongside a hot updater looping
+        on sidecar writes, and every append must survive.
         """
         import threading
         import time
@@ -734,12 +733,9 @@ class TestImportLogFile:
         from sift_client._internal.low_level_wrappers._test_results_log import (
             LogTracking,
             log_request_to_file,
-            update_tracking,
         )
 
         log_file = tmp_path / "race.jsonl"
-        log_file.touch()
-        update_tracking(log_file, LogTracking(last_uploaded_line=0))
 
         n_appends = 500
         stop = threading.Event()
@@ -753,7 +749,7 @@ class TestImportLogFile:
             tracking = LogTracking(last_uploaded_line=0)
             while not stop.is_set():
                 tracking.last_uploaded_line += 1
-                update_tracking(log_file, tracking)
+                tracking.save(log_file)
                 time.sleep(0)
 
         t_updater = threading.Thread(target=updater)
@@ -765,8 +761,12 @@ class TestImportLogFile:
         t_updater.join()
 
         with open(log_file) as f:
-            lines = [line for line in f if line.strip()]
-        data_lines = [line for line in lines if not line.startswith("[LogTracking]")]
+            data_lines = [line for line in f if line.strip()]
         assert len(data_lines) == n_appends, (
             f"expected {n_appends} appended data lines, found {len(data_lines)}"
         )
+
+        sidecar = LogTracking.sidecar_path(log_file)
+        assert sidecar.exists()
+        reloaded = LogTracking.load(log_file)
+        assert reloaded.last_uploaded_line >= 1
