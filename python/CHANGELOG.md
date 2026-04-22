@@ -29,6 +29,31 @@ job = client.data_import.import_from_path("data.csv", asset="my_asset")
 job.wait_until_complete()
 ```
 
+Format-by-format support:
+- **CSV**: auto-detected from `.csv`. Supports an optional JSON metadata row (row 1 or row 2) for specifying channel names, units, data types, and the time column format.
+- **Parquet**: requires an explicit `data_type` (`PARQUET_FLATDATASET` or `PARQUET_SINGLE_CHANNEL_PER_ROW`) since `.parquet` alone doesn't disambiguate the layout. Detection only reads the file footer, so it stays fast on large files.
+- **HDF5**: new in this release. Auto-detected from `.h5` / `.hdf5`. Detection runs fully client-side (no server round-trip) and walks each dataset.
+- **TDMS**: new in this release. Auto-detected from `.tdms`. Detection is also fully client-side and maps TDMS groups and channels onto Sift channels.
+
+#### Parquet as an Export Output Format
+`client.data_export.export(...)` now accepts `ExportOutputFormat.PARQUET` alongside the existing CSV and Sun/WinPlot options. Unlike the `sift_py` `DataService` + `DataFrame.to_parquet()` pattern (which buffers everything in memory), this runs as a server-side job and scales to large exports.
+
+```python
+from sift_client import SiftClient
+from sift_client.sift_types.export import ExportOutputFormat
+
+client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
+job = client.data_export.export(
+    runs=["run-id"],
+    start_time=start,
+    stop_time=stop,
+    output_format=ExportOutputFormat.PARQUET,
+)
+files = job.wait_and_download(output_dir="./exports")
+```
+
+`wait_and_download` polls the job to completion, downloads the resulting archive, and returns the list of downloaded file paths. Both arguments shown are optional: if `output_dir` is omitted, a temporary directory is created and used. By default the downloaded zip is extracted (and the archive deleted) so you get the Parquet files directly; pass `extract=False` to keep the zip instead, which is useful if you want to hand the whole bundle off to another system without unpacking it client-side.
+
 #### Test Result Logging
 Test result create and update events can now be optionally written to a `.jsonl` log file during a test run, then replayed against the Sift API later via the new `import-test-result-log` CLI command (installed with the package).
 
@@ -45,7 +70,7 @@ Adds progress indicators for job polling and file downloads for better visibilit
 - [Add optional logging of test result create and update events](https://github.com/sift-stack/sift/pull/529)
 - [Add progress indicators for job polling and file downloads](https://github.com/sift-stack/sift/pull/517)
 - [Refactor files using run_in_executor](https://github.com/sift-stack/sift/pull/518)
-- [Update exports.proto to support parquet](https://github.com/sift-stack/sift/pull/510)
+- [Add Parquet as an export output format](https://github.com/sift-stack/sift/pull/510)
 - [Add py.typed file to proto dir](https://github.com/sift-stack/sift/pull/524)
 
 ## [v0.13.0] - March 24, 2026
