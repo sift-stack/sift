@@ -36,15 +36,32 @@ Format-by-format support:
 - **TDMS**: new in this release. Auto-detected from `.tdms`. Detection is also fully client-side and maps TDMS groups and channels onto Sift channels.
 
 #### Parquet as an Export Output Format
-`client.data_export.export(...)` now accepts `ExportOutputFormat.PARQUET` alongside the existing CSV and Sun/WinPlot options. Unlike the `sift_py` `DataService` + `DataFrame.to_parquet()` pattern (which buffers everything in memory), this runs as a server-side job and scales to large exports.
+`client.data_export.export(...)` now accepts `ExportOutputFormat.PARQUET` alongside the existing CSV and Sun/WinPlot options. Unlike the `sift_py` `DataService` + `DataFrame.to_parquet()` pattern (async-only, buffers everything in memory, name-strings only), the new export API runs as a server-side job, works sync or async, accepts `Asset`/`Channel` objects or IDs, and scales to large exports.
 
 ```python
+# sift_py (deprecated): no dedicated export API, so query in-memory and write yourself
+import pandas as pd
+from sift_py.data.query import ChannelQuery, DataQuery
+from sift_py.data.service import DataService
+from sift_py.grpc.transport import use_sift_async_channel
+
+async with use_sift_async_channel({"uri": sift_uri, "apikey": apikey}) as channel:
+    result = await DataService(channel).execute(DataQuery(
+        asset_name="my_asset",
+        start_time=start,
+        end_time=stop,
+        channels=[ChannelQuery(channel_name="my_channel")],
+    ))
+    pd.DataFrame(result.all_channels()[0].columns()).to_parquet("out.parquet")
+
+# sift_client
 from sift_client import SiftClient
 from sift_client.sift_types.export import ExportOutputFormat
 
 client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
 job = client.data_export.export(
-    runs=["run-id"],
+    assets=["my_asset"],          # accepts Asset objects or IDs
+    channels=["my_channel"],      # accepts Channel objects or IDs
     start_time=start,
     stop_time=stop,
     output_format=ExportOutputFormat.PARQUET,
