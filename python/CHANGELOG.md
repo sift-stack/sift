@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 #### Data Import API in SiftClient
 The `sift_client` module now exposes a data import API supporting CSV, Parquet, TDMS, and HDF5. With this addition, all features previously available only in `sift_py` are now available in `sift_client`, which remains the recommended interface for new development. `sift_py` (deprecated since [v0.10.0](#v0100---january-30-2026)) continues to work and ship in this release.
 
-Migrating from `sift_py`: the per-format upload services (`CsvUploadService`, `ParquetUploadService`, `Hdf5UploadService`, `TdmsUploadService`) are replaced by a single `client.data_import.import_from_path` method. Where `sift_py` required hand-building a config object for every import, `sift_client` auto-detects it from the file extension. Use the new public `client.data_import.detect_config(...)` first if you need to inspect or patch the result before importing. `import_from_path` returns a `Job` you can optionally wait on.
+Migrating from `sift_py`: the per-format upload services (`CsvUploadService`, `ParquetUploadService`, `Hdf5UploadService`, `TdmsUploadService`) collapse into a single `client.data_import.import_from_path` method. `sift_py` only auto-detected for CSV via `simple_upload`; other formats required more setup. `sift_client` unifies all four with auto-detection built into `import_from_path` itself: the `config` argument is optional, so the common call takes just a file path and target asset. Call `client.data_import.detect_config(...)` first if you want to inspect or patch the config before importing. `import_from_path` returns a `Job` you can optionally wait on.
 ```python
 # sift_py (deprecated)
 from sift_py.data_import.csv import CsvUploadService
@@ -32,8 +32,8 @@ job.wait_until_complete()
 Format-by-format support:
 - **CSV**: auto-detected from `.csv`. Supports an optional JSON metadata row (row 1 or row 2) for specifying channel names, units, data types, and the time column format.
 - **Parquet**: requires an explicit `data_type` (`PARQUET_FLATDATASET` or `PARQUET_SINGLE_CHANNEL_PER_ROW`) since `.parquet` alone doesn't disambiguate the layout. Detection only reads the file footer, so it stays fast on large files.
-- **HDF5**: new in this release. Auto-detected from `.h5` / `.hdf5`. Detection runs fully client-side (no server round-trip) and walks each dataset.
-- **TDMS**: new in this release. Auto-detected from `.tdms`. Detection is also fully client-side and maps TDMS groups and channels onto Sift channels.
+- **HDF5**: new in this release. Auto-detected from `.h5` / `.hdf5`. Detection works out-of-the-box for files with a compound-dataset layout (first field = time) or a shared root-level `time` dataset; other layouts may need a hand-built `config`.
+- **TDMS**: new in this release. Auto-detected from `.tdms` and recognizes the common timing conventions (group-level `xchannel`, first-channel `TimeStamp`, or per-channel waveform properties). `TdmsImportConfig` controls handling of untimed channels (`fallback_method`), complex values (`complex_component`), scaled vs. raw data, and waveform start-time overrides.
 
 #### Parquet as an Export Output Format
 `client.data_export.export(...)` now accepts `ExportOutputFormat.PARQUET` alongside the existing CSV and Sun/WinPlot options. Unlike the `sift_py` `DataService` + `DataFrame.to_parquet()` pattern (async-only, buffers everything in memory, name-strings only), the new export API runs as a server-side job, works sync or async, accepts `Asset`/`Channel` objects or IDs, and scales to large exports.
