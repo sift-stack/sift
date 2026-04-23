@@ -14,7 +14,7 @@ use sift_rs::{
     },
 };
 
-use crate::cmd::import::parquet::detect::detect_flat_dataset_config;
+use crate::cmd::import::parquet::detect_parquet_schema::detect_flat_dataset_config;
 use crate::{
     cli::{FlatDatasetArgs, channel::DataType},
     cmd::{

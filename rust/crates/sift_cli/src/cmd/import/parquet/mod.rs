@@ -1,11 +1,14 @@
 #[cfg(not(target_os = "windows"))]
-use unix::{FooterMetadata};
+use unix::FooterMetadata;
 
 #[cfg(target_os = "windows")]
 use windows::{FooterMetadata, get_footer};
 
-pub mod detect;
+pub mod detect_parquet_schema;
 pub mod flat_dataset;
+
+#[cfg(test)]
+mod tests;
 
 #[cfg(not(target_os = "windows"))]
 mod unix {
@@ -23,8 +26,6 @@ mod unix {
         /// Length of the Parquet file's footer
         pub length: u64,
     }
-
-
 
     /// Note that this will advance the cursor.
     impl TryFrom<&mut File> for FooterMetadata {

@@ -24,6 +24,7 @@ license = "MIT"
 
 [workspace.dependencies]
 anyhow = "1.0"
+arrow-array = "58.1.0"
 arrow-schema = "58.1.0"
 async-channel = "2.2"
 async-trait = "^0.1"
@@ -57,6 +58,7 @@ reqwest = "0.13"
 serde = { version = "^1.0" }
 serde_json = { version = "^1.0" }
 tempdir = "0.3"
+tempfile = "3.27.0"
 tokio = { version = "1" }
 tokio-stream = "0.1"
 toml = "0.9"

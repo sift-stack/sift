@@ -17,14 +17,12 @@ pub fn detect_flat_dataset_config(file: &File) -> Result<ParquetFlatDatasetConfi
     let arrow_schema = parquet_to_arrow_schema(
         metadata.file_metadata().schema_descr(),
         metadata.file_metadata().key_value_metadata(),
-    )
-    .unwrap();
+    )?;
 
-    let mut time_column: Option<ParquetTimeColumn> = None;
-    let mut data_columns: Vec<ParquetDataColumn> = Vec::new();
+    let mut time_column = None;
+    let mut data_columns = Vec::new();
 
     for field in arrow_schema.fields() {
-        // TODO: If no time_column handle that (invalid)
         if time_column.is_none()
             && let Some(format) = detect_time_format(field.data_type())
         {
@@ -44,6 +42,10 @@ pub fn detect_flat_dataset_config(file: &File) -> Result<ParquetFlatDatasetConfi
                 }),
             });
         }
+    }
+
+    if time_column.is_none() {
+        anyhow::bail!("no valid time column detected in parquet schema");
     }
 
     Ok(ParquetFlatDatasetConfig {
