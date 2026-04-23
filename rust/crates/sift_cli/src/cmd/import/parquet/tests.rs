@@ -1,8 +1,8 @@
 use crate::cmd::import::parquet::detect_parquet_schema;
+use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray, TimestampSecondArray};
+use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use parquet::arrow::arrow_writer::ArrowWriter;
-use std::io::{ Write, Seek };
-use arrow_array::{ Float64Array, Int32Array, RecordBatch, StringArray, TimestampSecondArray };
-use arrow_schema::{ TimeUnit, DataType, Field, Schema};
+use std::io::{Seek, Write};
 use std::sync::Arc;
 
 // Helpers
@@ -61,6 +61,3 @@ fn test_detect_parquet_on_import() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
-
-

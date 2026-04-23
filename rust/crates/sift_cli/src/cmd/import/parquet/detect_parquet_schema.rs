@@ -44,10 +44,6 @@ pub fn detect_flat_dataset_config(file: &File) -> Result<ParquetFlatDatasetConfi
         }
     }
 
-    if time_column.is_none() {
-        anyhow::bail!("no valid time column detected in parquet schema");
-    }
-
     Ok(ParquetFlatDatasetConfig {
         time_column,
         data_columns,
