@@ -697,24 +697,76 @@ class TestImportLogFile:
             compare_test_measurement_fields(replayed_m, direct_m)
 
     @pytest.mark.asyncio
-    async def test_malformed_log_line_raises(self, tmp_path):
-        """import_log_file raises ValueError on a line that doesn't match the expected format."""
+    async def test_malformed_log_line_skipped(self, tmp_path):
+        """Malformed lines raise a ValueError during iteration."""
         log_file = tmp_path / "bad.jsonl"
         log_file.write_text("this is not a valid log line\n")
 
         client = TestResultsLowLevelClient(grpc_client=MagicMock())
-        with pytest.raises(ValueError, match="malformed log line"):
+        with pytest.raises(ValueError, match="Invalid log line: this is not a valid log lin"):
             await client.import_log_file(log_file)
 
     @pytest.mark.asyncio
-    async def test_malformed_line_after_valid_lines_raises(self, tmp_path):
-        """A malformed line after valid entries still raises."""
-        log_file = tmp_path / "mixed.jsonl"
-        log_file.write_text(
-            '[CreateTestReport] {"name":"r","testCase":"c","testSystemName":"s"}\n'
-            "totally broken line\n"
-        )
+    async def test_empty_log_file_raises(self, tmp_path):
+        """A log file with no entries raises 'No CreateTestReport'."""
+        log_file = tmp_path / "empty.jsonl"
+        log_file.touch()
 
         client = TestResultsLowLevelClient(grpc_client=MagicMock())
-        with pytest.raises(ValueError, match="malformed log line"):
+        with pytest.raises(ValueError, match="No CreateTestReport found"):
             await client.import_log_file(log_file)
+
+    def test_concurrent_append_and_tracking_save_preserves_all_lines(self, tmp_path):
+        """Writer appending to the log shares no mutation point with the tracking sidecar.
+
+        With tracking moved out of the main log into ``<log>.tracking``, the log
+        file is strictly append-only -- there is no path by which concurrent
+        ``LogTracking.save`` calls can clobber appended lines. This test pins
+        that invariant: 500 writer appends run alongside a hot updater looping
+        on sidecar writes, and every append must survive.
+        """
+        import threading
+        import time
+
+        from sift.test_reports.v1.test_reports_pb2 import CreateTestReportRequest
+
+        from sift_client._internal.low_level_wrappers._test_results_log import (
+            LogTracking,
+            log_request_to_file,
+        )
+
+        log_file = tmp_path / "race.jsonl"
+
+        n_appends = 500
+        stop = threading.Event()
+        request = CreateTestReportRequest()
+
+        def writer() -> None:
+            for i in range(n_appends):
+                log_request_to_file(log_file, "CreateTestReport", request, response_id=str(i))
+
+        def updater() -> None:
+            tracking = LogTracking(last_uploaded_line=0)
+            while not stop.is_set():
+                tracking.last_uploaded_line += 1
+                tracking.save(log_file)
+                time.sleep(0)
+
+        t_updater = threading.Thread(target=updater)
+        t_writer = threading.Thread(target=writer)
+        t_updater.start()
+        t_writer.start()
+        t_writer.join()
+        stop.set()
+        t_updater.join()
+
+        with open(log_file) as f:
+            data_lines = [line for line in f if line.strip()]
+        assert len(data_lines) == n_appends, (
+            f"expected {n_appends} appended data lines, found {len(data_lines)}"
+        )
+
+        sidecar = LogTracking.sidecar_path(log_file)
+        assert sidecar.exists()
+        reloaded = LogTracking.load(log_file)
+        assert reloaded.last_uploaded_line >= 1

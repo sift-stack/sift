@@ -2001,7 +2001,7 @@ class TestResultsAPI:
         """
         ...
 
-    def import_log_file(self, log_file: str | Path) -> ReplayResult:
+    def import_log_file(self, log_file: str | Path, incremental: bool = False) -> ReplayResult:
         """Replay a log file by parsing each entry, simulating the results, then creating for real.
 
         This method reads a log file created by the simulation logging, reconstructs
@@ -2009,7 +2009,8 @@ class TestResultsAPI:
         IDs are mapped from simulated to real during the creation process.
 
         Args:
-            log_file: Path to the log file to replay.
+            log_file: Path to the log file to import.
+            incremental: (internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
