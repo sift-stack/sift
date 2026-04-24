@@ -6,10 +6,10 @@ import yaml
 
 try:
     import ryml
-
-    _HAS_RYML = True
 except ImportError:
-    _HAS_RYML = False
+    ryml = None  # type: ignore[assignment]
+
+_HAS_RYML = ryml is not None
 
 
 def _handle_subdir(path: Path, file_handler: Callable):
@@ -38,7 +38,11 @@ def _rapidyaml_load(path: Path) -> Dict[Any, Any]:
     The one semantic diff to watch for is YAML 1.1-isms that rapidyaml (YAML
     1.2) does not treat as typed: e.g. ``yes``/``no`` stay strings, and
     sexagesimal numbers stay strings. Existing Sift configs do not use these.
+
+    Only call this when ``_HAS_RYML`` is true; the ``assert`` below narrows the
+    type for static analysis and is an invariant the dispatcher upholds.
     """
+    assert ryml is not None, "rapidyaml is not installed; call _pyyaml_load instead"
     with open(path, "rb") as f:
         tree = ryml.parse_in_arena(f.read())
     resolve = getattr(tree, "resolve", None)
