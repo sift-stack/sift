@@ -20,9 +20,7 @@ import yaml
 
 from sift_py.yaml import utils
 
-EXAMPLE_CONFIG = (
-    Path(__file__).resolve().parents[3] / "examples" / "telemetry_config.example.yml"
-)
+EXAMPLE_CONFIG = Path(__file__).resolve().parents[3] / "examples" / "telemetry_config.example.yml"
 
 
 def _force_pure_python_pyyaml(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -57,9 +55,7 @@ def _assert_sift_ingest_shape(config: dict) -> None:
                 assert isinstance(enum.get("key"), int), f"enum key not int: {enum!r}"
             for bit in ch.get("bit_field_elements", []) or []:
                 assert isinstance(bit.get("index"), int), f"bit index not int: {bit!r}"
-                assert isinstance(bit.get("bit_count"), int), (
-                    f"bit_count not int: {bit!r}"
-                )
+                assert isinstance(bit.get("bit_count"), int), f"bit_count not int: {bit!r}"
 
 
 def test_rapidyaml_load_path():
@@ -110,6 +106,4 @@ def test_try_fast_yaml_load_dispatches_to_rapidyaml_when_available():
     """``try_fast_yaml_load`` returns the rapidyaml result when ``_HAS_RYML`` is true."""
     pytest.importorskip("ryml")
     assert utils._HAS_RYML, "rapidyaml declared as a required dep but not detected"
-    assert utils.try_fast_yaml_load(EXAMPLE_CONFIG) == utils._rapidyaml_load(
-        EXAMPLE_CONFIG
-    )
+    assert utils.try_fast_yaml_load(EXAMPLE_CONFIG) == utils._rapidyaml_load(EXAMPLE_CONFIG)
