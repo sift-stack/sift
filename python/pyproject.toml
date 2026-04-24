@@ -26,6 +26,7 @@ keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
     "grpcio~=1.13",
     "PyYAML~=6.0",
+    "rapidyaml~=0.11",
     "pandas>=2.0,<3.1",
     "protobuf>=5.0",
     "pydantic~=2.10",
