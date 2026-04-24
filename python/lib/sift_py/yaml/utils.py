@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, Type, cast
 import yaml
 
 try:
-    import ryml  # type: ignore[import-not-found]
+    import ryml
 
     _HAS_RYML = True
 except ImportError:
