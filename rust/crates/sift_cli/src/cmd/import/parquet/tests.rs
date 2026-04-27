@@ -1,11 +1,11 @@
 use crate::cmd::import::parquet::detect_parquet_schema;
-use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray, TimestampSecondArray};
-use arrow_schema::{DataType, Field, Schema, TimeUnit};
+use anyhow::Context;
 use parquet::arrow::arrow_writer::ArrowWriter;
-use std::io::{Seek, Write};
+use std::io::{ Write, Seek };
+use arrow_array::{ Float64Array, Int32Array, RecordBatch, StringArray, TimestampSecondArray };
+use arrow_schema::{ TimeUnit, DataType, Field, Schema};
 use std::sync::Arc;
 
-// Helpers
 fn create_test_batch() -> Result<RecordBatch, Box<dyn std::error::Error>> {
     let schema = Arc::new(Schema::new(vec![
         Field::new("time", DataType::Timestamp(TimeUnit::Second, None), false),
@@ -34,7 +34,6 @@ fn write_to_parquet_memory(batch: &RecordBatch) -> Result<Vec<u8>, Box<dyn std::
     Ok(buffer)
 }
 
-// Tests
 #[test]
 fn test_detect_parquet_on_import() -> Result<(), Box<dyn std::error::Error>> {
     let batch = create_test_batch()?;
@@ -45,7 +44,7 @@ fn test_detect_parquet_on_import() -> Result<(), Box<dyn std::error::Error>> {
     file.write_all(&parquet_bytes)?;
     file.rewind()?;
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&file)?;
+    let config = detect_parquet_schema::detect_flat_dataset_config(&file).context("Detecting parquet schema test failure")?;
 
     let time_col = match config.time_column {
         Some(col) => col,
@@ -61,3 +60,6 @@ fn test_detect_parquet_on_import() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+
+

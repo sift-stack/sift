@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use arrow_schema::{DataType, TimeUnit};
 use parquet::arrow::parquet_to_arrow_schema;
 use parquet::file::metadata::ParquetMetaDataReader;
@@ -12,12 +12,13 @@ use sift_rs::{
 };
 
 pub fn detect_flat_dataset_config(file: &File) -> Result<ParquetFlatDatasetConfig> {
+    // Need to add a param to pass in the time column if it was overrided by the user
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
 
     let arrow_schema = parquet_to_arrow_schema(
         metadata.file_metadata().schema_descr(),
         metadata.file_metadata().key_value_metadata(),
-    )?;
+    ).context("detecting flat dataset config arrow schema")?;
 
     let mut time_column = None;
     let mut data_columns = Vec::new();
