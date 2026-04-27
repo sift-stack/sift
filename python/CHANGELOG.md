@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.14.0] - April 22, 2026
+## [v0.14.0] - April 27, 2026
 
 ### What's New
 
@@ -77,6 +77,9 @@ Test result create and update events can now be optionally written to a `.jsonl`
 #### Progress Indicators
 Adds progress indicators for job polling and file downloads for better visibility during long-running operations.
 
+#### Use Upstream Packages for `google.api` and `protoc_gen_openapiv2`
+Previously the package shipped its own bundled copies of the generated Python bindings for `google.api` and `protoc_gen_openapiv2`, which could collide with the same modules installed elsewhere in a user's environment. Those bundled copies have been removed, and the package now declares `googleapis-common-protos` and `protoc-gen-openapiv2` as runtime dependencies, so pip installs the upstream-maintained versions instead. `buf/validate` remains bundled for now, since Buf publishes the protovalidate runtime to PyPI but withholds the generated Python bindings.
+
 ### Bugfixes
 - Add `py.typed` to the generated proto directory so type checkers pick up protobuf types correctly.
 
@@ -89,6 +92,7 @@ Adds progress indicators for job polling and file downloads for better visibilit
 - [Refactor files using run_in_executor](https://github.com/sift-stack/sift/pull/518)
 - [Add Parquet as an export output format](https://github.com/sift-stack/sift/pull/510)
 - [Add py.typed file to proto dir](https://github.com/sift-stack/sift/pull/524)
+- [Remove vendored google.api and protoc_gen_openapiv2 modules from buf](https://github.com/sift-stack/sift/pull/543)
 
 ## [v0.13.0] - March 24, 2026
 ### What's New
