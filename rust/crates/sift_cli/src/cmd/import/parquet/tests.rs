@@ -1,9 +1,9 @@
 use crate::cmd::import::parquet::detect_parquet_schema;
 use anyhow::Context;
+use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray, TimestampSecondArray};
+use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use parquet::arrow::arrow_writer::ArrowWriter;
-use std::io::{ Write, Seek };
-use arrow_array::{ Float64Array, Int32Array, RecordBatch, StringArray, TimestampSecondArray };
-use arrow_schema::{ TimeUnit, DataType, Field, Schema};
+use std::io::{Seek, Write};
 use std::sync::Arc;
 
 fn create_test_batch() -> Result<RecordBatch, Box<dyn std::error::Error>> {
@@ -44,7 +44,8 @@ fn test_detect_parquet_on_import() -> Result<(), Box<dyn std::error::Error>> {
     file.write_all(&parquet_bytes)?;
     file.rewind()?;
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&file).context("Detecting parquet schema test failure")?;
+    let config = detect_parquet_schema::detect_flat_dataset_config(&file)
+        .context("Detecting parquet schema test failure")?;
 
     let time_col = match config.time_column {
         Some(col) => col,
@@ -60,6 +61,3 @@ fn test_detect_parquet_on_import() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
-
-

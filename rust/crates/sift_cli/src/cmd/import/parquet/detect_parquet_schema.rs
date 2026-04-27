@@ -1,37 +1,57 @@
-use std::fs::File;
-
+use crate::cmd::import::utils::validate_time_format;
 use anyhow::{Context, Result};
-use arrow_schema::{DataType, TimeUnit};
+use arrow_schema::DataType;
+use chrono::DateTime;
 use parquet::arrow::parquet_to_arrow_schema;
 use parquet::file::metadata::ParquetMetaDataReader;
+use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
         ParquetDataColumn, ParquetFlatDatasetConfig, ParquetTimeColumn, TimeFormat,
     },
 };
+use std::fs::File;
 
-pub fn detect_flat_dataset_config(file: &File) -> Result<ParquetFlatDatasetConfig> {
+use crate::cli::FlatDatasetArgs;
+
+pub fn detect_flat_dataset_config(
+    file: &File,
+    args: &FlatDatasetArgs,
+) -> Result<ParquetFlatDatasetConfig> {
     // Need to add a param to pass in the time column if it was overrided by the user
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
 
     let arrow_schema = parquet_to_arrow_schema(
         metadata.file_metadata().schema_descr(),
         metadata.file_metadata().key_value_metadata(),
-    ).context("detecting flat dataset config arrow schema")?;
+    )
+    .context("detecting flat dataset config arrow schema")?;
 
-    let mut time_column = None;
+    validate_time_format(args.time_format, &args.relative_start_time)
+        .context("validating time format")?;
+
+    let relative_start_time = match &args.relative_start_time {
+        Some(start) => {
+            let rs = DateTime::parse_from_rfc3339(start)
+                .context("--relative-start-time is not valid RFC3339")?;
+            let utc = rs.to_utc();
+            Some(Timestamp::from(utc))
+        }
+        None => None,
+    };
+
+    let time_column = Some(ParquetTimeColumn {
+        relative_start_time,
+        path: args.time_path.clone(),
+        format: TimeFormat::from(args.time_format).into(),
+    });
+
     let mut data_columns = Vec::new();
 
     for field in arrow_schema.fields() {
-        if time_column.is_none()
-            && let Some(format) = detect_time_format(field.data_type())
-        {
-            time_column = Some(ParquetTimeColumn {
-                path: field.name().to_string(),
-                format: format.into(),
-                relative_start_time: None,
-            });
+        if field.name() == &args.time_path {
+            continue;
         }
         if let Some(channel_type) = arrow_type_to_channel_data_type(field.data_type()) {
             data_columns.push(ParquetDataColumn {
@@ -71,25 +91,6 @@ fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {
         | DataType::Time64(_)
         | DataType::Duration(_) => Some(ChannelDataType::Int64),
         DataType::List(_) | DataType::Map(_, _) => Some(ChannelDataType::Bytes),
-        _ => None,
-    }
-}
-
-fn detect_time_format(dt: &DataType) -> Option<TimeFormat> {
-    match dt {
-        DataType::Timestamp(TimeUnit::Second, _) => Some(TimeFormat::AbsoluteUnixSeconds),
-        DataType::Timestamp(TimeUnit::Millisecond, _) => Some(TimeFormat::AbsoluteUnixMilliseconds),
-        DataType::Timestamp(TimeUnit::Microsecond, _) => Some(TimeFormat::AbsoluteUnixMicroseconds),
-        DataType::Timestamp(TimeUnit::Nanosecond, _) => Some(TimeFormat::AbsoluteUnixNanoseconds),
-        DataType::Time32(TimeUnit::Second) => Some(TimeFormat::RelativeSeconds),
-        DataType::Time32(TimeUnit::Millisecond) => Some(TimeFormat::RelativeMilliseconds),
-        DataType::Time64(TimeUnit::Microsecond) => Some(TimeFormat::RelativeMicroseconds),
-        DataType::Time64(TimeUnit::Nanosecond) => Some(TimeFormat::RelativeNanoseconds),
-        DataType::Duration(TimeUnit::Second) => Some(TimeFormat::RelativeSeconds),
-        DataType::Duration(TimeUnit::Millisecond) => Some(TimeFormat::RelativeMilliseconds),
-        DataType::Duration(TimeUnit::Microsecond) => Some(TimeFormat::RelativeMicroseconds),
-        DataType::Duration(TimeUnit::Nanosecond) => Some(TimeFormat::RelativeNanoseconds),
-        DataType::Date32 | DataType::Date64 => Some(TimeFormat::AbsoluteUnixNanoseconds),
         _ => None,
     }
 }

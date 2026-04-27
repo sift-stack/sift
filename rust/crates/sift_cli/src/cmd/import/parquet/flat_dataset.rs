@@ -1,15 +1,13 @@
 use std::{collections::HashMap, fs::File, io::Seek, process::ExitCode};
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
-use chrono::DateTime;
 use crossterm::style::Stylize;
-use pbjson_types::Timestamp;
 use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
         CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse,
-        ParquetComplexTypesImportMode, ParquetConfig, ParquetTimeColumn, TimeFormat,
+        ParquetComplexTypesImportMode, ParquetConfig,
         data_import_service_client::DataImportServiceClient, parquet_config::Config,
     },
 };
@@ -22,9 +20,7 @@ use crate::{
         import::{
             parquet::FooterMetadata,
             preview_import_config,
-            utils::{
-                gzip_file, try_parse_bit_field_config, try_parse_enum_config, validate_time_format,
-            },
+            utils::{gzip_file, try_parse_bit_field_config, try_parse_enum_config},
             wait_for_job_completion,
         },
     },
@@ -42,13 +38,13 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
 
     let mut config = {
         let flat_dataset_config =
-            detect_flat_dataset_config(&file).context("failed to detect Parquet schema")?;
+            detect_flat_dataset_config(&file, &args).context("failed to detect Parquet schema")?;
         ParquetConfig {
             config: Some(Config::FlatDataset(flat_dataset_config)),
             ..Default::default()
         }
     };
-
+    // Update the below line to be done within the parquet detection
     update_config_with_overrides(&mut config, &args)?;
     let create_data_import_req = create_data_import_request(&args, config, footer_md)?;
 
@@ -136,24 +132,6 @@ fn update_config_with_overrides(
             "failed to find any channel data columns in the provided Parquet file"
         ));
     }
-    validate_time_format(args.time_format, &args.relative_start_time)?;
-
-    let relative_start_time = match &args.relative_start_time {
-        Some(start) => {
-            let rs = DateTime::parse_from_rfc3339(start)
-                .context("--relative-start-time is not valid RFC3339")?;
-            let utc = rs.to_utc();
-            Some(Timestamp::from(utc))
-        }
-        None => None,
-    };
-
-    flat_dataset_conf.time_column = Some(ParquetTimeColumn {
-        relative_start_time,
-        path: args.time_path.clone(),
-        format: TimeFormat::from(args.time_format).into(),
-    });
-
     let num_overrides = args.channel_path.len();
 
     if ![
