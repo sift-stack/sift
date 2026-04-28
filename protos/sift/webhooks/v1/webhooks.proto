@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package sift.webhooks.v1;
 
-import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/field_mask.proto";
@@ -141,35 +140,17 @@ service WebhookService {
 }
 
 message Webhook {
-  string webhook_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
-  string organization_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
-  string target_url = 3 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uri = true
-  ];
-  string name = 4 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.min_len = 1
-  ];
+  string webhook_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string target_url = 3 [(google.api.field_behavior) = REQUIRED];
+  string name = 4 [(google.api.field_behavior) = REQUIRED];
   WebhookEventType event_type = 5 [(google.api.field_behavior) = REQUIRED];
   optional string payload = 6 [(google.api.field_behavior) = OPTIONAL];
   google.protobuf.Timestamp created_date = 7 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
   optional google.protobuf.Timestamp archived_date = 9 [(google.api.field_behavior) = OPTIONAL];
-  string created_by_user_id = 10 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
-  string modified_by_user_id = 11 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string created_by_user_id = 10 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 11 [(google.api.field_behavior) = REQUIRED];
   repeated WebhookHttpHeader http_headers = 12 [(google.api.field_behavior) = REQUIRED];
   bool is_archived = 13 [(google.api.field_behavior) = REQUIRED];
 }
@@ -180,19 +161,10 @@ enum WebhookEventType {
 }
 
 message WebhookLog {
-  string webhook_log_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uri = true
-  ];
-  string webhook_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uri = true
-  ];
+  string webhook_log_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string webhook_id = 2 [(google.api.field_behavior) = REQUIRED];
   string event_id = 3 [(google.api.field_behavior) = REQUIRED];
-  string organization_id = 4 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uri = true
-  ];
+  string organization_id = 4 [(google.api.field_behavior) = REQUIRED];
   WebhookLogStatus status = 5 [(google.api.field_behavior) = REQUIRED];
   optional string payload = 6 [(google.api.field_behavior) = OPTIONAL];
   uint32 retry_attempt_number = 7 [(google.api.field_behavior) = REQUIRED];
@@ -214,10 +186,7 @@ message WebhookSignatureKey {
 }
 
 message WebhookHttpHeader {
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME
-  ];
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
   string value = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -230,10 +199,7 @@ enum WebhookLogStatus {
 
 // The request for a call to `WebhookService_GetWebhook` to retrieve a webhook.
 message GetWebhookRequest {
-  string webhook_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string webhook_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `WebhookService_GetWebhook`.
@@ -249,14 +215,7 @@ message UpdateWebhookRequest {
 
   // The list of fields to be updated. The fields available to be updated are
   // 'target_url', 'name', 'event_type', 'payload', 'http_headers', 'archived_date', 'is_archived'.
-  google.protobuf.FieldMask update_mask = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).cel = {
-      id: "invalid_field_mask_path"
-      message: "field mask path must be in ['target_url', 'targetUrl', 'name', 'event_type', 'eventType', 'payload', 'http_headers', 'httpHeaders', 'archived_date', 'archivedDate', 'is_archived', 'isArchived']"
-      expression: "this.paths.all(path, path in ['target_url', 'targetUrl', 'name', 'event_type', 'eventType', 'payload', 'http_headers', 'httpHeaders', 'archived_date', 'archivedDate', 'is_archived', 'isArchived'])"
-    }
-  ];
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `WebhookService_UpdateWebhook`. To archive a webhook, specify `archived_date`
@@ -269,14 +228,8 @@ message UpdateWebhookResponse {
 
 // The request for a call to `WebhookService_CreateWebhook` to create a webhook.
 message CreateWebhookRequest {
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.min_len = 1
-  ];
-  string target_url = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uri = true
-  ];
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  string target_url = 2 [(google.api.field_behavior) = REQUIRED];
   WebhookEventType event_type = 3 [(google.api.field_behavior) = REQUIRED];
   optional string payload = 4 [(google.api.field_behavior) = OPTIONAL];
   repeated WebhookHttpHeader http_headers = 5 [(google.api.field_behavior) = REQUIRED];
@@ -293,10 +246,7 @@ message ListWebhooksRequest {
   // The service may return fewer than this value.
   // If unspecified, at most 50 runs will be returned.
   // The maximum value is 1000.
-  uint32 page_size = 1 [
-    (google.api.field_behavior) = OPTIONAL,
-    (buf.validate.field).uint32.lte = 1000
-  ];
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
 
   // A page token, received from a previous `ListWebhooks` call.
   // Provide this to retrieve the subsequent page.
@@ -388,10 +338,7 @@ message ListWebhookLogsRequest {
   // The service may return fewer than this value.
   // If unspecified, at most 50 runs will be returned.
   // The maximum value is 1000.
-  uint32 page_size = 1 [
-    (google.api.field_behavior) = OPTIONAL,
-    (buf.validate.field).uint32.lte = 1000
-  ];
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
 
   // A page token, received from a previous `ListWebhookLogs` call.
   // Provide this to retrieve the subsequent page.
@@ -419,14 +366,8 @@ message ListWebhookLogsResponse {
 
 // Request to create a single webhook log entry.
 message CreateWebhookLogRequest {
-  string webhook_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
-  string event_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string webhook_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string event_id = 2 [(google.api.field_behavior) = REQUIRED];
   uint32 retry_attempt_number = 3 [(google.api.field_behavior) = REQUIRED];
   WebhookLogStatus status = 4 [(google.api.field_behavior) = REQUIRED];
   optional string payload = 5 [(google.api.field_behavior) = REQUIRED];
@@ -436,10 +377,7 @@ message CreateWebhookLogRequest {
 
 // The request for a call to `WebhookService_BatchCreateWebhookLogs` to create a batch of webhook logs.
 message BatchCreateWebhookLogsRequest {
-  repeated CreateWebhookLogRequest requests = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).repeated.max_items = 1000
-  ];
+  repeated CreateWebhookLogRequest requests = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `WebhookService_BatchCreateWebhookResponse`.

@@ -108,7 +108,6 @@ gen_protos() {
       buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang"
     else
       buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang" --path "$OUTPUT_PROTOS/sift"
-      buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang" --path "$OUTPUT_PROTOS/buf"
     fi
     echo "ok"
 
