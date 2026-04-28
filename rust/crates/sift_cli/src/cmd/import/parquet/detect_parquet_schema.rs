@@ -30,7 +30,7 @@ pub fn detect_flat_dataset_config(
     validate_time_format(args.time_format, &args.relative_start_time)
         .context("validating time format")?;
 
-    let relative_start_time = match &args.relative_start_time {
+    let relative_start_time_input = match &args.relative_start_time {
         Some(start) => {
             let rs = DateTime::parse_from_rfc3339(start)
                 .context("--relative-start-time is not valid RFC3339")?;
@@ -40,19 +40,17 @@ pub fn detect_flat_dataset_config(
         None => None,
     };
 
-    let time_column = Some(ParquetTimeColumn {
-        relative_start_time,
-        path: args.time_path.clone(),
-        format: TimeFormat::from(args.time_format).into(),
-    });
-
+    let mut time_column = None;
     let mut data_columns = Vec::new();
 
     for field in arrow_schema.fields() {
         if field.name() == &args.time_path {
-            continue;
-        }
-        if let Some(channel_type) = arrow_type_to_channel_data_type(field.data_type()) {
+            time_column = Some(ParquetTimeColumn {
+                relative_start_time: relative_start_time_input,
+                path: args.time_path.clone(),
+                format: TimeFormat::from(args.time_format).into(),
+            });
+        } else if let Some(channel_type) = arrow_type_to_channel_data_type(field.data_type()) {
             data_columns.push(ParquetDataColumn {
                 path: field.name().to_string(),
                 channel_config: Some(ChannelConfig {
@@ -61,7 +59,16 @@ pub fn detect_flat_dataset_config(
                     ..Default::default()
                 }),
             });
+        } else {
+            anyhow::bail!("unsupported column type for '{}'", field.name());
         }
+    }
+
+    if time_column.is_none() {
+        anyhow::bail!(
+            "time column '{}' not found in parquet schema",
+            args.time_path
+        );
     }
 
     Ok(ParquetFlatDatasetConfig {
