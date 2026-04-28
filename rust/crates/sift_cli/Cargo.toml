@@ -18,7 +18,6 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
-arrow-array = { workspace = true }
 arrow-schema = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
@@ -33,7 +32,6 @@ pbjson-types = { workspace = true }
 reqwest = { workspace = true }
 sift_pbfs = { workspace = true }
 sift_rs = { workspace = true }
-tempfile = { workspace = true }
 tokio = { workspace = true, features = ["full", "net", "time"] }
 tokio-stream = { workspace = true }
 toml = { workspace = true }
@@ -41,3 +39,5 @@ zip = { workspace = true }
 
 [dev-dependencies]
 indoc = { workspace = true }
+arrow-array = { workspace = true }
+tempfile = { workspace = true }
