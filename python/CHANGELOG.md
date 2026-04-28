@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.14.0] - April 27, 2026
+## [v0.14.0] - April 28, 2026
 
 ### What's New
 
@@ -77,8 +77,10 @@ Test result create and update events can now be optionally written to a `.jsonl`
 #### Progress Indicators
 Adds progress indicators for job polling and file downloads for better visibility during long-running operations.
 
-#### Use Upstream Packages for `google.api` and `protoc_gen_openapiv2`
-Previously the package shipped its own bundled copies of the generated Python bindings for `google.api` and `protoc_gen_openapiv2`, which could collide with the same modules installed elsewhere in a user's environment. Those bundled copies have been removed, and the package now declares `googleapis-common-protos` and `protoc-gen-openapiv2` as runtime dependencies, so pip installs the upstream-maintained versions instead. `buf/validate` remains bundled for now, since Buf publishes the protovalidate runtime to PyPI but withholds the generated Python bindings.
+#### Stop Bundling `google.api`, `protoc_gen_openapiv2`, and `buf.validate`
+Previously the package shipped its own bundled copies of the generated Python bindings for `google.api`, `protoc_gen_openapiv2`, and `buf.validate`. With this release:
+- `google.api` and `protoc_gen_openapiv2` are now pulled in via the `googleapis-common-protos` and `protoc-gen-openapiv2` runtime dependencies, so pip installs the upstream-maintained versions.
+- `buf.validate` has been removed entirely. The protovalidate field annotations were stripped from the affected `.proto` files, so the generated `_pb2.py` files no longer reference `buf.validate`.
 
 ### Bugfixes
 - Add `py.typed` to the generated proto directory so type checkers pick up protobuf types correctly.
@@ -93,6 +95,7 @@ Previously the package shipped its own bundled copies of the generated Python bi
 - [Add Parquet as an export output format](https://github.com/sift-stack/sift/pull/510)
 - [Add py.typed file to proto dir](https://github.com/sift-stack/sift/pull/524)
 - [Remove vendored google.api and protoc_gen_openapiv2 modules from buf](https://github.com/sift-stack/sift/pull/543)
+- [Remove protovalidate from client-side protos](https://github.com/sift-stack/sift/pull/XXX)
 
 ## [v0.13.0] - March 24, 2026
 ### What's New
