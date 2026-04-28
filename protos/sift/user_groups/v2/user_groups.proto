@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package sift.user_groups.v2;
 
-import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/field_mask.proto";
@@ -100,17 +99,11 @@ message UserGroup {
   string role_id = 3 [(google.api.field_behavior) = OPTIONAL];
   bool is_default = 4 [(google.api.field_behavior) = REQUIRED];
   message Resource {
-    repeated string asset_ids = 1 [
-      (google.api.field_behavior) = OPTIONAL,
-      (buf.validate.field).repeated.items.string.uuid = true
-    ];
+    repeated string asset_ids = 1 [(google.api.field_behavior) = OPTIONAL];
     bool all_assets = 2 [(google.api.field_behavior) = REQUIRED];
   }
   Resource resources = 6 [(google.api.field_behavior) = OPTIONAL];
-  repeated string user_ids = 7 [
-    (google.api.field_behavior) = OPTIONAL,
-    (buf.validate.field).repeated.items.string.uuid = true
-  ];
+  repeated string user_ids = 7 [(google.api.field_behavior) = OPTIONAL];
   bool is_external = 8 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -150,7 +143,7 @@ message ListUserGroupsResponse {
 }
 
 message GetUserGroupRequest {
-  string user_group_id = 1 [(buf.validate.field).string.uuid = true];
+  string user_group_id = 1;
 }
 
 message GetUserGroupResponse {
@@ -158,8 +151,8 @@ message GetUserGroupResponse {
 }
 
 message UpdateUserUserGroupsRequest {
-  string user_id = 1 [(buf.validate.field).string.uuid = true];
-  repeated string user_group_ids = 2 [(buf.validate.field).repeated.items.string.uuid = true];
+  string user_id = 1;
+  repeated string user_group_ids = 2;
 }
 
 message UpdateUserUserGroupsResponse {}
@@ -176,14 +169,7 @@ message UpdateUserGroupRequest {
   UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The list of fields to update.
-  google.protobuf.FieldMask update_mask = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).cel = {
-      id: "invalid_field_mask_path"
-      message: "field mask path must be in ['name', 'is_default', 'role_id', 'resources', 'users']"
-      expression: "this.paths.all(path, path in ['name', 'is_default', 'role_id', 'resources', 'users'])"
-    }
-  ];
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UpdateUserGroupResponse {
@@ -191,45 +177,27 @@ message UpdateUserGroupResponse {
 }
 
 message DeleteUserGroupRequest {
-  string user_group_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message DeleteUserGroupResponse {}
 
 message AddUserToUserGroupRequest {
-  string user_group_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
-  string user_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message AddUserToUserGroupResponse {}
 
 message RemoveUserFromUserGroupRequest {
-  string user_group_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
-  string user_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message RemoveUserFromUserGroupResponse {}
 
 message GetUserGroupsForAssetsRequest {
-  repeated string asset_ids = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).repeated.items.string.uuid = true
-  ];
+  repeated string asset_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetUserGroupsForAssetsResponse {
