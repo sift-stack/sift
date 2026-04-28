@@ -340,11 +340,11 @@ pub struct FlatDatasetArgs {
     pub bit_field_config: Vec<String>,
 
     /// Path to the time column
-    #[arg(short, long, required = true)]
+    #[arg(short, long)]
     pub time_path: String,
 
     /// Time format used in the file
-    #[arg(short = 'f', long, required = true)]
+    #[arg(short = 'f', long)]
     pub time_format: TimeFormat,
 
     /// Start time (RFC3339) to use if time format is relative
