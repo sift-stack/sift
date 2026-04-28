@@ -19,7 +19,6 @@ pub fn detect_flat_dataset_config(
     file: &File,
     args: &FlatDatasetArgs,
 ) -> Result<ParquetFlatDatasetConfig> {
-    // Need to add a param to pass in the time column if it was overrided by the user
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
 
     let arrow_schema = parquet_to_arrow_schema(
@@ -71,7 +70,7 @@ pub fn detect_flat_dataset_config(
     })
 }
 
-fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {
+pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {
     match dt {
         DataType::Boolean => Some(ChannelDataType::Bool),
         DataType::Float16 | DataType::Float32 => Some(ChannelDataType::Float),

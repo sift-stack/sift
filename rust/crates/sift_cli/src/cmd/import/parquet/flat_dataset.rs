@@ -44,7 +44,6 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
             ..Default::default()
         }
     };
-    // Update the below line to be done within the parquet detection
     update_config_with_overrides(&mut config, &args)?;
     let create_data_import_req = create_data_import_request(&args, config, footer_md)?;
 

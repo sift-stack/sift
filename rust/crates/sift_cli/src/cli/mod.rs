@@ -348,7 +348,7 @@ pub struct FlatDatasetArgs {
     pub time_format: TimeFormat,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's', required = true)]
+    #[arg(short = 's', long)]
     pub relative_start_time: Option<String>,
 
     /// Strategy for handling complex types (maps, lists, structs)
