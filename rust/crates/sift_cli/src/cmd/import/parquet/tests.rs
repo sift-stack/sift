@@ -1,7 +1,10 @@
 use crate::cli::{FlatDatasetArgs, parquet::ComplexTypesMode, time::TimeFormat};
 use crate::cmd::import::parquet::detect_parquet_schema::{self, arrow_type_to_channel_data_type};
 use anyhow::Context;
-use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray, TimestampSecondArray};
+use arrow_array::{
+    BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
+    TimestampSecondArray, UInt32Array, UInt64Array,
+};
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use parquet::arrow::arrow_writer::ArrowWriter;
 use sift_rs::common::r#type::v1::ChannelDataType;
@@ -234,4 +237,128 @@ fn test_arrow_timestamp_and_date_types_map_to_channel_int64() {
 #[test]
 fn test_arrow_unsupported_type_returns_none() {
     assert_eq!(arrow_type_to_channel_data_type(&DataType::Null), None);
+}
+
+#[test]
+fn test_detect_config_assigns_correct_data_types_for_varied_columns()
+-> Result<(), Box<dyn std::error::Error>> {
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("time", DataType::Timestamp(TimeUnit::Second, None), false),
+        Field::new("bool_col", DataType::Boolean, false),
+        Field::new("float32_col", DataType::Float32, false),
+        Field::new("float64_col", DataType::Float64, false),
+        Field::new("int32_col", DataType::Int32, false),
+        Field::new("int64_col", DataType::Int64, false),
+        Field::new("uint32_col", DataType::UInt32, false),
+        Field::new("uint64_col", DataType::UInt64, false),
+        Field::new("string_col", DataType::Utf8, false),
+    ]));
+
+    let batch = RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(TimestampSecondArray::from(vec![1, 2, 3])),
+            Arc::new(BooleanArray::from(vec![true, false, true])),
+            Arc::new(Float32Array::from(vec![1.0f32, 2.0, 3.0])),
+            Arc::new(Float64Array::from(vec![1.0, 2.0, 3.0])),
+            Arc::new(Int32Array::from(vec![1, 2, 3])),
+            Arc::new(Int64Array::from(vec![1i64, 2, 3])),
+            Arc::new(UInt32Array::from(vec![1u32, 2, 3])),
+            Arc::new(UInt64Array::from(vec![1u64, 2, 3])),
+            Arc::new(StringArray::from(vec!["a", "b", "c"])),
+        ],
+    )?;
+
+    let parquet_bytes = write_to_parquet_memory(&batch)?;
+    let args = make_test_args("time", TimeFormat::AbsoluteUnixSeconds);
+
+    let mut file = tempfile::tempfile()?;
+    file.write_all(&parquet_bytes)?;
+    file.rewind()?;
+
+    let config = detect_parquet_schema::detect_flat_dataset_config(&file, &args)
+        .context("detect_flat_dataset failed, not test correct data columns")?;
+
+    assert_eq!(config.data_columns.len(), 8);
+
+    let expected: Vec<(&str, i32)> = vec![
+        ("bool_col", ChannelDataType::Bool.into()),
+        ("float32_col", ChannelDataType::Float.into()),
+        ("float64_col", ChannelDataType::Double.into()),
+        ("int32_col", ChannelDataType::Int32.into()),
+        ("int64_col", ChannelDataType::Int64.into()),
+        ("uint32_col", ChannelDataType::Uint32.into()),
+        ("uint64_col", ChannelDataType::Uint64.into()),
+        ("string_col", ChannelDataType::String.into()),
+    ];
+
+    for (col, (expected_name, expected_type)) in config.data_columns.iter().zip(expected.iter()) {
+        assert_eq!(&col.path, expected_name);
+        assert_eq!(
+            col.channel_config.as_ref().unwrap().data_type,
+            *expected_type,
+            "wrong data type for column {expected_name}"
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_relative_time_format_without_start_time_returns_error()
+-> Result<(), Box<dyn std::error::Error>> {
+    let batch = create_test_batch()?;
+    let parquet_bytes = write_to_parquet_memory(&batch)?;
+    let args = make_test_args("time", TimeFormat::RelativeNanoseconds);
+
+    let mut file = tempfile::tempfile()?;
+    file.write_all(&parquet_bytes)?;
+    file.rewind()?;
+
+    let result = detect_parquet_schema::detect_flat_dataset_config(&file, &args);
+    assert!(
+        result.is_err(),
+        "should error when relative time format has no start time"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_invalid_rfc3339_relative_start_time_returns_error() -> Result<(), Box<dyn std::error::Error>>
+{
+    let batch = create_test_batch()?;
+    let parquet_bytes = write_to_parquet_memory(&batch)?;
+    let mut args = make_test_args("time", TimeFormat::RelativeNanoseconds);
+    args.relative_start_time = Some("not-a-valid-timestamp".to_string());
+
+    let mut file = tempfile::tempfile()?;
+    file.write_all(&parquet_bytes)?;
+    file.rewind()?;
+
+    let result = detect_parquet_schema::detect_flat_dataset_config(&file, &args);
+    assert!(
+        result.is_err(),
+        "should error on invalid RFC3339 start time"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_time_path_not_in_parquet_still_returns_config() -> Result<(), Box<dyn std::error::Error>> {
+    let batch = create_test_batch()?;
+    let parquet_bytes = write_to_parquet_memory(&batch)?;
+    let args = make_test_args("nonexistent_column", TimeFormat::AbsoluteUnixSeconds);
+
+    let mut file = tempfile::tempfile()?;
+    file.write_all(&parquet_bytes)?;
+    file.rewind()?;
+
+    let config = detect_parquet_schema::detect_flat_dataset_config(&file, &args)?;
+
+    assert_eq!(config.time_column.unwrap().path, "nonexistent_column");
+    assert_eq!(config.data_columns.len(), 4);
+
+    Ok(())
 }
