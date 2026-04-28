@@ -95,7 +95,7 @@ Previously the package shipped its own bundled copies of the generated Python bi
 - [Add Parquet as an export output format](https://github.com/sift-stack/sift/pull/510)
 - [Add py.typed file to proto dir](https://github.com/sift-stack/sift/pull/524)
 - [Remove vendored google.api and protoc_gen_openapiv2 modules from buf](https://github.com/sift-stack/sift/pull/543)
-- [Remove protovalidate from client-side protos](https://github.com/sift-stack/sift/pull/XXX)
+- [Remove protovalidate from client-side protos](https://github.com/sift-stack/sift/pull/545)
 
 ## [v0.13.0] - March 24, 2026
 ### What's New
