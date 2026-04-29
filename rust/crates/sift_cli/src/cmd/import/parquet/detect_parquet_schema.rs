@@ -4,6 +4,7 @@ use arrow_schema::DataType;
 use chrono::DateTime;
 use parquet::arrow::parquet_to_arrow_schema;
 use parquet::file::metadata::ParquetMetaDataReader;
+use parquet::file::reader::ChunkReader;
 use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
@@ -11,12 +12,11 @@ use sift_rs::{
         ParquetDataColumn, ParquetFlatDatasetConfig, ParquetTimeColumn, TimeFormat,
     },
 };
-use std::fs::File;
 
 use crate::cli::FlatDatasetArgs;
 
-pub fn detect_flat_dataset_config(
-    file: &File,
+pub fn detect_flat_dataset_config<R: ChunkReader>(
+    file: &R,
     args: &FlatDatasetArgs,
 ) -> Result<ParquetFlatDatasetConfig> {
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;

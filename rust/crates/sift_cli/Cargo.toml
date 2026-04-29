@@ -40,4 +40,4 @@ zip = { workspace = true }
 [dev-dependencies]
 indoc = { workspace = true }
 arrow-array = { workspace = true }
-tempfile = { workspace = true }
+bytes = { workspace = true }

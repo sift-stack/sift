@@ -5,9 +5,9 @@ use arrow_array::{
     TimestampSecondArray, UInt32Array, UInt64Array,
 };
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
+use bytes::Bytes;
 use parquet::arrow::arrow_writer::ArrowWriter;
 use sift_rs::common::r#type::v1::ChannelDataType;
-use std::io::{Seek, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -51,7 +51,7 @@ fn create_test_batch() -> RecordBatch {
     .expect("failed to create test record batch")
 }
 
-fn write_to_parquet_memory(batch: &RecordBatch) -> Vec<u8> {
+fn write_to_parquet_bytes(batch: &RecordBatch) -> Bytes {
     let mut buffer = Vec::new();
     let mut writer = ArrowWriter::try_new(&mut buffer, batch.schema(), None)
         .expect("failed to create parquet writer");
@@ -59,21 +59,16 @@ fn write_to_parquet_memory(batch: &RecordBatch) -> Vec<u8> {
         .write(batch)
         .expect("failed to write batch to parquet");
     writer.close().expect("failed to close parquet writer");
-    buffer
+    Bytes::from(buffer)
 }
 
 #[test]
 fn test_detect_parquet_on_import() {
     let batch = create_test_batch();
-    let parquet_bytes = write_to_parquet_memory(&batch);
+    let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args("time", TimeFormat::AbsoluteUnixSeconds);
 
-    let mut file = tempfile::tempfile().expect("failed to create temp file");
-    file.write_all(&parquet_bytes)
-        .expect("failed to write parquet bytes");
-    file.rewind().expect("failed to rewind file");
-
-    let config = detect_parquet_schema::detect_flat_dataset_config(&file, &args)
+    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to detect flat dataset config");
 
     let time_col = config
@@ -91,15 +86,10 @@ fn test_detect_parquet_on_import() {
 #[test]
 fn test_time_column_excluded_from_data_columns() {
     let batch = create_test_batch();
-    let parquet_bytes = write_to_parquet_memory(&batch);
+    let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args("time", TimeFormat::AbsoluteUnixSeconds);
 
-    let mut file = tempfile::tempfile().expect("failed to create temp file");
-    file.write_all(&parquet_bytes)
-        .expect("failed to write parquet bytes");
-    file.rewind().expect("failed to rewind file");
-
-    let config = detect_parquet_schema::detect_flat_dataset_config(&file, &args)
+    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to detect flat dataset config");
 
     for col in &config.data_columns {
@@ -269,20 +259,15 @@ fn test_detect_config_assigns_correct_data_types_for_varied_columns() {
     )
     .expect("failed to create varied columns record batch");
 
-    let parquet_bytes = write_to_parquet_memory(&batch);
+    let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args("time", TimeFormat::AbsoluteUnixSeconds);
 
-    let mut file = tempfile::tempfile().expect("failed to create temp file");
-    file.write_all(&parquet_bytes)
-        .expect("failed to write parquet bytes");
-    file.rewind().expect("failed to rewind file");
-
-    let config = detect_parquet_schema::detect_flat_dataset_config(&file, &args)
+    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to detect flat dataset config");
 
     assert_eq!(config.data_columns.len(), 8);
 
-    let expected = vec![
+    let expected = [
         ("bool_col", i32::from(ChannelDataType::Bool)),
         ("float32_col", i32::from(ChannelDataType::Float)),
         ("float64_col", i32::from(ChannelDataType::Double)),
@@ -306,15 +291,10 @@ fn test_detect_config_assigns_correct_data_types_for_varied_columns() {
 #[test]
 fn test_relative_time_format_without_start_time_returns_error() {
     let batch = create_test_batch();
-    let parquet_bytes = write_to_parquet_memory(&batch);
+    let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args("time", TimeFormat::RelativeNanoseconds);
 
-    let mut file = tempfile::tempfile().expect("failed to create temp file");
-    file.write_all(&parquet_bytes)
-        .expect("failed to write parquet bytes");
-    file.rewind().expect("failed to rewind file");
-
-    let result = detect_parquet_schema::detect_flat_dataset_config(&file, &args);
+    let result = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args);
     assert!(
         result.is_err(),
         "should error when relative time format has no start time"
@@ -324,16 +304,11 @@ fn test_relative_time_format_without_start_time_returns_error() {
 #[test]
 fn test_invalid_rfc3339_relative_start_time_returns_error() {
     let batch = create_test_batch();
-    let parquet_bytes = write_to_parquet_memory(&batch);
+    let bytes = write_to_parquet_bytes(&batch);
     let mut args = make_test_args("time", TimeFormat::RelativeNanoseconds);
     args.relative_start_time = Some("not-a-valid-timestamp".to_string());
 
-    let mut file = tempfile::tempfile().expect("failed to create temp file");
-    file.write_all(&parquet_bytes)
-        .expect("failed to write parquet bytes");
-    file.rewind().expect("failed to rewind file");
-
-    let result = detect_parquet_schema::detect_flat_dataset_config(&file, &args);
+    let result = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args);
     assert!(
         result.is_err(),
         "should error on invalid RFC3339 start time"
@@ -343,15 +318,10 @@ fn test_invalid_rfc3339_relative_start_time_returns_error() {
 #[test]
 fn test_time_path_not_in_parquet_returns_error() {
     let batch = create_test_batch();
-    let parquet_bytes = write_to_parquet_memory(&batch);
+    let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args("nonexistent_column", TimeFormat::AbsoluteUnixSeconds);
 
-    let mut file = tempfile::tempfile().expect("failed to create temp file");
-    file.write_all(&parquet_bytes)
-        .expect("failed to write parquet bytes");
-    file.rewind().expect("failed to rewind file");
-
-    let result = detect_parquet_schema::detect_flat_dataset_config(&file, &args);
+    let result = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args);
     assert!(
         result.is_err(),
         "should error when time path is not found in parquet schema"

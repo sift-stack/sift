@@ -33,12 +33,12 @@ use crate::{
 pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
     let mut data_imports_client = DataImportServiceClient::new(grpc_channel.clone());
-    let mut file = File::open(&args.path).context("failed to open Parquet file")?;
+    let mut file = File::open(&args.path).context("failed to open parquet file")?;
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
     let mut config = {
         let flat_dataset_config =
-            detect_flat_dataset_config(&file, &args).context("failed to detect Parquet schema")?;
+            detect_flat_dataset_config(&file, &args).context("failed to detect parquet schema")?;
         ParquetConfig {
             config: Some(Config::FlatDataset(flat_dataset_config)),
             ..Default::default()
@@ -50,7 +50,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     if args.preview {
         let parquet_conf = create_data_import_req.parquet_config.unwrap();
         let Config::FlatDataset(flatset_conf) = parquet_conf.config.unwrap() else {
-            anyhow::bail!("expected FlatDataset config for preview");
+            anyhow::bail!("expected flatdataset config for preview");
         };
 
         let channel_confs = flatset_conf
