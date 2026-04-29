@@ -340,15 +340,15 @@ pub struct FlatDatasetArgs {
     pub bit_field_config: Vec<String>,
 
     /// Path to the time column
-    #[arg(short, long, default_value_t = String::from("timestamp"))]
+    #[arg(short, long)]
     pub time_path: String,
 
     /// Time format used in the file
-    #[arg(short = 'f', long, default_value_t = TimeFormat::default())]
+    #[arg(short = 'f', long)]
     pub time_format: TimeFormat,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's')]
+    #[arg(short = 's', long)]
     pub relative_start_time: Option<String>,
 
     /// Strategy for handling complex types (maps, lists, structs)

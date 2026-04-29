@@ -1,10 +1,14 @@
 #[cfg(not(target_os = "windows"))]
-use unix::{FooterMetadata, get_footer};
+use unix::FooterMetadata;
 
 #[cfg(target_os = "windows")]
 use windows::{FooterMetadata, get_footer};
 
+pub mod detect_parquet_schema;
 pub mod flat_dataset;
+
+#[cfg(test)]
+mod tests;
 
 #[cfg(not(target_os = "windows"))]
 mod unix {
@@ -12,7 +16,6 @@ mod unix {
     use std::{
         fs::File,
         io::{Read, Seek, SeekFrom},
-        os::unix::fs::FileExt,
     };
 
     /// Metadata about the Parquet's footer
@@ -22,13 +25,6 @@ mod unix {
         pub offset: u64,
         /// Length of the Parquet file's footer
         pub length: u64,
-    }
-
-    pub fn get_footer(file: &mut File, footer_metadata: FooterMetadata) -> Result<Vec<u8>> {
-        let FooterMetadata { length, offset } = footer_metadata;
-        let mut buf = vec![0u8; length as usize];
-        file.read_exact_at(&mut buf, offset)?;
-        Ok(buf)
     }
 
     /// Note that this will advance the cursor.
