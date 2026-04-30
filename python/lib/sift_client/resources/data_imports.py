@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
-from sift_client._internal.util.hdf5 import detect_hdf5_config
-from sift_client._internal.util.tdms import detect_tdms_config
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.data_import import (
@@ -240,8 +238,22 @@ class DataImportAPIAsync(ResourceBase):
         data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
 
         if data_type_key == DataTypeKey.HDF5:
+            try:
+                from sift_client._internal.util.hdf5 import detect_hdf5_config
+            except ImportError as e:
+                raise RuntimeError(
+                    "h5py is required for HDF5 import. "
+                    "Install it via `pip install sift-stack-py[hdf5]`."
+                ) from e
             return await run_sync_function(lambda: detect_hdf5_config(path))
         if data_type_key == DataTypeKey.TDMS:
+            try:
+                from sift_client._internal.util.tdms import detect_tdms_config
+            except ImportError as e:
+                raise RuntimeError(
+                    "npTDMS is required for TDMS import. "
+                    "Install it via `pip install sift-stack-py[tdms]`."
+                ) from e
             return await run_sync_function(lambda: detect_tdms_config(path))
 
         is_parquet = data_type_key in (
