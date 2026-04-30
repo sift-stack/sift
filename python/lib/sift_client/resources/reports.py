@@ -66,6 +66,7 @@ class ReportsAPIAsync(ResourceBase):
         modified_by: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         created_after: datetime | None = None,
@@ -91,6 +92,8 @@ class ReportsAPIAsync(ResourceBase):
             modified_by: The user ID of the last modifier of the reports.
             order_by: How to order the retrieved reports.
             limit: How many reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
             include_archived: Whether to include archived reports.
             filter_query: Explicit CEL query to filter reports.
             created_after: Filter reports created after this datetime.
@@ -142,6 +145,7 @@ class ReportsAPIAsync(ResourceBase):
             organization_id=organization_id,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(reports)
 
