@@ -163,7 +163,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         file_attachments = await self._low_level_client.list_all_remote_files(
             query_filter=query_filter or None,
             max_results=limit,
-            **({"page_size": page_size} if page_size is not None else {}),
+            **({"page_size": page_size} if page_size is not None else {}),  # type: ignore[arg-type]
         )
         return self._apply_client_to_instances(file_attachments)
 

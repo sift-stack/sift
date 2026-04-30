@@ -172,7 +172,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             query_filter=query_filter or None,
             order_by=order_by,
             max_results=limit,
-            **({"page_size": page_size} if page_size is not None else {}),
+            **({"page_size": page_size} if page_size is not None else {}),  # type: ignore[arg-type]
         )
         return self._apply_client_to_instances(calculated_channels)
 
@@ -367,7 +367,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             query_filter=query_filter or None,
             order_by=order_by,
             limit=limit,
-            **({"page_size": page_size} if page_size is not None else {}),
+            **({"page_size": page_size} if page_size is not None else {}),  # type: ignore[arg-type]
         )
 
         return self._apply_client_to_instances(versions)
