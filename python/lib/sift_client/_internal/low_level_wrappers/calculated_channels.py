@@ -259,6 +259,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
     ) -> list[CalculatedChannel]:
         """List all versions of a calculated channel."""
         return await self._handle_pagination(
@@ -271,4 +272,5 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             },
             order_by=order_by,
             max_results=limit,
+            page_size=page_size,
         )

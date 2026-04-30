@@ -136,6 +136,7 @@ class AssetsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Asset]:
         """List assets with optional filtering.
 
@@ -158,6 +159,8 @@ class AssetsAPI:
             filter_query: Explicit CEL query to filter assets.
             order_by: Field and direction to order results by.
             limit: Maximum number of assets to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Asset objects that match the filter criteria.
@@ -285,6 +288,7 @@ class CalculatedChannelsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[CalculatedChannel]:
         """List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
 
@@ -311,6 +315,8 @@ class CalculatedChannelsAPI:
             filter_query: Explicit CEL query to filter calculated channels.
             order_by: How to order the retrieved calculated channels.
             limit: How many calculated channels to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of CalculatedChannels that matches the filter.
@@ -339,6 +345,7 @@ class CalculatedChannelsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[CalculatedChannel]:
         """List versions of a calculated channel.
 
@@ -362,6 +369,8 @@ class CalculatedChannelsAPI:
             filter_query: Explicit CEL query to filter versions.
             order_by: How to order the retrieved versions.
             limit: Maximum number of versions to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of CalculatedChannel versions that match the filter criteria.
@@ -509,6 +518,7 @@ class ChannelsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Channel]:
         """List channels with optional filtering.
 
@@ -530,6 +540,8 @@ class ChannelsAPI:
             filter_query: Explicit CEL query to filter channels.
             order_by: Field and direction to order results by.
             limit: Maximum number of channels to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Channels that matches the filter criteria.
@@ -865,6 +877,7 @@ class FileAttachmentsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
 
@@ -881,6 +894,8 @@ class FileAttachmentsAPI:
             filter_query: Explicit CEL query to filter file attachments.
             order_by: Field and direction to order results by. Note: Not supported by the backend, but it is here for API consistency.
             limit: Maximum number of file attachments to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of FileAttachment objects that match the filter criteria.
@@ -981,6 +996,7 @@ class JobsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Job]:
         """List jobs with optional filtering.
 
@@ -1002,6 +1018,8 @@ class JobsAPI:
             filter_query: Explicit CEL query to filter jobs. If provided, other filter arguments are ignored.
             order_by: Field and direction to order results by.
             limit: Maximum number of jobs to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Job objects that match the filter criteria.
@@ -1266,6 +1284,7 @@ class ReportsAPI:
         modified_by: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         created_after: datetime | None = None,
@@ -1291,6 +1310,8 @@ class ReportsAPI:
             modified_by: The user ID of the last modifier of the reports.
             order_by: How to order the retrieved reports.
             limit: How many reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
             include_archived: Whether to include archived reports.
             filter_query: Explicit CEL query to filter reports.
             created_after: Filter reports created after this datetime.
@@ -1502,6 +1523,7 @@ class RulesAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Rule]:
         """List rules with optional filtering.
 
@@ -1526,6 +1548,8 @@ class RulesAPI:
             filter_query: Explicit CEL query to filter rules.
             order_by: Field and direction to order results by.
             limit: Maximum number of rules to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, defaults to `limit`.
 
         Returns:
             A list of Rules that matches the filter.
@@ -1541,6 +1565,7 @@ class RulesAPI:
         rule_version_ids: list[str] | None = None,
         filter_query: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[RuleVersion]:
         """List versions of a rule with optional filtering.
 
@@ -1551,6 +1576,8 @@ class RulesAPI:
             rule_version_ids: Limit to these rule version IDs.
             filter_query: Raw CEL filter (fields: rule_version_id, user_notes, change_message).
             limit: Maximum number of versions to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, defaults to `limit`.
 
         Returns:
             A list of RuleVersion objects matching the filters, ordered by newest versions first.
@@ -1690,6 +1717,7 @@ class RunsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Run]:
         """List runs with optional filtering.
 
@@ -1722,6 +1750,8 @@ class RunsAPI:
             filter_query: Explicit CEL query to filter runs.
             order_by: Field and direction to order results by.
             limit: Maximum number of runs to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Run objects that match the filter criteria.
@@ -1816,6 +1846,7 @@ class TagsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Tag]:
         """List tags with optional filtering.
 
@@ -1828,6 +1859,8 @@ class TagsAPI:
             filter_query: Explicit CEL query to filter tags.
             order_by: How to order the retrieved tags.
             limit: How many tags to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Tags that matches the filter.
@@ -2040,6 +2073,7 @@ class TestResultsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestReport]:
         """List test reports with optional filtering.
 
@@ -2066,6 +2100,8 @@ class TestResultsAPI:
             filter_query: Custom filter to apply to the test reports.
             order_by: How to order the retrieved test reports. If used, this will override the other filters.
             limit: How many test reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestReports that matches the filter.
@@ -2087,6 +2123,7 @@ class TestResultsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestMeasurement]:
         """List test measurements with optional filtering.
 
@@ -2103,6 +2140,8 @@ class TestResultsAPI:
             filter_query: Explicit CEL query to filter test measurements.
             order_by: How to order the retrieved test measurements.
             limit: How many test measurements to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestMeasurements that matches the filter.
@@ -2124,6 +2163,7 @@ class TestResultsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestStep]:
         """List test steps with optional filtering.
 
@@ -2140,6 +2180,8 @@ class TestResultsAPI:
             filter_query: Explicit CEL query to filter test steps.
             order_by: How to order the retrieved test steps.
             limit: How many test steps to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestSteps that matches the filter.

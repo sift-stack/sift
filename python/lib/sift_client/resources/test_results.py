@@ -125,6 +125,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestReport]:
         """List test reports with optional filtering.
 
@@ -151,6 +152,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Custom filter to apply to the test reports.
             order_by: How to order the retrieved test reports. If used, this will override the other filters.
             limit: How many test reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestReports that matches the filter.
@@ -204,6 +207,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_reports)
 
@@ -321,6 +325,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestStep]:
         """List test steps with optional filtering.
 
@@ -337,6 +342,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter test steps.
             order_by: How to order the retrieved test steps.
             limit: How many test steps to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestSteps that matches the filter.
@@ -384,6 +391,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_steps)
 
@@ -503,6 +511,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestMeasurement]:
         """List test measurements with optional filtering.
 
@@ -519,6 +528,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter test measurements.
             order_by: How to order the retrieved test measurements.
             limit: How many test measurements to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestMeasurements that matches the filter.
@@ -566,6 +577,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_measurements)
 
