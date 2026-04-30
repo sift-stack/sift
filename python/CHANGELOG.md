@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.14.1] - April 30, 2026
+
+### Bugfixes
+- Lazy-import `h5py` and `nptdms` so the base install doesn't require them. ([#547](https://github.com/sift-stack/sift/pull/547))
+- Expose `page_size` on resource list methods so callers can shrink pages when responses hit gRPC message-size limits. ([#548](https://github.com/sift-stack/sift/pull/548))
+
 ## [v0.14.0] - April 28, 2026
 
 ### What's New
