@@ -101,6 +101,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[CalculatedChannel]:
         """List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
 
@@ -127,6 +128,8 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter calculated channels.
             order_by: How to order the retrieved calculated channels.
             limit: How many calculated channels to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of CalculatedChannels that matches the filter.
@@ -169,6 +172,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             query_filter=query_filter or None,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),  # type: ignore[arg-type]
         )
         return self._apply_client_to_instances(calculated_channels)
 
@@ -304,6 +308,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[CalculatedChannel]:
         """List versions of a calculated channel.
 
@@ -327,6 +332,8 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter versions.
             order_by: How to order the retrieved versions.
             limit: Maximum number of versions to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of CalculatedChannel versions that match the filter criteria.
@@ -360,6 +367,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             query_filter=query_filter or None,
             order_by=order_by,
             limit=limit,
+            **({"page_size": page_size} if page_size is not None else {}),  # type: ignore[arg-type]
         )
 
         return self._apply_client_to_instances(versions)

@@ -1,29 +1,26 @@
 use std::{collections::HashMap, fs::File, io::Seek, process::ExitCode};
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
-use chrono::DateTime;
 use crossterm::style::Stylize;
-use pbjson_types::Timestamp;
 use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
-        CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse, DataTypeKey,
-        DetectConfigRequest, ParquetComplexTypesImportMode, ParquetConfig, ParquetTimeColumn,
-        TimeFormat, data_import_service_client::DataImportServiceClient, parquet_config::Config,
+        CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse,
+        ParquetComplexTypesImportMode, ParquetConfig,
+        data_import_service_client::DataImportServiceClient, parquet_config::Config,
     },
 };
 
+use crate::cmd::import::parquet::detect_parquet_schema::detect_flat_dataset_config;
 use crate::{
     cli::{FlatDatasetArgs, channel::DataType},
     cmd::{
         Context,
         import::{
-            parquet::{FooterMetadata, get_footer},
+            parquet::FooterMetadata,
             preview_import_config,
-            utils::{
-                gzip_file, try_parse_bit_field_config, try_parse_enum_config, validate_time_format,
-            },
+            utils::{gzip_file, try_parse_bit_field_config, try_parse_enum_config},
             wait_for_job_completion,
         },
     },
@@ -36,31 +33,24 @@ use crate::{
 pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
     let mut data_imports_client = DataImportServiceClient::new(grpc_channel.clone());
-    let mut file = File::open(&args.path).context("failed to open Parquet file")?;
+    let mut file = File::open(&args.path).context("failed to open parquet file")?;
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
     let mut config = {
-        let footer = get_footer(&mut file, footer_md)?;
-        let resp = data_imports_client
-            .detect_config(DetectConfigRequest {
-                data: footer,
-                r#type: DataTypeKey::ParquetFlatdataset.into(),
-            })
-            .await
-            .context("failed to parse Parquet schema")?
-            .into_inner();
-
-        resp.parquet_config
-            .ok_or(anyhow!("unexpected empty Parquet config"))?
+        let flat_dataset_config =
+            detect_flat_dataset_config(&file, &args).context("failed to detect parquet schema")?;
+        ParquetConfig {
+            config: Some(Config::FlatDataset(flat_dataset_config)),
+            ..Default::default()
+        }
     };
-
     update_config_with_overrides(&mut config, &args)?;
     let create_data_import_req = create_data_import_request(&args, config, footer_md)?;
 
     if args.preview {
         let parquet_conf = create_data_import_req.parquet_config.unwrap();
         let Config::FlatDataset(flatset_conf) = parquet_conf.config.unwrap() else {
-            anyhow::bail!("expected FlatDataset config for preview");
+            anyhow::bail!("expected flatdataset config for preview");
         };
 
         let channel_confs = flatset_conf
@@ -141,24 +131,6 @@ fn update_config_with_overrides(
             "failed to find any channel data columns in the provided Parquet file"
         ));
     }
-    validate_time_format(args.time_format, &args.relative_start_time)?;
-
-    let relative_start_time = match &args.relative_start_time {
-        Some(start) => {
-            let rs = DateTime::parse_from_rfc3339(start)
-                .context("--relative-start-time is not valid RFC3339")?;
-            let utc = rs.to_utc();
-            Some(Timestamp::from(utc))
-        }
-        None => None,
-    };
-
-    flat_dataset_conf.time_column = Some(ParquetTimeColumn {
-        relative_start_time,
-        path: args.time_path.clone(),
-        format: TimeFormat::from(args.time_format).into(),
-    });
-
     let num_overrides = args.channel_path.len();
 
     if ![

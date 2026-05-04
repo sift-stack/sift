@@ -3,8 +3,105 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.14.1] - April 30, 2026
 
-https://github.com/sift-stack/sift/commit/e1305363e95cafb4c980fdd493f69e72660a52fb
+### Bugfixes
+- Lazy-import `h5py` and `nptdms` so the base install doesn't require them. ([#547](https://github.com/sift-stack/sift/pull/547))
+- Expose `page_size` on resource list methods so callers can shrink pages when responses hit gRPC message-size limits. ([#548](https://github.com/sift-stack/sift/pull/548))
+
+## [v0.14.0] - April 28, 2026
+
+### What's New
+
+#### Data Import API in SiftClient
+The `sift_client` module now exposes a data import API supporting CSV, Parquet, TDMS, and HDF5. With this addition, all features previously available only in `sift_py` are now available in `sift_client`, which remains the recommended interface for new development. `sift_py` (deprecated since [v0.10.0](#v0100---january-30-2026)) continues to work and ship in this release.
+
+Migrating from `sift_py`: the per-format upload services (`CsvUploadService`, `ParquetUploadService`, `Hdf5UploadService`, `TdmsUploadService`) collapse into a single `client.data_import.import_from_path` method. `sift_py` only auto-detected for CSV via `simple_upload`; other formats required more setup. `sift_client` unifies all four with auto-detection built into `import_from_path` itself: the `config` argument is optional, so the common call takes just a file path and target asset. Call `client.data_import.detect_config(...)` first if you want to inspect or patch the config before importing. `import_from_path` returns a `Job` you can optionally wait on.
+```python
+# sift_py (deprecated)
+from sift_py.data_import.csv import CsvUploadService
+from sift_py.rest import SiftRestConfig
+
+rest_conf: SiftRestConfig = {"uri": sift_uri, "apikey": apikey}
+csv_service = CsvUploadService(rest_conf)
+import_service = csv_service.simple_upload(asset_name="my_asset", path="data.csv")
+import_service.wait_until_complete()
+
+# sift_client
+from sift_client import SiftClient
+
+client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
+job = client.data_import.import_from_path("data.csv", asset="my_asset")
+job.wait_until_complete()
+```
+
+Format-by-format support:
+- **CSV**: auto-detected from `.csv`. Supports an optional JSON metadata row (row 1 or row 2) for specifying channel names, units, data types, and the time column format.
+- **Parquet**: requires an explicit `data_type` (`PARQUET_FLATDATASET` or `PARQUET_SINGLE_CHANNEL_PER_ROW`) since `.parquet` alone doesn't disambiguate the layout. Detection only reads the file footer, so it stays fast on large files.
+- **HDF5**: new in this release. Auto-detected from `.h5` / `.hdf5`. Detection works out-of-the-box for files with a compound-dataset layout (first field = time) or a shared root-level `time` dataset; other layouts may need a hand-built `config`.
+- **TDMS**: new in this release. Auto-detected from `.tdms` and recognizes the common timing conventions (group-level `xchannel`, first-channel `TimeStamp`, or per-channel waveform properties). `TdmsImportConfig` controls handling of untimed channels (`fallback_method`), complex values (`complex_component`), scaled vs. raw data, and waveform start-time overrides.
+
+#### Parquet as an Export Output Format
+`client.data_export.export(...)` now accepts `ExportOutputFormat.PARQUET` alongside the existing CSV and Sun/WinPlot options. Unlike the `sift_py` `DataService` + `DataFrame.to_parquet()` pattern (async-only, buffers everything in memory, name-strings only), the new export API runs as a server-side job, works sync or async, accepts `Asset`/`Channel` objects or IDs, and scales to large exports.
+
+```python
+# sift_py (deprecated): no dedicated export API, so query in-memory and write yourself
+import pandas as pd
+from sift_py.data.query import ChannelQuery, DataQuery
+from sift_py.data.service import DataService
+from sift_py.grpc.transport import use_sift_async_channel
+
+async with use_sift_async_channel({"uri": sift_uri, "apikey": apikey}) as channel:
+    result = await DataService(channel).execute(DataQuery(
+        asset_name="my_asset",
+        start_time=start,
+        end_time=stop,
+        channels=[ChannelQuery(channel_name="my_channel")],
+    ))
+    pd.DataFrame(result.all_channels()[0].columns()).to_parquet("out.parquet")
+
+# sift_client
+from sift_client import SiftClient
+from sift_client.sift_types.export import ExportOutputFormat
+
+client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
+job = client.data_export.export(
+    assets=["my_asset"],          # accepts Asset objects or IDs
+    channels=["my_channel"],      # accepts Channel objects or IDs
+    start_time=start,
+    stop_time=stop,
+    output_format=ExportOutputFormat.PARQUET,
+)
+files = job.wait_and_download(output_dir="./exports")
+```
+
+`wait_and_download` polls the job to completion, downloads the resulting archive, and returns the list of downloaded file paths. Both arguments shown are optional: if `output_dir` is omitted, a temporary directory is created and used. By default the downloaded zip is extracted (and the archive deleted) so you get the Parquet files directly; pass `extract=False` to keep the zip instead, which is useful if you want to hand the whole bundle off to another system without unpacking it client-side.
+
+#### Test Result Logging
+Test result create and update events can now be optionally written to a `.jsonl` log file during a test run, then replayed against the Sift API later via the new `import-test-result-log` CLI command (installed with the package).
+
+#### Progress Indicators
+Adds progress indicators for job polling and file downloads for better visibility during long-running operations.
+
+#### Stop Bundling `google.api`, `protoc_gen_openapiv2`, and `buf.validate`
+Previously the package shipped its own bundled copies of the generated Python bindings for `google.api`, `protoc_gen_openapiv2`, and `buf.validate`. With this release:
+- `google.api` and `protoc_gen_openapiv2` are now pulled in via the `googleapis-common-protos` and `protoc-gen-openapiv2` runtime dependencies, so pip installs the upstream-maintained versions.
+- `buf.validate` has been removed entirely. The protovalidate field annotations were stripped from the affected `.proto` files, so the generated `_pb2.py` files no longer reference `buf.validate`.
+
+### Bugfixes
+- Add `py.typed` to the generated proto directory so type checkers pick up protobuf types correctly.
+
+### Full Changelog
+- [Add data import API to sift_client](https://github.com/sift-stack/sift/pull/515)
+- [Add HDF5 client-side detect_config](https://github.com/sift-stack/sift/pull/536)
+- [Add TDMS client-side detect_config](https://github.com/sift-stack/sift/pull/538)
+- [Add optional logging of test result create and update events](https://github.com/sift-stack/sift/pull/529)
+- [Add progress indicators for job polling and file downloads](https://github.com/sift-stack/sift/pull/517)
+- [Refactor files using run_in_executor](https://github.com/sift-stack/sift/pull/518)
+- [Add Parquet as an export output format](https://github.com/sift-stack/sift/pull/510)
+- [Add py.typed file to proto dir](https://github.com/sift-stack/sift/pull/524)
+- [Remove vendored google.api and protoc_gen_openapiv2 modules from buf](https://github.com/sift-stack/sift/pull/543)
+- [Remove protovalidate from client-side protos](https://github.com/sift-stack/sift/pull/545)
 
 ## [v0.13.0] - March 24, 2026
 ### What's New

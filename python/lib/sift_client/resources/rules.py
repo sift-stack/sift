@@ -84,6 +84,7 @@ class RulesAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Rule]:
         """List rules with optional filtering.
 
@@ -108,6 +109,8 @@ class RulesAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter rules.
             order_by: Field and direction to order results by.
             limit: Maximum number of rules to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, defaults to `limit`.
 
         Returns:
             A list of Rules that matches the filter.
@@ -146,7 +149,7 @@ class RulesAPIAsync(ResourceBase):
             filter_query=query_filter,
             order_by=order_by,
             max_results=limit,
-            page_size=limit,
+            page_size=page_size if page_size is not None else limit,
         )
         return self._apply_client_to_instances(rules)
 
@@ -338,6 +341,7 @@ class RulesAPIAsync(ResourceBase):
         rule_version_ids: list[str] | None = None,
         filter_query: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[RuleVersion]:
         """List versions of a rule with optional filtering.
 
@@ -348,6 +352,8 @@ class RulesAPIAsync(ResourceBase):
             rule_version_ids: Limit to these rule version IDs.
             filter_query: Raw CEL filter (fields: rule_version_id, user_notes, change_message).
             limit: Maximum number of versions to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, defaults to `limit`.
 
         Returns:
             A list of RuleVersion objects matching the filters, ordered by newest versions first.
@@ -372,7 +378,7 @@ class RulesAPIAsync(ResourceBase):
             rule_id=rule_id,
             filter_query=query_filter,
             max_results=limit,
-            page_size=limit,
+            page_size=page_size if page_size is not None else limit,
         )
 
     async def get_rule_version(self, rule_version: RuleVersion | str) -> Rule:

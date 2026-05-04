@@ -58,7 +58,15 @@ The report context and steps can also be accessed in pytest by importing the `re
   - If you want each module(file) to be marked as a step w/ each test as a substep, import the `module_substep` fixture as well.
 - The `report_context` fixture requires a fixture `sift_client` returning an `SiftClient` instance to be passed in.
 
-Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you should import the `report_context_no_logging` fixture instead.
+Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you can disable logging by passing ``--sift-test-results-log-file=false``.
+
+#### Configuration
+
+Import the `pytest_addoption` function to add configuration options for Test Results to the commandline or add the options to your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration). If ommitted, will use the default values described below.
+
+- Git metadata: Include git metadata (repo, branch, commit) in the test results. Default is True. You can disable it by passing `--no-sift-test-results-git-metadata`.
+- Log file: Write test results to a file. This happens automatically but you can configure specify a specific log file by passing `--sift-test-results-log-file=<path>` or disable logging by passing `--sift-test-results-log-file=false`.
+- Check connection: Pass `--sift-test-results-check-connection` (off by default) to make the `report_context`, `step`, and `module_substep` fixtures no-op when the Sift client has no connection to the server. Requires a `client_has_connection` fixture to be available.
 
 ###### Example at top of your test file or in your conftest.py file:
 
@@ -75,7 +83,7 @@ def sift_client() -> SiftClient:
 
     return client
 
-from sift_client.util.test_results import pytest_runtest_makereport, report_context, step, module_substep
+from sift_client.util.test_results import *
 ```
 
 ###### Then in your test file:
@@ -100,13 +108,10 @@ from .context_manager import NewStep, ReportContext
 from .pytest_util import (
     client_has_connection,
     module_substep,
-    module_substep_check_connection,
+    pytest_addoption,
     pytest_runtest_makereport,
     report_context,
-    report_context_check_connection,
-    report_context_no_logging,
     step,
-    step_check_connection,
 )
 
 __all__ = [
@@ -114,11 +119,8 @@ __all__ = [
     "ReportContext",
     "client_has_connection",
     "module_substep",
-    "module_substep_check_connection",
+    "pytest_addoption",
     "pytest_runtest_makereport",
     "report_context",
-    "report_context_check_connection",
-    "report_context_no_logging",
     "step",
-    "step_check_connection",
 ]

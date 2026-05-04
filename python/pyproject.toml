@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.13.0"
+version = "0.14.1"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -26,6 +26,7 @@ keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
     "grpcio~=1.13",
     "PyYAML~=6.0",
+    "rapidyaml~=0.11",
     "pandas>=2.0,<3.1",
     "protobuf>=5.0",
     "pydantic~=2.10",
@@ -41,6 +42,8 @@ dependencies = [
     "types-protobuf>=5.0",
     "typing-extensions~=4.6",
     "types-requests~=2.25",
+    "googleapis-common-protos>=1.60",
+    "protoc-gen-openapiv2>=0.0.1",
 ]
 
 [project.urls]
@@ -276,8 +279,6 @@ exclude = [
     "venv",
     "lib/sift",
     "lib/buf",
-    "lib/google",
-    "lib/protoc_gen_openapiv2",
 ]
 
 # No official typing stubs for Python gRPC libraries yet.
@@ -318,6 +319,10 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "ruamel"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ryml"
 ignore_missing_imports = true
 ignore_errors = true
 
@@ -367,9 +372,7 @@ exclude = [
     "site-packages",
     "venv",
     "lib/sift",
-    "lib/google",
     "lib/buf",
-    "lib/protoc_gen_openapiv2",
 ]
 
 [tool.ruff.lint]

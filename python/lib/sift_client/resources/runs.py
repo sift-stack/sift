@@ -94,6 +94,7 @@ class RunsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Run]:
         """List runs with optional filtering.
 
@@ -126,6 +127,8 @@ class RunsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter runs.
             order_by: Field and direction to order results by.
             limit: Maximum number of runs to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Run objects that match the filter criteria.
@@ -185,6 +188,7 @@ class RunsAPIAsync(ResourceBase):
             query_filter=query_filter or None,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(runs)
 

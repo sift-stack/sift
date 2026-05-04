@@ -24,8 +24,11 @@ license = "MIT"
 
 [workspace.dependencies]
 anyhow = "1.0"
+arrow-array = "58.1.0"
+arrow-schema = "58.1.0"
 async-channel = "2.2"
 async-trait = "^0.1"
+bytes = "1.11.1"
 bytesize = { version = "2" }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 clap = { version = "4.6", features = ["cargo", "derive", "wrap_help"] }

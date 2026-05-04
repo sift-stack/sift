@@ -2,14 +2,10 @@ syntax = "proto3";
 
 package sift.common.type.v1;
 
-import "buf/validate/validate.proto";
 import "google/api/field_behavior.proto";
 
 
 // A dependency on another calculated channel.
 message CalculatedChannelDependency {
-  string calculated_channel_version_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string calculated_channel_version_id = 1 [(google.api.field_behavior) = REQUIRED];
 }

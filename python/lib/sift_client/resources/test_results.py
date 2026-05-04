@@ -125,6 +125,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestReport]:
         """List test reports with optional filtering.
 
@@ -151,6 +152,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Custom filter to apply to the test reports.
             order_by: How to order the retrieved test reports. If used, this will override the other filters.
             limit: How many test reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestReports that matches the filter.
@@ -204,6 +207,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_reports)
 
@@ -321,6 +325,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestStep]:
         """List test steps with optional filtering.
 
@@ -337,6 +342,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter test steps.
             order_by: How to order the retrieved test steps.
             limit: How many test steps to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestSteps that matches the filter.
@@ -384,6 +391,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_steps)
 
@@ -503,6 +511,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestMeasurement]:
         """List test measurements with optional filtering.
 
@@ -519,6 +528,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter test measurements.
             order_by: How to order the retrieved test measurements.
             limit: How many test measurements to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestMeasurements that matches the filter.
@@ -566,6 +577,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_measurements)
 
@@ -619,6 +631,7 @@ class TestResultsAPIAsync(ResourceBase):
     async def import_log_file(
         self,
         log_file: str | Path,
+        incremental: bool = False,
     ) -> ReplayResult:
         """Replay a log file by parsing each entry, simulating the results, then creating for real.
 
@@ -627,12 +640,13 @@ class TestResultsAPIAsync(ResourceBase):
         IDs are mapped from simulated to real during the creation process.
 
         Args:
-            log_file: Path to the log file to replay.
+            log_file: Path to the log file to import.
+            incremental: (internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
         """
-        result = await self._low_level_client.import_log_file(log_file)
+        result = await self._low_level_client.import_log_file(log_file, incremental=incremental)
         result.report = self._apply_client_to_instance(result.report)
         result.steps = self._apply_client_to_instances(result.steps)
         result.measurements = self._apply_client_to_instances(result.measurements)
