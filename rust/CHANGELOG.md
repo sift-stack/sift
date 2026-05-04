@@ -7,10 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### What's New
 
 v0.9.0 introduces a redesigned `SiftStream` builder API with explicit streaming mode selection,
-a renamed send method with recoverable error types, new `FlowBuilder`/`FlowDescriptor` helpers for
-high-performance sends, gRPC status-code metrics, scoped tracing dispatch, and updated protobufs.
-This release contains several **breaking API changes** — see the sections below for full details
-and a ready-to-use upgrade prompt for AI-assisted migration.
+a renamed send method with recoverable error types, a new `LiveStreamingOnly` transport mode,
+gRPC status-code metrics, a scoped tracing dispatch for capturing internal logs, and updated
+protobufs. This release contains several **breaking API changes** — see the sections below for
+full details and a ready-to-use upgrade prompt for AI-assisted migration.
 
 #### Breaking Changes
 
@@ -76,7 +76,6 @@ let stream = SiftStreamBuilder::new(credentials)
 
 The new mode builders also accept per-mode configuration:
 - `LiveOnlyBuilder::retry_policy(RetryPolicy)` — configure retry behavior
-- `LiveOnlyBuilder::checkpoint_interval(Duration)` — set checkpoint frequency
 - `LiveWithBackupsBuilder::retry_policy(RetryPolicy)` — configure retry behavior
 - `LiveWithBackupsBuilder::disk_backup_policy(DiskBackupPolicy)` — configure disk backups
 - `LiveWithBackupsBuilder::checkpoint_interval(Duration)` — set checkpoint frequency
@@ -156,8 +155,7 @@ New error types exported from `sift_stream`:
 ##### `LiveStreamingOnly` Mode (PR [#526](https://github.com/sift-stack/sift/pull/526))
 
 A new lightweight streaming mode accessible via `.live_only()`. Uses a single bounded ingestion
-channel with direct backpressure: `send` awaits until the ingestion task drains capacity. No disk
-backups, no checkpointing. Supports retries.
+channel with direct backpressure: `send` awaits until the ingestion task drains capacity.
 
 ```rust
 let stream = SiftStreamBuilder::new(credentials)
@@ -176,7 +174,42 @@ let stream = SiftStreamBuilder::new(credentials)
 ##### gRPC Status Code Metrics (PR [#530](https://github.com/sift-stack/sift/pull/530))
 
 `SiftStreamMetricsSnapshot` now includes a `grpc_status_counts: [u64; 18]` field — one counter
-per gRPC status code (codes 0–16 plus unknown), tracking ingestion RPC completions by outcome.
+per canonical gRPC status code (codes 0–16 by name: `ok`, `cancelled`, `unknown`, etc.) plus
+one catch-all for any unrecognized status codes, tracking ingestion RPC completions by outcome.
+
+##### Scoped Tracing Dispatch (PR [#534](https://github.com/sift-stack/sift/pull/534))
+
+When the `tracing` feature is enabled, `sift-stream`'s internal background tasks now emit log
+events through a scoped dispatch layered on top of your global tracing subscriber. This allows
+internal stream logs to be captured independently and forwarded to Sift as telemetry without
+interfering with your application's own logging.
+
+Two new builder methods on `StreamConfigBuilder`:
+
+```rust
+use sift_stream::{SiftStreamBuilder, logging::LogLevel};
+
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    // Only forward Info-and-above events to Sift (default). Use LogLevel::Debug
+    // or LogLevel::Trace for more verbose capture.
+    .log_level_filter(LogLevel::Info)
+    // Optionally supply a custom dispatch as the forwarding target instead of
+    // capturing the current global dispatch at build time (tracing feature only).
+    // .with_scoped_dispatch_base(my_dispatch)
+    .live_with_backups()
+    .build()
+    .await?;
+```
+
+New types exported from `sift_stream::logging`:
+- `LogLevel` — filter level enum (`Error`, `Warn`, `Info`, `Debug`, `Trace`); defaults to `Info`
+
+##### `sift-stream-bindings` 0.3.0
+
+The `sift-stream-bindings` crate has been bumped to 0.3.0 to reflect the breaking API changes
+in `sift-stream` 0.9.0 (stepped builder, send rename, removed types). Bindings users should
+apply the same migration steps described above.
 
 #### AI-Assisted Migration Prompt (v0.8.2 → v0.9.0)
 
@@ -345,7 +378,76 @@ use sift_stream::{TrySendError, SendError};
 
 ---
 
-## 6. Verify the build compiles
+## 6. Runtime mode selection — enum wrapper pattern
+
+Because `SiftStream<E, T>` encodes the transport mode as a type parameter, you cannot store
+different modes in the same variable directly. If the mode must be chosen at runtime (e.g. from
+a config flag or CLI argument), wrap the concrete stream types in an enum and dispatch via
+`match`:
+
+```rust
+use sift_stream::{
+    FileBackup, IngestionConfigEncoder, LiveStreamingOnly, LiveStreamingWithBackups,
+    SiftStream, SiftStreamBuilder, SiftStreamSendError,
+    stream::Encodeable,
+};
+use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
+use sift_error::prelude::*;
+
+// Concrete message type shared by all three transport modes.
+type Msg = IngestWithConfigDataStreamRequest;
+
+enum AnyStream {
+    LiveOnly(SiftStream<IngestionConfigEncoder, LiveStreamingOnly>),
+    LiveWithBackups(SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>),
+    FileBackup(SiftStream<IngestionConfigEncoder, FileBackup>),
+}
+
+impl AnyStream {
+    // All three modes use the same Transport::Message type, so the error type
+    // unifies directly — no conversion or new wrapper type needed.
+    pub async fn send<M>(&mut self, message: M) -> Result<(), SiftStreamSendError<Msg>>
+    where
+        M: Encodeable<Encoder = IngestionConfigEncoder, Output = Msg> + Send + Sync,
+    {
+        match self {
+            AnyStream::LiveOnly(s) => s.send(message).await,
+            AnyStream::LiveWithBackups(s) => s.send(message).await,
+            AnyStream::FileBackup(s) => s.send(message).await,
+        }
+    }
+
+    pub async fn finish(self) -> Result<()> {
+        match self {
+            AnyStream::LiveOnly(s) => s.finish().await,
+            AnyStream::LiveWithBackups(s) => s.finish().await,
+            AnyStream::FileBackup(s) => s.finish().await,
+        }
+    }
+}
+
+// Build the right variant based on a runtime decision:
+async fn build_stream(use_backups: bool, use_file_only: bool) -> Result<AnyStream> {
+    let builder = SiftStreamBuilder::new(credentials).ingestion_config(ingestion_config);
+
+    if use_file_only {
+        Ok(AnyStream::FileBackup(builder.file_backup().build().await?))
+    } else if use_backups {
+        Ok(AnyStream::LiveWithBackups(builder.live_with_backups().build().await?))
+    } else {
+        Ok(AnyStream::LiveOnly(builder.live_only().build().await?))
+    }
+}
+```
+
+Add additional `match` arms for any other `SiftStream` methods your code calls (e.g.
+`attach_run`, `detach_run`, `try_send`, `try_send_requests`). Each arm simply delegates
+to the same method on the inner stream. If only a subset of modes is needed, omit the
+unused variants.
+
+---
+
+## 7. Verify the build compiles
 
 Run `cargo build` (or `cargo check`). Fix any remaining compilation errors that reference the
 removed types `RecoveryStrategy`, `LiveStreaming`, `build_file_backup`, or `send_requests_nonblocking`.
@@ -357,14 +459,15 @@ That completes the v0.8.2 → v0.9.0 migration.
 
 ### Full Changelog
 - [Add tracing scoped dispatch to capture sift-stream logs](https://github.com/sift-stack/sift/pull/534)
-- [Use flow descriptor/builder for sift-stream metrics](https://github.com/sift-stack/sift/pull/531)
+- [Use flow descriptor/builder for sift-stream metrics](https://github.com/sift-stack/sift/pull/531) *(internal)*
 - [Add grpc status codes to sift-stream metrics, better logs](https://github.com/sift-stack/sift/pull/530)
 - [Improve sift-stream mode and builder documentation](https://github.com/sift-stack/sift/pull/528)
-- [Additional test coverage for sift-stream](https://github.com/sift-stack/sift/pull/527)
+- [Additional test coverage for sift-stream](https://github.com/sift-stack/sift/pull/527) *(internal)*
 - [Add LiveStreamingOnly and LiveStreamingWithBackups](https://github.com/sift-stack/sift/pull/526)
 - [Introduce stepped builder API for SiftStream](https://github.com/sift-stack/sift/pull/525)
-- [Extract tasks module into submodules](https://github.com/sift-stack/sift/pull/522)
+- [Extract tasks module into submodules](https://github.com/sift-stack/sift/pull/522) *(internal)*
 - [sift stream send api updates](https://github.com/sift-stack/sift/pull/519)
+- [update and regen protobufs](https://github.com/sift-stack/sift/pull/535)
 - [update and regen protobufs](https://github.com/sift-stack/sift/pull/516)
 - [update and regen protobufs](https://github.com/sift-stack/sift/pull/514)
 
