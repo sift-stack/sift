@@ -1,0 +1,2326 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://sift-stack.github.io/sift/python/v0.14/examples/pytest_plugin/">
+      
+      
+        <link rel="prev" href="../ingestion/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../stylesheets/dark-favicon.ico">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Pytest Plugin - Sift | Python Client Library</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pytest-plugin" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+You're not viewing the latest version.
+<a href="../../..">
+
+
+    <strong>Click here to go to latest.</strong>
+</a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Sift | Python Client Library" class="md-header__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
+      <img id='logo_dark_mode' src='../../stylesheets/sift_logo_dark.svg' alt='logo'>
+<img id='logo_light_mode' src='../../stylesheets/sift_logo_light.svg' alt='logo'>
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Sift | Python Client Library
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Pytest Plugin
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/sift_client/" class="md-tabs__link">
+          
+  
+  
+  Sift Client API
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/sift_py/" class="md-tabs__link">
+          
+  
+  
+  Sift Py API
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Sift | Python Client Library" class="md-nav__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
+      <img id='logo_dark_mode' src='../../stylesheets/sift_logo_dark.svg' alt='logo'>
+<img id='logo_light_mode' src='../../stylesheets/sift_logo_light.svg' alt='logo'>
+    </a>
+    Sift | Python Client Library
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../reference/sift_client/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sift Client API
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../reference/sift_py/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sift Py API
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples Directory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../basic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sift Client Basic Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sift Client Ingestion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pytest Plugin
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pytest Plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wire-the-plugin-into-conftestpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wire the plugin into conftest.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-provided-fixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin provided fixtures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin provided fixtures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cli-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-metadata-captured-automatically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report metadata captured automatically
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#status-semantics-for-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status semantics for failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nested-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nested steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Nested steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#one-step-per-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One step per file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linking-a-run-to-the-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linking a Run to the report
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-pytest-layout-maps-to-a-sift-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How pytest layout maps to a Sift report
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How pytest layout maps to a Sift report">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flat-module-of-test-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flat module of test functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#one-step-per-file-with-module_substep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One step per file with module_substep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parametrized-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parametrized tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#helper-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helper functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixtures-that-contribute-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixtures that contribute steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurement-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measurement variants
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Measurement variants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#measure_avg-one-row-the-mean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        measure_avg: one row, the mean
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#measure_all-only-out-of-bounds-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        measure_all: only out-of-bounds rows
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report_outcome-externally-computed-passfail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        report_outcome: externally computed pass/fail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bounds-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bounds reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skip-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the suite
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running offline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running offline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-1-skip-when-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 1: skip when offline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 1: skip when offline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handling-none-in-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling None in tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#overriding-the-connection-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overriding the connection check
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-2-capture-locally-upload-later" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 2: capture locally, upload later
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replaying-a-saved-log-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replaying a saved log file
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wire-the-plugin-into-conftestpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wire the plugin into conftest.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-provided-fixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin provided fixtures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin provided fixtures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cli-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-metadata-captured-automatically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report metadata captured automatically
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#status-semantics-for-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status semantics for failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nested-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nested steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Nested steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#one-step-per-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One step per file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linking-a-run-to-the-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linking a Run to the report
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-pytest-layout-maps-to-a-sift-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How pytest layout maps to a Sift report
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How pytest layout maps to a Sift report">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flat-module-of-test-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flat module of test functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#one-step-per-file-with-module_substep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One step per file with module_substep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parametrized-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parametrized tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#helper-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helper functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixtures-that-contribute-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixtures that contribute steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurement-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measurement variants
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Measurement variants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#measure_avg-one-row-the-mean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        measure_avg: one row, the mean
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#measure_all-only-out-of-bounds-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        measure_all: only out-of-bounds rows
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report_outcome-externally-computed-passfail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        report_outcome: externally computed pass/fail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bounds-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bounds reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skip-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the suite
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running offline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running offline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-1-skip-when-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 1: skip when offline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 1: skip when offline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handling-none-in-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling None in tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#overriding-the-connection-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overriding the connection check
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-2-capture-locally-upload-later" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 2: capture locally, upload later
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replaying-a-saved-log-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replaying a saved log file
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+
+
+
+                  
+
+
+  
+  
+
+
+<h1 id="pytest-plugin">Pytest Plugin<a class="headerlink" href="#pytest-plugin" title="Permanent link">&para;</a></h1>
+<p>The Sift Python client ships a pytest plugin that turns a pytest run into a
+<code>TestReport</code> in Sift. Each test function becomes a <code>TestStep</code>, measurements
+land as rows under that step, and failures propagate up through nested
+substeps to the report itself.</p>
+<p>This page walks through wiring the plugin into a project, the fixtures and
+hooks it provides, and the patterns you'll use day-to-day.</p>
+<div class="admonition info">
+<p class="admonition-title">Where the plugin lives</p>
+<p>The plugin is part of <code>sift_client.util.test_results</code>. It is <strong>not</strong>
+registered as a <code>pytest11</code> entry point. Projects opt in with a
+<code>from sift_client.util.test_results import *</code> in their <code>conftest.py</code>.
+That import is what wires up the fixtures, the CLI options, and the
+<code>pytest_runtest_makereport</code> hook.</p>
+</div>
+<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>sift-stack-py<span class="w"> </span>pytest<span class="w"> </span>python-dotenv
+</span></code></pre></div>
+<p>Set the connection details in a <code>.env</code> next to your tests:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">SIFT_GRPC_URI</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nv">SIFT_REST_URI</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+</span></code></pre></div>
+<p>The <code>SIFT_GRPC_URI</code> and <code>SIFT_REST_URI</code> are the gRPC and REST endpoints for your Sift organization. You can find these on the Sift Manage page as well as generate an API key.</p>
+<h2 id="wire-the-plugin-into-conftestpy">Wire the plugin into <code>conftest.py</code><a class="headerlink" href="#wire-the-plugin-into-conftestpy" title="Permanent link">&para;</a></h2>
+<p>Two things are required: a session-scoped <code>sift_client</code> fixture (the plugin's
+<code>report_context</code> fixture resolves it by name), and a star-import that registers
+the plugin's fixtures into the conftest's namespace.</p>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span><span class="p">,</span> <span class="n">SiftConnectionConfig</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Star-import wires fixtures + hooks + CLI options into pytest collection.</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.util.test_results</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">load_dotenv</span><span class="p">()</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">sift_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SiftClient</span><span class="p">:</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="n">grpc_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_GRPC_URI&quot;</span><span class="p">)</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="n">rest_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_REST_URI&quot;</span><span class="p">)</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_API_KEY&quot;</span><span class="p">)</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="k">return</span> <span class="n">SiftClient</span><span class="p">(</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>        <span class="n">connection_config</span><span class="o">=</span><span class="n">SiftConnectionConfig</span><span class="p">(</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>            <span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>            <span class="n">grpc_url</span><span class="o">=</span><span class="n">grpc_url</span><span class="p">,</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>            <span class="n">rest_url</span><span class="o">=</span><span class="n">rest_url</span><span class="p">,</span>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>        <span class="p">)</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>    <span class="p">)</span>
+</span></code></pre></div>
+<p>That's the whole setup. Every test in the session will now create a step on a
+single shared <code>TestReport</code>.</p>
+<h2 id="plugin-provided-fixtures">Plugin provided fixtures<a class="headerlink" href="#plugin-provided-fixtures" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Kind</th>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>report_context</code></td>
+<td>fixture (autouse)</td>
+<td>session</td>
+<td>The <code>ReportContext</code> backing the run's <code>TestReport</code>. Use it to attach metadata or open ad-hoc steps.</td>
+</tr>
+<tr>
+<td><code>step</code></td>
+<td>fixture (autouse)</td>
+<td>function</td>
+<td>A <code>NewStep</code> created for the current test function. Exposes <code>measure*</code>, <code>substep</code>, <code>report_outcome</code>, and <code>current_step</code>.</td>
+</tr>
+<tr>
+<td><code>module_substep</code></td>
+<td>fixture (autouse)</td>
+<td>module</td>
+<td>One step per test file with each function nested as a substep.</td>
+</tr>
+<tr>
+<td><code>client_has_connection</code></td>
+<td>fixture</td>
+<td>session</td>
+<td>Calls <code>sift_client.ping.ping()</code>; consulted only when <code>--sift-test-results-check-connection</code> is set.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cli-options">CLI options<a class="headerlink" href="#cli-options" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--sift-test-results-log-file=&lt;path\|true\|false&gt;</code></td>
+<td>temp file</td>
+<td>Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an <code>import-test-result-log --incremental</code> worker that polls the file and replays entries against Sift while the run is in flight. Pass <code>false</code> to disable the file entirely; create/update calls then go straight to the API synchronously during tests.</td>
+</tr>
+<tr>
+<td><code>--no-sift-test-results-git-metadata</code></td>
+<td>git metadata on</td>
+<td>Skip capturing git repo/branch/commit on the report's metadata.</td>
+</tr>
+<tr>
+<td><code>--sift-test-results-check-connection</code></td>
+<td>off</td>
+<td>Make <code>report_context</code>, <code>step</code>, and <code>module_substep</code> no-op (yield <code>None</code>) when <code>client_has_connection</code> is <code>False</code>. Lets the same suite run locally without a Sift backend.</td>
+</tr>
+</tbody>
+</table>
+<p>These can be set permanently in <code>pytest.ini</code>:</p>
+<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[pytest]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-test-results-check-connection</span>
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">FedRAMP / shared environments</p>
+<p>Pass <code>--sift-test-results-log-file=false</code> to skip the temp file + worker
+pipeline. Create/update calls then run inline against the API instead of
+being deferred through a subprocess.</p>
+</div>
+<h3 id="report-metadata-captured-automatically">Report metadata captured automatically<a class="headerlink" href="#report-metadata-captured-automatically" title="Permanent link">&para;</a></h3>
+<p>Every report the plugin creates includes:</p>
+<ul>
+<li><code>name</code> and <code>test_case</code>: derived from the first positional argument to <code>pytest</code>. When it resolves to an existing path the plugin uses the basename for <code>name</code> and the full path string for <code>test_case</code>; otherwise both fall back to <code>pytest &lt;args&gt;</code>. <code>name</code> always has a UTC ISO timestamp appended. See examples below.</li>
+<li><code>test_system_name</code>: <code>socket.gethostname()</code>.</li>
+<li><code>system_operator</code>: <code>getpass.getuser()</code>.</li>
+<li><code>start_time</code> / <code>end_time</code>: set on session enter/exit.</li>
+<li><code>status</code>: starts at <code>IN_PROGRESS</code>, finalized to <code>PASSED</code> or <code>FAILED</code> on session exit (failure if any step failed or an exception escaped the session).</li>
+<li><code>metadata.git_repo</code>, <code>metadata.git_branch</code>, <code>metadata.git_commit</code>: captured via <code>git remote get-url origin</code> / <code>git rev-parse --abbrev-ref HEAD</code> / <code>git describe --always --dirty --exclude '*'</code>. Suppressed by <code>--no-sift-test-results-git-metadata</code> or when not in a git repo.</li>
+</ul>
+<p>Example invocations:</p>
+<table>
+<thead>
+<tr>
+<th>Pytest invocation</th>
+<th>Report <code>name</code></th>
+<th>Report <code>test_case</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pytest tests/test_battery.py</code></td>
+<td><code>test_battery.py 2026-05-04T12:00:00.123456+00:00</code></td>
+<td><code>tests/test_battery.py</code></td>
+</tr>
+<tr>
+<td><code>pytest tests/</code></td>
+<td><code>tests 2026-05-04T12:00:00.123456+00:00</code></td>
+<td><code>tests</code></td>
+</tr>
+<tr>
+<td><code>pytest -k voltage</code></td>
+<td><code>pytest -k voltage 2026-05-04T12:00:00.123456+00:00</code></td>
+<td><code>pytest -k voltage</code></td>
+</tr>
+</tbody>
+</table>
+<p>To override defaults (e.g. set a serial number, system operator, or extra
+metadata), call <code>report_context.report.update({...})</code> from any test or
+fixture. See <a href="#linking-a-run-to-the-report">Linking a Run</a> for the same
+pattern applied to <code>run_id</code>.</p>
+<h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
+<p>With the conftest in place, the simplest test needs nothing extra. The <code>step</code>
+fixture is <code>autouse=True</code> and pytest test failures and skips are mapped to
+step statuses automatically.</p>
+<div class="language-python highlight"><span class="filename">test_basic.py</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_fixtures_still_creates_a_step</span><span class="p">():</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Autouse `step` records this function as a step on the session report.&quot;&quot;&quot;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">assert</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="mi">2</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_measure_a_single_value</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Take `step` explicitly when you want to record a measurement.&quot;&quot;&quot;</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">voltage</span> <span class="o">=</span> <span class="mf">4.97</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">passed</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;battery_voltage&quot;</span><span class="p">,</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="n">value</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.8</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.2</span><span class="p">},</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">,</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="p">)</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="k">assert</span> <span class="n">passed</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;voltage </span><span class="si">{</span><span class="n">voltage</span><span class="si">}</span><span class="s2">V out of bounds&quot;</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_measure_strings_and_booleans</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;`bounds` accepts a string or `True`/`False` for non-numeric values.&quot;&quot;&quot;</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;firmware_version&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;1.4.2&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;1.4.2&quot;</span><span class="p">)</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;self_test_passed&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_docstring_becomes_step_description</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;This docstring is the step&#39;s description in Sift.</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="sd">    The plugin pulls `request.node.obj.__doc__` when it creates the step.</span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="sd">    Helper functions called from within the test do not get this treatment;</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="sd">    pass `description=&quot;...&quot;` explicitly on `substep(...)` instead.</span>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>    <span class="k">assert</span> <span class="n">step</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span></code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Measurements never raise</p>
+<p><code>step.measure(...)</code> returns <code>True</code> if the value is in bounds and <code>False</code>
+otherwise. A <code>False</code> result marks the enclosing step as failed but does
+not raise. Chain measurements freely and inspect the boolean if you need
+custom flow control.</p>
+</div>
+<h3 id="status-semantics-for-failures">Status semantics for failures<a class="headerlink" href="#status-semantics-for-failures" title="Permanent link">&para;</a></h3>
+<p>The plugin uses the step exit handler in <code>NewStep.__exit__</code> to translate test
+outcomes into <code>TestStatus</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Resulting <code>TestStatus</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In-bounds measurements only</td>
+<td><code>PASSED</code></td>
+</tr>
+<tr>
+<td>Failed measurement, failed <code>report_outcome</code>, failed substep, or <code>AssertionError</code> raised by the test</td>
+<td><code>FAILED</code> (no traceback is attached, since pytest already prints it in the runner output)</td>
+</tr>
+<tr>
+<td>Non-<code>AssertionError</code> exception escapes the test (e.g. <code>ValueError</code>, <code>TimeoutError</code>)</td>
+<td><code>ERROR</code>, with the formatted traceback (last 10 frames plus the first frame) on <code>step.error_info.error_message</code></td>
+</tr>
+<tr>
+<td>Manual <code>step.current_step.update({"status": ...})</code></td>
+<td>Whatever you set; the step exit handler honors a manually-resolved status</td>
+</tr>
+</tbody>
+</table>
+<p>A failure or error at any depth propagates upward: the parent substep, the
+function step, the module step (if <code>module_substep</code> is active), and the
+session report all get marked failed.</p>
+<h2 id="nested-steps">Nested steps<a class="headerlink" href="#nested-steps" title="Permanent link">&para;</a></h2>
+<p>Use <code>step.substep(name=...)</code> to open a child step. Substeps nest arbitrarily
+deep, and a failure at any depth propagates up to fail the parent and the
+report.</p>
+<div class="language-python highlight"><span class="filename">test_nested_steps.py</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_phased_check</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Phase a single test into setup/exercise/verify substeps.&quot;&quot;&quot;</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;setup&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Power on and wait for boot&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">setup</span><span class="p">:</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">setup</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;boot_time_s&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">2.1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;exercise&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Drive the test sequence&quot;</span><span class="p">):</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;verify&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Read final state&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">verify</span><span class="p">:</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>        <span class="n">verify</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;final_state&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;IDLE&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;IDLE&quot;</span><span class="p">)</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_deeply_nested</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A failure at the bottom fails everyone above it.&quot;&quot;&quot;</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l1</span><span class="p">:</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="k">with</span> <span class="n">l1</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_2&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l2</span><span class="p">:</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>            <span class="k">with</span> <span class="n">l2</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_3&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l3</span><span class="p">:</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>                <span class="n">l3</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;leaf_value&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">})</span>
+</span></code></pre></div>
+<p>Each step gets a hierarchical <code>step_path</code> (<code>1</code>, <code>1.1</code>, <code>1.1.2</code>, <code>2</code>, …)
+assigned by <code>ReportContext</code>. Sibling substeps within the same parent
+auto-increment; opening a new top-level step starts a new branch.</p>
+<h3 id="one-step-per-file">One step per file<a class="headerlink" href="#one-step-per-file" title="Permanent link">&para;</a></h3>
+<p><code>module_substep</code> is autouse and module-scoped. When it's active (it's pulled
+in by the star-import in <code>conftest.py</code>), each file becomes a parent step and
+every function in it nests one level down. Its name is the test file's
+basename and its description is the module's docstring (if any).</p>
+<h3 id="linking-a-run-to-the-report">Linking a Run to the report<a class="headerlink" href="#linking-a-run-to-the-report" title="Permanent link">&para;</a></h3>
+<p><code>report_context</code> is the session-scoped fixture; mutating it in one test
+affects the whole report.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_link_run_to_report</span><span class="p">(</span><span class="n">report_context</span><span class="p">,</span> <span class="n">sift_client</span><span class="p">):</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">run</span> <span class="o">=</span> <span class="n">sift_client</span><span class="o">.</span><span class="n">runs</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># however you create your run</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">report_context</span><span class="o">.</span><span class="n">report</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;run_id&quot;</span><span class="p">:</span> <span class="n">run</span><span class="o">.</span><span class="n">id_</span><span class="p">})</span>
+</span></code></pre></div>
+<p>The same <code>update({...})</code> pattern works for any field on <code>TestReportUpdate</code>,
+including <code>serial_number</code>, <code>part_number</code>, <code>system_operator</code>, and <code>metadata</code>.</p>
+<h2 id="how-pytest-layout-maps-to-a-sift-report">How pytest layout maps to a Sift report<a class="headerlink" href="#how-pytest-layout-maps-to-a-sift-report" title="Permanent link">&para;</a></h2>
+<p>The plugin builds the report tree by hooking pytest's collection: every test
+node it sees becomes a step. What you control is which constructs create
+nodes and where you nest substeps inside them. Common layouts and the
+resulting report trees:</p>
+<h3 id="flat-module-of-test-functions">Flat module of test functions<a class="headerlink" href="#flat-module-of-test-functions" title="Permanent link">&para;</a></h3>
+<p>The default. Each function is one step directly under the report.</p>
+<div class="language-python highlight"><span class="filename">test_battery.py</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_voltage</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_current</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_temperature</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span></code></pre></div>
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>TestReport
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>├── test_voltage
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>├── test_current
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>└── test_temperature
+</span></code></pre></div>
+<h3 id="one-step-per-file-with-module_substep">One step per file with <code>module_substep</code><a class="headerlink" href="#one-step-per-file-with-module_substep" title="Permanent link">&para;</a></h3>
+<p><code>module_substep</code> is autouse and module-scoped. Every file becomes a parent
+step and every function in it nests one level down.</p>
+<div class="language-python highlight"><span class="filename">test_battery.py</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_voltage</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_current</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span></code></pre></div>
+<div class="language-python highlight"><span class="filename">test_thermal.py</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_idle_temp</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_load_temp</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span></code></pre></div>
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>TestReport
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>├── test_battery.py
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>│   ├── test_voltage
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>│   └── test_current
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>└── test_thermal.py
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    ├── test_idle_temp
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    └── test_load_temp
+</span></code></pre></div>
+<h3 id="test-classes">Test classes<a class="headerlink" href="#test-classes" title="Permanent link">&para;</a></h3>
+<p>Pytest classes (<code>class TestFoo: ...</code>) do not create a parent step on their
+own. The plugin keys off the test node's <code>name</code>, which is just the method
+name. To group a class's methods under a class-level step, add a class-scoped
+fixture that opens a step with <code>report_context.new_step(...)</code>:</p>
+<div class="language-python highlight"><span class="filename">test_charging.py</span><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestCharging</span><span class="p">:</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="n">autouse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">class_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">report_context</span><span class="p">):</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        <span class="k">with</span> <span class="n">report_context</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;TestCharging&quot;</span><span class="p">,</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Charging subsystem&quot;</span><span class="p">,</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>        <span class="p">)</span> <span class="k">as</span> <span class="n">parent</span><span class="p">:</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>            <span class="k">yield</span> <span class="n">parent</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_starts_at_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_reaches_full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_thermal_throttle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span></code></pre></div>
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>TestReport
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>└── TestCharging
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    ├── test_starts_at_zero
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    ├── test_reaches_full
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    └── test_thermal_throttle
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Combining with <code>module_substep</code></p>
+<p><code>module_substep</code> and a class-scoped step both open at module/class scope,
+so they each grab the next sibling slot under the report and the inner
+one nests under the outer. If you want both layers (file → class →
+method), make the class step itself open via the active outer step
+rather than the report root.</p>
+</div>
+<h3 id="parametrized-tests">Parametrized tests<a class="headerlink" href="#parametrized-tests" title="Permanent link">&para;</a></h3>
+<p>Each parametrize case is a distinct pytest node, so each gets its own step.
+The step name includes the parameter id pytest generates.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">3.3</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">12.0</span><span class="p">])</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_rail</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">voltage</span><span class="p">):</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">})</span>
+</span></code></pre></div>
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>TestReport
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>├── test_rail[3.3]
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>├── test_rail[5.0]
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>└── test_rail[12.0]
+</span></code></pre></div>
+<h3 id="helper-functions">Helper functions<a class="headerlink" href="#helper-functions" title="Permanent link">&para;</a></h3>
+<p>Helpers called from a test do not auto-create a step. The plugin only sees
+pytest-collected nodes. To represent helper work in the report, open a
+substep at the call site and pass it into the helper:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">measure_rail</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">bounds</span><span class="p">):</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="k">return</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_power_rails</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;3.3V rail&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rail_3v3</span><span class="p">:</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>        <span class="n">measure_rail</span><span class="p">(</span><span class="n">rail_3v3</span><span class="p">,</span> <span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="mf">3.31</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">3.2</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">3.4</span><span class="p">})</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;5V rail&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rail_5v</span><span class="p">:</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>        <span class="n">measure_rail</span><span class="p">(</span><span class="n">rail_5v</span><span class="p">,</span> <span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="mf">5.02</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.9</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.1</span><span class="p">})</span>
+</span></code></pre></div>
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>TestReport
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>└── test_power_rails
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    ├── 3.3V rail
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    │   └── rail_v        (measurement)
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    └── 5V rail
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>        └── rail_v        (measurement)
+</span></code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Docstring-as-description is top-level only</p>
+<p>The plugin reads the test function's docstring and uses it as the step
+description. Docstrings on helper functions are not picked up. Pass
+<code>description="..."</code> explicitly on <code>substep(...)</code> if you want one.</p>
+</div>
+<h3 id="fixtures-that-contribute-steps">Fixtures that contribute steps<a class="headerlink" href="#fixtures-that-contribute-steps" title="Permanent link">&para;</a></h3>
+<p>A fixture can open its own substep around setup/teardown by using <code>step</code> (for
+function-scope) or <code>report_context.new_step(...)</code> (for any scope). The substep
+ends when the fixture's <code>yield</code> returns, which makes the report tree mirror
+the lifecycle.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">warmed_up_dut</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;warmup&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Bring DUT to operating temp&quot;</span><span class="p">):</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>        <span class="c1"># ... do warmup work ...</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>        <span class="k">yield</span> <span class="s2">&quot;dut-handle&quot;</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_steady_state</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">warmed_up_dut</span><span class="p">):</span>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;temp_c&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">37.2</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">35.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">40.0</span><span class="p">})</span>
+</span></code></pre></div>
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>TestReport
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>└── test_steady_state
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    ├── warmup        (from fixture)
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    └── temp_c        (measurement)
+</span></code></pre></div>
+<h2 id="measurement-variants">Measurement variants<a class="headerlink" href="#measurement-variants" title="Permanent link">&para;</a></h2>
+<p><code>step.measure(...)</code> records exactly one measurement. For datasets coming off a
+sensor or calculated channel, use one of the bulk variants.</p>
+<h3 id="measure_avg-one-row-the-mean"><code>measure_avg</code>: one row, the mean<a class="headerlink" href="#measure_avg-one-row-the-mean" title="Permanent link">&para;</a></h3>
+<p><code>measure_avg</code> accepts a Python list, a NumPy array, or a pandas <code>Series</code>,
+takes the mean, and evaluates it against bounds.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_list</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4.97</span><span class="p">,</span> <span class="mf">5.01</span><span class="p">,</span> <span class="mf">5.03</span><span class="p">,</span> <span class="mf">4.99</span><span class="p">,</span> <span class="mf">5.02</span><span class="p">]</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bus_voltage_avg&quot;</span><span class="p">,</span>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.9</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.1</span><span class="p">},</span>
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">,</span>
+</span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>    <span class="p">)</span>
+</span><span id="__span-20-13"><a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>
+</span><span id="__span-20-14"><a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>
+</span><span id="__span-20-15"><a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_numpy</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-20-16"><a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">99.5</span><span class="p">,</span> <span class="mf">100.5</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+</span><span id="__span-20-17"><a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
+</span><span id="__span-20-18"><a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cpu_temp_avg&quot;</span><span class="p">,</span>
+</span><span id="__span-20-19"><a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+</span><span id="__span-20-20"><a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">95.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">105.0</span><span class="p">},</span>
+</span><span id="__span-20-21"><a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span>
+</span><span id="__span-20-22"><a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a>    <span class="p">)</span>
+</span><span id="__span-20-23"><a id="__codelineno-20-23" name="__codelineno-20-23" href="#__codelineno-20-23"></a>
+</span><span id="__span-20-24"><a id="__codelineno-20-24" name="__codelineno-20-24" href="#__codelineno-20-24"></a>
+</span><span id="__span-20-25"><a id="__codelineno-20-25" name="__codelineno-20-25" href="#__codelineno-20-25"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_pandas</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-20-26"><a id="__codelineno-20-26" name="__codelineno-20-26" href="#__codelineno-20-26"></a>    <span class="n">series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.998</span><span class="p">,</span> <span class="mf">1.001</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="mf">1.002</span><span class="p">,</span> <span class="mf">1.000</span><span class="p">])</span>
+</span><span id="__span-20-27"><a id="__codelineno-20-27" name="__codelineno-20-27" href="#__codelineno-20-27"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
+</span><span id="__span-20-28"><a id="__codelineno-20-28" name="__codelineno-20-28" href="#__codelineno-20-28"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;reference_clock_ratio&quot;</span><span class="p">,</span>
+</span><span id="__span-20-29"><a id="__codelineno-20-29" name="__codelineno-20-29" href="#__codelineno-20-29"></a>        <span class="n">values</span><span class="o">=</span><span class="n">series</span><span class="p">,</span>
+</span><span id="__span-20-30"><a id="__codelineno-20-30" name="__codelineno-20-30" href="#__codelineno-20-30"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.99</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">1.01</span><span class="p">},</span>
+</span><span id="__span-20-31"><a id="__codelineno-20-31" name="__codelineno-20-31" href="#__codelineno-20-31"></a>    <span class="p">)</span>
+</span></code></pre></div>
+<h3 id="measure_all-only-out-of-bounds-rows"><code>measure_all</code>: only out-of-bounds rows<a class="headerlink" href="#measure_all-only-out-of-bounds-rows" title="Permanent link">&para;</a></h3>
+<p>Records measurements only for samples that fail bounds, so an all-pass
+dataset of N samples doesn't add N rows to the report. Returns <code>True</code> when
+every sample is in bounds.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_only_outliers_recorded</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="mf">10.1</span><span class="p">,</span> <span class="mf">10.2</span><span class="p">,</span> <span class="mf">10.3</span><span class="p">,</span> <span class="mf">99.9</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.1</span><span class="p">]</span>  <span class="c1"># 99.9 is the outlier</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    <span class="n">all_in_bounds</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">measure_all</span><span class="p">(</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;pressure_psi&quot;</span><span class="p">,</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">9.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">11.0</span><span class="p">},</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;psi&quot;</span><span class="p">,</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>    <span class="p">)</span>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>    <span class="c1"># Returns False because 99.9 is out of bounds. The step is already</span>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>    <span class="c1"># marked failed; raise here only if you also want pytest to fail.</span>
+</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>    <span class="k">assert</span> <span class="n">all_in_bounds</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title"><code>measure_all</code> requires at least one bound</p>
+<p>Passing <code>bounds={}</code> raises <code>ValueError("No bounds provided")</code>. At
+least one of <code>min</code> or <code>max</code> must be set.</p>
+</div>
+<h3 id="report_outcome-externally-computed-passfail"><code>report_outcome</code>: externally computed pass/fail<a class="headerlink" href="#report_outcome-externally-computed-passfail" title="Permanent link">&para;</a></h3>
+<p>When the decision is computed elsewhere, drop it onto the report as a
+named substep with an optional reason. Returns the result you passed in,
+so you can use it inline.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_external_checks</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;config_loaded&quot;</span><span class="p">,</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>        <span class="n">result</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>        <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;loaded /etc/dut/config.yaml&quot;</span><span class="p">,</span>
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>    <span class="p">)</span>
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>
+</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>    <span class="c1"># Failures show up as a failed substep without raising.</span>
+</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>    <span class="n">rare_warning_seen</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span>
+</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;no_rare_warning&quot;</span><span class="p">,</span>
+</span><span id="__span-22-12"><a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>        <span class="n">result</span><span class="o">=</span><span class="ow">not</span> <span class="n">rare_warning_seen</span><span class="p">,</span>
+</span><span id="__span-22-13"><a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>        <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;grep&#39;d dmesg for the known-flaky warning&quot;</span><span class="p">,</span>
+</span><span id="__span-22-14"><a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a>    <span class="p">)</span>
+</span></code></pre></div>
+<h3 id="bounds-reference">Bounds reference<a class="headerlink" href="#bounds-reference" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Pass to <code>bounds=</code></th>
+<th>Value type</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{"min": x, "max": y}</code> (either key optional)</td>
+<td><code>int</code> / <code>float</code></td>
+<td>Numeric window. One-sided is fine.</td>
+</tr>
+<tr>
+<td><code>NumericBounds(min=x, max=y)</code></td>
+<td><code>int</code> / <code>float</code></td>
+<td>Same as the dict form, explicit.</td>
+</tr>
+<tr>
+<td><code>"expected-string"</code></td>
+<td><code>str</code> (or <code>bool</code>)</td>
+<td>Exact equality. For <code>bool</code> values, compares lowercased string (<code>"true"</code>/<code>"false"</code>).</td>
+</tr>
+<tr>
+<td><code>True</code> or <code>False</code></td>
+<td><code>bool</code> (or <code>str</code>)</td>
+<td>Exact equality. For <code>str</code> values, compares lowercased strings.</td>
+</tr>
+<tr>
+<td><code>None</code></td>
+<td>any</td>
+<td>Records the value but does not evaluate it; measurement is recorded as <code>passed=True</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>unit</code> argument is a free-form string label (e.g. <code>"V"</code>, <code>"C"</code>, <code>"psi"</code>).</p>
+<h2 id="skip-handling">Skip handling<a class="headerlink" href="#skip-handling" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>@pytest.mark.skip</code> and <code>@pytest.mark.skipif</code>: the plugin's
+  <code>pytest_runtest_makereport</code> hook sees the skipped outcome and creates a
+  step with <code>TestStatus.SKIPPED</code>.</li>
+<li>Inside a test function, you can mark just one substep as skipped without
+  aborting the whole test:</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_skip</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;optional_calibration&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cal</span><span class="p">:</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">precondition_met</span><span class="p">():</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>            <span class="n">cal</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>                <span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">SKIPPED</span><span class="p">},</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>                <span class="n">log_file</span><span class="o">=</span><span class="n">step</span><span class="o">.</span><span class="n">report_context</span><span class="o">.</span><span class="n">log_file</span><span class="p">,</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>            <span class="p">)</span>
+</span></code></pre></div>
+<p>A manually-resolved status is honored by the step's exit handler. No
+  further bookkeeping required. <code>SKIPPED</code> does not propagate as a failure.</p>
+<h2 id="running-the-suite">Running the suite<a class="headerlink" href="#running-the-suite" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Full run against your Sift tenant</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>pytest
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># Pin the log file so you can replay it later if the import worker dies</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>pytest<span class="w"> </span>--sift-test-results-log-file<span class="o">=</span>./sift-results.jsonl
+</span></code></pre></div>
+<p>See <a href="#running-offline">Running offline</a> for the same suite running with or
+without a reachable Sift server.</p>
+<h2 id="running-offline">Running offline<a class="headerlink" href="#running-offline" title="Permanent link">&para;</a></h2>
+<p>The plugin supports two offline workflows, depending on whether you want a
+Sift report at all when the test environment can't reach Sift. The first
+turns the plugin into a no-op when the server is unreachable. The second
+keeps the plugin running normally and writes every create/update to a local
+JSONL file that you upload from a connected machine afterward.</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Flag</th>
+<th>Runtime behavior</th>
+<th>Follow-up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Skip when offline</td>
+<td><code>--sift-test-results-check-connection</code></td>
+<td>Fixtures yield <code>None</code>, no log file, no report. Pytest still reports pass/fail.</td>
+<td>None.</td>
+</tr>
+<tr>
+<td>Capture locally, upload later</td>
+<td><code>--sift-test-results-log-file=&lt;path&gt;</code></td>
+<td>Plugin writes every create/update to the JSONL file.</td>
+<td><code>import-test-result-log &lt;path&gt;</code> from a connected machine.</td>
+</tr>
+</tbody>
+</table>
+<p>Pattern 1 suits laptop dev and CI without Sift secrets. Pattern 2 suits
+field tests, vehicles on remote sites, and air-gapped labs.</p>
+<h3 id="pattern-1-skip-when-offline">Pattern 1: skip when offline<a class="headerlink" href="#pattern-1-skip-when-offline" title="Permanent link">&para;</a></h3>
+<p><code>--sift-test-results-check-connection</code> makes the plugin ping Sift once at
+session start through the <code>client_has_connection</code> fixture (which by default
+calls <code>sift_client.ping.ping()</code>). On a failed ping, <code>report_context</code>,
+<code>step</code>, and <code>module_substep</code> yield <code>None</code> for the rest of the session.
+Pytest still runs the tests and still reports pass/fail.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>pytest<span class="w"> </span>--sift-test-results-check-connection
+</span></code></pre></div>
+<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">[pytest]</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-test-results-check-connection</span>
+</span></code></pre></div>
+<h4 id="handling-none-in-tests">Handling <code>None</code> in tests<a class="headerlink" href="#handling-none-in-tests" title="Permanent link">&para;</a></h4>
+<p>Calls on <code>step</code> raise <code>AttributeError</code> when it's <code>None</code>, so tests that take
+<code>step</code> as a parameter need a guard. The cleanest fix is to shadow the
+plugin's <code>step</code> fixture in your conftest and turn the <code>None</code> case into an
+automatic skip.</p>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.util.test_results</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">autouse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>    <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>        <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">&quot;Sift unavailable&quot;</span><span class="p">)</span>
+</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>    <span class="k">yield</span> <span class="n">step</span>
+</span></code></pre></div>
+<p>The <code>step</code> parameter on the override resolves to the plugin's fixture, not
+to the override itself. <code>autouse=True</code> is required so the skip applies to
+tests that don't request <code>step</code> directly. The same shadowing trick works
+for <code>module_substep</code> and <code>report_context</code>.</p>
+<p>For one-off tests that don't share a conftest, an inline guard works just
+as well:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_battery_voltage</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>    <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>        <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">&quot;Sift unavailable&quot;</span><span class="p">)</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;battery_voltage&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">4.97</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.8</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.2</span><span class="p">})</span>
+</span></code></pre></div>
+<p>If you'd rather have tests pass through silently than skip them, wrap the
+calls in a helper that no-ops on <code>None</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">safe_measure</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>    <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>        <span class="k">return</span> <span class="kc">True</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>    <span class="k">return</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h4>
+<p>The default <code>client_has_connection</code> fixture calls <code>sift_client.ping.ping()</code>.
+Override it in your conftest if pinging is the wrong signal for your
+environment, for example a token cache that's only warm when authenticated:</p>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">client_has_connection</span><span class="p">(</span><span class="n">sift_client</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;~/.sift-token-cache&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+</span></code></pre></div>
+<p>The plugin only consults this fixture when <code>--sift-test-results-check-connection</code>
+is set, so an unused override has no effect on a normal run.</p>
+<h3 id="pattern-2-capture-locally-upload-later">Pattern 2: capture locally, upload later<a class="headerlink" href="#pattern-2-capture-locally-upload-later" title="Permanent link">&para;</a></h3>
+<p>This pattern keeps the plugin running normally even when Sift is
+unreachable. The plugin writes to the log file, the worker dies on connect,
+and the file is left on disk for you to upload later. Pin the log file path
+so you can find it afterward, and don't pass
+<code>--sift-test-results-check-connection</code>, which would suppress the logging
+this pattern relies on.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>pytest<span class="w"> </span>--sift-test-results-log-file<span class="o">=</span>./run.jsonl
+</span></code></pre></div>
+<p>What happens during the run:</p>
+<ul>
+<li>Every report, step, and measurement create/update is written to
+  <code>run.jsonl</code>. The plugin doesn't contact the Sift API for any of these
+  calls; they return simulated responses keyed by UUIDs that the replay
+  later maps to real IDs.</li>
+<li>The <code>import-test-result-log --incremental</code> worker subprocess starts and
+  exits early when it can't reach Sift. The session does not fail when the
+  worker exits before the run ends.</li>
+<li>Tests run against a real <code>step</code> fixture, so <code>step.measure(...)</code>,
+  substeps, parametrize, fixtures, and <code>module_substep</code> behave exactly as
+  they do online. No conftest changes are needed.</li>
+</ul>
+<p>Once you have connectivity, replay the file:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>import-test-result-log<span class="w"> </span>./run.jsonl
+</span></code></pre></div>
+<p>The replay creates the report, steps, and measurements against Sift in one
+batch. See <a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for
+details on cleanup and the incremental flag.</p>
+<div class="admonition warning">
+<p class="admonition-title">Pin the log path for Pattern 2</p>
+<p>Without <code>--sift-test-results-log-file=&lt;path&gt;</code>, the plugin writes to a
+<code>tempfile.NamedTemporaryFile</code> and only surfaces the path via a
+<code>logger.info</code> line. Always pin a known path when you intend to replay
+the file later.</p>
+</div>
+<h2 id="replaying-a-saved-log-file">Replaying a saved log file<a class="headerlink" href="#replaying-a-saved-log-file" title="Permanent link">&para;</a></h2>
+<p>When the worker doesn't finish cleanly the plugin will print a hint mentioning
+<code>import-test-result-log</code>. To import:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
+</span></code></pre></div>
+<p>That replays the saved JSONL log as a single batch (no <code>--incremental</code>) and
+deletes the file when it lives under the system temp dir.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright 2025 Sift Stack, Inc.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

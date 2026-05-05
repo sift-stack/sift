@@ -254,7 +254,10 @@
     "title": "v0.14",
     "aliases": [
       "latest"
-    ]
+    ],
+    "properties": {
+      "hidden": false
+    }
   },
   {
     "version": "v0.13.0",
