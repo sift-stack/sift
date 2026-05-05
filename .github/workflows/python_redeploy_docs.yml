@@ -1,0 +1,88 @@
+name: Redeploy Python Docs
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version or custom alias to deploy under (e.g., v0.14, staging, preview). Leave empty to derive from the latest stable python/v*.*.* tag.'
+        required: false
+        type: string
+      update_latest:
+        description: 'Also update the "latest" alias'
+        required: false
+        default: true
+        type: boolean
+      hidden:
+        description: 'Hide from the version dropdown. "auto" hides custom aliases and shows vX.Y versions.'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - 'true'
+          - 'false'
+
+jobs:
+  redeploy_docs:
+    name: Redeploy Documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version and visibility
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          HIDDEN_INPUT: ${{ inputs.hidden }}
+        run: |
+          if [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
+            echo "Using provided version: $VERSION"
+          else
+            LATEST_TAG=$(git tag -l 'python/v*' | grep -E '^python/v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
+            if [[ -z "$LATEST_TAG" ]]; then
+              echo "Error: No stable python/v*.*.* tag found. Provide the 'version' input."
+              exit 1
+            fi
+            FULL_VERSION="${LATEST_TAG#python/}"
+            if [[ "$FULL_VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+              VERSION="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+              echo "Derived version from $LATEST_TAG: $VERSION"
+            else
+              echo "Error: Could not parse $LATEST_TAG"
+              exit 1
+            fi
+          fi
+
+          case "$HIDDEN_INPUT" in
+            auto)
+              if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+$ ]]; then
+                HIDDEN="false"
+              else
+                HIDDEN="true"
+              fi
+              echo "hidden=auto resolved to $HIDDEN for version $VERSION"
+              ;;
+            true|false)
+              HIDDEN="$HIDDEN_INPUT"
+              ;;
+            *)
+              echo "Error: unexpected hidden value '$HIDDEN_INPUT'"
+              exit 1
+              ;;
+          esac
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "hidden=$HIDDEN" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy docs
+        uses: ./.github/actions/python-mike-deploy
+        with:
+          version: ${{ steps.resolve.outputs.version }}
+          aliases: ${{ inputs.update_latest && 'latest' || '' }}
+          hidden: ${{ steps.resolve.outputs.hidden }}

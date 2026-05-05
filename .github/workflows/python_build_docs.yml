@@ -28,16 +28,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          cd python
-          pip install -e .[docs-build]
-
       - name: Extract version
         id: version
         run: |
@@ -56,21 +46,11 @@ jobs:
           echo "alias=$ALIAS" >> $GITHUB_OUTPUT
           echo "Dev deployment - Version: $VERSION, Alias: $ALIAS"
 
-      - name: Fetch gh-pages branch
-        run: git fetch origin gh-pages --depth=1
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Deploy docs with mike
-        run: |
-          cd python
-          # Deploy dev/PR docs with hidden property to hide from version dropdown
-          mike deploy ${{ steps.version.outputs.alias }} --push --update-aliases --prop-set hidden=true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy docs
+        uses: ./.github/actions/python-mike-deploy
+        with:
+          version: ${{ steps.version.outputs.alias }}
+          hidden: 'true'
 
   cleanup_docs:
     if: github.event.action == 'closed'
@@ -83,36 +63,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          cd python
-          pip install -e .[docs-build]
-
-      - name: Fetch gh-pages branch
-        run: git fetch origin gh-pages --depth=1
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Delete PR docs
-        run: |
-          cd python
-          PR_ALIAS="pr-${{ github.event.number }}"
-          echo "Deleting docs for: $PR_ALIAS"
-          
-          # Check if the PR docs exist before trying to delete
-          if mike list | grep -q "$PR_ALIAS"; then
-            mike delete "$PR_ALIAS" --push
-            echo "Successfully deleted docs for $PR_ALIAS"
-          else
-            echo "No docs found for $PR_ALIAS, nothing to delete"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ./.github/actions/python-mike-delete
+        with:
+          version: pr-${{ github.event.number }}

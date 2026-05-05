@@ -1,0 +1,67 @@
+name: 'Deploy Python Docs (mike)'
+description: 'Set up Python, install docs dependencies, and deploy the python/ docs to gh-pages with mike.'
+
+inputs:
+  version:
+    description: "Version identifier to deploy under (mike's first positional arg)."
+    required: true
+  aliases:
+    description: 'Space-separated aliases to point at this version (e.g., "latest"). Empty for none.'
+    required: false
+    default: ''
+  hidden:
+    description: 'Mark the version as hidden in the version selector. Must be "true" or "false".'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install docs dependencies
+      shell: bash
+      run: |
+        cd python
+        pip install -e .[docs-build]
+
+    - name: Fetch gh-pages branch
+      shell: bash
+      run: git fetch origin gh-pages --depth=1
+
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Deploy with mike
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        ALIASES: ${{ inputs.aliases }}
+        HIDDEN: ${{ inputs.hidden }}
+      run: |
+        cd python
+
+        if [[ "$HIDDEN" != "true" && "$HIDDEN" != "false" ]]; then
+          echo "Error: 'hidden' must be 'true' or 'false', got '$HIDDEN'"
+          exit 1
+        fi
+
+        if [[ -z "$VERSION" ]]; then
+          echo "Error: 'version' is required"
+          exit 1
+        fi
+
+        MIKE_ARGS=("$VERSION")
+        for alias in $ALIASES; do
+          MIKE_ARGS+=("$alias")
+        done
+        MIKE_ARGS+=(--push --update-aliases --prop-set "hidden=$HIDDEN")
+
+        echo "Running: mike deploy ${MIKE_ARGS[*]}"
+        mike deploy "${MIKE_ARGS[@]}"
