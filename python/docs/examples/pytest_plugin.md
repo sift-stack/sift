@@ -25,9 +25,11 @@ Set the connection details in a `.env` next to your tests:
 
 ```bash
 SIFT_API_KEY="your-api-key"
-SIFT_GRPC_URI="your-tenant.sift.com:443"
-SIFT_REST_URI="https://your-tenant.sift.com"
+SIFT_GRPC_URI="..."
+SIFT_REST_URI="..."
 ```
+
+The `SIFT_GRPC_URI` and `SIFT_REST_URI` are the gRPC and REST endpoints for your Sift organization. You can find these on the Sift Manage page as well as generate an API key.
 
 ## Wire the plugin into `conftest.py`
 
@@ -44,24 +46,22 @@ from dotenv import load_dotenv
 from sift_client import SiftClient, SiftConnectionConfig
 
 # Star-import wires fixtures + hooks + CLI options into pytest collection.
-from sift_client.util.test_results import *  # noqa: F401,F403
+from sift_client.util.test_results import *
 
 load_dotenv()
 
 
 @pytest.fixture(scope="session")
 def sift_client() -> SiftClient:
-    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
-    rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
-    api_key = os.getenv("SIFT_API_KEY", "")
-    use_ssl = "localhost" not in grpc_url and "localhost" not in rest_url
-
+    grpc_url = os.getenv("SIFT_GRPC_URI")
+    rest_url = os.getenv("SIFT_REST_URI")
+    api_key = os.getenv("SIFT_API_KEY")
+    
     return SiftClient(
         connection_config=SiftConnectionConfig(
             api_key=api_key,
             grpc_url=grpc_url,
             rest_url=rest_url,
-            use_ssl=use_ssl,
         )
     )
 ```
@@ -69,16 +69,14 @@ def sift_client() -> SiftClient:
 That's the whole setup. Every test in the session will now create a step on a
 single shared `TestReport`.
 
-## What the plugin gives you
+## Plugin provided fixtures
 
 | Name | Kind | Scope | Purpose |
 |---|---|---|---|
 | `report_context` | fixture (autouse) | session | The `ReportContext` backing the run's `TestReport`. Use it to attach metadata or open ad-hoc steps. |
 | `step` | fixture (autouse) | function | A `NewStep` created for the current test function. Exposes `measure*`, `substep`, `report_outcome`, and `current_step`. |
 | `module_substep` | fixture (autouse) | module | One step per test file with each function nested as a substep. |
-| `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted only when `--sift-test-results-check-connection` is set. Override in your conftest if you need different connection semantics. |
-| `pytest_addoption` | hook |  | Registers the CLI options below. |
-| `pytest_runtest_makereport` | hook |  | Stores per-phase report info on the test item, and creates a `SKIPPED` step when pytest reports a skipped outcome (typically from `@pytest.mark.skip` / `@pytest.mark.skipif`). |
+| `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted only when `--sift-test-results-check-connection` is set. |
 
 ### CLI options
 
@@ -104,13 +102,20 @@ addopts = --sift-test-results-check-connection
 
 Every report the plugin creates includes:
 
-- `name`: `<pytest first arg> <UTC timestamp>` (e.g. `test_battery.py 2026-05-04T12:00:00+00:00`).
-- `test_case`: the first pytest argument if it resolves to a path, otherwise `pytest <args>`.
+- `name` and `test_case`: derived from the first positional argument to `pytest`. When it resolves to an existing path the plugin uses the basename for `name` and the full path string for `test_case`; otherwise both fall back to `pytest <args>`. `name` always has a UTC ISO timestamp appended. See examples below.
 - `test_system_name`: `socket.gethostname()`.
 - `system_operator`: `getpass.getuser()`.
 - `start_time` / `end_time`: set on session enter/exit.
 - `status`: starts at `IN_PROGRESS`, finalized to `PASSED` or `FAILED` on session exit (failure if any step failed or an exception escaped the session).
 - `metadata.git_repo`, `metadata.git_branch`, `metadata.git_commit`: captured via `git remote get-url origin` / `git rev-parse --abbrev-ref HEAD` / `git describe --always --dirty --exclude '*'`. Suppressed by `--no-sift-test-results-git-metadata` or when not in a git repo.
+
+Example invocations:
+
+| Pytest invocation | Report `name` | Report `test_case` |
+|---|---|---|
+| `pytest tests/test_battery.py` | `test_battery.py 2026-05-04T12:00:00.123456+00:00` | `tests/test_battery.py` |
+| `pytest tests/` | `tests 2026-05-04T12:00:00.123456+00:00` | `tests` |
+| `pytest -k voltage` | `pytest -k voltage 2026-05-04T12:00:00.123456+00:00` | `pytest -k voltage` |
 
 To override defaults (e.g. set a serial number, system operator, or extra
 metadata), call `report_context.report.update({...})` from any test or
@@ -533,17 +538,157 @@ The `unit` argument is a free-form string label (e.g. `"V"`, `"C"`, `"psi"`).
 # Full run against your Sift tenant
 pytest
 
-# Local run with no Sift backend (fixtures yield None when the ping fails)
-pytest --sift-test-results-check-connection
-
 # Pin the log file so you can replay it later if the import worker dies
 pytest --sift-test-results-log-file=./sift-results.jsonl
 ```
 
-### Replaying a saved log file
+See [Running offline](#running-offline) for the same suite running with or
+without a reachable Sift server.
+
+## Running offline
+
+The plugin supports two offline workflows, depending on whether you want a
+Sift report at all when the test environment can't reach Sift. The first
+turns the plugin into a no-op when the server is unreachable. The second
+keeps the plugin running normally and writes every create/update to a local
+JSONL file that you upload from a connected machine afterward.
+
+| Pattern | Flag | Runtime behavior | Follow-up |
+|---|---|---|---|
+| Skip when offline | `--sift-test-results-check-connection` | Fixtures yield `None`, no log file, no report. Pytest still reports pass/fail. | None. |
+| Capture locally, upload later | `--sift-test-results-log-file=<path>` | Plugin writes every create/update to the JSONL file. | `import-test-result-log <path>` from a connected machine. |
+
+Pattern 1 suits laptop dev and CI without Sift secrets. Pattern 2 suits
+field tests, vehicles on remote sites, and air-gapped labs.
+
+### Pattern 1: skip when offline
+
+`--sift-test-results-check-connection` makes the plugin ping Sift once at
+session start through the `client_has_connection` fixture (which by default
+calls `sift_client.ping.ping()`). On a failed ping, `report_context`,
+`step`, and `module_substep` yield `None` for the rest of the session.
+Pytest still runs the tests and still reports pass/fail.
+
+```bash
+pytest --sift-test-results-check-connection
+```
+
+```ini title="pytest.ini"
+[pytest]
+addopts = --sift-test-results-check-connection
+```
+
+#### Handling `None` in tests
+
+Calls on `step` raise `AttributeError` when it's `None`, so tests that take
+`step` as a parameter need a guard. The cleanest fix is to shadow the
+plugin's `step` fixture in your conftest and turn the `None` case into an
+automatic skip.
+
+```python title="conftest.py"
+import pytest
+
+from sift_client.util.test_results import *
+
+
+@pytest.fixture(autouse=True)
+def step(step):
+    if step is None:
+        pytest.skip("Sift unavailable")
+    yield step
+```
+
+The `step` parameter on the override resolves to the plugin's fixture, not
+to the override itself. `autouse=True` is required so the skip applies to
+tests that don't request `step` directly. The same shadowing trick works
+for `module_substep` and `report_context`.
+
+For one-off tests that don't share a conftest, an inline guard works just
+as well:
+
+```python
+def test_battery_voltage(step):
+    if step is None:
+        pytest.skip("Sift unavailable")
+    step.measure(name="battery_voltage", value=4.97, bounds={"min": 4.8, "max": 5.2})
+```
+
+If you'd rather have tests pass through silently than skip them, wrap the
+calls in a helper that no-ops on `None`:
+
+```python
+def safe_measure(step, **kwargs):
+    if step is None:
+        return True
+    return step.measure(**kwargs)
+```
+
+#### Overriding the connection check
+
+The default `client_has_connection` fixture calls `sift_client.ping.ping()`.
+Override it in your conftest if pinging is the wrong signal for your
+environment, for example a token cache that's only warm when authenticated:
+
+```python title="conftest.py"
+from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture(scope="session")
+def client_has_connection(sift_client) -> bool:
+    return Path("~/.sift-token-cache").expanduser().is_file()
+```
+
+The plugin only consults this fixture when `--sift-test-results-check-connection`
+is set, so an unused override has no effect on a normal run.
+
+### Pattern 2: capture locally, upload later
+
+This pattern keeps the plugin running normally even when Sift is
+unreachable. The plugin writes to the log file, the worker dies on connect,
+and the file is left on disk for you to upload later. Pin the log file path
+so you can find it afterward, and don't pass
+`--sift-test-results-check-connection`, which would suppress the logging
+this pattern relies on.
+
+```bash
+pytest --sift-test-results-log-file=./run.jsonl
+```
+
+What happens during the run:
+
+- Every report, step, and measurement create/update is written to
+  `run.jsonl`. The plugin doesn't contact the Sift API for any of these
+  calls; they return simulated responses keyed by UUIDs that the replay
+  later maps to real IDs.
+- The `import-test-result-log --incremental` worker subprocess starts and
+  exits early when it can't reach Sift. The session does not fail when the
+  worker exits before the run ends.
+- Tests run against a real `step` fixture, so `step.measure(...)`,
+  substeps, parametrize, fixtures, and `module_substep` behave exactly as
+  they do online. No conftest changes are needed.
+
+Once you have connectivity, replay the file:
+
+```bash
+import-test-result-log ./run.jsonl
+```
+
+The replay creates the report, steps, and measurements against Sift in one
+batch. See [Replaying a saved log file](#replaying-a-saved-log-file) for
+details on cleanup and the incremental flag.
+
+!!! warning "Pin the log path for Pattern 2"
+    Without `--sift-test-results-log-file=<path>`, the plugin writes to a
+    `tempfile.NamedTemporaryFile` and only surfaces the path via a
+    `logger.info` line. Always pin a known path when you intend to replay
+    the file later.
+
+## Replaying a saved log file
 
 When the worker doesn't finish cleanly the plugin will print a hint mentioning
-`replay-test-result-log`; the actual command to use is:
+`replay-test-result-log`. To import:
 
 ```bash
 import-test-result-log <path-to-log.jsonl>
@@ -551,34 +696,3 @@ import-test-result-log <path-to-log.jsonl>
 
 That replays the saved JSONL log as a single batch (no `--incremental`) and
 deletes the file when it lives under the system temp dir.
-
-## Notes and caveats
-
-- **`step` is `None` under `--sift-test-results-check-connection`.** Tests
-  that take `step` as a parameter and call methods on it should guard against
-  the no-connection case:
-
-  ```python
-  def test_x(step):
-      if step is None:
-          pytest.skip("Sift unavailable")
-      step.measure(...)
-  ```
-
-  Tests that don't take `step` as a parameter need no change. The autouse
-  fixture simply skips its work.
-
-- **Override `client_has_connection` if pinging is the wrong check** for your
-  environment (e.g. a pre-flight that warms a token cache). Just define a
-  session-scoped fixture of the same name in your conftest; it shadows the
-  plugin's default.
-
-- **The session report is finalized only after the import worker drains.**
-  When the session ends with a log file in play, the plugin sends EOF to the
-  worker and waits up to 1 second for it to flush. If the worker is still
-  busy past the timeout, it's killed and the plugin re-raises. Use the
-  replay command above against the saved log to recover the run.
-
-- **Step description is read from the test's docstring once, at step
-  creation.** Update it later via `step.current_step.update({"description":
-  ...})` if you need to override based on runtime state.
