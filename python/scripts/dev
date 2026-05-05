@@ -45,7 +45,8 @@ update_dev() {
 }
 
 bootstrap() {
-  python3 -m venv venv
+  rm -rf build lib/sift_stack_py.egg-info
+  python3 -m venv venv --clear
   pip_install
   update_dev
 }
