@@ -1,0 +1,26 @@
+name: Delete Python Docs Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version or alias to delete (e.g., v0.14, staging, pr-123). Irreversible.'
+        required: true
+        type: string
+
+jobs:
+  delete_docs:
+    name: Delete Documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Delete docs
+        uses: ./.github/actions/python-mike-delete
+        with:
+          version: ${{ inputs.version }}

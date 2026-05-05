@@ -1,0 +1,45 @@
+name: 'Delete Python Docs (mike)'
+description: 'Set up Python, install docs dependencies, and delete a version from gh-pages with mike.'
+
+inputs:
+  version:
+    description: "Version identifier to delete (mike's first positional arg)."
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install docs dependencies
+      shell: bash
+      run: |
+        cd python
+        pip install -e .[docs-build]
+
+    - name: Fetch gh-pages branch
+      shell: bash
+      run: git fetch origin gh-pages --depth=1
+
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Delete with mike
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        cd python
+        echo "Deleting docs for: $VERSION"
+        if mike list | grep -q "$VERSION"; then
+          mike delete "$VERSION" --push
+          echo "Successfully deleted docs for $VERSION"
+        else
+          echo "No docs found for $VERSION, nothing to delete"
+        fi
