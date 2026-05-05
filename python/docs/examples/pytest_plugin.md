@@ -688,7 +688,7 @@ details on cleanup and the incremental flag.
 ## Replaying a saved log file
 
 When the worker doesn't finish cleanly the plugin will print a hint mentioning
-`replay-test-result-log`. To import:
+`import-test-result-log`. To import:
 
 ```bash
 import-test-result-log <path-to-log.jsonl>
