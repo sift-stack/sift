@@ -90,6 +90,8 @@ pub struct SiftStreamMetricsSnapshotPy {
     #[pyo3(get)]
     pub backup_channel_depth: u64,
     #[pyo3(get)]
+    pub grpc_status_counts: Vec<u64>,
+    #[pyo3(get)]
     pub checkpoint: CheckpointMetricsSnapshotPy,
     #[pyo3(get)]
     pub backups: BackupMetricsSnapshotPy,
@@ -111,6 +113,7 @@ impl From<SiftStreamMetricsSnapshot> for SiftStreamMetricsSnapshotPy {
             cur_retry_count: snapshot.cur_retry_count,
             ingestion_channel_depth: snapshot.ingestion_channel_depth,
             backup_channel_depth: snapshot.backup_channel_depth,
+            grpc_status_counts: snapshot.grpc_status_counts.to_vec(),
             checkpoint: CheckpointMetricsSnapshotPy {
                 checkpoint_count: snapshot.checkpoint.checkpoint_count,
                 failed_checkpoint_count: snapshot.checkpoint.failed_checkpoint_count,

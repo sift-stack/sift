@@ -198,6 +198,12 @@ impl SiftStreamPy {
             .map_err(py_err))
     }
 
+    pub fn try_send(&self, flow: FlowPy) -> PyResult<()> {
+        let mut inner_guard = self.inner.blocking_lock();
+        let flow_rs: Flow = flow.into();
+        dispatch_mut!(inner_guard, |s| s.try_send(flow_rs).map_err(py_err))
+    }
+
     pub fn get_metrics_snapshot(&self) -> PyResult<SiftStreamMetricsSnapshotPy> {
         let inner_guard = self.inner.blocking_lock();
         Ok(dispatch_ref!(inner_guard, |s| s
