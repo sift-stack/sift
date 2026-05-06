@@ -40,19 +40,30 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
     let tdms_config = build_tdms_config(&args).context("failed to build tdms config")?;
 
     if args.preview {
-        let channel_configs =
-            detect_config(&args.path, args.fallback_method).context("failed to parse tdms")?;
-        let refs: Vec<&ChannelConfig> = channel_configs.iter().collect();
+        let run_label = if tdms_config.run_id.is_empty() {
+            tdms_config.run_name.as_str()
+        } else {
+            tdms_config.run_id.as_str()
+        };
 
-        preview_import_config(
-            &args.asset,
-            if tdms_config.run_id.is_empty() {
-                tdms_config.run_name.as_str()
-            } else {
-                tdms_config.run_id.as_str()
-            },
-            &refs,
-        );
+        match detect_config(&args.path, args.fallback_method) {
+            Ok(channel_configs) => {
+                let refs: Vec<&ChannelConfig> = channel_configs.iter().collect();
+                preview_import_config(&args.asset, run_label, &refs);
+            }
+            Err(e) => {
+                preview_import_config(&args.asset, run_label, &[]);
+                eprintln!();
+                eprintln!(
+                    "{} client-side preview parse failed: {e:#}",
+                    "warning:".yellow()
+                );
+                eprintln!(
+                    "{} the server-side parser may still ingest this file correctly",
+                    "tip:".cyan()
+                );
+            }
+        }
         return Ok(ExitCode::SUCCESS);
     }
 
