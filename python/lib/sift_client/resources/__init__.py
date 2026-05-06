@@ -154,7 +154,7 @@ from sift_client.resources.assets import AssetsAPIAsync
 from sift_client.resources.calculated_channels import CalculatedChannelsAPIAsync
 from sift_client.resources.channels import ChannelsAPIAsync
 from sift_client.resources.file_attachments import FileAttachmentsAPIAsync
-from sift_client.resources.ingestion import IngestionAPIAsync, TracingConfig
+from sift_client.resources.ingestion import IngestionAPIAsync, StreamingMode, TracingConfig
 from sift_client.resources.jobs import JobsAPIAsync
 from sift_client.resources.ping import PingAPIAsync
 from sift_client.resources.reports import ReportsAPIAsync
@@ -200,6 +200,7 @@ __all__ = [
     "FileAttachmentsAPI",
     "FileAttachmentsAPIAsync",
     "IngestionAPIAsync",
+    "StreamingMode",
     "JobsAPI",
     "JobsAPIAsync",
     "PingAPI",

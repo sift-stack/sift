@@ -539,7 +539,7 @@ class SiftStreamBuilderPy:
     r"""
     Whether TLS is enabled. Defaults to `True`. Set to `False` for local testing only.
     """
-    ingestion_config: typing.Optional[IngestionConfigFormPy]
+    ingestion_config_form: typing.Optional[IngestionConfigFormPy]
     r"""
     Ingestion config form. Must be set before calling [`build()`][SiftStreamBuilderPy::build].
     """
@@ -567,7 +567,7 @@ class SiftStreamBuilderPy:
         
         This is the quick path: `ingestion_config` must be set; all other fields are optional.
         For other modes (checkpointing, disk backups, tunable capacities), use
-        [`ingestion_config()`][SiftStreamBuilderPy::ingestion_config] to advance to the full
+        [`ingestion_config()`][SiftStreamBuilderPy::ingestion_config_form] to advance to the full
         builder chain.
         
         Returns a coroutine that resolves to a [`SiftStreamPy`].
