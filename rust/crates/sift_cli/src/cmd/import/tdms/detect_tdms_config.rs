@@ -49,15 +49,10 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
             }
             Err(e) => {
                 preview_import_config(&args.asset, run_label, &[]);
-                eprintln!();
-                eprintln!(
-                    "{} client-side preview parse failed: {e:#}",
-                    "warning:".yellow()
-                );
-                eprintln!(
-                    "{} the server-side parser may still ingest this file correctly",
-                    "tip:".cyan()
-                );
+                Output::new()
+                    .line(format!("client-side preview parse failed: {e:#}"))
+                    .tip("the server-side parser may still ingest this file correctly")
+                    .eprint();
             }
         }
         return Ok(ExitCode::SUCCESS);
