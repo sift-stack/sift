@@ -38,7 +38,7 @@ pub struct SiftStreamBuilderPy {
     enable_tls: bool,
     /// Ingestion config form. Must be set before calling [`build()`][SiftStreamBuilderPy::build].
     #[pyo3(get, set)]
-    ingestion_config: Option<IngestionConfigFormPy>,
+    ingestion_config_form: Option<IngestionConfigFormPy>,
     /// Optional run to associate with the stream. Mutually exclusive with `run_id`;
     /// if both are set, `run_id` takes precedence.
     #[pyo3(get, set)]
@@ -64,7 +64,7 @@ impl SiftStreamBuilderPy {
             uri: uri.into(),
             apikey: apikey.into(),
             enable_tls: true,
-            ingestion_config: None,
+            ingestion_config_form: None,
             run: None,
             run_id: None,
             asset_tags: None,
@@ -76,12 +76,12 @@ impl SiftStreamBuilderPy {
     ///
     /// This is the quick path: `ingestion_config` must be set; all other fields are optional.
     /// For other modes (checkpointing, disk backups, tunable capacities), use
-    /// [`ingestion_config()`][SiftStreamBuilderPy::ingestion_config] to advance to the full
+    /// [`ingestion_config()`][SiftStreamBuilderPy::ingestion_config_form] to advance to the full
     /// builder chain.
     ///
     /// Returns a coroutine that resolves to a [`SiftStreamPy`].
     pub fn build(&mut self, py: Python) -> PyResult<Py<PyAny>> {
-        let ingestion_config = self.ingestion_config.clone().ok_or_else(|| {
+        let ingestion_config = self.ingestion_config_form.clone().ok_or_else(|| {
             pyo3::exceptions::PyValueError::new_err(
                 "ingestion_config must be set before calling build()",
             )
