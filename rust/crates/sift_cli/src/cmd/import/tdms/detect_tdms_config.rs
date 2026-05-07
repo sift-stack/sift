@@ -1,4 +1,4 @@
-use std::{fs::File, io::Seek, path::Path, process::ExitCode};
+use std::{fs::File, path::Path, process::ExitCode};
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use chrono::DateTime;
@@ -67,7 +67,7 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    let mut file = File::open(&args.path).context("failed to open tdms file")?;
+    let file = File::open(&args.path).context("failed to open tdms file")?;
 
     let create_data_import_req =
         create_data_import_request(tdms_config).context("failed to create data import req")?;
