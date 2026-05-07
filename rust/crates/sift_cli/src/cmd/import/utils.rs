@@ -5,9 +5,41 @@ use std::{
 
 use anyhow::{Context, Result, anyhow};
 use flate2::{Compression, write::GzEncoder};
+use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelEnumType};
 
-use crate::cli::time::TimeFormat;
+use crate::{cli::time::TimeFormat, cmd::Context as CmdContext, util::api::create_rest_client};
+
+/// Gzip and upload a file to a pre-signed upload URL with the given content type.
+/// Reads from the file's current cursor position.
+pub async fn upload_gzipped_file(
+    ctx: &CmdContext,
+    upload_url: &str,
+    file: File,
+    content_type: &str,
+) -> Result<()> {
+    let compressed_data = gzip_file(file)?;
+    let rest_client = create_rest_client(ctx).context("failed to create rest client")?;
+
+    let res = rest_client
+        .post(upload_url)
+        .header(CONTENT_ENCODING, "gzip")
+        .header(CONTENT_TYPE, content_type)
+        .body(compressed_data)
+        .send()
+        .await
+        .context("failed to upload file")?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let text = res
+            .text()
+            .await
+            .unwrap_or_else(|_| "<failed to read body>".into());
+        return Err(anyhow!("upload failed with http status {status}: {text}"));
+    }
+    Ok(())
+}
 
 /// Be sure that the file's cursor is rewinded to the start before hand.
 pub fn gzip_file(file: File) -> Result<Vec<u8>> {

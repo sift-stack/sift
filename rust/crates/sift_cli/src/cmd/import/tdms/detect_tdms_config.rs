@@ -4,7 +4,6 @@ use anyhow::{Context as AnyhowContext, Result, anyhow};
 use chrono::DateTime;
 use crossterm::style::Stylize;
 use pbjson_types::Timestamp;
-use reqwest::header::CONTENT_ENCODING;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
@@ -23,14 +22,11 @@ use crate::{
         Context,
         import::{
             preview_import_config,
-            utils::{gzip_file, validate_time_format},
+            utils::{upload_gzipped_file, validate_time_format},
             wait_for_job_completion,
         },
     },
-    util::{
-        api::{create_grpc_channel, create_rest_client},
-        tty::Output,
-    },
+    util::{api::create_grpc_channel, tty::Output},
 };
 
 pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
@@ -78,27 +74,9 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         .context("error creating data import for tdms")?
         .into_inner();
 
-    let compressed_data = gzip_file(file)?;
-
-    let rest_client = create_rest_client(&ctx).context("failed to create rest client for tdms")?;
-    let res = rest_client
-        .post(upload_url)
-        .header(CONTENT_ENCODING, "gzip")
-        .body(compressed_data)
-        .send()
+    upload_gzipped_file(&ctx, &upload_url, file, "application/octet-stream")
         .await
-        .context("failed to upload tdms files")?;
-
-    if !res.status().is_success() {
-        let status = res.status();
-        let text = res
-            .text()
-            .await
-            .unwrap_or_else(|_| "<failed to read body>".into());
-        return Err(anyhow!(
-            "failed to upload Tdms file with http status {status}: {text}"
-        ));
-    }
+        .context("failed to upload tdms file")?;
 
     let location = args.run.as_ref().map_or_else(
         || format!("asset '{}'", args.asset.cyan()),
