@@ -312,7 +312,7 @@ pub struct CommonImportArgs {
     #[arg(short, long)]
     pub run: Option<String>,
 
-    /// The id of an existing run to add this data to. Takes precedence over --run 
+    /// The id of an existing run to add this data to. Takes precedence over --run
     #[arg(long)]
     pub run_id: Option<String>,
 

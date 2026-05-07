@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use crate::cli::{CommonImportArgs, ImportTdmsArgs};
 use crate::cli::tdms::TdmsFallbackMethod;
 use crate::cli::time::TimeFormat;
+use crate::cli::{CommonImportArgs, ImportTdmsArgs};
 use crate::cmd::import::tdms::detect_tdms_config::{
     build_tdms_config, find_time_channel, is_waveform_channel, tdms_to_sift_data_type,
 };
