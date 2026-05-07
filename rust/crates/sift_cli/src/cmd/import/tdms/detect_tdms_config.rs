@@ -78,7 +78,6 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         .context("error creating data import for tdms")?
         .into_inner();
 
-    file.rewind()?;
     let compressed_data = gzip_file(file)?;
 
     let rest_client = create_rest_client(&ctx).context("failed to create rest client for tdms")?;
