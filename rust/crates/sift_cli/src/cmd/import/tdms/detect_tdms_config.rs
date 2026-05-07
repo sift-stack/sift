@@ -35,20 +35,20 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
     let mut data_imports_client = DataImportServiceClient::new(grpc_channel.clone());
     let tdms_config = build_tdms_config(&args).context("failed to build tdms config")?;
 
-    if args.preview {
+    if args.common.preview {
         let run_label = if tdms_config.run_id.is_empty() {
             tdms_config.run_name.as_str()
         } else {
             tdms_config.run_id.as_str()
         };
 
-        match detect_config(&args.path, args.fallback_method) {
+        match detect_config(&args.common.path, args.fallback_method) {
             Ok(channel_configs) => {
                 let refs: Vec<&ChannelConfig> = channel_configs.iter().collect();
-                preview_import_config(&args.asset, run_label, &refs);
+                preview_import_config(&args.common.asset, run_label, &refs);
             }
             Err(e) => {
-                preview_import_config(&args.asset, run_label, &[]);
+                preview_import_config(&args.common.asset, run_label, &[]);
                 Output::new()
                     .line(format!("client-side preview parse failed: {e:#}"))
                     .tip("the server-side parser may still ingest this file correctly")
@@ -58,7 +58,7 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    let file = File::open(&args.path).context("failed to open tdms file")?;
+    let file = File::open(&args.common.path).context("failed to open tdms file")?;
 
     let create_data_import_req =
         create_data_import_request(tdms_config).context("failed to create data import req")?;
@@ -73,12 +73,12 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         .await
         .context("failed to upload tdms file")?;
 
-    let location = args.run.as_ref().map_or_else(
-        || format!("asset '{}'", args.asset.cyan()),
+    let location = args.common.run.as_ref().map_or_else(
+        || format!("asset '{}'", args.common.asset.cyan()),
         |r| format!("run '{}'", r.clone().cyan()),
     );
 
-    if !args.wait {
+    if !args.common.wait {
         Output::new()
             .line(format!("{} file for processing", "Uploaded".green()))
             .tip(format!(
@@ -93,7 +93,7 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
 }
 
 pub fn build_tdms_config(args: &ImportTdmsArgs) -> Result<TdmsConfig> {
-    if args.import_file_properties && args.run.is_none() && args.run_id.is_none() {
+    if args.import_file_properties && args.common.run.is_none() && args.common.run_id.is_none() {
         anyhow::bail!("--import-file-properties requires --run or --run-id");
     }
 
@@ -124,10 +124,10 @@ pub fn build_tdms_config(args: &ImportTdmsArgs) -> Result<TdmsConfig> {
     };
 
     Ok(TdmsConfig {
-        asset_name: args.asset.clone(),
-        run_name: args.run.clone().unwrap_or_default(),
+        asset_name: args.common.asset.clone(),
+        run_name: args.common.run.clone().unwrap_or_default(),
         start_time_override: start_time_override_input,
-        run_id: args.run_id.clone().unwrap_or_default(),
+        run_id: args.common.run_id.clone().unwrap_or_default(),
         fallback_method: ProtoFallbackMethod::from(args.fallback_method).into(),
         time_format: args.time_format.map(|tf| ProtoTimeFormat::from(tf).into()),
         relative_start_time: relative_start_time_input,

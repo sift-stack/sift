@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::cli::ImportTdmsArgs;
+use crate::cli::{CommonImportArgs, ImportTdmsArgs};
 use crate::cli::tdms::TdmsFallbackMethod;
 use crate::cli::time::TimeFormat;
 use crate::cmd::import::tdms::detect_tdms_config::{
@@ -16,17 +16,19 @@ use tdms::segment::{Channel, Endianness, MetadataProperty};
 
 fn make_args() -> ImportTdmsArgs {
     ImportTdmsArgs {
-        path: PathBuf::from("test.tdms"),
-        asset: "test-asset".into(),
-        run: None,
-        run_id: None,
+        common: CommonImportArgs {
+            path: PathBuf::from("test.tdms"),
+            asset: "test-asset".into(),
+            run: None,
+            run_id: None,
+            wait: false,
+            preview: false,
+        },
         start_time_override: None,
         fallback_method: TdmsFallbackMethod::FailOnError,
         time_format: None,
         relative_start_time: None,
         import_file_properties: false,
-        wait: false,
-        preview: false,
     }
 }
 
@@ -74,7 +76,7 @@ fn build_tdms_config_defaults() {
 #[test]
 fn build_tdms_config_run_name_passes_through() {
     let mut args = make_args();
-    args.run = Some("my-run".into());
+    args.common.run = Some("my-run".into());
     let cfg = build_tdms_config(&args).expect("build");
     assert_eq!(cfg.run_name, "my-run");
     assert_eq!(cfg.run_id, "");
@@ -83,7 +85,7 @@ fn build_tdms_config_run_name_passes_through() {
 #[test]
 fn build_tdms_config_run_id_passes_through() {
     let mut args = make_args();
-    args.run_id = Some("run-abc-123".into());
+    args.common.run_id = Some("run-abc-123".into());
     let cfg = build_tdms_config(&args).expect("build");
     assert_eq!(cfg.run_id, "run-abc-123");
     assert_eq!(cfg.run_name, "");
@@ -138,7 +140,7 @@ fn build_tdms_config_start_time_override_parses_rfc3339() {
 fn build_tdms_config_import_file_properties_with_run() {
     let mut args = make_args();
     args.import_file_properties = true;
-    args.run = Some("my-run".into());
+    args.common.run = Some("my-run".into());
     let cfg = build_tdms_config(&args).expect("build");
     assert!(cfg.import_file_properties);
 }

@@ -299,6 +299,32 @@ pub struct ImportBackupArgs {
     pub cleanup: bool,
 }
 
+#[derive(clap::Args)]
+pub struct CommonImportArgs {
+    /// Path to the file to import
+    pub path: PathBuf,
+
+    /// Name of the asset this data belongs to
+    #[arg(short, long)]
+    pub asset: String,
+
+    /// Optional run name to associate with this import
+    #[arg(short, long)]
+    pub run: Option<String>,
+
+    /// The id of an existing run to add this data to. Takes precedence over --run 
+    #[arg(long)]
+    pub run_id: Option<String>,
+
+    /// Wait until the import finishes processing
+    #[arg(short, long)]
+    pub wait: bool,
+
+    /// Preview the parsed schema without uploading
+    #[arg(short, long)]
+    pub preview: bool,
+}
+
 #[derive(Subcommand)]
 pub enum ImportParquetCmd {
     /// A parquet file where every column is exclusive to a single channel except for the time
@@ -371,36 +397,26 @@ pub struct FlatDatasetArgs {
 
 #[derive(clap::Args)]
 pub struct ImportTdmsArgs {
-    /// Path to the Tdms file to import
-    pub path: PathBuf,
-    /// Name of the asset this data belongs to
-    #[arg(short, long)]
-    pub asset: String,
-    /// Optional run name to associate with this import
-    #[arg(short, long)]
-    pub run: Option<String>,
+    #[command(flatten)]
+    pub common: CommonImportArgs,
+
     /// Optional override on start time
     #[arg(long)]
     pub start_time_override: Option<String>,
-    /// Optional id of the run to add this data to, if set 'run_name' is ignored
-    #[arg(long)]
-    pub run_id: Option<String>,
-    /// Fallack method for channels with missing timing information
+
+    /// Fallback method for channels with missing timing information
     #[arg(short, long, default_value = "fail-on-error")]
     pub fallback_method: TdmsFallbackMethod,
+
     /// Time format for the channels not using the TDMS timestamp type
     #[arg(long)]
     pub time_format: Option<TimeFormat>,
+
     /// Relative start time for channels using a non standard time channel
     #[arg(short = 's', long)]
     pub relative_start_time: Option<String>,
+
     /// If true, will import TDMS file properties to the run as metadata
     #[arg(long)]
     pub import_file_properties: bool,
-    /// Wait until the import finishes processing
-    #[arg(short, long)]
-    pub wait: bool,
-    /// Preview the parsed schema without uploading
-    #[arg(short, long)]
-    pub preview: bool,
 }
