@@ -242,6 +242,20 @@ class TestFileBackupBuilder:
         assert mode_builder.disk_backup_policy is not None
 
 
+class TestSiftStreamMetricsSnapshot:
+    """Test SiftStreamMetricsSnapshotPy fields."""
+
+    def test_grpc_status_counts_attribute_exists(self):
+        """SiftStreamMetricsSnapshotPy must expose grpc_status_counts as a readable property."""
+        from sift_stream_bindings import SiftStreamMetricsSnapshotPy
+
+        # PyO3 #[pyo3(get)] fields appear as descriptors on the class.
+        assert "grpc_status_counts" in dir(SiftStreamMetricsSnapshotPy), (
+            "SiftStreamMetricsSnapshotPy is missing grpc_status_counts — "
+            "was the field added with #[pyo3(get)]?"
+        )
+
+
 class TestIngestWithConfigDataStreamRequest:
     """Test IngestWithConfigDataStreamRequestPy functionality."""
 
