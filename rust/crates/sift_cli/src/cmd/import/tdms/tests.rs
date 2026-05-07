@@ -57,7 +57,7 @@ fn make_channel(data_type: TdmsDataType, property_names: &[&str]) -> Channel {
 }
 
 #[test]
-fn test_build_tdms_config() {
+fn build_tdms_config_defaults() {
     let args = make_args();
     let cfg = build_tdms_config(&args).expect("defaults should build");
     assert_eq!(cfg.asset_name, "test-asset");
@@ -69,24 +69,36 @@ fn test_build_tdms_config() {
     assert!(cfg.relative_start_time.is_none());
     assert!(cfg.time_format.is_none());
     assert!(!cfg.import_file_properties);
+}
 
+#[test]
+fn build_tdms_config_run_name_passes_through() {
     let mut args = make_args();
     args.run = Some("my-run".into());
     let cfg = build_tdms_config(&args).expect("build");
     assert_eq!(cfg.run_name, "my-run");
     assert_eq!(cfg.run_id, "");
+}
 
+#[test]
+fn build_tdms_config_run_id_passes_through() {
     let mut args = make_args();
     args.run_id = Some("run-abc-123".into());
     let cfg = build_tdms_config(&args).expect("build");
     assert_eq!(cfg.run_id, "run-abc-123");
     assert_eq!(cfg.run_name, "");
+}
 
+#[test]
+fn build_tdms_config_fallback_method_ignore_error() {
     let mut args = make_args();
     args.fallback_method = TdmsFallbackMethod::IgnoreError;
     let cfg = build_tdms_config(&args).expect("build");
     assert_eq!(cfg.fallback_method, ProtoFallbackMethod::IgnoreError as i32);
+}
 
+#[test]
+fn build_tdms_config_time_format_absolute_rfc3339() {
     let mut args = make_args();
     args.time_format = Some(TimeFormat::AbsoluteRfc3339);
     let cfg = build_tdms_config(&args).expect("build");
@@ -94,7 +106,10 @@ fn test_build_tdms_config() {
         cfg.time_format,
         Some(ProtoTimeFormat::AbsoluteRfc3339 as i32)
     );
+}
 
+#[test]
+fn build_tdms_config_relative_start_time_parses_rfc3339() {
     let mut args = make_args();
     args.time_format = Some(TimeFormat::RelativeSeconds);
     args.relative_start_time = Some("2026-05-06T12:00:00Z".into());
@@ -105,7 +120,10 @@ fn test_build_tdms_config() {
         .timestamp();
     assert_eq!(ts.seconds, expected);
     assert_eq!(ts.nanos, 0);
+}
 
+#[test]
+fn build_tdms_config_start_time_override_parses_rfc3339() {
     let mut args = make_args();
     args.start_time_override = Some("2026-01-01T00:00:00Z".into());
     let cfg = build_tdms_config(&args).expect("build");
@@ -114,14 +132,19 @@ fn test_build_tdms_config() {
         .unwrap()
         .timestamp();
     assert_eq!(ts.seconds, expected);
+}
 
+#[test]
+fn build_tdms_config_import_file_properties_with_run() {
     let mut args = make_args();
     args.import_file_properties = true;
     args.run = Some("my-run".into());
     let cfg = build_tdms_config(&args).expect("build");
     assert!(cfg.import_file_properties);
+}
 
-    // import_file_properties without run or run_id should error
+#[test]
+fn build_tdms_config_import_file_properties_requires_run() {
     let mut args = make_args();
     args.import_file_properties = true;
     let err = build_tdms_config(&args).unwrap_err();
@@ -129,7 +152,10 @@ fn test_build_tdms_config() {
         err.to_string().contains("import-file-properties"),
         "expected validation error, got: {err:#}"
     );
+}
 
+#[test]
+fn build_tdms_config_invalid_relative_start_time_errors() {
     let mut args = make_args();
     args.relative_start_time = Some("not a date".into());
     let err = build_tdms_config(&args).unwrap_err();
@@ -137,7 +163,10 @@ fn test_build_tdms_config() {
         err.chain().any(|e| e.to_string().contains("RFC3339")),
         "expected RFC3339 error, got: {err:#}"
     );
+}
 
+#[test]
+fn build_tdms_config_invalid_start_time_override_errors() {
     let mut args = make_args();
     args.start_time_override = Some("garbage".into());
     let err = build_tdms_config(&args).unwrap_err();
