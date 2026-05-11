@@ -214,7 +214,11 @@ mod test_is_update_empty {
     use super::is_update_empty;
     use crate::cli::ConfigUpdateArgs;
 
-    fn args(grpc_uri: Option<&str>, rest_uri: Option<&str>, api_key: Option<&str>) -> ConfigUpdateArgs {
+    fn args(
+        grpc_uri: Option<&str>,
+        rest_uri: Option<&str>,
+        api_key: Option<&str>,
+    ) -> ConfigUpdateArgs {
         ConfigUpdateArgs {
             interactive: false,
             grpc_uri: grpc_uri.map(String::from),
