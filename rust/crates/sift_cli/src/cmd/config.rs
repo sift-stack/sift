@@ -24,8 +24,21 @@ pub fn show() -> Result<ExitCode> {
 }
 
 pub fn create() -> Result<ExitCode> {
-    let (_, path) = create_config_file()?;
+    let path = get_config_file_path()?;
     let p = path.display().to_string();
+
+    if metadata(&path).is_ok() {
+        Output::new()
+            .line(format!("A config file already exists at '{}'.", p.yellow()))
+            .tip(format!(
+                "Use '{}' to view the contents.",
+                format!("{BIN_NAME} config show").green()
+            ))
+            .print();
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    create_config_file()?;
 
     Output::new()
         .line(format!(
