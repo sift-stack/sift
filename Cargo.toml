@@ -58,6 +58,7 @@ rand = "0.10"
 reqwest = "0.13"
 serde = { version = "^1.0" }
 serde_json = { version = "^1.0" }
+tdms = "0.3.0"
 tempdir = "0.3"
 tokio = { version = "1" }
 tokio-stream = "0.1"
