@@ -91,8 +91,6 @@ pub mod test_report_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        /** Imports a test report from an already-uploaded file
-*/
         pub async fn import_test_report(
             &mut self,
             request: impl tonic::IntoRequest<super::ImportTestReportRequest>,
@@ -370,6 +368,8 @@ pub mod test_report_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Deletes a test step
+*/
         pub async fn delete_test_step(
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteTestStepRequest>,
@@ -399,6 +399,8 @@ pub mod test_report_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Creates a test measurement
+*/
         pub async fn create_test_measurement(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateTestMeasurementRequest>,
@@ -617,8 +619,6 @@ pub mod test_report_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with TestReportServiceServer.
     #[async_trait]
     pub trait TestReportService: std::marker::Send + std::marker::Sync + 'static {
-        /** Imports a test report from an already-uploaded file
-*/
         async fn import_test_report(
             &self,
             request: tonic::Request<super::ImportTestReportRequest>,
@@ -698,6 +698,8 @@ pub mod test_report_service_server {
             tonic::Response<super::UpdateTestStepResponse>,
             tonic::Status,
         >;
+        /** Deletes a test step
+*/
         async fn delete_test_step(
             &self,
             request: tonic::Request<super::DeleteTestStepRequest>,
@@ -705,6 +707,8 @@ pub mod test_report_service_server {
             tonic::Response<super::DeleteTestStepResponse>,
             tonic::Status,
         >;
+        /** Creates a test measurement
+*/
         async fn create_test_measurement(
             &self,
             request: tonic::Request<super::CreateTestMeasurementRequest>,

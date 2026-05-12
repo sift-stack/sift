@@ -3282,15 +3282,6 @@ impl serde::Serialize for TestMeasurement {
         if self.timestamp.is_some() {
             len += 1;
         }
-        if !self.description.is_empty() {
-            len += 1;
-        }
-        if !self.channel_names.is_empty() {
-            len += 1;
-        }
-        if !self.metadata.is_empty() {
-            len += 1;
-        }
         if self.value.is_some() {
             len += 1;
         }
@@ -3323,15 +3314,6 @@ impl serde::Serialize for TestMeasurement {
         }
         if let Some(v) = self.timestamp.as_ref() {
             struct_ser.serialize_field("timestamp", v)?;
-        }
-        if !self.description.is_empty() {
-            struct_ser.serialize_field("description", &self.description)?;
-        }
-        if !self.channel_names.is_empty() {
-            struct_ser.serialize_field("channelNames", &self.channel_names)?;
-        }
-        if !self.metadata.is_empty() {
-            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         if let Some(v) = self.value.as_ref() {
             match v {
@@ -3378,10 +3360,6 @@ impl<'de> serde::Deserialize<'de> for TestMeasurement {
             "unit",
             "passed",
             "timestamp",
-            "description",
-            "channel_names",
-            "channelNames",
-            "metadata",
             "numeric_value",
             "numericValue",
             "string_value",
@@ -3404,9 +3382,6 @@ impl<'de> serde::Deserialize<'de> for TestMeasurement {
             Unit,
             Passed,
             Timestamp,
-            Description,
-            ChannelNames,
-            Metadata,
             NumericValue,
             StringValue,
             BooleanValue,
@@ -3441,9 +3416,6 @@ impl<'de> serde::Deserialize<'de> for TestMeasurement {
                             "unit" => Ok(GeneratedField::Unit),
                             "passed" => Ok(GeneratedField::Passed),
                             "timestamp" => Ok(GeneratedField::Timestamp),
-                            "description" => Ok(GeneratedField::Description),
-                            "channelNames" | "channel_names" => Ok(GeneratedField::ChannelNames),
-                            "metadata" => Ok(GeneratedField::Metadata),
                             "numericValue" | "numeric_value" => Ok(GeneratedField::NumericValue),
                             "stringValue" | "string_value" => Ok(GeneratedField::StringValue),
                             "booleanValue" | "boolean_value" => Ok(GeneratedField::BooleanValue),
@@ -3476,9 +3448,6 @@ impl<'de> serde::Deserialize<'de> for TestMeasurement {
                 let mut unit__ = None;
                 let mut passed__ = None;
                 let mut timestamp__ = None;
-                let mut description__ = None;
-                let mut channel_names__ = None;
-                let mut metadata__ = None;
                 let mut value__ = None;
                 let mut bounds__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -3531,24 +3500,6 @@ impl<'de> serde::Deserialize<'de> for TestMeasurement {
                             }
                             timestamp__ = map_.next_value()?;
                         }
-                        GeneratedField::Description => {
-                            if description__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("description"));
-                            }
-                            description__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::ChannelNames => {
-                            if channel_names__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("channelNames"));
-                            }
-                            channel_names__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::Metadata => {
-                            if metadata__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("metadata"));
-                            }
-                            metadata__ = Some(map_.next_value()?);
-                        }
                         GeneratedField::NumericValue => {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numericValue"));
@@ -3592,9 +3543,6 @@ impl<'de> serde::Deserialize<'de> for TestMeasurement {
                     unit: unit__,
                     passed: passed__.unwrap_or_default(),
                     timestamp: timestamp__,
-                    description: description__.unwrap_or_default(),
-                    channel_names: channel_names__.unwrap_or_default(),
-                    metadata: metadata__.unwrap_or_default(),
                     value: value__,
                     bounds: bounds__,
                 })
@@ -4138,9 +4086,6 @@ impl serde::Serialize for TestStep {
         if self.error_info.is_some() {
             len += 1;
         }
-        if !self.metadata.is_empty() {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.TestStep", len)?;
         if !self.test_step_id.is_empty() {
             struct_ser.serialize_field("testStepId", &self.test_step_id)?;
@@ -4179,9 +4124,6 @@ impl serde::Serialize for TestStep {
         if let Some(v) = self.error_info.as_ref() {
             struct_ser.serialize_field("errorInfo", v)?;
         }
-        if !self.metadata.is_empty() {
-            struct_ser.serialize_field("metadata", &self.metadata)?;
-        }
         struct_ser.end()
     }
 }
@@ -4211,7 +4153,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
             "endTime",
             "error_info",
             "errorInfo",
-            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4227,7 +4168,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
             StartTime,
             EndTime,
             ErrorInfo,
-            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4260,7 +4200,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                             "startTime" | "start_time" => Ok(GeneratedField::StartTime),
                             "endTime" | "end_time" => Ok(GeneratedField::EndTime),
                             "errorInfo" | "error_info" => Ok(GeneratedField::ErrorInfo),
-                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4291,7 +4230,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                 let mut start_time__ = None;
                 let mut end_time__ = None;
                 let mut error_info__ = None;
-                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::TestStepId => {
@@ -4360,12 +4298,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                             }
                             error_info__ = map_.next_value()?;
                         }
-                        GeneratedField::Metadata => {
-                            if metadata__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("metadata"));
-                            }
-                            metadata__ = Some(map_.next_value()?);
-                        }
                     }
                 }
                 Ok(TestStep {
@@ -4380,7 +4312,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                     start_time: start_time__,
                     end_time: end_time__,
                     error_info: error_info__,
-                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
