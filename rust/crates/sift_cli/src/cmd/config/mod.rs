@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use crate::BIN_NAME;
 use anyhow::{Context, Result, anyhow};
 use crossterm::style::Stylize;
@@ -205,6 +208,6 @@ fn is_update_empty(args: &ConfigUpdateArgs) -> bool {
         ..
     } = args;
     grpc_uri.as_ref().is_none_or(|s| s.is_empty())
-        || rest_uri.as_ref().is_none_or(|s| s.is_empty())
-        || api_key.as_ref().is_none_or(|s| s.is_empty())
+        && rest_uri.as_ref().is_none_or(|s| s.is_empty())
+        && api_key.as_ref().is_none_or(|s| s.is_empty())
 }
