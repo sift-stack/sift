@@ -4,7 +4,7 @@ breaking:
     - FILE
 lint:
   use:
-    - DEFAULT
+    - STANDARD
   ignore_only:
     ENUM_VALUE_PREFIX:
       - sift/rules/v1/rules.proto

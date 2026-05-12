@@ -129,11 +129,9 @@ message EvaluateRulesPreviewRequest {
   // If evaluating a run against a family stat, this field will be used to provide alignment configuration for the run under test
 }
 
-
 message EvaluateRulesFromRuleConfigs {
   repeated sift.rules.v1.UpdateRuleRequest configs = 1 [(google.api.field_behavior) = REQUIRED];
 }
-
 
 message EvaluateRulesPreviewResponse {
   int32 created_annotation_count = 1 [(google.api.field_behavior) = REQUIRED];

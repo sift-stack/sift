@@ -39,6 +39,16 @@ class ExternalSyncServiceStub:
         sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse,
     ]
 
+    ListExternalSyncRuns: grpc.UnaryUnaryMultiCallable[
+        sift.external_sync.v1.external_sync_pb2.ListExternalSyncRunsRequest,
+        sift.external_sync.v1.external_sync_pb2.ListExternalSyncRunsResponse,
+    ]
+
+    GetExternalSyncRun: grpc.UnaryUnaryMultiCallable[
+        sift.external_sync.v1.external_sync_pb2.GetExternalSyncRunRequest,
+        sift.external_sync.v1.external_sync_pb2.GetExternalSyncRunResponse,
+    ]
+
     GetIsOrgExternallyProvisioned: grpc.UnaryUnaryMultiCallable[
         sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedRequest,
         sift.external_sync.v1.external_sync_pb2.GetIsOrgExternallyProvisionedResponse,
@@ -67,6 +77,16 @@ class ExternalSyncServiceAsyncStub:
     ListExternalSyncTokens: grpc.aio.UnaryUnaryMultiCallable[
         sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensRequest,
         sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse,
+    ]
+
+    ListExternalSyncRuns: grpc.aio.UnaryUnaryMultiCallable[
+        sift.external_sync.v1.external_sync_pb2.ListExternalSyncRunsRequest,
+        sift.external_sync.v1.external_sync_pb2.ListExternalSyncRunsResponse,
+    ]
+
+    GetExternalSyncRun: grpc.aio.UnaryUnaryMultiCallable[
+        sift.external_sync.v1.external_sync_pb2.GetExternalSyncRunRequest,
+        sift.external_sync.v1.external_sync_pb2.GetExternalSyncRunResponse,
     ]
 
     GetIsOrgExternallyProvisioned: grpc.aio.UnaryUnaryMultiCallable[
@@ -106,6 +126,20 @@ class ExternalSyncServiceServicer(metaclass=abc.ABCMeta):
         request: sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse, collections.abc.Awaitable[sift.external_sync.v1.external_sync_pb2.ListExternalSyncTokensResponse]]: ...
+
+    @abc.abstractmethod
+    def ListExternalSyncRuns(
+        self,
+        request: sift.external_sync.v1.external_sync_pb2.ListExternalSyncRunsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.external_sync.v1.external_sync_pb2.ListExternalSyncRunsResponse, collections.abc.Awaitable[sift.external_sync.v1.external_sync_pb2.ListExternalSyncRunsResponse]]: ...
+
+    @abc.abstractmethod
+    def GetExternalSyncRun(
+        self,
+        request: sift.external_sync.v1.external_sync_pb2.GetExternalSyncRunRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.external_sync.v1.external_sync_pb2.GetExternalSyncRunResponse, collections.abc.Awaitable[sift.external_sync.v1.external_sync_pb2.GetExternalSyncRunResponse]]: ...
 
     @abc.abstractmethod
     def GetIsOrgExternallyProvisioned(

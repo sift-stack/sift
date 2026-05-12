@@ -112,6 +112,7 @@ func (m *ReportRuleSummary) CloneVT() *ReportRuleSummary {
 	r.ModifiedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ModifiedDate).CloneVT())
 	r.AssetId = m.AssetId
 	r.DeletedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.DeletedDate).CloneVT())
+	r.DisplayOrder = m.DisplayOrder
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -484,6 +485,15 @@ func (m *CreateReportFromRulesRequest_RuleClientKeys) CloneVT() isCreateReportFr
 	return r
 }
 
+func (m *CreateReportFromRulesRequest_RuleVersionIds) CloneVT() isCreateReportFromRulesRequest_RuleIdentifiers {
+	if m == nil {
+		return (*CreateReportFromRulesRequest_RuleVersionIds)(nil)
+	}
+	r := new(CreateReportFromRulesRequest_RuleVersionIds)
+	r.RuleVersionIds = m.RuleVersionIds.CloneVT()
+	return r
+}
+
 func (m *CreateReportRequestRuleIds) CloneVT() *CreateReportRequestRuleIds {
 	if m == nil {
 		return (*CreateReportRequestRuleIds)(nil)
@@ -523,6 +533,27 @@ func (m *CreateReportRequestClientKeys) CloneVT() *CreateReportRequestClientKeys
 }
 
 func (m *CreateReportRequestClientKeys) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *CreateReportRequestRuleVersionIds) CloneVT() *CreateReportRequestRuleVersionIds {
+	if m == nil {
+		return (*CreateReportRequestRuleVersionIds)(nil)
+	}
+	r := new(CreateReportRequestRuleVersionIds)
+	if rhs := m.RuleVersionIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RuleVersionIds = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateReportRequestRuleVersionIds) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -866,6 +897,9 @@ func (this *ReportRuleSummary) EqualVT(that *ReportRuleSummary) bool {
 		return false
 	}
 	if !(*timestamppb1.Timestamp)(this.DeletedDate).EqualVT((*timestamppb1.Timestamp)(that.DeletedDate)) {
+		return false
+	}
+	if this.DisplayOrder != that.DisplayOrder {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1440,6 +1474,31 @@ func (this *CreateReportFromRulesRequest_RuleClientKeys) EqualVT(thatIface isCre
 	return true
 }
 
+func (this *CreateReportFromRulesRequest_RuleVersionIds) EqualVT(thatIface isCreateReportFromRulesRequest_RuleIdentifiers) bool {
+	that, ok := thatIface.(*CreateReportFromRulesRequest_RuleVersionIds)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.RuleVersionIds, that.RuleVersionIds; p != q {
+		if p == nil {
+			p = &CreateReportRequestRuleVersionIds{}
+		}
+		if q == nil {
+			q = &CreateReportRequestRuleVersionIds{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
 func (this *CreateReportRequestRuleIds) EqualVT(that *CreateReportRequestRuleIds) bool {
 	if this == that {
 		return true
@@ -1485,6 +1544,31 @@ func (this *CreateReportRequestClientKeys) EqualVT(that *CreateReportRequestClie
 
 func (this *CreateReportRequestClientKeys) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*CreateReportRequestClientKeys)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *CreateReportRequestRuleVersionIds) EqualVT(that *CreateReportRequestRuleVersionIds) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.RuleVersionIds) != len(that.RuleVersionIds) {
+		return false
+	}
+	for i, vx := range this.RuleVersionIds {
+		vy := that.RuleVersionIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateReportRequestRuleVersionIds) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*CreateReportRequestRuleVersionIds)
 	if !ok {
 		return false
 	}
@@ -2221,6 +2305,13 @@ func (m *ReportRuleSummary) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisplayOrder != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.DisplayOrder))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
 	}
 	if m.DeletedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.DeletedDate).MarshalToSizedBufferVT(dAtA[:i])
@@ -3098,6 +3189,25 @@ func (m *CreateReportFromRulesRequest_RuleClientKeys) MarshalToSizedBufferVT(dAt
 	}
 	return len(dAtA) - i, nil
 }
+func (m *CreateReportFromRulesRequest_RuleVersionIds) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateReportFromRulesRequest_RuleVersionIds) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.RuleVersionIds != nil {
+		size, err := m.RuleVersionIds.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
 func (m *CreateReportRequestRuleIds) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3175,6 +3285,48 @@ func (m *CreateReportRequestClientKeys) MarshalToSizedBufferVT(dAtA []byte) (int
 			i -= len(m.RuleClientKeys[iNdEx])
 			copy(dAtA[i:], m.RuleClientKeys[iNdEx])
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleClientKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateReportRequestRuleVersionIds) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateReportRequestRuleVersionIds) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateReportRequestRuleVersionIds) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RuleVersionIds) > 0 {
+		for iNdEx := len(m.RuleVersionIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RuleVersionIds[iNdEx])
+			copy(dAtA[i:], m.RuleVersionIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleVersionIds[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -3853,6 +4005,13 @@ func (m *ReportRuleSummary) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisplayOrder != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.DisplayOrder))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
 	}
 	if m.DeletedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.DeletedDate).MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -4695,6 +4854,13 @@ func (m *CreateReportFromRulesRequest) MarshalToSizedBufferVTStrict(dAtA []byte)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if msg, ok := m.RuleIdentifiers.(*CreateReportFromRulesRequest_RuleVersionIds); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if msg, ok := m.RuleIdentifiers.(*CreateReportFromRulesRequest_RuleClientKeys); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -4770,6 +4936,25 @@ func (m *CreateReportFromRulesRequest_RuleClientKeys) MarshalToSizedBufferVTStri
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *CreateReportFromRulesRequest_RuleVersionIds) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *CreateReportFromRulesRequest_RuleVersionIds) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.RuleVersionIds != nil {
+		size, err := m.RuleVersionIds.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
 	}
 	return len(dAtA) - i, nil
 }
@@ -4850,6 +5035,48 @@ func (m *CreateReportRequestClientKeys) MarshalToSizedBufferVTStrict(dAtA []byte
 			i -= len(m.RuleClientKeys[iNdEx])
 			copy(dAtA[i:], m.RuleClientKeys[iNdEx])
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleClientKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateReportRequestRuleVersionIds) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateReportRequestRuleVersionIds) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *CreateReportRequestRuleVersionIds) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RuleVersionIds) > 0 {
+		for iNdEx := len(m.RuleVersionIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RuleVersionIds[iNdEx])
+			copy(dAtA[i:], m.RuleVersionIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleVersionIds[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -5450,6 +5677,9 @@ func (m *ReportRuleSummary) SizeVT() (n int) {
 		l = (*timestamppb1.Timestamp)(m.DeletedDate).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.DisplayOrder != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.DisplayOrder))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5791,6 +6021,18 @@ func (m *CreateReportFromRulesRequest_RuleClientKeys) SizeVT() (n int) {
 	}
 	return n
 }
+func (m *CreateReportFromRulesRequest_RuleVersionIds) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RuleVersionIds != nil {
+		l = m.RuleVersionIds.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
 func (m *CreateReportRequestRuleIds) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5815,6 +6057,22 @@ func (m *CreateReportRequestClientKeys) SizeVT() (n int) {
 	_ = l
 	if len(m.RuleClientKeys) > 0 {
 		for _, s := range m.RuleClientKeys {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateReportRequestRuleVersionIds) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.RuleVersionIds) > 0 {
+		for _, s := range m.RuleVersionIds {
 			l = len(s)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
@@ -7024,6 +7282,25 @@ func (m *ReportRuleSummary) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayOrder", wireType)
+			}
+			m.DisplayOrder = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.DisplayOrder |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -8684,6 +8961,47 @@ func (m *CreateReportFromRulesRequest) UnmarshalVT(dAtA []byte) error {
 				m.RuleIdentifiers = &CreateReportFromRulesRequest_RuleClientKeys{RuleClientKeys: v}
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleVersionIds", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.RuleIdentifiers.(*CreateReportFromRulesRequest_RuleVersionIds); ok {
+				if err := oneof.RuleVersionIds.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &CreateReportRequestRuleVersionIds{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.RuleIdentifiers = &CreateReportFromRulesRequest_RuleVersionIds{RuleVersionIds: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -8849,6 +9167,89 @@ func (m *CreateReportRequestClientKeys) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.RuleClientKeys = append(m.RuleClientKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *CreateReportRequestRuleVersionIds) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateReportRequestRuleVersionIds: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateReportRequestRuleVersionIds: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleVersionIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuleVersionIds = append(m.RuleVersionIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -10963,6 +11364,25 @@ func (m *ReportRuleSummary) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayOrder", wireType)
+			}
+			m.DisplayOrder = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.DisplayOrder |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -12687,6 +13107,47 @@ func (m *CreateReportFromRulesRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				m.RuleIdentifiers = &CreateReportFromRulesRequest_RuleClientKeys{RuleClientKeys: v}
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleVersionIds", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.RuleIdentifiers.(*CreateReportFromRulesRequest_RuleVersionIds); ok {
+				if err := oneof.RuleVersionIds.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &CreateReportRequestRuleVersionIds{}
+				if err := v.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.RuleIdentifiers = &CreateReportFromRulesRequest_RuleVersionIds{RuleVersionIds: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -12860,6 +13321,93 @@ func (m *CreateReportRequestClientKeys) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.RuleClientKeys = append(m.RuleClientKeys, stringValue)
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *CreateReportRequestRuleVersionIds) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateReportRequestRuleVersionIds: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateReportRequestRuleVersionIds: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleVersionIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RuleVersionIds = append(m.RuleVersionIds, stringValue)
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

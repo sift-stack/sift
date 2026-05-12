@@ -49,6 +49,16 @@ class RunServiceStub(object):
                 request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunRequest.SerializeToString,
                 response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunResponse.FromString,
                 )
+        self.GetFilterFields = channel.unary_unary(
+                '/sift.runs.v2.RunService/GetFilterFields',
+                request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.GetFilterFieldsRequest.SerializeToString,
+                response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.GetFilterFieldsResponse.FromString,
+                )
+        self.ValidateRunFilter = channel.unary_unary(
+                '/sift.runs.v2.RunService/ValidateRunFilter',
+                request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.ValidateRunFilterRequest.SerializeToString,
+                response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.ValidateRunFilterResponse.FromString,
+                )
         self.CreateAutomaticRunAssociationForAssets = channel.unary_unary(
                 '/sift.runs.v2.RunService/CreateAutomaticRunAssociationForAssets',
                 request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateAutomaticRunAssociationForAssetsRequest.SerializeToString,
@@ -109,6 +119,21 @@ class RunServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetFilterFields(self, request, context):
+        """Returns the available filter fields for the ListRuns CEL filter.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ValidateRunFilter(self, request, context):
+        """Validates a CEL filter expression against the available run filter fields.
+        Returns an error message if the expression is invalid, or an empty error_message if valid.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def CreateAutomaticRunAssociationForAssets(self, request, context):
         """Associates a list of assets with a given run.
         """
@@ -153,6 +178,16 @@ def add_RunServiceServicer_to_server(servicer, server):
                     servicer.StopRun,
                     request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunRequest.FromString,
                     response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunResponse.SerializeToString,
+            ),
+            'GetFilterFields': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetFilterFields,
+                    request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.GetFilterFieldsRequest.FromString,
+                    response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.GetFilterFieldsResponse.SerializeToString,
+            ),
+            'ValidateRunFilter': grpc.unary_unary_rpc_method_handler(
+                    servicer.ValidateRunFilter,
+                    request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.ValidateRunFilterRequest.FromString,
+                    response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.ValidateRunFilterResponse.SerializeToString,
             ),
             'CreateAutomaticRunAssociationForAssets': grpc.unary_unary_rpc_method_handler(
                     servicer.CreateAutomaticRunAssociationForAssets,
@@ -285,6 +320,40 @@ class RunService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/StopRun',
             sift_dot_runs_dot_v2_dot_runs__pb2.StopRunRequest.SerializeToString,
             sift_dot_runs_dot_v2_dot_runs__pb2.StopRunResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetFilterFields(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/GetFilterFields',
+            sift_dot_runs_dot_v2_dot_runs__pb2.GetFilterFieldsRequest.SerializeToString,
+            sift_dot_runs_dot_v2_dot_runs__pb2.GetFilterFieldsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ValidateRunFilter(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/ValidateRunFilter',
+            sift_dot_runs_dot_v2_dot_runs__pb2.ValidateRunFilterRequest.SerializeToString,
+            sift_dot_runs_dot_v2_dot_runs__pb2.ValidateRunFilterResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
