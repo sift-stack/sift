@@ -150,8 +150,6 @@ message CsvTimeColumn {
   optional google.protobuf.Timestamp relative_start_time = 3;
 }
 
-
-
 enum DataTypeKey {
   DATA_TYPE_KEY_UNSPECIFIED = 0 [deprecated = true];
   DATA_TYPE_KEY_CSV = 1;

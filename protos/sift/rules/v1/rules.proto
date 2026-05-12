@@ -851,7 +851,6 @@ message AnnotationActionConfiguration {
   repeated sift.metadata.v1.MetadataValue metadata = 4;
 }
 
-
 // Deprecated - use RuleEvaluationService instead.
 message EvaluateRulesRequest {
   option deprecated = true;

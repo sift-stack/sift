@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package sift.comment.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Comment service"}
+};
+
+service CommentService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to programmatically interact with comments attached to resources in the platform."};
+
+  // Creates a comment on a resource.
+  rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/comments"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateComment"
+      description: "Creates a comment on a resource."
+    };
+  }
+
+  // Retrieves comments using an optional filter. Commonly used to bulk-fetch
+  // comments for a set of resource IDs of a given entity type.
+  rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse) {
+    option (google.api.http) = {get: "/api/v1/comments"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListComments"
+      description: "Retrieves comments using an optional filter."
+    };
+  }
+
+  // Updates the body of an existing comment.
+  rpc UpdateComment(UpdateCommentRequest) returns (UpdateCommentResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/comments/{comment.comment_id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateComment"
+      description: "Updates the body of an existing comment."
+    };
+  }
+
+  // Deletes a comment.
+  rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse) {
+    option (google.api.http) = {delete: "/api/v1/comments/{comment_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteComment"
+      description: "Deletes a comment."
+    };
+  }
+}
+
+// The type of resource a comment is attached to. Designed to be extended over time.
+enum CommentEntityType {
+  COMMENT_ENTITY_TYPE_UNSPECIFIED = 0;
+  COMMENT_ENTITY_TYPE_CANVAS_CELL_EXECUTION = 1;
+}
+
+// A single comment attached to a resource.
+message Comment {
+  string comment_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // The ID of the resource the comment is attached to (e.g. a canvas_cell_execution_id).
+  string resource_id = 2 [(google.api.field_behavior) = REQUIRED];
+  // The kind of resource `resource_id` refers to.
+  CommentEntityType entity_type = 3 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 4 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 5 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 6 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_name = 7 [(google.api.field_behavior) = REQUIRED];
+  // The rich-text body of the comment.
+  repeated CommentBodyElement body = 8 [(google.api.field_behavior) = REQUIRED];
+}
+
+// A single element of a comment body. Either plain text or a user mention.
+message CommentBodyElement {
+  CommentBodyElementType type = 1 [(google.api.field_behavior) = REQUIRED];
+  // Only set when `type` is TEXT.
+  string text = 2 [(google.api.field_behavior) = OPTIONAL];
+  // Only set when `type` is USER_MENTION.
+  CommentUserMention user_mention = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+enum CommentBodyElementType {
+  COMMENT_BODY_ELEMENT_TYPE_UNSPECIFIED = 0;
+  COMMENT_BODY_ELEMENT_TYPE_TEXT = 1;
+  COMMENT_BODY_ELEMENT_TYPE_USER_MENTION = 2;
+}
+
+message CommentUserMention {
+  string user_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_email = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `CommentService_CreateComment`.
+message CreateCommentRequest {
+  // The ID of the resource to attach the comment to.
+  string resource_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // The kind of resource `resource_id` refers to.
+  CommentEntityType entity_type = 2 [(google.api.field_behavior) = REQUIRED];
+  // The rich-text body of the new comment.
+  repeated CommentBodyElement body = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `CommentService_CreateComment`.
+message CreateCommentResponse {
+  Comment comment = 1;
+}
+
+// The request for a call to `CommentService_ListComments`. Commonly invoked
+// with a CEL `filter` of the form
+//   `entity_type == "CANVAS_CELL_EXECUTION" && resource_id in ["<uuid>", ...]`
+// to bulk-fetch comments for a set of resources.
+message ListCommentsRequest {
+  // The maximum number of comments to return. Defaults to 50, max 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListComments` call.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `comment_id`, `resource_id`, `entity_type`,
+  // `created_by_user_id`, `created_date`, and `modified_date`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved comments. Formatted as a comma-separated string
+  // i.e. "FIELD_NAME[ desc],...". Available fields to order_by are `created_date`
+  // and `modified_date`. Defaults to `created_date` ascending (oldest-first).
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `CommentService_ListComments`.
+message ListCommentsResponse {
+  repeated Comment comments = 1;
+  string next_page_token = 2;
+}
+
+// The request for a call to `CommentService_UpdateComment`.
+message UpdateCommentRequest {
+  Comment comment = 1 [(google.api.field_behavior) = REQUIRED];
+  // Comma-separated list of fields to update. Only `body` is supported.
+  string update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `CommentService_UpdateComment`.
+message UpdateCommentResponse {
+  Comment comment = 1;
+}
+
+// The request for a call to `CommentService_DeleteComment`.
+message DeleteCommentRequest {
+  string comment_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `CommentService_DeleteComment`.
+message DeleteCommentResponse {}
