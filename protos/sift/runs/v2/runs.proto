@@ -8,6 +8,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/v1/filter_field.proto";
 import "sift/metadata/v1/metadata.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -97,6 +98,28 @@ service RunService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "StopRun"
       description: "Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."
+    };
+  }
+
+  // Returns the available filter fields for the ListRuns CEL filter.
+  rpc GetFilterFields(GetFilterFieldsRequest) returns (GetFilterFieldsResponse) {
+    option (google.api.http) = {get: "/api/v2/runs:filterFields"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetRunFilterFields"
+      description: "Returns the available filter fields for the ListRuns endpoint."
+    };
+  }
+
+  // Validates a CEL filter expression against the available run filter fields.
+  // Returns an error message if the expression is invalid, or an empty error_message if valid.
+  rpc ValidateRunFilter(ValidateRunFilterRequest) returns (ValidateRunFilterResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/runs:validateFilter"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ValidateRunFilter"
+      description: "Validates a CEL filter expression against the available run filter fields."
     };
   }
 
@@ -304,3 +327,23 @@ message StopRunRequest {
 
 // The response of a call to `RunService_StopRun` to stop a run.
 message StopRunResponse {}
+
+// The request for a call to `RunService_GetFilterFields`.
+message GetFilterFieldsRequest {}
+
+// The response of a call to `RunService_GetFilterFields`.
+message GetFilterFieldsResponse {
+  repeated sift.common.v1.FilterField filter_fields = 1;
+}
+
+// The request for a call to `RunService_ValidateRunFilter`.
+message ValidateRunFilterRequest {
+  // The CEL filter expression to validate.
+  string filter = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `RunService_ValidateRunFilter`.
+message ValidateRunFilterResponse {
+  // Empty string if the filter is valid; otherwise contains the validation error message.
+  string error_message = 1 [(google.api.field_behavior) = REQUIRED];
+}

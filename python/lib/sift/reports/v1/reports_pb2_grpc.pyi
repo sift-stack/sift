@@ -18,6 +18,13 @@ class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type:
     ...
 
 class ReportServiceStub:
+    """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
+    RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
+    a run id directly on the request use inbound_policy_enforcement; RPCs that resolve the run via a
+    DB lookup (e.g. report_id -> report -> run_id) use manual_policy_enforcement and do the check in
+    the handler. See web-service/authorization/authorization.go for the helpers.
+    """
+
     def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
     GetReport: grpc.UnaryUnaryMultiCallable[
         sift.reports.v1.reports_pb2.GetReportRequest,
@@ -60,6 +67,13 @@ class ReportServiceStub:
     """
 
 class ReportServiceAsyncStub:
+    """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
+    RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
+    a run id directly on the request use inbound_policy_enforcement; RPCs that resolve the run via a
+    DB lookup (e.g. report_id -> report -> run_id) use manual_policy_enforcement and do the check in
+    the handler. See web-service/authorization/authorization.go for the helpers.
+    """
+
     GetReport: grpc.aio.UnaryUnaryMultiCallable[
         sift.reports.v1.reports_pb2.GetReportRequest,
         sift.reports.v1.reports_pb2.GetReportResponse,
@@ -101,6 +115,13 @@ class ReportServiceAsyncStub:
     """
 
 class ReportServiceServicer(metaclass=abc.ABCMeta):
+    """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
+    RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
+    a run id directly on the request use inbound_policy_enforcement; RPCs that resolve the run via a
+    DB lookup (e.g. report_id -> report -> run_id) use manual_policy_enforcement and do the check in
+    the handler. See web-service/authorization/authorization.go for the helpers.
+    """
+
     @abc.abstractmethod
     def GetReport(
         self,

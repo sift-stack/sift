@@ -7,13 +7,39 @@ import builtins
 import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
+import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
 import sift.common.type.v1.user_pb2
 import sift.user_groups.v2.user_groups_pb2
+import sys
 import typing
 
+if sys.version_info >= (3, 10):
+    import typing as typing_extensions
+else:
+    import typing_extensions
+
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+
+class _ExternalSyncRunTriggerType:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _ExternalSyncRunTriggerTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ExternalSyncRunTriggerType.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    EXTERNAL_SYNC_RUN_TRIGGER_TYPE_UNSPECIFIED: _ExternalSyncRunTriggerType.ValueType  # 0
+    EXTERNAL_SYNC_RUN_TRIGGER_TYPE_MANUAL_USER: _ExternalSyncRunTriggerType.ValueType  # 1
+    """User triggered sync via the Sift UI or API."""
+    EXTERNAL_SYNC_RUN_TRIGGER_TYPE_SCHEDULED: _ExternalSyncRunTriggerType.ValueType  # 2
+
+class ExternalSyncRunTriggerType(_ExternalSyncRunTriggerType, metaclass=_ExternalSyncRunTriggerTypeEnumTypeWrapper): ...
+
+EXTERNAL_SYNC_RUN_TRIGGER_TYPE_UNSPECIFIED: ExternalSyncRunTriggerType.ValueType  # 0
+EXTERNAL_SYNC_RUN_TRIGGER_TYPE_MANUAL_USER: ExternalSyncRunTriggerType.ValueType  # 1
+"""User triggered sync via the Sift UI or API."""
+EXTERNAL_SYNC_RUN_TRIGGER_TYPE_SCHEDULED: ExternalSyncRunTriggerType.ValueType  # 2
+global___ExternalSyncRunTriggerType = ExternalSyncRunTriggerType
 
 @typing.final
 class ExternalSync(google.protobuf.message.Message):
@@ -261,6 +287,264 @@ class ListExternalSyncTokensResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["external_sync_tokens", b"external_sync_tokens", "next_page_token", b"next_page_token"]) -> None: ...
 
 global___ListExternalSyncTokensResponse = ListExternalSyncTokensResponse
+
+@typing.final
+class ExternalSyncUserRef(google.protobuf.message.Message):
+    """Sift user identity for display (user_name) and stable API use (user_id)."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    USER_ID_FIELD_NUMBER: builtins.int
+    USER_NAME_FIELD_NUMBER: builtins.int
+    user_id: builtins.str
+    user_name: builtins.str
+    def __init__(
+        self,
+        *,
+        user_id: builtins.str = ...,
+        user_name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["user_id", b"user_id", "user_name", b"user_name"]) -> None: ...
+
+global___ExternalSyncUserRef = ExternalSyncUserRef
+
+@typing.final
+class ExternalSyncGroupRef(google.protobuf.message.Message):
+    """Sift user group identity for display (group_name) and stable API use (user_group_id)."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    USER_GROUP_ID_FIELD_NUMBER: builtins.int
+    GROUP_NAME_FIELD_NUMBER: builtins.int
+    user_group_id: builtins.str
+    group_name: builtins.str
+    def __init__(
+        self,
+        *,
+        user_group_id: builtins.str = ...,
+        group_name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["group_name", b"group_name", "user_group_id", b"user_group_id"]) -> None: ...
+
+global___ExternalSyncGroupRef = ExternalSyncGroupRef
+
+@typing.final
+class ExternalSyncMembershipChange(google.protobuf.message.Message):
+    """One membership edge that changed during the sync."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    USER_ID_FIELD_NUMBER: builtins.int
+    USER_NAME_FIELD_NUMBER: builtins.int
+    USER_GROUP_ID_FIELD_NUMBER: builtins.int
+    GROUP_NAME_FIELD_NUMBER: builtins.int
+    user_id: builtins.str
+    user_name: builtins.str
+    user_group_id: builtins.str
+    group_name: builtins.str
+    def __init__(
+        self,
+        *,
+        user_id: builtins.str = ...,
+        user_name: builtins.str = ...,
+        user_group_id: builtins.str = ...,
+        group_name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["group_name", b"group_name", "user_group_id", b"user_group_id", "user_id", b"user_id", "user_name", b"user_name"]) -> None: ...
+
+global___ExternalSyncMembershipChange = ExternalSyncMembershipChange
+
+@typing.final
+class ExternalSyncRunDiff(google.protobuf.message.Message):
+    """Snapshot of membership and lifecycle changes from one external sync run.
+    Identifiers are Sift `user_id` / `user_group_id` UUIDs and human-readable names as stored in Sift
+    (not Keycloak SCIM ids). Older stored runs may have empty ids with names only.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    USERS_ACTIVATED_FIELD_NUMBER: builtins.int
+    USERS_DEACTIVATED_FIELD_NUMBER: builtins.int
+    GROUPS_CREATED_FIELD_NUMBER: builtins.int
+    GROUPS_DELETED_FIELD_NUMBER: builtins.int
+    USERS_ADDED_TO_GROUPS_FIELD_NUMBER: builtins.int
+    USERS_REMOVED_FROM_GROUPS_FIELD_NUMBER: builtins.int
+    @property
+    def users_activated(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExternalSyncUserRef]: ...
+    @property
+    def users_deactivated(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExternalSyncUserRef]: ...
+    @property
+    def groups_created(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExternalSyncGroupRef]: ...
+    @property
+    def groups_deleted(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExternalSyncGroupRef]: ...
+    @property
+    def users_added_to_groups(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExternalSyncMembershipChange]: ...
+    @property
+    def users_removed_from_groups(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExternalSyncMembershipChange]: ...
+    def __init__(
+        self,
+        *,
+        users_activated: collections.abc.Iterable[global___ExternalSyncUserRef] | None = ...,
+        users_deactivated: collections.abc.Iterable[global___ExternalSyncUserRef] | None = ...,
+        groups_created: collections.abc.Iterable[global___ExternalSyncGroupRef] | None = ...,
+        groups_deleted: collections.abc.Iterable[global___ExternalSyncGroupRef] | None = ...,
+        users_added_to_groups: collections.abc.Iterable[global___ExternalSyncMembershipChange] | None = ...,
+        users_removed_from_groups: collections.abc.Iterable[global___ExternalSyncMembershipChange] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["groups_created", b"groups_created", "groups_deleted", b"groups_deleted", "users_activated", b"users_activated", "users_added_to_groups", b"users_added_to_groups", "users_deactivated", b"users_deactivated", "users_removed_from_groups", b"users_removed_from_groups"]) -> None: ...
+
+global___ExternalSyncRunDiff = ExternalSyncRunDiff
+
+@typing.final
+class ExternalSyncRunSummary(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    EXTERNAL_SYNC_RUN_ID_FIELD_NUMBER: builtins.int
+    SYNCED_AT_FIELD_NUMBER: builtins.int
+    TRIGGER_TYPE_FIELD_NUMBER: builtins.int
+    TRIGGERED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    USERS_ACTIVATED_COUNT_FIELD_NUMBER: builtins.int
+    USERS_DEACTIVATED_COUNT_FIELD_NUMBER: builtins.int
+    GROUPS_CREATED_COUNT_FIELD_NUMBER: builtins.int
+    GROUPS_DELETED_COUNT_FIELD_NUMBER: builtins.int
+    USERS_ADDED_TO_GROUPS_COUNT_FIELD_NUMBER: builtins.int
+    USERS_REMOVED_FROM_GROUPS_COUNT_FIELD_NUMBER: builtins.int
+    external_sync_run_id: builtins.str
+    trigger_type: global___ExternalSyncRunTriggerType.ValueType
+    triggered_by_user_id: builtins.str
+    users_activated_count: builtins.int
+    users_deactivated_count: builtins.int
+    groups_created_count: builtins.int
+    groups_deleted_count: builtins.int
+    users_added_to_groups_count: builtins.int
+    users_removed_from_groups_count: builtins.int
+    @property
+    def synced_at(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        external_sync_run_id: builtins.str = ...,
+        synced_at: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        trigger_type: global___ExternalSyncRunTriggerType.ValueType = ...,
+        triggered_by_user_id: builtins.str | None = ...,
+        users_activated_count: builtins.int = ...,
+        users_deactivated_count: builtins.int = ...,
+        groups_created_count: builtins.int = ...,
+        groups_deleted_count: builtins.int = ...,
+        users_added_to_groups_count: builtins.int = ...,
+        users_removed_from_groups_count: builtins.int = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_triggered_by_user_id", b"_triggered_by_user_id", "synced_at", b"synced_at", "triggered_by_user_id", b"triggered_by_user_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_triggered_by_user_id", b"_triggered_by_user_id", "external_sync_run_id", b"external_sync_run_id", "groups_created_count", b"groups_created_count", "groups_deleted_count", b"groups_deleted_count", "synced_at", b"synced_at", "trigger_type", b"trigger_type", "triggered_by_user_id", b"triggered_by_user_id", "users_activated_count", b"users_activated_count", "users_added_to_groups_count", b"users_added_to_groups_count", "users_deactivated_count", b"users_deactivated_count", "users_removed_from_groups_count", b"users_removed_from_groups_count"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_triggered_by_user_id", b"_triggered_by_user_id"]) -> typing.Literal["triggered_by_user_id"] | None: ...
+
+global___ExternalSyncRunSummary = ExternalSyncRunSummary
+
+@typing.final
+class ExternalSyncRun(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    EXTERNAL_SYNC_RUN_ID_FIELD_NUMBER: builtins.int
+    SYNCED_AT_FIELD_NUMBER: builtins.int
+    TRIGGER_TYPE_FIELD_NUMBER: builtins.int
+    TRIGGERED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    DIFF_FIELD_NUMBER: builtins.int
+    external_sync_run_id: builtins.str
+    trigger_type: global___ExternalSyncRunTriggerType.ValueType
+    triggered_by_user_id: builtins.str
+    @property
+    def synced_at(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def diff(self) -> global___ExternalSyncRunDiff: ...
+    def __init__(
+        self,
+        *,
+        external_sync_run_id: builtins.str = ...,
+        synced_at: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        trigger_type: global___ExternalSyncRunTriggerType.ValueType = ...,
+        triggered_by_user_id: builtins.str | None = ...,
+        diff: global___ExternalSyncRunDiff | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_triggered_by_user_id", b"_triggered_by_user_id", "diff", b"diff", "synced_at", b"synced_at", "triggered_by_user_id", b"triggered_by_user_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_triggered_by_user_id", b"_triggered_by_user_id", "diff", b"diff", "external_sync_run_id", b"external_sync_run_id", "synced_at", b"synced_at", "trigger_type", b"trigger_type", "triggered_by_user_id", b"triggered_by_user_id"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_triggered_by_user_id", b"_triggered_by_user_id"]) -> typing.Literal["triggered_by_user_id"] | None: ...
+
+global___ExternalSyncRun = ExternalSyncRun
+
+@typing.final
+class ListExternalSyncRunsRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    page_token: builtins.str
+    filter: builtins.str
+    order_by: builtins.str
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        order_by: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListExternalSyncRunsRequest = ListExternalSyncRunsRequest
+
+@typing.final
+class ListExternalSyncRunsResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    EXTERNAL_SYNC_RUN_SUMMARIES_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def external_sync_run_summaries(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExternalSyncRunSummary]: ...
+    def __init__(
+        self,
+        *,
+        external_sync_run_summaries: collections.abc.Iterable[global___ExternalSyncRunSummary] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["external_sync_run_summaries", b"external_sync_run_summaries", "next_page_token", b"next_page_token"]) -> None: ...
+
+global___ListExternalSyncRunsResponse = ListExternalSyncRunsResponse
+
+@typing.final
+class GetExternalSyncRunRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    EXTERNAL_SYNC_RUN_ID_FIELD_NUMBER: builtins.int
+    external_sync_run_id: builtins.str
+    def __init__(
+        self,
+        *,
+        external_sync_run_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["external_sync_run_id", b"external_sync_run_id"]) -> None: ...
+
+global___GetExternalSyncRunRequest = GetExternalSyncRunRequest
+
+@typing.final
+class GetExternalSyncRunResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    EXTERNAL_SYNC_RUN_FIELD_NUMBER: builtins.int
+    @property
+    def external_sync_run(self) -> global___ExternalSyncRun: ...
+    def __init__(
+        self,
+        *,
+        external_sync_run: global___ExternalSyncRun | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["external_sync_run", b"external_sync_run"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["external_sync_run", b"external_sync_run"]) -> None: ...
+
+global___GetExternalSyncRunResponse = GetExternalSyncRunResponse
 
 @typing.final
 class GetIsOrgExternallyProvisionedRequest(google.protobuf.message.Message):

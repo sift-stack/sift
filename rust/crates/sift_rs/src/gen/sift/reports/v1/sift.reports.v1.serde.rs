@@ -292,6 +292,9 @@ impl serde::Serialize for CreateReportFromRulesRequest {
                 create_report_from_rules_request::RuleIdentifiers::RuleClientKeys(v) => {
                     struct_ser.serialize_field("ruleClientKeys", v)?;
                 }
+                create_report_from_rules_request::RuleIdentifiers::RuleVersionIds(v) => {
+                    struct_ser.serialize_field("ruleVersionIds", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -312,6 +315,8 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
             "ruleIds",
             "rule_client_keys",
             "ruleClientKeys",
+            "rule_version_ids",
+            "ruleVersionIds",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -321,6 +326,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
             TagNames,
             RuleIds,
             RuleClientKeys,
+            RuleVersionIds,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -347,6 +353,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
                             "tagNames" | "tag_names" => Ok(GeneratedField::TagNames),
                             "ruleIds" | "rule_ids" => Ok(GeneratedField::RuleIds),
                             "ruleClientKeys" | "rule_client_keys" => Ok(GeneratedField::RuleClientKeys),
+                            "ruleVersionIds" | "rule_version_ids" => Ok(GeneratedField::RuleVersionIds),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -402,6 +409,13 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
                                 return Err(serde::de::Error::duplicate_field("ruleClientKeys"));
                             }
                             rule_identifiers__ = map_.next_value::<::std::option::Option<_>>()?.map(create_report_from_rules_request::RuleIdentifiers::RuleClientKeys)
+;
+                        }
+                        GeneratedField::RuleVersionIds => {
+                            if rule_identifiers__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersionIds"));
+                            }
+                            rule_identifiers__ = map_.next_value::<::std::option::Option<_>>()?.map(create_report_from_rules_request::RuleIdentifiers::RuleVersionIds)
 ;
                         }
                     }
@@ -780,6 +794,98 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequestRuleIds {
             }
         }
         deserializer.deserialize_struct("sift.reports.v1.CreateReportRequestRuleIds", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CreateReportRequestRuleVersionIds {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_version_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.CreateReportRequestRuleVersionIds", len)?;
+        if !self.rule_version_ids.is_empty() {
+            struct_ser.serialize_field("ruleVersionIds", &self.rule_version_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CreateReportRequestRuleVersionIds {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_version_ids",
+            "ruleVersionIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleVersionIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleVersionIds" | "rule_version_ids" => Ok(GeneratedField::RuleVersionIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CreateReportRequestRuleVersionIds;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.CreateReportRequestRuleVersionIds")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CreateReportRequestRuleVersionIds, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_version_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleVersionIds => {
+                            if rule_version_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersionIds"));
+                            }
+                            rule_version_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(CreateReportRequestRuleVersionIds {
+                    rule_version_ids: rule_version_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.CreateReportRequestRuleVersionIds", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for CreateReportResponse {
@@ -2615,6 +2721,9 @@ impl serde::Serialize for ReportRuleSummary {
         if self.deleted_date.is_some() {
             len += 1;
         }
+        if self.display_order != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleSummary", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -2660,6 +2769,9 @@ impl serde::Serialize for ReportRuleSummary {
         if let Some(v) = self.deleted_date.as_ref() {
             struct_ser.serialize_field("deletedDate", v)?;
         }
+        if self.display_order != 0 {
+            struct_ser.serialize_field("displayOrder", &self.display_order)?;
+        }
         struct_ser.end()
     }
 }
@@ -2697,6 +2809,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             "assetId",
             "deleted_date",
             "deletedDate",
+            "display_order",
+            "displayOrder",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2715,6 +2829,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             ModifiedDate,
             AssetId,
             DeletedDate,
+            DisplayOrder,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2750,6 +2865,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
+                            "displayOrder" | "display_order" => Ok(GeneratedField::DisplayOrder),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2783,6 +2899,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                 let mut modified_date__ = None;
                 let mut asset_id__ = None;
                 let mut deleted_date__ = None;
+                let mut display_order__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -2877,6 +2994,14 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             }
                             deleted_date__ = map_.next_value()?;
                         }
+                        GeneratedField::DisplayOrder => {
+                            if display_order__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayOrder"));
+                            }
+                            display_order__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
                     }
                 }
                 Ok(ReportRuleSummary {
@@ -2894,6 +3019,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                     modified_date: modified_date__,
                     asset_id: asset_id__.unwrap_or_default(),
                     deleted_date: deleted_date__,
+                    display_order: display_order__.unwrap_or_default(),
                 })
             }
         }

@@ -111,6 +111,9 @@ message TestStep {
   // Error information of the test step
   ErrorInfo error_info = 11 [(google.api.field_behavior) = OPTIONAL];
 
+  // The metadata values associated with this test step
+  repeated sift.metadata.v1.MetadataValue metadata = 12 [(google.api.field_behavior) = OPTIONAL];
+
   //repeated Measurement measurements = XX; TOOD: to be added in ENG-5623
 }
 
@@ -146,6 +149,16 @@ message TestMeasurement {
   }
   bool passed = 12 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp timestamp = 13 [(google.api.field_behavior) = REQUIRED];
+
+  // Description or note about the measurement
+  string description = 14 [(google.api.field_behavior) = OPTIONAL];
+
+  // Names of Sift channels this measurement is associated with. Allows cross-plotting
+  // in Explore using the Report's associated Run to resolve channels from names.
+  repeated string channel_names = 15 [(google.api.field_behavior) = OPTIONAL];
+
+  // The metadata values associated with this measurement
+  repeated sift.metadata.v1.MetadataValue metadata = 16 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message NumericBounds {
@@ -502,7 +515,8 @@ message ListTestStepsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
   // `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
-  // `error_code`, `error_message`, `created_date`, and `modified_date`.
+  // `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
+  // Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -532,7 +546,9 @@ message UpdateTestStepRequest {
 
   // The field mask specifying which fields to update. The fields available to be updated are
   // `name`, `description`, `step_type`, `step_path`, `test_case`, `status`,
-  // `start_time`, `end_time`, and `error_info`.
+  // `start_time`, `end_time`, `error_info`, and `metadata`. When `metadata` is in the
+  // mask, the supplied list replaces all existing metadata for the test step; sending an
+  // empty or omitted list clears all metadata.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
@@ -597,7 +613,8 @@ message ListTestMeasurementsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `measurement_id`, `measurement_type`, `name`, `test_step_id`,
   // `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`, `timestamp`,
-  // `created_date`, and `modified_date`.
+  // `created_date`, `modified_date`, and `metadata`.
+  // Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -625,7 +642,8 @@ message CountTestStepsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
   // `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
-  // `error_code`, `error_message`, `created_date`, and `modified_date`.
+  // `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
+  // Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
   string filter = 1 [(google.api.field_behavior) = OPTIONAL];
@@ -642,7 +660,8 @@ message CountTestMeasurementsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `measurement_id`, `measurement_type`, `name`, `test_step_id`,
   // `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`, `timestamp`,
-  // `created_date`, and `modified_date`.
+  // `created_date`, `modified_date`, and `metadata`.
+  // Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
   string filter = 1 [(google.api.field_behavior) = OPTIONAL];
@@ -661,7 +680,9 @@ message UpdateTestMeasurementRequest {
 
   // The field mask specifying which fields to update. The fields available to be updated are
   // `name`, `measurement_type`, `numeric_value`, `string_value`, `boolean_value`, `unit`, `numeric_bounds`,
-  // `string_bounds`, `passed`, and `timestamp`.
+  // `string_bounds`, `passed`, `timestamp`, `description`, and `channel_names` and `metadata`. When `metadata` is in the
+  // mask, the supplied list replaces all existing metadata for the measurement; sending
+  // an empty or omitted list clears all metadata.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 

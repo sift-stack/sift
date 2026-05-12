@@ -33,6 +33,8 @@ class GetDataRequest(google.protobuf.message.Message):
     which will return one point approximately every sample_ms milliseconds that retains the shape of the raw data.
     Sampling is only supported for numeric data types, if sample_ms is provided for non-numeric data, it will be
     ignored and the full-fidelity data will be returned.
+    A value of 0 disables sampling and returns the full unsampled dataset. This is recommended for external data
+    analysis where full fidelity is required, as opposed to plotting where downsampling is typically sufficient.
     """
     page_size: builtins.int
     """The maximum number of channel values to return.

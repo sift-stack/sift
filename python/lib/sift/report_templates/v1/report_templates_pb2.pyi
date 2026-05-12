@@ -49,7 +49,11 @@ class ReportTemplate(google.protobuf.message.Message):
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
-    def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTemplateRule]: ...
+    def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTemplateRule]:
+        """Rules on this template. On responses, sort by each rule's `display_order` ascending for execution order. On writes, if
+        `display_order` is omitted on a rule, that rule's position follows the slice order of `rules` (same as explicit orders 0..n-1).
+        """
+
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTemplateTag]: ...
     @property
@@ -91,10 +95,18 @@ class ReportTemplateRule(google.protobuf.message.Message):
     RULE_VERSION_ID_FIELD_NUMBER: builtins.int
     RULE_VERSION_NUMBER_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
+    DISPLAY_ORDER_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_version_id: builtins.str
     rule_version_number: builtins.int
     client_key: builtins.str
+    display_order: builtins.int
+    """Zero-based order for this rule on the template. Copied to `ReportRuleSummary.display_order` when creating a report from
+    the template. Lower values indicate earlier position in the template and on generated reports.
+
+    Optional on writes (e.g. `UpdateReportTemplate`): if omitted, servers use the order of entries in `ReportTemplate.rules`
+    (first entry is earliest). On reads, this field is always populated.
+    """
     def __init__(
         self,
         *,
@@ -102,8 +114,11 @@ class ReportTemplateRule(google.protobuf.message.Message):
         rule_version_id: builtins.str = ...,
         rule_version_number: builtins.int = ...,
         client_key: builtins.str = ...,
+        display_order: builtins.int | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["client_key", b"client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_display_order", b"_display_order", "display_order", b"display_order"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_display_order", b"_display_order", "client_key", b"client_key", "display_order", b"display_order", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_display_order", b"_display_order"]) -> typing.Literal["display_order"] | None: ...
 
 global___ReportTemplateRule = ReportTemplateRule
 
@@ -220,6 +235,8 @@ global___CreateReportTemplateRequest = CreateReportTemplateRequest
 
 @typing.final
 class CreateReportTemplateRequestRuleIds(google.protobuf.message.Message):
+    """Initial rule order on the new template: first `rule_id` is `display_order` 0, second is 1, etc."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULE_IDS_FIELD_NUMBER: builtins.int
@@ -236,6 +253,8 @@ global___CreateReportTemplateRequestRuleIds = CreateReportTemplateRequestRuleIds
 
 @typing.final
 class CreateReportTemplateRequestClientKeys(google.protobuf.message.Message):
+    """Initial template rule order follows server resolution of keys to rules (not client-defined per-key ordering)."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULE_CLIENT_KEYS_FIELD_NUMBER: builtins.int

@@ -71,6 +71,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.channels.v3)
         }
     }
+    pub mod comment {
+        // @@protoc_insertion_point(attribute:sift.comment.v1)
+        pub mod v1 {
+            include!("sift/comment/v1/sift.comment.v1.rs");
+            // @@protoc_insertion_point(sift.comment.v1)
+        }
+    }
     pub mod common {
         pub mod r#type {
             // @@protoc_insertion_point(attribute:sift.common.type.v1)

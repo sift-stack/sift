@@ -206,6 +206,64 @@ pub mod external_sync_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn list_external_sync_runs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListExternalSyncRunsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListExternalSyncRunsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.external_sync.v1.ExternalSyncService/ListExternalSyncRuns",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.external_sync.v1.ExternalSyncService",
+                        "ListExternalSyncRuns",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_external_sync_run(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetExternalSyncRunRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetExternalSyncRunResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.external_sync.v1.ExternalSyncService/GetExternalSyncRun",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.external_sync.v1.ExternalSyncService",
+                        "GetExternalSyncRun",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn get_is_org_externally_provisioned(
             &mut self,
             request: impl tonic::IntoRequest<super::GetIsOrgExternallyProvisionedRequest>,
@@ -276,6 +334,20 @@ pub mod external_sync_service_server {
             request: tonic::Request<super::ListExternalSyncTokensRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListExternalSyncTokensResponse>,
+            tonic::Status,
+        >;
+        async fn list_external_sync_runs(
+            &self,
+            request: tonic::Request<super::ListExternalSyncRunsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListExternalSyncRunsResponse>,
+            tonic::Status,
+        >;
+        async fn get_external_sync_run(
+            &self,
+            request: tonic::Request<super::GetExternalSyncRunRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetExternalSyncRunResponse>,
             tonic::Status,
         >;
         async fn get_is_org_externally_provisioned(
@@ -540,6 +612,104 @@ pub mod external_sync_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListExternalSyncTokensSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.external_sync.v1.ExternalSyncService/ListExternalSyncRuns" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListExternalSyncRunsSvc<T: ExternalSyncService>(pub Arc<T>);
+                    impl<
+                        T: ExternalSyncService,
+                    > tonic::server::UnaryService<super::ListExternalSyncRunsRequest>
+                    for ListExternalSyncRunsSvc<T> {
+                        type Response = super::ListExternalSyncRunsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListExternalSyncRunsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExternalSyncService>::list_external_sync_runs(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListExternalSyncRunsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.external_sync.v1.ExternalSyncService/GetExternalSyncRun" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetExternalSyncRunSvc<T: ExternalSyncService>(pub Arc<T>);
+                    impl<
+                        T: ExternalSyncService,
+                    > tonic::server::UnaryService<super::GetExternalSyncRunRequest>
+                    for GetExternalSyncRunSvc<T> {
+                        type Response = super::GetExternalSyncRunResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetExternalSyncRunRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExternalSyncService>::get_external_sync_run(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetExternalSyncRunSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
