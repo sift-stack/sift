@@ -259,6 +259,8 @@ class TestResultsAPIAsync(ResourceBase):
         test_report_id = (
             test_report._id_or_error if isinstance(test_report, TestReport) else test_report
         )
+        if log_file is None and isinstance(test_report, TestReport):
+            log_file = test_report._log_file
         if isinstance(update, dict):
             update = TestReportUpdate.model_validate(update)
 
@@ -437,6 +439,8 @@ class TestResultsAPIAsync(ResourceBase):
             The updated TestStep.
         """
         test_step_id = test_step._id_or_error if isinstance(test_step, TestStep) else test_step
+        if log_file is None and isinstance(test_step, TestStep):
+            log_file = test_step._log_file
 
         if isinstance(update, dict):
             update = TestStepUpdate.model_validate(update)
@@ -610,6 +614,8 @@ class TestResultsAPIAsync(ResourceBase):
         Returns:
             The updated TestMeasurement.
         """
+        if log_file is None:
+            log_file = test_measurement._log_file
         if isinstance(update, dict):
             update = TestMeasurementUpdate.model_validate(update)
 
