@@ -151,6 +151,8 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
     start_time: datetime
     end_time: datetime
     error_info: ErrorInfo | None = None
+    # Set by the resource layer when this instance was produced from a logging-mode call
+    _log_file: str | Path | None = None
 
     @classmethod
     def _from_proto(cls, proto: TestStepProto, sift_client: SiftClient | None = None) -> TestStep:
@@ -202,9 +204,11 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
         update: TestStepUpdate | dict,
         log_file: str | Path | None = None,
     ) -> TestStep:
-        """Update the TestStep."""
-        if not self.client:
-            raise ValueError("Client not set")
+        """Update the TestStep.
+
+        If `log_file` is omitted, the resource layer falls back to the value
+        cached on `self` from the create call (offline/logging mode).
+        """
         updated_test_step = self.client.test_results.update_step(
             test_step=self, update=update, log_file=log_file
         )
@@ -345,6 +349,8 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
     string_expected_value: str | None = None
     passed: bool
     timestamp: datetime
+    # Set by the resource layer when this instance was produced from a logging-mode call
+    _log_file: str | Path | None = None
 
     @classmethod
     def _from_proto(
@@ -544,6 +550,8 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
     run_id: str | None = None
     archived_date: datetime | None = None
     is_archived: bool
+    # Set by the resource layer when this instance was produced from a logging-mode call
+    _log_file: str | Path | None = None
 
     @classmethod
     def _from_proto(
@@ -607,7 +615,11 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
         update: TestReportUpdate | dict,
         log_file: str | Path | None = None,
     ) -> TestReport:
-        """Update the TestReport."""
+        """Update the TestReport.
+
+        If `log_file` is omitted, the resource layer falls back to the value
+        cached on `self` from the create call (offline/logging mode).
+        """
         updated_test_report = self.client.test_results.update(
             test_report=self, update=update, log_file=log_file
         )

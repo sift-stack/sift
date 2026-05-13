@@ -176,6 +176,33 @@ class TestResultsTest:
             )
             mock_update.assert_called_once_with(updated_report)
 
+    def test_update_preserves_cached_log_file(self, mock_test_report, mock_client):
+        """After .update() returns, the cached _log_file survives — BaseType._update()
+        only copies model_fields, and private attrs are excluded.
+        """
+        mock_test_report.__dict__["_log_file"] = "/tmp/cached.jsonl"
+
+        updated = TestReport(
+            id_=mock_test_report.id_,
+            status=TestStatus.FAILED,
+            name=mock_test_report.name,
+            test_system_name=mock_test_report.test_system_name,
+            test_case=mock_test_report.test_case,
+            start_time=mock_test_report.start_time,
+            end_time=mock_test_report.end_time,
+            metadata={"k": "v"},
+            is_archived=False,
+        )
+        updated.__dict__["_log_file"] = "/tmp/cached.jsonl"
+        mock_client.test_results.update.return_value = updated
+
+        result = mock_test_report.update({"status": TestStatus.FAILED})
+
+        assert result is mock_test_report
+        assert mock_test_report._log_file == "/tmp/cached.jsonl"
+        assert mock_test_report.status == TestStatus.FAILED
+        assert mock_test_report.metadata == {"k": "v"}
+
     def test_archive_test_report(self, mock_test_report, mock_client):
         """Test archiving a test report."""
         # Create archived report mock

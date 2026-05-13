@@ -171,7 +171,7 @@ file-imports = [
 ]
 hdf5 = [
     'h5py~=3.11',
-    'polars~=1.8',  # only used by sift_py; remove once sift_py is fully deprecated
+    'polars~=1.8',
 ]
 openssl = [
     'cffi~=1.14',

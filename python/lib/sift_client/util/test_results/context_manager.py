@@ -195,7 +195,7 @@ class ReportContext(AbstractContextManager):
             update["status"] = TestStatus.FAILED
         else:
             update["status"] = TestStatus.PASSED
-        self.report.update(update, log_file=self.log_file)
+        self.report.update(update)
 
         if self._import_proc is not None:
             try:
@@ -392,7 +392,6 @@ class NewStep(AbstractContextManager):
                 "end_time": datetime.now(timezone.utc),
                 "error_info": error_info,
             },
-            log_file=self.report_context.log_file,
         )
 
         return result

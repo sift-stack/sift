@@ -47,6 +47,17 @@ class TestResultsAPIAsync(ResourceBase):
         self._low_level_client = TestResultsLowLevelClient(grpc_client=self.client.grpc_client)
         self._upload_client = UploadLowLevelClient(rest_client=self.client.rest_client)
 
+    def _finalize(self, instance, log_file: str | Path | None):
+        """Attach the client and stamp the log file on a returned entity.
+
+        Bypasses the frozen-model guard the same way `_apply_client_to_instance`
+        does. Read paths skip this and call `_apply_client_to_instance` directly
+        so fetched entities don't carry a log file they didn't originate from.
+        """
+        self._apply_client_to_instance(instance)
+        instance.__dict__["_log_file"] = log_file
+        return instance
+
     async def import_(self, test_file: str | Path) -> TestReport:
         """Import a test report from an already-uploaded file.
 
@@ -86,7 +97,7 @@ class TestResultsAPIAsync(ResourceBase):
             test_report=test_report,
             log_file=log_file,
         )
-        return self._apply_client_to_instance(created_report)
+        return self._finalize(created_report, log_file)
 
     async def get(self, *, test_report_id: str) -> TestReport:
         """Get a TestReport.
@@ -252,6 +263,8 @@ class TestResultsAPIAsync(ResourceBase):
         test_report_id = (
             test_report._id_or_error if isinstance(test_report, TestReport) else test_report
         )
+        if log_file is None and isinstance(test_report, TestReport):
+            log_file = test_report._log_file
         if isinstance(update, dict):
             update = TestReportUpdate.model_validate(update)
 
@@ -260,7 +273,7 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_report = await self._low_level_client.update_test_report(
             update, log_file=log_file, existing=existing
         )
-        return self._apply_client_to_instance(updated_test_report)
+        return self._finalize(updated_test_report, log_file)
 
     async def archive(self, *, test_report: str | TestReport) -> TestReport:
         """Archive a test report.
@@ -308,7 +321,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_step_result = await self._low_level_client.create_test_step(
             test_step, log_file=log_file
         )
-        return self._apply_client_to_instance(test_step_result)
+        return self._finalize(test_step_result, log_file)
 
     async def list_steps(
         self,
@@ -428,6 +441,8 @@ class TestResultsAPIAsync(ResourceBase):
             The updated TestStep.
         """
         test_step_id = test_step._id_or_error if isinstance(test_step, TestStep) else test_step
+        if log_file is None and isinstance(test_step, TestStep):
+            log_file = test_step._log_file
 
         if isinstance(update, dict):
             update = TestStepUpdate.model_validate(update)
@@ -437,7 +452,7 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_step = await self._low_level_client.update_test_step(
             update, log_file=log_file, existing=existing
         )
-        return self._apply_client_to_instance(updated_test_step)
+        return self._finalize(updated_test_step, log_file)
 
     async def delete_step(self, *, test_step: str | TestStep) -> None:
         """Delete a test step.
@@ -471,7 +486,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_measurement_result = await self._low_level_client.create_test_measurement(
             test_measurement, log_file=log_file
         )
-        measurement = self._apply_client_to_instance(test_measurement_result)
+        measurement = self._finalize(test_measurement_result, log_file)
         if update_step and log_file is None:
             step = await self.get_step(test_step=test_measurement_result.test_step_id)
             if step.status == TestStatus.PASSED and not measurement.passed:
@@ -599,6 +614,8 @@ class TestResultsAPIAsync(ResourceBase):
         Returns:
             The updated TestMeasurement.
         """
+        if log_file is None:
+            log_file = test_measurement._log_file
         if isinstance(update, dict):
             update = TestMeasurementUpdate.model_validate(update)
 
@@ -606,7 +623,7 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_measurement = await self._low_level_client.update_test_measurement(
             update, log_file=log_file, existing=test_measurement
         )
-        updated_test_measurement = self._apply_client_to_instance(updated_test_measurement)
+        updated_test_measurement = self._finalize(updated_test_measurement, log_file)
         if update_step and log_file is None and update.passed is not None and not update.passed:
             step = await self.get_step(test_step=updated_test_measurement.test_step_id)
             if step.status == TestStatus.PASSED:
