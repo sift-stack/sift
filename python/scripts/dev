@@ -35,7 +35,7 @@ EOT
 
 pip_install() {
   source venv/bin/activate
-  pip install '.[all-dev]'
+  pip install '.[dev-all]'
   pip install -e .
 }
 
@@ -94,14 +94,17 @@ doc_build() {
 }
 
 run_tests() {
+  source venv/bin/activate
   pytest -m "not integration"
 }
 
 run_tests_integration() {
+  source venv/bin/activate
   pytest -m "integration"
 }
 
 run_tests_all() {
+  source venv/bin/activate
   pytest
 }
 
