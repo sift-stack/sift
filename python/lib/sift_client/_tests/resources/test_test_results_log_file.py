@@ -303,7 +303,7 @@ class TestEndToEndLogFileRouting:
 
     @pytest.mark.asyncio
     async def test_metadata_update_round_trips_through_log_file(self, real_api, tmp_path):
-        """The actual ENG-11152 regression: update with metadata via cached
+        """Update with metadata via cached
         _log_file, then read the JSONL line back through the same parser the
         replay path uses and verify every key/value round-trips. Proves the
         user-visible payload (not just an opaque entry) lands on disk.
