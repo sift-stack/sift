@@ -204,8 +204,11 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
         update: TestStepUpdate | dict,
         log_file: str | Path | None = None,
     ) -> TestStep:
-        """Update the TestStep."""
-        log_file = log_file if log_file is not None else self._log_file
+        """Update the TestStep.
+
+        If `log_file` is omitted, the resource layer falls back to the value
+        cached on `self` from the create call (offline/logging mode).
+        """
         updated_test_step = self.client.test_results.update_step(
             test_step=self, update=update, log_file=log_file
         )
@@ -431,7 +434,6 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
         Returns:
             The updated TestMeasurement.
         """
-        log_file = log_file if log_file is not None else self._log_file
         updated_test_measurement = self.client.test_results.update_measurement(
             test_measurement=self, update=update, update_step=update_step, log_file=log_file
         )
@@ -613,8 +615,11 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
         update: TestReportUpdate | dict,
         log_file: str | Path | None = None,
     ) -> TestReport:
-        """Update the TestReport."""
-        log_file = log_file if log_file is not None else self._log_file
+        """Update the TestReport.
+
+        If `log_file` is omitted, the resource layer falls back to the value
+        cached on `self` from the create call (offline/logging mode).
+        """
         updated_test_report = self.client.test_results.update(
             test_report=self, update=update, log_file=log_file
         )

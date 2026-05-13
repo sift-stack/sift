@@ -176,60 +176,12 @@ class TestResultsTest:
             )
             mock_update.assert_called_once_with(updated_report)
 
-    @pytest.mark.parametrize(
-        "entity_fixture,resource_method,update_payload",
-        [
-            ("mock_test_report", "update", {"status": TestStatus.FAILED}),
-            ("mock_test_step", "update_step", {"description": "x"}),
-            ("mock_test_measurement", "update_measurement", {"passed": False}),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "cached,kwarg,expected",
-        [
-            (None, None, None),  # online: no cache, no kwarg -> None
-            ("/tmp/cached.jsonl", None, "/tmp/cached.jsonl"),  # cache fallback (the fix)
-            (None, "/tmp/kwarg.jsonl", "/tmp/kwarg.jsonl"),  # explicit only
-            ("/tmp/cached.jsonl", "/tmp/kwarg.jsonl", "/tmp/kwarg.jsonl"),  # kwarg wins
-        ],
-    )
-    def test_update_resolves_log_file(
-        self,
-        request,
-        mock_client,
-        entity_fixture,
-        resource_method,
-        update_payload,
-        cached,
-        kwarg,
-        expected,
-    ):
-        """Entity .update() forwards `log_file or self._log_file` to the resource.
-
-        Covers all four (cached, kwarg) combinations across all three entity types.
-        """
-        entity = request.getfixturevalue(entity_fixture)
-        if cached is not None:
-            entity.__dict__["_log_file"] = cached
-        mock_method = getattr(mock_client.test_results, resource_method)
-        mock_method.return_value = MagicMock()
-        entity._update = MagicMock()
-
-        if kwarg is not None:
-            entity.update(update_payload, log_file=kwarg)
-        else:
-            entity.update(update_payload)
-
-        assert mock_method.call_args.kwargs["log_file"] == expected
-
     def test_update_preserves_cached_log_file(self, mock_test_report, mock_client):
         """After .update() returns, the cached _log_file survives — BaseType._update()
         only copies model_fields, and private attrs are excluded.
         """
         mock_test_report.__dict__["_log_file"] = "/tmp/cached.jsonl"
 
-        # The returned entity from the resource layer carries its own _log_file
-        # via _stamp_log_file. Real _update() should not clobber self._log_file.
         updated = TestReport(
             id_=mock_test_report.id_,
             status=TestStatus.FAILED,

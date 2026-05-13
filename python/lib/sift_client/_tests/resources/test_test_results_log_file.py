@@ -98,8 +98,6 @@ class TestCreateStamping:
         }
         result = await api.create(report_data, log_file=LOG)
         assert result._log_file == LOG
-        # Confirm the resource forwards log_file to the low-level wrapper, i.e.
-        # the value reaches the file-write branch (not just the returned entity).
         assert api._low_level_client.create_test_report.call_args.kwargs["log_file"] == LOG
 
     @pytest.mark.asyncio
@@ -337,11 +335,8 @@ class TestEndToEndLogFileRouting:
             "trial_number": 42.5,
             "is_dry_run": True,
         }
-        await real_api.update(
-            test_report=report,
-            update={"metadata": metadata},
-            log_file=report._log_file,  # mirrors `log_file or self._log_file`
-        )
+        # No log_file kwarg — the resource layer must read it off the entity.
+        await real_api.update(test_report=report, update={"metadata": metadata})
 
         # Find the UpdateTestReport line and decode it the same way replay does.
         update_entries = [
