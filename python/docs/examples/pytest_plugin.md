@@ -523,10 +523,7 @@ The `unit` argument is a free-form string label (e.g. `"V"`, `"C"`, `"psi"`).
   def test_runtime_skip(step):
       with step.substep(name="optional_calibration") as cal:
           if not precondition_met():
-              cal.current_step.update(
-                  {"status": TestStatus.SKIPPED},
-                  log_file=step.report_context.log_file,
-              )
+              cal.current_step.update({"status": TestStatus.SKIPPED})
   ```
 
   A manually-resolved status is honored by the step's exit handler. No
