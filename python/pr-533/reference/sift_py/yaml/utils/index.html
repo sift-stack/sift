@@ -1621,7 +1621,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            try_fast_yaml_load (sift_py.yaml.utils.try_fast_yaml_load)" href="#sift_py.yaml.utils.try_fast_yaml_load">try_fast_yaml_load</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Try to load the YAML file using the CSafeLoader, which is faster than the pyyaml safe loader but not built into the wheel for earlier versions of python..</p>
+                  <p>Try to load the YAML file using the fastest available parser.</p>
                 </div>
               </td>
             </tr>
@@ -1656,8 +1656,20 @@ You're not viewing the latest version.
 
     <div class="doc doc-contents ">
 
-        <p>Try to load the YAML file using the CSafeLoader, which is faster than the pyyaml safe loader but not built into the wheel for earlier versions of python..
-If the CSafeLoader is not available, use the pyyaml safe loader.</p>
+        <p>Try to load the YAML file using the fastest available parser.</p>
+<p>Order of preference:</p>
+<ol>
+<li><code>rapidyaml</code> (<code>ryml</code>) - C++ binding, ~100x faster than pyyaml on
+   large files. Requires <code>pip install rapidyaml</code>. See
+   :func:<code>_rapidyaml_load</code> for caveats (notably: no YAML 1.1 merge-key
+   semantics).</li>
+<li><code>pyyaml.CSafeLoader</code> - libyaml-backed, bundled with most pyyaml
+   wheels but not every Python/platform combination.</li>
+<li><code>pyyaml.safe_load</code> - pure-Python fallback.</li>
+</ol>
+<p>rapidyaml failures are not swallowed silently: if <code>ryml</code> is installed
+but raises while parsing <code>path</code>, the exception propagates so the
+regression is visible rather than masked by the pyyaml fallback.</p>
 
 
     </div>
