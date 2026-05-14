@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 #### Description, Metadata, and Associated Channels on Test Measurements
 `TestMeasurementCreate` and `TestMeasurementUpdate` now accept `description`, `metadata`, and `channel_names` to attach contextual information and link measurements to the channels they were derived from. `channel_names` accepts either channel name strings or `Channel` objects. Descriptions longer than 2000 characters are truncated with a warning to match the server-side limit.
 
+#### Metadata on Test Steps
+`TestStepCreate` and `TestStepUpdate` now accept a `metadata` dict so test steps can carry structured key/value context the same way reports and measurements do. The `ReportContext.new_step` / `create_step` and `NewStep.substep` helpers in the test-results context manager forward a new `metadata` kwarg through to the created step.
+
 ### Bugfixes
 - Pass the configured log file through to test result update calls so update events are written to the `.jsonl` log alongside create events. ([#560](https://github.com/sift-stack/sift/pull/560))
 
@@ -16,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - [Update protos](https://github.com/sift-stack/sift/pull/559)
 - [Fix log not being passed with update calls](https://github.com/sift-stack/sift/pull/560)
 - [Add metadata, description, and associated channel support to measurements](https://github.com/sift-stack/sift/pull/561)
+- [Add step metadata support](https://github.com/sift-stack/sift/pull/563)
 
 ## [v0.15.0] - May 7, 2026
 
