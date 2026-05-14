@@ -64,8 +64,12 @@ class TestContextManager:
             prefix = f"{'.'.join(first_step_path_parts[:-1])}."
         second_step_path = f"{prefix}{int(first_step_path_parts[-1]) + 1}"
         test_step = None
+        expected_step_metadata = {"phase": "setup", "retry": 1, "instrumented": True}
+        expected_substep_metadata = {"phase": "assert"}
         # Test NewStep as a context manager directly
-        with NewStep(report_context, "Test Step", "Test Description") as new_step:
+        with NewStep(
+            report_context, "Test Step", "Test Description", metadata=expected_step_metadata
+        ) as new_step:
             test_step = new_step.current_step
             assert test_step.test_report_id == report_context.report.id_
             assert test_step.name == "Test Step"
@@ -76,8 +80,11 @@ class TestContextManager:
             assert test_step.step_path == first_step_path
             assert test_step.step_type == TestStepType.ACTION
             assert test_step.error_info == None
+            assert test_step.metadata == expected_step_metadata
 
-            with new_step.substep("Substep", "Substep Description") as substep:
+            with new_step.substep(
+                "Substep", "Substep Description", metadata=expected_substep_metadata
+            ) as substep:
                 current_substep = substep.current_step
                 assert current_substep.test_report_id == report_context.report.id_
                 assert current_substep.name == "Substep"
@@ -89,6 +96,7 @@ class TestContextManager:
                 assert current_substep.status == TestStatus.IN_PROGRESS
                 assert current_substep.step_type == TestStepType.ACTION
                 assert current_substep.error_info == None
+                assert current_substep.metadata == expected_substep_metadata
 
                 with substep.substep(
                     "nested substep", "Nested substep Description"

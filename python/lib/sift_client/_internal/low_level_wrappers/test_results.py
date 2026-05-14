@@ -203,6 +203,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         from datetime import timezone
 
         from sift_client.sift_types.test_report import ErrorInfo, TestStatus
+        from sift_client.util.metadata import metadata_proto_to_dict
 
         update_mask_paths = set(request.update_mask.paths)
         proto = request.test_step
@@ -226,6 +227,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 )
             else:
                 updates["error_info"] = None
+        if "metadata" in update_mask_paths:
+            updates["metadata"] = metadata_proto_to_dict(proto.metadata) if proto.metadata else None  # type: ignore[arg-type]
 
         return existing.model_copy(update=updates)
 
@@ -1247,6 +1250,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             parent_step_id=real_parent_step_id,
             description=simulated.description,
             error_info=simulated.error_info,
+            metadata=simulated.metadata,
         )
 
     @staticmethod
