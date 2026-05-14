@@ -86,6 +86,13 @@ class TestStepBase(ModelCreateUpdateBase):
     parent_step_id: str | None = None
     description: str | None = None
     error_info: ErrorInfo | None = None
+    metadata: dict[str, str | float | bool] | None = None
+
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
 
     def _get_proto_class(self) -> type[TestStepProto]:
         return TestStepProto
@@ -140,6 +147,9 @@ class TestStepCreate(TestStepBase, ModelCreate[TestStepProto]):
         if self.error_info:
             proto.error_info.CopyFrom(self.error_info._to_proto())
 
+        if self.metadata:
+            proto.metadata.extend(metadata_dict_to_proto(self.metadata))
+
         return proto
 
 
@@ -156,6 +166,7 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
     start_time: datetime
     end_time: datetime
     error_info: ErrorInfo | None = None
+    metadata: dict[str, str | float | bool] | None = None
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
 
@@ -176,6 +187,7 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
             error_info=ErrorInfo._from_proto(proto.error_info, sift_client)
             if proto.HasField("error_info")
             else None,
+            metadata=metadata_proto_to_dict(proto.metadata) if proto.metadata else None,  # type: ignore[arg-type]
             _client=sift_client,
         )
 
@@ -201,6 +213,9 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
 
         if self.error_info:
             proto.error_info.CopyFrom(self.error_info._to_proto())
+
+        if self.metadata:
+            proto.metadata.extend(metadata_dict_to_proto(self.metadata))
 
         return proto
 

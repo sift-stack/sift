@@ -211,7 +211,11 @@ class ReportContext(AbstractContextManager):
         return True
 
     def new_step(
-        self, name: str, description: str | None = None, assertion_as_fail_not_error: bool = True
+        self,
+        name: str,
+        description: str | None = None,
+        assertion_as_fail_not_error: bool = True,
+        metadata: dict[str, str | float | bool] | None = None,
     ) -> NewStep:
         """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context."""
         return NewStep(
@@ -219,6 +223,7 @@ class ReportContext(AbstractContextManager):
             name=name,
             description=description,
             assertion_as_fail_not_error=assertion_as_fail_not_error,
+            metadata=metadata,
         )
 
     def get_next_step_path(self) -> str:
@@ -229,12 +234,20 @@ class ReportContext(AbstractContextManager):
         prefix = f"{step_path}." if step_path else ""
         return f"{prefix}{next_step_number}"
 
-    def create_step(self, name: str, description: str | None = None) -> TestStep:
+    def create_step(
+        self,
+        name: str,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+    ) -> TestStep:
         """Create a new step in the report context.
 
         Args:
             name: The name of the step.
             description: The description of the step.
+            metadata: [Optional] Structured key/value metadata to attach to the step. For
+                metadata shared across every step in a report, prefer the `metadata` attribute
+                of the enclosing `TestReport`.
 
         Returns:
             The created step.
@@ -253,6 +266,7 @@ class ReportContext(AbstractContextManager):
                 end_time=datetime.now(timezone.utc),
                 description=description,
                 parent_step_id=parent_step.id_ if parent_step else None,
+                metadata=metadata,
             ),
             log_file=self.log_file,
         )
@@ -324,6 +338,7 @@ class NewStep(AbstractContextManager):
         name: str,
         description: str | None = None,
         assertion_as_fail_not_error: bool = True,
+        metadata: dict[str, str | float | bool] | None = None,
     ):
         """Initialize a new step context.
 
@@ -332,10 +347,11 @@ class NewStep(AbstractContextManager):
             name: The name of the step.
             description: The description of the step.
             assertion_as_fail_not_error: Mark steps with assertion errors as failed instead of error+traceback (some users want assertions to work as simple failures especially when using pytest).
+            metadata: [Optional] Structured key/value metadata to attach to the step.
         """
         self.report_context = report_context
         self.client = report_context.client
-        self.current_step = self.report_context.create_step(name, description)
+        self.current_step = self.report_context.create_step(name, description, metadata=metadata)
         self.assertion_as_fail_not_error = assertion_as_fail_not_error
 
     def __enter__(self):
@@ -602,10 +618,16 @@ class NewStep(AbstractContextManager):
             self.report_context.record_step_outcome(result, substep.current_step)
         return result
 
-    def substep(self, name: str, description: str | None = None) -> NewStep:
+    def substep(
+        self,
+        name: str,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+    ) -> NewStep:
         """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps."""
         return self.report_context.new_step(
             name=name,
             description=description,
             assertion_as_fail_not_error=self.assertion_as_fail_not_error,
+            metadata=metadata,
         )

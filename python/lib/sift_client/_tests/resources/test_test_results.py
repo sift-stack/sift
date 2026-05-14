@@ -53,6 +53,7 @@ def compare_test_step_fields(simulated: TestStep, actual: TestStep) -> None:
     assert simulated.status == actual.status
     assert simulated.start_time == actual.start_time
     assert simulated.end_time == actual.end_time
+    assert simulated.metadata == actual.metadata
 
 
 def compare_test_measurement_fields(simulated: TestMeasurement, actual: TestMeasurement) -> None:
@@ -135,6 +136,7 @@ class TestResultsTest:
             status=TestStatus.PASSED,
             start_time=simulated_time,
             end_time=simulated_time + timedelta(seconds=10),
+            metadata={"phase": "init", "iteration": 1},
         )
 
         # Create simulated step first
@@ -256,10 +258,14 @@ class TestResultsTest:
 
         # Update the step using class function.
         step3_1 = step3_1.update(
-            {"description": "Error demo w/ updated description"},
+            {
+                "description": "Error demo w/ updated description",
+                "metadata": {"phase": "validation", "retry": 2},
+            },
         )
         assert step3.status == TestStatus.PASSED
         assert step3_1.description == "Error demo w/ updated description"
+        assert step3_1.metadata == {"phase": "validation", "retry": 2}
 
     def test_create_test_measurements(self, sift_client, tmp_path):
         step1 = self.test_steps.get("step1")

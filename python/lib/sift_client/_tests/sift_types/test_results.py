@@ -11,6 +11,9 @@ import pytest
 from sift.test_reports.v1.test_reports_pb2 import (
     TestMeasurement as TestMeasurementProto,
 )
+from sift.test_reports.v1.test_reports_pb2 import (
+    TestStep as TestStepProto,
+)
 
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.sift_types.test_report import (
@@ -22,6 +25,7 @@ from sift_client.sift_types.test_report import (
     TestReport,
     TestStatus,
     TestStep,
+    TestStepCreate,
     TestStepType,
 )
 
@@ -70,6 +74,7 @@ def mock_test_step(mock_client):
             error_code=1,
             error_message="Demo error message",
         ),
+        metadata={"fixture": "step", "iteration": 1.0},
     )
     test_step._apply_client_to_instance(mock_client)
     return test_step
@@ -439,3 +444,54 @@ class TestResultsTest:
         assert measurement.description is None
         assert measurement.metadata is None
         assert measurement.channel_names is None
+
+    def test_step_create_to_proto_writes_metadata(self):
+        """TestStepCreate.to_proto carries metadata onto the proto."""
+        now = datetime.now(timezone.utc)
+        create = TestStepCreate(
+            test_report_id="report_789",
+            name="Step",
+            step_type=TestStepType.ACTION,
+            step_path="1",
+            status=TestStatus.IN_PROGRESS,
+            start_time=now,
+            end_time=now,
+            metadata={"pn": "PN-001", "count": 3, "flag": True},
+        )
+        proto = create.to_proto()
+        proto_keys = {m.key.name for m in proto.metadata}
+        assert proto_keys == {"pn", "count", "flag"}
+
+    def test_step_from_proto_round_trips_metadata(self):
+        """A proto with metadata populated round-trips into TestStep."""
+        now = datetime.now(timezone.utc)
+        source = TestStepCreate(
+            test_report_id="report_789",
+            name="Step",
+            step_type=TestStepType.ACTION,
+            step_path="1",
+            status=TestStatus.IN_PROGRESS,
+            start_time=now,
+            end_time=now,
+            metadata={"pn": "PN-001", "count": 3},
+        ).to_proto()
+        source.test_step_id = "step_456"
+
+        step = TestStep._from_proto(source)
+
+        assert step.metadata == {"pn": "PN-001", "count": 3}
+
+    def test_step_from_proto_handles_absent_metadata(self):
+        """Proto with unset metadata yields None on the model."""
+        proto = TestStepProto(
+            test_step_id="step_abc",
+            test_report_id="report_789",
+            name="Step",
+            step_type=TestStepType.ACTION.value,
+            step_path="1",
+            status=TestStatus.IN_PROGRESS.value,
+        )
+        proto.start_time.FromDatetime(datetime.now(timezone.utc))
+        proto.end_time.FromDatetime(datetime.now(timezone.utc))
+        step = TestStep._from_proto(proto)
+        assert step.metadata is None
