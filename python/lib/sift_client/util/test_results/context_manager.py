@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import Channel
 
 logger = logging.getLogger(__name__)
 
@@ -417,6 +418,9 @@ class NewStep(AbstractContextManager):
         bounds: dict[str, float] | NumericBounds | str | None = None,
         timestamp: datetime | None = None,
         unit: str | None = None,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        channel_names: list[str] | list[Channel] | None = None,
     ) -> bool:
         """Measure a value and return the result.
 
@@ -426,6 +430,14 @@ class NewStep(AbstractContextManager):
             bounds: [Optional] The bounds to compare the value to.
             timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
             unit: [Optional] The unit of the measurement.
+            description: [Optional] Notes about the measurement. Server caps at 2000 characters;
+                longer strings are truncated with a warning.
+            metadata: [Optional] Structured key/value metadata to attach to the measurement.
+                For metadata shared across measurements, prefer the `metadata` attribute of the
+                enclosing `TestStep` or `TestReport`.
+            channel_names: [Optional] Sift channel names or `Channel` instances this measurement
+                is associated with. Enables cross-plotting in Explore using the report's
+                associated Run.
 
         returns: The result of the measurement.
         """
@@ -436,6 +448,9 @@ class NewStep(AbstractContextManager):
             passed=True,
             timestamp=timestamp if timestamp else datetime.now(timezone.utc),
             unit=unit,
+            description=description,
+            metadata=metadata,
+            channel_names=channel_names,
         )
         evaluate_measurement_bounds(create, value, bounds)
         measurement = self.client.test_results.create_measurement(
@@ -453,6 +468,9 @@ class NewStep(AbstractContextManager):
         bounds: dict[str, float] | NumericBounds,
         timestamp: datetime | None = None,
         unit: str | None = None,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        channel_names: list[str] | list[Channel] | None = None,
     ) -> bool:
         """Calculate the average of a list of values, measure the average against given bounds, and return the result.
 
@@ -462,6 +480,11 @@ class NewStep(AbstractContextManager):
             bounds: The bounds to compare the value to.
             timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
             unit: [Optional] The unit of the measurement.
+            description: [Optional] Notes about the measurement. Server caps at 2000 characters;
+                longer strings are truncated with a warning.
+            metadata: [Optional] Structured key/value metadata to attach to the measurement.
+            channel_names: [Optional] Sift channel names or `Channel` instances this measurement
+                is associated with.
 
         returns: The true if the average of the values is within the bounds, false otherwise.
         """
@@ -476,7 +499,16 @@ class NewStep(AbstractContextManager):
         else:
             raise ValueError(f"Invalid value type: {type(values)}")
         avg = float(np.mean(np_array))
-        result = self.measure(name=name, value=avg, bounds=bounds, timestamp=timestamp, unit=unit)
+        result = self.measure(
+            name=name,
+            value=avg,
+            bounds=bounds,
+            timestamp=timestamp,
+            unit=unit,
+            description=description,
+            metadata=metadata,
+            channel_names=channel_names,
+        )
         assert self.current_step is not None
         self.report_context.record_step_outcome(result, self.current_step)
 
@@ -490,6 +522,9 @@ class NewStep(AbstractContextManager):
         bounds: dict[str, float] | NumericBounds,
         timestamp: datetime | None = None,
         unit: str | None = None,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        channel_names: list[str] | list[Channel] | None = None,
     ) -> bool:
         """Ensure that all values in a list are within bounds and return the result. Records measurements for all values outside the bounds.
 
@@ -501,6 +536,11 @@ class NewStep(AbstractContextManager):
             bounds: The bounds to compare the value to.
             timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
             unit: [Optional] The unit of the measurement.
+            description: [Optional] Notes attached to each out-of-bounds measurement. Server caps
+                at 2000 characters; longer strings are truncated with a warning.
+            metadata: [Optional] Structured key/value metadata for each out-of-bounds measurement.
+            channel_names: [Optional] Sift channel names or `Channel` instances to associate with
+                each out-of-bounds measurement.
 
         returns: The true if all values are within the bounds, false otherwise.
         """
@@ -531,7 +571,16 @@ class NewStep(AbstractContextManager):
 
         rows_outside_bounds = np_array[mask]
         for row in rows_outside_bounds:
-            self.measure(name=name, value=row, bounds=bounds, timestamp=timestamp, unit=unit)
+            self.measure(
+                name=name,
+                value=row,
+                bounds=bounds,
+                timestamp=timestamp,
+                unit=unit,
+                description=description,
+                metadata=metadata,
+                channel_names=channel_names,
+            )
 
         result = rows_outside_bounds.size == 0
         assert self.current_step is not None

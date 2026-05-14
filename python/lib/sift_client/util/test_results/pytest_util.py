@@ -77,13 +77,14 @@ def _report_context_impl(
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config | None = None,
 ) -> Generator[ReportContext | None, None, None]:
-    test_path = Path(request.config.invocation_params.args[0])
-    base_name = (
-        test_path.name
-        if test_path.exists()
-        else "pytest " + " ".join(request.config.invocation_params.args)
-    )
-    test_case = test_path if test_path.exists() else base_name
+    args = request.config.invocation_params.args
+    test_path = Path(args[0]) if args else None
+    if test_path is not None and test_path.exists():
+        base_name = test_path.name
+        test_case: Path | str = test_path
+    else:
+        base_name = "pytest " + " ".join(args) if args else "pytest"
+        test_case = base_name
     log_file = _resolve_log_file(pytestconfig)
     include_git_metadata = (
         bool(pytestconfig.getoption("sift_test_results_git_metadata", default=True))

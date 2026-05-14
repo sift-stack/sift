@@ -64,6 +64,9 @@ def compare_test_measurement_fields(simulated: TestMeasurement, actual: TestMeas
     assert simulated.boolean_value == actual.boolean_value
     assert simulated.passed == actual.passed
     assert simulated.timestamp == actual.timestamp
+    assert simulated.description == actual.description
+    assert simulated.metadata == actual.metadata
+    assert simulated.channel_names == actual.channel_names
 
 
 def test_client_binding(sift_client):
@@ -281,6 +284,9 @@ class TestResultsTest:
             unit="Celsius",
             passed=True,
             timestamp=step1.start_time,
+            description="Expected nominal: 25.0C",
+            metadata={"sensor": "thermocouple_a", "channel_index": 1},
+            channel_names=["temperature_celsius"],
         )
 
         # Create simulated measurement first
@@ -359,6 +365,9 @@ class TestResultsTest:
             "passed": False,
             "string_expected_value": "1.10.4",
             "unit": "C",
+            "description": "Updated note after recalibration",
+            "metadata": {"part_number": "PN-002"},
+            "channel_names": ["firmware_version_channel"],
         }
 
         # Test update with log_file first
@@ -384,6 +393,9 @@ class TestResultsTest:
         assert measurement2.passed == False
         assert measurement2.string_expected_value == "1.10.4"
         assert measurement2.unit == "C"
+        assert measurement2.description == "Updated note after recalibration"
+        assert measurement2.metadata == {"part_number": "PN-002"}
+        assert measurement2.channel_names == ["firmware_version_channel"]
         # Update the measurement using class function.
         measurement4 = measurement4.update(
             {

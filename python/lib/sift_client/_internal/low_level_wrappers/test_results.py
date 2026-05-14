@@ -320,6 +320,14 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 updates["string_expected_value"] = proto.string_bounds.expected_value
             else:
                 updates["string_expected_value"] = None
+        if "description" in update_mask_paths:
+            updates["description"] = proto.description if proto.description else None
+        if "metadata" in update_mask_paths:
+            from sift_client.util.metadata import metadata_proto_to_dict
+
+            updates["metadata"] = metadata_proto_to_dict(proto.metadata) if proto.metadata else None  # type: ignore[arg-type]
+        if "channel_names" in update_mask_paths:
+            updates["channel_names"] = list(proto.channel_names) if proto.channel_names else None
 
         return existing.model_copy(update=updates)
 
@@ -1259,6 +1267,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             unit=simulated.unit,
             numeric_bounds=simulated.numeric_bounds,
             string_expected_value=simulated.string_expected_value,
+            description=simulated.description,
+            metadata=simulated.metadata,
+            channel_names=simulated.channel_names,
         )
 
 
