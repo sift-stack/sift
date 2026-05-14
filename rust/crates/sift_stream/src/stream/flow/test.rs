@@ -1,7 +1,8 @@
-use super::validate_flows;
-use super::{FlowBuilder, FlowDescriptor, FlowDescriptorBuilder};
+use super::{FlowBuilder, FlowDescriptor, FlowDescriptorBuilder, add_new_flows, validate_flows};
 use crate::TimeValue;
 use crate::stream::channel::ChannelEnum;
+use crate::test::create_mock_grpc_channel_with_service;
+use sift_error::prelude::ErrorKind;
 use sift_rs::common::r#type::v1::ChannelDataType;
 use sift_rs::ingest::v1::ingest_with_config_data_channel_value::Type;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
@@ -834,4 +835,88 @@ fn test_flow_builder_set_with_enum_key() {
     for value in &request.channel_values {
         assert!(value.r#type.is_some());
     }
+}
+
+#[tokio::test]
+async fn test_add_new_flows_creates_flows() {
+    let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
+
+    let flows = vec![
+        FlowConfig {
+            name: "flow_a".to_string(),
+            channels: vec![ChannelConfig {
+                name: "ch1".to_string(),
+                data_type: ChannelDataType::Double.into(),
+                ..Default::default()
+            }],
+        },
+        FlowConfig {
+            name: "flow_b".to_string(),
+            channels: vec![ChannelConfig {
+                name: "ch2".to_string(),
+                data_type: ChannelDataType::Int32.into(),
+                ..Default::default()
+            }],
+        },
+    ];
+
+    let results = add_new_flows(grpc_channel, "test_config_id", flows).await;
+
+    assert_eq!(results.len(), 2);
+    for result in results {
+        assert!(
+            matches!(result, Ok(Ok(()))),
+            "expected Ok(Ok(())) for each new flow"
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_add_new_flows_returns_already_exists_for_callers_to_handle() {
+    let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
+
+    // The mock service pre-seeds "already_exists_flow"; creating it again returns AlreadyExists.
+    let flows = vec![FlowConfig {
+        name: "already_exists_flow".to_string(),
+        channels: vec![],
+    }];
+
+    let results = add_new_flows(grpc_channel, "test_config_id", flows).await;
+
+    assert_eq!(results.len(), 1);
+    let result = results.into_iter().next().unwrap();
+    assert!(
+        matches!(&result, Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError),
+        "expected AlreadyExists to be surfaced so callers can decide how to treat it"
+    );
+}
+
+#[tokio::test]
+async fn test_add_new_flows_empty_input() {
+    let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
+    let results = add_new_flows(grpc_channel, "test_config_id", vec![]).await;
+    assert!(results.is_empty());
+}
+
+#[tokio::test]
+async fn test_add_new_flows_mixed_new_and_existing() {
+    let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
+
+    let flows = vec![
+        FlowConfig {
+            name: "brand_new_flow".to_string(),
+            channels: vec![],
+        },
+        // Pre-seeded by the mock service.
+        FlowConfig {
+            name: "already_exists_flow".to_string(),
+            channels: vec![],
+        },
+    ];
+
+    let results = add_new_flows(grpc_channel, "test_config_id", flows).await;
+
+    assert_eq!(results.len(), 2);
+    assert!(matches!(results[0], Ok(Ok(()))));
+    assert!(matches!(&results[1], Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError));
 }

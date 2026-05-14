@@ -58,6 +58,7 @@ fn test_writing_and_reading_from_disk_chunks() {
         .read(true)
         .write(true)
         .create(true)
+        .truncate(true)
         .open(&file_path)
         .expect("failed to create file");
 
@@ -86,7 +87,7 @@ fn test_writing_and_reading_from_disk_chunks() {
     let mut pbfs_chunks = vec![];
 
     for chunk in &chunks {
-        let pbfs_chunk = PbfsChunk::new(&chunk).expect("failed to create pbfs chunk");
+        let pbfs_chunk = PbfsChunk::new(chunk).expect("failed to create pbfs chunk");
 
         file.write_all(&pbfs_chunk)
             .expect("failed to write to file");
@@ -137,6 +138,7 @@ fn test_data_integrity() {
         .read(true)
         .write(true)
         .create(true)
+        .truncate(true)
         .open(&file_path)
         .expect("failed to create file");
 
@@ -165,7 +167,7 @@ fn test_data_integrity() {
     let mut pbfs_chunks = vec![];
 
     for chunk in &chunks {
-        let pbfs_chunk = PbfsChunk::new(&chunk).expect("failed to create pbfs chunk");
+        let pbfs_chunk = PbfsChunk::new(chunk).expect("failed to create pbfs chunk");
 
         file.write_all(&pbfs_chunk)
             .expect("failed to write to file");

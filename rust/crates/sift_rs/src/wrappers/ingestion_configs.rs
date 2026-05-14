@@ -201,7 +201,13 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
         })
         .await
         .map(|res| res.into_inner().ingestion_config)
-        .map_err(|e| Error::new(ErrorKind::CreateIngestionConfigError, e))?
+        .map_err(|e| {
+            if e.code() == tonic::Code::AlreadyExists {
+                Error::new(ErrorKind::AlreadyExistsError, e)
+            } else {
+                Error::new(ErrorKind::CreateIngestionConfigError, e)
+            }
+        })?
         .ok_or_else(|| {
             Error::new_empty_response(
                 "unexpected empty response from IngestionConfigService/CreateIngestionConfig",

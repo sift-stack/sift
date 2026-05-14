@@ -791,16 +791,15 @@ impl BackupIngestTask {
                 // TODO: Convert this to use async file operations.
                 let backups_decoder = decode_backup(&backup_file_path)?;
 
-                let iter_stream =
-                    tokio_stream::iter(backups_decoder.into_iter()).filter_map(|res| {
-                        if let Err(e) = &res {
-                            tracing::warn!(
-                                "encountered error from sift ingesting backup file: {:?}",
-                                e
-                            );
-                        }
-                        res.ok()
-                    });
+                let iter_stream = tokio_stream::iter(backups_decoder).filter_map(|res| {
+                    if let Err(e) = &res {
+                        tracing::warn!(
+                            "encountered error from sift ingesting backup file: {:?}",
+                            e
+                        );
+                    }
+                    res.ok()
+                });
 
                 let raw_response = client.ingest_with_config_data_stream(iter_stream).await;
                 let response = raw_response
