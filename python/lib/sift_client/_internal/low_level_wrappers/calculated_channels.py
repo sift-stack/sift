@@ -229,7 +229,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise ValueError("Either calculated_channel_id or client_key must be provided")
 
         if page_size is not None:
-            request_kwargs["page_size"] = str(page_size)
+            request_kwargs["page_size"] = page_size
         if page_token is not None:
             request_kwargs["page_token"] = page_token
         if query_filter is not None:
@@ -239,7 +239,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if organization_id is not None:
             request_kwargs["organization_id"] = organization_id
 
-        request = ListCalculatedChannelVersionsRequest(**request_kwargs)  # type: ignore # mypy thinks we should pass an int
+        request = ListCalculatedChannelVersionsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).ListCalculatedChannelVersions(request)
