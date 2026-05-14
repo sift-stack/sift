@@ -220,11 +220,11 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Raises:
             ValueError: If neither calculated_channel_id nor client_key is provided.
         """
-        request_kwargs = {}
+        request_kwargs: dict[str, Any] = {}
         if calculated_channel_id:
-            request_kwargs = {"calculated_channel_id": calculated_channel_id}
+            request_kwargs["calculated_channel_id"] = calculated_channel_id
         elif client_key:
-            request_kwargs = {"client_key": client_key}
+            request_kwargs["client_key"] = client_key
         else:
             raise ValueError("Either calculated_channel_id or client_key must be provided")
 
