@@ -71,6 +71,8 @@ message ReportTemplate {
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 10 [(google.api.field_behavior) = REQUIRED];
+  // Rules on this template. On responses, sort by each rule's `display_order` ascending for execution order. On writes, if
+  // `display_order` is omitted on a rule, that rule's position follows the slice order of `rules` (same as explicit orders 0..n-1).
   repeated ReportTemplateRule rules = 11 [(google.api.field_behavior) = REQUIRED];
   repeated ReportTemplateTag tags = 12 [(google.api.field_behavior) = REQUIRED];
   repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = REQUIRED];
@@ -83,6 +85,12 @@ message ReportTemplateRule {
   string rule_version_id = 2 [(google.api.field_behavior) = REQUIRED];
   uint32 rule_version_number = 3 [(google.api.field_behavior) = REQUIRED];
   string client_key = 4 [(google.api.field_behavior) = OPTIONAL];
+  // Zero-based order for this rule on the template. Copied to `ReportRuleSummary.display_order` when creating a report from
+  // the template. Lower values indicate earlier position in the template and on generated reports.
+  //
+  // Optional on writes (e.g. `UpdateReportTemplate`): if omitted, servers use the order of entries in `ReportTemplate.rules`
+  // (first entry is earliest). On reads, this field is always populated.
+  optional uint32 display_order = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ReportTemplateTag {
@@ -119,10 +127,12 @@ message CreateReportTemplateRequest {
   repeated sift.metadata.v1.MetadataValue metadata = 9 [(google.api.field_behavior) = OPTIONAL];
 }
 
+// Initial rule order on the new template: first `rule_id` is `display_order` 0, second is 1, etc.
 message CreateReportTemplateRequestRuleIds {
   repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+// Initial template rule order follows server resolution of keys to rules (not client-defined per-key ordering).
 message CreateReportTemplateRequestClientKeys {
   repeated string rule_client_keys = 1 [(google.api.field_behavior) = REQUIRED];
 }

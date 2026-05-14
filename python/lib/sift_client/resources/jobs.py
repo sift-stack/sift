@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 
 from alive_progress import alive_bar  # type: ignore[import-untyped]
 
-import sift_client as _sift_client_module
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import download_file, extract_zip
@@ -77,6 +76,7 @@ class JobsAPIAsync(ResourceBase):
         # Ordering and pagination
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Job]:
         """List jobs with optional filtering.
 
@@ -98,6 +98,8 @@ class JobsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter jobs. If provided, other filter arguments are ignored.
             order_by: Field and direction to order results by.
             limit: Maximum number of jobs to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Job objects that match the filter criteria.
@@ -135,6 +137,7 @@ class JobsAPIAsync(ResourceBase):
             organization_id=organization_id,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(jobs)
 
@@ -194,13 +197,7 @@ class JobsAPIAsync(ResourceBase):
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
         if show_progress is None:
-            global_setting = _sift_client_module.config.show_progress
-            if global_setting is not None:
-                show_progress = global_setting
-            elif getattr(self, "_is_sync", False):
-                show_progress = True
-            else:
-                show_progress = False
+            show_progress = self._show_progress()
 
         start = time.monotonic()
         with alive_bar(
@@ -263,13 +260,7 @@ class JobsAPIAsync(ResourceBase):
         """
         job_id = job._id_or_error if isinstance(job, Job) else job
         if show_progress is None:
-            global_setting = _sift_client_module.config.show_progress
-            if global_setting is not None:
-                show_progress = global_setting
-            elif getattr(self, "_is_sync", False):
-                show_progress = True
-            else:
-                show_progress = False
+            show_progress = self._show_progress()
 
         completed_job = await self.wait_until_complete(
             job=job_id,

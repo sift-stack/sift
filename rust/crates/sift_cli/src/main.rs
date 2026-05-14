@@ -75,6 +75,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                     run_future(cmd::import::parquet::flat_dataset::run(ctx, args))
                 }
             },
+            cli::ImportCmd::Tdms(args) => {
+                run_future(cmd::import::tdms::detect_tdms_config::run(ctx, args))
+            }
             cli::ImportCmd::Backup(args) => match args.cmd {
                 Some(cli::BackupCmd::Ls(ls_args)) => {
                     run_future(cmd::import::backup::ls(ctx, ls_args))

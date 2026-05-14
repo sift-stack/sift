@@ -3,8 +3,347 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.15.0] - May 7, 2026
 
-https://github.com/sift-stack/sift/commit/e1305363e95cafb4c980fdd493f69e72660a52fb
+### What's New
+
+v0.15.0 updates the streaming ingestion client to match the new `sift-stream-bindings` 0.3.0
+API. The `RecoveryStrategyConfig` class and `recovery_strategy` parameter have been replaced
+with an explicit `StreamingMode` enum and discrete per-mode configuration kwargs. The
+non-blocking send method has been renamed for consistency with the Rust library, and a new
+`try_send` method is available for single-flow non-blocking sends. This release contains
+**breaking changes** to the ingestion API — see below for details and a migration prompt.
+
+#### Breaking Changes
+
+##### 1. `RecoveryStrategyConfig` Removed — Replaced by `StreamingMode` + Per-Mode Kwargs
+
+`RecoveryStrategyConfig` and the `recovery_strategy` parameter on `IngestionConfigStreamingClient`
+and `IngestionAPIAsync` have been removed. Transport mode is now selected via a `StreamingMode`
+enum, with separate `retry_policy` and `disk_backup_policy` kwargs for per-mode configuration.
+
+The default mode is `StreamingMode.LIVE_WITH_BACKUPS`, which matches the previous default
+behavior of `RecoveryStrategyConfig.retry_with_backups()`.
+
+**Removed from the public API:**
+- `RecoveryStrategyConfig` class (and its `retry_only()` / `retry_with_backups()` factory methods)
+- `recovery_strategy` parameter on `IngestionConfigStreamingClient` and `IngestionAPIAsync`
+
+**Added:**
+- `StreamingMode` enum — `LIVE_ONLY`, `LIVE_WITH_BACKUPS`, `FILE_BACKUP`
+- `streaming_mode` parameter (default: `StreamingMode.LIVE_WITH_BACKUPS`)
+- `retry_policy` parameter — applies to `LIVE_WITH_BACKUPS` mode
+- `disk_backup_policy` parameter — applies to `LIVE_WITH_BACKUPS` and `FILE_BACKUP` modes
+- `checkpoint_interval_seconds` parameter — applies to `LIVE_WITH_BACKUPS` mode
+
+**Before:**
+```python
+from sift_client.resources.ingestion import (
+    IngestionConfigStreamingClient,
+    RecoveryStrategyConfig,
+)
+
+# Default: live streaming with backups
+client = await IngestionConfigStreamingClient.create(
+    ingestion_config=my_config,
+    recovery_strategy=RecoveryStrategyConfig.retry_with_backups(),
+)
+
+# Retry only (no disk backups)
+client = await IngestionConfigStreamingClient.create(
+    ingestion_config=my_config,
+    recovery_strategy=RecoveryStrategyConfig.retry_only(),
+)
+```
+
+**After:**
+```python
+from sift_client.resources.ingestion import (
+    IngestionConfigStreamingClient,
+    StreamingMode,
+)
+
+# Default: live streaming with backups (no change needed if you were using the default)
+client = await IngestionConfigStreamingClient.create(
+    ingestion_config=my_config,
+    streaming_mode=StreamingMode.LIVE_WITH_BACKUPS,
+)
+
+# Live only — no disk backups, lowest overhead
+client = await IngestionConfigStreamingClient.create(
+    ingestion_config=my_config,
+    streaming_mode=StreamingMode.LIVE_ONLY,
+)
+
+# File backup only
+client = await IngestionConfigStreamingClient.create(
+    ingestion_config=my_config,
+    streaming_mode=StreamingMode.FILE_BACKUP,
+)
+```
+
+To pass a custom retry or disk backup policy:
+```python
+from sift_stream_bindings import DiskBackupPolicyPy, RetryPolicyPy
+
+client = await IngestionConfigStreamingClient.create(
+    ingestion_config=my_config,
+    streaming_mode=StreamingMode.LIVE_WITH_BACKUPS,
+    retry_policy=RetryPolicyPy.default(),
+    disk_backup_policy=DiskBackupPolicyPy.default(),
+    checkpoint_interval_seconds=30,
+)
+```
+
+##### 2. `send_requests_nonblocking` Renamed to `try_send_requests`
+
+`IngestionConfigStreamingClient.send_requests_nonblocking` has been renamed to `try_send_requests`
+to align with the Rust `sift-stream` naming convention where `try_` methods return immediately
+without awaiting channel capacity.
+
+**Before:**
+```python
+client.send_requests_nonblocking(requests)
+```
+
+**After:**
+```python
+client.try_send_requests(requests)
+```
+
+#### New Features
+
+##### `try_send` — Non-Blocking Single-Flow Send
+
+A new `try_send(flow)` method is available on `IngestionConfigStreamingClient` for non-blocking
+single-flow sends. It accepts either a `Flow` or a raw `FlowPy` object.
+
+```python
+client.try_send(flow)
+```
+
+Use `try_send` in real-time loops where blocking on channel capacity is unacceptable. For
+most use cases, the async `send(flow)` method (which applies backpressure) is preferred.
+
+##### `sift-stream-bindings` 0.3.0
+
+The `sift-stream-bindings` dependency has been bumped to 0.3.0, which reflects the
+`sift-stream` 0.9.0 breaking API changes (stepped builder, send rename, removed types).
+
+#### AI-Assisted Migration Prompt (v0.14.x → v0.15.0)
+
+Copy and paste the following prompt to an AI coding agent to automate the upgrade:
+
+```
+You are upgrading a Python project from sift_client v0.14.x to v0.15.0. The streaming ingestion
+API has breaking changes. Apply ALL of the following changes precisely. Do not make any other
+modifications.
+
+---
+
+## 1. Update `pyproject.toml`
+
+Find every occurrence of `sift-stream-bindings==0.2.2` and replace it with
+`sift-stream-bindings==0.3.0`. This may appear under multiple dependency groups (e.g. `all`,
+`dev-all`, `sift-stream`, `sift-stream-bindings`).
+
+---
+
+## 2. Remove all imports of `RecoveryStrategyConfig`
+
+Delete any line that imports `RecoveryStrategyConfig`, for example:
+
+    from sift_client.resources.ingestion import RecoveryStrategyConfig
+    from sift_client.resources.ingestion import IngestionConfigStreamingClient, RecoveryStrategyConfig
+
+Remove only `RecoveryStrategyConfig` from those imports; keep any other names on the same line.
+
+---
+
+## 3. Add `StreamingMode` to imports where needed
+
+Wherever `IngestionConfigStreamingClient` or `IngestionAPIAsync` is imported and a streaming
+mode needs to be specified, add `StreamingMode` to the import:
+
+    from sift_client.resources.ingestion import IngestionConfigStreamingClient, StreamingMode
+
+---
+
+## 4. Replace all `recovery_strategy` call sites
+
+Search for every call to `IngestionConfigStreamingClient.create(...)` and
+`IngestionAPIAsync.create(...)` that contains a `recovery_strategy` keyword argument.
+
+### Case A — `RecoveryStrategyConfig.retry_with_backups()` (or no recovery_strategy at all)
+
+This was (and remains) the default. Replace the kwarg:
+
+    # BEFORE
+    recovery_strategy=RecoveryStrategyConfig.retry_with_backups()
+
+    # AFTER
+    streaming_mode=StreamingMode.LIVE_WITH_BACKUPS
+
+If the call had no `recovery_strategy` argument, no change is needed — `LIVE_WITH_BACKUPS`
+is the default.
+
+If the old call passed explicit `retry_policy` or `disk_backup_policy` arguments inside
+`RecoveryStrategyConfig.retry_with_backups(...)`, move them to top-level kwargs:
+
+    # BEFORE
+    recovery_strategy=RecoveryStrategyConfig.retry_with_backups(
+        retry_policy=my_retry_policy,
+        disk_backup_policy=my_disk_policy,
+    )
+
+    # AFTER
+    streaming_mode=StreamingMode.LIVE_WITH_BACKUPS,
+    retry_policy=my_retry_policy,
+    disk_backup_policy=my_disk_policy,
+
+### Case B — `RecoveryStrategyConfig.retry_only()`
+
+Replace with `streaming_mode=StreamingMode.LIVE_ONLY`. If a `retry_policy` was passed,
+keep it as a top-level kwarg (it is ignored for `LIVE_ONLY` in this version, but preserving
+it avoids a TypeError):
+
+    # BEFORE
+    recovery_strategy=RecoveryStrategyConfig.retry_only(retry_policy=my_policy)
+
+    # AFTER
+    streaming_mode=StreamingMode.LIVE_ONLY
+
+### Case C — Raw `RecoveryStrategyPy` object passed directly
+
+If any call passes a raw `RecoveryStrategyPy` instance as `recovery_strategy`, determine
+which mode it was configured for and replace accordingly:
+- `RecoveryStrategyPy.retry_only(...)` → `streaming_mode=StreamingMode.LIVE_ONLY`
+- `RecoveryStrategyPy.retry_with_backups(...)` → `streaming_mode=StreamingMode.LIVE_WITH_BACKUPS`
+  with `retry_policy` and `disk_backup_policy` promoted to top-level kwargs.
+
+---
+
+## 5. Rename `send_requests_nonblocking` → `try_send_requests`
+
+Find every call to `.send_requests_nonblocking(...)` on any ingestion client instance and
+rename it to `.try_send_requests(...)`. The signature is unchanged.
+
+    # BEFORE
+    client.send_requests_nonblocking(requests)
+
+    # AFTER
+    client.try_send_requests(requests)
+
+---
+
+## 6. Verify
+
+After applying the above changes:
+1. Run `grep -r "RecoveryStrategyConfig" .` — expect zero results.
+2. Run `grep -r "send_requests_nonblocking" .` — expect zero results.
+3. Run `grep -r "recovery_strategy" .` — expect zero results.
+4. Run your test suite to confirm no remaining references.
+```
+
+## [v0.14.1] - April 30, 2026
+
+### Bugfixes
+- Lazy-import `h5py` and `nptdms` so the base install doesn't require them. ([#547](https://github.com/sift-stack/sift/pull/547))
+- Expose `page_size` on resource list methods so callers can shrink pages when responses hit gRPC message-size limits. ([#548](https://github.com/sift-stack/sift/pull/548))
+
+## [v0.14.0] - April 28, 2026
+
+### What's New
+
+#### Data Import API in SiftClient
+The `sift_client` module now exposes a data import API supporting CSV, Parquet, TDMS, and HDF5. With this addition, all features previously available only in `sift_py` are now available in `sift_client`, which remains the recommended interface for new development. `sift_py` (deprecated since [v0.10.0](#v0100---january-30-2026)) continues to work and ship in this release.
+
+Migrating from `sift_py`: the per-format upload services (`CsvUploadService`, `ParquetUploadService`, `Hdf5UploadService`, `TdmsUploadService`) collapse into a single `client.data_import.import_from_path` method. `sift_py` only auto-detected for CSV via `simple_upload`; other formats required more setup. `sift_client` unifies all four with auto-detection built into `import_from_path` itself: the `config` argument is optional, so the common call takes just a file path and target asset. Call `client.data_import.detect_config(...)` first if you want to inspect or patch the config before importing. `import_from_path` returns a `Job` you can optionally wait on.
+```python
+# sift_py (deprecated)
+from sift_py.data_import.csv import CsvUploadService
+from sift_py.rest import SiftRestConfig
+
+rest_conf: SiftRestConfig = {"uri": sift_uri, "apikey": apikey}
+csv_service = CsvUploadService(rest_conf)
+import_service = csv_service.simple_upload(asset_name="my_asset", path="data.csv")
+import_service.wait_until_complete()
+
+# sift_client
+from sift_client import SiftClient
+
+client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
+job = client.data_import.import_from_path("data.csv", asset="my_asset")
+job.wait_until_complete()
+```
+
+Format-by-format support:
+- **CSV**: auto-detected from `.csv`. Supports an optional JSON metadata row (row 1 or row 2) for specifying channel names, units, data types, and the time column format.
+- **Parquet**: requires an explicit `data_type` (`PARQUET_FLATDATASET` or `PARQUET_SINGLE_CHANNEL_PER_ROW`) since `.parquet` alone doesn't disambiguate the layout. Detection only reads the file footer, so it stays fast on large files.
+- **HDF5**: new in this release. Auto-detected from `.h5` / `.hdf5`. Detection works out-of-the-box for files with a compound-dataset layout (first field = time) or a shared root-level `time` dataset; other layouts may need a hand-built `config`.
+- **TDMS**: new in this release. Auto-detected from `.tdms` and recognizes the common timing conventions (group-level `xchannel`, first-channel `TimeStamp`, or per-channel waveform properties). `TdmsImportConfig` controls handling of untimed channels (`fallback_method`), complex values (`complex_component`), scaled vs. raw data, and waveform start-time overrides.
+
+#### Parquet as an Export Output Format
+`client.data_export.export(...)` now accepts `ExportOutputFormat.PARQUET` alongside the existing CSV and Sun/WinPlot options. Unlike the `sift_py` `DataService` + `DataFrame.to_parquet()` pattern (async-only, buffers everything in memory, name-strings only), the new export API runs as a server-side job, works sync or async, accepts `Asset`/`Channel` objects or IDs, and scales to large exports.
+
+```python
+# sift_py (deprecated): no dedicated export API, so query in-memory and write yourself
+import pandas as pd
+from sift_py.data.query import ChannelQuery, DataQuery
+from sift_py.data.service import DataService
+from sift_py.grpc.transport import use_sift_async_channel
+
+async with use_sift_async_channel({"uri": sift_uri, "apikey": apikey}) as channel:
+    result = await DataService(channel).execute(DataQuery(
+        asset_name="my_asset",
+        start_time=start,
+        end_time=stop,
+        channels=[ChannelQuery(channel_name="my_channel")],
+    ))
+    pd.DataFrame(result.all_channels()[0].columns()).to_parquet("out.parquet")
+
+# sift_client
+from sift_client import SiftClient
+from sift_client.sift_types.export import ExportOutputFormat
+
+client = SiftClient(api_key=apikey, grpc_url=grpc_url, rest_url=rest_url)
+job = client.data_export.export(
+    assets=["my_asset"],          # accepts Asset objects or IDs
+    channels=["my_channel"],      # accepts Channel objects or IDs
+    start_time=start,
+    stop_time=stop,
+    output_format=ExportOutputFormat.PARQUET,
+)
+files = job.wait_and_download(output_dir="./exports")
+```
+
+`wait_and_download` polls the job to completion, downloads the resulting archive, and returns the list of downloaded file paths. Both arguments shown are optional: if `output_dir` is omitted, a temporary directory is created and used. By default the downloaded zip is extracted (and the archive deleted) so you get the Parquet files directly; pass `extract=False` to keep the zip instead, which is useful if you want to hand the whole bundle off to another system without unpacking it client-side.
+
+#### Test Result Logging
+Test result create and update events can now be optionally written to a `.jsonl` log file during a test run, then replayed against the Sift API later via the new `import-test-result-log` CLI command (installed with the package).
+
+#### Progress Indicators
+Adds progress indicators for job polling and file downloads for better visibility during long-running operations.
+
+#### Stop Bundling `google.api`, `protoc_gen_openapiv2`, and `buf.validate`
+Previously the package shipped its own bundled copies of the generated Python bindings for `google.api`, `protoc_gen_openapiv2`, and `buf.validate`. With this release:
+- `google.api` and `protoc_gen_openapiv2` are now pulled in via the `googleapis-common-protos` and `protoc-gen-openapiv2` runtime dependencies, so pip installs the upstream-maintained versions.
+- `buf.validate` has been removed entirely. The protovalidate field annotations were stripped from the affected `.proto` files, so the generated `_pb2.py` files no longer reference `buf.validate`.
+
+### Bugfixes
+- Add `py.typed` to the generated proto directory so type checkers pick up protobuf types correctly.
+
+### Full Changelog
+- [Add data import API to sift_client](https://github.com/sift-stack/sift/pull/515)
+- [Add HDF5 client-side detect_config](https://github.com/sift-stack/sift/pull/536)
+- [Add TDMS client-side detect_config](https://github.com/sift-stack/sift/pull/538)
+- [Add optional logging of test result create and update events](https://github.com/sift-stack/sift/pull/529)
+- [Add progress indicators for job polling and file downloads](https://github.com/sift-stack/sift/pull/517)
+- [Refactor files using run_in_executor](https://github.com/sift-stack/sift/pull/518)
+- [Add Parquet as an export output format](https://github.com/sift-stack/sift/pull/510)
+- [Add py.typed file to proto dir](https://github.com/sift-stack/sift/pull/524)
+- [Remove vendored google.api and protoc_gen_openapiv2 modules from buf](https://github.com/sift-stack/sift/pull/543)
+- [Remove protovalidate from client-side protos](https://github.com/sift-stack/sift/pull/545)
 
 ## [v0.13.0] - March 24, 2026
 ### What's New

@@ -14,6 +14,7 @@ use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output, user::
 pub mod backup;
 pub mod csv;
 pub mod parquet;
+pub mod tdms;
 mod utils;
 
 const INDENT_1: &str = "  ";

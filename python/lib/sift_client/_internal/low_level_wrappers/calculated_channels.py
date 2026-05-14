@@ -220,16 +220,16 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Raises:
             ValueError: If neither calculated_channel_id nor client_key is provided.
         """
-        request_kwargs = {}
+        request_kwargs: dict[str, Any] = {}
         if calculated_channel_id:
-            request_kwargs = {"calculated_channel_id": calculated_channel_id}
+            request_kwargs["calculated_channel_id"] = calculated_channel_id
         elif client_key:
-            request_kwargs = {"client_key": client_key}
+            request_kwargs["client_key"] = client_key
         else:
             raise ValueError("Either calculated_channel_id or client_key must be provided")
 
         if page_size is not None:
-            request_kwargs["page_size"] = str(page_size)
+            request_kwargs["page_size"] = page_size
         if page_token is not None:
             request_kwargs["page_token"] = page_token
         if query_filter is not None:
@@ -239,7 +239,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if organization_id is not None:
             request_kwargs["organization_id"] = organization_id
 
-        request = ListCalculatedChannelVersionsRequest(**request_kwargs)  # type: ignore # mypy thinks we should pass an int
+        request = ListCalculatedChannelVersionsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).ListCalculatedChannelVersions(request)
@@ -259,6 +259,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
     ) -> list[CalculatedChannel]:
         """List all versions of a calculated channel."""
         return await self._handle_pagination(
@@ -271,4 +272,5 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             },
             order_by=order_by,
             max_results=limit,
+            page_size=page_size,
         )

@@ -13,7 +13,7 @@ members = [
 
 [workspace.package]
 authors = ["Sift Software Engineers <engineering@siftstack.com>"]
-version = "0.8.2"
+version = "0.9.0"
 edition = "2024"
 categories = ["aerospace", "science::robotics"]
 homepage = "https://github.com/sift-stack/sift"
@@ -24,8 +24,11 @@ license = "MIT"
 
 [workspace.dependencies]
 anyhow = "1.0"
+arrow-array = "58.1.0"
+arrow-schema = "58.1.0"
 async-channel = "2.2"
 async-trait = "^0.1"
+bytes = "1.11.1"
 bytesize = { version = "2" }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 clap = { version = "4.6", features = ["cargo", "derive", "wrap_help"] }
@@ -55,6 +58,7 @@ rand = "0.10"
 reqwest = "0.13"
 serde = { version = "^1.0" }
 serde_json = { version = "^1.0" }
+tdms = "0.3.0"
 tempdir = "0.3"
 tokio = { version = "1" }
 tokio-stream = "0.1"
@@ -69,13 +73,13 @@ tracing-test = { version = "0.2", features = ["no-env-filter"] }
 uuid = { version = "1.22", features = ["v4"] }
 zip = "8.2"
 
-sift_connect = { version = "0.8.2", path = "rust/crates/sift_connect" }
-sift_rs = { version = "0.8.2", path = "rust/crates/sift_rs" }
-sift_error = { version = "0.8.2", path = "rust/crates/sift_error" }
-sift_stream = { version = "0.8.2", path = "rust/crates/sift_stream" }
-sift_pbfs = { version = "0.8.2", path = "rust/crates/sift_pbfs" }
+sift_connect = { version = "0.9.0", path = "rust/crates/sift_connect" }
+sift_rs = { version = "0.9.0", path = "rust/crates/sift_rs" }
+sift_error = { version = "0.9.0", path = "rust/crates/sift_error" }
+sift_stream = { version = "0.9.0", path = "rust/crates/sift_stream" }
+sift_pbfs = { version = "0.9.0", path = "rust/crates/sift_pbfs" }
 
-sift_stream_bindings = { version = "0.2.2", path = "rust/crates/sift_stream_bindings" }
+sift_stream_bindings = { version = "0.3.0", path = "rust/crates/sift_stream_bindings" }
 
 # The profile that 'dist' will build with
 [profile.dist]

@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 import tempfile
+import warnings
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, call
 
 import pytest
+from sift.test_reports.v1.test_reports_pb2 import (
+    TestMeasurement as TestMeasurementProto,
+)
 
+from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
     TestMeasurement,
+    TestMeasurementCreate,
     TestMeasurementType,
     TestReport,
     TestStatus,
@@ -84,6 +90,9 @@ def mock_test_measurement(mock_client):
         unit="Celsius",
         passed=True,
         timestamp=simulated_time,
+        description="Expected nominal: 25.0C",
+        metadata={"part_number": "PN-001", "serial_number": "SN-42"},
+        channel_names=["temperature_celsius"],
     )
     test_measurement._apply_client_to_instance(mock_client)
     return test_measurement
@@ -175,6 +184,33 @@ class TestResultsTest:
                 log_file=None,
             )
             mock_update.assert_called_once_with(updated_report)
+
+    def test_update_preserves_cached_log_file(self, mock_test_report, mock_client):
+        """After .update() returns, the cached _log_file survives — BaseType._update()
+        only copies model_fields, and private attrs are excluded.
+        """
+        mock_test_report.__dict__["_log_file"] = "/tmp/cached.jsonl"
+
+        updated = TestReport(
+            id_=mock_test_report.id_,
+            status=TestStatus.FAILED,
+            name=mock_test_report.name,
+            test_system_name=mock_test_report.test_system_name,
+            test_case=mock_test_report.test_case,
+            start_time=mock_test_report.start_time,
+            end_time=mock_test_report.end_time,
+            metadata={"k": "v"},
+            is_archived=False,
+        )
+        updated.__dict__["_log_file"] = "/tmp/cached.jsonl"
+        mock_client.test_results.update.return_value = updated
+
+        result = mock_test_report.update({"status": TestStatus.FAILED})
+
+        assert result is mock_test_report
+        assert mock_test_report._log_file == "/tmp/cached.jsonl"
+        assert mock_test_report.status == TestStatus.FAILED
+        assert mock_test_report.metadata == {"k": "v"}
 
     def test_archive_test_report(self, mock_test_report, mock_client):
         """Test archiving a test report."""
@@ -271,3 +307,135 @@ class TestResultsTest:
                 ),
             ]
         )
+
+    def test_measurement_description_truncates_with_warning(self):
+        """Description over the server limit is truncated and a UserWarning is raised."""
+        over_limit = "x" * 2001
+        with pytest.warns(UserWarning, match="exceeds 2000 characters"):
+            create = TestMeasurementCreate(
+                test_step_id="step_123",
+                name="m",
+                passed=True,
+                timestamp=datetime.now(timezone.utc),
+                numeric_value=1.0,
+                description=over_limit,
+            )
+        assert create.description is not None
+        assert len(create.description) == 2000
+
+    def test_measurement_description_at_limit_is_not_truncated(self):
+        """A description exactly at the limit should not warn or truncate."""
+        at_limit = "x" * 2000
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # any warning fails the test
+            create = TestMeasurementCreate(
+                test_step_id="step_123",
+                name="m",
+                passed=True,
+                timestamp=datetime.now(timezone.utc),
+                numeric_value=1.0,
+                description=at_limit,
+            )
+        assert create.description == at_limit
+
+    def test_measurement_channel_names_accepts_strings(self):
+        """channel_names accepts a homogeneous list of channel name strings."""
+        create = TestMeasurementCreate(
+            test_step_id="step_123",
+            name="m",
+            passed=True,
+            timestamp=datetime.now(timezone.utc),
+            numeric_value=1.0,
+            channel_names=["temperature_celsius", "pressure_psi"],
+        )
+        assert create.channel_names == ["temperature_celsius", "pressure_psi"]
+        proto = create.to_proto()
+        assert list(proto.channel_names) == ["temperature_celsius", "pressure_psi"]
+
+    def test_measurement_channel_names_accepts_channels(self):
+        """channel_names accepts a homogeneous list of Channel instances; names are extracted at serialization."""
+        now = datetime.now(timezone.utc)
+
+        def _channel(name: str) -> Channel:
+            return Channel(
+                proto=MagicMock(),
+                id_=f"channel_{name}",
+                name=name,
+                data_type=ChannelDataType.DOUBLE,
+                description="",
+                unit="",
+                bit_field_elements=[],
+                enum_types={},
+                asset_id="asset_1",
+                created_date=now,
+                modified_date=now,
+                created_by_user_id="user1",
+                modified_by_user_id="user1",
+            )
+
+        create = TestMeasurementCreate(
+            test_step_id="step_123",
+            name="m",
+            passed=True,
+            timestamp=now,
+            numeric_value=1.0,
+            channel_names=[_channel("temperature_celsius"), _channel("pressure_psi")],
+        )
+        proto = create.to_proto()
+        assert list(proto.channel_names) == ["temperature_celsius", "pressure_psi"]
+
+    def test_measurement_create_to_proto_writes_new_fields(self):
+        """to_proto carries description, metadata, and channel_names onto the proto."""
+        create = TestMeasurementCreate(
+            test_step_id="step_123",
+            name="m",
+            passed=True,
+            timestamp=datetime.now(timezone.utc),
+            numeric_value=1.0,
+            description="note",
+            metadata={"pn": "PN-001", "count": 3, "flag": True},
+            channel_names=["chan_a", "chan_b"],
+        )
+        proto = create.to_proto()
+        assert proto.description == "note"
+        assert list(proto.channel_names) == ["chan_a", "chan_b"]
+        proto_keys = {m.key.name for m in proto.metadata}
+        assert proto_keys == {"pn", "count", "flag"}
+
+    def test_measurement_from_proto_round_trips_new_fields(self):
+        """A proto with the new fields populated round-trips into TestMeasurement."""
+        ts = datetime.now(timezone.utc)
+        source = TestMeasurementCreate(
+            test_step_id="step_123",
+            name="m",
+            passed=True,
+            timestamp=ts,
+            numeric_value=1.0,
+            description="note",
+            metadata={"pn": "PN-001", "count": 3},
+            channel_names=["chan_a"],
+        ).to_proto()
+        source.measurement_id = "measurement_456"
+        source.test_report_id = "report_789"
+
+        measurement = TestMeasurement._from_proto(source)
+
+        assert measurement.description == "note"
+        assert measurement.metadata == {"pn": "PN-001", "count": 3}
+        assert measurement.channel_names == ["chan_a"]
+
+    def test_measurement_from_proto_handles_absent_new_fields(self):
+        """Proto with unset description/metadata/channel_names yields None on the model."""
+        proto = TestMeasurementProto(
+            measurement_id="measurement_abc",
+            measurement_type=TestMeasurementType.DOUBLE.value,
+            name="m",
+            test_step_id="step_123",
+            test_report_id="report_789",
+            passed=True,
+        )
+        proto.timestamp.FromDatetime(datetime.now(timezone.utc))
+        measurement = TestMeasurement._from_proto(proto)
+        assert measurement.description is None
+        assert measurement.metadata is None
+        assert measurement.channel_names is None

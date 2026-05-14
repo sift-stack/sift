@@ -47,6 +47,17 @@ class TestResultsAPIAsync(ResourceBase):
         self._low_level_client = TestResultsLowLevelClient(grpc_client=self.client.grpc_client)
         self._upload_client = UploadLowLevelClient(rest_client=self.client.rest_client)
 
+    def _finalize(self, instance, log_file: str | Path | None):
+        """Attach the client and stamp the log file on a returned entity.
+
+        Bypasses the frozen-model guard the same way `_apply_client_to_instance`
+        does. Read paths skip this and call `_apply_client_to_instance` directly
+        so fetched entities don't carry a log file they didn't originate from.
+        """
+        self._apply_client_to_instance(instance)
+        instance.__dict__["_log_file"] = log_file
+        return instance
+
     async def import_(self, test_file: str | Path) -> TestReport:
         """Import a test report from an already-uploaded file.
 
@@ -86,7 +97,7 @@ class TestResultsAPIAsync(ResourceBase):
             test_report=test_report,
             log_file=log_file,
         )
-        return self._apply_client_to_instance(created_report)
+        return self._finalize(created_report, log_file)
 
     async def get(self, *, test_report_id: str) -> TestReport:
         """Get a TestReport.
@@ -125,6 +136,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestReport]:
         """List test reports with optional filtering.
 
@@ -151,6 +163,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Custom filter to apply to the test reports.
             order_by: How to order the retrieved test reports. If used, this will override the other filters.
             limit: How many test reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestReports that matches the filter.
@@ -204,6 +218,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_reports)
 
@@ -248,6 +263,8 @@ class TestResultsAPIAsync(ResourceBase):
         test_report_id = (
             test_report._id_or_error if isinstance(test_report, TestReport) else test_report
         )
+        if log_file is None and isinstance(test_report, TestReport):
+            log_file = test_report._log_file
         if isinstance(update, dict):
             update = TestReportUpdate.model_validate(update)
 
@@ -256,7 +273,7 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_report = await self._low_level_client.update_test_report(
             update, log_file=log_file, existing=existing
         )
-        return self._apply_client_to_instance(updated_test_report)
+        return self._finalize(updated_test_report, log_file)
 
     async def archive(self, *, test_report: str | TestReport) -> TestReport:
         """Archive a test report.
@@ -304,7 +321,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_step_result = await self._low_level_client.create_test_step(
             test_step, log_file=log_file
         )
-        return self._apply_client_to_instance(test_step_result)
+        return self._finalize(test_step_result, log_file)
 
     async def list_steps(
         self,
@@ -321,6 +338,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestStep]:
         """List test steps with optional filtering.
 
@@ -337,6 +355,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter test steps.
             order_by: How to order the retrieved test steps.
             limit: How many test steps to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestSteps that matches the filter.
@@ -384,6 +404,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_steps)
 
@@ -420,6 +441,8 @@ class TestResultsAPIAsync(ResourceBase):
             The updated TestStep.
         """
         test_step_id = test_step._id_or_error if isinstance(test_step, TestStep) else test_step
+        if log_file is None and isinstance(test_step, TestStep):
+            log_file = test_step._log_file
 
         if isinstance(update, dict):
             update = TestStepUpdate.model_validate(update)
@@ -429,7 +452,7 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_step = await self._low_level_client.update_test_step(
             update, log_file=log_file, existing=existing
         )
-        return self._apply_client_to_instance(updated_test_step)
+        return self._finalize(updated_test_step, log_file)
 
     async def delete_step(self, *, test_step: str | TestStep) -> None:
         """Delete a test step.
@@ -463,7 +486,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_measurement_result = await self._low_level_client.create_test_measurement(
             test_measurement, log_file=log_file
         )
-        measurement = self._apply_client_to_instance(test_measurement_result)
+        measurement = self._finalize(test_measurement_result, log_file)
         if update_step and log_file is None:
             step = await self.get_step(test_step=test_measurement_result.test_step_id)
             if step.status == TestStatus.PASSED and not measurement.passed:
@@ -503,6 +526,7 @@ class TestResultsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestMeasurement]:
         """List test measurements with optional filtering.
 
@@ -519,6 +543,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter test measurements.
             order_by: How to order the retrieved test measurements.
             limit: How many test measurements to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestMeasurements that matches the filter.
@@ -566,6 +592,7 @@ class TestResultsAPIAsync(ResourceBase):
             query_filter=query_filter,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(test_measurements)
 
@@ -587,6 +614,8 @@ class TestResultsAPIAsync(ResourceBase):
         Returns:
             The updated TestMeasurement.
         """
+        if log_file is None:
+            log_file = test_measurement._log_file
         if isinstance(update, dict):
             update = TestMeasurementUpdate.model_validate(update)
 
@@ -594,7 +623,7 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_measurement = await self._low_level_client.update_test_measurement(
             update, log_file=log_file, existing=test_measurement
         )
-        updated_test_measurement = self._apply_client_to_instance(updated_test_measurement)
+        updated_test_measurement = self._finalize(updated_test_measurement, log_file)
         if update_step and log_file is None and update.passed is not None and not update.passed:
             step = await self.get_step(test_step=updated_test_measurement.test_step_id)
             if step.status == TestStatus.PASSED:
@@ -616,30 +645,25 @@ class TestResultsAPIAsync(ResourceBase):
             raise TypeError(f"measurement_id must be a string not {type(measurement_id)}")
         await self._low_level_client.delete_test_measurement(measurement_id=measurement_id)
 
-    async def replay_log_file(
+    async def import_log_file(
         self,
         log_file: str | Path,
-        *,
         incremental: bool = False,
     ) -> ReplayResult:
-        """Replay a log file, creating real API objects from the logged simulation data.
+        """Replay a log file by parsing each entry, simulating the results, then creating for real.
 
-        Two modes are available:
-
-        * **batch** (default): Parse the entire log, reconstruct objects via
-          simulation, then create them all via the API in one pass.
-        * **incremental**: Walk the log line-by-line, issuing the real API call
-          for each entry. The ``LogTracking`` header is updated after every
-          successful call so a subsequent invocation picks up where it left off.
+        This method reads a log file created by the simulation logging, reconstructs
+        all the objects via simulation, and then creates them via the actual API.
+        IDs are mapped from simulated to real during the creation process.
 
         Args:
-            log_file: Path to the log file to replay.
-            incremental: If True, use incremental mode.
+            log_file: Path to the log file to import.
+            incremental: (internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
         """
-        result = await self._low_level_client.replay_log_file(log_file, incremental=incremental)
+        result = await self._low_level_client.import_log_file(log_file, incremental=incremental)
         result.report = self._apply_client_to_instance(result.report)
         result.steps = self._apply_client_to_instances(result.steps)
         result.measurements = self._apply_client_to_instances(result.measurements)

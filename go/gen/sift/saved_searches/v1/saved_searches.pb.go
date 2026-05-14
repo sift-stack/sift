@@ -556,7 +556,7 @@ type ListSavedSearchesRequest struct {
 	// the call that provided the page token. Optional.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-	// Available fields to filter by are 'name' and 'saved_search_id'.
+	// Available fields to filter by are 'name', 'saved_search_id', and 'overview_mode'.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/saved_searches#savedsearch). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`

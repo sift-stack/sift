@@ -63,6 +63,20 @@ class RunServiceStub:
     ]
     """Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."""
 
+    GetFilterFields: grpc.UnaryUnaryMultiCallable[
+        sift.runs.v2.runs_pb2.GetFilterFieldsRequest,
+        sift.runs.v2.runs_pb2.GetFilterFieldsResponse,
+    ]
+    """Returns the available filter fields for the ListRuns CEL filter."""
+
+    ValidateRunFilter: grpc.UnaryUnaryMultiCallable[
+        sift.runs.v2.runs_pb2.ValidateRunFilterRequest,
+        sift.runs.v2.runs_pb2.ValidateRunFilterResponse,
+    ]
+    """Validates a CEL filter expression against the available run filter fields.
+    Returns an error message if the expression is invalid, or an empty error_message if valid.
+    """
+
     CreateAutomaticRunAssociationForAssets: grpc.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.CreateAutomaticRunAssociationForAssetsRequest,
         sift.runs.v2.runs_pb2.CreateAutomaticRunAssociationForAssetsResponse,
@@ -113,6 +127,20 @@ class RunServiceAsyncStub:
         sift.runs.v2.runs_pb2.StopRunResponse,
     ]
     """Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."""
+
+    GetFilterFields: grpc.aio.UnaryUnaryMultiCallable[
+        sift.runs.v2.runs_pb2.GetFilterFieldsRequest,
+        sift.runs.v2.runs_pb2.GetFilterFieldsResponse,
+    ]
+    """Returns the available filter fields for the ListRuns CEL filter."""
+
+    ValidateRunFilter: grpc.aio.UnaryUnaryMultiCallable[
+        sift.runs.v2.runs_pb2.ValidateRunFilterRequest,
+        sift.runs.v2.runs_pb2.ValidateRunFilterResponse,
+    ]
+    """Validates a CEL filter expression against the available run filter fields.
+    Returns an error message if the expression is invalid, or an empty error_message if valid.
+    """
 
     CreateAutomaticRunAssociationForAssets: grpc.aio.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.CreateAutomaticRunAssociationForAssetsRequest,
@@ -178,6 +206,24 @@ class RunServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.runs.v2.runs_pb2.StopRunResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.StopRunResponse]]:
         """Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."""
+
+    @abc.abstractmethod
+    def GetFilterFields(
+        self,
+        request: sift.runs.v2.runs_pb2.GetFilterFieldsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.runs.v2.runs_pb2.GetFilterFieldsResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.GetFilterFieldsResponse]]:
+        """Returns the available filter fields for the ListRuns CEL filter."""
+
+    @abc.abstractmethod
+    def ValidateRunFilter(
+        self,
+        request: sift.runs.v2.runs_pb2.ValidateRunFilterRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.runs.v2.runs_pb2.ValidateRunFilterResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.ValidateRunFilterResponse]]:
+        """Validates a CEL filter expression against the available run filter fields.
+        Returns an error message if the expression is invalid, or an empty error_message if valid.
+        """
 
     @abc.abstractmethod
     def CreateAutomaticRunAssociationForAssets(

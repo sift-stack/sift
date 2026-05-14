@@ -19,10 +19,14 @@ from sift_client.sift_types.tag import Tag
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sift_stream_bindings import RunFormPy
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.data_import import DataTypeKey, ImportConfig
+    from sift_client.sift_types.job import Job
 
 
 class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
@@ -126,6 +130,43 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         updated_run = self.client.runs.get(run_id=self.id_)
         self._update(updated_run)
         return self
+
+    def import_data(
+        self,
+        file_path: str | Path,
+        *,
+        asset: Asset | str | None = None,
+        config: ImportConfig | None = None,
+        data_type: DataTypeKey | None = None,
+        show_progress: bool | None = None,
+    ) -> Job:
+        """Import data from a file into this run.
+
+        Convenience method that calls ``client.data_imports.import_from_path``
+        with this run pre-filled. If the run has exactly one asset,
+        ``asset`` is inferred automatically.
+
+        Args:
+            file_path: Path to the local file to import.
+            asset: Asset object or asset name to import data into.
+            config: Import configuration. Auto-detected if omitted.
+            data_type: Explicit data type key for ambiguous formats.
+            show_progress: Display a progress spinner during upload.
+
+        Returns:
+            A ``Job`` handle for the pending import.
+        """
+        if asset is None and len(self.asset_ids) == 1:
+            asset = self.client.assets.get(asset_id=self.asset_ids[0])
+
+        return self.client.data_import.import_from_path(
+            file_path,
+            asset=asset,
+            config=config,
+            data_type=data_type,
+            run=self,
+            show_progress=show_progress,
+        )
 
 
 class RunBase(ModelCreateUpdateBase):

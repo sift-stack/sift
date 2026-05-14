@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_stream_bindings import (
-        DurationPy,
+        DiskBackupPolicyPy,
         FlowConfigPy,
         FlowDescriptorPy,
         FlowPy,
@@ -47,7 +47,7 @@ if TYPE_CHECKING:
         IngestWithConfigDataStreamRequestPy,
         IngestWithConfigDataStreamRequestWrapperPy,
         MetadataPy,
-        RecoveryStrategyPy,
+        RetryPolicyPy,
         RunFormPy,
         RunSelectorPy,
         SiftStreamBuilderPy,
@@ -56,7 +56,7 @@ if TYPE_CHECKING:
         TimeValuePy,
     )
 
-    from sift_client.resources.ingestion import TracingConfig
+    from sift_client.resources.ingestion import StreamingMode, TracingConfig
 
 
 def _to_rust_py_timestamp(time: datetime) -> TimeValuePy:
@@ -250,26 +250,32 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         cls,
         api_key: str,
         grpc_uri: str,
-        ingestion_config: IngestionConfigFormPy,
+        ingestion_config_form: IngestionConfigFormPy,
         run_form: RunFormPy | None = None,
         run_id: str | None = None,
         asset_tags: list[str] | None = None,
         asset_metadata: list[MetadataPy] | None = None,
-        recovery_strategy: RecoveryStrategyPy | None = None,
-        checkpoint_interval: DurationPy | None = None,
+        streaming_mode: StreamingMode = ...,  # type: ignore[assignment]
+        retry_policy: RetryPolicyPy | None = None,
+        disk_backup_policy: DiskBackupPolicyPy | None = None,
+        checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         # TODO(nathan): Fix bindings to fix mypy issues with tracing functions
         from sift_stream_bindings import (  # type: ignore[attr-defined]
+            DurationPy,
             SiftStreamBuilderPy,
             init_tracing,  # type: ignore[attr-defined]
             init_tracing_with_file,  # type: ignore[attr-defined]
             is_tracing_initialized,  # type: ignore[attr-defined]
-        )  # type: ignore[attr-defined]
+        )
 
-        from sift_client.resources.ingestion import TracingConfig
+        from sift_client.resources.ingestion import StreamingMode, TracingConfig
+
+        if streaming_mode is ...:  # type: ignore[comparison-overlap]
+            streaming_mode = StreamingMode.LIVE_WITH_BACKUPS
 
         if not is_tracing_initialized():
             if tracing_config is None:
@@ -287,21 +293,35 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
                 # Use stdout/stderr only
                 init_tracing(tracing_config.level)
 
-        builder = SiftStreamBuilderPy(
-            uri=grpc_uri,
-            apikey=api_key,
-        )
+        sift_builder = SiftStreamBuilderPy(uri=grpc_uri, apikey=api_key)
+        sift_builder.enable_tls = enable_tls
 
-        builder.enable_tls = enable_tls
-        builder.ingestion_config = ingestion_config
-        builder.recovery_strategy = recovery_strategy
-        builder.checkpoint_interval = checkpoint_interval
-        builder.asset_tags = asset_tags
-        builder.metadata = asset_metadata
-        builder.run = run_form
-        builder.run_id = run_id
+        config_builder = sift_builder.ingestion_config(ingestion_config_form)
+        config_builder.run = run_form
+        config_builder.run_id = run_id
+        config_builder.asset_tags = asset_tags
+        config_builder.metadata = asset_metadata
 
-        sift_stream_instance = await builder.build()
+        if streaming_mode == StreamingMode.LIVE_ONLY:
+            sift_stream_instance = await config_builder.live_only().build()
+
+        elif streaming_mode == StreamingMode.FILE_BACKUP:
+            fb_builder = config_builder.file_backup()
+            if disk_backup_policy is not None:
+                fb_builder.disk_backup_policy = disk_backup_policy
+            sift_stream_instance = await fb_builder.build()
+
+        else:  # LIVE_WITH_BACKUPS (default)
+            lwb_builder = config_builder.live_with_backups()
+            if retry_policy is not None:
+                lwb_builder.retry_policy = retry_policy
+            if disk_backup_policy is not None:
+                lwb_builder.disk_backup_policy = disk_backup_policy
+            if checkpoint_interval_seconds is not None:
+                lwb_builder.checkpoint_interval = DurationPy(
+                    secs=checkpoint_interval_seconds, nanos=0
+                )
+            sift_stream_instance = await lwb_builder.build()
 
         return cls(sift_stream_instance)
 
@@ -314,10 +334,13 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         await self._sift_stream_instance.send_requests(requests)
 
-    def send_requests_nonblocking(
+    def try_send_requests(
         self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]
-    ):
-        self._sift_stream_instance.send_requests_nonblocking(requests)
+    ) -> None:
+        self._sift_stream_instance.try_send_requests(requests)
+
+    def try_send(self, flow: FlowPy) -> None:
+        self._sift_stream_instance.try_send(flow)
 
     def get_flow_descriptor(self, flow_name: str) -> FlowDescriptorPy:
         return self._sift_stream_instance.get_flow_descriptor(flow_name)

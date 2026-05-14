@@ -7,7 +7,7 @@ import socket
 import subprocess
 import tempfile
 import traceback
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -34,8 +34,66 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import Channel
 
 logger = logging.getLogger(__name__)
+
+
+def log_replay_instructions(log_file: str | Path | None) -> None:
+    """Log instructions for manually replaying a test result log file.
+
+    Used when an import/replay attempt fails so the user can retry against the same file.
+    """
+    if log_file is None:
+        return
+    logger.error(
+        f"Error replaying log file: {log_file}.\n"
+        f"  Can replay with `replay-test-result-log {log_file}`."
+    )
+
+
+@contextmanager
+def _quiet_fork_stderr():
+    """Redirect fd 2 to /dev/null across a ``fork()`` to discard gRPC's prefork notices.
+
+    Redirecting fd 2 at the fd level (``os.dup2``) is what gRPC's handlers actually
+    write to, so wrapping a fork-site in this context manager reliably swallows those
+    notices without touching gRPC's global state. Scope the ``with`` block as tightly
+    as possible since it affects every thread in the process while active.
+    """
+    saved_fd = os.dup(2)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull_fd, 2)
+        os.close(devnull_fd)
+        yield
+    finally:
+        os.dup2(saved_fd, 2)
+        os.close(saved_fd)
+
+
+def _git_metadata() -> dict[str, str] | None:
+    """Return git branch and commit hash, or None if not in a git repo."""
+    try:
+        with _quiet_fork_stderr():
+            branch = subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+            commit = subprocess.check_output(
+                ["git", "describe", "--always", "--dirty", "--exclude", "*"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+            repo = subprocess.check_output(
+                ["git", "remote", "get-url", "origin"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+        return {"git_repo": repo, "git_branch": branch, "git_commit": commit}
+    except Exception:
+        return None
 
 
 class ReportContext(AbstractContextManager):
@@ -49,6 +107,7 @@ class ReportContext(AbstractContextManager):
     step_number_at_depth: dict[int, int]
     open_step_results: dict[str, bool]
     any_failures: bool
+    _import_proc: subprocess.Popen | None = None
 
     def __init__(
         self,
@@ -58,6 +117,7 @@ class ReportContext(AbstractContextManager):
         system_operator: str | None = None,
         test_case: str | None = None,
         log_file: str | Path | bool | None = None,
+        include_git_metadata: bool = False,
     ):
         """Initialize a new report context.
 
@@ -69,6 +129,7 @@ class ReportContext(AbstractContextManager):
             test_case: The name of the test case. Will default to the basename of the file containing the test if not provided.
             log_file: If True, create a temp log file. If a path, use that path.
                 All create/update operations will be logged to this file.
+            include_git_metadata: If True, include git metadata in the report.
         """
         self.client = client
         self.step_is_open = False
@@ -98,31 +159,33 @@ class ReportContext(AbstractContextManager):
             end_time=datetime.now(timezone.utc),
             status=TestStatus.IN_PROGRESS,
             system_operator=system_operator,
+            metadata=_git_metadata() if include_git_metadata else None,  # type: ignore
         )
         self.report = client.test_results.create(create, log_file=self.log_file)
 
-    def _open_replay_proc(self):
-        if self.log_file is not None:
-            # To avoid GRPC forking errors, temporarily redirect stderr at the fd level before forking, so the child inherits /dev/null on fd 2 when the atfork handler fires.
-            saved_stderr = os.dup(2)
-            devnull_fd = os.open(os.devnull, os.O_WRONLY)
-            os.dup2(devnull_fd, 2)
-            os.close(devnull_fd)
-            try:
-                self._replay_proc = subprocess.Popen(
-                    ["replay-test-result-log", "--incremental", str(self.log_file)],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            finally:
-                os.dup2(saved_stderr, 2)
-                os.close(saved_stderr)
-        else:
-            self._replay_proc = None
+    def _open_import_proc(self):
+        """Open a subprocess to import the log file."""
+        with _quiet_fork_stderr():
+            self._import_proc = subprocess.Popen(
+                [
+                    "import-test-result-log",
+                    "--incremental",
+                    str(self.log_file),
+                    "--grpc-url",
+                    self.client.grpc_client._config.uri,
+                    "--rest-url",
+                    self.client.rest_client._config.base_url,
+                    "--api-key",
+                    self.client.grpc_client._config.api_key,
+                ],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
     def __enter__(self):
-        self._open_replay_proc()
+        if self.log_file:
+            self._open_import_proc()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -133,15 +196,17 @@ class ReportContext(AbstractContextManager):
             update["status"] = TestStatus.FAILED
         else:
             update["status"] = TestStatus.PASSED
-        self.report.update(update, log_file=self.log_file)
+        self.report.update(update)
 
-        if self._replay_proc is not None:
+        if self._import_proc is not None:
             try:
-                self._replay_proc.communicate(timeout=10)
+                self._import_proc.communicate(timeout=1)
             except subprocess.TimeoutExpired:
-                logger.warning("Replay process did not exit in 10s, killing it")
-                self._replay_proc.kill()
-                self._replay_proc.wait()
+                logger.error("Import process did not exit in 10s, killing it")
+                self._import_proc.kill()
+                self._import_proc.wait()
+                log_replay_instructions(self.log_file)
+                raise
 
         return True
 
@@ -328,7 +393,6 @@ class NewStep(AbstractContextManager):
                 "end_time": datetime.now(timezone.utc),
                 "error_info": error_info,
             },
-            log_file=self.report_context.log_file,
         )
 
         return result
@@ -354,6 +418,9 @@ class NewStep(AbstractContextManager):
         bounds: dict[str, float] | NumericBounds | str | None = None,
         timestamp: datetime | None = None,
         unit: str | None = None,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        channel_names: list[str] | list[Channel] | None = None,
     ) -> bool:
         """Measure a value and return the result.
 
@@ -363,6 +430,14 @@ class NewStep(AbstractContextManager):
             bounds: [Optional] The bounds to compare the value to.
             timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
             unit: [Optional] The unit of the measurement.
+            description: [Optional] Notes about the measurement. Server caps at 2000 characters;
+                longer strings are truncated with a warning.
+            metadata: [Optional] Structured key/value metadata to attach to the measurement.
+                For metadata shared across measurements, prefer the `metadata` attribute of the
+                enclosing `TestStep` or `TestReport`.
+            channel_names: [Optional] Sift channel names or `Channel` instances this measurement
+                is associated with. Enables cross-plotting in Explore using the report's
+                associated Run.
 
         returns: The result of the measurement.
         """
@@ -373,6 +448,9 @@ class NewStep(AbstractContextManager):
             passed=True,
             timestamp=timestamp if timestamp else datetime.now(timezone.utc),
             unit=unit,
+            description=description,
+            metadata=metadata,
+            channel_names=channel_names,
         )
         evaluate_measurement_bounds(create, value, bounds)
         measurement = self.client.test_results.create_measurement(
@@ -390,6 +468,9 @@ class NewStep(AbstractContextManager):
         bounds: dict[str, float] | NumericBounds,
         timestamp: datetime | None = None,
         unit: str | None = None,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        channel_names: list[str] | list[Channel] | None = None,
     ) -> bool:
         """Calculate the average of a list of values, measure the average against given bounds, and return the result.
 
@@ -399,6 +480,11 @@ class NewStep(AbstractContextManager):
             bounds: The bounds to compare the value to.
             timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
             unit: [Optional] The unit of the measurement.
+            description: [Optional] Notes about the measurement. Server caps at 2000 characters;
+                longer strings are truncated with a warning.
+            metadata: [Optional] Structured key/value metadata to attach to the measurement.
+            channel_names: [Optional] Sift channel names or `Channel` instances this measurement
+                is associated with.
 
         returns: The true if the average of the values is within the bounds, false otherwise.
         """
@@ -413,7 +499,16 @@ class NewStep(AbstractContextManager):
         else:
             raise ValueError(f"Invalid value type: {type(values)}")
         avg = float(np.mean(np_array))
-        result = self.measure(name=name, value=avg, bounds=bounds, timestamp=timestamp, unit=unit)
+        result = self.measure(
+            name=name,
+            value=avg,
+            bounds=bounds,
+            timestamp=timestamp,
+            unit=unit,
+            description=description,
+            metadata=metadata,
+            channel_names=channel_names,
+        )
         assert self.current_step is not None
         self.report_context.record_step_outcome(result, self.current_step)
 
@@ -427,6 +522,9 @@ class NewStep(AbstractContextManager):
         bounds: dict[str, float] | NumericBounds,
         timestamp: datetime | None = None,
         unit: str | None = None,
+        description: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        channel_names: list[str] | list[Channel] | None = None,
     ) -> bool:
         """Ensure that all values in a list are within bounds and return the result. Records measurements for all values outside the bounds.
 
@@ -438,6 +536,11 @@ class NewStep(AbstractContextManager):
             bounds: The bounds to compare the value to.
             timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
             unit: [Optional] The unit of the measurement.
+            description: [Optional] Notes attached to each out-of-bounds measurement. Server caps
+                at 2000 characters; longer strings are truncated with a warning.
+            metadata: [Optional] Structured key/value metadata for each out-of-bounds measurement.
+            channel_names: [Optional] Sift channel names or `Channel` instances to associate with
+                each out-of-bounds measurement.
 
         returns: The true if all values are within the bounds, false otherwise.
         """
@@ -468,7 +571,16 @@ class NewStep(AbstractContextManager):
 
         rows_outside_bounds = np_array[mask]
         for row in rows_outside_bounds:
-            self.measure(name=name, value=row, bounds=bounds, timestamp=timestamp, unit=unit)
+            self.measure(
+                name=name,
+                value=row,
+                bounds=bounds,
+                timestamp=timestamp,
+                unit=unit,
+                description=description,
+                metadata=metadata,
+                channel_names=channel_names,
+            )
 
         result = rows_outside_bounds.size == 0
         assert self.current_step is not None

@@ -6,7 +6,12 @@ from sift.reports.v1 import reports_pb2 as sift_dot_reports_dot_v1_dot_reports__
 
 
 class ReportServiceStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
+    RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
+    a run id directly on the request use inbound_policy_enforcement; RPCs that resolve the run via a
+    DB lookup (e.g. report_id -> report -> run_id) use manual_policy_enforcement and do the check in
+    the handler. See web-service/authorization/authorization.go for the helpers.
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -47,7 +52,12 @@ class ReportServiceStub(object):
 
 
 class ReportServiceServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
+    RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
+    a run id directly on the request use inbound_policy_enforcement; RPCs that resolve the run via a
+    DB lookup (e.g. report_id -> report -> run_id) use manual_policy_enforcement and do the check in
+    the handler. See web-service/authorization/authorization.go for the helpers.
+    """
 
     def GetReport(self, request, context):
         """Retrieve a report.
@@ -134,7 +144,12 @@ def add_ReportServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ReportService(object):
-    """Missing associated documentation comment in .proto file."""
+    """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
+    RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
+    a run id directly on the request use inbound_policy_enforcement; RPCs that resolve the run via a
+    DB lookup (e.g. report_id -> report -> run_id) use manual_policy_enforcement and do the check in
+    the handler. See web-service/authorization/authorization.go for the helpers.
+    """
 
     @staticmethod
     def GetReport(request,

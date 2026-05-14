@@ -36,9 +36,10 @@
 //!     }],
 //! };
 //!
-//! // Initialize your Sift Stream (IngestionConfigMode - streams to Sift)
+//! // Initialize your Sift Stream (live streaming with backups)
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config.clone())
+//!     .live_with_backups()
 //!     .build()
 //!     .await?;
 //!
@@ -55,11 +56,16 @@
 //! sift_stream.finish().await?;
 //!
 //! // Alternatively, initialize in FileBackupMode (only writes to backup files)
-//! use sift_stream::stream::builder::RecoveryStrategy;
+//! use sift_stream::backup::DiskBackupPolicy;
+//! use std::path::PathBuf;
 //! let mut backup_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
-//!     .recovery_strategy(RecoveryStrategy::default_retry_policy_with_backups())
-//!     .build_file_backup()
+//!     .file_backup()
+//!     .disk_backup_policy(DiskBackupPolicy {
+//!         backups_dir: Some(PathBuf::from("/data/backups")),
+//!         ..Default::default()
+//!     })
+//!     .build()
 //!     .await?;
 //!
 //! // Send telemetry to backup files (not to Sift)
@@ -71,33 +77,67 @@
 //!
 //! ## Stream Modes
 //!
-//! SiftStream supports two different modes of operation, each with different use cases:
+//! Three transport modes are available, selected via the builder chain. Each mode determines
+//! the channel architecture, backpressure behavior, and durability guarantees:
 //!
-//! ### IngestionConfigMode
+//! | Builder method | Transport type | Backpressure source | Checkpointing | Disk backup | Retries |
+//! |---|---|---|---|---|
+//! | `.live_only()` | [`LiveStreamingOnly`] | ingestion channel | No | No | Yes |
+//! | `.live_with_backups()` | [`LiveStreamingWithBackups`] | backup channel | Yes | Yes | Yes |
+//! | `.file_backup()` | [`FileBackup`] | write channel | No | Yes | N/A |
 //!
-//! [IngestionConfigMode] is the default streaming mode that sends telemetry data directly to Sift
-//! via gRPC streams. This mode supports:
-//! - Real-time streaming to Sift
-//! - Optional disk backups for data recovery
-//! - Checkpointing to confirm data receipt
-//! - Retry policies for handling network outages
+//! ### `live_only` — [`LiveStreamingOnly`]
 //!
-//! This mode is used when you call [SiftStreamBuilder::build] and is suitable for most use cases
-//! where you want to stream data to Sift in real-time.
+//! Streams to Sift in real-time over a single bounded ingestion channel. Backpressure is applied
+//! directly when that channel is full: [`send`](stream::SiftStream::send) awaits until the
+//! ingestion task drains capacity. Supports retries.
 //!
-//! ### FileBackupMode
+//! ```ignore
+//! let stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .live_only()
+//!     .build()
+//!     .await?;
+//! ```
 //!
-//! [FileBackupMode] is a specialized mode that only writes telemetry data to backup files on disk
-//! without streaming to Sift. This mode is useful for:
-//! - CI/CD workflows where data is only needed/uploaded to Sift if a test fails
-//! - Situations where network connectivity is unreliable
-//! - Creating backup files for later ingestion
+//! ### `live_with_backups` — [`LiveStreamingWithBackups`]
 //!
-//! This mode is used when you call [SiftStreamBuilder::build_file_backup]. Data written in this
-//! mode can be ingested into Sift later using separate tooling.
+//! Streams to Sift in real-time using a dual-channel architecture: a bounded backup channel
+//! and a bounded ingestion channel. Backpressure is applied on the **backup channel**; the
+//! ingestion channel uses force-send and never blocks — when full it evicts the oldest buffered
+//! message to preserve freshness. Supports retries, checkpointing, and an disk backup strategy
+//! for intermittent network failures.
 //!
-//! **Note**: When using `FileBackupMode`, you must configure a [RecoveryStrategy::RetryWithBackups]
-//! recovery strategy, as the backup policy configuration is required for file management.
+//! ```ignore
+//! let stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .live_with_backups()
+//!     .build()
+//!     .await?;
+//! ```
+//!
+//! ### `file_backup` — [`FileBackup`]
+//!
+//! Writes telemetry to rolling disk files without any network ingestion. Backpressure is
+//! applied on the bounded write channel: [`send`](stream::SiftStream::send) awaits until the
+//! file-writer task drains capacity. Data written in this mode can be ingested into Sift later
+//! using the `sift-cli` tool.
+//!
+//! Useful for CI/CD workflows where data only needs to reach Sift if a test fails, or in
+//! environments where network connectivity is unavailable during the recording session.
+//! `disk_backup_policy.backups_dir` must be set via [FileBackupBuilder::disk_backup_policy].
+//!
+//! ```ignore
+//! let stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .file_backup()
+//!     .disk_backup_policy(DiskBackupPolicy {
+//!         backups_dir: Some(PathBuf::from("/data/backups")),
+//!         ..Default::default()
+//!     })
+//!     .build()
+//!     .await?;
+//! ```
 //!
 //! ## Ingestion Configs
 //!
@@ -157,6 +197,7 @@
 //! ```ignore
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
+//!     .live_with_backups()
 //!     .build()
 //!     .await?;
 //!
@@ -213,10 +254,10 @@
 //!
 //! Caused by:
 //!     [IncompatibleIngestionConfigChange]: flow(s) with name 'robotic-arm' exist but their channel configs do not match what the user specified
-//!     
+//!
 //!     [cause]:
 //!        - incompatible change to ingestion config
-//!     
+//!
 //!     [help]:
 //!        - Did you modify an existing flow? Try updating the 'client_key' of `sift_stream::IngestionConfigForm`
 //! ```
@@ -330,20 +371,19 @@
 //! - Transient errors from Sift's gRPC service
 //! - Transient errors that may arise from load balancers
 //!
-//! Retries are not enabled by default, but users would enable is as part of [SiftStream]
-//! initialization:
+//! Retries are always enabled when using `live_with_backups()` mode. Users can configure the
+//! retry policy via [LiveWithBackupsBuilder::retry_policy]:
 //!
 //! ```ignore
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
-//!     .recovery_strategy(RecoveryStrategy::default())
+//!     .live_with_backups()
+//!     .retry_policy(RetryPolicy::default())
 //!     .build()
 //!     .await?;
 //! ```
 //!
-//! This will initialize a [SiftStream] with retries configured with recommended defaults,
-//! however, users are able to set their own custom retry policies. For more information on
-//! that see [SiftStreamBuilder::recovery_strategy], [RecoveryStrategy], [RetryPolicy], and [DiskBackupPolicy].
+//! For more information see [LiveWithBackupsBuilder::retry_policy], [RetryPolicy], and [DiskBackupPolicy].
 //!
 //! ## Checkpoints
 //!
@@ -356,15 +396,16 @@
 //! ```ignore
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
+//!     .live_with_backups()
 //!     .checkpoint_interval(Duration::from_secs(30))
 //!     .build()
 //!     .await?;
 //! ```
 //!
-//! For more information see [SiftStreamBuilder::checkpoint_interval].
+//! For more information see [LiveWithBackupsBuilder::checkpoint_interval].
 //!
 //! **Important Note**: Bear in mind that checkpointing does introduce a bit of overhead, as
-//! [SiftStream::send] will block on receiving an acknowledgement from Sift and reinitialize the inner
+//! [SiftStream] will be re-creating the gRPC stream.
 //! gRPC stream, so very small checkpoint intervals are not recommended.
 //!
 //! ### Concluding a stream
@@ -391,9 +432,10 @@
 //!
 //! ```ignore
 //! // Async Backups
-//! let mut sift_stream = SiftStreamBuilder::new(config)
+//! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
-//!     .recovery_strategy(RecoveryStrategy::default_retry_policy_with_backups())
+//!     .live_with_backups()
+//!     .disk_backup_policy(DiskBackupPolicy::default())
 //!     .build()
 //!     .await?;
 //! ```
@@ -401,11 +443,11 @@
 //! This example initializes backup strategies with the recommended defaults. This includes
 //! the default retry policy, the backups directory, and a max individual backup file size with unlimited
 //! rolling backup files, which are deleted once a successful checkpoint is observed. If users wish to
-//! configure their own backup settings, see [RecoveryStrategy].
+//! configure their own backup settings, see [LiveWithBackupsBuilder::disk_backup_policy].
 //!
 //! ### Retry with Backups
 //!
-//! The [RecoveryStrategy::RetryWithBackups] writes messages passed to [SiftStream::send] to rolling backup
+//! The `live_with_backups()` mode with a `disk_backup_policy` configured writes messages passed to [SiftStream::send] to rolling backup
 //! files in a buffered manner. Once the file size is reached for a given file, that backup is closed out and
 //! the next file is created. If the maximum file count is reached, a checkpoint will be forced. Once a
 //! checkpoint is triggered, if passed, the backup file(s) are deleted unless the [DiskBackupPolicy] specifies
@@ -510,7 +552,7 @@
 //!
 //! Because [tonic](https://docs.rs/tonic/latest/tonic/) is an underlying dependency, the
 //! [tokio](https://docs.rs/tokio/latest/tokio/) asynchronous runtime is required, otherwise
-//! attempts to use this crate will result in a panic at the level of [SiftStreamBuilder::build].
+//! attempts to use this crate will result in a panic at the level of `.build()`.
 //!
 //! This crate is compatible with both the current and multi-threaded Tokio runtimes. Performance
 //! is expected to be better generally using the multi-threaded runtime.
@@ -522,7 +564,7 @@
 //! - `metrics-unstable`: Enables the ability for the user to access SiftStream metrics from each [SiftStream] instance,
 //!   or through a light-weight HTML metrics server, if enabled. See [metrics](#metrics)
 
-/// Concerned with streaming telemetry into Sift.
+/// Concerned with streaming telemetry to Sift.
 pub mod stream;
 pub use sift_rs::{
     common::r#type::v1::ChannelDataType,
@@ -530,19 +572,21 @@ pub use sift_rs::{
 };
 pub use stream::{
     RetryPolicy, SiftStream,
-    builder::{IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder},
+    builder::{
+        FileBackupBuilder, IngestionConfigForm, LiveOnlyBuilder, LiveWithBackupsBuilder, RunForm,
+        SiftStreamBuilder, StreamConfigBuilder,
+    },
     channel::{ChannelEnum, ChannelValue, Value},
     flow::{ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder},
     mode::{
         file_backup::FileBackup,
-        ingestion_config::{Flow, IngestionConfigEncoder, LiveStreaming},
+        ingestion_config::{Flow, IngestionConfigEncoder},
+        live_only::LiveStreamingOnly,
+        live_with_backups::LiveStreamingWithBackups,
     },
     send_error::{SendError, SiftStreamSendError, SiftStreamTrySendError, TrySendError},
     time::TimeValue,
 };
-
-/// Re-export IngestionConfigEncoder as IngestionConfigMode for backwards compatibility.
-pub use IngestionConfigEncoder as IngestionConfigMode;
 
 /// Concerned with backing up data as its streamed to Sift and backups accessible.
 pub mod backup;
@@ -555,6 +599,12 @@ pub mod metrics;
 
 #[cfg(feature = "metrics-unstable")]
 pub use metrics::{MetricsServerBuilder, SiftStreamMetricsSnapshot};
+
+pub mod logging;
+pub use logging::LogLevel;
+
+#[cfg(feature = "tracing")]
+pub(crate) mod telemetry;
 
 #[cfg(test)]
 mod test;

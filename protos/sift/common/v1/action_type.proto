@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package sift.common.v1;
 
-
 // ActionType represents the type of action being performed on a resource
 // Granular ABAC actions, broken up by CRUD.
 enum ActionType {

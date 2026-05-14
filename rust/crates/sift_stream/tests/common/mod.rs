@@ -7,7 +7,11 @@ use sift_rs::assets::v1::{
     GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse, UpdateAssetRequest,
     UpdateAssetResponse,
 };
-use sift_rs::ingest::v1::ingest_service_server::{IngestService, IngestServiceServer};
+use sift_rs::ingest::v1::{
+    IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
+    IngestWithConfigDataStreamRequest, IngestWithConfigDataStreamResponse,
+    ingest_service_server::{IngestService, IngestServiceServer},
+};
 use sift_rs::ingestion_configs::v2::ingestion_config_service_server::{
     IngestionConfigService, IngestionConfigServiceServer,
 };
@@ -27,9 +31,11 @@ use sift_rs::runs::v2::{
     ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
 };
 use sift_stream::{ChannelConfig, ChannelDataType, FlowConfig};
+use std::collections::HashMap;
 use std::io::Error as IoError;
 use std::sync::{Arc, Mutex};
 use tokio::task::JoinHandle;
+use tokio_stream::StreamExt;
 use tonic::transport::{Endpoint, Server, Uri};
 use tonic::{Request, Response, Status};
 use tower::{ServiceBuilder, service_fn};
@@ -305,7 +311,9 @@ impl RunService for MockRunService {
         &self,
         _: Request<UpdateRunRequest>,
     ) -> Result<Response<UpdateRunResponse>, Status> {
-        Err(Status::unimplemented("Not implemented for test"))
+        Ok(Response::new(UpdateRunResponse {
+            run: Some(Self::run()),
+        }))
     }
     async fn delete_run(
         &self,

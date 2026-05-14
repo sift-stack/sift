@@ -9,7 +9,6 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/user.proto";
 import "sift/user_groups/v2/user_groups.proto";
 
-
 service ExternalSyncService {
   rpc SyncOrganization(SyncOrganizationRequest) returns (SyncOrganizationResponse) {
     option (google.api.http) = {
@@ -46,6 +45,33 @@ service ExternalSyncService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ListExternalSyncTokens"
       description: "List all tokens created by org"
+    };
+  }
+
+  rpc ListExternalSyncRuns(ListExternalSyncRunsRequest) returns (ListExternalSyncRunsResponse) {
+    option (google.api.http) = {get: "/api/v1/external-sync:list-runs"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListExternalSyncRuns"
+      description: "List historical external sync runs for the organization (newest first by default)"
+    };
+  }
+
+  rpc GetExternalSyncRun(GetExternalSyncRunRequest) returns (GetExternalSyncRunResponse) {
+    option (google.api.http) = {get: "/api/v1/external-sync/runs/{external_sync_run_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetExternalSyncRun"
+      description: "Get one external sync run including the full diff payload"
+    };
+  }
+
+  // Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+  // has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+  // Organization is taken from request context.
+  rpc GetIsOrgExternallyProvisioned(GetIsOrgExternallyProvisionedRequest) returns (GetIsOrgExternallyProvisionedResponse) {
+    option (google.api.http) = {get: "/api/v1/external-sync:is-org-externally-provisioned"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetIsOrgExternallyProvisioned"
+      description: "Returns whether the organization is configured for external (SCIM) user provisioning"
     };
   }
 }
@@ -123,4 +149,90 @@ message ListExternalSyncTokensRequest {
 message ListExternalSyncTokensResponse {
   repeated ExternalSyncToken external_sync_tokens = 1 [(google.api.field_behavior) = REQUIRED];
   string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+enum ExternalSyncRunTriggerType {
+  EXTERNAL_SYNC_RUN_TRIGGER_TYPE_UNSPECIFIED = 0;
+  // User triggered sync via the Sift UI or API.
+  EXTERNAL_SYNC_RUN_TRIGGER_TYPE_MANUAL_USER = 1;
+  EXTERNAL_SYNC_RUN_TRIGGER_TYPE_SCHEDULED = 2;
+}
+
+// Sift user identity for display (user_name) and stable API use (user_id).
+message ExternalSyncUserRef {
+  string user_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_name = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Sift user group identity for display (group_name) and stable API use (user_group_id).
+message ExternalSyncGroupRef {
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string group_name = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// One membership edge that changed during the sync.
+message ExternalSyncMembershipChange {
+  string user_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_name = 2 [(google.api.field_behavior) = REQUIRED];
+  string user_group_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string group_name = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Snapshot of membership and lifecycle changes from one external sync run.
+// Identifiers are Sift `user_id` / `user_group_id` UUIDs and human-readable names as stored in Sift
+// (not Keycloak SCIM ids). Older stored runs may have empty ids with names only.
+message ExternalSyncRunDiff {
+  repeated ExternalSyncUserRef users_activated = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated ExternalSyncUserRef users_deactivated = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated ExternalSyncGroupRef groups_created = 3 [(google.api.field_behavior) = REQUIRED];
+  repeated ExternalSyncGroupRef groups_deleted = 4 [(google.api.field_behavior) = REQUIRED];
+  repeated ExternalSyncMembershipChange users_added_to_groups = 5 [(google.api.field_behavior) = REQUIRED];
+  repeated ExternalSyncMembershipChange users_removed_from_groups = 6 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ExternalSyncRunSummary {
+  string external_sync_run_id = 1 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp synced_at = 2 [(google.api.field_behavior) = REQUIRED];
+  ExternalSyncRunTriggerType trigger_type = 3 [(google.api.field_behavior) = REQUIRED];
+  optional string triggered_by_user_id = 4 [(google.api.field_behavior) = OPTIONAL];
+  uint32 users_activated_count = 5 [(google.api.field_behavior) = REQUIRED];
+  uint32 users_deactivated_count = 6 [(google.api.field_behavior) = REQUIRED];
+  uint32 groups_created_count = 7 [(google.api.field_behavior) = REQUIRED];
+  uint32 groups_deleted_count = 8 [(google.api.field_behavior) = REQUIRED];
+  uint32 users_added_to_groups_count = 9 [(google.api.field_behavior) = REQUIRED];
+  uint32 users_removed_from_groups_count = 10 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ExternalSyncRun {
+  string external_sync_run_id = 1 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp synced_at = 2 [(google.api.field_behavior) = REQUIRED];
+  ExternalSyncRunTriggerType trigger_type = 3 [(google.api.field_behavior) = REQUIRED];
+  optional string triggered_by_user_id = 4 [(google.api.field_behavior) = OPTIONAL];
+  ExternalSyncRunDiff diff = 5 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListExternalSyncRunsRequest {
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListExternalSyncRunsResponse {
+  repeated ExternalSyncRunSummary external_sync_run_summaries = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GetExternalSyncRunRequest {
+  string external_sync_run_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetExternalSyncRunResponse {
+  ExternalSyncRun external_sync_run = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetIsOrgExternallyProvisionedRequest {}
+
+message GetIsOrgExternallyProvisionedResponse {
+  bool is_externally_provisioned = 1 [(google.api.field_behavior) = REQUIRED];
 }

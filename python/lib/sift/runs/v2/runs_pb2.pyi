@@ -11,6 +11,7 @@ import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.common.v1.filter_field_pb2
 import sift.metadata.v1.metadata_pb2
 import typing
 
@@ -539,3 +540,69 @@ class StopRunResponse(google.protobuf.message.Message):
     ) -> None: ...
 
 global___StopRunResponse = StopRunResponse
+
+@typing.final
+class GetFilterFieldsRequest(google.protobuf.message.Message):
+    """The request for a call to `RunService_GetFilterFields`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___GetFilterFieldsRequest = GetFilterFieldsRequest
+
+@typing.final
+class GetFilterFieldsResponse(google.protobuf.message.Message):
+    """The response of a call to `RunService_GetFilterFields`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    FILTER_FIELDS_FIELD_NUMBER: builtins.int
+    @property
+    def filter_fields(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.v1.filter_field_pb2.FilterField]: ...
+    def __init__(
+        self,
+        *,
+        filter_fields: collections.abc.Iterable[sift.common.v1.filter_field_pb2.FilterField] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter_fields", b"filter_fields"]) -> None: ...
+
+global___GetFilterFieldsResponse = GetFilterFieldsResponse
+
+@typing.final
+class ValidateRunFilterRequest(google.protobuf.message.Message):
+    """The request for a call to `RunService_ValidateRunFilter`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    FILTER_FIELD_NUMBER: builtins.int
+    filter: builtins.str
+    """The CEL filter expression to validate."""
+    def __init__(
+        self,
+        *,
+        filter: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter"]) -> None: ...
+
+global___ValidateRunFilterRequest = ValidateRunFilterRequest
+
+@typing.final
+class ValidateRunFilterResponse(google.protobuf.message.Message):
+    """The response of a call to `RunService_ValidateRunFilter`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ERROR_MESSAGE_FIELD_NUMBER: builtins.int
+    error_message: builtins.str
+    """Empty string if the filter is valid; otherwise contains the validation error message."""
+    def __init__(
+        self,
+        *,
+        error_message: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["error_message", b"error_message"]) -> None: ...
+
+global___ValidateRunFilterResponse = ValidateRunFilterResponse

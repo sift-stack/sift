@@ -84,7 +84,11 @@ class Report(google.protobuf.message.Message):
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
-    def summaries(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportRuleSummary]: ...
+    def summaries(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportRuleSummary]:
+        """One entry per rule line on this report. Sort by `display_order` ascending for the canonical evaluation / display sequence
+        (clients may still group by status for UI). `display_order` is set when the report is created from a template or from rules.
+        """
+
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTag]: ...
     @property
@@ -143,6 +147,7 @@ class ReportRuleSummary(google.protobuf.message.Message):
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     ASSET_ID_FIELD_NUMBER: builtins.int
     DELETED_DATE_FIELD_NUMBER: builtins.int
+    DISPLAY_ORDER_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_client_key: builtins.str
     rule_version_id: builtins.str
@@ -153,6 +158,10 @@ class ReportRuleSummary(google.protobuf.message.Message):
     num_passed: builtins.int
     status: global___ReportRuleStatus.ValueType
     asset_id: builtins.str
+    display_order: builtins.int
+    """Zero-based position of this rule line on the report. Copied from the report template rule's `display_order`, or from the
+    position of `rule_id` in `CreateReportRequestRuleIds.rule_ids` when creating from explicit rule IDs. Lower values run first.
+    """
     @property
     def status_details(self) -> global___ReportRuleStatusDetails: ...
     @property
@@ -178,9 +187,10 @@ class ReportRuleSummary(google.protobuf.message.Message):
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         asset_id: builtins.str = ...,
         deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        display_order: builtins.int = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "status_details", b"status_details"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "display_order", b"display_order", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
 
 global___ReportRuleSummary = ReportRuleSummary
 
@@ -414,7 +424,9 @@ global___CreateReportResponse = CreateReportResponse
 
 @typing.final
 class CreateReportFromReportTemplateRequest(google.protobuf.message.Message):
-    """Deprecated - use RuleEvaluationService instead."""
+    """Deprecated - use RuleEvaluationService instead.
+    Report rule lines use each template rule's `display_order` from `ReportTemplateRule` at creation time.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -431,7 +443,9 @@ global___CreateReportFromReportTemplateRequest = CreateReportFromReportTemplateR
 
 @typing.final
 class CreateReportFromRulesRequest(google.protobuf.message.Message):
-    """Deprecated - use RuleEvaluationService instead."""
+    """Deprecated - use RuleEvaluationService instead.
+    How rules are ordered on the created report depends on `rule_identifiers`: list order for `rule_ids`, or server resolution order for `rule_client_keys`.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -440,6 +454,7 @@ class CreateReportFromRulesRequest(google.protobuf.message.Message):
     TAG_NAMES_FIELD_NUMBER: builtins.int
     RULE_IDS_FIELD_NUMBER: builtins.int
     RULE_CLIENT_KEYS_FIELD_NUMBER: builtins.int
+    RULE_VERSION_IDS_FIELD_NUMBER: builtins.int
     name: builtins.str
     description: builtins.str
     @property
@@ -448,6 +463,8 @@ class CreateReportFromRulesRequest(google.protobuf.message.Message):
     def rule_ids(self) -> global___CreateReportRequestRuleIds: ...
     @property
     def rule_client_keys(self) -> global___CreateReportRequestClientKeys: ...
+    @property
+    def rule_version_ids(self) -> global___CreateReportRequestRuleVersionIds: ...
     def __init__(
         self,
         *,
@@ -456,19 +473,22 @@ class CreateReportFromRulesRequest(google.protobuf.message.Message):
         tag_names: collections.abc.Iterable[builtins.str] | None = ...,
         rule_ids: global___CreateReportRequestRuleIds | None = ...,
         rule_client_keys: global___CreateReportRequestClientKeys | None = ...,
+        rule_version_ids: global___CreateReportRequestRuleVersionIds | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_description", b"_description", "description", b"description", "rule_client_keys", b"rule_client_keys", "rule_identifiers", b"rule_identifiers", "rule_ids", b"rule_ids"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_description", b"_description", "description", b"description", "name", b"name", "rule_client_keys", b"rule_client_keys", "rule_identifiers", b"rule_identifiers", "rule_ids", b"rule_ids", "tag_names", b"tag_names"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_description", b"_description", "description", b"description", "rule_client_keys", b"rule_client_keys", "rule_identifiers", b"rule_identifiers", "rule_ids", b"rule_ids", "rule_version_ids", b"rule_version_ids"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_description", b"_description", "description", b"description", "name", b"name", "rule_client_keys", b"rule_client_keys", "rule_identifiers", b"rule_identifiers", "rule_ids", b"rule_ids", "rule_version_ids", b"rule_version_ids", "tag_names", b"tag_names"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["rule_identifiers", b"rule_identifiers"]) -> typing.Literal["rule_ids", "rule_client_keys"] | None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["rule_identifiers", b"rule_identifiers"]) -> typing.Literal["rule_ids", "rule_client_keys", "rule_version_ids"] | None: ...
 
 global___CreateReportFromRulesRequest = CreateReportFromRulesRequest
 
 @typing.final
 class CreateReportRequestRuleIds(google.protobuf.message.Message):
-    """Deprecated - use RuleEvaluationService instead."""
+    """Deprecated - use RuleEvaluationService instead.
+    The order of `rule_ids` is the report rule order: first ID is `display_order` 0, second is 1, etc., on the created report.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -486,7 +506,9 @@ global___CreateReportRequestRuleIds = CreateReportRequestRuleIds
 
 @typing.final
 class CreateReportRequestClientKeys(google.protobuf.message.Message):
-    """Deprecated - use RuleEvaluationService instead."""
+    """Deprecated - use RuleEvaluationService instead.
+    Rule order on the created report follows the order in which the server resolves these keys to rules (not client-defined).
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -501,6 +523,24 @@ class CreateReportRequestClientKeys(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["rule_client_keys", b"rule_client_keys"]) -> None: ...
 
 global___CreateReportRequestClientKeys = CreateReportRequestClientKeys
+
+@typing.final
+class CreateReportRequestRuleVersionIds(google.protobuf.message.Message):
+    """Deprecated - use RuleEvaluationService instead."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_VERSION_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def rule_version_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        rule_version_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rule_version_ids", b"rule_version_ids"]) -> None: ...
+
+global___CreateReportRequestRuleVersionIds = CreateReportRequestRuleVersionIds
 
 @typing.final
 class GetReportRequest(google.protobuf.message.Message):

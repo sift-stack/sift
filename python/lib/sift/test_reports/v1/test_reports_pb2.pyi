@@ -194,6 +194,7 @@ class TestStep(google.protobuf.message.Message):
     START_TIME_FIELD_NUMBER: builtins.int
     END_TIME_FIELD_NUMBER: builtins.int
     ERROR_INFO_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     test_step_id: builtins.str
     """unique identifier for the step"""
     test_report_id: builtins.str
@@ -222,6 +223,10 @@ class TestStep(google.protobuf.message.Message):
     def error_info(self) -> global___ErrorInfo:
         """Error information of the test step"""
 
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values associated with this test step"""
+
     def __init__(
         self,
         *,
@@ -236,9 +241,10 @@ class TestStep(google.protobuf.message.Message):
         start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         end_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         error_info: global___ErrorInfo | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["end_time", b"end_time", "error_info", b"error_info", "start_time", b"start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["description", b"description", "end_time", b"end_time", "error_info", b"error_info", "name", b"name", "parent_step_id", b"parent_step_id", "start_time", b"start_time", "status", b"status", "step_path", b"step_path", "step_type", b"step_type", "test_report_id", b"test_report_id", "test_step_id", b"test_step_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["description", b"description", "end_time", b"end_time", "error_info", b"error_info", "metadata", b"metadata", "name", b"name", "parent_step_id", b"parent_step_id", "start_time", b"start_time", "status", b"status", "step_path", b"step_path", "step_type", b"step_type", "test_report_id", b"test_report_id", "test_step_id", b"test_step_id"]) -> None: ...
 
 global___TestStep = TestStep
 
@@ -277,6 +283,9 @@ class TestMeasurement(google.protobuf.message.Message):
     STRING_BOUNDS_FIELD_NUMBER: builtins.int
     PASSED_FIELD_NUMBER: builtins.int
     TIMESTAMP_FIELD_NUMBER: builtins.int
+    DESCRIPTION_FIELD_NUMBER: builtins.int
+    CHANNEL_NAMES_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     measurement_id: builtins.str
     measurement_type: global___TestMeasurementType.ValueType
     name: builtins.str
@@ -286,6 +295,8 @@ class TestMeasurement(google.protobuf.message.Message):
     string_value: builtins.str
     boolean_value: builtins.bool
     passed: builtins.bool
+    description: builtins.str
+    """Description or note about the measurement"""
     @property
     def unit(self) -> sift.unit.v2.unit_pb2.Unit: ...
     @property
@@ -294,6 +305,16 @@ class TestMeasurement(google.protobuf.message.Message):
     def string_bounds(self) -> global___StringBounds: ...
     @property
     def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def channel_names(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Names of Sift channels this measurement is associated with. Allows cross-plotting
+        in Explore using the Report's associated Run to resolve channels from names.
+        """
+
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values associated with this measurement"""
+
     def __init__(
         self,
         *,
@@ -310,9 +331,12 @@ class TestMeasurement(google.protobuf.message.Message):
         string_bounds: global___StringBounds | None = ...,
         passed: builtins.bool = ...,
         timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        description: builtins.str = ...,
+        channel_names: collections.abc.Iterable[builtins.str] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["boolean_value", b"boolean_value", "bounds", b"bounds", "numeric_bounds", b"numeric_bounds", "numeric_value", b"numeric_value", "string_bounds", b"string_bounds", "string_value", b"string_value", "timestamp", b"timestamp", "unit", b"unit", "value", b"value"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["boolean_value", b"boolean_value", "bounds", b"bounds", "measurement_id", b"measurement_id", "measurement_type", b"measurement_type", "name", b"name", "numeric_bounds", b"numeric_bounds", "numeric_value", b"numeric_value", "passed", b"passed", "string_bounds", b"string_bounds", "string_value", b"string_value", "test_report_id", b"test_report_id", "test_step_id", b"test_step_id", "timestamp", b"timestamp", "unit", b"unit", "value", b"value"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["boolean_value", b"boolean_value", "bounds", b"bounds", "channel_names", b"channel_names", "description", b"description", "measurement_id", b"measurement_id", "measurement_type", b"measurement_type", "metadata", b"metadata", "name", b"name", "numeric_bounds", b"numeric_bounds", "numeric_value", b"numeric_value", "passed", b"passed", "string_bounds", b"string_bounds", "string_value", b"string_value", "test_report_id", b"test_report_id", "test_step_id", b"test_step_id", "timestamp", b"timestamp", "unit", b"unit", "value", b"value"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["bounds", b"bounds"]) -> typing.Literal["numeric_bounds", "string_bounds"] | None: ...
     @typing.overload
@@ -748,7 +772,8 @@ class ListTestStepsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
     `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
-    `error_code`, `error_message`, `created_date`, and `modified_date`.
+    `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
+    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
     """
@@ -812,7 +837,9 @@ class UpdateTestStepRequest(google.protobuf.message.Message):
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The field mask specifying which fields to update. The fields available to be updated are
         `name`, `description`, `step_type`, `step_path`, `test_case`, `status`,
-        `start_time`, `end_time`, and `error_info`.
+        `start_time`, `end_time`, `error_info`, and `metadata`. When `metadata` is in the
+        mask, the supplied list replaces all existing metadata for the test step; sending an
+        empty or omitted list clears all metadata.
         """
 
     def __init__(
@@ -991,7 +1018,8 @@ class ListTestMeasurementsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `measurement_id`, `measurement_type`, `name`, `test_step_id`,
     `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`, `timestamp`,
-    `created_date`, and `modified_date`.
+    `created_date`, `modified_date`, and `metadata`.
+    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
     """
@@ -1050,7 +1078,8 @@ class CountTestStepsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
     `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
-    `error_code`, `error_message`, `created_date`, and `modified_date`.
+    `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
+    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
     """
@@ -1092,7 +1121,8 @@ class CountTestMeasurementsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `measurement_id`, `measurement_type`, `name`, `test_step_id`,
     `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`, `timestamp`,
-    `created_date`, and `modified_date`.
+    `created_date`, `modified_date`, and `metadata`.
+    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
     """
@@ -1139,7 +1169,9 @@ class UpdateTestMeasurementRequest(google.protobuf.message.Message):
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The field mask specifying which fields to update. The fields available to be updated are
         `name`, `measurement_type`, `numeric_value`, `string_value`, `boolean_value`, `unit`, `numeric_bounds`,
-        `string_bounds`, `passed`, and `timestamp`.
+        `string_bounds`, `passed`, `timestamp`, `description`, and `channel_names` and `metadata`. When `metadata` is in the
+        mask, the supplied list replaces all existing metadata for the measurement; sending
+        an empty or omitted list clears all metadata.
         """
 
     def __init__(

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.14.0"
+version = "0.15.0"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -26,6 +26,7 @@ keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
     "grpcio~=1.13",
     "PyYAML~=6.0",
+    "rapidyaml~=0.11",
     "pandas>=2.0,<3.1",
     "protobuf>=5.0",
     "pydantic~=2.10",
@@ -41,6 +42,8 @@ dependencies = [
     "types-protobuf>=5.0",
     "typing-extensions~=4.6",
     "types-requests~=2.25",
+    "googleapis-common-protos>=1.60",
+    "protoc-gen-openapiv2>=0.0.1",
 ]
 
 [project.urls]
@@ -50,7 +53,7 @@ Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.scripts]
-replay-test-result-log = "sift_client.scripts.replay_test_result_log:main"
+import-test-result-log = "sift_client.scripts.import_test_result_log:main"
 
 [project.optional-dependencies]
 # AUTO GENERATED EXTRAS — EDIT [tool.sift.extras] ONLY
@@ -62,7 +65,7 @@ all = [
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
     'rosbags~=0.0',
-    'sift-stream-bindings==0.2.2',
+    'sift-stream-bindings==0.3.0',
     'types-pyOpenSSL<24.0.0',
 ]
 build = [
@@ -103,7 +106,7 @@ dev-all = [
     'pytest==8.2.2',
     'rosbags~=0.0',
     'ruff~=0.12.10',
-    'sift-stream-bindings==0.2.2',
+    'sift-stream-bindings==0.3.0',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -156,7 +159,7 @@ docs-build = [
     'pytest==8.2.2',
     'rosbags~=0.0',
     'ruff~=0.12.10',
-    'sift-stream-bindings==0.2.2',
+    'sift-stream-bindings==0.3.0',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -179,10 +182,10 @@ rosbags = [
     'rosbags~=0.0',
 ]
 sift-stream = [
-    'sift-stream-bindings==0.2.2',
+    'sift-stream-bindings==0.3.0',
 ]
 sift-stream-bindings = [
-    'sift-stream-bindings==0.2.2',
+    'sift-stream-bindings==0.3.0',
 ]
 tdms = [
     'npTDMS~=1.9',
@@ -218,8 +221,8 @@ docs = ["mkdocs==1.6.1",
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
-sift-stream = ["sift-stream-bindings==0.2.2"]
-hdf5 = ["h5py~=3.11", "polars~=1.8"]
+sift-stream = ["sift-stream-bindings==0.3.0"]
+hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
 data-review = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
@@ -276,12 +279,14 @@ exclude = [
     "venv",
     "lib/sift",
     "lib/buf",
-    "lib/google",
-    "lib/protoc_gen_openapiv2",
 ]
 
 # No official typing stubs for Python gRPC libraries yet.
 # https://github.com/grpc/grpc/issues/29041
+[[tool.mypy.overrides]]
+module = "h5py"
+ignore_missing_imports = true
+
 [[tool.mypy.overrides]]
 module = "grpc_testing"
 ignore_missing_imports = true
@@ -314,6 +319,15 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "ruamel"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ryml"
+ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "nptdms"
 ignore_missing_imports = true
 ignore_errors = true
 
@@ -358,9 +372,7 @@ exclude = [
     "site-packages",
     "venv",
     "lib/sift",
-    "lib/google",
     "lib/buf",
-    "lib/protoc_gen_openapiv2",
 ]
 
 [tool.ruff.lint]
@@ -384,4 +396,3 @@ testpaths = [
 markers = [
     "integration: mark a test as an integration test (requires API)"
 ]
-

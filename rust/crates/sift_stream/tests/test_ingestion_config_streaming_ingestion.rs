@@ -1,66 +1,89 @@
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
+
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingest::v1::{
-        IngestWithConfigDataChannelValue,
-        ingest_with_config_data_channel_value::Type as RawChannelValue,
+        IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
+        IngestWithConfigDataStreamRequest, IngestWithConfigDataStreamResponse,
+        ingest_service_server::IngestService,
     },
     ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
 use sift_stream::{ChannelValue, Flow, IngestionConfigForm, SiftStreamBuilder, TimeValue};
-use std::sync::{
-    Arc,
-    atomic::{AtomicU32, Ordering},
-};
 use tokio_stream::StreamExt;
 use tracing_test::traced_test;
 
 mod common;
-use common::prelude::*;
 
-struct IngestServiceMock {
-    num_message_received: Arc<AtomicU32>,
+/// Flow name used by the sift_stream log streaming task.
+const LOG_FLOW: &str = "sift-stream-logs";
+
+/// Per-flow message counter shared between a test and `FlowCountingIngestService`.
+///
+/// Call [`FlowMessageCounts::get`] after the stream finishes to assert how many messages
+/// arrived for a given flow name (e.g. `"flow-0"`, `"sift-stream-logs"`).
+#[derive(Clone, Default)]
+pub struct FlowMessageCounts(Arc<Mutex<HashMap<String, u32>>>);
+
+impl FlowMessageCounts {
+    pub fn record(&self, flow: &str) {
+        *self.0.lock().unwrap().entry(flow.to_owned()).or_insert(0) += 1;
+    }
+
+    /// Returns the number of messages received for `flow`, or 0 if none were received.
+    pub fn get(&self, flow: &str) -> u32 {
+        self.0.lock().unwrap().get(flow).copied().unwrap_or(0)
+    }
 }
 
-#[async_trait]
-impl IngestService for IngestServiceMock {
+/// An `IngestService` implementation that counts received messages grouped by flow name.
+///
+/// Construct with [`FlowCountingIngestService::new`], which returns both the service and a
+/// [`FlowMessageCounts`] handle the test can hold onto for assertions.
+pub struct FlowCountingIngestService {
+    counts: FlowMessageCounts,
+}
+
+impl FlowCountingIngestService {
+    pub fn new() -> (Self, FlowMessageCounts) {
+        let counts = FlowMessageCounts::default();
+        (
+            Self {
+                counts: counts.clone(),
+            },
+            counts,
+        )
+    }
+}
+
+#[tonic::async_trait]
+impl IngestService for FlowCountingIngestService {
     async fn ingest_with_config_data_stream(
         &self,
-        request: Request<Streaming<IngestWithConfigDataStreamRequest>>,
-    ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
-        let mut data_stream = request.into_inner();
-
-        loop {
-            match data_stream.try_next().await {
-                Ok(Some(_msg)) => {
-                    self.num_message_received.fetch_add(1, Ordering::Relaxed);
-                }
-                // Client has ended the stream and is requesting a checkpoint
-                Ok(None) => {
-                    break;
-                }
-                Err(err) => return Err(err),
-            }
+        request: tonic::Request<tonic::Streaming<IngestWithConfigDataStreamRequest>>,
+    ) -> Result<tonic::Response<IngestWithConfigDataStreamResponse>, tonic::Status> {
+        let mut stream = request.into_inner();
+        while let Ok(Some(msg)) = stream.try_next().await {
+            self.counts.record(&msg.flow);
         }
-
-        Ok(Response::new(IngestWithConfigDataStreamResponse {}))
+        Ok(tonic::Response::new(IngestWithConfigDataStreamResponse {}))
     }
+
     async fn ingest_arbitrary_protobuf_data_stream(
         &self,
-        _request: Request<Streaming<IngestArbitraryProtobufDataStreamRequest>>,
-    ) -> Result<Response<IngestArbitraryProtobufDataStreamResponse>, Status> {
-        unimplemented!("not relevant to this test")
+        _request: tonic::Request<tonic::Streaming<IngestArbitraryProtobufDataStreamRequest>>,
+    ) -> Result<tonic::Response<IngestArbitraryProtobufDataStreamResponse>, tonic::Status> {
+        unimplemented!("not used in flow-counting tests")
     }
 }
 
 #[tokio::test]
 async fn test_sending_raw_ingest_request() {
-    let messages_received = Arc::new(AtomicU32::default());
-
-    let ingest_service = IngestServiceMock {
-        num_message_received: messages_received.clone(),
-    };
-
-    let (client, server) = common::start_test_ingest_server(ingest_service).await;
+    let (service, counts) = FlowCountingIngestService::new();
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let flows = vec![FlowConfig {
         name: "flow-0".to_string(),
@@ -77,18 +100,21 @@ async fn test_sending_raw_ingest_request() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
 
-    let num_messages = 100;
+    let num_messages = 100u32;
 
     let requests = (0..num_messages).map(|i| IngestWithConfigDataStreamRequest {
         ingestion_config_id: "ingestion-config-0".into(),
         flow: "flow-0".into(),
         timestamp: Some(pbjson_types::Timestamp::default()),
-        channel_values: vec![IngestWithConfigDataChannelValue {
-            r#type: Some(RawChannelValue::Double(i as f64)),
+        channel_values: vec![sift_rs::ingest::v1::IngestWithConfigDataChannelValue {
+            r#type: Some(
+                sift_rs::ingest::v1::ingest_with_config_data_channel_value::Type::Double(i as f64),
+            ),
         }],
         ..Default::default()
     });
@@ -101,8 +127,12 @@ async fn test_sending_raw_ingest_request() {
 
     assert_eq!(
         num_messages,
-        messages_received.load(Ordering::Relaxed),
-        "messages sent and received don't match",
+        counts.get("flow-0"),
+        "messages sent and received on flow-0 don't match",
+    );
+    assert!(
+        counts.get(LOG_FLOW) > 0,
+        "expected log events to be streamed to the log flow"
     );
     assert!(
         server.await.is_ok(),
@@ -112,13 +142,8 @@ async fn test_sending_raw_ingest_request() {
 
 #[tokio::test]
 async fn test_sending_flow() {
-    let messages_received = Arc::new(AtomicU32::default());
-
-    let ingest_service = IngestServiceMock {
-        num_message_received: messages_received.clone(),
-    };
-
-    let (client, server) = common::start_test_ingest_server(ingest_service).await;
+    let (service, counts) = FlowCountingIngestService::new();
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let flows = vec![FlowConfig {
         name: "flow-0".to_string(),
@@ -135,11 +160,12 @@ async fn test_sending_flow() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
 
-    let num_messages = 100;
+    let num_messages = 100u32;
 
     let messages = (0..num_messages).map(|i| {
         Flow::new(
@@ -159,8 +185,12 @@ async fn test_sending_flow() {
 
     assert_eq!(
         num_messages,
-        messages_received.load(Ordering::Relaxed),
-        "messages sent and received don't match",
+        counts.get("flow-0"),
+        "messages sent and received on flow-0 don't match",
+    );
+    assert!(
+        counts.get(LOG_FLOW) > 0,
+        "expected log events to be streamed to the log flow"
     );
     assert!(
         server.await.is_ok(),
@@ -171,13 +201,8 @@ async fn test_sending_flow() {
 #[tokio::test]
 #[traced_test]
 async fn test_sending_flow_not_in_flow_cache() {
-    let messages_received = Arc::new(AtomicU32::default());
-
-    let ingest_service = IngestServiceMock {
-        num_message_received: messages_received.clone(),
-    };
-
-    let (client, server) = common::start_test_ingest_server(ingest_service).await;
+    let (service, counts) = FlowCountingIngestService::new();
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let expected_flows = vec![FlowConfig {
         name: "flow-0".to_string(),
@@ -194,11 +219,12 @@ async fn test_sending_flow_not_in_flow_cache() {
             client_key: "test_client_key".to_string(),
             flows: expected_flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
 
-    let num_messages = 100;
+    let num_messages = 100u32;
 
     // First send some messages that have a channel not in the expected flow.
     let messages = (0..num_messages / 2).map(|i| {
@@ -241,10 +267,16 @@ async fn test_sending_flow_not_in_flow_cache() {
 
     assert!(sift_stream.finish().await.is_ok(), "finish call failed");
 
+    // Messages sent to unregistered channels/flows are not forwarded to Sift; only the
+    // messages that actually matched registered flows count toward the total.
+    let user_messages_received = counts.get("flow-0") + counts.get("unregistered_flow");
     assert_eq!(
-        num_messages,
-        messages_received.load(Ordering::Relaxed),
-        "messages sent and received don't match",
+        num_messages, user_messages_received,
+        "total user messages received don't match"
+    );
+    assert!(
+        counts.get(LOG_FLOW) > 0,
+        "expected log events to be streamed to the log flow"
     );
     assert!(
         server.await.is_ok(),

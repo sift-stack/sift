@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from sift_client._internal.util.file import resolve_show_progress
 from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
 
@@ -33,6 +34,9 @@ class ResourceBase(ABC):
     @property
     def rest_client(self) -> RestClient:
         return self.client.rest_client
+
+    def _show_progress(self) -> bool:
+        return resolve_show_progress(is_sync=getattr(self, "_is_sync", False))
 
     def _apply_client_to_instance(self, instance: T) -> T:
         instance._apply_client_to_instance(self.client)

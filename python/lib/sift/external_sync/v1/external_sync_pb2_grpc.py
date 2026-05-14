@@ -34,6 +34,21 @@ class ExternalSyncServiceStub(object):
                 request_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncTokensRequest.SerializeToString,
                 response_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncTokensResponse.FromString,
                 )
+        self.ListExternalSyncRuns = channel.unary_unary(
+                '/sift.external_sync.v1.ExternalSyncService/ListExternalSyncRuns',
+                request_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncRunsRequest.SerializeToString,
+                response_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncRunsResponse.FromString,
+                )
+        self.GetExternalSyncRun = channel.unary_unary(
+                '/sift.external_sync.v1.ExternalSyncService/GetExternalSyncRun',
+                request_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetExternalSyncRunRequest.SerializeToString,
+                response_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetExternalSyncRunResponse.FromString,
+                )
+        self.GetIsOrgExternallyProvisioned = channel.unary_unary(
+                '/sift.external_sync.v1.ExternalSyncService/GetIsOrgExternallyProvisioned',
+                request_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetIsOrgExternallyProvisionedRequest.SerializeToString,
+                response_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetIsOrgExternallyProvisionedResponse.FromString,
+                )
 
 
 class ExternalSyncServiceServicer(object):
@@ -63,6 +78,27 @@ class ExternalSyncServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListExternalSyncRuns(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetExternalSyncRun(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetIsOrgExternallyProvisioned(self, request, context):
+        """Organization admins (Admin role in the org) and platform admins may call. Returns whether the org
+        has IdP/SCIM external sync configured (users should be provisioned via the identity provider).
+        Organization is taken from request context.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ExternalSyncServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -85,6 +121,21 @@ def add_ExternalSyncServiceServicer_to_server(servicer, server):
                     servicer.ListExternalSyncTokens,
                     request_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncTokensRequest.FromString,
                     response_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncTokensResponse.SerializeToString,
+            ),
+            'ListExternalSyncRuns': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListExternalSyncRuns,
+                    request_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncRunsRequest.FromString,
+                    response_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncRunsResponse.SerializeToString,
+            ),
+            'GetExternalSyncRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetExternalSyncRun,
+                    request_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetExternalSyncRunRequest.FromString,
+                    response_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetExternalSyncRunResponse.SerializeToString,
+            ),
+            'GetIsOrgExternallyProvisioned': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetIsOrgExternallyProvisioned,
+                    request_deserializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetIsOrgExternallyProvisionedRequest.FromString,
+                    response_serializer=sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetIsOrgExternallyProvisionedResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -161,5 +212,56 @@ class ExternalSyncService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.external_sync.v1.ExternalSyncService/ListExternalSyncTokens',
             sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncTokensRequest.SerializeToString,
             sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncTokensResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListExternalSyncRuns(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.external_sync.v1.ExternalSyncService/ListExternalSyncRuns',
+            sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncRunsRequest.SerializeToString,
+            sift_dot_external__sync_dot_v1_dot_external__sync__pb2.ListExternalSyncRunsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetExternalSyncRun(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.external_sync.v1.ExternalSyncService/GetExternalSyncRun',
+            sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetExternalSyncRunRequest.SerializeToString,
+            sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetExternalSyncRunResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetIsOrgExternallyProvisioned(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.external_sync.v1.ExternalSyncService/GetIsOrgExternallyProvisioned',
+            sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetIsOrgExternallyProvisionedRequest.SerializeToString,
+            sift_dot_external__sync_dot_v1_dot_external__sync__pb2.GetIsOrgExternallyProvisionedResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

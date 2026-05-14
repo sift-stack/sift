@@ -104,6 +104,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
 
@@ -120,6 +121,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter file attachments.
             order_by: Field and direction to order results by. Note: Not supported by the backend, but it is here for API consistency.
             limit: Maximum number of file attachments to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of FileAttachment objects that match the filter criteria.
@@ -160,6 +163,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         file_attachments = await self._low_level_client.list_all_remote_files(
             query_filter=query_filter or None,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),  # type: ignore[arg-type]
         )
         return self._apply_client_to_instances(file_attachments)
 

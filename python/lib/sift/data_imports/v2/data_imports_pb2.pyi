@@ -83,6 +83,49 @@ DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW: DataTypeKey.ValueType  # 5
 DATA_TYPE_KEY_HDF5: DataTypeKey.ValueType  # 6
 global___DataTypeKey = DataTypeKey
 
+class _TdmsFallbackMethod:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _TdmsFallbackMethodEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_TdmsFallbackMethod.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    TDMS_FALLBACK_METHOD_UNSPECIFIED: _TdmsFallbackMethod.ValueType  # 0
+    TDMS_FALLBACK_METHOD_FAIL_ON_ERROR: _TdmsFallbackMethod.ValueType  # 1
+    """Fails the import if any specified channels have missing timing information."""
+    TDMS_FALLBACK_METHOD_IGNORE_ERROR: _TdmsFallbackMethod.ValueType  # 2
+    """Ignores channels without any timing information."""
+
+class TdmsFallbackMethod(_TdmsFallbackMethod, metaclass=_TdmsFallbackMethodEnumTypeWrapper):
+    """The fallback method tells the importer how to treat channels without
+    any timing information (i.e, waveform properties or time channels).
+    """
+
+TDMS_FALLBACK_METHOD_UNSPECIFIED: TdmsFallbackMethod.ValueType  # 0
+TDMS_FALLBACK_METHOD_FAIL_ON_ERROR: TdmsFallbackMethod.ValueType  # 1
+"""Fails the import if any specified channels have missing timing information."""
+TDMS_FALLBACK_METHOD_IGNORE_ERROR: TdmsFallbackMethod.ValueType  # 2
+"""Ignores channels without any timing information."""
+global___TdmsFallbackMethod = TdmsFallbackMethod
+
+class _TdmsComplexComponent:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _TdmsComplexComponentEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_TdmsComplexComponent.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    TDMS_COMPLEX_COMPONENT_UNSPECIFIED: _TdmsComplexComponent.ValueType  # 0
+    """Default is to select the real component."""
+    TDMS_COMPLEX_COMPONENT_REAL: _TdmsComplexComponent.ValueType  # 1
+    TDMS_COMPLEX_COMPONENT_IMAGINARY: _TdmsComplexComponent.ValueType  # 2
+
+class TdmsComplexComponent(_TdmsComplexComponent, metaclass=_TdmsComplexComponentEnumTypeWrapper): ...
+
+TDMS_COMPLEX_COMPONENT_UNSPECIFIED: TdmsComplexComponent.ValueType  # 0
+"""Default is to select the real component."""
+TDMS_COMPLEX_COMPONENT_REAL: TdmsComplexComponent.ValueType  # 1
+TDMS_COMPLEX_COMPONENT_IMAGINARY: TdmsComplexComponent.ValueType  # 2
+global___TdmsComplexComponent = TdmsComplexComponent
+
 class _ParquetComplexTypesImportMode:
     ValueType = typing.NewType("ValueType", builtins.int)
     V: typing_extensions.TypeAlias = ValueType
@@ -385,21 +428,25 @@ class DetectConfigResponse(google.protobuf.message.Message):
     CSV_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
+    TDMS_CONFIG_FIELD_NUMBER: builtins.int
     @property
     def csv_config(self) -> global___CsvConfig: ...
     @property
     def parquet_config(self) -> global___ParquetConfig: ...
     @property
     def hdf5_config(self) -> global___Hdf5Config: ...
+    @property
+    def tdms_config(self) -> global___TDMSConfig: ...
     def __init__(
         self,
         *,
         csv_config: global___CsvConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
         hdf5_config: global___Hdf5Config | None = ...,
+        tdms_config: global___TDMSConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> None: ...
 
 global___DetectConfigResponse = DetectConfigResponse
 
@@ -425,6 +472,55 @@ class Ch10Config(google.protobuf.message.Message):
 global___Ch10Config = Ch10Config
 
 @typing.final
+class TdmsDataConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    GROUP_NAME_FIELD_NUMBER: builtins.int
+    CHANNEL_NAME_FIELD_NUMBER: builtins.int
+    CHANNEL_CONFIG_FIELD_NUMBER: builtins.int
+    TIME_CHANNEL_NAME_FIELD_NUMBER: builtins.int
+    SCALED_FIELD_NUMBER: builtins.int
+    COMPLEX_COMPONENT_FIELD_NUMBER: builtins.int
+    group_name: builtins.str
+    """The TDMS group name associated with this channel."""
+    channel_name: builtins.str
+    """The TDMS channel name associated with this channel."""
+    time_channel_name: builtins.str
+    """The time channel associated with this channel. If this is empty
+    then we assume it's a waveform channel with waveform properties.
+    """
+    scaled: builtins.bool
+    """Whether to import scaled or raw values. Defaults to True to import scaled values."""
+    complex_component: global___TdmsComplexComponent.ValueType
+    """Whether to import the real or imaginary component.
+    Only applies to complex data types. Defaults to real.
+    """
+    @property
+    def channel_config(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig:
+        """The Sift channel config."""
+
+    def __init__(
+        self,
+        *,
+        group_name: builtins.str = ...,
+        channel_name: builtins.str = ...,
+        channel_config: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
+        time_channel_name: builtins.str | None = ...,
+        scaled: builtins.bool | None = ...,
+        complex_component: global___TdmsComplexComponent.ValueType | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_complex_component", b"_complex_component", "_scaled", b"_scaled", "_time_channel_name", b"_time_channel_name", "channel_config", b"channel_config", "complex_component", b"complex_component", "scaled", b"scaled", "time_channel_name", b"time_channel_name"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_complex_component", b"_complex_component", "_scaled", b"_scaled", "_time_channel_name", b"_time_channel_name", "channel_config", b"channel_config", "channel_name", b"channel_name", "complex_component", b"complex_component", "group_name", b"group_name", "scaled", b"scaled", "time_channel_name", b"time_channel_name"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_complex_component", b"_complex_component"]) -> typing.Literal["complex_component"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_scaled", b"_scaled"]) -> typing.Literal["scaled"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_time_channel_name", b"_time_channel_name"]) -> typing.Literal["time_channel_name"] | None: ...
+
+global___TdmsDataConfig = TdmsDataConfig
+
+@typing.final
 class TDMSConfig(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -433,6 +529,11 @@ class TDMSConfig(google.protobuf.message.Message):
     START_TIME_OVERRIDE_FIELD_NUMBER: builtins.int
     FILE_SIZE_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
+    DATA_FIELD_NUMBER: builtins.int
+    FALLBACK_METHOD_FIELD_NUMBER: builtins.int
+    TIME_FORMAT_FIELD_NUMBER: builtins.int
+    RELATIVE_START_TIME_FIELD_NUMBER: builtins.int
+    IMPORT_FILE_PROPERTIES_FIELD_NUMBER: builtins.int
     asset_name: builtins.str
     run_name: builtins.str
     file_size: builtins.int
@@ -441,11 +542,29 @@ class TDMSConfig(google.protobuf.message.Message):
     """
     run_id: builtins.str
     """The id of the run to add this data to. If set, `run_name` is ignored."""
+    fallback_method: global___TdmsFallbackMethod.ValueType
+    """The fallback method for channels with missing timing information."""
+    time_format: global___TimeFormat.ValueType
+    """Time format for time channels not using the TDMS timestamp type."""
+    import_file_properties: builtins.bool
+    """If true, will import TDMS file properties to the run as metadata.
+    Only valid if a run_name or run_id is set.
+    """
     @property
     def start_time_override(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """Override the wf_start_time metadata field for all channels.
         Useful if your waveform channels have wf_increment but no wf_start_time (Veristand is guilty of this).
         """
+
+    @property
+    def data(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___TdmsDataConfig]:
+        """If no data entries are present attempt to ingest everything relying
+        on the fallback method for any ambiguous channels.
+        """
+
+    @property
+    def relative_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Relative start time for channels using a non standard time channel."""
 
     def __init__(
         self,
@@ -455,10 +574,20 @@ class TDMSConfig(google.protobuf.message.Message):
         start_time_override: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         file_size: builtins.int | None = ...,
         run_id: builtins.str = ...,
+        data: collections.abc.Iterable[global___TdmsDataConfig] | None = ...,
+        fallback_method: global___TdmsFallbackMethod.ValueType = ...,
+        time_format: global___TimeFormat.ValueType | None = ...,
+        relative_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        import_file_properties: builtins.bool = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_file_size", b"_file_size", "file_size", b"file_size", "start_time_override", b"start_time_override"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_file_size", b"_file_size", "asset_name", b"asset_name", "file_size", b"file_size", "run_id", b"run_id", "run_name", b"run_name", "start_time_override", b"start_time_override"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_file_size", b"_file_size", "_relative_start_time", b"_relative_start_time", "_time_format", b"_time_format", "file_size", b"file_size", "relative_start_time", b"relative_start_time", "start_time_override", b"start_time_override", "time_format", b"time_format"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_file_size", b"_file_size", "_relative_start_time", b"_relative_start_time", "_time_format", b"_time_format", "asset_name", b"asset_name", "data", b"data", "fallback_method", b"fallback_method", "file_size", b"file_size", "import_file_properties", b"import_file_properties", "relative_start_time", b"relative_start_time", "run_id", b"run_id", "run_name", b"run_name", "start_time_override", b"start_time_override", "time_format", b"time_format"]) -> None: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_file_size", b"_file_size"]) -> typing.Literal["file_size"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_relative_start_time", b"_relative_start_time"]) -> typing.Literal["relative_start_time"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_time_format", b"_time_format"]) -> typing.Literal["time_format"] | None: ...
 
 global___TDMSConfig = TDMSConfig
 

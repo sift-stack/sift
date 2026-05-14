@@ -13,6 +13,7 @@ __all__ = [
     "CheckpointMetricsSnapshotPy",
     "DiskBackupPolicyPy",
     "DurationPy",
+    "FileBackupBuilderPy",
     "FlowBuilderPy",
     "FlowConfigPy",
     "FlowDescriptorBuilderPy",
@@ -22,9 +23,10 @@ __all__ = [
     "IngestWithConfigDataStreamRequestPy",
     "IngestWithConfigDataStreamRequestWrapperPy",
     "IngestionConfigFormPy",
+    "LiveOnlyBuilderPy",
+    "LiveWithBackupsBuilderPy",
     "MetadataPy",
     "MetadataValuePy",
-    "RecoveryStrategyPy",
     "RetryPolicyPy",
     "RollingFilePolicyPy",
     "RunFormPy",
@@ -32,6 +34,7 @@ __all__ = [
     "SiftStreamBuilderPy",
     "SiftStreamMetricsSnapshotPy",
     "SiftStreamPy",
+    "StreamConfigBuilderPy",
     "TimeValuePy",
     "ValuePy",
 ]
@@ -182,6 +185,48 @@ class DurationPy:
     def __new__(cls, secs:builtins.int, nanos:builtins.int) -> DurationPy: ...
 
 @typing.final
+class FileBackupBuilderPy:
+    r"""
+    Builder for [`FileBackup`](sift_stream::FileBackup) mode.
+    
+    Created by [`StreamConfigBuilderPy.file_backup()`]. Configure fields directly, then call
+    [`build()`][FileBackupBuilderPy::build] to finalize.
+    
+    `disk_backup_policy.backups_dir` **must** be set before calling `build()`.
+    
+    **Backpressure**: `send` awaits when the write channel is full. Tune
+    `backup_data_channel_capacity` to control when backpressure is applied.
+    """
+    disk_backup_policy: DiskBackupPolicyPy
+    r"""
+    Disk backup configuration. `backups_dir` must be set or `build()` will raise an error.
+    """
+    backup_data_channel_capacity: builtins.int
+    r"""
+    Capacity of the bounded write channel between the caller and the file-writer task.
+    
+    `send` awaits when this channel is full. Increase for high-throughput producers;
+    decrease to apply backpressure sooner and reduce memory usage.
+    """
+    control_channel_capacity: builtins.int
+    r"""
+    Capacity of the control channel used for internal signals (e.g. shutdown).
+    Most users do not need to change this.
+    """
+    metrics_streaming_interval: typing.Optional[DurationPy]
+    r"""
+    Interval at which stream metrics are pushed to Sift. Set to `None` to disable.
+    Defaults to 500 ms.
+    """
+    def build(self) -> typing.Any:
+        r"""
+        Finalizes configuration and returns a coroutine that resolves to a [`SiftStreamPy`]
+        using [`FileBackup`](sift_stream::FileBackup) transport.
+        
+        Returns an error if `disk_backup_policy.backups_dir` is not set.
+        """
+
+@typing.final
 class FlowBuilderPy:
     def __new__(cls, descriptor:FlowDescriptorPy) -> FlowBuilderPy: ...
     def attach_run_id(self, run_id:builtins.str) -> None:
@@ -312,30 +357,108 @@ class IngestionConfigFormPy:
     def __new__(cls, asset_name:builtins.str, client_key:builtins.str, flows:typing.Sequence[FlowConfigPy]) -> IngestionConfigFormPy: ...
 
 @typing.final
+class LiveOnlyBuilderPy:
+    r"""
+    Builder for [`LiveStreamingOnly`](sift_stream::LiveStreamingOnly) mode.
+    
+    Created by [`StreamConfigBuilderPy.live_only()`]. Configure fields directly, then call
+    [`build()`][LiveOnlyBuilderPy::build] to finalize.
+    
+    **Backpressure**: `send` awaits when the ingestion channel is full. Tune
+    `ingestion_data_channel_capacity` to control when backpressure is applied.
+    """
+    enable_compression_for_ingestion: builtins.bool
+    r"""
+    Whether gzip compression is enabled for gRPC ingestion. Defaults to `False`.
+    """
+    metrics_streaming_interval: typing.Optional[DurationPy]
+    r"""
+    Interval at which stream metrics are pushed to Sift. Set to `None` to disable.
+    Defaults to 500 ms.
+    """
+    ingestion_data_channel_capacity: builtins.int
+    r"""
+    Capacity of the bounded ingestion channel between the caller and the gRPC task.
+    
+    `send` awaits when this channel is full. Increase for high-throughput producers;
+    decrease to apply backpressure sooner and reduce memory usage.
+    """
+    control_channel_capacity: builtins.int
+    r"""
+    Capacity of the control channel used for internal signals (e.g. shutdown).
+    Most users do not need to change this.
+    """
+    def build(self) -> typing.Any:
+        r"""
+        Finalizes configuration and returns a coroutine that resolves to a [`SiftStreamPy`]
+        using [`LiveStreamingOnly`](sift_stream::LiveStreamingOnly) transport.
+        """
+
+@typing.final
+class LiveWithBackupsBuilderPy:
+    r"""
+    Builder for [`LiveStreamingWithBackups`](sift_stream::LiveStreamingWithBackups) mode.
+    
+    Created by [`StreamConfigBuilderPy.live_with_backups()`]. Configure fields directly, then
+    call [`build()`][LiveWithBackupsBuilderPy::build] to finalize.
+    
+    **Backpressure**: `send` awaits when the **backup channel** is full. The ingestion channel
+    uses force-send and never blocks — when full it evicts the oldest buffered message.
+    Tune `backup_data_channel_capacity` to control when backpressure is applied.
+    """
+    checkpoint_interval: DurationPy
+    r"""
+    How often a checkpoint is requested from Sift. Defaults to 60 s.
+    """
+    retry_policy: RetryPolicyPy
+    r"""
+    Exponential-backoff retry policy for transient stream errors. Defaults to
+    [`RetryPolicyPy::default`].
+    """
+    disk_backup_policy: DiskBackupPolicyPy
+    r"""
+    Disk backup configuration. Disk backups are enabled only when
+    `disk_backup_policy.backups_dir` is set. Defaults to no backups.
+    """
+    enable_compression_for_ingestion: builtins.bool
+    r"""
+    Whether gzip compression is enabled for gRPC ingestion. Defaults to `False`.
+    """
+    metrics_streaming_interval: typing.Optional[DurationPy]
+    r"""
+    Interval at which stream metrics are pushed to Sift. Set to `None` to disable.
+    Defaults to 500 ms.
+    """
+    ingestion_data_channel_capacity: builtins.int
+    r"""
+    Capacity of the ingestion channel between the backup manager and the gRPC task.
+    
+    This channel uses force-send: when full the oldest message is evicted (not the
+    caller). Smaller values increase eviction frequency under load.
+    """
+    backup_data_channel_capacity: builtins.int
+    r"""
+    Capacity of the backup channel between the caller and the backup manager task.
+    
+    `send` awaits when this channel is full. Increase for high-throughput producers;
+    decrease to apply backpressure sooner and reduce memory usage.
+    """
+    control_channel_capacity: builtins.int
+    r"""
+    Capacity of the control channel used for internal signals (e.g. shutdown,
+    checkpoint triggers). Most users do not need to change this.
+    """
+    def build(self) -> typing.Any:
+        r"""
+        Finalizes configuration and returns a coroutine that resolves to a [`SiftStreamPy`]
+        using [`LiveStreamingWithBackups`](sift_stream::LiveStreamingWithBackups) transport.
+        """
+
+@typing.final
 class MetadataPy:
     key: builtins.str
     value: MetadataValuePy
     def __new__(cls, key:builtins.str, value:MetadataValuePy) -> MetadataPy: ...
-
-@typing.final
-class RecoveryStrategyPy:
-    r"""
-    Python binding for [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
-    
-    This is a thin wrapper around the Rust `RecoveryStrategy` enum. For detailed documentation,
-    see [`RecoveryStrategy`](sift_stream::stream::builder::RecoveryStrategy).
-    
-    A recovery strategy defines how the stream handles errors and failures, including
-    retry policies and optional disk backups.
-    
-    Note: PyO3 doesn't support nested enums, so this is implemented as a struct wrapper.
-    """
-    @staticmethod
-    def retry_only(retry_policy:RetryPolicyPy) -> RecoveryStrategyPy: ...
-    @staticmethod
-    def retry_with_backups(retry_policy:RetryPolicyPy, disk_backup_policy:DiskBackupPolicyPy) -> RecoveryStrategyPy: ...
-    @staticmethod
-    def default() -> RecoveryStrategyPy: ...
 
 @typing.final
 class RetryPolicyPy:
@@ -391,26 +514,69 @@ class RunSelectorPy:
 @typing.final
 class SiftStreamBuilderPy:
     r"""
-    Python binding for [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
+    Entry point for constructing a [`SiftStreamPy`].
     
-    This is a thin wrapper around the Rust `SiftStreamBuilder` type. For detailed documentation,
-    see [`SiftStreamBuilder`](sift_stream::stream::builder::SiftStreamBuilder).
+    Two usage patterns are available:
     
-    The builder provides a fluent API for configuring and creating a [`SiftStreamPy`] instance
-    with various options including ingestion configs, retry policies, checkpoint intervals, and more.
+    **Quick path** — call [`build()`][SiftStreamBuilderPy::build] directly after setting
+    `ingestion_config`. This always produces a `LiveStreamingOnly` stream.
+    
+    **Full builder chain** — call [`ingestion_config()`][SiftStreamBuilderPy::ingestion_config]
+    to obtain a [`StreamConfigBuilderPy`], then select a mode (`.live_only()`,
+    `.live_with_backups()`, or `.file_backup()`) and call `.build()` on the resulting
+    mode builder. Use this path to access checkpointing, disk backups, or tunable
+    channel capacities.
     """
     uri: builtins.str
+    r"""
+    Sift gRPC API endpoint (e.g. `"app.siftstack.com:443"`).
+    """
     apikey: builtins.str
+    r"""
+    API key used to authenticate with Sift.
+    """
     enable_tls: builtins.bool
-    ingestion_config: typing.Optional[IngestionConfigFormPy]
-    recovery_strategy: typing.Optional[RecoveryStrategyPy]
-    checkpoint_interval: typing.Optional[DurationPy]
+    r"""
+    Whether TLS is enabled. Defaults to `True`. Set to `False` for local testing only.
+    """
+    ingestion_config_form: typing.Optional[IngestionConfigFormPy]
+    r"""
+    Ingestion config form. Must be set before calling [`build()`][SiftStreamBuilderPy::build].
+    """
     run: typing.Optional[RunFormPy]
+    r"""
+    Optional run to associate with the stream. Mutually exclusive with `run_id`;
+    if both are set, `run_id` takes precedence.
+    """
     run_id: typing.Optional[builtins.str]
+    r"""
+    Optional run ID to associate with the stream. Takes precedence over `run`.
+    """
     asset_tags: typing.Optional[builtins.list[builtins.str]]
+    r"""
+    Optional list of tags to apply to the asset.
+    """
     metadata: typing.Optional[builtins.list[MetadataPy]]
+    r"""
+    Optional metadata key-value pairs to apply to the asset.
+    """
     def __new__(cls, uri:builtins.str, apikey:builtins.str) -> SiftStreamBuilderPy: ...
-    def build(self) -> typing.Any: ...
+    def build(self) -> typing.Any:
+        r"""
+        Builds a [`SiftStreamPy`] using [`LiveStreamingOnly`](sift_stream::LiveStreamingOnly) mode.
+        
+        This is the quick path: `ingestion_config` must be set; all other fields are optional.
+        For other modes (checkpointing, disk backups, tunable capacities), use
+        [`ingestion_config()`][SiftStreamBuilderPy::ingestion_config_form] to advance to the full
+        builder chain.
+        
+        Returns a coroutine that resolves to a [`SiftStreamPy`].
+        """
+    def ingestion_config(self, config:IngestionConfigFormPy) -> StreamConfigBuilderPy:
+        r"""
+        Sets the ingestion config and advances to [`StreamConfigBuilderPy`] where shared options
+        (run, asset tags/metadata) and the streaming mode can be configured.
+        """
 
 @typing.final
 class SiftStreamMetricsSnapshotPy:
@@ -427,6 +593,7 @@ class SiftStreamMetricsSnapshotPy:
     cur_retry_count: builtins.int
     ingestion_channel_depth: builtins.int
     backup_channel_depth: builtins.int
+    grpc_status_counts: builtins.list[builtins.int]
     checkpoint: CheckpointMetricsSnapshotPy
     backups: BackupMetricsSnapshotPy
 
@@ -445,6 +612,7 @@ class SiftStreamPy:
     def batch_send(self, flows:typing.Any) -> typing.Any: ...
     def send_requests(self, requests:typing.Sequence[IngestWithConfigDataStreamRequestPy]) -> typing.Any: ...
     def try_send_requests(self, flows:typing.Any) -> None: ...
+    def try_send(self, flow:FlowPy) -> None: ...
     def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy: ...
     def add_new_flows(self, flow_configs:typing.Sequence[FlowConfigPy]) -> typing.Any: ...
     def get_flow_descriptor(self, flow_name:builtins.str) -> FlowDescriptorPy: ...
@@ -453,6 +621,53 @@ class SiftStreamPy:
     def detach_run(self) -> None: ...
     def run(self) -> typing.Optional[builtins.str]: ...
     def finish(self) -> typing.Any: ...
+
+@typing.final
+class StreamConfigBuilderPy:
+    r"""
+    Holds shared configuration (run, asset tags/metadata) and provides mode selection.
+    
+    Created by [`SiftStreamBuilderPy.ingestion_config()`]. Call one of the mode selectors
+    to advance to a mode-specific builder:
+    
+    - [`StreamConfigBuilderPy.live_only()`] — single channel, direct backpressure, retry; no
+      checkpointing or disk backups
+    - [`StreamConfigBuilderPy.live_with_backups()`] — dual channel with checkpointing, retry,
+      and disk backups
+    - [`StreamConfigBuilderPy.file_backup()`] — writes directly to disk, no network ingestion
+    """
+    run: typing.Optional[RunFormPy]
+    r"""
+    Optional run to associate with the stream. Mutually exclusive with `run_id`;
+    if both are set, `run_id` takes precedence.
+    """
+    run_id: typing.Optional[builtins.str]
+    r"""
+    Optional run ID to associate with the stream. Takes precedence over `run`.
+    """
+    asset_tags: typing.Optional[builtins.list[builtins.str]]
+    r"""
+    Optional list of tags to apply to the asset.
+    """
+    metadata: typing.Optional[builtins.list[MetadataPy]]
+    r"""
+    Optional metadata key-value pairs to apply to the asset.
+    """
+    def live_only(self) -> LiveOnlyBuilderPy:
+        r"""
+        Selects `LiveStreamingOnly` mode: a single bounded ingestion channel with direct
+        backpressure. No disk backups, no checkpointing, no retry policy.
+        """
+    def live_with_backups(self) -> LiveWithBackupsBuilderPy:
+        r"""
+        Selects `LiveStreamingWithBackups` mode: dual channel with checkpointing, retry policy,
+        and disk backups.
+        """
+    def file_backup(self) -> FileBackupBuilderPy:
+        r"""
+        Selects `FileBackup` mode: writes all data to disk files without network ingestion.
+        Requires `disk_backup_policy.backups_dir` to be set on the returned builder.
+        """
 
 @typing.final
 class TimeValuePy:

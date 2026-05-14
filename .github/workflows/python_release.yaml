@@ -102,16 +102,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          cd python
-          pip install -e .[docs-build]
-
       - name: Extract version and check if stable
         id: version
         run: |
@@ -150,30 +140,16 @@ jobs:
           echo "hidden=$HIDDEN" >> $GITHUB_OUTPUT
           echo "Final - Version: $VERSION, Alias: $ALIAS, Hidden: $HIDDEN"
 
-      - name: Fetch gh-pages branch
-        run: git fetch origin gh-pages --depth=1
+      - name: Deploy full version (hidden)
+        uses: ./.github/actions/python-mike-deploy
+        with:
+          version: ${{ steps.version.outputs.full_version }}
+          hidden: 'true'
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Deploy docs with mike
-        run: |
-          cd python
-          FULL_VERSION="${{ steps.version.outputs.full_version }}"
-          VERSION="${{ steps.version.outputs.version }}"
-          ALIAS="${{ steps.version.outputs.alias }}"
-          HIDDEN="${{ steps.version.outputs.hidden }}"
-          
-          # Always deploy the full version first, but hide it
-          echo "Deploying full version $FULL_VERSION (hidden)"
-          mike deploy "$FULL_VERSION" --push --prop-set hidden=true
-          
-          if [[ "$HIDDEN" == "false" ]]; then
-            # Stable release: deploy abbreviated version with latest alias, visible in dropdown
-            echo "Deploying stable release $VERSION with $ALIAS alias"
-            mike deploy "$VERSION" "$ALIAS" --push --update-aliases
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy abbreviated version with latest alias
+        if: steps.version.outputs.hidden == 'false'
+        uses: ./.github/actions/python-mike-deploy
+        with:
+          version: ${{ steps.version.outputs.version }}
+          aliases: ${{ steps.version.outputs.alias }}
+          hidden: 'false'

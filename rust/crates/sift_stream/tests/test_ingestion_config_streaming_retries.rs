@@ -1,12 +1,15 @@
 use chrono::Local;
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
+    ingest::v1::{
+        IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
+        IngestWithConfigDataStreamRequest, IngestWithConfigDataStreamResponse,
+    },
     ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
 use sift_stream::backup::DiskBackupPolicy;
 use sift_stream::{
-    ChannelValue, Flow, IngestionConfigForm, RecoveryStrategy, RetryPolicy, SiftStreamBuilder,
-    TimeValue,
+    ChannelValue, Flow, IngestionConfigForm, RetryPolicy, SiftStreamBuilder, TimeValue,
 };
 use std::{
     sync::{
@@ -90,15 +93,14 @@ async fn test_retries_succeed() {
             client_key: "test_client_key".to_string(),
             flows,
         })
-        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy: RetryPolicy {
-                max_attempts: 2,
-                initial_backoff: Duration::from_millis(1),
-                backoff_multiplier: 2,
-                max_backoff: Duration::from_millis(100),
-            },
-            disk_backup_policy,
+        .live_with_backups()
+        .retry_policy(RetryPolicy {
+            max_attempts: 2,
+            initial_backoff: Duration::from_millis(1),
+            backoff_multiplier: 2,
+            max_backoff: Duration::from_millis(100),
         })
+        .disk_backup_policy(disk_backup_policy)
         .metrics_streaming_interval(None)
         .build()
         .await
@@ -181,12 +183,13 @@ pub async fn test_retries_exhausted() {
             client_key: "test_client_key".to_string(),
             flows,
         })
-        .recovery_strategy(RecoveryStrategy::RetryOnly(RetryPolicy {
+        .live_with_backups()
+        .retry_policy(RetryPolicy {
             max_attempts: retry_attempts,
             initial_backoff: Duration::from_millis(1),
             backoff_multiplier: 2,
             max_backoff: Duration::from_millis(100),
-        }))
+        })
         .build()
         .await
         .expect("failed to build sift stream");

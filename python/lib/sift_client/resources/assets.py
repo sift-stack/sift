@@ -89,6 +89,7 @@ class AssetsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Asset]:
         """List assets with optional filtering.
 
@@ -111,6 +112,8 @@ class AssetsAPIAsync(ResourceBase):
             filter_query: Explicit CEL query to filter assets.
             order_by: Field and direction to order results by.
             limit: Maximum number of assets to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Asset objects that match the filter criteria.
@@ -142,6 +145,7 @@ class AssetsAPIAsync(ResourceBase):
             query_filter=filter_query or None,
             order_by=order_by,
             max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
         )
         return self._apply_client_to_instances(assets)
 

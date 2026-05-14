@@ -22,21 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          cd python
-          pip install -e .[docs-build]
 
       - name: Extract version
         id: version
@@ -56,21 +47,41 @@ jobs:
           echo "alias=$ALIAS" >> $GITHUB_OUTPUT
           echo "Dev deployment - Version: $VERSION, Alias: $ALIAS"
 
-      - name: Fetch gh-pages branch
-        run: git fetch origin gh-pages --depth=1
+      - name: Deploy docs
+        uses: ./.github/actions/python-mike-deploy
+        with:
+          version: ${{ steps.version.outputs.alias }}
+          hidden: 'true'
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Comment docs preview link on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- mike-docs-preview -->';
+            const alias = '${{ steps.version.outputs.alias }}';
+            const version = '${{ steps.version.outputs.version }}';
+            const url = `https://sift-stack.github.io/sift/python/${alias}/`;
+            const body = [
+              marker,
+              `**Python docs preview:** ${url}`,
+              ``,
+              `Deployed from \`${version}\`. The link may take up to a minute to become live as GitHub Pages propagates.`,
+            ].join('\n');
 
-      - name: Deploy docs with mike
-        run: |
-          cd python
-          # Deploy dev/PR docs with hidden property to hide from version dropdown
-          mike deploy ${{ steps.version.outputs.alias }} --push --update-aliases --prop-set hidden=true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
 
   cleanup_docs:
     if: github.event.action == 'closed'
@@ -83,36 +94,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          cd python
-          pip install -e .[docs-build]
-
-      - name: Fetch gh-pages branch
-        run: git fetch origin gh-pages --depth=1
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Delete PR docs
-        run: |
-          cd python
-          PR_ALIAS="pr-${{ github.event.number }}"
-          echo "Deleting docs for: $PR_ALIAS"
-          
-          # Check if the PR docs exist before trying to delete
-          if mike list | grep -q "$PR_ALIAS"; then
-            mike delete "$PR_ALIAS" --push
-            echo "Successfully deleted docs for $PR_ALIAS"
-          else
-            echo "No docs found for $PR_ALIAS, nothing to delete"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ./.github/actions/python-mike-delete
+        with:
+          version: pr-${{ github.event.number }}

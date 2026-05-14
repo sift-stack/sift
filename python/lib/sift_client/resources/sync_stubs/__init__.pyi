@@ -24,6 +24,10 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.data_import import (
+        DataTypeKey,
+        ImportConfig,
+    )
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
         FileAttachment,
@@ -132,6 +136,7 @@ class AssetsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Asset]:
         """List assets with optional filtering.
 
@@ -154,6 +159,8 @@ class AssetsAPI:
             filter_query: Explicit CEL query to filter assets.
             order_by: Field and direction to order results by.
             limit: Maximum number of assets to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Asset objects that match the filter criteria.
@@ -281,6 +288,7 @@ class CalculatedChannelsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[CalculatedChannel]:
         """List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
 
@@ -307,6 +315,8 @@ class CalculatedChannelsAPI:
             filter_query: Explicit CEL query to filter calculated channels.
             order_by: How to order the retrieved calculated channels.
             limit: How many calculated channels to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of CalculatedChannels that matches the filter.
@@ -335,6 +345,7 @@ class CalculatedChannelsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[CalculatedChannel]:
         """List versions of a calculated channel.
 
@@ -358,6 +369,8 @@ class CalculatedChannelsAPI:
             filter_query: Explicit CEL query to filter versions.
             order_by: How to order the retrieved versions.
             limit: Maximum number of versions to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of CalculatedChannel versions that match the filter criteria.
@@ -505,6 +518,7 @@ class ChannelsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Channel]:
         """List channels with optional filtering.
 
@@ -526,6 +540,8 @@ class ChannelsAPI:
             filter_query: Explicit CEL query to filter channels.
             order_by: Field and direction to order results by.
             limit: Maximum number of channels to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Channels that matches the filter criteria.
@@ -624,6 +640,169 @@ class DataExportAPI:
         """
         ...
 
+class DataImportAPI:
+    """Sync counterpart to `DataImportAPIAsync`.
+
+    High-level API for importing data into Sift.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the DataImportAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def detect_config(
+        self, file_path: str | Path, data_type: DataTypeKey | None = None
+    ) -> ImportConfig:
+        """Auto-detect import configuration from a file.
+
+        Reads a sample of the file, sends it to the server's DetectConfig
+        endpoint, and returns the detected configuration. The file format
+        is inferred from the file extension when ``data_type`` is not
+        provided.
+
+        CSV, Parquet, HDF5, and TDMS files are supported for
+        auto-detection.
+
+        For CSV files, the server scans the first two rows for an optional
+        JSON metadata row. Row 1 is checked first; row 2 is checked only
+        if row 1 is not valid metadata. A row qualifies as metadata when
+        every cell contains valid JSON that describes either a time column
+        or a data column. When present, ``first_data_row`` in the returned
+        config is set to the row after the metadata row.
+
+        Each data column cell is a JSON ``ChannelConfig``::
+
+            {"name": "speed", "units": "m/s", "dataType": "CHANNEL_DATA_TYPE_DOUBLE"}
+
+        The time column cell is a JSON ``CsvTimeColumn``::
+
+            {"format": "TIME_FORMAT_ABSOLUTE_RFC3339"}
+
+        Enum type definitions and bit field elements can also be specified
+        in the metadata row; they are applied server-side during import
+        but are not included in the returned config.
+
+        For file types with multiple layouts (e.g. Parquet), ``data_type``
+        must be specified explicitly.
+
+        Args:
+            file_path: Path to the file to analyze.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous.
+
+        Returns:
+            The detected import config.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file extension is unsupported or no
+                supported configuration could be detected.
+        """
+        ...
+
+    def get_run(self, data_import_id: str) -> Run:
+        """Get the run associated with a data import.
+
+        The ``data_import_id`` is available on the job returned by
+        ``import_from_path`` via ``job.job_details.data_import_id``.
+        For a more ergonomic approach, use ``job.get_import_run()``
+        which calls this method internally.
+
+        Args:
+            data_import_id: The ID of the data import.
+
+        Returns:
+            The Run created by or associated with the import.
+
+        Raises:
+            ValueError: If the data import has no associated run.
+        """
+        ...
+
+    def import_from_path(
+        self,
+        file_path: str | Path,
+        *,
+        asset: Asset | str | None = None,
+        config: ImportConfig | None = None,
+        data_type: DataTypeKey | None = None,
+        run: Run | str | None = None,
+        run_name: str | None = None,
+        show_progress: bool | None = None,
+    ) -> Job:
+        """Import data from a local file.
+
+        Creates a data import on the server, uploads the file, and returns
+        a ``Job`` handle after uploading the file. The import processes
+        server-side and typically completes shortly after upload. Use
+        ``job.wait_until_complete()`` only if you need to confirm
+        completion before proceeding.
+
+        When ``config`` is omitted the file format is auto-detected via
+        ``detect_config`` (CSV, Parquet, HDF5, and TDMS).
+        When ``asset`` is provided it overrides the config value;
+        otherwise the config's ``asset_name`` is used.
+        If neither ``run`` nor ``run_name`` is provided (and none is
+        set on the config), ``run_name`` defaults to the filename.
+
+        Examples:
+            Import a CSV file with auto-detected config:
+
+                job = client.data_imports.import_from_path(
+                    "data.csv",
+                    asset=my_asset,
+                )
+
+            Auto-detect config, inspect and patch before importing:
+
+                config = client.data_imports.detect_config("data.csv")
+
+                # Fix a column data type
+                config["temperature"].data_type = ChannelDataType.FLOAT
+
+                # Remove an unwanted column
+                config.data_columns = [
+                    dc for dc in config.data_columns if dc.name != "internal_id"
+                ]
+
+                job = client.data_imports.import_from_path(
+                    "data.csv",
+                    asset=my_asset,
+                    config=config,
+                )
+
+        Args:
+            file_path: Path to the local file to import.
+            asset: Asset object or asset name to import data into. Optional
+                when ``config`` already has ``asset_name`` set.
+            config: Import configuration describing the file format and column
+                mapping. When provided, ``data_type`` is ignored. If omitted,
+                the config is auto-detected via ``detect_config``. You can
+                call ``detect_config`` yourself to inspect and modify the
+                config before passing it here.
+            data_type: Explicit data type key. Required for formats like
+                Parquet where the extension alone is ambiguous. Only used
+                when ``config`` is not provided.
+            run: ``Run`` object or run ID string to import into an existing
+                run. Mutually exclusive with ``run_name``.
+            run_name: Name for a new run. Defaults to the filename if
+                neither ``run`` nor ``run_name`` is set.
+            show_progress: If True, display a progress spinner during upload.
+                Defaults to True for sync, False for async.
+
+        Returns:
+            A ``Job`` handle for the pending import.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+        """
+        ...
+
 class FileAttachmentsAPI:
     """Sync counterpart to `FileAttachmentsAPIAsync`.
 
@@ -698,6 +877,7 @@ class FileAttachmentsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
 
@@ -714,6 +894,8 @@ class FileAttachmentsAPI:
             filter_query: Explicit CEL query to filter file attachments.
             order_by: Field and direction to order results by. Note: Not supported by the backend, but it is here for API consistency.
             limit: Maximum number of file attachments to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of FileAttachment objects that match the filter criteria.
@@ -814,6 +996,7 @@ class JobsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Job]:
         """List jobs with optional filtering.
 
@@ -835,6 +1018,8 @@ class JobsAPI:
             filter_query: Explicit CEL query to filter jobs. If provided, other filter arguments are ignored.
             order_by: Field and direction to order results by.
             limit: Maximum number of jobs to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Job objects that match the filter criteria.
@@ -1099,6 +1284,7 @@ class ReportsAPI:
         modified_by: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         created_after: datetime | None = None,
@@ -1124,6 +1310,8 @@ class ReportsAPI:
             modified_by: The user ID of the last modifier of the reports.
             order_by: How to order the retrieved reports.
             limit: How many reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
             include_archived: Whether to include archived reports.
             filter_query: Explicit CEL query to filter reports.
             created_after: Filter reports created after this datetime.
@@ -1335,6 +1523,7 @@ class RulesAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Rule]:
         """List rules with optional filtering.
 
@@ -1359,6 +1548,8 @@ class RulesAPI:
             filter_query: Explicit CEL query to filter rules.
             order_by: Field and direction to order results by.
             limit: Maximum number of rules to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, defaults to `limit`.
 
         Returns:
             A list of Rules that matches the filter.
@@ -1374,6 +1565,7 @@ class RulesAPI:
         rule_version_ids: list[str] | None = None,
         filter_query: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[RuleVersion]:
         """List versions of a rule with optional filtering.
 
@@ -1384,6 +1576,8 @@ class RulesAPI:
             rule_version_ids: Limit to these rule version IDs.
             filter_query: Raw CEL filter (fields: rule_version_id, user_notes, change_message).
             limit: Maximum number of versions to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, defaults to `limit`.
 
         Returns:
             A list of RuleVersion objects matching the filters, ordered by newest versions first.
@@ -1523,6 +1717,7 @@ class RunsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Run]:
         """List runs with optional filtering.
 
@@ -1555,6 +1750,8 @@ class RunsAPI:
             filter_query: Explicit CEL query to filter runs.
             order_by: Field and direction to order results by.
             limit: Maximum number of runs to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Run objects that match the filter criteria.
@@ -1649,6 +1846,7 @@ class TagsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[Tag]:
         """List tags with optional filtering.
 
@@ -1661,6 +1859,8 @@ class TagsAPI:
             filter_query: Explicit CEL query to filter tags.
             order_by: How to order the retrieved tags.
             limit: How many tags to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of Tags that matches the filter.
@@ -1832,6 +2032,22 @@ class TestResultsAPI:
         """
         ...
 
+    def import_log_file(self, log_file: str | Path, incremental: bool = False) -> ReplayResult:
+        """Replay a log file by parsing each entry, simulating the results, then creating for real.
+
+        This method reads a log file created by the simulation logging, reconstructs
+        all the objects via simulation, and then creates them via the actual API.
+        IDs are mapped from simulated to real during the creation process.
+
+        Args:
+            log_file: Path to the log file to import.
+            incremental: (internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).
+
+        Returns:
+            A ReplayResult containing the created report, steps, and measurements.
+        """
+        ...
+
     def list_(
         self,
         *,
@@ -1857,6 +2073,7 @@ class TestResultsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestReport]:
         """List test reports with optional filtering.
 
@@ -1883,6 +2100,8 @@ class TestResultsAPI:
             filter_query: Custom filter to apply to the test reports.
             order_by: How to order the retrieved test reports. If used, this will override the other filters.
             limit: How many test reports to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestReports that matches the filter.
@@ -1904,6 +2123,7 @@ class TestResultsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestMeasurement]:
         """List test measurements with optional filtering.
 
@@ -1920,6 +2140,8 @@ class TestResultsAPI:
             filter_query: Explicit CEL query to filter test measurements.
             order_by: How to order the retrieved test measurements.
             limit: How many test measurements to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestMeasurements that matches the filter.
@@ -1941,6 +2163,7 @@ class TestResultsAPI:
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
     ) -> list[TestStep]:
         """List test steps with optional filtering.
 
@@ -1957,29 +2180,11 @@ class TestResultsAPI:
             filter_query: Explicit CEL query to filter test steps.
             order_by: How to order the retrieved test steps.
             limit: How many test steps to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
 
         Returns:
             A list of TestSteps that matches the filter.
-        """
-        ...
-
-    def replay_log_file(self, log_file: str | Path, *, incremental: bool = False) -> ReplayResult:
-        """Replay a log file, creating real API objects from the logged simulation data.
-
-        Two modes are available:
-
-        * **batch** (default): Parse the entire log, reconstruct objects via
-          simulation, then create them all via the API in one pass.
-        * **incremental**: Walk the log line-by-line, issuing the real API call
-          for each entry. The ``LogTracking`` header is updated after every
-          successful call so a subsequent invocation picks up where it left off.
-
-        Args:
-            log_file: Path to the log file to replay.
-            incremental: If True, use incremental mode.
-
-        Returns:
-            A ReplayResult containing the created report, steps, and measurements.
         """
         ...
 

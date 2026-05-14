@@ -13,6 +13,11 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Report service"}
 };
 
+// Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
+// RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
+// a run id directly on the request use inbound_policy_enforcement; RPCs that resolve the run via a
+// DB lookup (e.g. report_id -> report -> run_id) use manual_policy_enforcement and do the check in
+// the handler. See web-service/authorization/authorization.go for the helpers.
 service ReportService {
   // Retrieve a report.
   rpc GetReport(GetReportRequest) returns (GetReportResponse) {
@@ -88,6 +93,8 @@ message Report {
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 10 [(google.api.field_behavior) = REQUIRED];
+  // One entry per rule line on this report. Sort by `display_order` ascending for the canonical evaluation / display sequence
+  // (clients may still group by status for UI). `display_order` is set when the report is created from a template or from rules.
   repeated ReportRuleSummary summaries = 11 [(google.api.field_behavior) = REQUIRED];
   repeated ReportTag tags = 12 [(google.api.field_behavior) = REQUIRED];
   optional string rerun_from_report_id = 13 [(google.api.field_behavior) = OPTIONAL];
@@ -112,14 +119,14 @@ message ReportRuleSummary {
   google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
   string asset_id = 13 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp deleted_date = 14 [(google.api.field_behavior) = OPTIONAL];
+  // Zero-based position of this rule line on the report. Copied from the report template rule's `display_order`, or from the
+  // position of `rule_id` in `CreateReportRequestRuleIds.rule_ids` when creating from explicit rule IDs. Lower values run first.
+  uint32 display_order = 17 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ReportTag {
   string tag_name = 1 [(google.api.field_behavior) = REQUIRED];
 }
-
-
-
 
 enum ReportRuleStatus {
   REPORT_RULE_STATUS_UNSPECIFIED = 0;
@@ -182,11 +189,13 @@ message CreateReportResponse {
 }
 
 // Deprecated - use RuleEvaluationService instead.
+// Report rule lines use each template rule's `display_order` from `ReportTemplateRule` at creation time.
 message CreateReportFromReportTemplateRequest {
   string report_template_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // Deprecated - use RuleEvaluationService instead.
+// How rules are ordered on the created report depends on `rule_identifiers`: list order for `rule_ids`, or server resolution order for `rule_client_keys`.
 message CreateReportFromRulesRequest {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   optional string description = 2 [(google.api.field_behavior) = REQUIRED];
@@ -194,17 +203,25 @@ message CreateReportFromRulesRequest {
   oneof rule_identifiers {
     CreateReportRequestRuleIds rule_ids = 4 [(google.api.field_behavior) = OPTIONAL];
     CreateReportRequestClientKeys rule_client_keys = 5 [(google.api.field_behavior) = OPTIONAL];
+    CreateReportRequestRuleVersionIds rule_version_ids = 6 [(google.api.field_behavior) = OPTIONAL];
   }
 }
 
 // Deprecated - use RuleEvaluationService instead.
+// The order of `rule_ids` is the report rule order: first ID is `display_order` 0, second is 1, etc., on the created report.
 message CreateReportRequestRuleIds {
   repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // Deprecated - use RuleEvaluationService instead.
+// Rule order on the created report follows the order in which the server resolves these keys to rules (not client-defined).
 message CreateReportRequestClientKeys {
   repeated string rule_client_keys = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Deprecated - use RuleEvaluationService instead.
+message CreateReportRequestRuleVersionIds {
+  repeated string rule_version_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `ReportService_GetReport` to retrieve a report template.

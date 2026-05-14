@@ -96,6 +96,10 @@ func (m *ReportTemplateRule) CloneVT() *ReportTemplateRule {
 	r.RuleVersionId = m.RuleVersionId
 	r.RuleVersionNumber = m.RuleVersionNumber
 	r.ClientKey = m.ClientKey
+	if rhs := m.DisplayOrder; rhs != nil {
+		tmpVal := *rhs
+		r.DisplayOrder = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -485,6 +489,9 @@ func (this *ReportTemplateRule) EqualVT(that *ReportTemplateRule) bool {
 		return false
 	}
 	if this.ClientKey != that.ClientKey {
+		return false
+	}
+	if p, q := this.DisplayOrder, that.DisplayOrder; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1267,6 +1274,11 @@ func (m *ReportTemplateRule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.DisplayOrder != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.DisplayOrder))
+		i--
+		dAtA[i] = 0x28
 	}
 	if len(m.ClientKey) > 0 {
 		i -= len(m.ClientKey)
@@ -2126,6 +2138,11 @@ func (m *ReportTemplateRule) MarshalToSizedBufferVTStrict(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.DisplayOrder != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.DisplayOrder))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.ClientKey) > 0 {
 		i -= len(m.ClientKey)
 		copy(dAtA[i:], m.ClientKey)
@@ -2886,6 +2903,9 @@ func (m *ReportTemplateRule) SizeVT() (n int) {
 	l = len(m.ClientKey)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.DisplayOrder != nil {
+		n += 1 + protohelpers.SizeOfVarint(uint64(*m.DisplayOrder))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3801,6 +3821,26 @@ func (m *ReportTemplateRule) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ClientKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayOrder", wireType)
+			}
+			var v uint32
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisplayOrder = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5974,6 +6014,26 @@ func (m *ReportTemplateRule) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.ClientKey = stringValue
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayOrder", wireType)
+			}
+			var v uint32
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisplayOrder = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

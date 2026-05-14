@@ -1,6 +1,10 @@
 use chrono::Local;
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
+    ingest::v1::{
+        IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
+        IngestWithConfigDataStreamRequest, IngestWithConfigDataStreamResponse,
+    },
     ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
 use sift_stream::{ChannelValue, Flow, IngestionConfigForm, SiftStreamBuilder, TimeValue};
@@ -81,6 +85,7 @@ async fn test_sending_data() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .build()
         .await
         .expect("failed to build sift stream");
@@ -148,6 +153,7 @@ async fn test_checkpointing() {
             client_key: "test_client_key".to_string(),
             flows,
         })
+        .live_with_backups()
         .checkpoint_interval(checkpoint_interval)
         .build()
         .await

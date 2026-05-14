@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-import fcntl
-import json
 import logging
-import re
 import uuid
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -44,6 +40,13 @@ from sift.test_reports.v1.test_reports_pb2 import TestReport as TestReportProto
 from sift.test_reports.v1.test_reports_pb2 import TestStep as TestStepProto
 from sift.test_reports.v1.test_reports_pb2_grpc import TestReportServiceStub
 
+from sift_client._internal.low_level_wrappers._test_results_log import (
+    LogTracking,
+    ReplayResult,
+    _ReplayState,
+    iter_log_data_lines,
+    log_request_to_file,
+)
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.test_report import (
     TestMeasurement,
@@ -59,8 +62,6 @@ from sift_client.sift_types.test_report import (
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
-
     from sift_client.transport.grpc_transport import GrpcClient
 
 # Configure logging
@@ -80,609 +81,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client)
-
-    async def import_test_report(self, remote_file_id: str) -> TestReport:
-        """Import a test report from an already-uploaded file.
-
-        Args:
-            remote_file_id: The remote file ID containing the XML test data.
-
-        Returns:
-            The imported TestReport.
-
-        Raises:
-            ValueError: If remote_file_id is not provided.
-        """
-        if not remote_file_id:
-            raise ValueError("remote_file_id must be provided")
-
-        request = ImportTestReportRequest(remote_file_id=remote_file_id)
-        response = await self._grpc_client.get_stub(TestReportServiceStub).ImportTestReport(request)
-        grpc_test_report = cast("ImportTestReportResponse", response).test_report
-        return TestReport._from_proto(grpc_test_report)
-
-    async def create_test_report(
-        self,
-        *,
-        test_report: TestReportCreate | None = None,
-        request: CreateTestReportRequest | None = None,
-        log_file: str | Path | None = None,
-        simulate: bool = False,
-    ) -> TestReport:
-        """Create a new test report.
-
-        Args:
-            test_report: The test report to create. Mutually exclusive with ``request``.
-            request: A raw proto request. Mutually exclusive with ``test_report``.
-            log_file: If set, log the request to this file and return a simulated response.
-            simulate: If True, return a simulated response without making an API call.
-
-        Returns:
-            The created TestReport.
-        """
-        if request is None:
-            if test_report is None:
-                raise ValueError("Either test_report or request must be provided")
-            request = test_report.to_proto()
-
-        if simulate or log_file is not None:
-            simulated_proto = self.simulate_create_test_report_response(request)
-            if log_file is not None:
-                self._log_request_to_file(
-                    log_file,
-                    "CreateTestReport",
-                    request,
-                    response_id=simulated_proto.test_report_id,
-                )
-            return TestReport._from_proto(simulated_proto)
-
-        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestReport(request)
-        grpc_test_report = cast("CreateTestReportResponse", response).test_report
-        return TestReport._from_proto(grpc_test_report)
-
-    async def get_test_report(self, test_report_id: str) -> TestReport:
-        """Get a test report by test_report_id.
-
-        Args:
-            test_report_id: The test report ID to get.
-
-        Returns:
-            The TestReport.
-
-        Raises:
-            ValueError: If test_report_id is not provided.
-        """
-        if not test_report_id:
-            raise ValueError("test_report_id must be provided")
-
-        request = GetTestReportRequest(test_report_id=test_report_id)
-        response = await self._grpc_client.get_stub(TestReportServiceStub).GetTestReport(request)
-        grpc_test_report = cast("GetTestReportResponse", response).test_report
-        return TestReport._from_proto(grpc_test_report)
-
-    async def list_test_reports(
-        self,
-        *,
-        page_size: int | None = DEFAULT_PAGE_SIZE,
-        page_token: str | None = None,
-        query_filter: str | None = None,
-        order_by: str | None = None,
-    ) -> tuple[list[TestReport], str]:
-        """List test reports with optional filtering and pagination.
-
-        Args:
-            page_size: The maximum number of test reports to return.
-            page_token: A page token for pagination.
-            query_filter: A CEL filter string.
-            order_by: How to order the retrieved test reports.
-
-        Returns:
-            A tuple of (test_reports, next_page_token).
-        """
-        request_kwargs: dict[str, Any] = {}
-        if page_size is not None:
-            request_kwargs["page_size"] = page_size
-        if page_token is not None:
-            request_kwargs["page_token"] = page_token
-        if query_filter is not None:
-            request_kwargs["filter"] = query_filter
-        if order_by is not None:
-            request_kwargs["order_by"] = order_by
-
-        request = ListTestReportsRequest(**request_kwargs)
-        response = await self._grpc_client.get_stub(TestReportServiceStub).ListTestReports(request)
-        response = cast("ListTestReportsResponse", response)
-
-        test_reports = [TestReport._from_proto(tr) for tr in response.test_reports]
-        return test_reports, response.next_page_token
-
-    async def list_all_test_reports(
-        self,
-        *,
-        query_filter: str | None = None,
-        order_by: str | None = None,
-        page_size: int | None = DEFAULT_PAGE_SIZE,
-        max_results: int | None = None,
-    ) -> list[TestReport]:
-        """List all test reports with optional filtering.
-
-        Args:
-            query_filter: A CEL filter string.
-            order_by: How to order the retrieved test reports.
-            max_results: Maximum number of results to return.
-
-        Returns:
-            A list of all matching test reports.
-        """
-        return await self._handle_pagination(
-            self.list_test_reports,
-            kwargs={"query_filter": query_filter},
-            order_by=order_by,
-            max_results=max_results,
-            page_size=page_size,
-        )
-
-    async def update_test_report(
-        self,
-        update: TestReportUpdate | None = None,
-        *,
-        request: UpdateTestReportRequest | None = None,
-        log_file: str | Path | None = None,
-        simulate: bool = False,
-        existing: TestReport | None = None,
-    ) -> TestReport:
-        """Update an existing test report.
-
-        Args:
-            update: The updates to apply. Mutually exclusive with ``request``.
-            request: A raw proto request. Mutually exclusive with ``update``.
-            log_file: If set, log the request to this file and return a simulated response.
-            simulate: If True, return a simulated response without making an API call.
-            existing: The full existing TestReport for simulation merge. If not provided,
-                the simulated response will only contain the updated fields.
-
-        Returns:
-            The updated TestReport.
-        """
-        if request is None:
-            if update is None:
-                raise ValueError("Either update or request must be provided")
-            test_report_proto, field_mask = update.to_proto_with_mask()
-            request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
-
-        if simulate or log_file is not None:
-            if log_file is not None:
-                self._log_request_to_file(log_file, "UpdateTestReport", request)
-            return self.simulate_update_test_report_response(request, existing=existing)
-
-        response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestReport(request)
-        grpc_test_report = cast("UpdateTestReportResponse", response).test_report
-        return TestReport._from_proto(grpc_test_report)
-
-    async def delete_test_report(self, test_report_id: str) -> None:
-        """Delete a test report.
-
-        Args:
-            test_report_id: The ID of the test report to delete.
-
-        Raises:
-            ValueError: If test_report_id is not provided.
-        """
-        if not test_report_id:
-            raise ValueError("test_report_id must be provided")
-
-        request = DeleteTestReportRequest(test_report_id=test_report_id)
-        await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestReport(request)
-
-    # Test Steps
-
-    async def create_test_step(
-        self,
-        test_step: TestStepCreate | None = None,
-        *,
-        request: CreateTestStepRequest | None = None,
-        log_file: str | Path | None = None,
-        simulate: bool = False,
-    ) -> TestStep:
-        """Create a new test step.
-
-        Args:
-            test_step: The test step to create. Mutually exclusive with ``request``.
-            request: A raw proto request. Mutually exclusive with ``test_step``.
-            log_file: If set, log the request to this file and return a simulated response.
-            simulate: If True, return a simulated response without making an API call.
-
-        Returns:
-            The created TestStep.
-        """
-        if request is None:
-            if test_step is None:
-                raise ValueError("Either test_step or request must be provided")
-            request = CreateTestStepRequest(test_step=test_step.to_proto())
-
-        if simulate or log_file is not None:
-            simulated_proto = self.simulate_create_test_step_response(request)
-            if log_file is not None:
-                self._log_request_to_file(
-                    log_file,
-                    "CreateTestStep",
-                    request,
-                    response_id=simulated_proto.test_step_id,
-                )
-            return TestStep._from_proto(simulated_proto)
-
-        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestStep(request)
-        grpc_test_step = cast("CreateTestStepResponse", response).test_step
-        return TestStep._from_proto(grpc_test_step)
-
-    async def list_test_steps(
-        self,
-        *,
-        page_size: int | None = None,
-        page_token: str | None = None,
-        query_filter: str | None = None,
-        order_by: str | None = None,
-    ) -> tuple[list[TestStep], str]:
-        """List test steps with optional filtering and pagination.
-
-        Args:
-            page_size: The maximum number of test steps to return.
-            page_token: A page token for pagination.
-            query_filter: A CEL filter string.
-            order_by: How to order the retrieved test steps.
-
-        Returns:
-            A tuple of (test_steps, next_page_token).
-        """
-        request_kwargs: dict[str, Any] = {}
-        if page_size is not None:
-            request_kwargs["page_size"] = page_size
-        if page_token is not None:
-            request_kwargs["page_token"] = page_token
-        if query_filter is not None:
-            request_kwargs["filter"] = query_filter
-        if order_by is not None:
-            request_kwargs["order_by"] = order_by
-
-        request = ListTestStepsRequest(**request_kwargs)
-        response = await self._grpc_client.get_stub(TestReportServiceStub).ListTestSteps(request)
-        response = cast("ListTestStepsResponse", response)
-
-        test_steps = [TestStep._from_proto(ts) for ts in response.test_steps]
-        return test_steps, response.next_page_token
-
-    async def list_all_test_steps(
-        self,
-        *,
-        query_filter: str | None = None,
-        order_by: str | None = None,
-        max_results: int | None = None,
-        page_size: int | None = DEFAULT_PAGE_SIZE,
-    ) -> list[TestStep]:
-        """List all test steps with optional filtering.
-
-        Args:
-            query_filter: A CEL filter string.
-            order_by: How to order the retrieved test steps.
-            max_results: Maximum number of results to return.
-
-        Returns:
-            A list of all matching test steps.
-        """
-        return await self._handle_pagination(
-            self.list_test_steps,
-            kwargs={"query_filter": query_filter},
-            order_by=order_by,
-            max_results=max_results,
-            page_size=page_size,
-        )
-
-    async def update_test_step(
-        self,
-        update: TestStepUpdate | None = None,
-        *,
-        request: UpdateTestStepRequest | None = None,
-        log_file: str | Path | None = None,
-        simulate: bool = False,
-        existing: TestStep | None = None,
-    ) -> TestStep:
-        """Update an existing test step.
-
-        Args:
-            update: The updates to apply. Mutually exclusive with ``request``.
-            request: A raw proto request. Mutually exclusive with ``update``.
-            log_file: If set, log the request to this file and return a simulated response.
-            simulate: If True, return a simulated response without making an API call.
-            existing: The full existing TestStep for simulation merge. If not provided,
-                the simulated response will only contain the updated fields.
-
-        Returns:
-            The updated TestStep.
-        """
-        if request is None:
-            if update is None:
-                raise ValueError("Either update or request must be provided")
-            test_step_proto, field_mask = update.to_proto_with_mask()
-            has_error_info = test_step_proto.HasField("error_info")
-            if has_error_info:
-                field_mask.paths.append("error_info")
-            request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
-
-        if simulate or log_file is not None:
-            if log_file is not None:
-                self._log_request_to_file(log_file, "UpdateTestStep", request)
-            return self.simulate_update_test_step_response(request, existing=existing)
-
-        response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestStep(request)
-        grpc_test_step = cast("UpdateTestStepResponse", response).test_step
-        return TestStep._from_proto(grpc_test_step)
-
-    async def delete_test_step(self, test_step_id: str) -> None:
-        """Delete a test step.
-
-        Args:
-            test_step_id: The ID of the test step to delete.
-
-        Raises:
-            ValueError: If test_step_id is not provided.
-        """
-        if not test_step_id:
-            raise ValueError("test_step_id must be provided")
-
-        request = DeleteTestStepRequest(test_step_id=test_step_id)
-        await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestStep(request)
-
-    # Test Measurements
-
-    async def create_test_measurement(
-        self,
-        test_measurement: TestMeasurementCreate | None = None,
-        *,
-        request: CreateTestMeasurementRequest | None = None,
-        log_file: str | Path | None = None,
-        simulate: bool = False,
-    ) -> TestMeasurement:
-        """Create a new test measurement.
-
-        Args:
-            test_measurement: The test measurement to create. Mutually exclusive with ``request``.
-            request: A raw proto request. Mutually exclusive with ``test_measurement``.
-            log_file: If set, log the request to this file and return a simulated response.
-            simulate: If True, return a simulated response without making an API call.
-
-        Returns:
-            The created TestMeasurement.
-        """
-        if request is None:
-            if test_measurement is None:
-                raise ValueError("Either test_measurement or request must be provided")
-            request = CreateTestMeasurementRequest(test_measurement=test_measurement.to_proto())
-
-        if simulate or log_file is not None:
-            simulated_proto = self.simulate_create_test_measurement_response(request)
-            if log_file is not None:
-                self._log_request_to_file(
-                    log_file,
-                    "CreateTestMeasurement",
-                    request,
-                    response_id=simulated_proto.measurement_id,
-                )
-            return TestMeasurement._from_proto(simulated_proto)
-
-        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestMeasurement(
-            request
-        )
-        grpc_test_measurement = cast("CreateTestMeasurementResponse", response).test_measurement
-        return TestMeasurement._from_proto(grpc_test_measurement)
-
-    async def create_test_measurements(
-        self,
-        test_measurements: list[TestMeasurementCreate] | None = None,
-        *,
-        request: CreateTestMeasurementsRequest | None = None,
-        log_file: str | Path | None = None,
-        simulate: bool = False,
-    ) -> tuple[int, list[str]]:
-        """Create multiple test measurements in a single request.
-
-        Args:
-            test_measurements: The test measurements to create. Mutually exclusive with ``request``.
-            request: A raw proto request. Mutually exclusive with ``test_measurements``.
-            log_file: If set, log the request to this file and return a simulated response.
-            simulate: If True, return a simulated response without making an API call.
-
-        Returns:
-            A tuple of (measurements_created_count, measurement_ids).
-        """
-        if request is None:
-            if test_measurements is None:
-                raise ValueError("Either test_measurements or request must be provided")
-            measurement_protos = [tm.to_proto() for tm in test_measurements]
-            request = CreateTestMeasurementsRequest(test_measurements=measurement_protos)
-
-        if simulate or log_file is not None:
-            count, measurement_ids = self.simulate_create_test_measurements_response(request)
-            if log_file is not None:
-                self._log_request_to_file(
-                    log_file,
-                    "CreateTestMeasurements",
-                    request,
-                    response_id=",".join(measurement_ids),
-                )
-            return count, measurement_ids
-
-        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestMeasurements(
-            request
-        )
-        response = cast("CreateTestMeasurementsResponse", response)
-        return response.measurements_created_count, list(response.measurement_ids)
-
-    async def list_test_measurements(
-        self,
-        *,
-        page_size: int | None = DEFAULT_PAGE_SIZE,
-        page_token: str | None = None,
-        query_filter: str | None = None,
-        order_by: str | None = None,
-    ) -> tuple[list[TestMeasurement], str]:
-        """List test measurements with optional filtering and pagination.
-
-        Args:
-            page_size: The maximum number of test measurements to return.
-            page_token: A page token for pagination.
-            query_filter: A CEL filter string.
-            order_by: How to order the retrieved test measurements.
-
-        Returns:
-            A tuple of (test_measurements, next_page_token).
-        """
-        request_kwargs: dict[str, Any] = {}
-        if page_size is not None:
-            request_kwargs["page_size"] = page_size
-        if page_token is not None:
-            request_kwargs["page_token"] = page_token
-        if query_filter is not None:
-            request_kwargs["filter"] = query_filter
-        if order_by is not None:
-            request_kwargs["order_by"] = order_by
-
-        request = ListTestMeasurementsRequest(**request_kwargs)
-        response = await self._grpc_client.get_stub(TestReportServiceStub).ListTestMeasurements(
-            request
-        )
-        response = cast("ListTestMeasurementsResponse", response)
-
-        test_measurements = [TestMeasurement._from_proto(tm) for tm in response.test_measurements]
-        return test_measurements, response.next_page_token
-
-    async def list_all_test_measurements(
-        self,
-        *,
-        query_filter: str | None = None,
-        order_by: str | None = None,
-        max_results: int | None = None,
-        page_size: int | None = DEFAULT_PAGE_SIZE,
-    ) -> list[TestMeasurement]:
-        """List all test measurements with optional filtering.
-
-        Args:
-            query_filter: A CEL filter string.
-            order_by: How to order the retrieved test measurements.
-            max_results: Maximum number of results to return.
-
-        Returns:
-            A list of all matching test measurements.
-        """
-        return await self._handle_pagination(
-            self.list_test_measurements,
-            kwargs={"query_filter": query_filter},
-            order_by=order_by,
-            max_results=max_results,
-            page_size=page_size,
-        )
-
-    async def update_test_measurement(
-        self,
-        update: TestMeasurementUpdate | None = None,
-        *,
-        request: UpdateTestMeasurementRequest | None = None,
-        log_file: str | Path | None = None,
-        simulate: bool = False,
-        existing: TestMeasurement | None = None,
-    ) -> TestMeasurement:
-        """Update an existing test measurement.
-
-        Args:
-            update: The updates to apply. Mutually exclusive with ``request``.
-            request: A raw proto request. Mutually exclusive with ``update``.
-            log_file: If set, log the request to this file and return a simulated response.
-            simulate: If True, return a simulated response without making an API call.
-            existing: The full existing TestMeasurement for simulation merge. If not provided,
-                the simulated response will only contain the updated fields.
-
-        Returns:
-            The updated TestMeasurement.
-        """
-        if request is None:
-            if update is None:
-                raise ValueError("Either update or request must be provided")
-            test_measurement_proto, field_mask = update.to_proto_with_mask()
-            request = UpdateTestMeasurementRequest(
-                test_measurement=test_measurement_proto, update_mask=field_mask
-            )
-
-        if simulate or log_file is not None:
-            if log_file is not None:
-                self._log_request_to_file(log_file, "UpdateTestMeasurement", request)
-            return self.simulate_update_test_measurement_response(request, existing=existing)
-
-        response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestMeasurement(
-            request
-        )
-        grpc_test_measurement = cast("UpdateTestMeasurementResponse", response).test_measurement
-        return TestMeasurement._from_proto(grpc_test_measurement)
-
-    async def delete_test_measurement(self, measurement_id: str) -> None:
-        """Delete a test measurement.
-
-        Args:
-            measurement_id: The ID of the test measurement to delete.
-
-        Raises:
-            ValueError: If measurement_id is not provided.
-        """
-        if not measurement_id:
-            raise ValueError("measurement_id must be provided")
-
-        request = DeleteTestMeasurementRequest(measurement_id=measurement_id)
-        await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestMeasurement(request)
-
-    # ------------------------------------------------------------------
-    # Logging support methods
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _log_request_to_file(
-        log_file: str | Path,
-        request_type: str,
-        request: Any,
-        response_id: str | None = None,
-    ) -> None:
-        """Log a request to a file in JSON format.
-
-        Line 0 of the file is always a LogTracking header. Data lines start at line 1.
-
-        Args:
-            log_file: Path to the log file.
-            request_type: Type of request being logged.
-            request: The protobuf request to log.
-            response_id: Optional ID from the simulated response, embedded in the tag
-                for create operations so replay can map previously simulated IDs used by simulated updates.
-        """
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        if not log_path.exists() or log_path.stat().st_size == 0:
-            with open(log_path, "w") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
-                f.write(LogTracking().to_log_line())
-        tag = f"{request_type}:{response_id}" if response_id else request_type
-        with open(log_path, "a") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            request_dict = json_format.MessageToDict(request)
-            request_json = json.dumps(request_dict, separators=(",", ":"))
-            f.write(f"[{tag}] {request_json}\n")
-
-    @staticmethod
-    def _update_tracking(log_file: str | Path, tracking: LogTracking) -> None:
-        """Rewrite the LogTracking header (line 0) in place."""
-        log_path = Path(log_file)
-        with open(log_path, "r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            lines = f.readlines()
-            lines[0] = tracking.to_log_line()
-            f.seek(0)
-            f.writelines(lines)
-            f.truncate()
 
     @staticmethod
     def simulate_create_test_report_response(
@@ -922,13 +320,570 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 updates["string_expected_value"] = proto.string_bounds.expected_value
             else:
                 updates["string_expected_value"] = None
+        if "description" in update_mask_paths:
+            updates["description"] = proto.description if proto.description else None
+        if "metadata" in update_mask_paths:
+            from sift_client.util.metadata import metadata_proto_to_dict
+
+            updates["metadata"] = metadata_proto_to_dict(proto.metadata) if proto.metadata else None  # type: ignore[arg-type]
+        if "channel_names" in update_mask_paths:
+            updates["channel_names"] = list(proto.channel_names) if proto.channel_names else None
 
         return existing.model_copy(update=updates)
 
-    async def replay_log_file(
+    async def import_test_report(self, remote_file_id: str) -> TestReport:
+        """Import a test report from an already-uploaded file.
+
+        Args:
+            remote_file_id: The remote file ID containing the XML test data.
+
+        Returns:
+            The imported TestReport.
+
+        Raises:
+            ValueError: If remote_file_id is not provided.
+        """
+        if not remote_file_id:
+            raise ValueError("remote_file_id must be provided")
+
+        request = ImportTestReportRequest(remote_file_id=remote_file_id)
+        response = await self._grpc_client.get_stub(TestReportServiceStub).ImportTestReport(request)
+        grpc_test_report = cast("ImportTestReportResponse", response).test_report
+        return TestReport._from_proto(grpc_test_report)
+
+    async def create_test_report(
+        self,
+        *,
+        test_report: TestReportCreate | None = None,
+        log_file: str | Path | None = None,
+        request: CreateTestReportRequest | None = None,
+        simulate: bool = False,
+    ) -> TestReport:
+        """Create a new test report.
+
+        Args:
+            test_report: The test report to create.
+            log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_report).
+            simulate: If True, return a simulated response without making an API call.
+
+        Returns:
+            The created TestReport.
+        """
+        if request is None:
+            if test_report is None:
+                raise ValueError("Either test_report or request must be provided")
+            request = test_report.to_proto()
+
+        if log_file is not None or simulate:
+            simulated_proto = self.simulate_create_test_report_response(request)
+            if log_file is not None:
+                log_request_to_file(
+                    log_file,
+                    "CreateTestReport",
+                    request,
+                    response_id=simulated_proto.test_report_id,
+                )
+            return TestReport._from_proto(simulated_proto)
+
+        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestReport(request)
+        grpc_test_report = cast("CreateTestReportResponse", response).test_report
+        return TestReport._from_proto(grpc_test_report)
+
+    async def get_test_report(self, test_report_id: str) -> TestReport:
+        """Get a test report by test_report_id.
+
+        Args:
+            test_report_id: The test report ID to get.
+
+        Returns:
+            The TestReport.
+
+        Raises:
+            ValueError: If test_report_id is not provided.
+        """
+        if not test_report_id:
+            raise ValueError("test_report_id must be provided")
+
+        request = GetTestReportRequest(test_report_id=test_report_id)
+        response = await self._grpc_client.get_stub(TestReportServiceStub).GetTestReport(request)
+        grpc_test_report = cast("GetTestReportResponse", response).test_report
+        return TestReport._from_proto(grpc_test_report)
+
+    async def list_test_reports(
+        self,
+        *,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+        page_token: str | None = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+    ) -> tuple[list[TestReport], str]:
+        """List test reports with optional filtering and pagination.
+
+        Args:
+            page_size: The maximum number of test reports to return.
+            page_token: A page token for pagination.
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved test reports.
+
+        Returns:
+            A tuple of (test_reports, next_page_token).
+        """
+        request_kwargs: dict[str, Any] = {}
+        if page_size is not None:
+            request_kwargs["page_size"] = page_size
+        if page_token is not None:
+            request_kwargs["page_token"] = page_token
+        if query_filter is not None:
+            request_kwargs["filter"] = query_filter
+        if order_by is not None:
+            request_kwargs["order_by"] = order_by
+
+        request = ListTestReportsRequest(**request_kwargs)
+        response = await self._grpc_client.get_stub(TestReportServiceStub).ListTestReports(request)
+        response = cast("ListTestReportsResponse", response)
+
+        test_reports = [TestReport._from_proto(tr) for tr in response.test_reports]
+        return test_reports, response.next_page_token
+
+    async def list_all_test_reports(
+        self,
+        *,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+        max_results: int | None = None,
+    ) -> list[TestReport]:
+        """List all test reports with optional filtering.
+
+        Args:
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved test reports.
+            max_results: Maximum number of results to return.
+
+        Returns:
+            A list of all matching test reports.
+        """
+        return await self._handle_pagination(
+            self.list_test_reports,
+            kwargs={"query_filter": query_filter},
+            order_by=order_by,
+            max_results=max_results,
+            page_size=page_size,
+        )
+
+    async def update_test_report(
+        self,
+        update: TestReportUpdate | None = None,
+        log_file: str | Path | None = None,
+        existing: TestReport | None = None,
+        request: UpdateTestReportRequest | None = None,
+        simulate: bool = False,
+    ) -> TestReport:
+        """Update an existing test report.
+
+        Args:
+            update: The updates to apply.
+            log_file: If set, log the request to this file and return a simulated response.
+            existing: The full existing TestReport for simulation merge. If not provided,
+                the simulated response will only contain the updated fields.
+            request: Raw protobuf request (mutually exclusive with update).
+            simulate: If True, return a simulated response without making an API call.
+
+        Returns:
+            The updated TestReport.
+        """
+        if request is None:
+            if update is None:
+                raise ValueError("Either update or request must be provided")
+            test_report_proto, field_mask = update.to_proto_with_mask()
+            request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
+
+        if log_file is not None or simulate:
+            if log_file is not None:
+                log_request_to_file(log_file, "UpdateTestReport", request)
+            return self.simulate_update_test_report_response(request, existing=existing)
+
+        response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestReport(request)
+        grpc_test_report = cast("UpdateTestReportResponse", response).test_report
+        return TestReport._from_proto(grpc_test_report)
+
+    async def delete_test_report(self, test_report_id: str) -> None:
+        """Delete a test report.
+
+        Args:
+            test_report_id: The ID of the test report to delete.
+
+        Raises:
+            ValueError: If test_report_id is not provided.
+        """
+        if not test_report_id:
+            raise ValueError("test_report_id must be provided")
+
+        request = DeleteTestReportRequest(test_report_id=test_report_id)
+        await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestReport(request)
+
+    # Test Steps
+
+    async def create_test_step(
+        self,
+        test_step: TestStepCreate | None = None,
+        log_file: str | Path | None = None,
+        request: CreateTestStepRequest | None = None,
+        simulate: bool = False,
+    ) -> TestStep:
+        """Create a new test step.
+
+        Args:
+            test_step: The test step to create.
+            log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_step).
+            simulate: If True, return a simulated response without making an API call.
+
+        Returns:
+            The created TestStep.
+        """
+        if request is None:
+            if test_step is None:
+                raise ValueError("Either test_step or request must be provided")
+            request = CreateTestStepRequest(test_step=test_step.to_proto())
+
+        if log_file is not None or simulate:
+            simulated_proto = self.simulate_create_test_step_response(request)
+            if log_file is not None:
+                log_request_to_file(
+                    log_file,
+                    "CreateTestStep",
+                    request,
+                    response_id=simulated_proto.test_step_id,
+                )
+            return TestStep._from_proto(simulated_proto)
+
+        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestStep(request)
+        grpc_test_step = cast("CreateTestStepResponse", response).test_step
+        return TestStep._from_proto(grpc_test_step)
+
+    async def list_test_steps(
+        self,
+        *,
+        page_size: int | None = None,
+        page_token: str | None = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+    ) -> tuple[list[TestStep], str]:
+        """List test steps with optional filtering and pagination.
+
+        Args:
+            page_size: The maximum number of test steps to return.
+            page_token: A page token for pagination.
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved test steps.
+
+        Returns:
+            A tuple of (test_steps, next_page_token).
+        """
+        request_kwargs: dict[str, Any] = {}
+        if page_size is not None:
+            request_kwargs["page_size"] = page_size
+        if page_token is not None:
+            request_kwargs["page_token"] = page_token
+        if query_filter is not None:
+            request_kwargs["filter"] = query_filter
+        if order_by is not None:
+            request_kwargs["order_by"] = order_by
+
+        request = ListTestStepsRequest(**request_kwargs)
+        response = await self._grpc_client.get_stub(TestReportServiceStub).ListTestSteps(request)
+        response = cast("ListTestStepsResponse", response)
+
+        test_steps = [TestStep._from_proto(ts) for ts in response.test_steps]
+        return test_steps, response.next_page_token
+
+    async def list_all_test_steps(
+        self,
+        *,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        max_results: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+    ) -> list[TestStep]:
+        """List all test steps with optional filtering.
+
+        Args:
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved test steps.
+            max_results: Maximum number of results to return.
+
+        Returns:
+            A list of all matching test steps.
+        """
+        return await self._handle_pagination(
+            self.list_test_steps,
+            kwargs={"query_filter": query_filter},
+            order_by=order_by,
+            max_results=max_results,
+            page_size=page_size,
+        )
+
+    async def update_test_step(
+        self,
+        update: TestStepUpdate | None = None,
+        log_file: str | Path | None = None,
+        existing: TestStep | None = None,
+        request: UpdateTestStepRequest | None = None,
+        simulate: bool = False,
+    ) -> TestStep:
+        """Update an existing test step.
+
+        Args:
+            update: The updates to apply.
+            log_file: If set, log the request to this file and return a simulated response.
+            existing: The full existing TestStep for simulation merge. If not provided,
+                the simulated response will only contain the updated fields.
+            request: Raw protobuf request (mutually exclusive with update).
+            simulate: If True, return a simulated response without making an API call.
+
+        Returns:
+            The updated TestStep.
+        """
+        if request is None:
+            if update is None:
+                raise ValueError("Either update or request must be provided")
+            test_step_proto, field_mask = update.to_proto_with_mask()
+            has_error_info = test_step_proto.HasField("error_info")
+            if has_error_info:
+                field_mask.paths.append("error_info")
+            request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
+
+        if log_file is not None or simulate:
+            if log_file is not None:
+                log_request_to_file(log_file, "UpdateTestStep", request)
+            return self.simulate_update_test_step_response(request, existing=existing)
+
+        response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestStep(request)
+        grpc_test_step = cast("UpdateTestStepResponse", response).test_step
+        return TestStep._from_proto(grpc_test_step)
+
+    async def delete_test_step(self, test_step_id: str) -> None:
+        """Delete a test step.
+
+        Args:
+            test_step_id: The ID of the test step to delete.
+
+        Raises:
+            ValueError: If test_step_id is not provided.
+        """
+        if not test_step_id:
+            raise ValueError("test_step_id must be provided")
+
+        request = DeleteTestStepRequest(test_step_id=test_step_id)
+        await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestStep(request)
+
+    # Test Measurements
+
+    async def create_test_measurement(
+        self,
+        test_measurement: TestMeasurementCreate | None = None,
+        log_file: str | Path | None = None,
+        request: CreateTestMeasurementRequest | None = None,
+        simulate: bool = False,
+    ) -> TestMeasurement:
+        """Create a new test measurement.
+
+        Args:
+            test_measurement: The test measurement to create.
+            log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_measurement).
+            simulate: If True, return a simulated response without making an API call.
+
+        Returns:
+            The created TestMeasurement.
+        """
+        if request is None:
+            if test_measurement is None:
+                raise ValueError("Either test_measurement or request must be provided")
+            request = CreateTestMeasurementRequest(test_measurement=test_measurement.to_proto())
+
+        if log_file is not None or simulate:
+            simulated_proto = self.simulate_create_test_measurement_response(request)
+            if log_file is not None:
+                log_request_to_file(
+                    log_file,
+                    "CreateTestMeasurement",
+                    request,
+                    response_id=simulated_proto.measurement_id,
+                )
+            return TestMeasurement._from_proto(simulated_proto)
+
+        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestMeasurement(
+            request
+        )
+        grpc_test_measurement = cast("CreateTestMeasurementResponse", response).test_measurement
+        return TestMeasurement._from_proto(grpc_test_measurement)
+
+    async def create_test_measurements(
+        self,
+        test_measurements: list[TestMeasurementCreate] | None = None,
+        log_file: str | Path | None = None,
+        request: CreateTestMeasurementsRequest | None = None,
+        simulate: bool = False,
+    ) -> tuple[int, list[str]]:
+        """Create multiple test measurements in a single request.
+
+        Args:
+            test_measurements: The test measurements to create.
+            log_file: If set, log the request to this file and return a simulated response.
+            request: Raw protobuf request (mutually exclusive with test_measurements).
+            simulate: If True, return a simulated response without making an API call.
+
+        Returns:
+            A tuple of (measurements_created_count, measurement_ids).
+        """
+        if request is None:
+            if test_measurements is None:
+                raise ValueError("Either test_measurements or request must be provided")
+            measurement_protos = [tm.to_proto() for tm in test_measurements]
+            request = CreateTestMeasurementsRequest(test_measurements=measurement_protos)
+
+        if log_file is not None or simulate:
+            count, measurement_ids = self.simulate_create_test_measurements_response(request)
+            if log_file is not None:
+                log_request_to_file(
+                    log_file,
+                    "CreateTestMeasurements",
+                    request,
+                    response_id=",".join(measurement_ids),
+                )
+            return count, measurement_ids
+
+        response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestMeasurements(
+            request
+        )
+        response = cast("CreateTestMeasurementsResponse", response)
+        return response.measurements_created_count, list(response.measurement_ids)
+
+    async def list_test_measurements(
+        self,
+        *,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+        page_token: str | None = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+    ) -> tuple[list[TestMeasurement], str]:
+        """List test measurements with optional filtering and pagination.
+
+        Args:
+            page_size: The maximum number of test measurements to return.
+            page_token: A page token for pagination.
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved test measurements.
+
+        Returns:
+            A tuple of (test_measurements, next_page_token).
+        """
+        request_kwargs: dict[str, Any] = {}
+        if page_size is not None:
+            request_kwargs["page_size"] = page_size
+        if page_token is not None:
+            request_kwargs["page_token"] = page_token
+        if query_filter is not None:
+            request_kwargs["filter"] = query_filter
+        if order_by is not None:
+            request_kwargs["order_by"] = order_by
+
+        request = ListTestMeasurementsRequest(**request_kwargs)
+        response = await self._grpc_client.get_stub(TestReportServiceStub).ListTestMeasurements(
+            request
+        )
+        response = cast("ListTestMeasurementsResponse", response)
+
+        test_measurements = [TestMeasurement._from_proto(tm) for tm in response.test_measurements]
+        return test_measurements, response.next_page_token
+
+    async def list_all_test_measurements(
+        self,
+        *,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        max_results: int | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+    ) -> list[TestMeasurement]:
+        """List all test measurements with optional filtering.
+
+        Args:
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved test measurements.
+            max_results: Maximum number of results to return.
+
+        Returns:
+            A list of all matching test measurements.
+        """
+        return await self._handle_pagination(
+            self.list_test_measurements,
+            kwargs={"query_filter": query_filter},
+            order_by=order_by,
+            max_results=max_results,
+            page_size=page_size,
+        )
+
+    async def update_test_measurement(
+        self,
+        update: TestMeasurementUpdate | None = None,
+        log_file: str | Path | None = None,
+        existing: TestMeasurement | None = None,
+        request: UpdateTestMeasurementRequest | None = None,
+        simulate: bool = False,
+    ) -> TestMeasurement:
+        """Update an existing test measurement.
+
+        Args:
+            update: The updates to apply.
+            log_file: If set, log the request to this file and return a simulated response.
+            existing: The full existing TestMeasurement for simulation merge. If not provided,
+                the simulated response will only contain the updated fields.
+            request: Raw protobuf request (mutually exclusive with update).
+            simulate: If True, return a simulated response without making an API call.
+
+        Returns:
+            The updated TestMeasurement.
+        """
+        if request is None:
+            if update is None:
+                raise ValueError("Either update or request must be provided")
+            test_measurement_proto, field_mask = update.to_proto_with_mask()
+            request = UpdateTestMeasurementRequest(
+                test_measurement=test_measurement_proto, update_mask=field_mask
+            )
+
+        if log_file is not None or simulate:
+            if log_file is not None:
+                log_request_to_file(log_file, "UpdateTestMeasurement", request)
+            return self.simulate_update_test_measurement_response(request, existing=existing)
+
+        response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestMeasurement(
+            request
+        )
+        grpc_test_measurement = cast("UpdateTestMeasurementResponse", response).test_measurement
+        return TestMeasurement._from_proto(grpc_test_measurement)
+
+    async def delete_test_measurement(self, measurement_id: str) -> None:
+        """Delete a test measurement.
+
+        Args:
+            measurement_id: The ID of the test measurement to delete.
+
+        Raises:
+            ValueError: If measurement_id is not provided.
+        """
+        if not measurement_id:
+            raise ValueError("measurement_id must be provided")
+
+        request = DeleteTestMeasurementRequest(measurement_id=measurement_id)
+        await self._grpc_client.get_stub(TestReportServiceStub).DeleteTestMeasurement(request)
+
+    async def import_log_file(
         self,
         log_file: str | Path,
-        *,
         incremental: bool = False,
     ) -> ReplayResult:
         """Replay a log file, creating real API objects from the logged simulation data.
@@ -940,8 +895,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
           ``LogTracking`` header on line 0 is ignored.
         * **incremental** (``incremental=True``): Walk the log line-by-line,
           issuing the real API call for each entry as it is encountered.
-          ``LogTracking.last_uploaded_line`` is updated after every successful
-          call so that a subsequent invocation skips already-uploaded lines.
+          ``LogTracking.last_uploaded_line`` is advanced only after the call
+          succeeds, so a failure during a line causes the entire line to be
+          retried on the next invocation; already-uploaded lines are skipped.
 
         Args:
             log_file: Path to the log file to replay.
@@ -955,14 +911,15 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise FileNotFoundError(f"Log file not found: {log_file}")
 
         if incremental:
-            return await self._replay_log_file_incremental(log_path)
-        return await self._replay_log_file_batch(log_path)
+            return await self._incremental_import_log_file(log_path)
+
+        return await self._batch_import_log_file(log_path)
 
     # ------------------------------------------------------------------
     # Shared replay dispatch
     # ------------------------------------------------------------------
 
-    async def _replay_entry(
+    async def _import_entry(
         self,
         request_type: str,
         response_id: str | None,
@@ -979,121 +936,187 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *id_map* is updated so that subsequent entries can remap IDs that
         were generated during the original simulation run.
         """
+        handlers = {
+            "CreateTestReport": self._replay_create_report,
+            "CreateTestStep": self._replay_create_step,
+            "CreateTestMeasurement": self._replay_create_measurement,
+            "CreateTestMeasurements": self._replay_create_measurements,
+            "UpdateTestReport": self._replay_update_report,
+            "UpdateTestStep": self._replay_update_step,
+            "UpdateTestMeasurement": self._replay_update_measurement,
+        }
+        handler = handlers.get(request_type)
+        if handler is None:
+            return
+        await handler(json_str, response_id, simulate=simulate, id_map=id_map, state=state)
 
-        def _map_id(sid: str) -> str:
-            return id_map.get(sid, sid)
+    @staticmethod
+    def _map_id(id_map: dict[str, str], sid: str) -> str:
+        """Translate a simulated ID to its real counterpart, or return *sid* unchanged."""
+        return id_map.get(sid, sid)
 
-        if request_type == "CreateTestReport":
-            create_report_req = CreateTestReportRequest()
-            json_format.Parse(json_str, create_report_req)
-            state.report = await self.create_test_report(
-                request=create_report_req, simulate=simulate
-            )
-            if response_id:
-                id_map[response_id] = state.report._id_or_error
+    async def _replay_create_report(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestReportRequest()
+        json_format.Parse(json_str, request)
+        state.report = await self.create_test_report(request=request, simulate=simulate)
+        if response_id:
+            id_map[response_id] = state.report._id_or_error
 
-        elif request_type == "CreateTestStep":
-            create_step_req = CreateTestStepRequest()
-            json_format.Parse(json_str, create_step_req)
-            create_step_req.test_step.test_report_id = _map_id(
-                create_step_req.test_step.test_report_id
+    async def _replay_create_step(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestStepRequest()
+        json_format.Parse(json_str, request)
+        request.test_step.test_report_id = self._map_id(id_map, request.test_step.test_report_id)
+        if request.test_step.parent_step_id:
+            request.test_step.parent_step_id = self._map_id(
+                id_map, request.test_step.parent_step_id
             )
-            if create_step_req.test_step.parent_step_id:
-                create_step_req.test_step.parent_step_id = _map_id(
-                    create_step_req.test_step.parent_step_id
-                )
-            step = await self.create_test_step(request=create_step_req, simulate=simulate)
-            if response_id:
-                id_map[response_id] = step._id_or_error
-            state.steps_by_id[step._id_or_error] = step
-            state.steps_order.append(step._id_or_error)
+        step = await self.create_test_step(request=request, simulate=simulate)
+        if response_id:
+            id_map[response_id] = step._id_or_error
+        state.steps_by_id[step._id_or_error] = step
+        state.steps_order.append(step._id_or_error)
 
-        elif request_type == "CreateTestMeasurement":
-            create_meas_req = CreateTestMeasurementRequest()
-            json_format.Parse(json_str, create_meas_req)
-            create_meas_req.test_measurement.test_step_id = _map_id(
-                create_meas_req.test_measurement.test_step_id
-            )
-            measurement = await self.create_test_measurement(
-                request=create_meas_req, simulate=simulate
-            )
-            if response_id:
-                id_map[response_id] = measurement._id_or_error
-            state.measurements_by_id[measurement._id_or_error] = measurement
-            state.measurements_order.append(measurement._id_or_error)
+    async def _replay_create_measurement(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestMeasurementRequest()
+        json_format.Parse(json_str, request)
+        request.test_measurement.test_step_id = self._map_id(
+            id_map, request.test_measurement.test_step_id
+        )
+        measurement = await self.create_test_measurement(request=request, simulate=simulate)
+        if response_id:
+            id_map[response_id] = measurement._id_or_error
+        state.measurements_by_id[measurement._id_or_error] = measurement
+        state.measurements_order.append(measurement._id_or_error)
 
-        elif request_type == "CreateTestMeasurements":
-            create_batch_req = CreateTestMeasurementsRequest()
-            json_format.Parse(json_str, create_batch_req)
-            for tm in create_batch_req.test_measurements:
-                tm.test_step_id = _map_id(tm.test_step_id)
-            original_ids = response_id.split(",") if response_id else []
-            if simulate:
-                for i, tm_proto in enumerate(create_batch_req.test_measurements):
-                    single_req = CreateTestMeasurementRequest(test_measurement=tm_proto)
-                    meas = await self.create_test_measurement(request=single_req, simulate=True)
-                    if i < len(original_ids):
-                        id_map[original_ids[i]] = meas._id_or_error
-                    state.measurements_by_id[meas._id_or_error] = meas
-                    state.measurements_order.append(meas._id_or_error)
-            else:
-                _, real_ids = await self.create_test_measurements(request=create_batch_req)
-                for i, real_id in enumerate(real_ids):
-                    if i < len(original_ids):
-                        id_map[original_ids[i]] = real_id
+    async def _replay_create_measurements(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = CreateTestMeasurementsRequest()
+        json_format.Parse(json_str, request)
+        for tm in request.test_measurements:
+            tm.test_step_id = self._map_id(id_map, tm.test_step_id)
+        original_ids = response_id.split(",") if response_id else []
+        if simulate:
+            # Batch endpoint has no simulate path; fan out to per-measurement simulate calls.
+            for i, tm_proto in enumerate(request.test_measurements):
+                single_req = CreateTestMeasurementRequest(test_measurement=tm_proto)
+                meas = await self.create_test_measurement(request=single_req, simulate=True)
+                if i < len(original_ids):
+                    id_map[original_ids[i]] = meas._id_or_error
+                state.measurements_by_id[meas._id_or_error] = meas
+                state.measurements_order.append(meas._id_or_error)
+        else:
+            _, real_ids = await self.create_test_measurements(request=request)
+            for i, real_id in enumerate(real_ids):
+                if i < len(original_ids):
+                    id_map[original_ids[i]] = real_id
 
-        elif request_type == "UpdateTestReport":
-            if state.report is None:
-                raise ValueError("UpdateTestReport found before CreateTestReport")
-            update_report_req = UpdateTestReportRequest()
-            json_format.Parse(json_str, update_report_req)
-            update_report_req.test_report.test_report_id = _map_id(
-                update_report_req.test_report.test_report_id
-            )
-            state.report = await self.update_test_report(
-                request=update_report_req, simulate=simulate, existing=state.report
-            )
+    async def _replay_update_report(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        if state.report is None:
+            raise ValueError("UpdateTestReport found before CreateTestReport")
+        request = UpdateTestReportRequest()
+        json_format.Parse(json_str, request)
+        request.test_report.test_report_id = self._map_id(
+            id_map, request.test_report.test_report_id
+        )
+        state.report = await self.update_test_report(
+            request=request, simulate=simulate, existing=state.report
+        )
 
-        elif request_type == "UpdateTestStep":
-            update_step_req = UpdateTestStepRequest()
-            json_format.Parse(json_str, update_step_req)
-            orig_step_id = update_step_req.test_step.test_step_id
-            mapped_step_id = _map_id(orig_step_id)
-            update_step_req.test_step.test_step_id = mapped_step_id
-            existing_step = state.steps_by_id.get(mapped_step_id)
-            if simulate and existing_step is None:
-                raise ValueError(f"UpdateTestStep for unknown step: {orig_step_id}")
-            updated_step = await self.update_test_step(
-                request=update_step_req, simulate=simulate, existing=existing_step
-            )
-            if mapped_step_id in state.steps_by_id:
-                state.steps_by_id[mapped_step_id] = updated_step
+    async def _replay_update_step(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = UpdateTestStepRequest()
+        json_format.Parse(json_str, request)
+        orig_step_id = request.test_step.test_step_id
+        mapped_step_id = self._map_id(id_map, orig_step_id)
+        request.test_step.test_step_id = mapped_step_id
+        existing_step = state.steps_by_id.get(mapped_step_id)
+        if simulate and existing_step is None:
+            raise ValueError(f"UpdateTestStep for unknown step: {orig_step_id}")
+        updated_step = await self.update_test_step(
+            request=request, simulate=simulate, existing=existing_step
+        )
+        if mapped_step_id in state.steps_by_id:
+            state.steps_by_id[mapped_step_id] = updated_step
 
-        elif request_type == "UpdateTestMeasurement":
-            update_meas_req = UpdateTestMeasurementRequest()
-            json_format.Parse(json_str, update_meas_req)
-            orig_meas_id = update_meas_req.test_measurement.measurement_id
-            mapped_meas_id = _map_id(orig_meas_id)
-            update_meas_req.test_measurement.measurement_id = mapped_meas_id
-            existing_meas = state.measurements_by_id.get(mapped_meas_id)
-            if simulate and existing_meas is None:
-                raise ValueError(f"UpdateTestMeasurement for unknown measurement: {orig_meas_id}")
-            updated_meas = await self.update_test_measurement(
-                request=update_meas_req, simulate=simulate, existing=existing_meas
-            )
-            if mapped_meas_id in state.measurements_by_id:
-                state.measurements_by_id[mapped_meas_id] = updated_meas
+    async def _replay_update_measurement(
+        self,
+        json_str: str,
+        response_id: str | None,
+        *,
+        simulate: bool,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> None:
+        request = UpdateTestMeasurementRequest()
+        json_format.Parse(json_str, request)
+        orig_meas_id = request.test_measurement.measurement_id
+        mapped_meas_id = self._map_id(id_map, orig_meas_id)
+        request.test_measurement.measurement_id = mapped_meas_id
+        existing_meas = state.measurements_by_id.get(mapped_meas_id)
+        if simulate and existing_meas is None:
+            raise ValueError(f"UpdateTestMeasurement for unknown measurement: {orig_meas_id}")
+        updated_meas = await self.update_test_measurement(
+            request=request, simulate=simulate, existing=existing_meas
+        )
+        if mapped_meas_id in state.measurements_by_id:
+            state.measurements_by_id[mapped_meas_id] = updated_meas
 
     # ------------------------------------------------------------------
     # Batch replay (default)
     # ------------------------------------------------------------------
 
-    async def _replay_log_file_batch(self, log_path: Path) -> ReplayResult:
+    async def _batch_import_log_file(self, log_path: Path) -> ReplayResult:
         id_map: dict[str, str] = {}
         state = _ReplayState()
 
-        for request_type, response_id, json_str in self._iter_log_data_lines(log_path):
-            await self._replay_entry(
+        for request_type, response_id, json_str in iter_log_data_lines(log_path):
+            await self._import_entry(
                 request_type,
                 response_id,
                 json_str,
@@ -1147,19 +1170,24 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     # Incremental replay
     # ------------------------------------------------------------------
 
-    async def _replay_log_file_incremental(self, log_path: Path) -> ReplayResult:
-        """Replay line-by-line, issuing real API calls and updating tracking."""
-        with open(log_path) as f:
-            first_line = f.readline()
-        tracking = LogTracking.from_log_line(first_line) if first_line else LogTracking()
+    async def _incremental_import_log_file(self, log_path: Path) -> ReplayResult:
+        """Replay line-by-line, issuing real API calls and updating tracking.
 
+        Resumes from ``LogTracking.last_uploaded_line`` (loaded from the
+        ``<log>.tracking`` sidecar) so already-uploaded entries are skipped on
+        subsequent ticks rather than re-sent to the server. Each data line is a
+        single atomic API call; if replay of a line fails,
+        ``last_uploaded_line`` is not advanced so the whole line is retried
+        next tick.
+        """
+        tracking = LogTracking.load(log_path)
         id_map = tracking.id_map
         state = _ReplayState()
 
-        for line_num, (request_type, response_id, json_str) in enumerate(
-            self._iter_log_data_lines(log_path), start=tracking.last_uploaded_line + 1
+        for request_type, response_id, json_str in iter_log_data_lines(
+            log_path, start_line=tracking.last_uploaded_line
         ):
-            await self._replay_entry(
+            await self._import_entry(
                 request_type,
                 response_id,
                 json_str,
@@ -1168,8 +1196,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 state=state,
             )
 
-            tracking.last_uploaded_line = line_num
-            self._update_tracking(log_path, tracking)
+            tracking.last_uploaded_line += 1
+            tracking.save(log_path)
 
         if state.report is None:
             raise ValueError("No CreateTestReport found in log file")
@@ -1183,34 +1211,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     # ------------------------------------------------------------------
     # Log line parsing helpers
     # ------------------------------------------------------------------
-
-    @staticmethod
-    def _iter_log_data_lines(
-        log_path: Path,
-    ) -> Generator[tuple[str, str | None, str], None, None]:
-        """Parse data lines from a log file, skipping the LogTracking header.
-
-        Yields (request_type, response_id, json_str) tuples.
-        The file is read entirely under a shared lock and then released
-        before yielding, so callers can safely acquire exclusive locks
-        during iteration (e.g. ``_update_tracking``).
-        """
-        line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
-        with open(log_path) as f:
-            fcntl.flock(f, fcntl.LOCK_SH)
-            raw_lines = f.readlines()
-
-        for raw_line in raw_lines:
-            line = raw_line.strip()
-            if not line:
-                continue
-            match = line_pattern.match(line)
-            if not match:
-                continue
-            request_type = match.group(1)
-            if request_type == "LogTracking":
-                continue
-            yield (request_type, match.group(2), match.group(3))
 
     async def _create_report_from_simulated(self, simulated: TestReport) -> TestReport:
         """Create a real test report from a simulated one."""
@@ -1267,47 +1267,14 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             unit=simulated.unit,
             numeric_bounds=simulated.numeric_bounds,
             string_expected_value=simulated.string_expected_value,
+            description=simulated.description,
+            metadata=simulated.metadata,
+            channel_names=simulated.channel_names,
         )
 
 
-@dataclass
-class LogTracking:
-    """Tracking metadata stored as line 0 of a log file."""
-
-    last_uploaded_line: int = 0
-    id_map: dict[str, str] = field(default_factory=dict)
-
-    def to_log_line(self) -> str:
-        data = {"lastUploadedLine": self.last_uploaded_line, "idMap": self.id_map}
-        return f"[LogTracking] {json.dumps(data, separators=(',', ':'))}\n"
-
-    @staticmethod
-    def from_log_line(line: str) -> LogTracking:
-        match = re.match(r"^\[LogTracking\]\s*(.+)$", line.strip())
-        if not match:
-            return LogTracking()
-        data = json.loads(match.group(1))
-        return LogTracking(
-            last_uploaded_line=data.get("lastUploadedLine", 0),
-            id_map=data.get("idMap", {}),
-        )
-
-
-@dataclass
-class _ReplayState:
-    """Mutable state accumulated during log replay."""
-
-    report: TestReport | None = None
-    steps_by_id: dict[str, TestStep] = field(default_factory=dict)
-    steps_order: list[str] = field(default_factory=list)
-    measurements_by_id: dict[str, TestMeasurement] = field(default_factory=dict)
-    measurements_order: list[str] = field(default_factory=list)
-
-
-@dataclass
-class ReplayResult:
-    """Result of replaying a log file."""
-
-    report: TestReport
-    steps: list[TestStep] = field(default_factory=list)
-    measurements: list[TestMeasurement] = field(default_factory=list)
+__all__ = [
+    "LogTracking",
+    "ReplayResult",
+    "TestResultsLowLevelClient",
+]

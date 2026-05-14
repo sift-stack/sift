@@ -3,6 +3,474 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.0] - April 22, 2026
+### What's New
+
+v0.9.0 introduces a redesigned `SiftStream` builder API with explicit streaming mode selection,
+a renamed send method with recoverable error types, a new `LiveStreamingOnly` transport mode,
+gRPC status-code metrics, a scoped tracing dispatch for capturing internal logs, and updated
+protobufs. This release contains several **breaking API changes** — see the sections below for
+full details and a ready-to-use upgrade prompt for AI-assisted migration.
+
+#### Breaking Changes
+
+##### 1. Stepped Builder API — Explicit Mode Selection Required (PRs [#525](https://github.com/sift-stack/sift/pull/525), [#526](https://github.com/sift-stack/sift/pull/526))
+
+The `SiftStreamBuilder` now uses a type-state stepped pattern. You must call a mode-selection
+method (`.live_only()`, `.live_with_backups()`, or `.file_backup()`) before calling `.build()`.
+
+**Removed from the public API:**
+- `RecoveryStrategy` enum — all uses must be replaced with the appropriate mode builder
+- `SiftStreamBuilder::build()` — no longer callable directly; a mode must be selected first
+- `SiftStreamBuilder::build_file_backup()` — replaced by `.file_backup().build()`
+- `LiveStreaming` type — split into `LiveStreamingOnly` and `LiveStreamingWithBackups`
+
+**Before:**
+```rust
+use sift_stream::{RecoveryStrategy, SiftStreamBuilder};
+
+// Default live+backup mode
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .recovery_strategy(RecoveryStrategy::default())
+    .build()
+    .await?;
+
+// File-backup-only mode
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .recovery_strategy(RecoveryStrategy::default())
+    .build_file_backup()
+    .await?;
+```
+
+**After:**
+```rust
+use sift_stream::{SiftStreamBuilder, backup::DiskBackupPolicy};
+
+// Live streaming with disk backups (replaces RecoveryStrategy::default())
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .live_with_backups()
+    .build()
+    .await?;
+
+// Live streaming only — single channel, no backups, lightest-weight option
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .live_only()
+    .build()
+    .await?;
+
+// File-backup-only mode (replaces build_file_backup())
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .file_backup()
+    .disk_backup_policy(DiskBackupPolicy {
+        backups_dir: Some("/data/backups".into()),
+        ..Default::default()
+    })
+    .build()
+    .await?;
+```
+
+The new mode builders also accept per-mode configuration:
+- `LiveOnlyBuilder::retry_policy(RetryPolicy)` — configure retry behavior
+- `LiveWithBackupsBuilder::retry_policy(RetryPolicy)` — configure retry behavior
+- `LiveWithBackupsBuilder::disk_backup_policy(DiskBackupPolicy)` — configure disk backups
+- `LiveWithBackupsBuilder::checkpoint_interval(Duration)` — set checkpoint frequency
+- `FileBackupBuilder::disk_backup_policy(DiskBackupPolicy)` — configure backup files
+
+##### 2. `SiftStream<E, T>` Type Parameter No Longer Has a Default (PR [#526](https://github.com/sift-stack/sift/pull/526))
+
+Any explicit type annotation on `SiftStream` must now include the transport type argument.
+
+**Before:**
+```rust
+let stream: SiftStream<IngestionConfigEncoder> = /* ... */;
+// or
+let stream: SiftStream<IngestionConfigEncoder, LiveStreaming> = /* ... */;
+```
+
+**After (choose one):**
+```rust
+use sift_stream::{LiveStreamingOnly, LiveStreamingWithBackups, FileBackup, IngestionConfigEncoder};
+
+let stream: SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups> = /* ... */;
+let stream: SiftStream<IngestionConfigEncoder, LiveStreamingOnly> = /* ... */;
+let stream: SiftStream<IngestionConfigEncoder, FileBackup> = /* ... */;
+```
+
+##### 3. Send API Renamed and Clarified — Backpressure vs. Non-Blocking (PR [#519](https://github.com/sift-stack/sift/pull/519))
+
+The send API is now organized around a consistent naming convention: async methods (`send`,
+`send_requests`) apply backpressure by awaiting channel capacity, while their synchronous `try_`
+counterparts (`try_send`, `try_send_requests`) return immediately without blocking.
+
+The old `send_requests_nonblocking` has been renamed to `try_send_requests` to match this
+convention. The new `try_` methods also return a richer error type that carries the undelivered
+messages so callers can recover them.
+
+**Full send API summary:**
+
+| Method | Blocking | Accepts | Use when |
+|---|---|---|---|
+| `send(message).await` | Yes (backpressure) | Encodeable message | Default; let the stream pace you |
+| `send_requests(requests).await` | Yes (backpressure) | Pre-encoded requests | High-throughput with `FlowBuilder`; let the stream pace you |
+| `try_send(message)` | No | Encodeable message | Real-time loops where blocking is unacceptable |
+| `try_send_requests(requests)` | No | Pre-encoded requests | Real-time loops with `FlowBuilder`; no blocking |
+
+**`send_requests_nonblocking` renamed to `try_send_requests`:**
+
+```rust
+// BEFORE
+sift_stream.send_requests_nonblocking(vec![request])?;
+
+// AFTER — simple propagation
+sift_stream.try_send_requests(vec![request])?;
+
+// AFTER — recover unsent messages when the channel is full
+match sift_stream.try_send_requests(vec![request]) {
+    Ok(()) => {}
+    Err(e) => {
+        let unsent_messages = e.into_inner();
+        // retry or buffer unsent_messages
+    }
+}
+```
+
+**Prefer `send` / `send_requests` when backpressure is acceptable** — they await channel
+capacity and guarantee the message is accepted before returning. Use `try_send` /
+`try_send_requests` only in contexts where blocking is truly unacceptable (e.g. a hard
+real-time loop), and handle `TrySendError::Full` explicitly.
+
+New error types exported from `sift_stream`:
+- `TrySendError<T>` — returned by `try_send` / `try_send_requests`; carries the rejected payload
+- `SendError<T>` — returned by `send_requests` on failure; carries undelivered messages
+- `SiftStreamSendError` — returned by `send`; wraps a channel-closed or encode error
+- `SiftStreamTrySendError` — returned by `try_send`; wraps encode errors and `TrySendError`
+
+#### New Features
+
+##### `LiveStreamingOnly` Mode (PR [#526](https://github.com/sift-stack/sift/pull/526))
+
+A new lightweight streaming mode accessible via `.live_only()`. Uses a single bounded ingestion
+channel with direct backpressure: `send` awaits until the ingestion task drains capacity.
+
+```rust
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .live_only()
+    .build()
+    .await?;
+```
+
+| Mode | Builder | Backpressure | Checkpointing | Disk Backup | Retries |
+|---|---|---|---|---|---|
+| `LiveStreamingOnly` | `.live_only()` | ingestion channel | No | No | Yes |
+| `LiveStreamingWithBackups` | `.live_with_backups()` | backup channel | Yes | Yes | Yes |
+| `FileBackup` | `.file_backup()` | write channel | No | Yes | N/A |
+
+##### gRPC Status Code Metrics (PR [#530](https://github.com/sift-stack/sift/pull/530))
+
+`SiftStreamMetricsSnapshot` now includes a `grpc_status_counts: [u64; 18]` field — one counter
+per canonical gRPC status code (codes 0–16 by name: `ok`, `cancelled`, `unknown`, etc.) plus
+one catch-all for any unrecognized status codes, tracking ingestion RPC completions by outcome.
+
+##### Scoped Tracing Dispatch (PR [#534](https://github.com/sift-stack/sift/pull/534))
+
+When the `tracing` feature is enabled, `sift-stream`'s internal background tasks now emit log
+events through a scoped dispatch layered on top of your global tracing subscriber. This allows
+internal stream logs to be captured independently and forwarded to Sift as telemetry without
+interfering with your application's own logging.
+
+Two new builder methods on `StreamConfigBuilder`:
+
+```rust
+use sift_stream::{SiftStreamBuilder, logging::LogLevel};
+
+let stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    // Only forward Info-and-above events to Sift (default). Use LogLevel::Debug
+    // or LogLevel::Trace for more verbose capture.
+    .log_level_filter(LogLevel::Info)
+    // Optionally supply a custom dispatch as the forwarding target instead of
+    // capturing the current global dispatch at build time (tracing feature only).
+    // .with_scoped_dispatch_base(my_dispatch)
+    .live_with_backups()
+    .build()
+    .await?;
+```
+
+New types exported from `sift_stream::logging`:
+- `LogLevel` — filter level enum (`Error`, `Warn`, `Info`, `Debug`, `Trace`); defaults to `Info`
+
+##### `sift-stream-bindings` 0.3.0
+
+The `sift-stream-bindings` crate has been bumped to 0.3.0 to reflect the breaking API changes
+in `sift-stream` 0.9.0 (stepped builder, send rename, removed types). Bindings users should
+apply the same migration steps described above.
+
+#### AI-Assisted Migration Prompt (v0.8.2 → v0.9.0)
+
+Copy and paste the following prompt to an AI coding agent to automate the upgrade:
+
+```
+You are upgrading a Rust project from sift_stream v0.8.2 to v0.9.0. Apply ALL of the following
+changes precisely. Do not make any other modifications.
+
+---
+
+## 1. Update `Cargo.toml`
+
+Change the sift_stream (and related sift_* crate) dependency version from `0.8.2` to `0.9.0`.
+If using the workspace version in a workspace `Cargo.toml`, update `version = "0.8.2"` to
+`version = "0.9.0"` under `[workspace.package]`.
+
+---
+
+## 2. Remove all imports of `RecoveryStrategy` and `LiveStreaming`
+
+Delete any lines that import either of these types:
+  - `use sift_stream::RecoveryStrategy;`
+  - `use sift_stream::LiveStreaming;`
+  - Variants of the above with path prefixes, e.g. `sift_stream::stream::RecoveryStrategy`
+
+---
+
+## 3. Replace all `SiftStreamBuilder` build call chains
+
+**How to find every affected call site:**
+
+Search for `.build()` and `.build_file_backup()` across all `.rs` files and inspect each
+hit. Do not rely solely on the presence of `.recovery_strategy(...)` — it was optional in
+v0.8.2, so many call sites will not contain it at all. Builder chains are often formatted
+across multiple lines (each `.method(...)` on its own line), so treat any contiguous block
+of `.`-chained method calls on a `SiftStreamBuilder` as a single chain to evaluate.
+
+The reliable signal is the terminal call:
+- `.build()` — if the receiver is (or returns) a `SiftStreamBuilder` or `StreamConfigBuilder`,
+  this must be updated.
+- `.build_file_backup()` — always must be updated.
+
+Do **not** modify `.build()` calls that belong to other builder types (e.g. `RetryPolicyBuilder`,
+`DiskBackupPolicyBuilder`, `RunForm`, etc.).
+
+### Case A — Chain ends with `.build()`, with or without `.recovery_strategy(...)`
+This is the most common case. The old default was live streaming with backups, so replace the
+entire chain's terminal segment with `.live_with_backups().build()`:
+```
+// BEFORE (recovery_strategy present)
+SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .recovery_strategy(RecoveryStrategy::default())
+    .build()
+    .await?
+
+// BEFORE (recovery_strategy absent — equally valid in v0.8.2)
+SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .build()
+    .await?
+
+// AFTER (both cases above become)
+SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .live_with_backups()
+    .build()
+    .await?
+```
+
+### Case B — Chain ends with `.build_file_backup()`
+Replace with `.file_backup().build()`. Move any `DiskBackupPolicy` that was inside a
+`RecoveryStrategy` argument into a `.disk_backup_policy(...)` call on `FileBackupBuilder`:
+```
+// BEFORE
+SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .recovery_strategy(RecoveryStrategy::default())
+    .build_file_backup()
+    .await?
+
+// AFTER
+use sift_stream::backup::DiskBackupPolicy;
+SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .file_backup()
+    .disk_backup_policy(DiskBackupPolicy::default())
+    .build()
+    .await?
+```
+
+### Case C — Any `RetryPolicy` or `DiskBackupPolicy` that was passed into `RecoveryStrategy`
+These arguments move to the mode builder:
+- Retry configuration → `.retry_policy(...)` called on `LiveOnlyBuilder` or `LiveWithBackupsBuilder`
+- Disk backup configuration → `.disk_backup_policy(...)` called on `LiveWithBackupsBuilder` or `FileBackupBuilder`
+- Checkpoint interval → `.checkpoint_interval(...)` called on the mode builder
+
+---
+
+## 4. Update `SiftStream` explicit type annotations
+
+Find any explicit type annotations of the form:
+  - `SiftStream<IngestionConfigEncoder>` (missing second type arg)
+  - `SiftStream<IngestionConfigEncoder, LiveStreaming>`
+
+Replace them based on the builder mode used to create that stream:
+  - `.live_with_backups()` → `SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>`
+  - `.live_only()` → `SiftStream<IngestionConfigEncoder, LiveStreamingOnly>`
+  - `.file_backup()` → `SiftStream<IngestionConfigEncoder, FileBackup>`
+
+Add the required imports:
+```rust
+use sift_stream::{LiveStreamingOnly, LiveStreamingWithBackups, FileBackup, IngestionConfigEncoder};
+```
+
+---
+
+## 5. Update send call sites
+
+### 5a. Rename `send_requests_nonblocking` → `try_send_requests`
+
+Find every call to `.send_requests_nonblocking(...)` and rename it to `.try_send_requests(...)`.
+The argument type is unchanged (an iterator/vec of pre-encoded requests).
+
+The return type changed from `Result<()>` to `Result<(), TrySendError<Vec<Request>>>`. In most
+cases a simple `?` propagation continues to work:
+```rust
+// BEFORE
+stream.send_requests_nonblocking(messages)?;
+
+// AFTER — simple propagation
+stream.try_send_requests(messages)?;
+
+// AFTER — recover unsent messages when the channel is full
+match stream.try_send_requests(messages) {
+    Ok(()) => {}
+    Err(e) => {
+        let unsent = e.into_inner();
+        // retry or buffer unsent
+    }
+}
+```
+
+### 5b. Understand the send API naming convention
+
+The send API now follows a consistent pattern — choose the right method based on whether you
+want backpressure or non-blocking behavior:
+
+| Method | Blocking | Use when |
+|---|---|---|
+| `send(message).await` | Yes (backpressure) | Default; let the stream pace your loop |
+| `send_requests(requests).await` | Yes (backpressure) | Pre-encoded (`FlowBuilder`) batch; let the stream pace you |
+| `try_send(message)` | No | Real-time loop where blocking is unacceptable |
+| `try_send_requests(requests)` | No | Pre-encoded batch, no blocking |
+
+Prefer `send` / `send_requests` unless you have a hard real-time constraint — they await
+channel capacity and guarantee delivery before returning. If you switch from `send` to
+`try_send` / `try_send_requests`, you must handle `TrySendError::Full` explicitly rather
+than relying on the stream to apply backpressure.
+
+If the new error types are referenced explicitly, add:
+```rust
+use sift_stream::{TrySendError, SendError};
+```
+
+---
+
+## 6. Runtime mode selection — enum wrapper pattern
+
+Because `SiftStream<E, T>` encodes the transport mode as a type parameter, you cannot store
+different modes in the same variable directly. If the mode must be chosen at runtime (e.g. from
+a config flag or CLI argument), wrap the concrete stream types in an enum and dispatch via
+`match`:
+
+```rust
+use sift_stream::{
+    FileBackup, IngestionConfigEncoder, LiveStreamingOnly, LiveStreamingWithBackups,
+    SiftStream, SiftStreamBuilder, SiftStreamSendError,
+    stream::Encodeable,
+};
+use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
+use sift_error::prelude::*;
+
+// Concrete message type shared by all three transport modes.
+type Msg = IngestWithConfigDataStreamRequest;
+
+enum AnyStream {
+    LiveOnly(SiftStream<IngestionConfigEncoder, LiveStreamingOnly>),
+    LiveWithBackups(SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>),
+    FileBackup(SiftStream<IngestionConfigEncoder, FileBackup>),
+}
+
+impl AnyStream {
+    // All three modes use the same Transport::Message type, so the error type
+    // unifies directly — no conversion or new wrapper type needed.
+    pub async fn send<M>(&mut self, message: M) -> Result<(), SiftStreamSendError<Msg>>
+    where
+        M: Encodeable<Encoder = IngestionConfigEncoder, Output = Msg> + Send + Sync,
+    {
+        match self {
+            AnyStream::LiveOnly(s) => s.send(message).await,
+            AnyStream::LiveWithBackups(s) => s.send(message).await,
+            AnyStream::FileBackup(s) => s.send(message).await,
+        }
+    }
+
+    pub async fn finish(self) -> Result<()> {
+        match self {
+            AnyStream::LiveOnly(s) => s.finish().await,
+            AnyStream::LiveWithBackups(s) => s.finish().await,
+            AnyStream::FileBackup(s) => s.finish().await,
+        }
+    }
+}
+
+// Build the right variant based on a runtime decision:
+async fn build_stream(use_backups: bool, use_file_only: bool) -> Result<AnyStream> {
+    let builder = SiftStreamBuilder::new(credentials).ingestion_config(ingestion_config);
+
+    if use_file_only {
+        Ok(AnyStream::FileBackup(builder.file_backup().build().await?))
+    } else if use_backups {
+        Ok(AnyStream::LiveWithBackups(builder.live_with_backups().build().await?))
+    } else {
+        Ok(AnyStream::LiveOnly(builder.live_only().build().await?))
+    }
+}
+```
+
+Add additional `match` arms for any other `SiftStream` methods your code calls (e.g.
+`attach_run`, `detach_run`, `try_send`, `try_send_requests`). Each arm simply delegates
+to the same method on the inner stream. If only a subset of modes is needed, omit the
+unused variants.
+
+---
+
+## 7. Verify the build compiles
+
+Run `cargo build` (or `cargo check`). Fix any remaining compilation errors that reference the
+removed types `RecoveryStrategy`, `LiveStreaming`, `build_file_backup`, or `send_requests_nonblocking`.
+
+---
+
+That completes the v0.8.2 → v0.9.0 migration.
+```
+
+### Full Changelog
+- [Add tracing scoped dispatch to capture sift-stream logs](https://github.com/sift-stack/sift/pull/534)
+- [Use flow descriptor/builder for sift-stream metrics](https://github.com/sift-stack/sift/pull/531) *(internal)*
+- [Add grpc status codes to sift-stream metrics, better logs](https://github.com/sift-stack/sift/pull/530)
+- [Improve sift-stream mode and builder documentation](https://github.com/sift-stack/sift/pull/528)
+- [Additional test coverage for sift-stream](https://github.com/sift-stack/sift/pull/527) *(internal)*
+- [Add LiveStreamingOnly and LiveStreamingWithBackups](https://github.com/sift-stack/sift/pull/526)
+- [Introduce stepped builder API for SiftStream](https://github.com/sift-stack/sift/pull/525)
+- [Extract tasks module into submodules](https://github.com/sift-stack/sift/pull/522) *(internal)*
+- [sift stream send api updates](https://github.com/sift-stack/sift/pull/519)
+- [update and regen protobufs](https://github.com/sift-stack/sift/pull/535)
+- [update and regen protobufs](https://github.com/sift-stack/sift/pull/516)
+- [update and regen protobufs](https://github.com/sift-stack/sift/pull/514)
+
 ## [v0.8.2] - March 20, 2026
 ### What's New
 Updates `sift_connect` to use the `tls-ring` feature from `tonic` instead of `tls-aws-lc`.

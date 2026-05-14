@@ -15,12 +15,50 @@ use pyo3::{prelude::*, types::PyIterator};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
-use sift_stream::{Flow, FlowConfig, IngestionConfigEncoder, LiveStreaming, SiftStream};
+use sift_stream::{
+    FileBackup, Flow, FlowConfig, IngestionConfigEncoder, LiveStreamingOnly,
+    LiveStreamingWithBackups, SiftStream,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-// Type Definitions
+enum SiftStreamInner {
+    LiveOnly(SiftStream<IngestionConfigEncoder, LiveStreamingOnly>),
+    LiveWithBackups(SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>),
+    FileBackup(SiftStream<IngestionConfigEncoder, FileBackup>),
+}
+
+// Dispatch over a shared (immutable) reference to the inner stream.
+macro_rules! dispatch_ref {
+    ($opt:expr, |$s:ident| $body:expr) => {
+        match $opt.as_ref().ok_or_else(stream_consumed_err)? {
+            SiftStreamInner::LiveOnly($s) => $body,
+            SiftStreamInner::LiveWithBackups($s) => $body,
+            SiftStreamInner::FileBackup($s) => $body,
+        }
+    };
+}
+
+// Dispatch over a mutable reference to the inner stream.
+macro_rules! dispatch_mut {
+    ($opt:expr, |$s:ident| $body:expr) => {
+        match $opt.as_mut().ok_or_else(stream_consumed_err)? {
+            SiftStreamInner::LiveOnly($s) => $body,
+            SiftStreamInner::LiveWithBackups($s) => $body,
+            SiftStreamInner::FileBackup($s) => $body,
+        }
+    };
+}
+
+fn stream_consumed_err() -> PyErr {
+    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Stream has been consumed by finish()")
+}
+
+fn stream_finished_err() -> PyErr {
+    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Stream has already been finished")
+}
+
 /// Python binding for [`SiftStream`](sift_stream::SiftStream).
 ///
 /// This is a thin wrapper around the Rust `SiftStream` type. For detailed documentation,
@@ -31,7 +69,7 @@ use tokio::sync::Mutex;
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct SiftStreamPy {
-    inner: Arc<Mutex<Option<SiftStream<IngestionConfigEncoder, LiveStreaming>>>>,
+    inner: Arc<Mutex<Option<SiftStreamInner>>>,
 }
 
 /// Python binding for [`Flow`](sift_stream::Flow).
@@ -48,11 +86,26 @@ pub struct FlowPy {
     inner: Flow,
 }
 
-// Trait Implementations
-impl From<SiftStream<IngestionConfigEncoder, LiveStreaming>> for SiftStreamPy {
-    fn from(stream: SiftStream<IngestionConfigEncoder, LiveStreaming>) -> Self {
+impl From<SiftStream<IngestionConfigEncoder, LiveStreamingOnly>> for SiftStreamPy {
+    fn from(stream: SiftStream<IngestionConfigEncoder, LiveStreamingOnly>) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(Some(stream))),
+            inner: Arc::new(Mutex::new(Some(SiftStreamInner::LiveOnly(stream)))),
+        }
+    }
+}
+
+impl From<SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>> for SiftStreamPy {
+    fn from(stream: SiftStream<IngestionConfigEncoder, LiveStreamingWithBackups>) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(Some(SiftStreamInner::LiveWithBackups(stream)))),
+        }
+    }
+}
+
+impl From<SiftStream<IngestionConfigEncoder, FileBackup>> for SiftStreamPy {
+    fn from(stream: SiftStream<IngestionConfigEncoder, FileBackup>) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(Some(SiftStreamInner::FileBackup(stream)))),
         }
     }
 }
@@ -63,7 +116,6 @@ impl From<FlowPy> for Flow {
     }
 }
 
-// Helper: convert any error whose Display impl does not print the message payload into a PyErr.
 // All sift_stream send error types (SiftStreamSendError, SendError, TrySendError,
 // SiftStreamTrySendError) intentionally omit the inner T from their Display output, so
 // format!("{e}") is safe to use regardless of how large the undelivered message(s) may be.
@@ -71,7 +123,6 @@ fn py_err(e: impl std::fmt::Display) -> PyErr {
     PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{e}"))
 }
 
-// PyO3 Method Implementations
 #[gen_stub_pymethods]
 #[pymethods]
 impl SiftStreamPy {
@@ -80,21 +131,14 @@ impl SiftStreamPy {
 
         let awaitable = future_into_py(py, async move {
             let mut guard = inner.lock().await;
-            let stream = guard.as_mut().ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream has been consumed by finish()",
-                )
-            })?;
-
             let flow_rs: Flow = flow.into();
-            stream.send(flow_rs).await.map_err(py_err)
+            dispatch_mut!(guard, |s| s.send(flow_rs).await.map_err(py_err))
         })?;
 
         Ok(awaitable.into())
     }
 
-    // Function to take in a python iterable of PyFlow and call send on each item
-    // Can allow more performant sending of data from python to SiftStream
+    // Accepts a Python iterable of FlowPy for more performant sending from Python.
     pub fn batch_send<'py>(
         &self,
         py: Python<'py>,
@@ -110,15 +154,9 @@ impl SiftStreamPy {
 
         let awaitable = future_into_py(py, async move {
             let mut guard = inner.lock().await;
-            let stream = guard.as_mut().ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream has been consumed by finish()",
-                )
-            })?;
-
             for flow in flows_vec {
                 let flow_rs: Flow = flow.into();
-                stream.send(flow_rs).await.map_err(py_err)?;
+                dispatch_mut!(guard, |s| s.send(flow_rs).await.map_err(py_err))?;
             }
             Ok(())
         })?;
@@ -132,18 +170,15 @@ impl SiftStreamPy {
         requests: Vec<request::IngestWithConfigDataStreamRequestPy>,
     ) -> PyResult<Py<PyAny>> {
         let inner = self.inner.clone();
-
-        let requests = requests.into_iter().map(|req| req.into());
+        let requests_rs: Vec<IngestWithConfigDataStreamRequest> =
+            requests.into_iter().map(|r| r.into()).collect();
 
         let awaitable = future_into_py(py, async move {
             let mut guard = inner.lock().await;
-            let stream = guard.as_mut().ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream has been consumed by finish()",
-                )
-            })?;
-
-            stream.send_requests(requests).await.map_err(py_err)
+            dispatch_mut!(guard, |s| s
+                .send_requests(requests_rs)
+                .await
+                .map_err(py_err))
         })?;
 
         Ok(awaitable.into())
@@ -158,23 +193,22 @@ impl SiftStreamPy {
         }
 
         let mut inner_guard = self.inner.blocking_lock();
-        let stream = inner_guard.as_mut().ok_or_else(|| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Stream has been consumed by finish()",
-            )
-        })?;
+        dispatch_mut!(inner_guard, |s| s
+            .try_send_requests(flows_vec)
+            .map_err(py_err))
+    }
 
-        stream.try_send_requests(flows_vec).map_err(py_err)
+    pub fn try_send(&self, flow: FlowPy) -> PyResult<()> {
+        let mut inner_guard = self.inner.blocking_lock();
+        let flow_rs: Flow = flow.into();
+        dispatch_mut!(inner_guard, |s| s.try_send(flow_rs).map_err(py_err))
     }
 
     pub fn get_metrics_snapshot(&self) -> PyResult<SiftStreamMetricsSnapshotPy> {
         let inner_guard = self.inner.blocking_lock();
-        let stream = inner_guard.as_ref().ok_or_else(|| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Stream has been consumed by finish()",
-            )
-        })?;
-        Ok(stream.get_metrics_snapshot().into())
+        Ok(dispatch_ref!(inner_guard, |s| s
+            .get_metrics_snapshot()
+            .into()))
     }
 
     pub fn add_new_flows(
@@ -183,24 +217,16 @@ impl SiftStreamPy {
         flow_configs: Vec<FlowConfigPy>,
     ) -> PyResult<Py<PyAny>> {
         let inner = self.inner.clone();
-
-        let flow_configs = flow_configs
-            .into_iter()
-            .map(|cfg| cfg.into())
-            .collect::<Vec<FlowConfig>>();
+        let flow_configs_rs: Vec<FlowConfig> =
+            flow_configs.into_iter().map(|cfg| cfg.into()).collect();
 
         let awaitable = future_into_py(py, async move {
             let mut guard = inner.lock().await;
-            let stream = guard.as_mut().ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream has been consumed by finish()",
-                )
-            })?;
-
-            match stream.add_new_flows(&flow_configs).await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(SiftErrorWrapper(e).into()),
-            }
+            dispatch_mut!(guard, |s| {
+                s.add_new_flows(&flow_configs_rs)
+                    .await
+                    .map_err(|e| SiftErrorWrapper(e).into())
+            })
         })?;
 
         Ok(awaitable.into())
@@ -208,29 +234,21 @@ impl SiftStreamPy {
 
     pub fn get_flow_descriptor(&self, flow_name: &str) -> PyResult<FlowDescriptorPy> {
         let inner_guard = self.inner.blocking_lock();
-        let stream = inner_guard.as_ref().ok_or_else(|| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Stream has been consumed by finish()",
-            )
-        })?;
-        match stream.get_flow_descriptor(flow_name) {
-            Ok(descriptor) => Ok(FlowDescriptorPy::from(descriptor)),
-            Err(e) => Err(SiftErrorWrapper(e).into()),
-        }
+        dispatch_ref!(inner_guard, |s| {
+            s.get_flow_descriptor(flow_name)
+                .map(FlowDescriptorPy::from)
+                .map_err(|e| SiftErrorWrapper(e).into())
+        })
     }
 
     pub fn get_flows(&self) -> PyResult<HashMap<String, FlowDescriptorPy>> {
         let inner_guard = self.inner.blocking_lock();
-        let sift_stream = inner_guard.as_ref().ok_or_else(|| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Stream has been consumed by finish()",
-            )
-        })?;
-        Ok(sift_stream
-            .get_flows()
-            .into_iter()
-            .map(|(k, v)| (k, v.into()))
-            .collect())
+        Ok(dispatch_ref!(inner_guard, |s| {
+            s.get_flows()
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect()
+        }))
     }
 
     pub fn attach_run(&self, py: Python, run_selector: RunSelectorPy) -> PyResult<Py<PyAny>> {
@@ -238,16 +256,11 @@ impl SiftStreamPy {
 
         let awaitable = future_into_py(py, async move {
             let mut guard = inner.lock().await;
-            let stream = guard.as_mut().ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream has been consumed by finish()",
-                )
-            })?;
-
-            match stream.attach_run(run_selector.into()).await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(SiftErrorWrapper(e).into()),
-            }
+            dispatch_mut!(guard, |s| {
+                s.attach_run(run_selector.into())
+                    .await
+                    .map_err(|e| SiftErrorWrapper(e).into())
+            })
         })?;
 
         Ok(awaitable.into())
@@ -255,23 +268,15 @@ impl SiftStreamPy {
 
     pub fn detach_run(&self) -> PyResult<()> {
         let mut inner_guard = self.inner.blocking_lock();
-        let stream = inner_guard.as_mut().ok_or_else(|| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Stream has been consumed by finish()",
-            )
-        })?;
-        stream.detach_run();
+        dispatch_mut!(inner_guard, |s| s.detach_run());
         Ok(())
     }
 
     pub fn run(&self) -> PyResult<Option<String>> {
         let inner_guard = self.inner.blocking_lock();
-        let stream = inner_guard.as_ref().ok_or_else(|| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                "Stream has been consumed by finish()",
-            )
-        })?;
-        Ok(stream.run().map(|r| r.run_id.clone()))
+        Ok(dispatch_ref!(inner_guard, |s| {
+            s.run().map(|r| r.run_id.clone())
+        }))
     }
 
     pub fn finish(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -279,16 +284,15 @@ impl SiftStreamPy {
 
         let awaitable = future_into_py(py, async move {
             let mut guard = inner.lock().await;
-            let stream = guard.take().ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream has already been finished",
-                )
-            })?;
+            let stream = guard.take().ok_or_else(stream_finished_err)?;
 
-            match stream.finish().await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(SiftErrorWrapper(e).into()),
-            }
+            let result = match stream {
+                SiftStreamInner::LiveOnly(s) => s.finish().await,
+                SiftStreamInner::LiveWithBackups(s) => s.finish().await,
+                SiftStreamInner::FileBackup(s) => s.finish().await,
+            };
+
+            result.map_err(|e| SiftErrorWrapper(e).into())
         })?;
 
         Ok(awaitable.into())

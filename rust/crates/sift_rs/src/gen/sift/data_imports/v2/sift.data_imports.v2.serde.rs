@@ -1674,6 +1674,9 @@ impl serde::Serialize for DetectConfigResponse {
         if self.hdf5_config.is_some() {
             len += 1;
         }
+        if self.tdms_config.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.DetectConfigResponse", len)?;
         if let Some(v) = self.csv_config.as_ref() {
             struct_ser.serialize_field("csvConfig", v)?;
@@ -1683,6 +1686,9 @@ impl serde::Serialize for DetectConfigResponse {
         }
         if let Some(v) = self.hdf5_config.as_ref() {
             struct_ser.serialize_field("hdf5Config", v)?;
+        }
+        if let Some(v) = self.tdms_config.as_ref() {
+            struct_ser.serialize_field("tdmsConfig", v)?;
         }
         struct_ser.end()
     }
@@ -1700,6 +1706,8 @@ impl<'de> serde::Deserialize<'de> for DetectConfigResponse {
             "parquetConfig",
             "hdf5_config",
             "hdf5Config",
+            "tdms_config",
+            "tdmsConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1707,6 +1715,7 @@ impl<'de> serde::Deserialize<'de> for DetectConfigResponse {
             CsvConfig,
             ParquetConfig,
             Hdf5Config,
+            TdmsConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1731,6 +1740,7 @@ impl<'de> serde::Deserialize<'de> for DetectConfigResponse {
                             "csvConfig" | "csv_config" => Ok(GeneratedField::CsvConfig),
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
+                            "tdmsConfig" | "tdms_config" => Ok(GeneratedField::TdmsConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1753,6 +1763,7 @@ impl<'de> serde::Deserialize<'de> for DetectConfigResponse {
                 let mut csv_config__ = None;
                 let mut parquet_config__ = None;
                 let mut hdf5_config__ = None;
+                let mut tdms_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CsvConfig => {
@@ -1773,12 +1784,19 @@ impl<'de> serde::Deserialize<'de> for DetectConfigResponse {
                             }
                             hdf5_config__ = map_.next_value()?;
                         }
+                        GeneratedField::TdmsConfig => {
+                            if tdms_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tdmsConfig"));
+                            }
+                            tdms_config__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(DetectConfigResponse {
                     csv_config: csv_config__,
                     parquet_config: parquet_config__,
                     hdf5_config: hdf5_config__,
+                    tdms_config: tdms_config__,
                 })
             }
         }
@@ -3931,6 +3949,21 @@ impl serde::Serialize for TdmsConfig {
         if !self.run_id.is_empty() {
             len += 1;
         }
+        if !self.data.is_empty() {
+            len += 1;
+        }
+        if self.fallback_method != 0 {
+            len += 1;
+        }
+        if self.time_format.is_some() {
+            len += 1;
+        }
+        if self.relative_start_time.is_some() {
+            len += 1;
+        }
+        if self.import_file_properties {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.TDMSConfig", len)?;
         if !self.asset_name.is_empty() {
             struct_ser.serialize_field("assetName", &self.asset_name)?;
@@ -3948,6 +3981,25 @@ impl serde::Serialize for TdmsConfig {
         }
         if !self.run_id.is_empty() {
             struct_ser.serialize_field("runId", &self.run_id)?;
+        }
+        if !self.data.is_empty() {
+            struct_ser.serialize_field("data", &self.data)?;
+        }
+        if self.fallback_method != 0 {
+            let v = TdmsFallbackMethod::try_from(self.fallback_method)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.fallback_method)))?;
+            struct_ser.serialize_field("fallbackMethod", &v)?;
+        }
+        if let Some(v) = self.time_format.as_ref() {
+            let v = TimeFormat::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("timeFormat", &v)?;
+        }
+        if let Some(v) = self.relative_start_time.as_ref() {
+            struct_ser.serialize_field("relativeStartTime", v)?;
+        }
+        if self.import_file_properties {
+            struct_ser.serialize_field("importFileProperties", &self.import_file_properties)?;
         }
         struct_ser.end()
     }
@@ -3969,6 +4021,15 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
             "fileSize",
             "run_id",
             "runId",
+            "data",
+            "fallback_method",
+            "fallbackMethod",
+            "time_format",
+            "timeFormat",
+            "relative_start_time",
+            "relativeStartTime",
+            "import_file_properties",
+            "importFileProperties",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3978,6 +4039,11 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
             StartTimeOverride,
             FileSize,
             RunId,
+            Data,
+            FallbackMethod,
+            TimeFormat,
+            RelativeStartTime,
+            ImportFileProperties,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4004,6 +4070,11 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                             "startTimeOverride" | "start_time_override" => Ok(GeneratedField::StartTimeOverride),
                             "fileSize" | "file_size" => Ok(GeneratedField::FileSize),
                             "runId" | "run_id" => Ok(GeneratedField::RunId),
+                            "data" => Ok(GeneratedField::Data),
+                            "fallbackMethod" | "fallback_method" => Ok(GeneratedField::FallbackMethod),
+                            "timeFormat" | "time_format" => Ok(GeneratedField::TimeFormat),
+                            "relativeStartTime" | "relative_start_time" => Ok(GeneratedField::RelativeStartTime),
+                            "importFileProperties" | "import_file_properties" => Ok(GeneratedField::ImportFileProperties),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4028,6 +4099,11 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                 let mut start_time_override__ = None;
                 let mut file_size__ = None;
                 let mut run_id__ = None;
+                let mut data__ = None;
+                let mut fallback_method__ = None;
+                let mut time_format__ = None;
+                let mut relative_start_time__ = None;
+                let mut import_file_properties__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetName => {
@@ -4062,6 +4138,36 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                             }
                             run_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Data => {
+                            if data__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("data"));
+                            }
+                            data__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FallbackMethod => {
+                            if fallback_method__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fallbackMethod"));
+                            }
+                            fallback_method__ = Some(map_.next_value::<TdmsFallbackMethod>()? as i32);
+                        }
+                        GeneratedField::TimeFormat => {
+                            if time_format__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timeFormat"));
+                            }
+                            time_format__ = map_.next_value::<::std::option::Option<TimeFormat>>()?.map(|x| x as i32);
+                        }
+                        GeneratedField::RelativeStartTime => {
+                            if relative_start_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("relativeStartTime"));
+                            }
+                            relative_start_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::ImportFileProperties => {
+                            if import_file_properties__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("importFileProperties"));
+                            }
+                            import_file_properties__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(TdmsConfig {
@@ -4070,10 +4176,346 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                     start_time_override: start_time_override__,
                     file_size: file_size__,
                     run_id: run_id__.unwrap_or_default(),
+                    data: data__.unwrap_or_default(),
+                    fallback_method: fallback_method__.unwrap_or_default(),
+                    time_format: time_format__,
+                    relative_start_time: relative_start_time__,
+                    import_file_properties: import_file_properties__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("sift.data_imports.v2.TDMSConfig", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for TdmsComplexComponent {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "TDMS_COMPLEX_COMPONENT_UNSPECIFIED",
+            Self::Real => "TDMS_COMPLEX_COMPONENT_REAL",
+            Self::Imaginary => "TDMS_COMPLEX_COMPONENT_IMAGINARY",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for TdmsComplexComponent {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "TDMS_COMPLEX_COMPONENT_UNSPECIFIED",
+            "TDMS_COMPLEX_COMPONENT_REAL",
+            "TDMS_COMPLEX_COMPONENT_IMAGINARY",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = TdmsComplexComponent;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "TDMS_COMPLEX_COMPONENT_UNSPECIFIED" => Ok(TdmsComplexComponent::Unspecified),
+                    "TDMS_COMPLEX_COMPONENT_REAL" => Ok(TdmsComplexComponent::Real),
+                    "TDMS_COMPLEX_COMPONENT_IMAGINARY" => Ok(TdmsComplexComponent::Imaginary),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for TdmsDataConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.group_name.is_empty() {
+            len += 1;
+        }
+        if !self.channel_name.is_empty() {
+            len += 1;
+        }
+        if self.channel_config.is_some() {
+            len += 1;
+        }
+        if self.time_channel_name.is_some() {
+            len += 1;
+        }
+        if self.scaled.is_some() {
+            len += 1;
+        }
+        if self.complex_component.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.TdmsDataConfig", len)?;
+        if !self.group_name.is_empty() {
+            struct_ser.serialize_field("groupName", &self.group_name)?;
+        }
+        if !self.channel_name.is_empty() {
+            struct_ser.serialize_field("channelName", &self.channel_name)?;
+        }
+        if let Some(v) = self.channel_config.as_ref() {
+            struct_ser.serialize_field("channelConfig", v)?;
+        }
+        if let Some(v) = self.time_channel_name.as_ref() {
+            struct_ser.serialize_field("timeChannelName", v)?;
+        }
+        if let Some(v) = self.scaled.as_ref() {
+            struct_ser.serialize_field("scaled", v)?;
+        }
+        if let Some(v) = self.complex_component.as_ref() {
+            let v = TdmsComplexComponent::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("complexComponent", &v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for TdmsDataConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "group_name",
+            "groupName",
+            "channel_name",
+            "channelName",
+            "channel_config",
+            "channelConfig",
+            "time_channel_name",
+            "timeChannelName",
+            "scaled",
+            "complex_component",
+            "complexComponent",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            GroupName,
+            ChannelName,
+            ChannelConfig,
+            TimeChannelName,
+            Scaled,
+            ComplexComponent,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "groupName" | "group_name" => Ok(GeneratedField::GroupName),
+                            "channelName" | "channel_name" => Ok(GeneratedField::ChannelName),
+                            "channelConfig" | "channel_config" => Ok(GeneratedField::ChannelConfig),
+                            "timeChannelName" | "time_channel_name" => Ok(GeneratedField::TimeChannelName),
+                            "scaled" => Ok(GeneratedField::Scaled),
+                            "complexComponent" | "complex_component" => Ok(GeneratedField::ComplexComponent),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = TdmsDataConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data_imports.v2.TdmsDataConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<TdmsDataConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut group_name__ = None;
+                let mut channel_name__ = None;
+                let mut channel_config__ = None;
+                let mut time_channel_name__ = None;
+                let mut scaled__ = None;
+                let mut complex_component__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::GroupName => {
+                            if group_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groupName"));
+                            }
+                            group_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChannelName => {
+                            if channel_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelName"));
+                            }
+                            channel_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChannelConfig => {
+                            if channel_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelConfig"));
+                            }
+                            channel_config__ = map_.next_value()?;
+                        }
+                        GeneratedField::TimeChannelName => {
+                            if time_channel_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timeChannelName"));
+                            }
+                            time_channel_name__ = map_.next_value()?;
+                        }
+                        GeneratedField::Scaled => {
+                            if scaled__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("scaled"));
+                            }
+                            scaled__ = map_.next_value()?;
+                        }
+                        GeneratedField::ComplexComponent => {
+                            if complex_component__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("complexComponent"));
+                            }
+                            complex_component__ = map_.next_value::<::std::option::Option<TdmsComplexComponent>>()?.map(|x| x as i32);
+                        }
+                    }
+                }
+                Ok(TdmsDataConfig {
+                    group_name: group_name__.unwrap_or_default(),
+                    channel_name: channel_name__.unwrap_or_default(),
+                    channel_config: channel_config__,
+                    time_channel_name: time_channel_name__,
+                    scaled: scaled__,
+                    complex_component: complex_component__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data_imports.v2.TdmsDataConfig", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for TdmsFallbackMethod {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "TDMS_FALLBACK_METHOD_UNSPECIFIED",
+            Self::FailOnError => "TDMS_FALLBACK_METHOD_FAIL_ON_ERROR",
+            Self::IgnoreError => "TDMS_FALLBACK_METHOD_IGNORE_ERROR",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for TdmsFallbackMethod {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "TDMS_FALLBACK_METHOD_UNSPECIFIED",
+            "TDMS_FALLBACK_METHOD_FAIL_ON_ERROR",
+            "TDMS_FALLBACK_METHOD_IGNORE_ERROR",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = TdmsFallbackMethod;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "TDMS_FALLBACK_METHOD_UNSPECIFIED" => Ok(TdmsFallbackMethod::Unspecified),
+                    "TDMS_FALLBACK_METHOD_FAIL_ON_ERROR" => Ok(TdmsFallbackMethod::FailOnError),
+                    "TDMS_FALLBACK_METHOD_IGNORE_ERROR" => Ok(TdmsFallbackMethod::IgnoreError),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for TimeFormat {

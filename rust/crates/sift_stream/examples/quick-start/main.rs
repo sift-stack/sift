@@ -1,7 +1,7 @@
 use sift_rs::metadata;
 use sift_stream::{
     ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowBuilder, FlowConfig,
-    IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder, TimeValue,
+    IngestionConfigForm, RunForm, SiftStreamBuilder, TimeValue,
 };
 use std::{
     env,
@@ -73,8 +73,8 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // Initialize your Sift Stream
     let mut sift_stream = SiftStreamBuilder::new(credentials)
         .ingestion_config(ingestion_config)
-        .recovery_strategy(RecoveryStrategy::default())
         .attach_run(run)
+        .live_with_backups()
         .build()
         .await?;
 
