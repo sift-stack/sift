@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
 import pytest
 
+from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
 
 if TYPE_CHECKING:
-    from sift_client.client import SiftClient
     from sift_client.util.test_results.context_manager import NewStep
 
 REPORT_CONTEXT: ReportContext | None = None
@@ -18,7 +19,8 @@ REPORT_CONTEXT: ReportContext | None = None
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register Sift-specific command-line options."""
-    parser.addoption(
+    group = parser.getgroup("sift", description="Sift test results")
+    group.addoption(
         "--sift-test-results-log-file",
         default=None,
         help="Path to write the Sift test result log file. "
@@ -26,7 +28,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "False, 'false', or 'none' to disable logging, "
         "or a file path to write to a specific location.",
     )
-    parser.addoption(
+    group.addoption(
         "--no-sift-test-results-git-metadata",
         action="store_false",
         dest="sift_test_results_git_metadata",
@@ -34,7 +36,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help="Exclude git metadata from the Sift test results. "
         "Git metadata (repo, branch, commit) is included by default.",
     )
-    parser.addoption(
+    group.addoption(
         "--sift-test-results-check-connection",
         action="store_true",
         default=False,
@@ -114,6 +116,24 @@ def _check_connection_enabled(pytestconfig: pytest.Config | None) -> bool:
 def _has_sift_connection(request: pytest.FixtureRequest) -> bool:
     """Resolve the `client_has_connection` fixture lazily; only called when the check is enabled."""
     return bool(request.getfixturevalue("client_has_connection"))
+
+
+@pytest.fixture(scope="session")
+def sift_client() -> SiftClient:
+    """Default ``SiftClient`` resolved from environment variables.
+
+    Reads ``SIFT_API_KEY``, ``SIFT_GRPC_URI``, and ``SIFT_REST_URI``. Projects
+    that need custom construction (TLS toggles, custom timeouts, etc.) can
+    override this fixture by defining their own ``sift_client`` in their
+    ``conftest.py``; pytest fixture resolution prefers the local definition.
+    """
+    return SiftClient(
+        connection_config=SiftConnectionConfig(
+            api_key=os.getenv("SIFT_API_KEY"),
+            grpc_url=os.getenv("SIFT_GRPC_URI"),
+            rest_url=os.getenv("SIFT_REST_URI"),
+        )
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
