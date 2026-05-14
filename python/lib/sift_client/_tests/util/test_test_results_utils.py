@@ -137,10 +137,25 @@ class TestContextManager:
         assert test_step.status == TestStatus.PASSED
 
     def test_measurement_update(self, report_context):
+        expected_description = "Round-trip check for the new fields on TestMeasurement."
+        expected_metadata = {
+            "ctx_test_serial": "SN-CTX-001",
+            "ctx_test_value": 42.5,
+            "ctx_test_pass": True,
+        }
+        expected_channel_names = ["temperature_celsius"]
+
         test_step = None
         with report_context.new_step("Test Measure", "Test Measure Description") as new_step:
             test_step = new_step.current_step
-            new_step.measure(name="Test Measurement", value=10, bounds={"min": 0, "max": 10})
+            new_step.measure(
+                name="Test Measurement",
+                value=10,
+                bounds={"min": 0, "max": 10},
+                description=expected_description,
+                metadata=expected_metadata,
+                channel_names=expected_channel_names,
+            )
             new_step.measure(name="Test Measurement 2", value="string value", bounds="string value")
             new_step.measure(name="Test Measurement 3", value=True, bounds="true")
 
@@ -149,6 +164,9 @@ class TestContextManager:
         assert measurements[0].name == "Test Measurement"
         assert measurements[0].numeric_value == 10
         assert measurements[0].measurement_type == TestMeasurementType.DOUBLE
+        assert measurements[0].description == expected_description
+        assert measurements[0].metadata == expected_metadata
+        assert measurements[0].channel_names == expected_channel_names
         assert measurements[1].name == "Test Measurement 2"
         assert measurements[1].string_value == "string value"
         assert measurements[1].measurement_type == TestMeasurementType.STRING
