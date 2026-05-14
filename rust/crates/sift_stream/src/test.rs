@@ -2,6 +2,7 @@ use crate::SiftChannel;
 use hyper_util::rt::TokioIo;
 use pbjson_types::Timestamp;
 use sift_connect::grpc::interceptor::AuthInterceptor;
+use sift_error::{Error, ErrorKind};
 use sift_rs::assets::v1::asset_service_server::{AssetService, AssetServiceServer};
 use sift_rs::assets::v1::{
     ArchiveAssetRequest, ArchiveAssetResponse, Asset, DeleteAssetRequest, DeleteAssetResponse,
@@ -51,15 +52,10 @@ impl PingService for MockPingService {
     }
 }
 
-pub(crate) enum FlowCreateError {
-    AlreadyExists,
-    Internal,
-}
-
 pub(crate) struct MockIngestionConfigService {
     existing_flows: Arc<Mutex<Vec<FlowConfig>>>,
     existing_ingestion_configs: Arc<Mutex<Vec<IngestionConfig>>>,
-    flow_create_error: Option<FlowCreateError>,
+    flow_create_error: Option<Error>,
     list_flows_call_count: Arc<AtomicUsize>,
     // Non-empty signals race-condition mode: returned on calls after the first.
     deferred_flows: Vec<FlowConfig>,
@@ -91,7 +87,7 @@ impl Default for MockIngestionConfigService {
 }
 
 impl MockIngestionConfigService {
-    pub(crate) fn with_flow_create_error(err: FlowCreateError) -> Self {
+    pub(crate) fn with_flow_create_error(err: Error) -> Self {
         let existing_flow = FlowConfig {
             name: "already_exists_flow".to_string(),
             channels: vec![ChannelConfig {
@@ -127,7 +123,10 @@ impl MockIngestionConfigService {
         Self {
             existing_flows: Arc::new(Mutex::new(vec![])),
             existing_ingestion_configs: Arc::new(Mutex::new(vec![existing_ingestion_config])),
-            flow_create_error: Some(FlowCreateError::AlreadyExists),
+            flow_create_error: Some(Error::new_msg(
+                sift_error::ErrorKind::AlreadyExistsError,
+                "already exists",
+            )),
             list_flows_call_count: Arc::new(AtomicUsize::new(0)),
             deferred_flows,
         }
@@ -203,11 +202,11 @@ impl IngestionConfigService for MockIngestionConfigService {
         request: Request<CreateIngestionConfigFlowsRequest>,
     ) -> Result<Response<CreateIngestionConfigFlowsResponse>, Status> {
         if let Some(err) = &self.flow_create_error {
-            return Err(match err {
-                FlowCreateError::AlreadyExists => {
+            return Err(match err.kind() {
+                ErrorKind::AlreadyExistsError => {
                     Status::already_exists("another instance already created this flow")
                 }
-                FlowCreateError::Internal => Status::internal("internal error creating flow"),
+                _ => Status::internal("internal error creating flow"),
             });
         }
 

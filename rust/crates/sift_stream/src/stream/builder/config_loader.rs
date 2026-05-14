@@ -241,8 +241,8 @@ pub async fn load_ingestion_config(
 mod tests {
     use super::*;
     use crate::test::{
-        FlowCreateError, MockIngestionConfigService,
-        create_mock_grpc_channel_with_ingestion_service, create_mock_grpc_channel_with_service,
+        MockIngestionConfigService, create_mock_grpc_channel_with_ingestion_service,
+        create_mock_grpc_channel_with_service,
     };
     use sift_rs::common::r#type::v1::ChannelDataType;
     use sift_rs::ingestion_configs::v2::ChannelConfig;
@@ -411,7 +411,9 @@ mod tests {
     // error, which should surface as CreateFlowError.
     #[tokio::test]
     async fn test_load_ingestion_config_flow_creation_failure_returns_error() {
-        let service = MockIngestionConfigService::with_flow_create_error(FlowCreateError::Internal);
+        let service = MockIngestionConfigService::with_flow_create_error(
+            sift_error::Error::new_msg(sift_error::ErrorKind::IoError, "io error"),
+        );
         let (grpc_channel, _) = create_mock_grpc_channel_with_ingestion_service(service).await;
 
         // brand_new_flow is not in the mock's existing flows, so it is queued for creation.
