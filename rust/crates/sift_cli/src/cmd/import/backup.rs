@@ -208,14 +208,10 @@ async fn process_backup_file(
         "Streaming".green()
     ));
 
-    let message_stream = tokio_stream::iter(messages.into_iter()).map(move |msg| {
+    let message_stream = tokio_stream::iter(messages).map(move |msg| {
         let current = streamed_count_clone.fetch_add(1, Ordering::Relaxed) + 1;
 
-        let percentage = if total_messages > 0 {
-            (current * 100) / total_messages
-        } else {
-            0
-        };
+        let percentage = (current * 100).checked_div(total_messages).unwrap_or(0);
         spinner_clone.set_message(format!(
             "{spinner_prefix_clone} - {} ({percentage}% - {current}/{total_messages} messages)",
             "Streaming".green()

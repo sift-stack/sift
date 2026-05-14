@@ -80,7 +80,7 @@ pub async fn filter_channels(grpc_channel: SiftChannel, filter: &str) -> Result<
             .context("failed to query channels")?
             .into_inner();
 
-        query_result.extend(channels.into_iter());
+        query_result.extend(channels);
 
         if next_page_token.is_empty() {
             break;

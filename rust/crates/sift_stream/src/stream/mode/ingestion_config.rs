@@ -1,5 +1,6 @@
 use crate::FlowBuilder;
 use crate::metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot};
+use crate::stream::flow::add_new_flows;
 use crate::stream::{Encodeable, Encoder, MetricsSnapshot};
 use crate::stream::{
     channel::ChannelValue,
@@ -14,10 +15,6 @@ use prost::Message;
 use sift_error::prelude::*;
 use sift_rs::SiftChannel;
 use sift_rs::ingestion_configs::v2::FlowConfig;
-use sift_rs::retry::{RetryConfig, RetryExt};
-use sift_rs::wrappers::ingestion_configs::{
-    IngestionConfigServiceWrapper, new_ingestion_config_service,
-};
 use sift_rs::{
     ingest::v1::IngestWithConfigDataStreamRequest, ingestion_configs::v2::IngestionConfig,
     runs::v2::Run,
@@ -61,54 +58,24 @@ impl IngestionConfigEncoder {
 
     /// Modify the existing ingestion config by adding new flows that weren't accounted for during
     /// initialization. This will register the flows with Sift.
+    ///
+    /// [`ErrorKind::AlreadyExistsError`] from any flow creation is treated as success: a
+    /// concurrent SiftStream instance may have won the race to create that flow.
     pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
-        // Filter out flows that already exist.
-        let filtered = flow_configs
+        let filtered: Vec<&FlowConfig> = flow_configs
             .iter()
             .filter(|f| !self.flows_by_name.contains_key(&f.name))
-            .collect::<Vec<_>>();
+            .collect();
 
-        // If no new flows are provided, return early.
         if filtered.is_empty() {
             return Ok(());
         }
 
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            ingestion_config_id = self.ingestion_config_id(),
-            new_flows = filtered
-                .iter()
-                .map(|f| f.name.as_str())
-                .collect::<Vec<&str>>()
-                .join(","),
-            "adding new flows to ingestion config"
-        );
+        // Clone to produce owned copies for the spawned tasks; refs are kept for result processing.
+        let owned: Vec<FlowConfig> = filtered.iter().map(|&f| f.clone()).collect();
 
-        let mut calls = Vec::with_capacity(filtered.len());
-        let create_flows = filtered.into_iter().cloned().collect::<Vec<FlowConfig>>();
-        let ingestion_config_id = self.ingestion_config_id().to_string();
-
-        for flow_config in create_flows.iter() {
-            let channel = self.grpc_channel.clone();
-            let config_id = ingestion_config_id.clone();
-            let flow_config = flow_config.clone();
-
-            calls.push(tokio::spawn(async move {
-                let wrapper = new_ingestion_config_service(channel);
-                let retrying = wrapper.retrying(RetryConfig::default());
-                retrying
-                    .call(|mut w| {
-                        let config_id = config_id.clone();
-                        let flow_config = flow_config.clone();
-                        async move { w.try_create_flows(&config_id, vec![flow_config]).await }
-                    })
-                    .await
-                    .context("SiftStream::add_new_flows")
-            }));
-        }
-
-        // Wait for all the gRPC calls to complete.
-        let results = futures::future::join_all(calls).await;
+        let results =
+            add_new_flows(self.grpc_channel.clone(), self.ingestion_config_id(), owned).await;
 
         let mut add_config = |config: &FlowConfig| -> Result<()> {
             let flow_name = config.name.clone();
@@ -121,8 +88,7 @@ impl IngestionConfigEncoder {
             Ok(())
         };
 
-        // Iterate over the results and update the flow cache for the successfully created flows.
-        for (config, result) in create_flows.iter().zip(results.into_iter()) {
+        for (config, result) in filtered.into_iter().zip(results) {
             match result {
                 Ok(Ok(())) => {
                     add_config(config)?;
@@ -132,11 +98,11 @@ impl IngestionConfigEncoder {
                 }
                 Ok(Err(e)) => {
                     #[cfg(feature = "tracing")]
-                    tracing::error!("failed to create flow {}: {e}", config.name,);
+                    tracing::error!("failed to create flow {}: {e}", config.name);
                 }
                 Err(e) => {
                     #[cfg(feature = "tracing")]
-                    tracing::error!("failed to create flow {}: {e}", config.name,);
+                    tracing::error!("failed to create flow {}: {e}", config.name);
                 }
             }
         }

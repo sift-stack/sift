@@ -8,6 +8,11 @@ use sift_rs::ingest::v1::{
     IngestWithConfigDataStreamRequest, ingest_with_config_data_channel_value::Type,
 };
 use sift_rs::ingestion_configs::v2::FlowConfig;
+use sift_rs::wrappers::ingestion_configs::{
+    IngestionConfigServiceWrapper, new_ingestion_config_service,
+};
+use sift_rs::{RetryConfig, RetryExt, SiftChannel};
+use tokio::task::JoinError;
 
 use crate::{TimeValue, Value};
 
@@ -332,4 +337,50 @@ pub(crate) fn validate_flows(
         }
     }
     Ok(())
+}
+
+/// Concurrently creates flows for the given ingestion config.
+///
+/// Takes ownership of `flow_configs` so each can be moved directly into its spawned task
+/// without an intermediate clone. The per-retry clone inside each task is unavoidable.
+/// Errors are returned per-flow so callers can handle them individually, including treating
+/// [`ErrorKind::AlreadyExistsError`] as a success when a concurrent instance races to create
+/// the same flow.
+pub(crate) async fn add_new_flows(
+    grpc_channel: SiftChannel,
+    ingestion_config_id: &str,
+    flow_configs: Vec<FlowConfig>,
+) -> Vec<std::result::Result<Result<()>, JoinError>> {
+    #[cfg(feature = "tracing")]
+    tracing::info!(
+        ingestion_config_id =? ingestion_config_id,
+        new_flows = flow_configs
+            .iter()
+            .map(|f| f.name.as_str())
+            .collect::<Vec<&str>>()
+            .join(","),
+        "adding new flows to ingestion config"
+    );
+
+    let mut calls = Vec::with_capacity(flow_configs.len());
+
+    for flow_config in flow_configs {
+        let channel = grpc_channel.clone();
+        let config_id = ingestion_config_id.to_string();
+
+        calls.push(tokio::spawn(async move {
+            let wrapper = new_ingestion_config_service(channel);
+            let retrying = wrapper.retrying(RetryConfig::default());
+            retrying
+                .call(|mut w| {
+                    let config_id = config_id.clone();
+                    let flow_config = flow_config.clone();
+                    async move { w.try_create_flows(&config_id, vec![flow_config]).await }
+                })
+                .await
+                .context("SiftStream::add_new_flows")
+        }));
+    }
+
+    futures::future::join_all(calls).await
 }

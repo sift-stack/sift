@@ -145,7 +145,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
                         counter += 1;
 
                         // Print status every 10 messages
-                        if counter % 10 == 0 {
+                        if counter.is_multiple_of(10) {
                             println!("Sent {} messages.", counter);
                         }
                     }

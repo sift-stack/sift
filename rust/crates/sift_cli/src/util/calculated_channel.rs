@@ -44,7 +44,7 @@ pub async fn filter_calculated_channels(
             .context("failed to query calculated channels")?
             .into_inner();
 
-        query_result.extend(calculated_channels.into_iter());
+        query_result.extend(calculated_channels);
 
         if next_page_token.is_empty() {
             break;

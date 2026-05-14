@@ -2,6 +2,7 @@ use crate::SiftChannel;
 use hyper_util::rt::TokioIo;
 use pbjson_types::Timestamp;
 use sift_connect::grpc::interceptor::AuthInterceptor;
+use sift_error::{Error, ErrorKind};
 use sift_rs::assets::v1::asset_service_server::{AssetService, AssetServiceServer};
 use sift_rs::assets::v1::{
     ArchiveAssetRequest, ArchiveAssetResponse, Asset, DeleteAssetRequest, DeleteAssetResponse,
@@ -54,6 +55,10 @@ impl PingService for MockPingService {
 pub(crate) struct MockIngestionConfigService {
     existing_flows: Arc<Mutex<Vec<FlowConfig>>>,
     existing_ingestion_configs: Arc<Mutex<Vec<IngestionConfig>>>,
+    flow_create_error: Option<Error>,
+    list_flows_call_count: Arc<AtomicUsize>,
+    // Non-empty signals race-condition mode: returned on calls after the first.
+    deferred_flows: Vec<FlowConfig>,
 }
 
 impl Default for MockIngestionConfigService {
@@ -74,6 +79,56 @@ impl Default for MockIngestionConfigService {
         Self {
             existing_flows: Arc::new(Mutex::new(vec![existing_flow])),
             existing_ingestion_configs: Arc::new(Mutex::new(vec![existing_ingestion_config])),
+            flow_create_error: None,
+            list_flows_call_count: Arc::new(AtomicUsize::new(0)),
+            deferred_flows: vec![],
+        }
+    }
+}
+
+impl MockIngestionConfigService {
+    pub(crate) fn with_flow_create_error(err: Error) -> Self {
+        let existing_flow = FlowConfig {
+            name: "already_exists_flow".to_string(),
+            channels: vec![ChannelConfig {
+                name: "channel1".to_string(),
+                data_type: ChannelDataType::Double.into(),
+                ..Default::default()
+            }],
+        };
+        let existing_ingestion_config = IngestionConfig {
+            ingestion_config_id: Uuid::new_v4().to_string(),
+            asset_id: "already_exists_asset".to_string(),
+            client_key: "already_exists_client_key".to_string(),
+        };
+        Self {
+            existing_flows: Arc::new(Mutex::new(vec![existing_flow])),
+            existing_ingestion_configs: Arc::new(Mutex::new(vec![existing_ingestion_config])),
+            flow_create_error: Some(err),
+            list_flows_call_count: Arc::new(AtomicUsize::new(0)),
+            deferred_flows: vec![],
+        }
+    }
+
+    // Simulates the TOCTOU race where another SiftStream instance creates the flows
+    // between our initial list check and our create attempt. The first list_flows call
+    // returns empty; create_flows returns AlreadyExists; subsequent list_flows calls
+    // return `deferred_flows` so validation passes.
+    pub(crate) fn with_race_condition(deferred_flows: Vec<FlowConfig>) -> Self {
+        let existing_ingestion_config = IngestionConfig {
+            ingestion_config_id: Uuid::new_v4().to_string(),
+            asset_id: "already_exists_asset".to_string(),
+            client_key: "already_exists_client_key".to_string(),
+        };
+        Self {
+            existing_flows: Arc::new(Mutex::new(vec![])),
+            existing_ingestion_configs: Arc::new(Mutex::new(vec![existing_ingestion_config])),
+            flow_create_error: Some(Error::new_msg(
+                sift_error::ErrorKind::AlreadyExistsError,
+                "already exists",
+            )),
+            list_flows_call_count: Arc::new(AtomicUsize::new(0)),
+            deferred_flows,
         }
     }
 }
@@ -146,6 +201,15 @@ impl IngestionConfigService for MockIngestionConfigService {
         &self,
         request: Request<CreateIngestionConfigFlowsRequest>,
     ) -> Result<Response<CreateIngestionConfigFlowsResponse>, Status> {
+        if let Some(err) = &self.flow_create_error {
+            return Err(match err.kind() {
+                ErrorKind::AlreadyExistsError => {
+                    Status::already_exists("another instance already created this flow")
+                }
+                _ => Status::internal("internal error creating flow"),
+            });
+        }
+
         let create_flows = request.into_inner();
 
         let mut existing_flows = self.existing_flows.lock().unwrap();
@@ -163,10 +227,21 @@ impl IngestionConfigService for MockIngestionConfigService {
         &self,
         request: Request<ListIngestionConfigFlowsRequest>,
     ) -> Result<Response<ListIngestionConfigFlowsResponse>, Status> {
+        let count = self.list_flows_call_count.fetch_add(1, Ordering::Relaxed);
+
+        // Race-condition mode: after the first call (which returns nothing, making
+        // the caller believe the flows don't exist), return the deferred flows so
+        // that the post-creation validation pass succeeds.
+        if count > 0 && !self.deferred_flows.is_empty() {
+            return Ok(Response::new(ListIngestionConfigFlowsResponse {
+                flows: self.deferred_flows.clone(),
+                next_page_token: "".to_string(),
+            }));
+        }
+
         let list_flows: ListIngestionConfigFlowsRequest = request.into_inner();
         let existing_flows = self.existing_flows.lock().unwrap();
 
-        // If the filter contains "already_exists_flow" or is empty, return the existing flow.
         let mut flows = Vec::new();
         for flow in existing_flows.iter() {
             if list_flows.filter.is_empty() || list_flows.filter.contains(&flow.name) {
@@ -372,6 +447,54 @@ impl IngestService for MockIngestService {
     {
         Err(Status::unimplemented("Not implemented for test"))
     }
+}
+
+pub(crate) async fn create_mock_grpc_channel_with_ingestion_service(
+    ingestion_service: MockIngestionConfigService,
+) -> (SiftChannel, MockIngestService) {
+    let mock_ingest_service = MockIngestService::new();
+    let mock_ingest_service_clone = mock_ingest_service.clone();
+
+    let (client, server) = tokio::io::duplex(1024);
+
+    tokio::spawn(async move {
+        Server::builder()
+            .add_service(IngestServiceServer::new(mock_ingest_service_clone))
+            .add_service(PingServiceServer::new(MockPingService))
+            .add_service(IngestionConfigServiceServer::new(ingestion_service))
+            .add_service(AssetServiceServer::new(MockAssetService))
+            .add_service(RunServiceServer::new(MockRunService))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    let mut client = Some(client);
+    let channel = Endpoint::try_from("http://[::]:50051")
+        .unwrap()
+        .connect_with_connector(service_fn(move |_: Uri| {
+            let client = client.take();
+
+            async move {
+                if let Some(client) = client {
+                    Ok(TokioIo::new(client))
+                } else {
+                    Err(std::io::Error::other("Client already taken"))
+                }
+            }
+        }))
+        .await
+        .unwrap();
+
+    let sift_channel = ServiceBuilder::new()
+        .layer(tonic::service::interceptor::InterceptorLayer::new(
+            AuthInterceptor {
+                apikey: "test-api-key".to_string(),
+            },
+        ))
+        .service(channel);
+
+    (sift_channel, mock_ingest_service)
 }
 
 pub(crate) async fn create_mock_grpc_channel_with_service() -> (SiftChannel, MockIngestService) {

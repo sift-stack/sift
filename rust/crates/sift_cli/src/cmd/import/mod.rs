@@ -146,7 +146,7 @@ fn preview_import_config(asset: &str, run: &str, channel_configs: &[&ChannelConf
             for enum_conf in &conf.enum_types {
                 enum_confs.push((enum_conf.key, &enum_conf.name));
             }
-            enum_confs.sort_by(|(k_a, _), (k_b, _)| k_a.cmp(k_b));
+            enum_confs.sort_by_key(|(k_a, _)| *k_a);
 
             for (k, v) in enum_confs {
                 configs.line(format!("{INDENT_3}{k} => {v}"));
@@ -162,7 +162,7 @@ fn preview_import_config(asset: &str, run: &str, channel_configs: &[&ChannelConf
             for el in &conf.bit_field_elements {
                 bit_field_elements.push((el.index, el.bit_count, &el.name));
             }
-            bit_field_elements.sort_by(|(k_a, _, _), (k_b, _, _)| k_a.cmp(k_b));
+            bit_field_elements.sort_by_key(|(k_a, _, _)| *k_a);
 
             for (idx, length, name) in bit_field_elements {
                 configs
