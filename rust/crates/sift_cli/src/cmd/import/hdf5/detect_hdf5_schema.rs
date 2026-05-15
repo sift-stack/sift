@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
-use hdf5::types::{FloatSize, IntSize, TypeDescriptor};
+use hdf5::types::{FloatSize, IntSize, TypeDescriptor, VarLenAscii, VarLenUnicode};
 use hdf5::{Dataset, File};
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
@@ -15,6 +15,17 @@ const TIME_NAMES: &[&str] = &["time", "timestamp", "timestamps", "ts"];
 pub(super) fn is_time_dataset_name(name: &str) -> bool {
     let trimmed = name.trim_start_matches('/').to_ascii_lowercase();
     TIME_NAMES.iter().any(|n| *n == trimmed)
+}
+
+fn get_string_attr(ds: &Dataset, name: &str) -> Option<String> {
+    let attr = ds.attr(name).ok()?;
+    if let Ok(s) = attr.read_scalar::<VarLenUnicode>() {
+        return Some(s.to_string());
+    }
+    if let Ok(s) = attr.read_scalar::<VarLenAscii>() {
+        return Some(s.to_string());
+    }
+    None
 }
 
 /// Supported HDF5 channel types. Anything outside this set is rejected with a
@@ -145,9 +156,16 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
             ));
         };
 
+        let units = get_string_attr(ds, "units").unwrap_or_default();
+        let description = get_string_attr(ds, "long_name")
+            .or_else(|| get_string_attr(ds, "description"))
+            .unwrap_or_default();
+
         let channel_config = ChannelConfig {
             name: name.trim_start_matches('/').to_string(),
             data_type: channel_type as i32,
+            units,
+            description,
             ..Default::default()
         };
 
