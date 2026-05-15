@@ -218,33 +218,9 @@ fn hdf5_to_sift_data_type_maps_float_u8() {
 }
 
 #[test]
-fn hdf5_to_sift_data_type_maps_var_len_unicode() {
-    assert_eq!(
-        hdf5_to_sift_data_type(&TypeDescriptor::VarLenUnicode),
-        Some(ChannelDataType::String)
-    );
-}
-
-#[test]
-fn hdf5_to_sift_data_type_maps_var_len_ascii() {
-    assert_eq!(
-        hdf5_to_sift_data_type(&TypeDescriptor::VarLenAscii),
-        Some(ChannelDataType::String)
-    );
-}
-
-#[test]
-fn hdf5_to_sift_data_type_maps_fixed_ascii() {
-    assert_eq!(
-        hdf5_to_sift_data_type(&TypeDescriptor::FixedAscii(16)),
-        Some(ChannelDataType::String)
-    );
-}
-
-#[test]
-fn hdf5_to_sift_data_type_maps_fixed_unicode() {
-    assert_eq!(
-        hdf5_to_sift_data_type(&TypeDescriptor::FixedUnicode(16)),
-        Some(ChannelDataType::String)
-    );
+fn hdf5_to_sift_data_type_rejects_strings() {
+    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::VarLenUnicode), None);
+    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::VarLenAscii), None);
+    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::FixedAscii(16)), None);
+    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::FixedUnicode(16)), None);
 }

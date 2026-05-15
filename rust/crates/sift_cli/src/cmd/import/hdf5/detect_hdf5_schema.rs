@@ -17,6 +17,11 @@ pub(super) fn is_time_dataset_name(name: &str) -> bool {
     TIME_NAMES.iter().any(|n| *n == trimmed)
 }
 
+/// Supported HDF5 channel types. Anything outside this set is rejected with a
+/// client-side error so users get clear feedback before upload.
+pub(super) const SUPPORTED_TYPES_BLURB: &str =
+    "bool, int8/16/32/64, uint8/16/32/64, float32, float64";
+
 pub(super) fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
     match ty {
         TypeDescriptor::Boolean => Some(ChannelDataType::Bool),
@@ -30,15 +35,7 @@ pub(super) fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataT
         TypeDescriptor::Unsigned(IntSize::U8) => Some(ChannelDataType::Uint64),
         TypeDescriptor::Float(FloatSize::U4) => Some(ChannelDataType::Float),
         TypeDescriptor::Float(FloatSize::U8) => Some(ChannelDataType::Double),
-        TypeDescriptor::FixedAscii(_)
-        | TypeDescriptor::FixedUnicode(_)
-        | TypeDescriptor::VarLenAscii
-        | TypeDescriptor::VarLenUnicode => Some(ChannelDataType::String),
-        TypeDescriptor::Enum(_) => Some(ChannelDataType::Int32),
-        TypeDescriptor::Compound(_)
-        | TypeDescriptor::FixedArray(_, _)
-        | TypeDescriptor::VarLenArray(_)
-        | TypeDescriptor::Reference(_) => None,
+        _ => None,
     }
 }
 
@@ -142,7 +139,10 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
             .to_descriptor()
             .map_err(|e| anyhow!("failed to describe dtype for {name}: {e}"))?;
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
-            continue;
+            return Err(anyhow!(
+                "unsupported HDF5 type for dataset {name}: {dtype:?}. \
+                 Supported types: {SUPPORTED_TYPES_BLURB}."
+            ));
         };
 
         let channel_config = ChannelConfig {
@@ -192,7 +192,10 @@ fn detect_two_d(
             .to_descriptor()
             .map_err(|e| anyhow!("failed to describe dtype for {name}: {e}"))?;
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
-            continue;
+            return Err(anyhow!(
+                "unsupported HDF5 type for dataset {name}: {dtype:?}. \
+                 Supported types: {SUPPORTED_TYPES_BLURB}."
+            ));
         };
 
         for col in 0..n_cols {
@@ -266,7 +269,13 @@ fn detect_compound(
                 continue;
             }
             let Some(channel_type) = hdf5_to_sift_data_type(&field.ty) else {
-                continue;
+                return Err(anyhow!(
+                    "unsupported HDF5 type for field {}.{}: {:?}. \
+                     Supported types: {SUPPORTED_TYPES_BLURB}.",
+                    name,
+                    field.name,
+                    field.ty
+                ));
             };
             let channel_name = format!("{}.{}", name.trim_start_matches('/'), field.name);
             let channel_config = ChannelConfig {
