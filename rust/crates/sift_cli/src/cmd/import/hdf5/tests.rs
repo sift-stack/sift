@@ -221,6 +221,12 @@ fn hdf5_to_sift_data_type_maps_float_u8() {
 fn hdf5_to_sift_data_type_rejects_strings() {
     assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::VarLenUnicode), None);
     assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::VarLenAscii), None);
-    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::FixedAscii(16)), None);
-    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::FixedUnicode(16)), None);
+    assert_eq!(
+        hdf5_to_sift_data_type(&TypeDescriptor::FixedAscii(16)),
+        None
+    );
+    assert_eq!(
+        hdf5_to_sift_data_type(&TypeDescriptor::FixedUnicode(16)),
+        None
+    );
 }
