@@ -49,78 +49,48 @@ def main(self):
     cleanup()
 ```
 
-## Pytest Fixtures
+## Pytest Plugin
 
-The report context and steps can also be accessed in pytest by importing the `report_context` and `step` fixtures.
+The pytest plugin lives at `sift_client.pytest_plugin`. Opt in
+from your `conftest.py`:
 
-### How to use:
-- These fixtures are set to autouse and will automatically create a report and steps for each test function.
-  - If you want each module(file) to be marked as a step w/ each test as a substep, import the `module_substep` fixture as well.
-- The `report_context` fixture requires a fixture `sift_client` returning an `SiftClient` instance to be passed in.
+```python
+# conftest.py
+pytest_plugins = ["sift_client.pytest_plugin"]
+```
 
-Note: FedRAMP users: report_context will log test results to a temp file to avoid API calls during test execution. If this is a shared environment, you can disable logging by passing ``--sift-test-results-log-file=false``.
+The plugin ships an autouse session-scoped `report_context` fixture (one
+`TestReport` per session), an autouse function-scoped `step` fixture, and an
+optional `module_substep` fixture. It also registers a default `sift_client`
+fixture that reads `SIFT_API_KEY`, `SIFT_GRPC_URI`, and `SIFT_REST_URI` from
+the environment. Override it by defining your own `sift_client` fixture in
+your conftest.
+
+Note: FedRAMP users: `report_context` defaults to writing a temp log file and
+deferring uploads through an `import-test-result-log` worker. In shared
+environments, pass `--no-sift-log-file` to skip the file and run create/update
+calls inline against the API.
 
 #### Configuration
 
-Import the `pytest_addoption` function to add configuration options for Test Results to the commandline or add the options to your pyproject.toml file (https://docs.pytest.org/en/stable/reference/customize.html#configuration). If ommitted, will use the default values described below.
+CLI options registered by the plugin:
 
-- Git metadata: Include git metadata (repo, branch, commit) in the test results. Default is True. You can disable it by passing `--no-sift-test-results-git-metadata`.
-- Log file: Write test results to a file. This happens automatically but you can configure specify a specific log file by passing `--sift-test-results-log-file=<path>` or disable logging by passing `--sift-test-results-log-file=false`.
-- Check connection: Pass `--sift-test-results-check-connection` (off by default) to make the `report_context`, `step`, and `module_substep` fixtures no-op when the Sift client has no connection to the server. Requires a `client_has_connection` fixture to be available.
+- `--sift-offline`: Run without contacting Sift. All create/update calls are
+  written to a JSONL log file for later replay. No session-start ping is made.
+- `--sift-log-file=<path>`: Path to write the JSONL log file. Defaults to a
+  temp file with its path logged at session start.
+- `--no-sift-log-file`: Disable the JSONL log file (online mode only).
+- `--sift-no-git-metadata`: Exclude git metadata from the report.
 
-###### Example at top of your test file or in your conftest.py file:
-
-```python
-import pytest
-
-@pytest.fixture(scope="session")
-def sift_client() -> SiftClient:
-    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
-    rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
-    api_key = os.getenv("SIFT_API_KEY", "")
-
-    client = SiftClient(api_key=api_key, grpc_url=grpc_url, rest_url=rest_url)
-
-    return client
-
-from sift_client.util.test_results import *
-```
-
-###### Then in your test file:
-
-```python
-# Because step was already imported and set autouse=True, this test will automatically get a step created for it.
-def test_no_includes():
-    assert condition, "Example failure"
-
-# Passing the fixtures to the test function allows you to take measurements or create substeps.
-def test_example(report_context, step):
-    # This will add a measurement to the current step for this function
-    step.measure(name="Example Measurement", value=test_string_value, bounds="expected_string_value")
-
-    with report_context.new_step(name="Example Step") as substep:
-        example_measurement = tlm.read(channel_name)
-        substep.measure(name="Substep Measurement", value=example_measurement, bounds=(min=74.9, max=75.1))
-```
+To disable the plugin for a single run: `pytest -p no:sift_client.pytest_plugin`.
+To keep test code working with the plugin disabled, wire in
+`sift_client.pytest_plugin_noop` instead — it ships matching fixture names
+whose `measure*` calls evaluate bounds locally without contacting Sift.
 """
 
 from .context_manager import NewStep, ReportContext
-from .pytest_util import (
-    client_has_connection,
-    module_substep,
-    pytest_addoption,
-    pytest_runtest_makereport,
-    report_context,
-    step,
-)
 
 __all__ = [
     "NewStep",
     "ReportContext",
-    "client_has_connection",
-    "module_substep",
-    "pytest_addoption",
-    "pytest_runtest_makereport",
-    "report_context",
-    "step",
 ]

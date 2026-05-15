@@ -8,6 +8,25 @@ import pytest
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.util.util import AsyncAPIs
 
+pytest_plugins = ["sift_client.pytest_plugin"]
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Pick a sensible plugin mode based on whether integration tests are being run.
+
+    Without ``-m integration`` (the default), force offline mode so the autouse
+    plugin fixtures construct cleanly without contacting Sift. Integration runs
+    that target a real backend stay in online mode with the log file disabled.
+    """
+    is_integration_run = "integration" in (config.option.markexpr or "")
+    have_real_backend = all(
+        os.getenv(name) for name in ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI")
+    )
+    if is_integration_run and have_real_backend:
+        config.option.no_sift_log_file = True
+    else:
+        config.option.sift_offline = True
+
 
 @pytest.fixture(scope="session")
 def sift_client() -> SiftClient:
@@ -78,10 +97,3 @@ def ci_pytest_tag(sift_client):
     return tag
 
 
-# Import the Sift test results fixtures the way we recommend to users.
-from sift_client.util.test_results import *  # noqa: F403
-
-
-def pytest_configure(config: pytest.Config) -> None:
-    """Enable the Sift connection-check mode for the fixtures used in this test suite since we run w/ mock client in non-integration tests."""
-    config.option.sift_test_results_check_connection = True

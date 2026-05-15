@@ -1,5 +1,8 @@
 # ensure generated pyproject.toml extras are up-to-date
 
+# Clear git env vars set by the parent hook so git commands resolve the work tree normally
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+
 # Store the root directory of the repository
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 PYTHON_DIR="$REPO_ROOT/python"

@@ -118,6 +118,7 @@ class ReportContext(AbstractContextManager):
         test_case: str | None = None,
         log_file: str | Path | bool | None = None,
         include_git_metadata: bool = False,
+        offline: bool = False,
     ):
         """Initialize a new report context.
 
@@ -130,15 +131,18 @@ class ReportContext(AbstractContextManager):
             log_file: If True, create a temp log file. If a path, use that path.
                 All create/update operations will be logged to this file.
             include_git_metadata: If True, include git metadata in the report.
+            offline: If True, do not spawn the import-test-result-log replay subprocess.
+                A log file is required and will be created as a temp file if not provided.
         """
         self.client = client
+        self.offline = offline
         self.step_is_open = False
         self.step_stack = []
         self.step_number_at_depth = {}
         self.open_step_results = {}
         self.any_failures = False
 
-        if log_file is True:
+        if log_file is True or (offline and not log_file):
             tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
             self.log_file = Path(tmp.name)
             logger.info(f"Created temporary log file: {self.log_file}")
@@ -184,7 +188,7 @@ class ReportContext(AbstractContextManager):
             )
 
     def __enter__(self):
-        if self.log_file:
+        if self.log_file and not self.offline:
             self._open_import_proc()
         return self
 
