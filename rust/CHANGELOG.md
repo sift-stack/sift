@@ -3,6 +3,19 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.1] - May 15, 2026
+### Bug Fixes
+
+#### Race condition when creating ingestion configs (PR [#562](https://github.com/sift-stack/sift/pull/562))
+
+`SiftStream` now attempts to create the ingestion config first and treats an `AlreadyExists` response
+as a successful lookup rather than an error. Previously, the logic fetched first and created on
+`NotFound`, which left a window where two processes starting simultaneously could both receive
+`NotFound` and then have one fail with `AlreadyExists`. The new approach also adds concurrent
+flow creation so that new flows added to an existing ingestion config are created in parallel.
+
+---
+
 ## [v0.9.0] - April 22, 2026
 ### What's New
 
