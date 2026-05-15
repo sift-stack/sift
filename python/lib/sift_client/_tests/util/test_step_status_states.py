@@ -286,9 +286,7 @@ def test_pytest_skip_in_body_maps_to_skipped(inner):
     assert outer is not None
     assert outer.statuses[-1] == TestStatus.SKIPPED
     duplicates = [s for s in capture.steps_by_name("test_x") if s is not outer]
-    assert not duplicates, (
-        f"expected no duplicate nested step; got {len(duplicates)}"
-    )
+    assert not duplicates, f"expected no duplicate nested step; got {len(duplicates)}"
 
 
 def test_pytest_mark_skip_records_skipped(inner):
@@ -344,9 +342,7 @@ def test_skip_inside_fixture_setup(inner):
     assert outer is not None
     assert outer.statuses[-1] == TestStatus.SKIPPED
     duplicates = [s for s in capture.steps_by_name("test_x") if s is not outer]
-    assert not duplicates, (
-        f"expected no duplicate nested step; got {len(duplicates)}"
-    )
+    assert not duplicates, f"expected no duplicate nested step; got {len(duplicates)}"
 
 
 # ---------------------------------------------------------------------------
@@ -371,9 +367,7 @@ def test_xfail_marked_test_that_fails(inner):
     assert outer is not None
     assert outer.statuses[-1] == TestStatus.PASSED
     duplicates = [s for s in capture.steps_by_name("test_x") if s is not outer]
-    assert not duplicates, (
-        f"expected no duplicate nested step; got {len(duplicates)}"
-    )
+    assert not duplicates, f"expected no duplicate nested step; got {len(duplicates)}"
 
 
 def test_xfail_strict_unexpected_pass(inner):
