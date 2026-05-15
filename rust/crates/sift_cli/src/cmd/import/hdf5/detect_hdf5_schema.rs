@@ -53,11 +53,76 @@ pub(super) fn detect_config(
         .datasets()
         .map_err(|e| anyhow!("failed to enumerate datasets: {e}"))?;
 
-    match schema {
+    let result = match schema {
         Hdf5Schema::OneD => detect_one_d(&datasets),
         Hdf5Schema::TwoD => detect_two_d(&datasets, time_index),
         Hdf5Schema::Compound => detect_compound(&datasets, time_index, time_field),
+    };
+
+    match result {
+        Ok((data, _)) if data.is_empty() => {
+            Err(no_match_error(&datasets, schema, time_index, time_field))
+        }
+        Ok(other) => Ok(other),
+        Err(e) => Err(e),
     }
+}
+
+fn no_match_error(
+    datasets: &[Dataset],
+    selected: Hdf5Schema,
+    time_index: u64,
+    time_field: Option<&str>,
+) -> anyhow::Error {
+    let alternatives: &[(Hdf5Schema, &str)] = &[
+        (Hdf5Schema::OneD, "one-d"),
+        (Hdf5Schema::TwoD, "two-d"),
+        (Hdf5Schema::Compound, "compound"),
+    ];
+
+    let suggestions: Vec<&str> = alternatives
+        .iter()
+        .filter(|(s, _)| !same_schema(s, &selected))
+        .filter_map(|(s, name)| {
+            let probe = match s {
+                Hdf5Schema::OneD => detect_one_d(datasets),
+                Hdf5Schema::TwoD => detect_two_d(datasets, time_index),
+                Hdf5Schema::Compound => detect_compound(datasets, time_index, time_field),
+            };
+            match probe {
+                Ok((data, _)) if !data.is_empty() => Some(*name),
+                _ => None,
+            }
+        })
+        .collect();
+
+    let selected_label = match selected {
+        Hdf5Schema::OneD => "one-d",
+        Hdf5Schema::TwoD => "two-d",
+        Hdf5Schema::Compound => "compound",
+    };
+
+    if suggestions.is_empty() {
+        anyhow!(
+            "no datasets matched --schema {selected_label}. \
+             Verify the file contains data matching the selected schema."
+        )
+    } else {
+        anyhow!(
+            "no datasets matched --schema {selected_label}. \
+             Did you mean --schema {}?",
+            suggestions.join(" or --schema ")
+        )
+    }
+}
+
+fn same_schema(a: &Hdf5Schema, b: &Hdf5Schema) -> bool {
+    matches!(
+        (a, b),
+        (Hdf5Schema::OneD, Hdf5Schema::OneD)
+            | (Hdf5Schema::TwoD, Hdf5Schema::TwoD)
+            | (Hdf5Schema::Compound, Hdf5Schema::Compound)
+    )
 }
 
 fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
