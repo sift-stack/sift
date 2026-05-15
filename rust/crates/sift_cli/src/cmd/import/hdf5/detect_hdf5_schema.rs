@@ -82,7 +82,7 @@ fn no_match_error(
 
     let suggestions: Vec<&str> = alternatives
         .iter()
-        .filter(|(s, _)| !same_schema(s, &selected))
+        .filter(|(s, _)| *s != selected)
         .filter_map(|(s, name)| {
             let probe = match s {
                 Hdf5Schema::OneD => detect_one_d(datasets),
@@ -114,15 +114,6 @@ fn no_match_error(
             suggestions.join(" or --schema ")
         )
     }
-}
-
-fn same_schema(a: &Hdf5Schema, b: &Hdf5Schema) -> bool {
-    matches!(
-        (a, b),
-        (Hdf5Schema::OneD, Hdf5Schema::OneD)
-            | (Hdf5Schema::TwoD, Hdf5Schema::TwoD)
-            | (Hdf5Schema::Compound, Hdf5Schema::Compound)
-    )
 }
 
 fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {

@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use clap::ValueEnum;
 
-#[derive(Debug, Copy, Clone, ValueEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
 pub enum Hdf5Schema {
     OneD,
     TwoD,
