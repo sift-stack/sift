@@ -66,25 +66,26 @@ fixture that reads `SIFT_API_KEY`, `SIFT_GRPC_URI`, and `SIFT_REST_URI` from
 the environment. Override it by defining your own `sift_client` fixture in
 your conftest.
 
-Note: FedRAMP users: `report_context` will log test results to a temp file to
-avoid API calls during test execution. If this is a shared environment, you
-can disable logging by passing `--sift-test-results-log-file=false`.
+Note: FedRAMP users: `report_context` defaults to writing a temp log file and
+deferring uploads through an `import-test-result-log` worker. In shared
+environments, pass `--no-sift-log-file` to skip the file and run create/update
+calls inline against the API.
 
 #### Configuration
 
 CLI options registered by the plugin:
 
-- `--sift-test-results-log-file`: Path to write the JSONL log file. `true`
-  (default) auto-creates a temp file; `false`/`none` disables logging; a path
-  writes to that location.
-- `--no-sift-test-results-git-metadata`: Exclude git metadata (repo, branch,
-  commit) from the test report. Included by default.
-- `--sift-test-results-check-connection`: Make `report_context`, `step`, and
-  `module_substep` no-op when the client has no connection. Requires a
-  `client_has_connection` fixture (the plugin ships a default).
+- `--sift-offline`: Run without contacting Sift. All create/update calls are
+  written to a JSONL log file for later replay. No session-start ping is made.
+- `--sift-log-file=<path>`: Path to write the JSONL log file. Defaults to a
+  temp file with its path logged at session start.
+- `--no-sift-log-file`: Disable the JSONL log file (online mode only).
+- `--sift-no-git-metadata`: Exclude git metadata from the report.
 
-To disable the plugin for a single run:
-`pytest -p no:sift_client.pytest_plugin`.
+To disable the plugin for a single run: `pytest -p no:sift_client.pytest_plugin`.
+To keep test code working with the plugin disabled, wire in
+`sift_client.pytest_plugin_noop` instead — it ships matching fixture names
+whose `measure*` calls evaluate bounds locally without contacting Sift.
 """
 
 from .context_manager import NewStep, ReportContext

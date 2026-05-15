@@ -1,6 +1,3 @@
-import pytest
-
-
-def pytest_configure(config: pytest.Config) -> None:
-    """Configure the pytest configuration to disable the Sift test results log file."""
-    config.option.sift_test_results_log_file = False
+# Plugin mode (offline vs online, log-file disable) is set by the parent
+# conftest based on the marker expression and env vars. No util-specific
+# overrides are needed.

@@ -16,49 +16,72 @@ if TYPE_CHECKING:
 
 REPORT_CONTEXT: ReportContext | None = None
 
+_ENV_VARS = ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI")
+
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register Sift-specific command-line options."""
     group = parser.getgroup("sift", description="Sift test results")
     group.addoption(
-        "--sift-test-results-log-file",
-        default=None,
-        help="Path to write the Sift test result log file. "
-        "Use 'true' (default) to auto-create a temp file, "
-        "False, 'false', or 'none' to disable logging, "
-        "or a file path to write to a specific location.",
-    )
-    group.addoption(
-        "--no-sift-test-results-git-metadata",
-        action="store_false",
-        dest="sift_test_results_git_metadata",
-        default=True,
-        help="Exclude git metadata from the Sift test results. "
-        "Git metadata (repo, branch, commit) is included by default.",
-    )
-    group.addoption(
-        "--sift-test-results-check-connection",
+        "--sift-offline",
         action="store_true",
         default=False,
-        help="Skip the sift test-result fixtures (report_context, step, module_substep) "
-        "when the Sift client has no connection to the server. Requires a "
-        "`client_has_connection` fixture to be available in the test session.",
+        help="Run without contacting Sift. All create/update calls are written "
+        "to a JSONL log file for later replay via `import-test-result-log`. "
+        "No session-start ping is attempted.",
+    )
+    group.addoption(
+        "--sift-log-file",
+        default=None,
+        help="Path to write the Sift JSONL log file. In online mode this acts "
+        "as a write-through backup; in offline mode it is the sole sink. "
+        "When unset, a temporary file is created and its path logged.",
+    )
+    group.addoption(
+        "--no-sift-log-file",
+        action="store_true",
+        default=False,
+        help="Disable the JSONL log file (online mode only). Create/update "
+        "calls run synchronously against the API instead of being deferred "
+        "through the import worker.",
+    )
+    group.addoption(
+        "--sift-no-git-metadata",
+        action="store_true",
+        default=False,
+        help="Exclude git repo/branch/commit from report metadata. Git metadata "
+        "is captured by default when run from inside a git repository.",
     )
 
 
-def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool | None:
-    """Determine log_file value from --sift-test-results-log-file option."""
-    raw = None
-    if pytestconfig is not None:
-        raw = pytestconfig.getoption("--sift-test-results-log-file", default=None)
+def _is_offline(pytestconfig: pytest.Config | None) -> bool:
+    if pytestconfig is None:
+        return False
+    return bool(pytestconfig.getoption("sift_offline", default=False))
+
+
+def _resolve_log_file(pytestconfig: pytest.Config) -> str | Path | bool | None:
+    """Resolve the log_file argument for ReportContext from CLI options.
+
+    Returns ``True`` to request a temp file, a ``Path`` for a pinned location,
+    or ``None`` to disable the log file entirely.
+    """
+    if pytestconfig.getoption("no_sift_log_file", default=False):
+        if _is_offline(pytestconfig):
+            raise pytest.UsageError(
+                "--no-sift-log-file is incompatible with --sift-offline; offline "
+                "mode requires a log file. Pin one with --sift-log-file=<path> "
+                "or drop --no-sift-log-file to use a temp file."
+            )
+        return None
+    raw = pytestconfig.getoption("sift_log_file", default=None)
     if raw is None:
         return True
-    lower = str(raw).lower()
-    if lower in ("true", "1"):
-        return True
-    if lower in ("false", "none"):
-        return None
     return Path(raw)
+
+
+def _missing_env_vars() -> list[str]:
+    return [name for name in _ENV_VARS if not os.getenv(name)]
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -74,59 +97,36 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
     setattr(item, "rep_" + report.when, call)
 
 
-def _report_context_impl(
-    sift_client: SiftClient,
-    request: pytest.FixtureRequest,
-    pytestconfig: pytest.Config | None = None,
-) -> Generator[ReportContext | None, None, None]:
-    args = request.config.invocation_params.args
-    test_path = Path(args[0]) if args else None
-    if test_path is not None and test_path.exists():
-        base_name = test_path.name
-        test_case: Path | str = test_path
-    else:
-        base_name = "pytest " + " ".join(args) if args else "pytest"
-        test_case = base_name
-    log_file = _resolve_log_file(pytestconfig)
-    include_git_metadata = (
-        bool(pytestconfig.getoption("sift_test_results_git_metadata", default=True))
-        if pytestconfig
-        else True
-    )
-    with ReportContext(
-        sift_client,
-        name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
-        test_case=str(test_case),
-        log_file=log_file,
-        include_git_metadata=include_git_metadata,
-    ) as context:
-        # Set a global so we can access this in pytest hooks.
-        global REPORT_CONTEXT
-        REPORT_CONTEXT = context
-        yield context
-
-
-def _check_connection_enabled(pytestconfig: pytest.Config | None) -> bool:
-    """Return True when the caller opted into `--sift-test-results-check-connection`."""
-    if pytestconfig is None:
-        return False
-    return bool(pytestconfig.getoption("sift_test_results_check_connection", default=False))
-
-
-def _has_sift_connection(request: pytest.FixtureRequest) -> bool:
-    """Resolve the `client_has_connection` fixture lazily; only called when the check is enabled."""
-    return bool(request.getfixturevalue("client_has_connection"))
-
-
 @pytest.fixture(scope="session")
-def sift_client() -> SiftClient:
+def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     """Default ``SiftClient`` resolved from environment variables.
 
     Reads ``SIFT_API_KEY``, ``SIFT_GRPC_URI``, and ``SIFT_REST_URI``. Projects
     that need custom construction (TLS toggles, custom timeouts, etc.) can
     override this fixture by defining their own ``sift_client`` in their
     ``conftest.py``; pytest fixture resolution prefers the local definition.
+
+    Missing environment variables raise ``pytest.UsageError`` naming the
+    variables so the failure is actionable. In ``--sift-offline`` mode the
+    check is skipped and placeholder credentials are used; nothing is ever
+    sent to Sift, so the values don't matter.
     """
+    if _is_offline(pytestconfig):
+        return SiftClient(
+            connection_config=SiftConnectionConfig(
+                api_key=os.getenv("SIFT_API_KEY") or "offline",
+                grpc_url=os.getenv("SIFT_GRPC_URI") or "offline.invalid:0",
+                rest_url=os.getenv("SIFT_REST_URI") or "http://offline.invalid",
+            )
+        )
+    missing = _missing_env_vars()
+    if missing:
+        raise pytest.UsageError(
+            "Sift environment variables not set: "
+            + ", ".join(missing)
+            + ". Set them, or override the `sift_client` fixture in your conftest, "
+            "or pass --sift-offline to run without contacting Sift."
+        )
     return SiftClient(
         connection_config=SiftConnectionConfig(
             api_key=os.getenv("SIFT_API_KEY"),
@@ -136,28 +136,82 @@ def sift_client() -> SiftClient:
     )
 
 
+@pytest.fixture(scope="session")
+def client_has_connection(sift_client: SiftClient) -> bool:
+    """Verify the ``SiftClient`` can reach Sift via ``/ping``.
+
+    Consulted at session start when running in online mode. Override this
+    fixture in your conftest to use a different reachability signal (e.g. a
+    cached auth token) for environments where pinging is the wrong check.
+    """
+    sift_client.ping.ping()
+    return True
+
+
+def _report_context_impl(
+    sift_client: SiftClient,
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
+) -> Generator[ReportContext, None, None]:
+    args = request.config.invocation_params.args
+    test_path = Path(args[0]) if args else None
+    if test_path is not None and test_path.exists():
+        base_name = test_path.name
+        test_case: Path | str = test_path
+    else:
+        base_name = "pytest " + " ".join(args) if args else "pytest"
+        test_case = base_name
+    include_git_metadata = not pytestconfig.getoption("sift_no_git_metadata", default=False)
+    log_file = _resolve_log_file(pytestconfig)
+    offline = _is_offline(pytestconfig)
+    with ReportContext(
+        sift_client,
+        name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
+        test_case=str(test_case),
+        log_file=log_file,
+        include_git_metadata=include_git_metadata,
+        offline=offline,
+    ) as context:
+        # Set a global so we can access this in pytest hooks.
+        global REPORT_CONTEXT
+        REPORT_CONTEXT = context
+        yield context
+
+
 @pytest.fixture(scope="session", autouse=True)
 def report_context(
     sift_client: SiftClient, request: pytest.FixtureRequest, pytestconfig: pytest.Config
-) -> Generator[ReportContext | None, None, None]:
+) -> Generator[ReportContext, None, None]:
     """Create a report context for the session.
 
-    The log file destination is controlled by ``--sift-test-results-log-file``.
-    Defaults to a temp file when not set.
+    In online mode (default) the plugin verifies connectivity to Sift via the
+    ``client_has_connection`` fixture before creating the report; a failed
+    ping aborts the session with ``pytest.UsageError``. Pass ``--sift-offline``
+    to skip the ping and route all writes through the JSONL log file.
 
-    When ``--sift-test-results-check-connection`` is passed, this fixture will no-op
-    (yield None) if the Sift client has no connection to the server. That mode
-    requires a ``client_has_connection`` fixture to be available in the session.
+    The log-file destination is controlled by ``--sift-log-file`` (a path),
+    ``--no-sift-log-file`` (disable, online only), or left unset for a temp file.
     """
-    if _check_connection_enabled(pytestconfig) and not _has_sift_connection(request):
-        yield None
-        return
-    yield from _report_context_impl(sift_client, request, pytestconfig=pytestconfig)
+    if not _is_offline(pytestconfig):
+        try:
+            request.getfixturevalue("client_has_connection")
+        except pytest.UsageError:
+            raise
+        except Exception as exc:
+            grpc_url = getattr(
+                getattr(sift_client, "grpc_client", None), "_config", None
+            )
+            grpc_url = getattr(grpc_url, "uri", "<unknown>")
+            raise pytest.UsageError(
+                f"Sift ping failed against {grpc_url}: {exc}. "
+                "Pass --sift-offline to run without contacting Sift."
+            ) from exc
+    yield from _report_context_impl(sift_client, request, pytestconfig)
 
 
 def _step_impl(
     report_context: ReportContext, request: pytest.FixtureRequest
-) -> Generator[NewStep | None, None, None]:
+) -> Generator[NewStep, None, None]:
     name = str(request.node.name)
     existing_docstring = request.node.obj.__doc__ or None
     with report_context.new_step(
@@ -174,53 +228,17 @@ def _step_impl(
 
 @pytest.fixture(autouse=True)
 def step(
-    report_context: ReportContext | None,
+    report_context: ReportContext,
     request: pytest.FixtureRequest,
-    pytestconfig: pytest.Config,
-) -> Generator[NewStep | None, None, None]:
-    """Create an outer step for the function.
-
-    No-ops when ``--sift-test-results-check-connection`` is set and the client
-    has no connection (or when the session-scoped ``report_context`` resolved to None).
-    """
-    if report_context is None or (
-        _check_connection_enabled(pytestconfig) and not _has_sift_connection(request)
-    ):
-        yield None
-        return
+) -> Generator[NewStep, None, None]:
+    """Create an outer step for each test function."""
     yield from _step_impl(report_context, request)
 
 
 @pytest.fixture(scope="module", autouse=True)
 def module_substep(
-    report_context: ReportContext | None,
+    report_context: ReportContext,
     request: pytest.FixtureRequest,
-    pytestconfig: pytest.Config,
-) -> Generator[NewStep | None, None, None]:
-    """Create a step per module.
-
-    No-ops when ``--sift-test-results-check-connection`` is set and the client
-    has no connection (or when the session-scoped ``report_context`` resolved to None).
-    """
-    if report_context is None or (
-        _check_connection_enabled(pytestconfig) and not _has_sift_connection(request)
-    ):
-        yield None
-        return
+) -> Generator[NewStep, None, None]:
+    """Create a step per module."""
     yield from _step_impl(report_context, request)
-
-
-@pytest.fixture(scope="session")
-def client_has_connection(sift_client):
-    """Check if the SiftClient has a connection to the Sift server.
-
-    Can be used to skip tests that require a connection to the Sift server, and is
-    consulted by the Sift fixtures when ``--sift-test-results-check-connection`` is set.
-    """
-    has_connection = False
-    try:
-        sift_client.ping.ping()
-        has_connection = True
-    except Exception:
-        has_connection = False
-    return has_connection

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sift_client.sift_types.test_report import (
     NumericBounds,
     TestMeasurement,
@@ -30,6 +32,24 @@ def assign_value_to_measurement(
         measurement.measurement_type = TestMeasurementType.STRING
     else:
         raise ValueError(f"Invalid value type: {type(value)}")
+
+
+def value_passes_bounds(
+    value: float | str | bool,
+    bounds: dict[str, float] | NumericBounds | str | bool | None,
+) -> bool:
+    """Evaluate a value against bounds without recording a measurement.
+
+    Used by consumers that need pass/fail semantics matching the real plugin but
+    do not transmit a measurement (e.g. ``sift_client.pytest_plugin_noop``).
+    """
+    scratch = TestMeasurementCreate(
+        name="",
+        test_step_id="",
+        passed=True,
+        timestamp=datetime.now(timezone.utc),
+    )
+    return evaluate_measurement_bounds(scratch, value, bounds)
 
 
 def evaluate_measurement_bounds(
