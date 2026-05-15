@@ -59,10 +59,13 @@ nav:
       - examples/index.md
       - Basic Usage: examples/basic.ipynb
       - Data Ingestion: examples/ingestion.ipynb
-      - Pytest Plugin: examples/pytest_plugin.md
-#  - Guides:
-#      - Logging
-#      - Error Handling
+  - Guides:
+      - Pytest Plugin:
+          - Usage: guides/pytest_plugin/usage.md
+          - Pass/Fail Behavior: guides/pytest_plugin/pass_fail_behavior.md
+
+not_in_nav: |
+  /examples/pytest_plugin.md
 
 plugins:
   - search

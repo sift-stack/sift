@@ -1,15 +1,17 @@
-"""Characterization suite: maps each pytest exit path to the ``TestStatus``
-the plugin currently records on the step.
+"""Contract suite: maps each pytest exit path to the ``TestStatus`` the
+Sift pytest plugin is required to record on the outer step.
 
 Each scenario writes a tiny inner test file and runs it through pytester
 with a fake ``sift_client`` injected via a generated conftest. The fake
 records every step status write into ``_step_status_capture.CAPTURED_STEPS``
 so this outer test can assert on what the plugin produced.
 
-The expected statuses below reflect **current** behavior. Where current
-behavior contradicts the audit target (setup-phase, teardown-phase, xfail),
-the assertion is paired with an ``AUDIT:`` comment naming the target.
-Updating these tests is the regression check once the fix lands.
+Assertions encode the contract from
+``docs/guides/pytest_plugin/pass_fail_behavior.md``. Tests for scenarios the
+plugin does not yet handle correctly are expected to **fail today** — they
+are the punch list. ``lib/sift_client/_tests/util/step_status_states.md``
+tracks each scenario's observed-today behavior next to the target so the
+remaining gaps are visible without running the suite.
 """
 
 from __future__ import annotations
@@ -180,6 +182,7 @@ def _run(pytester, body: str) -> None:
 
 
 def test_pass_maps_to_passed(inner):
+    # Case: CALL-01
     _run(
         inner,
         """
@@ -191,6 +194,7 @@ def test_pass_maps_to_passed(inner):
 
 
 def test_assert_failure_maps_to_failed(inner):
+    # Case: CALL-02
     _run(
         inner,
         """
@@ -202,6 +206,7 @@ def test_assert_failure_maps_to_failed(inner):
 
 
 def test_generic_exception_maps_to_error(inner):
+    # Case: CALL-03
     _run(
         inner,
         """
@@ -213,6 +218,7 @@ def test_generic_exception_maps_to_error(inner):
 
 
 def test_system_exit_maps_to_error(inner):
+    # Case: CALL-05
     _run(
         inner,
         """
@@ -221,14 +227,11 @@ def test_system_exit_maps_to_error(inner):
             sys.exit(1)
         """,
     )
-    # AUDIT: SystemExit is currently routed through the generic-exception
-    # path because it isn't an AssertionError. The audit may want a
-    # dedicated bucket (e.g., ABORTED) since the test didn't really "error"
-    # so much as exit deliberately.
     assert capture.final_status("test_x") == TestStatus.ERROR
 
 
-def test_pytest_fail_maps_to_error(inner):
+def test_pytest_fail_maps_to_failed(inner):
+    # Case: CALL-04
     _run(
         inner,
         """
@@ -237,19 +240,16 @@ def test_pytest_fail_maps_to_error(inner):
             pytest.fail("intentional failure")
         """,
     )
-    # AUDIT: target is FAILED. pytest.fail raises a Failed OutcomeException,
-    # which the plugin treats as a generic exception (not AssertionError)
-    # and routes to ERROR. Users expect pytest.fail and assert-fail to land
-    # in the same bucket.
-    assert capture.final_status("test_x") == TestStatus.ERROR
+    assert capture.final_status("test_x") == TestStatus.FAILED
 
 
-def test_keyboard_interrupt_aborts_session(inner):
-    # KeyboardInterrupt propagates out of pytester's inprocess runner, so
-    # we catch it here. Pytest aborts the session before the call phase's
-    # makereport fires, so the plugin never sees the interrupt; the step
-    # fixture's teardown runs with no rep_call.excinfo and resolves the
-    # step to PASSED.
+def test_keyboard_interrupt_leaves_step_in_progress(inner):
+    # Case: CALL-06
+    # KeyboardInterrupt aborts the session before the call-phase makereport
+    # fires; the plugin can't observe the interrupt. The contract is that
+    # the step is left in IN_PROGRESS rather than being silently resolved
+    # to PASSED — a session-aborting interrupt should not look like a clean
+    # pass in the report.
     try:
         _run(
             inner,
@@ -260,11 +260,9 @@ def test_keyboard_interrupt_aborts_session(inner):
         )
     except KeyboardInterrupt:
         pass
-    # AUDIT: target is ABORTED (or similar). The step is recorded as PASSED
-    # despite the test having been aborted, which is misleading.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.PASSED
+    assert outer.statuses[-1] == TestStatus.IN_PROGRESS
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +270,8 @@ def test_keyboard_interrupt_aborts_session(inner):
 # ---------------------------------------------------------------------------
 
 
-def test_pytest_skip_in_body_records_skipped_substep(inner):
+def test_pytest_skip_in_body_maps_to_skipped(inner):
+    # Case: SKIP-03
     _run(
         inner,
         """
@@ -281,24 +280,19 @@ def test_pytest_skip_in_body_records_skipped_substep(inner):
             pytest.skip("not today")
         """,
     )
-    # The plugin's makereport hook creates a separate SKIPPED step nested
-    # under the autouse outer step. The outer step itself is driven by the
-    # call-phase excinfo (a Skipped exception), which the plugin treats as
-    # a generic exception -> ERROR.
-    skipped_steps = [
-        s
-        for s in capture.steps_by_name("test_x")
-        if s.statuses and s.statuses[-1] == TestStatus.SKIPPED
-    ]
-    assert skipped_steps, "expected at least one SKIPPED step for a skipped test"
-    # AUDIT: the outer step records ERROR for an in-body pytest.skip().
-    # Target: outer step should be SKIPPED; no nested duplicate.
+    # Runtime skip in the body resolves the outer step to SKIPPED. The
+    # makereport hook must not create a duplicate nested step.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.ERROR
+    assert outer.statuses[-1] == TestStatus.SKIPPED
+    duplicates = [s for s in capture.steps_by_name("test_x") if s is not outer]
+    assert not duplicates, (
+        f"expected no duplicate nested step; got {len(duplicates)}"
+    )
 
 
 def test_pytest_mark_skip_records_skipped(inner):
+    # Case: SKIP-01
     _run(
         inner,
         """
@@ -313,7 +307,24 @@ def test_pytest_mark_skip_records_skipped(inner):
     assert capture.final_status("test_x") == TestStatus.SKIPPED
 
 
+def test_pytest_mark_skipif_records_skipped(inner):
+    # Case: SKIP-02
+    _run(
+        inner,
+        """
+        import pytest
+        @pytest.mark.skipif(True, reason="conditional skip")
+        def test_x():
+            assert False
+        """,
+    )
+    # `skipif` with a truthy condition follows the same path as
+    # `@pytest.mark.skip`; only the makereport hook records a step.
+    assert capture.final_status("test_x") == TestStatus.SKIPPED
+
+
 def test_skip_inside_fixture_setup(inner):
+    # Case: SKIP-04
     _run(
         inner,
         """
@@ -327,19 +338,15 @@ def test_skip_inside_fixture_setup(inner):
             assert True
         """,
     )
-    # AUDIT: target is SKIPPED with phase=setup on the outer step. Today
-    # the autouse outer step lands in PASSED (its own setup ran, no failure
-    # was recorded), and a separate nested SKIPPED step is created by the
-    # makereport hook from the setup-phase skip report.
+    # A setup-phase skip resolves the outer step to SKIPPED. The makereport
+    # hook must not create a duplicate nested step.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.PASSED
-    nested_skipped = [
-        s
-        for s in capture.steps_by_name("test_x")
-        if s.parent_step_id is not None and s.statuses[-1] == TestStatus.SKIPPED
-    ]
-    assert nested_skipped, "fixture-skip currently produces a nested SKIPPED step"
+    assert outer.statuses[-1] == TestStatus.SKIPPED
+    duplicates = [s for s in capture.steps_by_name("test_x") if s is not outer]
+    assert not duplicates, (
+        f"expected no duplicate nested step; got {len(duplicates)}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -348,6 +355,7 @@ def test_skip_inside_fixture_setup(inner):
 
 
 def test_xfail_marked_test_that_fails(inner):
+    # Case: XFAIL-01
     _run(
         inner,
         """
@@ -357,22 +365,19 @@ def test_xfail_marked_test_that_fails(inner):
             assert 1 == 2
         """,
     )
-    # AUDIT: target is XFAILED (distinct from SKIPPED). Today, pytest reports
-    # outcome="skipped" for an xfailed test, so the makereport hook records
-    # a SKIPPED nested step. The outer autouse step records FAILED from the
-    # call-phase AssertionError.
+    # xfail + expected failure fulfills the contract; outer step resolves to
+    # PASSED. No duplicate nested step from the makereport hook.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.FAILED
-    skipped_substeps = [
-        s
-        for s in capture.steps_by_name("test_x")
-        if s.parent_step_id is not None and s.statuses[-1] == TestStatus.SKIPPED
-    ]
-    assert skipped_substeps, "xfailed test currently produces a nested SKIPPED step"
+    assert outer.statuses[-1] == TestStatus.PASSED
+    duplicates = [s for s in capture.steps_by_name("test_x") if s is not outer]
+    assert not duplicates, (
+        f"expected no duplicate nested step; got {len(duplicates)}"
+    )
 
 
 def test_xfail_strict_unexpected_pass(inner):
+    # Case: XFAIL-02
     _run(
         inner,
         """
@@ -382,15 +387,15 @@ def test_xfail_strict_unexpected_pass(inner):
             assert True
         """,
     )
-    # AUDIT: target is XPASSED. The test body raises no exception, so the
-    # plugin records PASSED and never sees pytest's later "strict xfail
-    # passed" failure attached to the report.
+    # strict xfail that passes must surface as FAILED: either the bug was
+    # fixed (remove the mark) or the test stopped exercising what it claimed.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.PASSED
+    assert outer.statuses[-1] == TestStatus.FAILED
 
 
 def test_xfail_non_strict_unexpected_pass(inner):
+    # Case: XFAIL-03
     _run(
         inner,
         """
@@ -400,15 +405,15 @@ def test_xfail_non_strict_unexpected_pass(inner):
             assert True
         """,
     )
-    # AUDIT: target is XPASSED. Non-strict xfail that passes is reported by
-    # pytest as outcome="passed" with wasxfail set; the plugin ignores
-    # wasxfail and records PASSED.
+    # Non-strict xfail does not insist on the failure, so a passing run is
+    # PASSED.
     outer = capture.test_step("test_x")
     assert outer is not None
     assert outer.statuses[-1] == TestStatus.PASSED
 
 
 def test_xfail_raises_mismatch(inner):
+    # Case: XFAIL-04
     _run(
         inner,
         """
@@ -418,15 +423,15 @@ def test_xfail_raises_mismatch(inner):
             raise KeyError("wrong exception")
         """,
     )
-    # AUDIT: target is FAILED. Pytest treats a `raises=` mismatch as a real
-    # call-phase failure; the plugin sees a non-assertion exception in
-    # excinfo and routes it to ERROR.
+    # `raises=` mismatch is a real test failure — the contract required a
+    # specific exception type and a different one was thrown.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.ERROR
+    assert outer.statuses[-1] == TestStatus.FAILED
 
 
 def test_xfail_run_false(inner):
+    # Case: XFAIL-05
     _run(
         inner,
         """
@@ -436,9 +441,7 @@ def test_xfail_run_false(inner):
             assert False
         """,
     )
-    # AUDIT: target is XFAILED. With run=False pytest reports the test as
-    # skipped/xfailed without executing it, so today only the makereport
-    # hook records a step, with status SKIPPED.
+    # The test never ran; outer step is SKIPPED.
     assert capture.final_status("test_x") == TestStatus.SKIPPED
 
 
@@ -448,6 +451,7 @@ def test_xfail_run_false(inner):
 
 
 def test_setup_phase_fixture_failure(inner):
+    # Case: PHASE-01
     _run(
         inner,
         """
@@ -461,18 +465,16 @@ def test_setup_phase_fixture_failure(inner):
             assert True
         """,
     )
-    # AUDIT: target is ERROR with phase=setup. Today the plugin doesn't
-    # consult report.when, so the outer step (if it exists) lands in PASSED
-    # because the call phase never ran and no failure was recorded.
+    # A fixture that raises before `yield` fails the setup phase. The outer
+    # step must surface this as ERROR; the test body never executed and a
+    # silently green step would hide the failure.
     outer = capture.test_step("test_x")
-    if outer is not None:
-        assert outer.statuses[-1] == TestStatus.PASSED, (
-            f"setup-fail outer step status was {outer.statuses[-1]}; "
-            "audit target is ERROR with phase=setup"
-        )
+    assert outer is not None
+    assert outer.statuses[-1] == TestStatus.ERROR
 
 
 def test_teardown_phase_fixture_failure(inner):
+    # Case: PHASE-02
     _run(
         inner,
         """
@@ -487,19 +489,16 @@ def test_teardown_phase_fixture_failure(inner):
             assert True
         """,
     )
-    # AUDIT: target is FAILED with phase=teardown. Today the outer autouse
-    # step closes BEFORE the failing fixture's teardown runs, so the test
-    # body's success is recorded as PASSED and the teardown error is
-    # invisible to the step.
+    # A fixture that raises after `yield` fails the teardown phase. The
+    # outer step's status reflects the teardown failure as FAILED rather
+    # than the call-phase pass.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.PASSED, (
-        f"teardown-fail outer step status was {outer.statuses[-1]}; "
-        "audit target is FAILED with phase=teardown"
-    )
+    assert outer.statuses[-1] == TestStatus.FAILED
 
 
 def test_call_fail_plus_teardown_fail(inner):
+    # Case: PHASE-03
     _run(
         inner,
         """
@@ -514,10 +513,10 @@ def test_call_fail_plus_teardown_fail(inner):
             assert 1 == 2
         """,
     )
-    # AUDIT: the call-phase failure dominates (status FAILED), and the
-    # teardown error is silently lost. Target: status should reflect both
-    # signals, e.g. FAILED with a teardown-phase annotation so the
-    # teardown error is not invisible.
+    # Call-phase failure dominates the outer step status; the contract also
+    # requires the teardown error to be surfaced somewhere on the step
+    # (mechanism TBD — see pass_fail_behavior.md). This test asserts the
+    # status today; tighten once a surfacing mechanism is chosen.
     outer = capture.test_step("test_x")
     assert outer is not None
     assert outer.statuses[-1] == TestStatus.FAILED
@@ -528,7 +527,8 @@ def test_call_fail_plus_teardown_fail(inner):
 # ---------------------------------------------------------------------------
 
 
-def test_missing_fixture_records_passed_step(inner):
+def test_missing_fixture_maps_to_error(inner):
+    # Case: COLL-01
     _run(
         inner,
         """
@@ -536,15 +536,12 @@ def test_missing_fixture_records_passed_step(inner):
             assert True
         """,
     )
-    # AUDIT: target is ERROR with phase=setup. Today the autouse `step`
-    # fixture's setup still runs (because it has no dependency on the
-    # missing fixture), creates an outer step, then the missing-fixture
-    # error aborts setup. The autouse step's teardown runs with no
-    # rep_call.excinfo and resolves to PASSED -- so the user sees a
-    # green step in Sift for a test that never executed.
+    # An unresolved fixture is a setup-phase failure. The outer step
+    # surfaces as ERROR rather than a misleading green pass for a test
+    # that never executed.
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.PASSED
+    assert outer.statuses[-1] == TestStatus.ERROR
 
 
 # ---------------------------------------------------------------------------
@@ -553,6 +550,7 @@ def test_missing_fixture_records_passed_step(inner):
 
 
 def test_manual_status_update_to_failed(inner):
+    # Case: API-01
     _run(
         inner,
         """
@@ -565,6 +563,7 @@ def test_manual_status_update_to_failed(inner):
 
 
 def test_report_outcome_false_maps_to_failed(inner):
+    # Case: API-02
     _run(
         inner,
         """
@@ -577,6 +576,7 @@ def test_report_outcome_false_maps_to_failed(inner):
 
 
 def test_measure_out_of_bounds_maps_to_failed(inner):
+    # Case: API-03
     _run(
         inner,
         """
@@ -585,3 +585,43 @@ def test_measure_out_of_bounds_maps_to_failed(inner):
         """,
     )
     assert capture.final_status("test_x") == TestStatus.FAILED
+
+
+def test_substep_failure_propagates_to_parent(inner):
+    # Case: API-04
+    _run(
+        inner,
+        """
+        def test_x(step):
+            with step.substep(name="inner") as inner_step:
+                inner_step.measure(name="m", value=10.0, bounds={"min": 0.0, "max": 5.0})
+        """,
+    )
+    # `test_measure_out_of_bounds_maps_to_failed` exercises a failed
+    # measurement on the function step itself; this one verifies the same
+    # failure on a nested substep propagates up to the parent.
+    outer = capture.test_step("test_x")
+    assert outer is not None
+    assert outer.statuses[-1] == TestStatus.FAILED
+
+
+def test_skipped_substep_does_not_fail_parent(inner):
+    # Case: API-05
+    _run(
+        inner,
+        """
+        from sift_client.sift_types.test_report import TestStatus
+        def test_x(step):
+            with step.substep(name="optional_check") as cal:
+                cal.current_step.update(
+                    {"status": TestStatus.SKIPPED},
+                    log_file=step.report_context.log_file,
+                )
+        """,
+    )
+    # A manually-resolved SKIPPED on a substep must not propagate as a failure
+    # to the parent. The outer step has no measurements of its own and resolves
+    # to PASSED.
+    outer = capture.test_step("test_x")
+    assert outer is not None
+    assert outer.statuses[-1] == TestStatus.PASSED
