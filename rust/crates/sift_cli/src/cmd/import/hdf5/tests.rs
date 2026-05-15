@@ -24,7 +24,7 @@ fn make_args() -> ImportHdf5Args {
         schema: Hdf5Schema::OneD,
         time_format: Some(TimeFormat::AbsoluteRfc3339),
         relative_start_time: None,
-        time_index: 0,
+        time_index: None,
         time_field: None,
     }
 }

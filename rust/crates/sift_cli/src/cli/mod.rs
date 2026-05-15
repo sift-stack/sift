@@ -444,10 +444,11 @@ pub struct ImportHdf5Args {
     pub relative_start_time: Option<String>,
 
     /// (two-d / compound) Index of the time column or field. Defaults to 0.
-    #[arg(long, default_value_t = 0)]
-    pub time_index: u64,
+    /// Mutually exclusive with --time-field.
+    #[arg(long, conflicts_with = "time_field")]
+    pub time_index: Option<u64>,
 
-    /// (compound) Name of the time field. Overrides --time-index when set.
+    /// (compound) Name of the time field. Mutually exclusive with --time-index.
     #[arg(long)]
     pub time_field: Option<String>,
 }

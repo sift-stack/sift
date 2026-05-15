@@ -42,7 +42,7 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         match detect_config(
             &args.common.path,
             args.schema,
-            args.time_index,
+            args.time_index.unwrap_or(0),
             args.time_field.as_deref(),
         ) {
             Ok((_, channel_configs)) => {
@@ -63,7 +63,7 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     let (data_configs, _) = detect_config(
         &args.common.path,
         args.schema,
-        args.time_index,
+        args.time_index.unwrap_or(0),
         args.time_field.as_deref(),
     )
     .context("failed to parse hdf5 file")?;
