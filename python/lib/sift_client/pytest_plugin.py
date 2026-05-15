@@ -16,6 +16,38 @@ if TYPE_CHECKING:
 
 REPORT_CONTEXT: ReportContext | None = None
 
+_PARAMETRIZE_PATH_KEY = pytest.StashKey[tuple[str, ...]]()
+_PARAMETRIZE_STACK: list[NewStep] = []
+
+
+def _build_parametrize_path(item: pytest.Item) -> tuple[str, ...]:
+    """Outer-to-inner step display names for a parametrized item.
+
+    Pytest stores `callspec.params` with the BOTTOM decorator's axis first; the
+    target tree treats the TOP decorator as outermost, so we reverse.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None or not callspec.params:
+        return ()
+    originalname = getattr(item, "originalname", item.name)
+    frames: list[str] = [originalname]
+    for name, value in reversed(callspec.params.items()):
+        frames.append(f"{name}={value!r}")
+    return tuple(frames)
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Stash each item's parametrize path and cluster siblings by shared prefix."""
+    for item in items:
+        item.stash[_PARAMETRIZE_PATH_KEY] = _build_parametrize_path(item)
+    items.sort(key=lambda i: i.stash[_PARAMETRIZE_PATH_KEY])
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Drain any parametrize parents still open (e.g. when module_substep was disabled)."""
+    while _PARAMETRIZE_STACK:
+        _PARAMETRIZE_STACK.pop().__exit__(None, None, None)
+
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register Sift-specific command-line options."""
@@ -168,23 +200,69 @@ def report_context(
 def _step_impl(
     report_context: ReportContext, request: pytest.FixtureRequest
 ) -> Generator[NewStep | None, None, None]:
-    name = str(request.node.name)
-    existing_docstring = request.node.obj.__doc__ or None
+    item = request.node
+    callspec = getattr(item, "callspec", None)
+    if callspec is not None and callspec.params:
+        # Bottom decorator's axis is first in callspec.params, which matches the
+        # innermost (leaf) frame in the parametrize path.
+        axis, value = next(iter(callspec.params.items()))
+        name = f"{axis}={value!r}"
+    else:
+        name = str(item.name)
+    existing_docstring = item.obj.__doc__ or None
     with report_context.new_step(
         name=name, description=existing_docstring, assertion_as_fail_not_error=False
     ) as new_step:
         yield new_step
-        if hasattr(request.node, "rep_call") and request.node.rep_call.excinfo:
+        if hasattr(item, "rep_call") and item.rep_call.excinfo:
             new_step.update_step_from_result(
-                request.node.rep_call.excinfo,
-                request.node.rep_call.excinfo.value,
-                request.node.rep_call.excinfo.tb,
+                item.rep_call.excinfo,
+                item.rep_call.excinfo.value,
+                item.rep_call.excinfo.tb,
             )
+
+
+@pytest.fixture(autouse=True)
+def _parametrize_parents(
+    report_context: ReportContext | None,
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
+) -> Generator[None, None, None]:
+    """Open/close shared parametrize parent steps for the current item.
+
+    Diffs the item's desired parametrize path against the open stack: pops the
+    stale tail, then opens new parents (everything except the innermost frame —
+    the ``step`` fixture creates that as the leaf). Parents persist across
+    sibling items and are drained by ``module_substep`` teardown or
+    ``pytest_sessionfinish``.
+    """
+    if report_context is None or (
+        _check_connection_enabled(pytestconfig) and not _has_sift_connection(request)
+    ):
+        yield
+        return
+    desired = request.node.stash.get(_PARAMETRIZE_PATH_KEY, ())
+    parents = desired[:-1]
+    open_keys = [getattr(ns, "_parametrize_key", None) for ns in _PARAMETRIZE_STACK]
+    common = 0
+    while (
+        common < len(open_keys) and common < len(parents) and open_keys[common] == parents[common]
+    ):
+        common += 1
+    while len(_PARAMETRIZE_STACK) > common:
+        _PARAMETRIZE_STACK.pop().__exit__(None, None, None)
+    for display in parents[common:]:
+        ns = report_context.new_step(name=display, assertion_as_fail_not_error=False)
+        ns.__enter__()
+        ns._parametrize_key = display  # type: ignore[attr-defined]
+        _PARAMETRIZE_STACK.append(ns)
+    yield
 
 
 @pytest.fixture(autouse=True)
 def step(
     report_context: ReportContext | None,
+    _parametrize_parents: None,
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
 ) -> Generator[NewStep | None, None, None]:
@@ -217,7 +295,17 @@ def module_substep(
     ):
         yield None
         return
-    yield from _step_impl(report_context, request)
+    name = str(request.node.name)
+    existing_docstring = request.node.obj.__doc__ or None
+    with report_context.new_step(
+        name=name, description=existing_docstring, assertion_as_fail_not_error=False
+    ) as new_step:
+        yield new_step
+        # Drain parametrize parents nested under this module before the module
+        # step exits — otherwise ReportContext.exit_step asserts that the module
+        # step is the stack top.
+        while _PARAMETRIZE_STACK:
+            _PARAMETRIZE_STACK.pop().__exit__(None, None, None)
 
 
 @pytest.fixture(scope="session")

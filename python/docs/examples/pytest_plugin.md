@@ -342,8 +342,11 @@ TestReport
 
 ### Parametrized tests
 
-Each parametrize case is a distinct pytest node, so each gets its own step.
-The step name includes the parameter id pytest generates.
+Parametrize axes become nested step layers. The plugin reads each item's
+`callspec.params` at collection time and opens one shared parent step per axis,
+so siblings that share an outer axis value live under the same parent. Leaf
+step names are `axis=value` (with `repr()`, so strings stay quoted), not
+pytest's bracket-mangled ID.
 
 ```python
 @pytest.mark.parametrize("voltage", [3.3, 5.0, 12.0])
@@ -353,9 +356,49 @@ def test_rail(step, voltage):
 
 ```text title="Sift report"
 TestReport
-├── test_rail[3.3]
-├── test_rail[5.0]
-└── test_rail[12.0]
+└── test_rail
+    ├── voltage=3.3
+    ├── voltage=5.0
+    └── voltage=12.0
+```
+
+Stacked `parametrize` decorators nest in the order they appear in source — the
+top decorator is the outermost step:
+
+```python
+@pytest.mark.parametrize("voltage", ["high", "low"])
+@pytest.mark.parametrize("component", ["motor", "ducer", "valve"])
+def test_iso(step, voltage, component): ...
+```
+
+```text title="Sift report"
+TestReport
+└── test_iso
+    ├── voltage='high'
+    │   ├── component='motor'
+    │   ├── component='ducer'
+    │   └── component='valve'
+    └── voltage='low'
+        ├── component='motor'
+        ├── component='ducer'
+        └── component='valve'
+```
+
+Fixture-level parametrization participates too:
+
+```python
+@pytest.fixture(params=["a", "b"])
+def widget(request):
+    return request.param
+
+def test_widget(step, widget): ...
+```
+
+```text title="Sift report"
+TestReport
+└── test_widget
+    ├── widget='a'
+    └── widget='b'
 ```
 
 ### Helper functions
