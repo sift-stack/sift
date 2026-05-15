@@ -118,6 +118,16 @@ def _has_sift_connection(request: pytest.FixtureRequest) -> bool:
     return bool(request.getfixturevalue("client_has_connection"))
 
 
+def _required_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise pytest.UsageError(
+            f"{name} must be set to use the default sift_client fixture; "
+            f"set the environment variable or override the sift_client fixture in conftest.py."
+        )
+    return value
+
+
 @pytest.fixture(scope="session")
 def sift_client() -> SiftClient:
     """Default ``SiftClient`` resolved from environment variables.
@@ -129,9 +139,9 @@ def sift_client() -> SiftClient:
     """
     return SiftClient(
         connection_config=SiftConnectionConfig(
-            api_key=os.getenv("SIFT_API_KEY"),
-            grpc_url=os.getenv("SIFT_GRPC_URI"),
-            rest_url=os.getenv("SIFT_REST_URI"),
+            api_key=_required_env("SIFT_API_KEY"),
+            grpc_url=_required_env("SIFT_GRPC_URI"),
+            rest_url=_required_env("SIFT_REST_URI"),
         )
     )
 
