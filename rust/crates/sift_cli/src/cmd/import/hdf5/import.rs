@@ -61,7 +61,6 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    // Populate the `data` field on the config from client-side detection.
     let (data_configs, _) = detect_config(
         &args.common.path,
         args.schema,

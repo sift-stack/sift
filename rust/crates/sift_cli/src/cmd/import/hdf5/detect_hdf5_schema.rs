@@ -227,8 +227,6 @@ fn detect_compound(
 
             data_configs.push(Hdf5DataConfig {
                 time_dataset: name.clone(),
-                // For compound datasets the array is 1D; field selection is via
-                // `time_field`/`value_field`. The index here is the axis (0).
                 time_index: 0,
                 value_dataset: name.clone(),
                 value_index: 0,
