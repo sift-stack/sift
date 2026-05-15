@@ -32,6 +32,7 @@ pbjson-types = { workspace = true }
 reqwest = { workspace = true }
 sift_pbfs = { workspace = true }
 tdms = { workspace = true }
+hdf5 = { workspace = true }
 sift_rs = { workspace = true }
 tokio = { workspace = true, features = ["full", "net", "time"] }
 tokio-stream = { workspace = true }

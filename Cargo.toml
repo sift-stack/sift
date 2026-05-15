@@ -59,6 +59,7 @@ reqwest = "0.13"
 serde = { version = "^1.0" }
 serde_json = { version = "^1.0" }
 tdms = "0.3.0"
+hdf5 = { package = "hdf5-metno", version = "0.12", features = ["static"] }
 tempdir = "0.3"
 tokio = { version = "1" }
 tokio-stream = "0.1"
