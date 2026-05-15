@@ -66,9 +66,7 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
         .find(|d| is_time_dataset_name(&d.name()))
         .map(|d| d.name())
         .ok_or_else(|| {
-            anyhow!(
-                "no time dataset found — expected one of {TIME_NAMES:?} (case-insensitive)"
-            )
+            anyhow!("no time dataset found — expected one of {TIME_NAMES:?} (case-insensitive)")
         })?;
 
     let mut data_configs = Vec::new();
@@ -214,11 +212,7 @@ fn detect_compound(
             let Some(channel_type) = hdf5_to_sift_data_type(&field.ty) else {
                 continue;
             };
-            let channel_name = format!(
-                "{}.{}",
-                name.trim_start_matches('/'),
-                field.name
-            );
+            let channel_name = format!("{}.{}", name.trim_start_matches('/'), field.name);
             let channel_config = ChannelConfig {
                 name: channel_name,
                 data_type: channel_type as i32,

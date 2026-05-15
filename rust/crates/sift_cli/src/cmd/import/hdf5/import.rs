@@ -8,8 +8,7 @@ use sift_rs::{
     common::r#type::v1::ChannelConfig,
     data_imports::v2::{
         CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse, Hdf5Config,
-        TimeFormat as ProtoTimeFormat,
-        data_import_service_client::DataImportServiceClient,
+        TimeFormat as ProtoTimeFormat, data_import_service_client::DataImportServiceClient,
     },
 };
 

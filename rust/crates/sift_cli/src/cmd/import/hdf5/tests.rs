@@ -8,9 +8,7 @@ use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
 use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
-use crate::cmd::import::hdf5::detect_hdf5_schema::{
-    hdf5_to_sift_data_type, is_time_dataset_name,
-};
+use crate::cmd::import::hdf5::detect_hdf5_schema::{hdf5_to_sift_data_type, is_time_dataset_name};
 use crate::cmd::import::hdf5::import::build_hdf5_config;
 
 fn make_args() -> ImportHdf5Args {
@@ -140,59 +138,111 @@ fn is_time_dataset_name_rejects_unrelated_names() {
 }
 
 #[test]
-fn hdf5_to_sift_data_type_maps_correctly() {
+fn hdf5_to_sift_data_type_maps_boolean() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Boolean),
         Some(ChannelDataType::Bool)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_integer_u1() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Integer(IntSize::U1)),
         Some(ChannelDataType::Int32)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_integer_u2() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Integer(IntSize::U2)),
         Some(ChannelDataType::Int32)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_integer_u4() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Integer(IntSize::U4)),
         Some(ChannelDataType::Int32)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_integer_u8() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Integer(IntSize::U8)),
         Some(ChannelDataType::Int64)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_unsigned_u1() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Unsigned(IntSize::U1)),
         Some(ChannelDataType::Uint32)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_unsigned_u4() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Unsigned(IntSize::U4)),
         Some(ChannelDataType::Uint32)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_unsigned_u8() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Unsigned(IntSize::U8)),
         Some(ChannelDataType::Uint64)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_float_u4() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Float(FloatSize::U4)),
         Some(ChannelDataType::Float)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_float_u8() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Float(FloatSize::U8)),
         Some(ChannelDataType::Double)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_var_len_unicode() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::VarLenUnicode),
         Some(ChannelDataType::String)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_var_len_ascii() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::VarLenAscii),
         Some(ChannelDataType::String)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_fixed_ascii() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::FixedAscii(16)),
         Some(ChannelDataType::String)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_fixed_unicode() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::FixedUnicode(16)),
         Some(ChannelDataType::String)

@@ -1,10 +1,10 @@
 use clap::{Parser, Subcommand, crate_description, crate_version};
 use clap_complete::Shell;
 use parquet::ComplexTypesMode;
-pub mod tdms;
 pub mod hdf5;
-use std::path::PathBuf;
+pub mod tdms;
 use hdf5::Hdf5Schema;
+use std::path::PathBuf;
 use tdms::TdmsFallbackMethod;
 
 pub mod channel;
