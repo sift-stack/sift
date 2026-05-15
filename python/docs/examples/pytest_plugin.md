@@ -9,11 +9,13 @@ This page walks through wiring the plugin into a project, the fixtures and
 hooks it provides, and the patterns you'll use day-to-day.
 
 !!! info "Where the plugin lives"
-    The plugin is part of `sift_client.util.test_results`. It is **not**
-    registered as a `pytest11` entry point. Projects opt in with a
-    `from sift_client.util.test_results import *` in their `conftest.py`.
-    That import is what wires up the fixtures, the CLI options, and the
-    `pytest_runtest_makereport` hook.
+    The plugin lives at `sift_client.pytest_plugin`. It is
+    **not** registered as a `pytest11` entry point. Projects opt in with a
+    `pytest_plugins` declaration in their top-level `conftest.py`. Pytest
+    then loads the module as a real plugin: the fixtures, CLI options, and
+    `pytest_runtest_makereport` hook all register through standard pytest
+    machinery, so `pytest --trace-config` lists it and
+    `pytest -p no:sift_client.pytest_plugin` disables it.
 
 ## Install
 
@@ -33,9 +35,26 @@ The `SIFT_GRPC_URI` and `SIFT_REST_URI` are the gRPC and REST endpoints for your
 
 ## Wire the plugin into `conftest.py`
 
-Two things are required: a session-scoped `sift_client` fixture (the plugin's
-`report_context` fixture resolves it by name), and a star-import that registers
-the plugin's fixtures into the conftest's namespace.
+A single `pytest_plugins` declaration in your top-level `conftest.py` is all
+that's required. The plugin ships a default `sift_client` fixture that reads
+`SIFT_API_KEY`, `SIFT_GRPC_URI`, and `SIFT_REST_URI` from the environment.
+
+```python title="conftest.py"
+from dotenv import load_dotenv
+
+load_dotenv()
+
+pytest_plugins = ["sift_client.pytest_plugin"]
+```
+
+That's the whole setup. Every test in the session will now create a step on a
+single shared `TestReport`.
+
+### Customizing the `SiftClient`
+
+To construct the client differently (custom TLS, timeouts, alternate
+credentials, etc.), override the `sift_client` fixture in your conftest. The
+plugin's default falls away in favor of your definition.
 
 ```python title="conftest.py"
 import os
@@ -45,29 +64,22 @@ from dotenv import load_dotenv
 
 from sift_client import SiftClient, SiftConnectionConfig
 
-# Star-import wires fixtures + hooks + CLI options into pytest collection.
-from sift_client.util.test_results import *
-
 load_dotenv()
+
+pytest_plugins = ["sift_client.pytest_plugin"]
 
 
 @pytest.fixture(scope="session")
 def sift_client() -> SiftClient:
-    grpc_url = os.getenv("SIFT_GRPC_URI")
-    rest_url = os.getenv("SIFT_REST_URI")
-    api_key = os.getenv("SIFT_API_KEY")
-    
     return SiftClient(
         connection_config=SiftConnectionConfig(
-            api_key=api_key,
-            grpc_url=grpc_url,
-            rest_url=rest_url,
+            api_key=os.getenv("SIFT_API_KEY"),
+            grpc_url=os.getenv("SIFT_GRPC_URI"),
+            rest_url=os.getenv("SIFT_REST_URI"),
+            use_ssl=False,
         )
     )
 ```
-
-That's the whole setup. Every test in the session will now create a step on a
-single shared `TestReport`.
 
 ## Plugin provided fixtures
 
@@ -585,7 +597,7 @@ automatic skip.
 ```python title="conftest.py"
 import pytest
 
-from sift_client.util.test_results import *
+pytest_plugins = ["sift_client.pytest_plugin"]
 
 
 @pytest.fixture(autouse=True)
