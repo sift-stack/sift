@@ -1,24 +1,58 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
 import pytest
 
+from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
 
 if TYPE_CHECKING:
-    from sift_client.client import SiftClient
     from sift_client.util.test_results.context_manager import NewStep
 
 REPORT_CONTEXT: ReportContext | None = None
 
+_PARAMETRIZE_PATH_KEY = pytest.StashKey[tuple[str, ...]]()
+_PARAMETRIZE_STACK: list[NewStep] = []
+
+
+def _build_parametrize_path(item: pytest.Item) -> tuple[str, ...]:
+    """Outer-to-inner step display names for a parametrized item.
+
+    Pytest stores `callspec.params` with the BOTTOM decorator's axis first; the
+    target tree treats the TOP decorator as outermost, so we reverse.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None or not callspec.params:
+        return ()
+    originalname = getattr(item, "originalname", item.name)
+    frames: list[str] = [originalname]
+    for name, value in reversed(callspec.params.items()):
+        frames.append(f"{name}={value!r}")
+    return tuple(frames)
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Stash each item's parametrize path and cluster siblings by shared prefix."""
+    for item in items:
+        item.stash[_PARAMETRIZE_PATH_KEY] = _build_parametrize_path(item)
+    items.sort(key=lambda i: i.stash[_PARAMETRIZE_PATH_KEY])
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Drain any parametrize parents still open (e.g. when module_substep was disabled)."""
+    while _PARAMETRIZE_STACK:
+        _PARAMETRIZE_STACK.pop().__exit__(None, None, None)
+
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register Sift-specific command-line options."""
-    parser.addoption(
+    group = parser.getgroup("sift", description="Sift test results")
+    group.addoption(
         "--sift-test-results-log-file",
         default=None,
         help="Path to write the Sift test result log file. "
@@ -26,7 +60,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "False, 'false', or 'none' to disable logging, "
         "or a file path to write to a specific location.",
     )
-    parser.addoption(
+    group.addoption(
         "--no-sift-test-results-git-metadata",
         action="store_false",
         dest="sift_test_results_git_metadata",
@@ -34,7 +68,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help="Exclude git metadata from the Sift test results. "
         "Git metadata (repo, branch, commit) is included by default.",
     )
-    parser.addoption(
+    group.addoption(
         "--sift-test-results-check-connection",
         action="store_true",
         default=False,
@@ -116,6 +150,34 @@ def _has_sift_connection(request: pytest.FixtureRequest) -> bool:
     return bool(request.getfixturevalue("client_has_connection"))
 
 
+def _required_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise pytest.UsageError(
+            f"{name} must be set to use the default sift_client fixture; "
+            f"set the environment variable or override the sift_client fixture in conftest.py."
+        )
+    return value
+
+
+@pytest.fixture(scope="session")
+def sift_client() -> SiftClient:
+    """Default ``SiftClient`` resolved from environment variables.
+
+    Reads ``SIFT_API_KEY``, ``SIFT_GRPC_URI``, and ``SIFT_REST_URI``. Projects
+    that need custom construction (TLS toggles, custom timeouts, etc.) can
+    override this fixture by defining their own ``sift_client`` in their
+    ``conftest.py``; pytest fixture resolution prefers the local definition.
+    """
+    return SiftClient(
+        connection_config=SiftConnectionConfig(
+            api_key=_required_env("SIFT_API_KEY"),
+            grpc_url=_required_env("SIFT_GRPC_URI"),
+            rest_url=_required_env("SIFT_REST_URI"),
+        )
+    )
+
+
 @pytest.fixture(scope="session", autouse=True)
 def report_context(
     sift_client: SiftClient, request: pytest.FixtureRequest, pytestconfig: pytest.Config
@@ -138,23 +200,69 @@ def report_context(
 def _step_impl(
     report_context: ReportContext, request: pytest.FixtureRequest
 ) -> Generator[NewStep | None, None, None]:
-    name = str(request.node.name)
-    existing_docstring = request.node.obj.__doc__ or None
+    item = request.node
+    callspec = getattr(item, "callspec", None)
+    if callspec is not None and callspec.params:
+        # Bottom decorator's axis is first in callspec.params, which matches the
+        # innermost (leaf) frame in the parametrize path.
+        axis, value = next(iter(callspec.params.items()))
+        name = f"{axis}={value!r}"
+    else:
+        name = str(item.name)
+    existing_docstring = item.obj.__doc__ or None
     with report_context.new_step(
         name=name, description=existing_docstring, assertion_as_fail_not_error=False
     ) as new_step:
         yield new_step
-        if hasattr(request.node, "rep_call") and request.node.rep_call.excinfo:
+        if hasattr(item, "rep_call") and item.rep_call.excinfo:
             new_step.update_step_from_result(
-                request.node.rep_call.excinfo,
-                request.node.rep_call.excinfo.value,
-                request.node.rep_call.excinfo.tb,
+                item.rep_call.excinfo,
+                item.rep_call.excinfo.value,
+                item.rep_call.excinfo.tb,
             )
+
+
+@pytest.fixture(autouse=True)
+def _parametrize_parents(
+    report_context: ReportContext | None,
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
+) -> Generator[None, None, None]:
+    """Open/close shared parametrize parent steps for the current item.
+
+    Diffs the item's desired parametrize path against the open stack: pops the
+    stale tail, then opens new parents (everything except the innermost frame —
+    the ``step`` fixture creates that as the leaf). Parents persist across
+    sibling items and are drained by ``module_substep`` teardown or
+    ``pytest_sessionfinish``.
+    """
+    if report_context is None or (
+        _check_connection_enabled(pytestconfig) and not _has_sift_connection(request)
+    ):
+        yield
+        return
+    desired = request.node.stash.get(_PARAMETRIZE_PATH_KEY, ())
+    parents = desired[:-1]
+    open_keys = [getattr(ns, "_parametrize_key", None) for ns in _PARAMETRIZE_STACK]
+    common = 0
+    while (
+        common < len(open_keys) and common < len(parents) and open_keys[common] == parents[common]
+    ):
+        common += 1
+    while len(_PARAMETRIZE_STACK) > common:
+        _PARAMETRIZE_STACK.pop().__exit__(None, None, None)
+    for display in parents[common:]:
+        ns = report_context.new_step(name=display, assertion_as_fail_not_error=False)
+        ns.__enter__()
+        ns._parametrize_key = display  # type: ignore[attr-defined]
+        _PARAMETRIZE_STACK.append(ns)
+    yield
 
 
 @pytest.fixture(autouse=True)
 def step(
     report_context: ReportContext | None,
+    _parametrize_parents: None,
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
 ) -> Generator[NewStep | None, None, None]:
@@ -187,7 +295,17 @@ def module_substep(
     ):
         yield None
         return
-    yield from _step_impl(report_context, request)
+    name = str(request.node.name)
+    existing_docstring = request.node.obj.__doc__ or None
+    with report_context.new_step(
+        name=name, description=existing_docstring, assertion_as_fail_not_error=False
+    ) as new_step:
+        yield new_step
+        # Drain parametrize parents nested under this module before the module
+        # step exits — otherwise ReportContext.exit_step asserts that the module
+        # step is the stack top.
+        while _PARAMETRIZE_STACK:
+            _PARAMETRIZE_STACK.pop().__exit__(None, None, None)
 
 
 @pytest.fixture(scope="session")
