@@ -1,14 +1,15 @@
 [workspace]
 resolver = "2"
 members = [
-  "rust/crates/sift_error",
-  "rust/crates/sift_rs",
-  "rust/crates/sift_stream",
-  "rust/crates/sift_error",
-  "rust/crates/sift_connect",
-  "rust/crates/sift_stream_bindings",
-  "rust/crates/sift_cli",
-  "rust/crates/sift_pbfs",
+    "rust/crates/sift_error",
+    "rust/crates/sift_rs",
+    "rust/crates/sift_stream",
+    "rust/crates/sift_error",
+    "rust/crates/sift_connect",
+    "rust/crates/sift_stream_bindings",
+    "rust/crates/sift_cli",
+    "rust/crates/sift_pbfs",
+    "rust/crates/sift_mcp",
 ]
 
 [workspace.package]
@@ -56,6 +57,7 @@ pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
 pyo3-stub-gen = { version = "0.10" }
 rand = "0.10"
 reqwest = "0.13"
+rmcp = "1.7.0"
 serde = { version = "^1.0" }
 serde_json = { version = "^1.0" }
 tdms = "0.3.0"
