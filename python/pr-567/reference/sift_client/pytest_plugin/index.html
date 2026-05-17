@@ -1391,7 +1391,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            module_substep (sift_client.pytest_plugin.module_substep)" href="#sift_client.pytest_plugin.module_substep">module_substep</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Create a step per module.</p>
+                  <p>Create a step per module. No-ops when <code>report_context</code> is None.</p>
                 </div>
               </td>
             </tr>
@@ -1399,7 +1399,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            pytest_addoption (sift_client.pytest_plugin.pytest_addoption)" href="#sift_client.pytest_plugin.pytest_addoption">pytest_addoption</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Register Sift-specific command-line options.</p>
+                  <p>Register Sift-specific command-line options and ini keys.</p>
                 </div>
               </td>
             </tr>
@@ -1407,7 +1407,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            pytest_runtest_makereport (sift_client.pytest_plugin.pytest_runtest_makereport)" href="#sift_client.pytest_plugin.pytest_runtest_makereport">pytest_runtest_makereport</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step.</p>
+                  <p>Capture pytest outcomes so assertion failures and skips land on the Sift step.</p>
                 </div>
               </td>
             </tr>
@@ -1423,7 +1423,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            sift_client (sift_client.pytest_plugin.sift_client)" href="#sift_client.pytest_plugin.sift_client">sift_client</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Default <code>SiftClient</code> resolved from environment variables.</p>
+                  <p>Default <code>SiftClient</code> resolved from environment variables and ini keys.</p>
                 </div>
               </td>
             </tr>
@@ -1431,7 +1431,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            step (sift_client.pytest_plugin.step)" href="#sift_client.pytest_plugin.step">step</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Create an outer step for the function.</p>
+                  <p>Create an outer step for the function. No-ops when <code>report_context</code> is None.</p>
                 </div>
               </td>
             </tr>
@@ -1539,15 +1539,12 @@ consulted by the Sift fixtures when <code>--sift-test-results-check-connection</
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">module_substep</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../util/test_results/#sift_client.util.test_results.ReportContext">ReportContext</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">pytestconfig</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Create a step per module.</p>
-<p>No-ops when <code>--sift-test-results-check-connection</code> is set and the client
-has no connection (or when the session-scoped <code>report_context</code> resolved to None).</p>
+        <p>Create a step per module. No-ops when <code>report_context</code> is None.</p>
 
 
     </div>
@@ -1567,7 +1564,10 @@ has no connection (or when the session-scoped <code>report_context</code> resolv
 
     <div class="doc doc-contents ">
 
-        <p>Register Sift-specific command-line options.</p>
+        <p>Register Sift-specific command-line options and ini keys.</p>
+<p>Each option can be set on the command line or under <code>[tool.pytest.ini_options]</code>
+in <code>pyproject.toml</code> (or <code>[pytest]</code> in <code>pytest.ini</code>). CLI values take
+precedence over ini values, which take precedence over the built-in default.</p>
 
 
     </div>
@@ -1587,7 +1587,7 @@ has no connection (or when the session-scoped <code>report_context</code> resolv
 
     <div class="doc doc-contents ">
 
-        <p>You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step.</p>
+        <p>Capture pytest outcomes so assertion failures and skips land on the Sift step.</p>
 
 
     </div>
@@ -1631,16 +1631,22 @@ requires a <code>client_has_connection</code> fixture to be available in the ses
 
 
 <a href="#sift_client.pytest_plugin.sift_client" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sift_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.SiftClient)" href="../#sift_client.SiftClient">SiftClient</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sift_client</span><span class="p">(</span><span class="n">pytestconfig</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.SiftClient)" href="../#sift_client.SiftClient">SiftClient</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Default <code>SiftClient</code> resolved from environment variables.</p>
-<p>Reads <code>SIFT_API_KEY</code>, <code>SIFT_GRPC_URI</code>, and <code>SIFT_REST_URI</code>. Projects
-that need custom construction (TLS toggles, custom timeouts, etc.) can
-override this fixture by defining their own <code>sift_client</code> in their
-<code>conftest.py</code>; pytest fixture resolution prefers the local definition.</p>
+        <p>Default <code>SiftClient</code> resolved from environment variables and ini keys.</p>
+<p>Each credential is read from its environment variable first. The URIs
+(<code>SIFT_GRPC_URI</code>, <code>SIFT_REST_URI</code>) additionally fall back to the
+<code>sift_grpc_uri</code> / <code>sift_rest_uri</code> ini keys, since they are stable
+per-org values that are safe to commit. <code>SIFT_API_KEY</code> is intentionally
+env-only — use <code>pytest-dotenv</code> (already a project dependency) to load
+it from a <code>.env</code> file kept out of version control.</p>
+<p>Projects that need custom construction (TLS toggles, custom timeouts,
+etc.) can override this fixture by defining their own <code>sift_client</code>
+in their <code>conftest.py</code>; pytest fixture resolution prefers the local
+definition.</p>
 
 
     </div>
@@ -1658,15 +1664,12 @@ override this fixture by defining their own <code>sift_client</code> in their
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">step</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../util/test_results/#sift_client.util.test_results.ReportContext">ReportContext</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">pytestconfig</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Create an outer step for the function.</p>
-<p>No-ops when <code>--sift-test-results-check-connection</code> is set and the client
-has no connection (or when the session-scoped <code>report_context</code> resolved to None).</p>
+        <p>Create an outer step for the function. No-ops when <code>report_context</code> is None.</p>
 
 
     </div>

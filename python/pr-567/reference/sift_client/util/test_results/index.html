@@ -2266,6 +2266,20 @@ can disable logging by passing <code>--sift-test-results-log-file=false</code>.<
   <code>module_substep</code> no-op when the client has no connection. Requires a
   <code>client_has_connection</code> fixture (the plugin ships a default).</li>
 </ul>
+<p>Each option has a matching ini key for per-project configuration under
+<code>[tool.pytest.ini_options]</code> in <code>pyproject.toml</code> (or <code>[pytest]</code> in
+<code>pytest.ini</code>). CLI flags override ini values. The default <code>sift_client</code>
+fixture also reads <code>sift_grpc_uri</code> and <code>sift_rest_uri</code> as fallbacks when
+the corresponding env vars are unset (env vars win when both are set).
+<code>SIFT_API_KEY</code> is env-only — load it from a <code>.env</code> file via the
+<code>pytest-dotenv</code> plugin or inject it via your CI secret manager.</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.pytest.ini_options]</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">sift_test_results_log_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">sift_test_results_check_connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">sift_test_results_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-org.sift.example:443&quot;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your-org.sift.example&quot;</span>
+</span></code></pre></div>
 <p>To disable the plugin for a single run:
 <code>pytest -p no:sift_client.pytest_plugin</code>.</p>
 
