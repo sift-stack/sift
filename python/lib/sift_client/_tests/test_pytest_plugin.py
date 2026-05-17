@@ -18,8 +18,7 @@ def _probe_conftest(pytester: pytest.Pytester, probe_body: str) -> None:
     """
     pytester.makeconftest(
         'pytest_plugins = ["sift_client.pytest_plugin"]\n\n'
-        "def pytest_configure(config):\n"
-        + textwrap.indent(textwrap.dedent(probe_body), "    ")
+        "def pytest_configure(config):\n" + textwrap.indent(textwrap.dedent(probe_body), "    ")
     )
 
 
@@ -119,9 +118,7 @@ class TestIniConfiguration:
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest(
-            "-s", "--co", f"--sift-test-results-log-file={cli_path}"
-        )
+        result = pytester.runpytest("-s", "--co", f"--sift-test-results-log-file={cli_path}")
         result.stdout.fnmatch_lines([f"RESOLVED: {cli_path}"])
 
     def test_uris_from_ini(

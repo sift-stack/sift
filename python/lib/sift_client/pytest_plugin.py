@@ -212,9 +212,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     in their ``conftest.py``; pytest fixture resolution prefers the local
     definition.
     """
-    resolved = {
-        env: _resolve_credential(pytestconfig, env, ini) for env, ini in _CREDENTIAL_KEYS
-    }
+    resolved = {env: _resolve_credential(pytestconfig, env, ini) for env, ini in _CREDENTIAL_KEYS}
     missing = [env for env, value in resolved.items() if not value]
     if missing:
         raise pytest.UsageError(
