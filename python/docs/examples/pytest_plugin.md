@@ -98,17 +98,81 @@ def sift_client() -> SiftClient:
 | `--no-sift-test-results-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
 | `--sift-test-results-check-connection` | off | Make `report_context`, `step`, and `module_substep` no-op (yield `None`) when `client_has_connection` is `False`. Lets the same suite run locally without a Sift backend. |
 
-These can be set permanently in `pytest.ini`:
+These can be passed permanently via `addopts`:
 
 ```ini title="pytest.ini"
 [pytest]
 addopts = --sift-test-results-check-connection
 ```
 
+Or set the matching ini key directly (recommended for stable per-project
+configuration). Each CLI flag has a corresponding key under
+`[tool.pytest.ini_options]` in `pyproject.toml` or `[pytest]` in `pytest.ini`.
+CLI flags, when passed, override the ini values.
+
+| Ini key | Type | Equivalent CLI flag |
+|---|---|---|
+| `sift_test_results_log_file` | string (`true` / `false` / `none` / path) | `--sift-test-results-log-file=<value>` |
+| `sift_test_results_git_metadata` | bool (default `true`) | `--no-sift-test-results-git-metadata` (sets to `false`) |
+| `sift_test_results_check_connection` | bool (default `false`) | `--sift-test-results-check-connection` |
+
+The default `sift_client` fixture reads its two URIs from environment first
+and falls back to ini keys when the env vars are unset. `SIFT_API_KEY` is
+intentionally env-only — keep it out of source control and supply it through
+`pytest-dotenv` (see [API key handling](#api-key-handling) below). The env
+var wins when both are set, so secrets injected into a CI environment
+continue to override values committed to `pyproject.toml`. There are no CLI
+flags for credentials.
+
+| Ini key | Environment variable | Notes |
+|---|---|---|
+| _(none)_ | `SIFT_API_KEY` | Env-only. Use `.env` + `pytest-dotenv` locally; inject from your secret store in CI. |
+| `sift_grpc_uri` | `SIFT_GRPC_URI` | Stable per-org gRPC endpoint; safe to commit. |
+| `sift_rest_uri` | `SIFT_REST_URI` | Stable per-org REST endpoint; safe to commit. |
+
+```toml title="pyproject.toml"
+[tool.pytest.ini_options]
+sift_test_results_check_connection = true
+sift_test_results_log_file = "false"
+sift_test_results_git_metadata = false
+sift_grpc_uri = "your-org.sift.example:443"
+sift_rest_uri = "https://your-org.sift.example"
+```
+
+```ini title="pytest.ini"
+[pytest]
+sift_test_results_check_connection = true
+sift_test_results_log_file = false
+sift_test_results_git_metadata = false
+sift_grpc_uri = your-org.sift.example:443
+sift_rest_uri = https://your-org.sift.example
+```
+
+#### API key handling
+
+`SIFT_API_KEY` is deliberately read from the process environment only. The
+recommended workflow uses the
+[`pytest-dotenv`](https://pypi.org/project/pytest-dotenv/) plugin (already a
+dependency of `sift-stack-py`), which loads variables from a `.env` file
+into `os.environ` before tests run.
+
+1. Add `.env` to `.gitignore`.
+2. Drop your key into `.env` at the project root:
+
+    ```bash title=".env"
+    SIFT_API_KEY=sk-...your-key...
+    ```
+
+3. In CI, set `SIFT_API_KEY` directly via your provider's secret manager
+   instead of committing a `.env` file.
+
+`pytest-dotenv` picks the file up automatically; no `pytest_configure`
+glue is needed.
+
 !!! warning "FedRAMP / shared environments"
-    Pass `--sift-test-results-log-file=false` to skip the temp file + worker
-    pipeline. Create/update calls then run inline against the API instead of
-    being deferred through a subprocess.
+    Pass `--sift-test-results-log-file=false` (or set the ini key to `"false"`)
+    to skip the temp file + worker pipeline. Create/update calls then run
+    inline against the API instead of being deferred through a subprocess.
 
 ### Report metadata captured automatically
 

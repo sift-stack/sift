@@ -83,6 +83,23 @@ CLI options registered by the plugin:
   `module_substep` no-op when the client has no connection. Requires a
   `client_has_connection` fixture (the plugin ships a default).
 
+Each option has a matching ini key for per-project configuration under
+``[tool.pytest.ini_options]`` in ``pyproject.toml`` (or ``[pytest]`` in
+``pytest.ini``). CLI flags override ini values. The default ``sift_client``
+fixture also reads ``sift_grpc_uri`` and ``sift_rest_uri`` as fallbacks when
+the corresponding env vars are unset (env vars win when both are set).
+``SIFT_API_KEY`` is env-only — load it from a ``.env`` file via the
+``pytest-dotenv`` plugin or inject it via your CI secret manager.
+
+```toml
+[tool.pytest.ini_options]
+sift_test_results_log_file = "false"
+sift_test_results_check_connection = true
+sift_test_results_git_metadata = false
+sift_grpc_uri = "your-org.sift.example:443"
+sift_rest_uri = "https://your-org.sift.example"
+```
+
 To disable the plugin for a single run:
 `pytest -p no:sift_client.pytest_plugin`.
 """
