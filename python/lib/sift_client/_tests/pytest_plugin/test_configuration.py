@@ -127,6 +127,42 @@ class TestIniConfiguration:
         result = pytester.runpytest("-s", "--co", f"--sift-test-results-log-file={cli_path}")
         result.stdout.fnmatch_lines([f"RESOLVED: {cli_path}"])
 
+    def test_cli_check_connection_flag(
+        self,
+        pytester: pytest.Pytester,
+        write_probe_conftest: Callable[[str], None],
+    ) -> None:
+        """The ``--sift-test-results-check-connection`` CLI flag flips the resolver to True."""
+        write_probe_conftest(
+            """
+            from sift_client.pytest_plugin import _check_connection_enabled
+            print("CHECK:", _check_connection_enabled(config))
+            """,
+        )
+        pytester.makepyfile("def test_noop(): pass")
+        result = pytester.runpytest("-s", "--co", "--sift-test-results-check-connection")
+        result.stdout.fnmatch_lines(["CHECK: True"])
+
+    def test_cli_no_git_metadata_flag(
+        self,
+        pytester: pytest.Pytester,
+        write_probe_conftest: Callable[[str], None],
+    ) -> None:
+        """The ``--no-sift-test-results-git-metadata`` CLI flag flips git_metadata to False.
+
+        Guards the negation flag's ``dest`` binding: the flag name doesn't match
+        the ini key, so a broken ``dest`` would silently fall back to the ini
+        default and pass every other test in this file.
+        """
+        write_probe_conftest(
+            """
+            print("CLI_GIT:", config.getoption("sift_test_results_git_metadata"))
+            """,
+        )
+        pytester.makepyfile("def test_noop(): pass")
+        result = pytester.runpytest("-s", "--co", "--no-sift-test-results-git-metadata")
+        result.stdout.fnmatch_lines(["CLI_GIT: False"])
+
     def test_defaults_when_neither_set(
         self,
         pytester: pytest.Pytester,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
@@ -16,12 +17,83 @@ if TYPE_CHECKING:
 
 REPORT_CONTEXT: ReportContext | None = None
 
-# Ini keys that mirror the registered CLI options. Centralized so renames stay in sync.
-_INI_LOG_FILE = "sift_test_results_log_file"
-_INI_GIT_METADATA = "sift_test_results_git_metadata"
-_INI_CHECK_CONNECTION = "sift_test_results_check_connection"
-_INI_GRPC_URI = "sift_grpc_uri"
-_INI_REST_URI = "sift_rest_uri"
+@dataclass(frozen=True)
+class _Option:
+    """A single Sift plugin setting, registered as a CLI flag and/or an ini key.
+
+    ``ini_name`` is used as both the ini key and the CLI ``dest``, so a value
+    set either way lands on the same config slot. ``cli_flag=None`` makes the
+    option ini-only (e.g. the URI fallbacks).
+    """
+
+    ini_name: str
+    ini_help: str
+    cli_flag: str | None = None
+    cli_help: str | None = None
+    action: str | None = None
+    ini_type: str | None = None
+    ini_default: Any = None
+
+
+_LOG_FILE = _Option(
+    cli_flag="--sift-test-results-log-file",
+    ini_name="sift_test_results_log_file",
+    cli_help="Path to write the Sift test result log file. "
+    "Use 'true' (default) to auto-create a temp file, "
+    "False, 'false', or 'none' to disable logging, "
+    "or a file path to write to a specific location.",
+    ini_help="Default value for --sift-test-results-log-file. Same values "
+    "accepted as the CLI flag (path, 'true', 'false', 'none').",
+)
+
+_GIT_METADATA = _Option(
+    cli_flag="--no-sift-test-results-git-metadata",
+    ini_name="sift_test_results_git_metadata",
+    action="store_false",
+    cli_help="Exclude git metadata from the Sift test results. "
+    "Git metadata (repo, branch, commit) is included by default.",
+    ini_help="Include git repo/branch/commit in the report (true/false). "
+    "Defaults to true. The --no-sift-test-results-git-metadata CLI flag "
+    "overrides this when passed.",
+    ini_type="bool",
+    ini_default=True,
+)
+
+_CHECK_CONNECTION = _Option(
+    cli_flag="--sift-test-results-check-connection",
+    ini_name="sift_test_results_check_connection",
+    action="store_true",
+    cli_help="Skip the sift test-result fixtures (report_context, step, module_substep) "
+    "when the Sift client has no connection to the server. Requires a "
+    "`client_has_connection` fixture to be available in the test session.",
+    ini_help="When true, skip the sift test-result fixtures if the client has "
+    "no connection (same effect as --sift-test-results-check-connection). "
+    "Defaults to false.",
+    ini_type="bool",
+    ini_default=False,
+)
+
+_GRPC_URI = _Option(
+    ini_name="sift_grpc_uri",
+    ini_help="Sift gRPC endpoint URI. The default `sift_client` fixture "
+    "prefers the SIFT_GRPC_URI environment variable and falls back to "
+    "this ini value.",
+)
+
+_REST_URI = _Option(
+    ini_name="sift_rest_uri",
+    ini_help="Sift REST endpoint URI. The default `sift_client` fixture "
+    "prefers the SIFT_REST_URI environment variable and falls back to "
+    "this ini value.",
+)
+
+_OPTIONS: tuple[_Option, ...] = (
+    _LOG_FILE,
+    _GIT_METADATA,
+    _CHECK_CONNECTION,
+    _GRPC_URI,
+    _REST_URI,
+)
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -32,69 +104,24 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     precedence over ini values, which take precedence over the built-in default.
     """
     group = parser.getgroup("sift", description="Sift test results")
-    group.addoption(
-        "--sift-test-results-log-file",
-        default=None,
-        help="Path to write the Sift test result log file. "
-        "Use 'true' (default) to auto-create a temp file, "
-        "False, 'false', or 'none' to disable logging, "
-        "or a file path to write to a specific location.",
-    )
-    parser.addini(
-        _INI_LOG_FILE,
-        help="Default value for --sift-test-results-log-file. Same values "
-        "accepted as the CLI flag (path, 'true', 'false', 'none').",
-        default=None,
-    )
-    group.addoption(
-        "--no-sift-test-results-git-metadata",
-        action="store_false",
-        dest="sift_test_results_git_metadata",
-        default=None,
-        help="Exclude git metadata from the Sift test results. "
-        "Git metadata (repo, branch, commit) is included by default.",
-    )
-    parser.addini(
-        _INI_GIT_METADATA,
-        help="Include git repo/branch/commit in the report (true/false). "
-        "Defaults to true. The --no-sift-test-results-git-metadata CLI flag "
-        "overrides this when passed.",
-        type="bool",
-        default=True,
-    )
-    group.addoption(
-        "--sift-test-results-check-connection",
-        action="store_true",
-        default=None,
-        help="Skip the sift test-result fixtures (report_context, step, module_substep) "
-        "when the Sift client has no connection to the server. Requires a "
-        "`client_has_connection` fixture to be available in the test session.",
-    )
-    parser.addini(
-        _INI_CHECK_CONNECTION,
-        help="When true, skip the sift test-result fixtures if the client has "
-        "no connection (same effect as --sift-test-results-check-connection). "
-        "Defaults to false.",
-        type="bool",
-        default=False,
-    )
-    parser.addini(
-        _INI_GRPC_URI,
-        help="Sift gRPC endpoint URI. The default `sift_client` fixture "
-        "prefers the SIFT_GRPC_URI environment variable and falls back to "
-        "this ini value.",
-        default=None,
-    )
-    parser.addini(
-        _INI_REST_URI,
-        help="Sift REST endpoint URI. The default `sift_client` fixture "
-        "prefers the SIFT_REST_URI environment variable and falls back to "
-        "this ini value.",
-        default=None,
-    )
+    for opt in _OPTIONS:
+        if opt.cli_flag is not None:
+            cli_kwargs: dict[str, Any] = {
+                "dest": opt.ini_name,
+                "default": None,
+                "help": opt.cli_help,
+            }
+            if opt.action is not None:
+                cli_kwargs["action"] = opt.action
+            group.addoption(opt.cli_flag, **cli_kwargs)
+
+        ini_kwargs: dict[str, Any] = {"help": opt.ini_help, "default": opt.ini_default}
+        if opt.ini_type is not None:
+            ini_kwargs["type"] = opt.ini_type
+        parser.addini(opt.ini_name, **ini_kwargs)
 
 
-def _option_or_ini(pytestconfig: pytest.Config | None, name: str) -> Any:
+def _option_or_ini(pytestconfig: pytest.Config | None, opt: _Option) -> Any:
     """Resolve a Sift plugin setting from CLI > ini > None.
 
     The ``addoption`` registrations use ``default=None`` so we can tell whether
@@ -103,18 +130,18 @@ def _option_or_ini(pytestconfig: pytest.Config | None, name: str) -> Any:
     """
     if pytestconfig is None:
         return None
-    cli = pytestconfig.getoption(name, default=None)
+    cli = pytestconfig.getoption(opt.ini_name, default=None)
     if cli is not None:
         return cli
     try:
-        return pytestconfig.getini(name)
+        return pytestconfig.getini(opt.ini_name)
     except (KeyError, ValueError):
         return None
 
 
 def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool | None:
     """Determine log_file value from CLI flag or ini key."""
-    raw = _option_or_ini(pytestconfig, _INI_LOG_FILE)
+    raw = _option_or_ini(pytestconfig, _LOG_FILE)
     if not raw:
         # None, empty string from ini, or False — treat as "use temp file default".
         return True
@@ -153,7 +180,7 @@ def _report_context_impl(
         base_name = "pytest " + " ".join(args) if args else "pytest"
         test_case = base_name
     log_file = _resolve_log_file(pytestconfig)
-    git_metadata = _option_or_ini(pytestconfig, _INI_GIT_METADATA)
+    git_metadata = _option_or_ini(pytestconfig, _GIT_METADATA)
     include_git_metadata = True if git_metadata is None else bool(git_metadata)
     with ReportContext(
         sift_client,
@@ -169,7 +196,7 @@ def _report_context_impl(
 
 def _check_connection_enabled(pytestconfig: pytest.Config | None) -> bool:
     """Return True when the caller opted into the check-connection mode via CLI or ini."""
-    return bool(_option_or_ini(pytestconfig, _INI_CHECK_CONNECTION))
+    return bool(_option_or_ini(pytestconfig, _CHECK_CONNECTION))
 
 
 def _has_sift_connection(request: pytest.FixtureRequest) -> bool:
@@ -177,23 +204,23 @@ def _has_sift_connection(request: pytest.FixtureRequest) -> bool:
     return bool(request.getfixturevalue("client_has_connection"))
 
 
-_CREDENTIAL_KEYS: tuple[tuple[str, str | None], ...] = (
+_CREDENTIAL_KEYS: tuple[tuple[str, _Option | None], ...] = (
     ("SIFT_API_KEY", None),  # env-only; never read from ini to keep secrets out of source control.
-    ("SIFT_GRPC_URI", _INI_GRPC_URI),
-    ("SIFT_REST_URI", _INI_REST_URI),
+    ("SIFT_GRPC_URI", _GRPC_URI),
+    ("SIFT_REST_URI", _REST_URI),
 )
 
 
 def _resolve_credential(
-    pytestconfig: pytest.Config | None, env_name: str, ini_name: str | None
+    pytestconfig: pytest.Config | None, env_name: str, opt: _Option | None
 ) -> str | None:
     """Resolve a Sift credential: env var first, then ini key (if registered), else None."""
     env_value = os.getenv(env_name)
     if env_value:
         return env_value
-    if ini_name is None or pytestconfig is None:
+    if opt is None or pytestconfig is None:
         return None
-    ini_value = pytestconfig.getini(ini_name)
+    ini_value = pytestconfig.getini(opt.ini_name)
     return ini_value if isinstance(ini_value, str) and ini_value else None
 
 
@@ -213,7 +240,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     in their ``conftest.py``; pytest fixture resolution prefers the local
     definition.
     """
-    resolved = {env: _resolve_credential(pytestconfig, env, ini) for env, ini in _CREDENTIAL_KEYS}
+    resolved = {env: _resolve_credential(pytestconfig, env, opt) for env, opt in _CREDENTIAL_KEYS}
     missing = [env for env, value in resolved.items() if not value]
     if missing:
         raise pytest.UsageError(
