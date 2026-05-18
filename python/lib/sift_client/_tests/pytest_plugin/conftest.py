@@ -8,6 +8,14 @@ conftests those inner sessions need:
 - ``write_probe_conftest``: conftest that loads the plugin and runs a probe
   block inside ``pytest_configure``, useful for inspecting internal state
   without running tests against a real backend
+
+Every test in this suite invokes the inner session via
+``pytester.runpytest_subprocess(...)`` rather than ``pytester.runpytest(...)``.
+``runpytest`` runs the inner pytest in-process, which re-imports the Sift
+plugin on each test; the plugin transitively imports numpy, whose C
+extensions refuse to initialize twice in one process and raise
+``cannot load module more than once per process``. Spawning a subprocess
+gives each inner session a fresh interpreter and sidesteps that guard.
 """
 
 from __future__ import annotations

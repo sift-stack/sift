@@ -43,7 +43,7 @@ class TestCredentials:
                 assert "ini-grpc:1234" in cfg.uri
             """
         )
-        result = pytester.runpytest()
+        result = pytester.runpytest_subprocess()
         result.assert_outcomes(passed=1)
 
     def test_env_var_overrides_ini_uri(
@@ -72,7 +72,7 @@ class TestCredentials:
                 assert "env-grpc:9999" in sift_client.grpc_client._config.uri
             """
         )
-        result = pytester.runpytest()
+        result = pytester.runpytest_subprocess()
         result.assert_outcomes(passed=1)
 
     def test_api_key_ignored_from_ini(
@@ -94,7 +94,7 @@ class TestCredentials:
             """
         )
         pytester.makepyfile("def test_should_not_run(): pass")
-        result = pytester.runpytest()
+        result = pytester.runpytest_subprocess()
         assert result.ret != 0
         combined = "\n".join(result.outlines + result.errlines)
         assert "SIFT_API_KEY" in combined, combined
@@ -110,7 +110,7 @@ class TestCredentials:
             monkeypatch.delenv(name, raising=False)
         write_plugin_conftest()
         pytester.makepyfile("def test_should_not_run(): pass")
-        result = pytester.runpytest()
+        result = pytester.runpytest_subprocess()
         assert result.ret != 0
         combined = "\n".join(result.outlines + result.errlines)
         for name in ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI"):

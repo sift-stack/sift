@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 REPORT_CONTEXT: ReportContext | None = None
 
+
 @dataclass(frozen=True)
 class _Option:
     """A single Sift plugin setting, registered as a CLI flag and/or an ini key.

@@ -36,7 +36,7 @@ class TestIniConfiguration:
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co")
+        result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines(["RESOLVED: None"])
 
     def test_ini_log_file_path(
@@ -59,7 +59,7 @@ class TestIniConfiguration:
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co")
+        result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines([f"RESOLVED: {log_path}"])
 
     def test_ini_check_connection_true(
@@ -80,7 +80,7 @@ class TestIniConfiguration:
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co")
+        result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines(["CHECK: True"])
 
     def test_ini_git_metadata_false(
@@ -100,7 +100,7 @@ class TestIniConfiguration:
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co")
+        result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines(["INI_GIT: False"])
 
     def test_cli_overrides_ini(
@@ -124,7 +124,9 @@ class TestIniConfiguration:
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co", f"--sift-test-results-log-file={cli_path}")
+        result = pytester.runpytest_subprocess(
+            "-s", "--co", f"--sift-test-results-log-file={cli_path}"
+        )
         result.stdout.fnmatch_lines([f"RESOLVED: {cli_path}"])
 
     def test_cli_check_connection_flag(
@@ -140,7 +142,7 @@ class TestIniConfiguration:
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co", "--sift-test-results-check-connection")
+        result = pytester.runpytest_subprocess("-s", "--co", "--sift-test-results-check-connection")
         result.stdout.fnmatch_lines(["CHECK: True"])
 
     def test_cli_no_git_metadata_flag(
@@ -160,7 +162,7 @@ class TestIniConfiguration:
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co", "--no-sift-test-results-git-metadata")
+        result = pytester.runpytest_subprocess("-s", "--co", "--no-sift-test-results-git-metadata")
         result.stdout.fnmatch_lines(["CLI_GIT: False"])
 
     def test_defaults_when_neither_set(
@@ -180,7 +182,7 @@ class TestIniConfiguration:
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest("-s", "--co")
+        result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines(
             [
                 "RESOLVED: True",
