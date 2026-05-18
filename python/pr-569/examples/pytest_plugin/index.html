@@ -1063,37 +1063,65 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-the-suite" class="md-nav__link">
+  <a href="#run-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running the suite
+        Run modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#behavior-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behavior matrix
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#common-invocations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Modes
+        Common invocations
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#running-offline" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#picking-a-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running offline
+        Picking a mode
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Running offline">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inside-an-offline-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inside an offline run
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inside an offline run">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1113,10 +1141,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-without-the-plugin-pytest_plugin_noop" class="md-nav__link">
+  <a href="#disabling-the-plugin" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running without the plugin: pytest_plugin_noop
+        Disabling the plugin
       
     </span>
   </a>
@@ -1496,37 +1524,65 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-the-suite" class="md-nav__link">
+  <a href="#run-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running the suite
+        Run modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#behavior-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behavior matrix
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#common-invocations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Modes
+        Common invocations
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#running-offline" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#picking-a-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running offline
+        Picking a mode
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Running offline">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inside-an-offline-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inside an offline run
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inside an offline run">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1546,10 +1602,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-without-the-plugin-pytest_plugin_noop" class="md-nav__link">
+  <a href="#disabling-the-plugin" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running without the plugin: pytest_plugin_noop
+        Disabling the plugin
       
     </span>
   </a>
@@ -1708,14 +1764,9 @@ plugin's default falls away in favor of your definition.</p>
 <td>Skip the session-start ping and don't contact Sift. All create/update calls go to the JSONL log file for later replay via <code>import-test-result-log</code>.</td>
 </tr>
 <tr>
-<td><code>--sift-log-file=&lt;path&gt;</code></td>
+<td><code>--sift-log-file=&lt;path\|none&gt;</code></td>
 <td>temp file</td>
-<td>Path to write the JSONL log file. In online mode this is a write-through backup; in offline mode it is the sole sink. When unset, a temp file is created and its path emitted via a <code>logger.info</code> line at session start.</td>
-</tr>
-<tr>
-<td><code>--no-sift-log-file</code></td>
-<td>off</td>
-<td>Disable the JSONL log file (online mode only). Create/update calls run inline against the API instead of being deferred through the import worker. Incompatible with <code>--sift-offline</code>.</td>
+<td>Path to write the JSONL log file, or <code>none</code> to disable the log file entirely (online mode only — create/update calls then run inline against the API instead of being deferred through the import worker). In online mode a path is a write-through backup; in offline mode it is the sole sink. When unset, a temp file is created and its path emitted via a <code>logger.info</code> line at session start. <code>--sift-log-file=none</code> is incompatible with <code>--sift-offline</code>.</td>
 </tr>
 <tr>
 <td><code>--sift-no-git-metadata</code></td>
@@ -1749,7 +1800,7 @@ uses the <a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</
 glue is needed.</p>
 <div class="admonition warning">
 <p class="admonition-title">FedRAMP / shared environments</p>
-<p>Pass <code>--no-sift-log-file</code> to skip the temp file + worker pipeline.
+<p>Pass <code>--sift-log-file=none</code> to skip the temp file + worker pipeline.
 Create/update calls then run inline against the API instead of being
 deferred through a subprocess.</p>
 </div>
@@ -2174,127 +2225,184 @@ so you can use it inline.</p>
 </span></code></pre></div>
 <p>A manually-resolved status is honored by the step's exit handler. No
   further bookkeeping required. <code>SKIPPED</code> does not propagate as a failure.</p>
-<h2 id="running-the-suite">Running the suite<a class="headerlink" href="#running-the-suite" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Full run against your Sift tenant</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>pytest
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># Pin the log file so you can replay it later if the import worker dies</span>
-</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>pytest<span class="w"> </span>--sift-log-file<span class="o">=</span>./sift-results.jsonl
-</span></code></pre></div>
-<p>See <a href="#running-offline">Running offline</a> for capturing a run locally and
-replaying it later, and
-<a href="#running-without-the-plugin-pytest_plugin_noop">Running without the plugin</a>
-for keeping test code working when Sift isn't part of the pipeline.</p>
-<h2 id="modes">Modes<a class="headerlink" href="#modes" title="Permanent link">&para;</a></h2>
-<p>The plugin has two runtime modes. Bad configuration (missing <code>SIFT_API_KEY</code>
-/ <code>SIFT_GRPC_URI</code> / <code>SIFT_REST_URI</code>) is a hard error in online mode — the
-failure surfaces with the missing variable named — and tolerated in offline
-mode since no network call is attempted.</p>
+<h2 id="run-modes">Run modes<a class="headerlink" href="#run-modes" title="Permanent link">&para;</a></h2>
+<p>The two CLI flags that shape every run are <code>--sift-offline</code> and
+<code>--sift-log-file</code>. They combine into five useful modes plus one error
+case. Bad configuration (missing <code>SIFT_API_KEY</code> / <code>SIFT_GRPC_URI</code> /
+<code>SIFT_REST_URI</code>) is a hard error in online mode — the failure surfaces
+with the missing variable named — and tolerated in offline mode since no
+network call is attempted.</p>
+<h3 id="behavior-matrix">Behavior matrix<a class="headerlink" href="#behavior-matrix" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
-<th>Mode</th>
-<th>Flag</th>
+<th><code>--sift-offline</code></th>
+<th><code>--sift-log-file</code></th>
 <th>Session-start ping</th>
-<th>Transport</th>
-<th>Log file</th>
+<th>Log file destination</th>
+<th>Where writes go</th>
+<th>Env vars required</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Online (default)</td>
-<td>—</td>
-<td>Required (hard fail)</td>
-<td>Live gRPC</td>
-<td>Optional write-through backup</td>
+<td>off</td>
+<td><em>unset</em></td>
+<td>yes (abort on failure)</td>
+<td>temp file (auto-created)</td>
+<td>log file → import worker → Sift live</td>
+<td>yes</td>
 </tr>
 <tr>
-<td>Offline</td>
-<td><code>--sift-offline</code></td>
-<td>Skipped</td>
-<td>None</td>
-<td>Required (temp file by default)</td>
+<td>off</td>
+<td><code>&lt;path&gt;</code></td>
+<td>yes (abort on failure)</td>
+<td>the pinned path</td>
+<td>log file → import worker → Sift live</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>off</td>
+<td><code>none</code></td>
+<td>yes (abort on failure)</td>
+<td>nowhere</td>
+<td>inline, synchronous against the API</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>on</td>
+<td><em>unset</em></td>
+<td>skipped</td>
+<td>temp file (auto-created)</td>
+<td>log file is the sole sink</td>
+<td>no (placeholders)</td>
+</tr>
+<tr>
+<td>on</td>
+<td><code>&lt;path&gt;</code></td>
+<td>skipped</td>
+<td>the pinned path</td>
+<td>log file is the sole sink</td>
+<td>no (placeholders)</td>
+</tr>
+<tr>
+<td>on</td>
+<td><code>none</code></td>
+<td>—</td>
+<td>—</td>
+<td><strong><code>pytest.UsageError</code></strong> — offline needs a sink</td>
+<td>—</td>
 </tr>
 </tbody>
 </table>
-<p>If you want to keep test code working without the plugin loaded at all,
-wire in <a href="#running-without-the-plugin-pytest_plugin_noop"><code>sift_client.pytest_plugin_noop</code></a>
-instead.</p>
-<h2 id="running-offline">Running offline<a class="headerlink" href="#running-offline" title="Permanent link">&para;</a></h2>
-<p><code>--sift-offline</code> runs the suite without contacting Sift. Every create/update
-goes to a JSONL log file that you replay against Sift later with
-<code>import-test-result-log</code>. Useful for field tests, vehicles on remote sites,
-air-gapped labs, or CI that doesn't have Sift credentials.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-log-file<span class="o">=</span>./run.jsonl
+<h3 id="common-invocations">Common invocations<a class="headerlink" href="#common-invocations" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Online run against your Sift tenant. The import worker replays writes</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="c1"># from a temp JSONL file in flight.</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>pytest
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="c1"># Online run with a pinned log file. Useful in CI when you want to attach</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="c1"># the JSONL as a build artifact or have it survive if the worker dies.</span>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>pytest<span class="w"> </span>--sift-log-file<span class="o">=</span>./run.jsonl
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>
+</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a><span class="c1"># Online run with no log file at all. Create/update calls run inline</span>
+</span><span id="__span-26-10"><a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a><span class="c1"># against the API. Simpler but no safety net if the API errors mid-run.</span>
+</span><span id="__span-26-11"><a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a>pytest<span class="w"> </span>--sift-log-file<span class="o">=</span>none
+</span><span id="__span-26-12"><a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a>
+</span><span id="__span-26-13"><a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a><span class="c1"># Offline run with a temp log file. Use this in CI without Sift secrets,</span>
+</span><span id="__span-26-14"><a id="__codelineno-26-14" name="__codelineno-26-14" href="#__codelineno-26-14"></a><span class="c1"># or any time you want to capture a run for later upload.</span>
+</span><span id="__span-26-15"><a id="__codelineno-26-15" name="__codelineno-26-15" href="#__codelineno-26-15"></a>pytest<span class="w"> </span>--sift-offline
+</span><span id="__span-26-16"><a id="__codelineno-26-16" name="__codelineno-26-16" href="#__codelineno-26-16"></a>
+</span><span id="__span-26-17"><a id="__codelineno-26-17" name="__codelineno-26-17" href="#__codelineno-26-17"></a><span class="c1"># Offline run with a pinned path. Best for field tests, vehicles on</span>
+</span><span id="__span-26-18"><a id="__codelineno-26-18" name="__codelineno-26-18" href="#__codelineno-26-18"></a><span class="c1"># remote sites, and air-gapped labs.</span>
+</span><span id="__span-26-19"><a id="__codelineno-26-19" name="__codelineno-26-19" href="#__codelineno-26-19"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-log-file<span class="o">=</span>./run.jsonl
 </span></code></pre></div>
-<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">[pytest]</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-offline</span>
+<p>Replay any captured log file once you're back on a connected machine:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>import-test-result-log<span class="w"> </span>./run.jsonl
 </span></code></pre></div>
-<p>What happens during the run:</p>
+<h3 id="picking-a-mode">Picking a mode<a class="headerlink" href="#picking-a-mode" title="Permanent link">&para;</a></h3>
 <ul>
-<li>The plugin does not ping Sift at session start.</li>
+<li><strong>Local dev / CI with Sift credentials</strong> — default <code>pytest</code>. The worker
+  handles upload in the background; you don't have to think about the file.</li>
+<li><strong>CI without Sift credentials</strong> — <code>--sift-offline</code> if you still want a
+  Sift report (captured locally, replayed later). Use
+  <a href="#disabling-the-plugin"><code>pytest_plugin_noop</code></a> instead if you don't need
+  a report at all.</li>
+<li><strong>Field tests, vehicles, air-gapped labs</strong> — <code>--sift-offline
+  --sift-log-file=&lt;path&gt;</code>. The pinned path makes replay straightforward.</li>
+<li><strong>Debugging API-level issues during a run</strong> — <code>--sift-log-file=none</code>.
+  Trades the safety net for synchronous semantics so errors surface inline
+  with the test that triggered them.</li>
+</ul>
+<h2 id="inside-an-offline-run">Inside an offline run<a class="headerlink" href="#inside-an-offline-run" title="Permanent link">&para;</a></h2>
+<p>What the plugin actually does when <code>--sift-offline</code> is set:</p>
+<ul>
+<li>Session-start ping is skipped. Missing <code>SIFT_API_KEY</code> / <code>SIFT_GRPC_URI</code> /
+  <code>SIFT_REST_URI</code> env vars are tolerated; the default <code>sift_client</code> fixture
+  fills in placeholders since nothing reaches Sift anyway.</li>
 <li>Every report, step, and measurement create/update is written to the log
   file. Responses are simulated locally and keyed by UUIDs that the replay
   later maps to real IDs.</li>
-<li>Tests run against a real <code>step</code> fixture, so <code>step.measure(...)</code>, substeps,
-  parametrize, fixtures, and <code>module_substep</code> behave exactly as they do
-  online. No test-code changes are required.</li>
-<li>The plugin does not spawn the import worker subprocess; the log file is
-  the sole sink.</li>
+<li>Tests run against a real <code>step</code> fixture, so <code>step.measure(...)</code>,
+  substeps, parametrize, fixtures, and <code>module_substep</code> behave exactly as
+  they do online. No test-code changes are required.</li>
+<li>The plugin does not spawn the <code>import-test-result-log</code> worker subprocess.
+  The log file is the sole sink.</li>
 </ul>
-<p>Once you have connectivity, replay the file:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>import-test-result-log<span class="w"> </span>./run.jsonl
+<p>You can also persist offline in <code>pytest.ini</code>:</p>
+<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">[pytest]</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-offline</span>
 </span></code></pre></div>
-<p>The replay creates the report, steps, and measurements against Sift in one
-batch. See <a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for
-details on cleanup and the incremental flag.</p>
 <div class="admonition warning">
 <p class="admonition-title">Pin the log path</p>
 <p>Without <code>--sift-log-file=&lt;path&gt;</code>, the plugin writes to a
 <code>tempfile.NamedTemporaryFile</code> and surfaces the path via a <code>logger.info</code>
-line at session start. Always pin a known path when you intend to replay
-the file later.</p>
+line at session start. Always pin a known path when you intend to
+replay the file later. See
+<a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for cleanup
+and incremental-replay details.</p>
 </div>
 <h3 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h3>
 <p>The default <code>client_has_connection</code> fixture calls <code>sift_client.ping.ping()</code>.
 Override it in your conftest when pinging is the wrong signal for your
 environment, for example a token cache that's only warm when authenticated:</p>
-<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">client_has_connection</span><span class="p">(</span><span class="n">sift_client</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;~/.sift-token-cache&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">client_has_connection</span><span class="p">(</span><span class="n">sift_client</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;~/.sift-token-cache&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
 </span></code></pre></div>
 <p>The plugin only consults this fixture in online mode (the default), so the
 override has no effect when running with <code>--sift-offline</code>. Returning <code>False</code>
 or raising from the fixture aborts the session with <code>pytest.UsageError</code>.</p>
-<h2 id="running-without-the-plugin-pytest_plugin_noop">Running without the plugin: <code>pytest_plugin_noop</code><a class="headerlink" href="#running-without-the-plugin-pytest_plugin_noop" title="Permanent link">&para;</a></h2>
-<p>When you want test code that calls <code>step.measure(...)</code>, <code>step.substep(...)</code>,
-etc. to keep working without any Sift configuration, wire in
-<code>sift_client.pytest_plugin_noop</code> instead of the real plugin. It ships
-matching fixture names; <code>measure*</code> calls evaluate bounds locally and return
-the real pass/fail boolean, but nothing is sent to Sift and no log file is
-written.</p>
-<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>    <span class="s2">&quot;sift_client.pytest_plugin&quot;</span>
-</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_ENABLED&quot;</span><span class="p">)</span>
-</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>    <span class="k">else</span> <span class="s2">&quot;sift_client.pytest_plugin_noop&quot;</span>
-</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="p">]</span>
+<h2 id="disabling-the-plugin">Disabling the plugin<a class="headerlink" href="#disabling-the-plugin" title="Permanent link">&para;</a></h2>
+<p>Two ways to turn the plugin off:</p>
+<ul>
+<li>For a one-off run: <code>pytest -p no:sift_client.pytest_plugin</code>. Tests that
+  request <code>step</code>, <code>report_context</code>, or <code>module_substep</code> will fail at fixture
+  resolution.</li>
+<li>To keep test code working without Sift configuration: swap to the sibling
+  no-op plugin. It ships the same fixture names; calls to <code>step.measure(...)</code>
+  evaluate bounds locally and return the real pass/fail boolean, but nothing
+  is sent to Sift and no log file is written.</li>
+</ul>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>    <span class="s2">&quot;sift_client.pytest_plugin&quot;</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_ENABLED&quot;</span><span class="p">)</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>    <span class="k">else</span> <span class="s2">&quot;sift_client.pytest_plugin_noop&quot;</span>
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="p">]</span>
 </span></code></pre></div>
 <p>The no-op plugin doesn't read <code>SIFT_API_KEY</code> / <code>SIFT_GRPC_URI</code> /
 <code>SIFT_REST_URI</code> and never constructs a <code>SiftClient</code>, so it's safe to load in
-environments that aren't allowed to talk to Sift at all. Use it instead of
-Pattern 1 when you'd rather have tests pass through silently than <code>None</code>-guard
-every <code>step</code> call site.</p>
+environments that aren't allowed to talk to Sift at all.</p>
 <h2 id="replaying-a-saved-log-file">Replaying a saved log file<a class="headerlink" href="#replaying-a-saved-log-file" title="Permanent link">&para;</a></h2>
 <p>When the worker doesn't finish cleanly the plugin will print a hint mentioning
 <code>import-test-result-log</code>. To import:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
 </span></code></pre></div>
 <p>That replays the saved JSONL log as a single batch (no <code>--incremental</code>) and
 deletes the file when it lives under the system temp dir.</p>

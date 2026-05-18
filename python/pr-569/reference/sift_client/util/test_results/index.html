@@ -684,34 +684,6 @@ You're not viewing the latest version.
   
   
   
-    <li class="md-nav__item">
-      <a href="../../pytest_plugin_noop/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    pytest_plugin_noop
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -946,10 +918,10 @@ You're not viewing the latest version.
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_11" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_10" checked>
         
           
-          <label class="md-nav__link" for="__nav_2_1_11" id="__nav_2_1_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2_1_10" id="__nav_2_1_10_label" tabindex="0">
             
   
   
@@ -967,8 +939,8 @@ You're not viewing the latest version.
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_11_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2_1_11">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_1_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1086,10 +1058,10 @@ You're not viewing the latest version.
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_11_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_10_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_2_1_11_4" id="__nav_2_1_11_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2_1_10_4" id="__nav_2_1_10_4_label" tabindex="0">
             
   
   
@@ -1107,8 +1079,8 @@ You're not viewing the latest version.
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_2_1_11_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2_1_11_4">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_2_1_10_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_1_10_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2310,9 +2282,9 @@ calls inline against the API.</p>
 <ul>
 <li><code>--sift-offline</code>: Run without contacting Sift. All create/update calls are
   written to a JSONL log file for later replay. No session-start ping is made.</li>
-<li><code>--sift-log-file=&lt;path&gt;</code>: Path to write the JSONL log file. Defaults to a
-  temp file with its path logged at session start.</li>
-<li><code>--no-sift-log-file</code>: Disable the JSONL log file (online mode only).</li>
+<li><code>--sift-log-file=&lt;path|none&gt;</code>: Path to write the JSONL log file, or <code>none</code>
+  to disable it (online mode only). Defaults to a temp file with its path
+  logged at session start.</li>
 <li><code>--sift-no-git-metadata</code>: Exclude git metadata from the report.</li>
 </ul>
 <p>To disable the plugin for a single run: <code>pytest -p no:sift_client.pytest_plugin</code>.
