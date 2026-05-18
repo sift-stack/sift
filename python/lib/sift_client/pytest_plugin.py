@@ -224,11 +224,13 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
             "in pyproject.toml, or override the sift_client fixture in your "
             "conftest.py."
         )
+    # `or ""` is unreachable in practice since the `missing` check above guarantees
+    # non-None values
     return SiftClient(
         connection_config=SiftConnectionConfig(
-            api_key=resolved["SIFT_API_KEY"],
-            grpc_url=resolved["SIFT_GRPC_URI"],
-            rest_url=resolved["SIFT_REST_URI"],
+            api_key=resolved.get("SIFT_API_KEY") or "",
+            grpc_url=resolved.get("SIFT_GRPC_URI") or "",
+            rest_url=resolved.get("SIFT_REST_URI") or "",
         )
     )
 
