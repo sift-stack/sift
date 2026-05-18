@@ -193,7 +193,8 @@ def _resolve_credential(
         return env_value
     if ini_name is None or pytestconfig is None:
         return None
-    return pytestconfig.getini(ini_name) or None
+    ini_value = pytestconfig.getini(ini_name)
+    return ini_value if isinstance(ini_value, str) and ini_value else None
 
 
 @pytest.fixture(scope="session")
