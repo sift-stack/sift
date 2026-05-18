@@ -2301,40 +2301,21 @@ optional <code>module_substep</code> fixture. It also registers a default <code>
 fixture that reads <code>SIFT_API_KEY</code>, <code>SIFT_GRPC_URI</code>, and <code>SIFT_REST_URI</code> from
 the environment. Override it by defining your own <code>sift_client</code> fixture in
 your conftest.</p>
-<p>Note: FedRAMP users: <code>report_context</code> will log test results to a temp file to
-avoid API calls during test execution. If this is a shared environment, you
-can disable logging by passing <code>--sift-test-results-log-file=false</code>.</p>
+<p>Note: FedRAMP users: <code>report_context</code> defaults to writing a temp log file and
+deferring uploads through an <code>import-test-result-log</code> worker. In shared
+environments, pass <code>--no-sift-log-file</code> to skip the file and run create/update
+calls inline against the API.</p>
 <h5 id="sift_client.util.test_results--configuration">Configuration<a class="headerlink" href="#sift_client.util.test_results--configuration" title="Permanent link">&para;</a></h5>
 <p>CLI options registered by the plugin:</p>
 <ul>
-<li><code>--sift-test-results-log-file</code>: Path to write the JSONL log file. <code>true</code>
-  (default) auto-creates a temp file; <code>false</code>/<code>none</code> disables logging; a path
-  writes to that location.</li>
-<li><code>--no-sift-test-results-git-metadata</code>: Exclude git metadata (repo, branch,
-  commit) from the test report. Included by default.</li>
-<li><code>--sift-test-results-check-connection</code>: Make <code>report_context</code>, <code>step</code>, and
-  <code>module_substep</code> no-op when the client has no connection. Requires a
-  <code>client_has_connection</code> fixture (the plugin ships a default).</li>
-<li><code>--sift-test-results-offline</code>: Route every create/update through the JSONL
-  log file without contacting Sift. Skips the session-start ping and the
-  import worker subprocess. Requires a log file (it's the sole sink).</li>
+<li><code>--sift-offline</code>: Run without contacting Sift. All create/update calls are
+  written to a JSONL log file for later replay. No session-start ping is made.</li>
+<li><code>--sift-log-file=&lt;path&gt;</code>: Path to write the JSONL log file. Defaults to a
+  temp file with its path logged at session start.</li>
+<li><code>--no-sift-log-file</code>: Disable the JSONL log file (online mode only).</li>
+<li><code>--sift-no-git-metadata</code>: Exclude git metadata from the report.</li>
 </ul>
-<p>Each option has a matching ini key for per-project configuration under
-<code>[tool.pytest.ini_options]</code> in <code>pyproject.toml</code> (or <code>[pytest]</code> in
-<code>pytest.ini</code>). CLI flags override ini values. The default <code>sift_client</code>
-fixture also reads <code>sift_grpc_uri</code> and <code>sift_rest_uri</code> as fallbacks when
-the corresponding env vars are unset (env vars win when both are set).
-<code>SIFT_API_KEY</code> is env-only — load it from a <code>.env</code> file via the
-<code>pytest-dotenv</code> plugin or inject it via your CI secret manager.</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.pytest.ini_options]</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">sift_test_results_log_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;false&quot;</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">sift_test_results_check_connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">sift_test_results_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-org.sift.example:443&quot;</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your-org.sift.example&quot;</span>
-</span></code></pre></div>
-<p>To disable the plugin for a single run:
-<code>pytest -p no:sift_client.pytest_plugin</code>.
+<p>To disable the plugin for a single run: <code>pytest -p no:sift_client.pytest_plugin</code>.
 To keep test code working with the plugin disabled, wire in
 <code>sift_client.pytest_plugin_noop</code> instead — it ships matching fixture names
 whose <code>measure*</code> calls evaluate bounds locally without contacting Sift.</p>
