@@ -1744,7 +1744,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            pytest_runtest_makereport (sift_client.util.test_results.pytest_util.pytest_runtest_makereport)" href="#sift_client.util.test_results.pytest_util.pytest_runtest_makereport">pytest_runtest_makereport</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step.</p>
+                  <p>Capture per-phase reports and finalize step status after teardown.</p>
                 </div>
               </td>
             </tr>
@@ -1916,7 +1916,9 @@ has no connection (or when the session-scoped <code>report_context</code> resolv
 
     <div class="doc doc-contents ">
 
-        <p>You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step.</p>
+        <p>Capture per-phase reports and finalize step status after teardown.</p>
+<p>Importing this hook is required so the Sift plugin can map pytest's
+setup/call/teardown outcomes onto the step's <code>TestStatus</code>.</p>
 
 
     </div>

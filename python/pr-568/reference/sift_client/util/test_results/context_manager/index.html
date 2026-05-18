@@ -1488,6 +1488,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.ReportContext.mark_step_failed_after_close" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;mark_step_failed_after_close
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.context_manager.ReportContext.new_step" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1522,6 +1533,17 @@ You're not viewing the latest version.
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.format_truncated_traceback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;format_truncated_traceback
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2103,6 +2125,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.ReportContext.mark_step_failed_after_close" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;mark_step_failed_after_close
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.context_manager.ReportContext.new_step" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2137,6 +2170,17 @@ You're not viewing the latest version.
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.format_truncated_traceback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;format_truncated_traceback
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2230,6 +2274,14 @@ You're not viewing the latest version.
         </tr>
       </thead>
       <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            format_truncated_traceback (sift_client.util.test_results.context_manager.format_truncated_traceback)" href="#sift_client.util.test_results.context_manager.format_truncated_traceback">format_truncated_traceback</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Format an ErrorInfo from a traceback, keeping the first frame and the last 10.</p>
+                </div>
+              </td>
+            </tr>
             <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            log_replay_instructions (sift_client.util.test_results.context_manager.log_replay_instructions)" href="#sift_client.util.test_results.context_manager.log_replay_instructions">log_replay_instructions</a></code></td>
               <td class="doc-function-details">
@@ -3789,6 +3841,14 @@ All create/update operations will be logged to this file.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            mark_step_failed_after_close (sift_client.util.test_results.context_manager.ReportContext.mark_step_failed_after_close)" href="#sift_client.util.test_results.context_manager.ReportContext.mark_step_failed_after_close">mark_step_failed_after_close</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Mark a step's parent as failed after the step has already been popped from the stack.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            new_step (sift_client.util.test_results.context_manager.ReportContext.new_step)" href="#sift_client.util.test_results.context_manager.ReportContext.new_step">new_step</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -4367,6 +4427,33 @@ of the enclosing <code>TestReport</code>.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sift_client.util.test_results.context_manager.ReportContext.mark_step_failed_after_close" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">mark_step_failed_after_close</span>
+
+
+<a href="#sift_client.util.test_results.context_manager.ReportContext.mark_step_failed_after_close" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">mark_step_failed_after_close</span><span class="p">(</span><span class="n">step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Mark a step's parent as failed after the step has already been popped from the stack.</p>
+<p>Used by the pytest plugin when a teardown-phase report fires after the
+fixture's <code>__exit__</code> has already resolved and exited the step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sift_client.util.test_results.context_manager.ReportContext.new_step" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">new_step</span>
 
@@ -4454,6 +4541,35 @@ of the enclosing <code>TestReport</code>.</p>
 
 </div>
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.test_results.context_manager.format_truncated_traceback" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">format_truncated_traceback</span>
+
+
+<a href="#sift_client.util.test_results.context_manager.format_truncated_traceback" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">format_truncated_traceback</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exc</span><span class="p">:</span> <span class="n"><span title="type">type</span></span><span class="p">[</span><span class="n"><span title="BaseException">BaseException</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">exc_value</span><span class="p">:</span> <span class="n"><span title="BaseException">BaseException</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tb</span><span class="p">:</span> <span class="n"><span title="object">object</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ErrorInfo
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.ErrorInfo)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.ErrorInfo">ErrorInfo</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Format an ErrorInfo from a traceback, keeping the first frame and the last 10.</p>
+
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
