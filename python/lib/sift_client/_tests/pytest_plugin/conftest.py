@@ -25,8 +25,6 @@ from typing import Callable
 
 import pytest
 
-pytest_plugins = ["pytester"]
-
 
 @pytest.fixture
 def write_plugin_conftest(pytester: pytest.Pytester) -> Callable[[], None]:
