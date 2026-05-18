@@ -5,6 +5,7 @@ use sift_rs::exports::v1::ExportOutputFormat;
 pub enum Format {
     Csv,
     Sun,
+    Parquet,
 }
 
 impl From<Format> for ExportOutputFormat {
@@ -12,6 +13,7 @@ impl From<Format> for ExportOutputFormat {
         match val {
             Format::Csv => ExportOutputFormat::Csv,
             Format::Sun => ExportOutputFormat::Sun,
+            Format::Parquet => ExportOutputFormat::Parquet,
         }
     }
 }
