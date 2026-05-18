@@ -52,6 +52,9 @@ pub enum Cmd {
     /// Import time series files into Sift
     #[command(subcommand)]
     Import(ImportCmd),
+
+    /// Ping the Sift API to check connectivity
+    Ping,
 }
 
 #[derive(Subcommand)]
