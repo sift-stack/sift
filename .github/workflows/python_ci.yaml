@@ -138,6 +138,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install '.[dev-all]'
 
+      - name: Lint
+        run: |
+          ruff check
+
   python-ci-status:
     if: always()
     needs: [changes, test-python, install-python-windows]
