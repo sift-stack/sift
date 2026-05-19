@@ -10,6 +10,7 @@ members = [
     "rust/crates/sift_cli",
     "rust/crates/sift_pbfs",
     "rust/crates/sift_mcp",
+    "rust/crates/sift_test_util",
 ]
 
 [workspace.package]
@@ -29,6 +30,7 @@ arrow-array = "58.1.0"
 arrow-schema = "58.1.0"
 async-channel = "2.2"
 async-trait = "^0.1"
+mockall = "0.14.0"
 bytes = "1.11.1"
 bytesize = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
@@ -44,7 +46,7 @@ flate2 = "1.1"
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
 futures-core = "0.3"
 hyper = { version = "1.8", features = ["server", "http1"] }
-hyper-util = { version = "0.1", features = ["service", "server", "tokio"] }
+hyper-util = { version = "0.1.20", features = ["service", "server", "tokio"] }
 indicatif = "0.18"
 indoc = "2.0"
 parquet = "58.0"
@@ -82,6 +84,7 @@ sift_error = { version = "0.9.1", path = "rust/crates/sift_error" }
 sift_stream = { version = "0.9.1", path = "rust/crates/sift_stream" }
 sift_pbfs = { version = "0.9.1", path = "rust/crates/sift_pbfs" }
 sift_mcp = { version = "0.9.1", path = "rust/crates/sift_mcp" }
+sift_test_util = { version = "0.9.1", path = "rust/crates/sift_test_util" }
 
 sift_stream_bindings = { version = "0.3.0", path = "rust/crates/sift_stream_bindings" }
 

@@ -1,30 +1,31 @@
 use anyhow::{Context, Result};
 use clap::{crate_name, crate_version};
+use rmcp::{ServiceExt, transport::stdio};
 use sift_rs::{Credentials, SiftChannelBuilder};
 
 pub(crate) mod server;
 use server::SiftMcpServer;
 
 pub mod tool;
-use tool::resource::ResourceTool;
 
 mod error;
 
-pub async fn run(
-    credentials: Credentials,
-    use_tls: bool,
-) -> Result<()> {
+pub async fn run(credentials: Credentials, use_tls: bool) -> Result<()> {
     let channel = SiftChannelBuilder::new(credentials)
         .use_tls(use_tls)
         .user_agent(format!("{}/{}", crate_name!(), crate_version!()))
         .build()
         .context("failed to build gRPC channel to connect to Sift")?;
 
-    let resource_tool = ResourceTool::new(channel);
+    let service = SiftMcpServer::new(channel)
+        .serve(stdio())
+        .await
+        .context("failed to start MCP server")?;
 
-    let server = SiftMcpServer {
-        resource_tool,
-    };
+    service
+        .waiting()
+        .await
+        .context("MCP server terminated unexpectedly")?;
 
-    todo!()
+    Ok(())
 }

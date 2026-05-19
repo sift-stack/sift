@@ -2,7 +2,6 @@ use rmcp::model::{CallToolResult, ErrorCode};
 use serde_json::json;
 use tonic::{Code, Status};
 
-pub type BoxedStdErr = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub type McpResult = Result<CallToolResult, rmcp::ErrorData>;
 
 pub fn from_grpc_status(status: Status) -> rmcp::ErrorData {

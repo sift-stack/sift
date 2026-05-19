@@ -1,182 +1,142 @@
 use anyhow::Context;
-use bytes::Bytes;
 use rmcp::{
-    ServerHandler, handler::server::wrapper::Parameters, model::CallToolResult, schemars::{self, JsonSchema}, tool, tool_handler, tool_router
+    handler::server::wrapper::Parameters,
+    model::CallToolResult,
+    schemars::{self, JsonSchema},
+    tool, tool_router,
 };
 use serde::Deserialize;
 use sift_rs::{
-    SiftChannel,
-    assets::v1::{ListAssetsRequest, ListAssetsResponse, asset_service_client::AssetServiceClient}, runs::v2::{ListRunsRequest, ListRunsResponse, run_service_client::RunServiceClient},
-};
-use tonic::{body::Body, client::GrpcService};
-
-use crate::{
-    error::{self, BoxedStdErr, McpResult},
-    tool::TransportBody,
+    assets::v1::{ListAssetsRequest, ListAssetsResponse, asset_service_client::AssetServiceClient},
+    runs::v2::{ListRunsRequest, ListRunsResponse, run_service_client::RunServiceClient},
 };
 
-#[derive(Clone)]
-pub struct ResourceTool<T> {
-    channel: T,
-}
+use crate::{error, server::SiftMcpServer};
 
-#[derive(Debug, Deserialize, JsonSchema)]
-pub enum Resource {
-    Asset,
-    Run
-}
+#[cfg(test)]
+mod test;
+
+const PAGE_SIZE: u32 = 1000;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GetParams {
-    resource: Resource,
     filter: String,
     limit: Option<u32>,
 }
 
-impl From<SiftChannel> for ResourceTool<SiftChannel> {
-    fn from(channel: SiftChannel) -> Self {
-        Self::new(channel)
-    }
-}
+#[tool_router(router = resource_router, vis = "pub(crate)")]
+impl SiftMcpServer {
+    #[tool(
+        name = "get_asset",
+        description = "
+            Retrieve and filter assets in Sift. The `filter` parameter is a Common Expression Language (CEL).
+            Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
+            `created_date`, `modified_date`, `name`, 'name_lower', `tag_id`, `tag_name`, 'archived_date', `is_archived`, and `metadata`.
+            Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+        ",
+        annotations(title = "Resource/get_asset", read_only_hint = true)
+    )]
+    pub async fn get_asset(&self, params: Parameters<GetParams>) -> error::McpResult {
+        let Parameters(GetParams { filter, limit }) = params;
+        let (page_size, record_limit) = paging(limit);
 
-#[tool_handler(
-    name = "ResourceTool",
-    version = "0.1.0",
-    instructions = "Tool to retrieve information about particular resources in Sift",
-)]
-impl<T> ServerHandler for ResourceTool<T>
-where
-    T: GrpcService<Body> + Clone +  Send + Sync + 'static,
-    <T as GrpcService<tonic::body::Body>>::Future: Send,
-    T::Error: Into<BoxedStdErr>,
-    T::ResponseBody: TransportBody<Data = Bytes> + Send + 'static,
-    <T::ResponseBody as TransportBody>::Error: Into<BoxedStdErr> + Send,
-{}
+        let mut client = AssetServiceClient::new(self.channel.clone());
+        let mut page_token = String::new();
+        let mut results = Vec::new();
 
-#[tool_router]
-impl<T> ResourceTool<T>
-where
-    T: GrpcService<Body> + Clone +  Send + Sync + 'static,
-    <T as GrpcService<tonic::body::Body>>::Future: Send,
-    T::Error: Into<BoxedStdErr>,
-    T::ResponseBody: TransportBody<Data = Bytes> + Send + 'static,
-    <T::ResponseBody as TransportBody>::Error: Into<BoxedStdErr> + Send,
-{
-    pub fn new(channel: T) -> Self {
-        Self { channel }
+        loop {
+            let resp = client
+                .list_assets(ListAssetsRequest {
+                    filter: filter.clone(),
+                    page_size,
+                    page_token,
+                    ..Default::default()
+                })
+                .await
+                .map_err(error::from_grpc_status)?;
+
+            let ListAssetsResponse {
+                assets,
+                next_page_token,
+            } = resp.into_inner();
+            if assets.is_empty() {
+                break;
+            }
+            results.extend(assets);
+
+            if results.len() >= record_limit || next_page_token.is_empty() {
+                break;
+            }
+            page_token = next_page_token;
+        }
+
+        results.truncate(record_limit);
+        let out = serde_json::to_value(&results)
+            .context("failed to serialize assets")
+            .map_err(error::from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
     }
 
     #[tool(
-        name = "get",
-        description = "Retrieve and filter Sift resources information.",
-        annotations(
-            title = "ResourceTool/get",
-            read_only_hint = true,
-        ),
+        name = "get_run",
+        description = "
+            Retrieve and filter runs in Sift. The `filter` parameter is a Common Expression Language (CEL).
+            Available fields to filter by are `run_id` `organization_id`, `asset_id`, `asset_name`, `client_key`, `name`,
+            `description`, `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, `start_time`,
+            `stop_time`, `tag_id`, `asset_tag_id`, `duration`, 'duration_string', `annotation_comments_count`, `annotation_state`,
+            `archived_date`, `is_archived`, and `metadata`. Metadata can be used in filters by using
+            `metadata.{metadata_key_name}` as the field name. `duration` is in the format of elapsed seconds and `duration_string`
+            allows for `h`, `m`, `s`, `ms` suffixes (example: `duration_string > duration('10h')).
+        ",
+        annotations(title = "Resource/get_run", read_only_hint = true)
     )]
-    pub async fn get(&self, params: Parameters<GetParams>) -> McpResult {
-        const PAGE_SIZE: u32 = 1000;
+    pub async fn get_run(&self, params: Parameters<GetParams>) -> error::McpResult {
+        let Parameters(GetParams { filter, limit }) = params;
+        let (page_size, record_limit) = paging(limit);
 
-        let Parameters(GetParams {
-            resource,
-            filter,
-            limit
-        }) = params;
+        let mut client = RunServiceClient::new(self.channel.clone());
+        let mut page_token = String::new();
+        let mut results = Vec::new();
 
-        let (page_size, record_limit) = {
-            if let Some(lim) = limit && lim <= PAGE_SIZE {
-                (lim, lim as usize)
-            } else {
-                // Query everything
-                (PAGE_SIZE, usize::MAX)
+        loop {
+            let resp = client
+                .list_runs(ListRunsRequest {
+                    filter: filter.clone(),
+                    page_size,
+                    page_token,
+                    ..Default::default()
+                })
+                .await
+                .map_err(error::from_grpc_status)?;
+
+            let ListRunsResponse {
+                runs,
+                next_page_token,
+            } = resp.into_inner();
+            if runs.is_empty() {
+                break;
             }
-        };
+            results.extend(runs);
 
-        match resource {
-            Resource::Asset => {
-                let mut client = AssetServiceClient::new(self.channel.clone());
-                let mut page_token = String::new();
-                let mut query_result = Vec::new();
-
-                loop {
-                    let resp = client
-                        .list_assets(ListAssetsRequest {
-                            filter: filter.clone(),
-                            page_size,
-                            page_token,
-                            ..Default::default()
-                        })
-                        .await
-                        .map_err(error::from_grpc_status)?;
-
-                    let ListAssetsResponse {
-                        assets,
-                        next_page_token,
-                    } = resp.into_inner();
-
-                    if query_result.is_empty() {
-                        break;
-                    }
-                    query_result.extend_from_slice(&assets);
-
-                    if next_page_token.is_empty() {
-                        break;
-                    }
-                    page_token = next_page_token;
-
-                    if assets.len() >= record_limit {
-                        break;
-                    }
-                }
-
-                let out = serde_json::to_value(&query_result)
-                    .context("failed to serialize assets")
-                    .map_err(error::from_anyhow)?;
-
-                Ok(CallToolResult::structured(out))
+            if results.len() >= record_limit || next_page_token.is_empty() {
+                break;
             }
-            Resource::Run => {
-                let mut client = RunServiceClient::new(self.channel.clone());
-                let mut page_token = String::new();
-                let mut query_result = Vec::new();
-
-                loop {
-                    let resp = client
-                        .list_runs(ListRunsRequest {
-                            filter: filter.clone(),
-                            page_size,
-                            page_token,
-                            ..Default::default()
-                        })
-                        .await
-                        .map_err(error::from_grpc_status)?;
-
-                    let ListRunsResponse {
-                        runs,
-                        next_page_token,
-                    } = resp.into_inner();
-
-                    if query_result.is_empty() {
-                        break;
-                    }
-                    query_result.extend_from_slice(&runs);
-
-                    if next_page_token.is_empty() {
-                        break;
-                    }
-                    page_token = next_page_token;
-
-                    if runs.len() >= record_limit {
-                        break;
-                    }
-                }
-
-                let out = serde_json::to_value(&query_result)
-                    .context("failed to serialize runs")
-                    .map_err(error::from_anyhow)?;
-
-                Ok(CallToolResult::structured(out))
-            },
+            page_token = next_page_token;
         }
+
+        results.truncate(record_limit);
+        let out = serde_json::to_value(&results)
+            .context("failed to serialize runs")
+            .map_err(error::from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
+    }
+}
+
+fn paging(limit: Option<u32>) -> (u32, usize) {
+    match limit {
+        Some(lim) if lim <= PAGE_SIZE => (lim, lim as usize),
+        _ => (PAGE_SIZE, usize::MAX),
     }
 }

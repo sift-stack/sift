@@ -1,5 +1,5 @@
 [package]
-name = "sift_mcp"
+name = "sift_test_util"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -11,17 +11,15 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
-rmcp = { workspace = true, features = ["transport-io"] }
-serde.workspace = true
-serde_json.workspace = true
+async-trait.workspace = true
+hyper-util.workspace = true
+mockall.workspace = true
 sift_connect.workspace = true
 sift_rs.workspace = true
-sift_stream.workspace = true
 tokio.workspace = true
+tokio-stream.workspace = true
 tonic.workspace = true
-anyhow.workspace = true
-clap = { workspace = true, features = ["cargo"] }
+tower.workspace = true
 
 [dev-dependencies]
-sift_test_util.workspace = true
-tokio-stream.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
