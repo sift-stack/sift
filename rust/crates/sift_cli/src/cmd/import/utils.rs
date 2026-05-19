@@ -52,6 +52,7 @@ async fn extract_job_id(res: reqwest::Response) -> Result<String> {
         serde_json::from_str(&body_text).context("failed to parse upload response as JSON")?;
     body.get("jobId")
         .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
         .map(String::from)
         .ok_or_else(|| anyhow!("upload response did not include jobId: {body_text}"))
 }
