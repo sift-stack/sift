@@ -106,17 +106,56 @@ jobs:
           --mypy-config-file ../pyproject.toml \
           sift_client.resources.sync_stubs
 
+  # Smoke-test that the package installs on Windows. The full test/lint suite
+  # only runs on Linux (see test-python); this job exists to catch
+  # Windows-specific install regressions (e.g. a new dep without a Windows
+  # wheel) without doubling CI time.
+  install-python-windows:
+    needs: [changes]
+    if: |
+      always() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.python == 'true')
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: python
+        # Use bash so the same '.[dev-all]' quoting works as on Linux;
+        # windows-latest ships Git Bash.
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+
+      - name: Pip install
+        run: |
+          python -m pip install --upgrade pip
+          pip install '.[dev-all]'
+
   python-ci-status:
     if: always()
-    needs: [changes, test-python]
+    needs: [changes, test-python, install-python-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Check result
         run: |
-          result="${{ needs.test-python.result }}"
-          if [[ "$result" == "success" || "$result" == "skipped" ]]; then
-            echo "python-ci passed (test-python: $result)"
+          test_result="${{ needs.test-python.result }}"
+          win_result="${{ needs.install-python-windows.result }}"
+          fail=0
+          for r in "$test_result" "$win_result"; do
+            if [[ "$r" != "success" && "$r" != "skipped" ]]; then
+              fail=1
+            fi
+          done
+          if [[ "$fail" -eq 0 ]]; then
+            echo "python-ci passed (test-python: $test_result, install-python-windows: $win_result)"
           else
-            echo "python-ci failed (test-python: $result)"
+            echo "python-ci failed (test-python: $test_result, install-python-windows: $win_result)"
             exit 1
           fi
