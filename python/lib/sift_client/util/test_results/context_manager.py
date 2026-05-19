@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 
 from sift_client.sift_types.test_report import (
     ErrorInfo,
@@ -28,9 +27,12 @@ from sift_client.sift_types.test_report import (
 )
 from sift_client.util.test_results.bounds import (
     evaluate_measurement_bounds,
+    out_of_bounds_mask,
+    to_numpy_array,
 )
 
 if TYPE_CHECKING:
+    import pandas as pd
     from numpy.typing import NDArray
 
     from sift_client.client import SiftClient
@@ -118,6 +120,7 @@ class ReportContext(AbstractContextManager):
         test_case: str | None = None,
         log_file: str | Path | bool | None = None,
         include_git_metadata: bool = False,
+        offline: bool = False,
     ):
         """Initialize a new report context.
 
@@ -130,15 +133,18 @@ class ReportContext(AbstractContextManager):
             log_file: If True, create a temp log file. If a path, use that path.
                 All create/update operations will be logged to this file.
             include_git_metadata: If True, include git metadata in the report.
+            offline: If True, do not spawn the import-test-result-log replay subprocess.
+                A log file is required and will be created as a temp file if not provided.
         """
         self.client = client
+        self.offline = offline
         self.step_is_open = False
         self.step_stack = []
         self.step_number_at_depth = {}
         self.open_step_results = {}
         self.any_failures = False
 
-        if log_file is True:
+        if log_file is True or (offline and not log_file):
             tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
             self.log_file = Path(tmp.name)
             logger.info(f"Created temporary log file: {self.log_file}")
@@ -184,7 +190,7 @@ class ReportContext(AbstractContextManager):
             )
 
     def __enter__(self):
-        if self.log_file:
+        if self.log_file and not self.offline:
             self._open_import_proc()
         return self
 
@@ -505,15 +511,7 @@ class NewStep(AbstractContextManager):
         returns: The true if the average of the values is within the bounds, false otherwise.
         """
         timestamp = timestamp if timestamp else datetime.now(timezone.utc)
-        np_array = None
-        if isinstance(values, list):
-            np_array = np.array(values)
-        elif isinstance(values, np.ndarray):
-            np_array = values
-        elif isinstance(values, pd.Series):
-            np_array = values.to_numpy()
-        else:
-            raise ValueError(f"Invalid value type: {type(values)}")
+        np_array = to_numpy_array(values)
         avg = float(np.mean(np_array))
         result = self.measure(
             name=name,
@@ -561,31 +559,8 @@ class NewStep(AbstractContextManager):
         returns: The true if all values are within the bounds, false otherwise.
         """
         timestamp = timestamp if timestamp else datetime.now(timezone.utc)
-        np_array = None
-        if isinstance(values, list):
-            np_array = np.array(values)
-        elif isinstance(values, np.ndarray):
-            np_array = values
-        elif isinstance(values, pd.Series):
-            np_array = values.to_numpy()
-        else:
-            raise ValueError(f"Invalid value type: {type(values)}")
-
-        numeric_bounds = bounds
-        if isinstance(numeric_bounds, dict):
-            numeric_bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))  # type: ignore
-
-        # Construct a mask of the values that are outside the bounds.
-        mask = None
-        if numeric_bounds.min is not None:
-            mask = np_array < numeric_bounds.min
-        if numeric_bounds.max is not None:
-            val_above_max = np_array > numeric_bounds.max
-            mask = mask | val_above_max if mask is not None else val_above_max
-        if mask is None:
-            raise ValueError("No bounds provided")
-
-        rows_outside_bounds = np_array[mask]
+        np_array = to_numpy_array(values)
+        rows_outside_bounds = np_array[out_of_bounds_mask(np_array, bounds)]
         for row in rows_outside_bounds:
             self.measure(
                 name=name,

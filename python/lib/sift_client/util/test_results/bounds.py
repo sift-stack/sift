@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import numpy as np
+import pandas as pd
+
 from sift_client.sift_types.test_report import (
     NumericBounds,
     TestMeasurement,
@@ -7,6 +12,55 @@ from sift_client.sift_types.test_report import (
     TestMeasurementType,
     TestMeasurementUpdate,
 )
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
+
+def to_numpy_array(
+    values: list[float | int] | NDArray[np.float64] | pd.Series,
+) -> NDArray[np.float64]:
+    """Normalize a list / ndarray / pandas Series into a numpy array.
+
+    Shared by ``measure_avg`` and ``measure_all`` in both the real plugin and
+    the no-op sibling so the accepted input types stay in sync.
+    """
+    if isinstance(values, list):
+        return np.array(values)
+    if isinstance(values, np.ndarray):
+        return values
+    if isinstance(values, pd.Series):
+        return values.to_numpy()
+    raise ValueError(f"Invalid value type: {type(values)}")
+
+
+def out_of_bounds_mask(
+    arr: NDArray[np.float64],
+    bounds: dict[str, float] | NumericBounds,
+) -> NDArray[np.bool_]:
+    """Return a boolean mask selecting elements of ``arr`` that violate ``bounds``.
+
+    Raises ``ValueError`` when ``bounds`` has neither ``min`` nor ``max`` set.
+    """
+    if isinstance(bounds, dict):
+        bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))
+    mask: NDArray[np.bool_] | None = None
+    if bounds.min is not None:
+        mask = arr < bounds.min
+    if bounds.max is not None:
+        above = arr > bounds.max
+        mask = mask | above if mask is not None else above
+    if mask is None:
+        raise ValueError("No bounds provided")
+    return mask
+
+
+def all_within_bounds(
+    arr: NDArray[np.float64],
+    bounds: dict[str, float] | NumericBounds,
+) -> bool:
+    """Return True when every element of ``arr`` is within ``bounds``."""
+    return bool(arr[out_of_bounds_mask(arr, bounds)].size == 0)
 
 
 def assign_value_to_measurement(
@@ -32,6 +86,43 @@ def assign_value_to_measurement(
         raise ValueError(f"Invalid value type: {type(value)}")
 
 
+def value_passes_bounds(
+    value: float | str | bool,
+    bounds: dict[str, float] | NumericBounds | str | bool | None,
+) -> bool:
+    """Evaluate a value against bounds without recording a measurement.
+
+    Used by consumers that need pass/fail semantics matching the real plugin but
+    do not transmit a measurement (e.g. ``--sift-disabled`` mode in the pytest
+    plugin).
+    """
+    if bounds is None:
+        return True
+    if isinstance(bounds, dict):
+        bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))
+    if isinstance(bounds, bool):
+        if isinstance(value, str):
+            return str(value).lower() == str(bounds).lower()
+        return bool(value) == bounds
+    if isinstance(bounds, str):
+        if not (isinstance(value, str) or isinstance(value, bool)):
+            raise ValueError("Value must be a string if bounds provided is a string")
+        if isinstance(value, bool):
+            return str(value).lower() == str(bounds).lower()
+        return value == bounds
+    # NumericBounds
+    try:
+        if bounds.min is not None and bounds.min > value:  # type: ignore[operator]
+            return False
+        if bounds.max is not None and bounds.max < value:  # type: ignore[operator]
+            return False
+    except TypeError:
+        raise TypeError(
+            f"Value must be a float or int to evaluate numeric bounds but gave {type(value)}"
+        ) from None
+    return True
+
+
 def evaluate_measurement_bounds(
     measurement: TestMeasurement | TestMeasurementCreate | TestMeasurementUpdate,
     value: float | str | bool,
@@ -53,31 +144,10 @@ def evaluate_measurement_bounds(
 
     if isinstance(bounds, dict):
         bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))
-    if isinstance(bounds, bool):
-        if isinstance(value, str):
-            measurement.passed = str(value).lower() == str(bounds).lower()
-        else:
-            measurement.passed = bool(value) == bounds
-        return bool(measurement.passed)
-    elif isinstance(bounds, str):
-        if not (isinstance(value, str) or isinstance(value, bool)):
-            raise ValueError("Value must be a string if bounds provided is a string")
+    if isinstance(bounds, str) and not isinstance(bounds, bool):
         measurement.string_expected_value = bounds
-        if isinstance(value, bool):
-            measurement.passed = str(value).lower() == str(bounds).lower()
-        else:
-            measurement.passed = value == bounds
     elif isinstance(bounds, NumericBounds):
         measurement.numeric_bounds = bounds
-        measurement.passed = True
-        try:
-            if measurement.numeric_bounds.min is not None:
-                measurement.passed = measurement.passed and measurement.numeric_bounds.min <= value  # type: ignore
-            if measurement.numeric_bounds.max is not None:
-                measurement.passed = measurement.passed and measurement.numeric_bounds.max >= value  # type: ignore
-        except TypeError:
-            raise TypeError(
-                f"Value must be a float or int to evaluate numeric bounds but gave {type(value)}"
-            ) from None
 
+    measurement.passed = value_passes_bounds(value, bounds)
     return bool(measurement.passed)
