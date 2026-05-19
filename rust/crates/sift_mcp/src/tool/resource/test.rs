@@ -1,12 +1,8 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use serde_json::Value;
 use sift_rs::{
-    assets::v1::{
-        Asset, ListAssetsResponse, asset_service_server::AssetServiceServer,
-    },
-    runs::v2::{
-        ListRunsResponse, Run, run_service_server::RunServiceServer,
-    },
+    assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer},
+    runs::v2::{ListRunsResponse, Run, run_service_server::RunServiceServer},
 };
 use sift_test_util::{
     grpc::memory_sift_channel,
@@ -143,26 +139,23 @@ async fn get_asset_paginates_until_token_empty() {
 #[tokio::test]
 async fn get_asset_respects_limit() {
     let mut asset_mock = MockAssetServiceImpl::new();
-    asset_mock
-        .expect_list_assets()
-        .times(1)
-        .returning(|req| {
-            let req = req.into_inner();
-            assert_eq!(req.page_size, 2);
-            Ok(Response::new(ListAssetsResponse {
-                assets: vec![
-                    Asset {
-                        asset_id: "a1".into(),
-                        ..Default::default()
-                    },
-                    Asset {
-                        asset_id: "a2".into(),
-                        ..Default::default()
-                    },
-                ],
-                next_page_token: "page-2".into(),
-            }))
-        });
+    asset_mock.expect_list_assets().times(1).returning(|req| {
+        let req = req.into_inner();
+        assert_eq!(req.page_size, 2);
+        Ok(Response::new(ListAssetsResponse {
+            assets: vec![
+                Asset {
+                    asset_id: "a1".into(),
+                    ..Default::default()
+                },
+                Asset {
+                    asset_id: "a2".into(),
+                    ..Default::default()
+                },
+            ],
+            next_page_token: "page-2".into(),
+        }))
+    });
 
     let (server, _h) = server_with_mocks(asset_mock, MockRunServiceImpl::new()).await;
 
@@ -178,15 +171,12 @@ async fn get_asset_respects_limit() {
 #[tokio::test]
 async fn get_asset_breaks_on_empty_page() {
     let mut asset_mock = MockAssetServiceImpl::new();
-    asset_mock
-        .expect_list_assets()
-        .times(1)
-        .returning(|_| {
-            Ok(Response::new(ListAssetsResponse {
-                assets: vec![],
-                next_page_token: "ignored".into(),
-            }))
-        });
+    asset_mock.expect_list_assets().times(1).returning(|_| {
+        Ok(Response::new(ListAssetsResponse {
+            assets: vec![],
+            next_page_token: "ignored".into(),
+        }))
+    });
 
     let (server, _h) = server_with_mocks(asset_mock, MockRunServiceImpl::new()).await;
 

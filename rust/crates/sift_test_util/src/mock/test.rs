@@ -1,7 +1,7 @@
 use crate::mock::assets::v1::MockAssetServiceImpl;
 use sift_rs::assets::v1::{
-    asset_service_server::AssetService, Asset, GetAssetRequest, GetAssetResponse,
-    ListAssetsRequest, ListAssetsResponse,
+    Asset, GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse,
+    asset_service_server::AssetService,
 };
 use tonic::{Code, Request, Status};
 

@@ -1,24 +1,12 @@
 use async_trait::async_trait;
-use sift_rs::runs::v2::{
-    run_service_server::RunService,
-    CreateAdhocRunRequest,
-    CreateAdhocRunResponse,
-    CreateAutomaticRunAssociationForAssetsRequest,
-    CreateAutomaticRunAssociationForAssetsResponse,
-    CreateRunRequest,
-    CreateRunResponse,
-    DeleteRunRequest,
-    DeleteRunResponse,
-    GetRunRequest,
-    GetRunResponse,
-    ListRunsRequest,
-    ListRunsResponse,
-    StopRunRequest,
-    StopRunResponse,
-    UpdateRunRequest,
-    UpdateRunResponse,
-};
 use mockall::mock;
+use sift_rs::runs::v2::{
+    CreateAdhocRunRequest, CreateAdhocRunResponse, CreateAutomaticRunAssociationForAssetsRequest,
+    CreateAutomaticRunAssociationForAssetsResponse, CreateRunRequest, CreateRunResponse,
+    DeleteRunRequest, DeleteRunResponse, GetRunRequest, GetRunResponse, ListRunsRequest,
+    ListRunsResponse, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
+    run_service_server::RunService,
+};
 use tonic::{Request, Response, Status};
 
 mock! {

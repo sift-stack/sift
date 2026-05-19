@@ -1,8 +1,11 @@
-use sift_rs::assets::v1::{Asset, GetAssetRequest, GetAssetResponse, asset_service_client::AssetServiceClient, asset_service_server::AssetServiceServer};
+use sift_rs::assets::v1::{
+    Asset, GetAssetRequest, GetAssetResponse, asset_service_client::AssetServiceClient,
+    asset_service_server::AssetServiceServer,
+};
 use tonic::{Request, Response, transport::Server};
 
-use crate::mock::assets::v1::MockAssetServiceImpl;
 use super::memory_sift_channel;
+use crate::mock::assets::v1::MockAssetServiceImpl;
 
 /// Demonstrates how to use [memory_sift_channel] for testing.
 #[tokio::test]
@@ -32,9 +35,7 @@ async fn test_memory_sift_channel() {
     tokio::spawn(async move {
         Server::builder()
             .add_service(asset_grpc)
-            .serve_with_incoming(
-                tokio_stream::once(Ok::<_, std::io::Error>(server))
-            )
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
     });
