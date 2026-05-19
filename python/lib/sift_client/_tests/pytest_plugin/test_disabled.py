@@ -11,6 +11,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pytest
 
 
@@ -99,4 +101,81 @@ class TestDisabledMode:
             """
         )
         result = pytester.runpytest_subprocess("--sift-disabled", "--sift-offline")
+        result.assert_outcomes(passed=1)
+
+    def test_disabled_yields_stub_fixtures(
+        self,
+        pytester: pytest.Pytester,
+        clear_sift_env: None,
+        write_plugin_conftest: Callable[[], None],
+    ) -> None:
+        """``step`` / ``report_context`` / ``module_substep`` are stub instances in disabled mode."""
+        write_plugin_conftest()
+        pytester.makepyfile(
+            """
+            from sift_client.pytest_plugin import _NoopReportContext, _NoopStep
+
+            def test_types(step, report_context, module_substep):
+                assert isinstance(step, _NoopStep)
+                assert isinstance(module_substep, _NoopStep)
+                assert isinstance(report_context, _NoopReportContext)
+            """
+        )
+        result = pytester.runpytest_subprocess("--sift-disabled")
+        result.assert_outcomes(passed=1)
+
+    def test_disabled_writes_no_log_file_even_when_path_pinned(
+        self,
+        pytester: pytest.Pytester,
+        tmp_path: Path,
+        clear_sift_env: None,
+        write_plugin_conftest: Callable[[], None],
+    ) -> None:
+        """Disabled mode skips the log-file pipeline even when a path is pinned."""
+        log_path = tmp_path / "should-not-exist.jsonl"
+        write_plugin_conftest()
+        pytester.makepyfile("def test_runs(step): step.measure(name='v', value=1.0)")
+        result = pytester.runpytest_subprocess(
+            "--sift-disabled", f"--sift-test-results-log-file={log_path}"
+        )
+        result.assert_outcomes(passed=1)
+        assert not log_path.exists(), f"log file unexpectedly created at {log_path}"
+
+    def test_disabled_skips_client_has_connection_and_sift_client(
+        self,
+        pytester: pytest.Pytester,
+        clear_sift_env: None,
+    ) -> None:
+        """Disabled mode never resolves ``client_has_connection`` or ``sift_client``.
+
+        The plugin's ``report_context`` short-circuits to the stub before
+        consulting either fixture. Overrides that raise on resolution stay
+        un-triggered, so the inner test passes cleanly.
+        """
+        pytester.makeconftest(
+            """
+            import pytest
+
+            pytest_plugins = ["sift_client.pytest_plugin"]
+
+
+            @pytest.fixture(scope="session")
+            def sift_client():
+                raise AssertionError("sift_client should not resolve in disabled mode")
+
+
+            @pytest.fixture(scope="session")
+            def client_has_connection():
+                raise AssertionError(
+                    "client_has_connection should not resolve in disabled mode"
+                )
+            """
+        )
+        pytester.makepyfile(
+            """
+            def test_runs(step):
+                assert step.measure(name="v", value=5.0, bounds={"max": 10.0}) is True
+            """
+        )
+        result = pytester.runpytest_subprocess("--sift-disabled")
         result.assert_outcomes(passed=1)

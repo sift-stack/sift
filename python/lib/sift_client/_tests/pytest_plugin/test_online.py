@@ -12,6 +12,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pytest
 
 
@@ -73,3 +75,59 @@ class TestOnlineMode:
         combined = "\n".join(result.outlines + result.errlines)
         for var in ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI"):
             assert var in combined, combined
+
+    def test_online_resolves_client_has_connection_once(
+        self,
+        pytester: pytest.Pytester,
+        tmp_path: Path,
+        clear_sift_env: None,
+    ) -> None:
+        """Online mode resolves ``client_has_connection`` exactly once at session start.
+
+        Overrides the fixture to bump a counter persisted to a file the outer
+        test reads after the inner session finishes. Outcomes aren't asserted
+        because the real ``ReportContext`` constructed against a ``MagicMock``
+        client crashes downstream when Pydantic sees mock IDs; what we're
+        verifying is the ping path itself, which runs before construction.
+        """
+        counter_file = tmp_path / "ping_calls.txt"
+        pytester.makeconftest(
+            f"""
+            from pathlib import Path
+            from unittest.mock import MagicMock
+
+            import pytest
+
+            pytest_plugins = ["sift_client.pytest_plugin"]
+
+            _COUNTER = Path({str(counter_file)!r})
+
+
+            @pytest.fixture(scope="session")
+            def sift_client():
+                return MagicMock()
+
+
+            @pytest.fixture(scope="session")
+            def client_has_connection():
+                prior = int(_COUNTER.read_text()) if _COUNTER.exists() else 0
+                _COUNTER.write_text(str(prior + 1))
+                return True
+            """
+        )
+        pytester.makepyfile(
+            """
+            import pytest
+
+            @pytest.mark.sift_include
+            def test_a(): pass
+
+            @pytest.mark.sift_include
+            def test_b(): pass
+            """
+        )
+        pytester.runpytest_subprocess()
+        assert counter_file.exists(), "client_has_connection was not resolved"
+        assert counter_file.read_text() == "1", (
+            f"expected session-scoped fixture to resolve once, got {counter_file.read_text()}"
+        )

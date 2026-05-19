@@ -12,6 +12,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pytest
 
 
@@ -50,3 +52,87 @@ class TestOfflineMode:
         assert result.ret != 0
         combined = "\n".join(result.outlines + result.errlines)
         assert "incompatible with --sift-offline" in combined, combined
+
+    def test_offline_yields_real_fixtures(
+        self,
+        pytester: pytest.Pytester,
+        clear_sift_env: None,
+        write_plugin_conftest: Callable[[], None],
+    ) -> None:
+        """Offline mode keeps the real ``ReportContext`` / ``NewStep``, not the stubs."""
+        write_plugin_conftest()
+        pytester.makepyfile(
+            """
+            from sift_client.pytest_plugin import _NoopReportContext, _NoopStep
+            from sift_client.util.test_results import ReportContext
+            from sift_client.util.test_results.context_manager import NewStep
+
+            def test_types(step, report_context):
+                assert isinstance(report_context, ReportContext)
+                assert isinstance(step, NewStep)
+                assert not isinstance(report_context, _NoopReportContext)
+                assert not isinstance(step, _NoopStep)
+            """
+        )
+        result = pytester.runpytest_subprocess("--sift-offline")
+        result.assert_outcomes(passed=1)
+
+    def test_offline_writes_jsonl_to_pinned_log_file(
+        self,
+        pytester: pytest.Pytester,
+        tmp_path: Path,
+        clear_sift_env: None,
+        write_plugin_conftest: Callable[[], None],
+    ) -> None:
+        """Offline mode populates the pinned JSONL file with create/update entries."""
+        log_path = tmp_path / "run.jsonl"
+        write_plugin_conftest()
+        pytester.makepyfile(
+            """
+            def test_one(step):
+                assert step.measure(
+                    name="v", value=5.0, bounds={"min": 4.8, "max": 5.2}
+                ) is True
+            """
+        )
+        result = pytester.runpytest_subprocess(
+            "--sift-offline", f"--sift-test-results-log-file={log_path}"
+        )
+        result.assert_outcomes(passed=1)
+        assert log_path.exists(), f"offline mode did not create {log_path}"
+        content = log_path.read_text()
+        assert content.strip(), "log file is empty"
+        # Each non-empty line is ``[Operation:uuid] {json}``. A successful
+        # session produces at least the report create + step create lines.
+        lines = [line for line in content.splitlines() if line.strip()]
+        assert any(line.startswith("[CreateTestReport:") for line in lines), content
+        assert any(line.startswith("[CreateTestStep:") for line in lines), content
+
+    def test_offline_skips_client_has_connection(
+        self,
+        pytester: pytest.Pytester,
+        clear_sift_env: None,
+    ) -> None:
+        """Offline mode never resolves ``client_has_connection``.
+
+        Override the fixture to raise on resolution. If the override is
+        invoked, the session aborts; if it isn't, the inner test passes
+        cleanly — confirming the offline path skips the ping check.
+        """
+        pytester.makeconftest(
+            """
+            import pytest
+
+            pytest_plugins = ["sift_client.pytest_plugin"]
+
+
+            @pytest.fixture(scope="session")
+            def client_has_connection():
+                raise AssertionError(
+                    "client_has_connection should not resolve in offline mode"
+                )
+            """
+        )
+        pytester.makepyfile("def test_runs(step): pass")
+        result = pytester.runpytest_subprocess("--sift-offline")
+        result.assert_outcomes(passed=1)
