@@ -9,11 +9,13 @@ This page walks through wiring the plugin into a project, the fixtures and
 hooks it provides, and the patterns you'll use day-to-day.
 
 !!! info "Where the plugin lives"
-    The plugin is part of `sift_client.util.test_results`. It is **not**
-    registered as a `pytest11` entry point. Projects opt in with a
-    `from sift_client.util.test_results import *` in their `conftest.py`.
-    That import is what wires up the fixtures, the CLI options, and the
-    `pytest_runtest_makereport` hook.
+    The plugin lives at `sift_client.pytest_plugin`. It is
+    **not** registered as a `pytest11` entry point. Projects opt in with a
+    `pytest_plugins` declaration in their top-level `conftest.py`. Pytest
+    then loads the module as a real plugin: the fixtures, CLI options, and
+    `pytest_runtest_makereport` hook all register through standard pytest
+    machinery, so `pytest --trace-config` lists it and
+    `pytest -p no:sift_client.pytest_plugin` disables it.
 
 ## Install
 
@@ -33,9 +35,26 @@ The `SIFT_GRPC_URI` and `SIFT_REST_URI` are the gRPC and REST endpoints for your
 
 ## Wire the plugin into `conftest.py`
 
-Two things are required: a session-scoped `sift_client` fixture (the plugin's
-`report_context` fixture resolves it by name), and a star-import that registers
-the plugin's fixtures into the conftest's namespace.
+A single `pytest_plugins` declaration in your top-level `conftest.py` is all
+that's required. The plugin ships a default `sift_client` fixture that reads
+`SIFT_API_KEY`, `SIFT_GRPC_URI`, and `SIFT_REST_URI` from the environment.
+
+```python title="conftest.py"
+from dotenv import load_dotenv
+
+load_dotenv()
+
+pytest_plugins = ["sift_client.pytest_plugin"]
+```
+
+That's the whole setup. Every test in the session will now create a step on a
+single shared `TestReport`.
+
+### Customizing the `SiftClient`
+
+To construct the client differently (custom TLS, timeouts, alternate
+credentials, etc.), override the `sift_client` fixture in your conftest. The
+plugin's default falls away in favor of your definition.
 
 ```python title="conftest.py"
 import os
@@ -45,29 +64,22 @@ from dotenv import load_dotenv
 
 from sift_client import SiftClient, SiftConnectionConfig
 
-# Star-import wires fixtures + hooks + CLI options into pytest collection.
-from sift_client.util.test_results import *
-
 load_dotenv()
+
+pytest_plugins = ["sift_client.pytest_plugin"]
 
 
 @pytest.fixture(scope="session")
 def sift_client() -> SiftClient:
-    grpc_url = os.getenv("SIFT_GRPC_URI")
-    rest_url = os.getenv("SIFT_REST_URI")
-    api_key = os.getenv("SIFT_API_KEY")
-    
     return SiftClient(
         connection_config=SiftConnectionConfig(
-            api_key=api_key,
-            grpc_url=grpc_url,
-            rest_url=rest_url,
+            api_key=os.getenv("SIFT_API_KEY"),
+            grpc_url=os.getenv("SIFT_GRPC_URI"),
+            rest_url=os.getenv("SIFT_REST_URI"),
+            use_ssl=False,
         )
     )
 ```
-
-That's the whole setup. Every test in the session will now create a step on a
-single shared `TestReport`.
 
 ## Plugin provided fixtures
 
@@ -86,17 +98,82 @@ single shared `TestReport`.
 | `--no-sift-test-results-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
 | `--sift-test-results-check-connection` | off | Make `report_context`, `step`, and `module_substep` no-op (yield `None`) when `client_has_connection` is `False`. Lets the same suite run locally without a Sift backend. |
 
-These can be set permanently in `pytest.ini`:
+These can be passed permanently via `addopts`:
 
 ```ini title="pytest.ini"
 [pytest]
 addopts = --sift-test-results-check-connection
 ```
 
+Or set the matching ini key directly (recommended for stable per-project
+configuration). Each CLI flag has a corresponding key under
+`[tool.pytest.ini_options]` in `pyproject.toml` or `[pytest]` in `pytest.ini`.
+CLI flags, when passed, override the ini values.
+
+| Ini key | Type | Equivalent CLI flag |
+|---|---|---|
+| `sift_test_results_log_file` | string (`true` / `false` / `none` / path) | `--sift-test-results-log-file=<value>` |
+| `sift_test_results_git_metadata` | bool (default `true`) | `--no-sift-test-results-git-metadata` (sets to `false`) |
+| `sift_test_results_check_connection` | bool (default `false`) | `--sift-test-results-check-connection` |
+| `sift_test_results_autouse` | bool (default `true`) | _(no CLI flag; controls the marker gate below)_ |
+
+The default `sift_client` fixture reads its two URIs from environment first
+and falls back to ini keys when the env vars are unset. `SIFT_API_KEY` is
+intentionally env-only — keep it out of source control and supply it through
+`pytest-dotenv` (see [API key handling](#api-key-handling) below). The env
+var wins when both are set, so secrets injected into a CI environment
+continue to override values committed to `pyproject.toml`. There are no CLI
+flags for credentials.
+
+| Ini key | Environment variable | Notes |
+|---|---|---|
+| _(none)_ | `SIFT_API_KEY` | Env-only. Use `.env` + `pytest-dotenv` locally; inject from your secret store in CI. |
+| `sift_grpc_uri` | `SIFT_GRPC_URI` | Stable per-org gRPC endpoint; safe to commit. |
+| `sift_rest_uri` | `SIFT_REST_URI` | Stable per-org REST endpoint; safe to commit. |
+
+```toml title="pyproject.toml"
+[tool.pytest.ini_options]
+sift_test_results_check_connection = true
+sift_test_results_log_file = "false"
+sift_test_results_git_metadata = false
+sift_grpc_uri = "your-org.sift.example:443"
+sift_rest_uri = "https://your-org.sift.example"
+```
+
+```ini title="pytest.ini"
+[pytest]
+sift_test_results_check_connection = true
+sift_test_results_log_file = false
+sift_test_results_git_metadata = false
+sift_grpc_uri = your-org.sift.example:443
+sift_rest_uri = https://your-org.sift.example
+```
+
+#### API key handling
+
+`SIFT_API_KEY` is deliberately read from the process environment only. The
+recommended workflow uses the
+[`pytest-dotenv`](https://pypi.org/project/pytest-dotenv/) plugin (already a
+dependency of `sift-stack-py`), which loads variables from a `.env` file
+into `os.environ` before tests run.
+
+1. Add `.env` to `.gitignore`.
+2. Drop your key into `.env` at the project root:
+
+    ```bash title=".env"
+    SIFT_API_KEY=sk-...your-key...
+    ```
+
+3. In CI, set `SIFT_API_KEY` directly via your provider's secret manager
+   instead of committing a `.env` file.
+
+`pytest-dotenv` picks the file up automatically; no `pytest_configure`
+glue is needed.
+
 !!! warning "FedRAMP / shared environments"
-    Pass `--sift-test-results-log-file=false` to skip the temp file + worker
-    pipeline. Create/update calls then run inline against the API instead of
-    being deferred through a subprocess.
+    Pass `--sift-test-results-log-file=false` (or set the ini key to `"false"`)
+    to skip the temp file + worker pipeline. Create/update calls then run
+    inline against the API instead of being deferred through a subprocess.
 
 ### Report metadata captured automatically
 
@@ -121,6 +198,50 @@ To override defaults (e.g. set a serial number, system operator, or extra
 metadata), call `report_context.report.update({...})` from any test or
 fixture. See [Linking a Run](#linking-a-run-to-the-report) for the same
 pattern applied to `run_id`.
+
+## Controlling which tests produce reports
+
+By default every test in the session produces a Sift step. Two markers
+and one ini key let you narrow that to a specific set of tests, which is
+useful when a repo holds tests that you don't want included in the Sift test report.
+
+| Setting                                                 | Effect                                                                                       |
+|---------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| `sift_test_results_autouse = false` in `pyproject.toml` | Flip the project-wide default off. Tests no longer produce steps unless explicitly opted in. |
+| `@pytest.mark.sift_include` on a test, class, or module | Force reporting on for that scope, regardless of the project default.                        |
+| `@pytest.mark.sift_exclude` on a test, class, or module | Force reporting off for that scope, regardless of the project default.                       |
+
+Closest marker determines setting. `sift_exclude` beats `sift_include` when both apply.
+`pytestmark` at the class or module level inherits to every test in scope.
+
+### Bulk-applying a marker to a directory
+
+To opt an entire directory in (or out) without editing each file, hook
+`pytest_collection_modifyitems` in the directory's `conftest.py`:
+
+```python title="tests/example/conftest.py"
+from pathlib import Path
+
+import pytest
+
+_HERE = Path(__file__).parent
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        try:
+            item.path.relative_to(_HERE)
+        except ValueError:
+            continue
+        item.add_marker(pytest.mark.sift_include)
+```
+
+This applies `sift_include` to every test collected under `tests/example/`.
+Combine with `sift_test_results_autouse = false` in `pyproject.toml` for
+opting in to specific directories. 
+
+`pytest_collection_modifyitems` receives every item in the session, not just
+this directory's, so the `relative_to` filter is what scopes the marker.
 
 ## Basic usage
 
@@ -585,7 +706,7 @@ automatic skip.
 ```python title="conftest.py"
 import pytest
 
-from sift_client.util.test_results import *
+pytest_plugins = ["sift_client.pytest_plugin"]
 
 
 @pytest.fixture(autouse=True)
