@@ -1800,7 +1800,7 @@ plugin's default falls away in favor of your definition.</p>
 <tr>
 <td><code>--sift-disabled</code></td>
 <td>off</td>
-<td>Skip Sift entirely. Autouse fixtures yield stub objects; <code>step.measure(...)</code> still returns real pass/fail booleans by evaluating bounds locally. Nothing is sent to Sift and no log file is written. Also honored via <code>SIFT_DISABLED=1</code>. Incompatible with <code>--sift-offline</code>.</td>
+<td>Skip Sift entirely. Autouse fixtures yield stub objects; <code>step.measure(...)</code> still returns real pass/fail booleans by evaluating bounds locally. Nothing is sent to Sift and no log file is written. Also honored via <code>SIFT_DISABLED=1</code>. Supersedes every other flag — if both <code>--sift-disabled</code> and <code>--sift-offline</code> are passed, disabled wins.</td>
 </tr>
 <tr>
 <td><code>--sift-test-results-log-file=&lt;path\|true\|false&gt;</code></td>
@@ -2450,8 +2450,9 @@ that let the same suite run without (or without contacting) Sift.</p>
 </tr>
 </tbody>
 </table>
-<p><code>--sift-offline</code> and <code>--sift-disabled</code> are mutually exclusive — disabled
-writes nothing, offline writes everything to a log file.</p>
+<p>When both <code>--sift-offline</code> and <code>--sift-disabled</code> are passed, disabled wins.
+Disabled mode supersedes every other flag — it's the "skip Sift entirely"
+hammer.</p>
 <h3 id="online-mode-default">Online mode (default)<a class="headerlink" href="#online-mode-default" title="Permanent link">&para;</a></h3>
 <p><code>report_context</code> resolves the <code>client_has_connection</code> fixture at session
 start. The default implementation calls <code>sift_client.ping.ping()</code>. A failed
