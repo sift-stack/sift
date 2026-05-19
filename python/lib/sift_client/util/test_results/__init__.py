@@ -59,24 +59,55 @@ from your `conftest.py`:
 pytest_plugins = ["sift_client.pytest_plugin"]
 ```
 
-The plugin ships an autouse session-scoped `report_context` fixture (one
-`TestReport` per session), an autouse function-scoped `step` fixture, and an
-optional `module_substep` fixture. It also registers a default `sift_client`
-fixture that reads `SIFT_API_KEY`, `SIFT_GRPC_URI`, and `SIFT_REST_URI` from
-the environment. Override it by defining your own `sift_client` fixture in
-your conftest.
+By default, every test in the session produces a Sift report: one
+`TestReport` per session, one step per test function (`step`), and one
+parent step per test file (`module_substep`). The plugin also registers a
+default `sift_client` fixture that reads `SIFT_API_KEY`, `SIFT_GRPC_URI`,
+and `SIFT_REST_URI` from the environment. Override it by defining your own
+`sift_client` fixture in your conftest.
 
-Note: FedRAMP users: `report_context` will log test results to a temp file to
-avoid API calls during test execution. If this is a shared environment, you
-can disable logging by passing `--sift-test-results-log-file=false`.
+Note: FedRAMP users: results are buffered to a temp file and uploaded by a
+subprocess at session end (no API calls during the run). Disable the buffer
+entirely with `--sift-test-results-log-file=false` for inline uploads.
+
+### Controlling which tests produce reports
+
+The autouse fixtures fire for every test by default. To narrow that:
+
+- Set `sift_test_results_autouse = false` in `pyproject.toml` to flip the
+  project default off, then opt tests back in below.
+- `@pytest.mark.sift_include` forces reporting on for a test, class, or
+  module. `@pytest.mark.sift_exclude` forces it off. Closest marker wins.
+  `sift_exclude` beats `sift_include` when both apply.
+- `pytestmark` at the class or module level inherits to every test in scope.
+- For a whole directory, apply the marker in bulk from that directory's
+  `conftest.py`:
+
+```python
+# tests/integration/conftest.py
+from pathlib import Path
+
+import pytest
+
+_HERE = Path(__file__).parent
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        try:
+            item.path.relative_to(_HERE)
+        except ValueError:
+            continue
+        item.add_marker(pytest.mark.sift_include)
+```
 
 #### Configuration
 
 CLI options registered by the plugin:
 
 - `--sift-test-results-log-file`: Path to write the JSONL log file. `true`
-  (default) auto-creates a temp file; `false`/`none` disables logging; a path
-  writes to that location.
+  (default) auto-creates a temp file. `false` or `none` disables logging.
+  Any other value is treated as a file path.
 - `--no-sift-test-results-git-metadata`: Exclude git metadata (repo, branch,
   commit) from the test report. Included by default.
 - `--sift-test-results-check-connection`: Make `report_context`, `step`, and
@@ -85,14 +116,17 @@ CLI options registered by the plugin:
 
 Each option has a matching ini key for per-project configuration under
 ``[tool.pytest.ini_options]`` in ``pyproject.toml`` (or ``[pytest]`` in
-``pytest.ini``). CLI flags override ini values. The default ``sift_client``
-fixture also reads ``sift_grpc_uri`` and ``sift_rest_uri`` as fallbacks when
-the corresponding env vars are unset (env vars win when both are set).
-``SIFT_API_KEY`` is env-only — load it from a ``.env`` file via the
-``pytest-dotenv`` plugin or inject it via your CI secret manager.
+``pytest.ini``). CLI flags override ini values. The
+``sift_test_results_autouse`` ini key (bool, default ``true``) sets the
+project-wide default for the gate described above. The default
+``sift_client`` fixture reads ``sift_grpc_uri`` and ``sift_rest_uri`` as
+fallbacks when the corresponding env vars are unset (env vars win when
+both are set). ``SIFT_API_KEY`` is env-only. Load it from a ``.env`` file
+via the ``pytest-dotenv`` plugin or inject it via your CI secret manager.
 
 ```toml
 [tool.pytest.ini_options]
+sift_test_results_autouse = false
 sift_test_results_log_file = "false"
 sift_test_results_check_connection = true
 sift_test_results_git_metadata = false

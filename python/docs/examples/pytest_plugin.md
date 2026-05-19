@@ -115,6 +115,7 @@ CLI flags, when passed, override the ini values.
 | `sift_test_results_log_file` | string (`true` / `false` / `none` / path) | `--sift-test-results-log-file=<value>` |
 | `sift_test_results_git_metadata` | bool (default `true`) | `--no-sift-test-results-git-metadata` (sets to `false`) |
 | `sift_test_results_check_connection` | bool (default `false`) | `--sift-test-results-check-connection` |
+| `sift_test_results_autouse` | bool (default `true`) | _(no CLI flag; controls the marker gate below)_ |
 
 The default `sift_client` fixture reads its two URIs from environment first
 and falls back to ini keys when the env vars are unset. `SIFT_API_KEY` is
@@ -197,6 +198,50 @@ To override defaults (e.g. set a serial number, system operator, or extra
 metadata), call `report_context.report.update({...})` from any test or
 fixture. See [Linking a Run](#linking-a-run-to-the-report) for the same
 pattern applied to `run_id`.
+
+## Controlling which tests produce reports
+
+By default every test in the session produces a Sift step. Two markers
+and one ini key let you narrow that to a specific set of tests, which is
+useful when a repo holds tests that you don't want included in the Sift test report.
+
+| Setting                                                 | Effect                                                                                       |
+|---------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| `sift_test_results_autouse = false` in `pyproject.toml` | Flip the project-wide default off. Tests no longer produce steps unless explicitly opted in. |
+| `@pytest.mark.sift_include` on a test, class, or module | Force reporting on for that scope, regardless of the project default.                        |
+| `@pytest.mark.sift_exclude` on a test, class, or module | Force reporting off for that scope, regardless of the project default.                       |
+
+Closest marker determines setting. `sift_exclude` beats `sift_include` when both apply.
+`pytestmark` at the class or module level inherits to every test in scope.
+
+### Bulk-applying a marker to a directory
+
+To opt an entire directory in (or out) without editing each file, hook
+`pytest_collection_modifyitems` in the directory's `conftest.py`:
+
+```python title="tests/example/conftest.py"
+from pathlib import Path
+
+import pytest
+
+_HERE = Path(__file__).parent
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        try:
+            item.path.relative_to(_HERE)
+        except ValueError:
+            continue
+        item.add_marker(pytest.mark.sift_include)
+```
+
+This applies `sift_include` to every test collected under `tests/example/`.
+Combine with `sift_test_results_autouse = false` in `pyproject.toml` for
+opting in to specific directories. 
+
+`pytest_collection_modifyitems` receives every item in the session, not just
+this directory's, so the `relative_to` filter is what scopes the marker.
 
 ## Basic usage
 
