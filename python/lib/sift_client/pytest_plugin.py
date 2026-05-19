@@ -29,6 +29,34 @@ if TYPE_CHECKING:
 
 REPORT_CONTEXT: Any = None
 
+_PARAMETRIZE_PATH_KEY = pytest.StashKey[tuple[str, ...]]()
+# Each frame: (path_key, open step). Frames are shared across sibling test items
+# and drained at module-substep teardown / session end. Entries may be either a
+# real ``NewStep`` (online/offline) or a ``_NoopStep`` (disabled mode).
+_PARAMETRIZE_STACK: list[tuple[str, Any]] = []
+
+
+def _drain_parametrize_stack() -> None:
+    while _PARAMETRIZE_STACK:
+        _, ns = _PARAMETRIZE_STACK.pop()
+        ns.__exit__(None, None, None)
+
+
+def _build_parametrize_path(item: pytest.Item) -> tuple[str, ...]:
+    """Outer-to-inner step display names for a parametrized item.
+
+    Pytest stores ``callspec.params`` with the BOTTOM decorator's axis first;
+    the Sift step tree treats the TOP decorator as outermost, so we reverse.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None or not callspec.params:
+        return ()
+    originalname = getattr(item, "originalname", item.name)
+    frames: list[str] = [originalname]
+    for name, value in reversed(callspec.params.items()):
+        frames.append(f"{name}={value!r}")
+    return tuple(frames)
+
 
 @dataclass(frozen=True)
 class _Option:
@@ -173,6 +201,18 @@ def pytest_configure(config: pytest.Config) -> None:
         "sift_exclude: force the Sift autouse fixtures to skip this test "
         "regardless of the `sift_autouse` ini default.",
     )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Stash each item's parametrize path and cluster siblings by shared prefix."""
+    for item in items:
+        item.stash[_PARAMETRIZE_PATH_KEY] = _build_parametrize_path(item)
+    items.sort(key=lambda i: i.stash[_PARAMETRIZE_PATH_KEY])
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Drain any parametrize parents still open (e.g. when module_substep was gated off)."""
+    _drain_parametrize_stack()
 
 
 def _is_offline(pytestconfig: pytest.Config | None) -> bool:
@@ -563,24 +603,75 @@ def report_context(
 def _step_impl(
     report_context: ReportContext | _NoopReportContext, request: pytest.FixtureRequest
 ) -> Generator[NewStep | _NoopStep, None, None]:
-    name = str(request.node.name)
-    existing_docstring = request.node.obj.__doc__ or None
+    node = request.node
+    # Items get a parametrize path stashed in ``pytest_collection_modifyitems``;
+    # modules/other nodes fall back to their node name. The leaf frame
+    # (``path[-1]``) is the test-specific display name — parents are opened
+    # by ``_parametrize_parents``.
+    path = node.stash.get(_PARAMETRIZE_PATH_KEY, ())
+    name = path[-1] if path else str(node.name)
+    existing_docstring = node.obj.__doc__ or None
     with report_context.new_step(
         name=name, description=existing_docstring, assertion_as_fail_not_error=False
     ) as new_step:
         yield new_step
-        if hasattr(request.node, "rep_call") and request.node.rep_call.excinfo:
+        if hasattr(node, "rep_call") and node.rep_call.excinfo:
             new_step.update_step_from_result(
-                request.node.rep_call.excinfo,
-                request.node.rep_call.excinfo.value,
-                request.node.rep_call.excinfo.tb,
+                node.rep_call.excinfo,
+                node.rep_call.excinfo.value,
+                node.rep_call.excinfo.tb,
             )
+
+
+@pytest.fixture(autouse=True)
+def _parametrize_parents(
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
+) -> None:
+    """Open/close shared parametrize parent steps for the current item.
+
+    Diffs the item's desired parametrize path against the open stack: pops the
+    stale tail, then opens new parents (everything except the innermost frame —
+    the ``step`` fixture creates that as the leaf). Parents persist across
+    sibling items so a tree like ``test_x[a=1]`` / ``test_x[a=2]`` shares one
+    ``test_x`` container.
+
+    Gated off when the current item is excluded so that excluded items don't
+    eagerly request ``report_context`` (which would defeat its lazy creation).
+    Any parents still open at the end of a module are drained by
+    ``module_substep`` teardown; anything left at session end is drained by
+    ``pytest_sessionfinish``.
+    """
+    default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
+    if not _sift_enabled_for(request.node, default):
+        return None
+    desired = request.node.stash.get(_PARAMETRIZE_PATH_KEY, ())
+    parents = desired[:-1]
+    common = 0
+    while (
+        common < len(_PARAMETRIZE_STACK)
+        and common < len(parents)
+        and _PARAMETRIZE_STACK[common][0] == parents[common]
+    ):
+        common += 1
+    while len(_PARAMETRIZE_STACK) > common:
+        _, ns = _PARAMETRIZE_STACK.pop()
+        ns.__exit__(None, None, None)
+    if not parents[common:]:
+        return None
+    rc = request.getfixturevalue("report_context")
+    for display in parents[common:]:
+        ns = rc.new_step(name=display, assertion_as_fail_not_error=False)
+        ns.__enter__()
+        _PARAMETRIZE_STACK.append((display, ns))
+    return None
 
 
 @pytest.fixture(autouse=True)
 def step(
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
+    _parametrize_parents: None,
 ) -> Generator[NewStep | _NoopStep | None, None, None]:
     """Create an outer step for the function when the Sift gate is on.
 
@@ -618,7 +709,18 @@ def module_substep(
         yield None
         return
     rc = request.getfixturevalue("report_context")
-    yield from _step_impl(rc, request)
+    gen = _step_impl(rc, request)
+    new_step = next(gen)
+    try:
+        yield new_step
+    finally:
+        # Drain parametrize parents nested under this module step before it
+        # exits — ReportContext.exit_step asserts the module step is the top.
+        _drain_parametrize_stack()
+        try:
+            next(gen)
+        except StopIteration:
+            pass
 
 
 @pytest.fixture(scope="session")
