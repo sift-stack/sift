@@ -88,12 +88,24 @@ _REST_URI = _Option(
     "this ini value.",
 )
 
+_AUTOUSE = _Option(
+    ini_name="sift_test_results_autouse",
+    ini_help="Default for the Sift autouse fixtures (report_context, step, "
+    "module_substep). When true (default), tests are included unless marked "
+    "with @pytest.mark.sift_exclude. When false, tests are skipped unless "
+    "marked with @pytest.mark.sift_include. Bulk-apply markers in a "
+    "directory's conftest via `pytest_collection_modifyitems`.",
+    ini_type="bool",
+    ini_default=True,
+)
+
 _OPTIONS: tuple[_Option, ...] = (
     _LOG_FILE,
     _GIT_METADATA,
     _CHECK_CONNECTION,
     _GRPC_URI,
     _REST_URI,
+    _AUTOUSE,
 )
 
 
@@ -122,6 +134,49 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         parser.addini(opt.ini_name, **ini_kwargs)
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Register the Sift gate markers so they show up in `pytest --markers`."""
+    config.addinivalue_line(
+        "markers",
+        "sift_include: force the Sift autouse fixtures to activate for this test "
+        "regardless of the `sift_test_results_autouse` ini default.",
+    )
+    config.addinivalue_line(
+        "markers",
+        "sift_exclude: force the Sift autouse fixtures to skip this test "
+        "regardless of the `sift_test_results_autouse` ini default.",
+    )
+
+
+def _sift_enabled_for(node: pytest.Item | pytest.Collector, default: bool) -> bool:
+    """Resolve the Sift gate for a node: sift_exclude > sift_include > default.
+
+    `get_closest_marker` walks the node hierarchy upward, so markers applied
+    at any level (function, class, module, package, session) are honored.
+    """
+    if node.get_closest_marker("sift_exclude"):
+        return False
+    if node.get_closest_marker("sift_include"):
+        return True
+    return default
+
+
+def _module_has_included_tests(request: pytest.FixtureRequest, default: bool) -> bool:
+    """True when at least one test in `request`'s module is gated on.
+
+    Used by the module-scoped `module_substep` fixture to decide whether to
+    activate without triggering `report_context` creation for modules where
+    every test is excluded.
+    """
+    module_path = request.path
+    for item in request.session.items:
+        if item.path != module_path:
+            continue
+        if _sift_enabled_for(item, default):
+            return True
+    return False
+
+
 def _option_or_ini(pytestconfig: pytest.Config | None, opt: _Option) -> Any:
     """Resolve a Sift plugin setting from CLI > ini > None.
 
@@ -141,10 +196,23 @@ def _option_or_ini(pytestconfig: pytest.Config | None, opt: _Option) -> Any:
 
 
 def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool | None:
-    """Determine log_file value from CLI flag or ini key."""
+    """Determine log_file value from CLI flag or ini key.
+
+    Three signal types arrive here:
+
+    * ``None`` — unset; nothing was passed on the CLI and the ini key is
+      absent. Treat as the default "use a temp file."
+    * Python ``False`` — an explicit disable, typically set in a conftest via
+      ``config.option.sift_test_results_log_file = False``. Return ``None`` so
+      the rest of the pipeline knows to skip logging entirely.
+    * A string (from CLI or ini) — interpret ``"true"`` / ``"1"`` as the temp
+      file default, ``"false"`` / ``"none"`` as disable, anything else as a
+      file path.
+    """
     raw = _option_or_ini(pytestconfig, _LOG_FILE)
+    if raw is False:
+        return None
     if not raw:
-        # None, empty string from ini, or False — treat as "use temp file default".
         return True
     lower = str(raw).lower()
     if lower in ("true", "1"):
@@ -264,17 +332,23 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     )
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def report_context(
     sift_client: SiftClient, request: pytest.FixtureRequest, pytestconfig: pytest.Config
 ) -> Generator[ReportContext | None, None, None]:
-    """Create a report context for the session.
+    """Lazy session-scoped Sift ReportContext.
+
+    The fixture is no longer autouse; it's instantiated on the first call to
+    ``request.getfixturevalue("report_context")``, which today happens inside
+    the gated ``step`` and ``module_substep`` fixtures. If every test in the
+    session is excluded via the marker gate, this fixture is never resolved
+    and no ReportContext (and no teardown subprocess) is created.
 
     The log file destination is controlled by ``--sift-test-results-log-file``.
     Defaults to a temp file when not set.
 
-    When ``--sift-test-results-check-connection`` is passed, this fixture will no-op
-    (yield None) if the Sift client has no connection to the server. That mode
+    When ``--sift-test-results-check-connection`` is passed, this fixture will
+    yield ``None`` if the Sift client has no connection to the server. That mode
     requires a ``client_has_connection`` fixture to be available in the session.
     """
     if _check_connection_enabled(pytestconfig) and not _has_sift_connection(request):
@@ -302,26 +376,50 @@ def _step_impl(
 
 @pytest.fixture(autouse=True)
 def step(
-    report_context: ReportContext | None,
     request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
 ) -> Generator[NewStep | None, None, None]:
-    """Create an outer step for the function. No-ops when ``report_context`` is None."""
-    if report_context is None:
+    """Create an outer step for the function when the Sift gate is on.
+
+    Resolves the gate via `_sift_enabled_for(request.node, ini_default)`:
+    `sift_exclude` marker forces off, `sift_include` forces on, otherwise the
+    `sift_test_results_autouse` ini default applies. When on, requests the
+    session `report_context` lazily — the first gated test in the session
+    triggers its creation, subsequent gated tests reuse it.
+    """
+    default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
+    if not _sift_enabled_for(request.node, default):
         yield None
         return
-    yield from _step_impl(report_context, request)
+    rc = request.getfixturevalue("report_context")
+    if rc is None:
+        yield None
+        return
+    yield from _step_impl(rc, request)
 
 
 @pytest.fixture(scope="module", autouse=True)
 def module_substep(
-    report_context: ReportContext | None,
     request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
 ) -> Generator[NewStep | None, None, None]:
-    """Create a step per module. No-ops when ``report_context`` is None."""
-    if report_context is None:
+    """Create a per-module step when at least one test in the module is gated on.
+
+    Inspects the module's collected items rather than gating on a single marker,
+    so a module with mixed inclusion/exclusion still produces the module-level
+    step (individual `step` fixtures then decide per-test). When every test in
+    the module is excluded, the substep is skipped without requesting
+    `report_context`.
+    """
+    default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
+    if not _module_has_included_tests(request, default):
         yield None
         return
-    yield from _step_impl(report_context, request)
+    rc = request.getfixturevalue("report_context")
+    if rc is None:
+        yield None
+        return
+    yield from _step_impl(rc, request)
 
 
 @pytest.fixture(scope="session")
