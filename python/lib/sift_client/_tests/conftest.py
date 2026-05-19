@@ -78,10 +78,6 @@ def ci_pytest_tag(sift_client):
     return tag
 
 
-# Import the Sift test results fixtures the way we recommend to users.
-from sift_client.util.test_results import *  # noqa: F403
-
-
 def pytest_configure(config: pytest.Config) -> None:
     """Enable the Sift connection-check mode for the fixtures used in this test suite since we run w/ mock client in non-integration tests."""
     config.option.sift_test_results_check_connection = True
