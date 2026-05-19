@@ -138,9 +138,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install '.[dev-all]'
 
-      - name: Lint
+      # Re-run mypy with --platform=win32 so typeshed evaluates platform-gated
+      # stubs (e.g. fcntl) as if we were on Windows. 
+      - name: MyPy (Windows platform)
         run: |
-          ruff check
+          mypy --platform=win32 lib
 
   python-ci-status:
     if: always()
