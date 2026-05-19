@@ -451,8 +451,9 @@ TestReport
 
 ### Parametrized tests
 
-Each parametrize case is a distinct pytest node, so each gets its own step.
-The step name includes the parameter id pytest generates.
+Parametrized cases nest under a single shared parent named after the
+function. Each case becomes a leaf step named `<param>=<value>`, where
+`<value>` is `repr()`d so strings get quoted.
 
 ```python
 @pytest.mark.parametrize("voltage", [3.3, 5.0, 12.0])
@@ -462,10 +463,43 @@ def test_rail(step, voltage):
 
 ```text title="Sift report"
 TestReport
-├── test_rail[3.3]
-├── test_rail[5.0]
-└── test_rail[12.0]
+└── test_rail
+    ├── voltage=3.3
+    ├── voltage=5.0
+    └── voltage=12.0
 ```
+
+Stacked `@pytest.mark.parametrize` decorators nest outer-to-inner. The
+**top** decorator is the outermost axis, the **bottom** is the innermost
+leaf. Sibling cases that share a prefix reuse the same parent step.
+
+```python
+@pytest.mark.parametrize("voltage", ["high", "low"])
+@pytest.mark.parametrize("component", ["motor", "ducer"])
+def test_iso(step, voltage, component): ...
+```
+
+```text title="Sift report"
+TestReport
+└── test_iso
+    ├── voltage='high'
+    │   ├── component='motor'
+    │   └── component='ducer'
+    └── voltage='low'
+        ├── component='motor'
+        └── component='ducer'
+```
+
+Parametrized fixtures (`@pytest.fixture(params=[...])`) participate in
+the same tree. Each `param` axis becomes a level just as if it had been
+declared via `@pytest.mark.parametrize`.
+
+!!! note "Item ordering"
+    To make sibling cases cluster, the plugin sorts collected items by
+    their parametrize path in `pytest_collection_modifyitems`. If you
+    rely on a specific run order (e.g. via `pytest-ordering`), apply
+    your ordering plugin *after* `sift_client.pytest_plugin` in the
+    `pytest_plugins` list.
 
 ### Helper functions
 
