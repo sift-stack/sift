@@ -1,14 +1,30 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use anyhow::{Context, Result};
+use clap::{crate_name, crate_version};
+use sift_rs::{Credentials, SiftChannelBuilder};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub(crate) mod server;
+use server::SiftMcpServer;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub mod tool;
+use tool::resource::ResourceTool;
+
+mod error;
+
+pub async fn run(
+    credentials: Credentials,
+    use_tls: bool,
+) -> Result<()> {
+    let channel = SiftChannelBuilder::new(credentials)
+        .use_tls(use_tls)
+        .user_agent(format!("{}/{}", crate_name!(), crate_version!()))
+        .build()
+        .context("failed to build gRPC channel to connect to Sift")?;
+
+    let resource_tool = ResourceTool::new(channel);
+
+    let server = SiftMcpServer {
+        resource_tool,
+    };
+
+    todo!()
 }
