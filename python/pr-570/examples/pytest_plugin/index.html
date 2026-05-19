@@ -841,6 +841,34 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#controlling-which-tests-produce-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controlling which tests produce reports
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controlling which tests produce reports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bulk-applying-a-marker-to-a-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk-applying a marker to a directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1074,26 +1102,27 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
+  <a href="#running-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Modes
+        Running modes
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-offline" class="md-nav__link">
+    <nav class="md-nav" aria-label="Running modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#online-mode-default" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running offline
+        Online mode (default)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Running offline">
+    <nav class="md-nav" aria-label="Online mode (default)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1111,15 +1140,31 @@ You're not viewing the latest version.
     </nav>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#running-without-the-plugin-pytest_plugin_noop" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#offline-mode-sift-offline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running without the plugin: pytest_plugin_noop
+        Offline mode (--sift-offline)
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#disabled-mode-sift-disabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Disabled mode (--sift-disabled)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1274,6 +1319,34 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#controlling-which-tests-produce-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controlling which tests produce reports
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controlling which tests produce reports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bulk-applying-a-marker-to-a-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk-applying a marker to a directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1507,26 +1580,27 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
+  <a href="#running-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Modes
+        Running modes
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-offline" class="md-nav__link">
+    <nav class="md-nav" aria-label="Running modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#online-mode-default" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running offline
+        Online mode (default)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Running offline">
+    <nav class="md-nav" aria-label="Online mode (default)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1544,15 +1618,31 @@ You're not viewing the latest version.
     </nav>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#running-without-the-plugin-pytest_plugin_noop" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#offline-mode-sift-offline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running without the plugin: pytest_plugin_noop
+        Offline mode (--sift-offline)
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#disabled-mode-sift-disabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Disabled mode (--sift-disabled)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1688,7 +1778,7 @@ plugin's default falls away in favor of your definition.</p>
 <td><code>client_has_connection</code></td>
 <td>fixture</td>
 <td>session</td>
-<td>Pings Sift via <code>sift_client.ping.ping()</code>. Consulted at session start when running in online mode.</td>
+<td>Calls <code>sift_client.ping.ping()</code>; consulted by <code>report_context</code> at session start in online mode (the default). Override to skip the ping or use a different reachability signal.</td>
 </tr>
 </tbody>
 </table>
@@ -1705,20 +1795,20 @@ plugin's default falls away in favor of your definition.</p>
 <tr>
 <td><code>--sift-offline</code></td>
 <td>off (online)</td>
-<td>Skip the session-start ping and don't contact Sift. All create/update calls go to the JSONL log file for later replay via <code>import-test-result-log</code>.</td>
+<td>Skip the session-start ping and don't contact Sift. All create/update calls go to the JSONL log file for later replay via <code>import-test-result-log</code>. Missing <code>SIFT_*</code> env vars are tolerated; placeholders are filled.</td>
 </tr>
 <tr>
-<td><code>--sift-log-file=&lt;path&gt;</code></td>
-<td>temp file</td>
-<td>Path to write the JSONL log file. In online mode this is a write-through backup; in offline mode it is the sole sink. When unset, a temp file is created and its path emitted via a <code>logger.info</code> line at session start.</td>
-</tr>
-<tr>
-<td><code>--no-sift-log-file</code></td>
+<td><code>--sift-disabled</code></td>
 <td>off</td>
-<td>Disable the JSONL log file (online mode only). Create/update calls run inline against the API instead of being deferred through the import worker. Incompatible with <code>--sift-offline</code>.</td>
+<td>Skip Sift entirely. Autouse fixtures yield stub objects; <code>step.measure(...)</code> still returns real pass/fail booleans by evaluating bounds locally. Nothing is sent to Sift and no log file is written. Also honored via <code>SIFT_DISABLED=1</code>. Supersedes every other flag (if both <code>--sift-disabled</code> and <code>--sift-offline</code> are passed, disabled wins).</td>
 </tr>
 <tr>
-<td><code>--sift-no-git-metadata</code></td>
+<td><code>--sift-log-file=&lt;path\|true\|false&gt;</code></td>
+<td>temp file</td>
+<td>Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an <code>import-test-result-log --incremental</code> worker that polls the file and replays entries against Sift while the run is in flight. Pass <code>false</code> to disable the file entirely; create/update calls then go straight to the API synchronously during tests. Incompatible with <code>--sift-offline</code> since offline mode needs the log file as its sole sink.</td>
+</tr>
+<tr>
+<td><code>--no-sift-git-metadata</code></td>
 <td>git metadata on</td>
 <td>Skip capturing git repo/branch/commit on the report's metadata.</td>
 </tr>
@@ -1728,16 +1818,102 @@ plugin's default falls away in favor of your definition.</p>
 <div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[pytest]</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-offline</span>
 </span></code></pre></div>
+<p>Or set the matching ini key directly (recommended for stable per-project
+configuration). Each CLI flag has a corresponding key under
+<code>[tool.pytest.ini_options]</code> in <code>pyproject.toml</code> or <code>[pytest]</code> in <code>pytest.ini</code>.
+CLI flags, when passed, override the ini values.</p>
+<table>
+<thead>
+<tr>
+<th>Ini key</th>
+<th>Type</th>
+<th>Equivalent CLI flag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sift_log_file</code></td>
+<td>string (<code>true</code> / <code>false</code> / <code>none</code> / path)</td>
+<td><code>--sift-log-file=&lt;value&gt;</code></td>
+</tr>
+<tr>
+<td><code>sift_git_metadata</code></td>
+<td>bool (default <code>true</code>)</td>
+<td><code>--no-sift-git-metadata</code> (sets to <code>false</code>)</td>
+</tr>
+<tr>
+<td><code>sift_offline</code></td>
+<td>bool (default <code>false</code>)</td>
+<td><code>--sift-offline</code></td>
+</tr>
+<tr>
+<td><code>sift_disabled</code></td>
+<td>bool (default <code>false</code>)</td>
+<td><code>--sift-disabled</code> (also honors <code>SIFT_DISABLED</code> env var)</td>
+</tr>
+<tr>
+<td><code>sift_autouse</code></td>
+<td>bool (default <code>true</code>)</td>
+<td><em>(no CLI flag; controls the marker gate below)</em></td>
+</tr>
+</tbody>
+</table>
+<p>The default <code>sift_client</code> fixture reads its two URIs from environment first
+and falls back to ini keys when the env vars are unset. <code>SIFT_API_KEY</code> is
+intentionally env-only — keep it out of source control and supply it through
+<code>pytest-dotenv</code> (see <a href="#api-key-handling">API key handling</a> below). The env
+var wins when both are set, so secrets injected into a CI environment
+continue to override values committed to <code>pyproject.toml</code>. There are no CLI
+flags for credentials.</p>
+<table>
+<thead>
+<tr>
+<th>Ini key</th>
+<th>Environment variable</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>(none)</em></td>
+<td><code>SIFT_API_KEY</code></td>
+<td>Env-only. Use <code>.env</code> + <code>pytest-dotenv</code> locally; inject from your secret store in CI.</td>
+</tr>
+<tr>
+<td><code>sift_grpc_uri</code></td>
+<td><code>SIFT_GRPC_URI</code></td>
+<td>Stable per-org gRPC endpoint; safe to commit.</td>
+</tr>
+<tr>
+<td><code>sift_rest_uri</code></td>
+<td><code>SIFT_REST_URI</code></td>
+<td>Stable per-org REST endpoint; safe to commit.</td>
+</tr>
+</tbody>
+</table>
+<div class="language-toml highlight"><span class="filename">pyproject.toml</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[tool.pytest.ini_options]</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">sift_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-org.sift.example:443&quot;</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your-org.sift.example&quot;</span>
+</span></code></pre></div>
+<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[pytest]</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">sift_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">false</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="na">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">your-org.sift.example:443</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="na">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://your-org.sift.example</span>
+</span></code></pre></div>
 <h4 id="api-key-handling">API key handling<a class="headerlink" href="#api-key-handling" title="Permanent link">&para;</a></h4>
-<p><code>SIFT_API_KEY</code> is read from the process environment. The recommended workflow
-uses the <a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</code></a> plugin
-(already a dependency of <code>sift-stack-py</code>), which loads variables from a
-<code>.env</code> file into <code>os.environ</code> before tests run.</p>
+<p><code>SIFT_API_KEY</code> is deliberately read from the process environment only. The
+recommended workflow uses the
+<a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</code></a> plugin (already a
+dependency of <code>sift-stack-py</code>), which loads variables from a <code>.env</code> file
+into <code>os.environ</code> before tests run.</p>
 <ol>
 <li>Add <code>.env</code> to <code>.gitignore</code>.</li>
 <li>
 <p>Drop your key into <code>.env</code> at the project root:</p>
-<div class="language-bash highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span>sk-...your-key...
+<div class="language-bash highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span>sk-...your-key...
 </span></code></pre></div>
 </li>
 <li>
@@ -1749,9 +1925,9 @@ uses the <a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</
 glue is needed.</p>
 <div class="admonition warning">
 <p class="admonition-title">FedRAMP / shared environments</p>
-<p>Pass <code>--no-sift-log-file</code> to skip the temp file + worker pipeline.
-Create/update calls then run inline against the API instead of being
-deferred through a subprocess.</p>
+<p>Pass <code>--sift-log-file=false</code> (or set the ini key to <code>"false"</code>)
+to skip the temp file + worker pipeline. Create/update calls then run
+inline against the API instead of being deferred through a subprocess.</p>
 </div>
 <h3 id="report-metadata-captured-automatically">Report metadata captured automatically<a class="headerlink" href="#report-metadata-captured-automatically" title="Permanent link">&para;</a></h3>
 <p>Every report the plugin creates includes:</p>
@@ -1761,7 +1937,7 @@ deferred through a subprocess.</p>
 <li><code>system_operator</code>: <code>getpass.getuser()</code>.</li>
 <li><code>start_time</code> / <code>end_time</code>: set on session enter/exit.</li>
 <li><code>status</code>: starts at <code>IN_PROGRESS</code>, finalized to <code>PASSED</code> or <code>FAILED</code> on session exit (failure if any step failed or an exception escaped the session).</li>
-<li><code>metadata.git_repo</code>, <code>metadata.git_branch</code>, <code>metadata.git_commit</code>: captured via <code>git remote get-url origin</code> / <code>git rev-parse --abbrev-ref HEAD</code> / <code>git describe --always --dirty --exclude '*'</code>. Suppressed by <code>--sift-no-git-metadata</code> or when not in a git repo.</li>
+<li><code>metadata.git_repo</code>, <code>metadata.git_branch</code>, <code>metadata.git_commit</code>: captured via <code>git remote get-url origin</code> / <code>git rev-parse --abbrev-ref HEAD</code> / <code>git describe --always --dirty --exclude '*'</code>. Suppressed by <code>--no-sift-git-metadata</code> or when not in a git repo.</li>
 </ul>
 <p>Example invocations:</p>
 <table>
@@ -1794,41 +1970,92 @@ deferred through a subprocess.</p>
 metadata), call <code>report_context.report.update({...})</code> from any test or
 fixture. See <a href="#linking-a-run-to-the-report">Linking a Run</a> for the same
 pattern applied to <code>run_id</code>.</p>
+<h2 id="controlling-which-tests-produce-reports">Controlling which tests produce reports<a class="headerlink" href="#controlling-which-tests-produce-reports" title="Permanent link">&para;</a></h2>
+<p>By default every test in the session produces a Sift step. Two markers
+and one ini key let you narrow that to a specific set of tests, which is
+useful when a repo holds tests that you don't want included in the Sift test report.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sift_autouse = false</code> in <code>pyproject.toml</code></td>
+<td>Flip the project-wide default off. Tests no longer produce steps unless explicitly opted in.</td>
+</tr>
+<tr>
+<td><code>@pytest.mark.sift_include</code> on a test, class, or module</td>
+<td>Force reporting on for that scope, regardless of the project default.</td>
+</tr>
+<tr>
+<td><code>@pytest.mark.sift_exclude</code> on a test, class, or module</td>
+<td>Force reporting off for that scope, regardless of the project default.</td>
+</tr>
+</tbody>
+</table>
+<p>Closest marker determines setting. <code>sift_exclude</code> beats <code>sift_include</code> when both apply.
+<code>pytestmark</code> at the class or module level inherits to every test in scope.</p>
+<h3 id="bulk-applying-a-marker-to-a-directory">Bulk-applying a marker to a directory<a class="headerlink" href="#bulk-applying-a-marker-to-a-directory" title="Permanent link">&para;</a></h3>
+<p>To opt an entire directory in (or out) without editing each file, hook
+<code>pytest_collection_modifyitems</code> in the directory's <code>conftest.py</code>:</p>
+<div class="language-python highlight"><span class="filename">tests/example/conftest.py</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">_HERE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">pytest_collection_modifyitems</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>            <span class="n">item</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">_HERE</span><span class="p">)</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>            <span class="k">continue</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>        <span class="n">item</span><span class="o">.</span><span class="n">add_marker</span><span class="p">(</span><span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">sift_include</span><span class="p">)</span>
+</span></code></pre></div>
+<p>This applies <code>sift_include</code> to every test collected under <code>tests/example/</code>.
+Combine with <code>sift_autouse = false</code> in <code>pyproject.toml</code> for
+opting in to specific directories. </p>
+<p><code>pytest_collection_modifyitems</code> receives every item in the session, not just
+this directory's, so the <code>relative_to</code> filter is what scopes the marker.</p>
 <h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
 <p>With the conftest in place, the simplest test needs nothing extra. The <code>step</code>
 fixture is <code>autouse=True</code> and pytest test failures and skips are mapped to
 step statuses automatically.</p>
-<div class="language-python highlight"><span class="filename">test_basic.py</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_fixtures_still_creates_a_step</span><span class="p">():</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Autouse `step` records this function as a step on the session report.&quot;&quot;&quot;</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">assert</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="mi">2</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_measure_a_single_value</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Take `step` explicitly when you want to record a measurement.&quot;&quot;&quot;</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">voltage</span> <span class="o">=</span> <span class="mf">4.97</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">passed</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;battery_voltage&quot;</span><span class="p">,</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="n">value</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.8</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.2</span><span class="p">},</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">,</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="p">)</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="k">assert</span> <span class="n">passed</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;voltage </span><span class="si">{</span><span class="n">voltage</span><span class="si">}</span><span class="s2">V out of bounds&quot;</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_measure_strings_and_booleans</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;`bounds` accepts a string or `True`/`False` for non-numeric values.&quot;&quot;&quot;</span>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;firmware_version&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;1.4.2&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;1.4.2&quot;</span><span class="p">)</span>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;self_test_passed&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>
-</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_docstring_becomes_step_description</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;This docstring is the step&#39;s description in Sift.</span>
-</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>
-</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="sd">    The plugin pulls `request.node.obj.__doc__` when it creates the step.</span>
-</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="sd">    Helper functions called from within the test do not get this treatment;</span>
-</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="sd">    pass `description=&quot;...&quot;` explicitly on `substep(...)` instead.</span>
-</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>    <span class="k">assert</span> <span class="n">step</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<div class="language-python highlight"><span class="filename">test_basic.py</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_fixtures_still_creates_a_step</span><span class="p">():</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Autouse `step` records this function as a step on the session report.&quot;&quot;&quot;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="k">assert</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="mi">2</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_measure_a_single_value</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Take `step` explicitly when you want to record a measurement.&quot;&quot;&quot;</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">voltage</span> <span class="o">=</span> <span class="mf">4.97</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">passed</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;battery_voltage&quot;</span><span class="p">,</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>        <span class="n">value</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.8</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.2</span><span class="p">},</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">,</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="p">)</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="k">assert</span> <span class="n">passed</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;voltage </span><span class="si">{</span><span class="n">voltage</span><span class="si">}</span><span class="s2">V out of bounds&quot;</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_measure_strings_and_booleans</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;`bounds` accepts a string or `True`/`False` for non-numeric values.&quot;&quot;&quot;</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;firmware_version&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;1.4.2&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;1.4.2&quot;</span><span class="p">)</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;self_test_passed&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_docstring_becomes_step_description</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;This docstring is the step&#39;s description in Sift.</span>
+</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>
+</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a><span class="sd">    The plugin pulls `request.node.obj.__doc__` when it creates the step.</span>
+</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a><span class="sd">    Helper functions called from within the test do not get this treatment;</span>
+</span><span id="__span-9-29"><a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a><span class="sd">    pass `description=&quot;...&quot;` explicitly on `substep(...)` instead.</span>
+</span><span id="__span-9-30"><a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-9-31"><a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>    <span class="k">assert</span> <span class="n">step</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 </span></code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Measurements never raise</p>
@@ -1873,27 +2100,27 @@ session report all get marked failed.</p>
 <p>Use <code>step.substep(name=...)</code> to open a child step. Substeps nest arbitrarily
 deep, and a failure at any depth propagates up to fail the parent and the
 report.</p>
-<div class="language-python highlight"><span class="filename">test_nested_steps.py</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_phased_check</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Phase a single test into setup/exercise/verify substeps.&quot;&quot;&quot;</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;setup&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Power on and wait for boot&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">setup</span><span class="p">:</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="n">setup</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;boot_time_s&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">2.1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;exercise&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Drive the test sequence&quot;</span><span class="p">):</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;verify&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Read final state&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">verify</span><span class="p">:</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="n">verify</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;final_state&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;IDLE&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;IDLE&quot;</span><span class="p">)</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_deeply_nested</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A failure at the bottom fails everyone above it.&quot;&quot;&quot;</span>
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l1</span><span class="p">:</span>
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        <span class="k">with</span> <span class="n">l1</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_2&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l2</span><span class="p">:</span>
-</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>            <span class="k">with</span> <span class="n">l2</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_3&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l3</span><span class="p">:</span>
-</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>                <span class="n">l3</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;leaf_value&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">})</span>
+<div class="language-python highlight"><span class="filename">test_nested_steps.py</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_phased_check</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Phase a single test into setup/exercise/verify substeps.&quot;&quot;&quot;</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;setup&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Power on and wait for boot&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">setup</span><span class="p">:</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        <span class="n">setup</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;boot_time_s&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">2.1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;exercise&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Drive the test sequence&quot;</span><span class="p">):</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;verify&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Read final state&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">verify</span><span class="p">:</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>        <span class="n">verify</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;final_state&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;IDLE&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;IDLE&quot;</span><span class="p">)</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_deeply_nested</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A failure at the bottom fails everyone above it.&quot;&quot;&quot;</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l1</span><span class="p">:</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>        <span class="k">with</span> <span class="n">l1</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_2&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l2</span><span class="p">:</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>            <span class="k">with</span> <span class="n">l2</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;level_3&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l3</span><span class="p">:</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>                <span class="n">l3</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;leaf_value&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">})</span>
 </span></code></pre></div>
 <p>Each step gets a hierarchical <code>step_path</code> (<code>1</code>, <code>1.1</code>, <code>1.1.2</code>, <code>2</code>, …)
 assigned by <code>ReportContext</code>. Sibling substeps within the same parent
@@ -1906,9 +2133,9 @@ basename and its description is the module's docstring (if any).</p>
 <h3 id="linking-a-run-to-the-report">Linking a Run to the report<a class="headerlink" href="#linking-a-run-to-the-report" title="Permanent link">&para;</a></h3>
 <p><code>report_context</code> is the session-scoped fixture; mutating it in one test
 affects the whole report.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_link_run_to_report</span><span class="p">(</span><span class="n">report_context</span><span class="p">,</span> <span class="n">sift_client</span><span class="p">):</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">run</span> <span class="o">=</span> <span class="n">sift_client</span><span class="o">.</span><span class="n">runs</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># however you create your run</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">report_context</span><span class="o">.</span><span class="n">report</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;run_id&quot;</span><span class="p">:</span> <span class="n">run</span><span class="o">.</span><span class="n">id_</span><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_link_run_to_report</span><span class="p">(</span><span class="n">report_context</span><span class="p">,</span> <span class="n">sift_client</span><span class="p">):</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">run</span> <span class="o">=</span> <span class="n">sift_client</span><span class="o">.</span><span class="n">runs</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># however you create your run</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">report_context</span><span class="o">.</span><span class="n">report</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;run_id&quot;</span><span class="p">:</span> <span class="n">run</span><span class="o">.</span><span class="n">id_</span><span class="p">})</span>
 </span></code></pre></div>
 <p>The same <code>update({...})</code> pattern works for any field on <code>TestReportUpdate</code>,
 including <code>serial_number</code>, <code>part_number</code>, <code>system_operator</code>, and <code>metadata</code>.</p>
@@ -1919,58 +2146,58 @@ nodes and where you nest substeps inside them. Common layouts and the
 resulting report trees:</p>
 <h3 id="flat-module-of-test-functions">Flat module of test functions<a class="headerlink" href="#flat-module-of-test-functions" title="Permanent link">&para;</a></h3>
 <p>The default. Each function is one step directly under the report.</p>
-<div class="language-python highlight"><span class="filename">test_battery.py</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_voltage</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_current</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_temperature</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+<div class="language-python highlight"><span class="filename">test_battery.py</span><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_voltage</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_current</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_temperature</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>TestReport
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>├── test_voltage
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>├── test_current
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>└── test_temperature
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>TestReport
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>├── test_voltage
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>├── test_current
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>└── test_temperature
 </span></code></pre></div>
 <h3 id="one-step-per-file-with-module_substep">One step per file with <code>module_substep</code><a class="headerlink" href="#one-step-per-file-with-module_substep" title="Permanent link">&para;</a></h3>
 <p><code>module_substep</code> is autouse and module-scoped. Every file becomes a parent
 step and every function in it nests one level down.</p>
-<div class="language-python highlight"><span class="filename">test_battery.py</span><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_voltage</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_current</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+<div class="language-python highlight"><span class="filename">test_battery.py</span><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_voltage</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_current</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<div class="language-python highlight"><span class="filename">test_thermal.py</span><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_idle_temp</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_load_temp</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+<div class="language-python highlight"><span class="filename">test_thermal.py</span><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_idle_temp</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_load_temp</span><span class="p">(</span><span class="n">step</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>TestReport
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>├── test_battery.py
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>│   ├── test_voltage
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>│   └── test_current
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>└── test_thermal.py
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    ├── test_idle_temp
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    └── test_load_temp
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>TestReport
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>├── test_battery.py
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>│   ├── test_voltage
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>│   └── test_current
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>└── test_thermal.py
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    ├── test_idle_temp
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    └── test_load_temp
 </span></code></pre></div>
 <h3 id="test-classes">Test classes<a class="headerlink" href="#test-classes" title="Permanent link">&para;</a></h3>
 <p>Pytest classes (<code>class TestFoo: ...</code>) do not create a parent step on their
 own. The plugin keys off the test node's <code>name</code>, which is just the method
 name. To group a class's methods under a class-level step, add a class-scoped
 fixture that opens a step with <code>report_context.new_step(...)</code>:</p>
-<div class="language-python highlight"><span class="filename">test_charging.py</span><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestCharging</span><span class="p">:</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="n">autouse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">class_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">report_context</span><span class="p">):</span>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>        <span class="k">with</span> <span class="n">report_context</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;TestCharging&quot;</span><span class="p">,</span>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Charging subsystem&quot;</span><span class="p">,</span>
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>        <span class="p">)</span> <span class="k">as</span> <span class="n">parent</span><span class="p">:</span>
-</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>            <span class="k">yield</span> <span class="n">parent</span>
-</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>
-</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_starts_at_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
-</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_reaches_full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
-</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_thermal_throttle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+<div class="language-python highlight"><span class="filename">test_charging.py</span><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestCharging</span><span class="p">:</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="n">autouse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">class_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">report_context</span><span class="p">):</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>        <span class="k">with</span> <span class="n">report_context</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;TestCharging&quot;</span><span class="p">,</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Charging subsystem&quot;</span><span class="p">,</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>        <span class="p">)</span> <span class="k">as</span> <span class="n">parent</span><span class="p">:</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>            <span class="k">yield</span> <span class="n">parent</span>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_starts_at_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_reaches_full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_thermal_throttle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>TestReport
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>└── TestCharging
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    ├── test_starts_at_zero
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    ├── test_reaches_full
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    └── test_thermal_throttle
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>TestReport
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>└── TestCharging
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    ├── test_starts_at_zero
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    ├── test_reaches_full
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    └── test_thermal_throttle
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Combining with <code>module_substep</code></p>
@@ -1981,71 +2208,38 @@ method), make the class step itself open via the active outer step
 rather than the report root.</p>
 </div>
 <h3 id="parametrized-tests">Parametrized tests<a class="headerlink" href="#parametrized-tests" title="Permanent link">&para;</a></h3>
-<p>Parametrize axes become nested step layers. The plugin reads each item's
-<code>callspec.params</code> at collection time and opens one shared parent step per axis,
-so siblings that share an outer axis value live under the same parent. Leaf
-step names are <code>axis=value</code> (with <code>repr()</code>, so strings stay quoted), not
-pytest's bracket-mangled ID.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">3.3</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">12.0</span><span class="p">])</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_rail</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">voltage</span><span class="p">):</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">})</span>
+<p>Each parametrize case is a distinct pytest node, so each gets its own step.
+The step name includes the parameter id pytest generates.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">3.3</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">12.0</span><span class="p">])</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_rail</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">voltage</span><span class="p">):</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">})</span>
 </span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>TestReport
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>└── test_rail
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    ├── voltage=3.3
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    ├── voltage=5.0
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    └── voltage=12.0
-</span></code></pre></div>
-<p>Stacked <code>parametrize</code> decorators nest in the order they appear in source — the
-top decorator is the outermost step:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">])</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">&quot;component&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;motor&quot;</span><span class="p">,</span> <span class="s2">&quot;ducer&quot;</span><span class="p">,</span> <span class="s2">&quot;valve&quot;</span><span class="p">])</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_iso</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">voltage</span><span class="p">,</span> <span class="n">component</span><span class="p">):</span> <span class="o">...</span>
-</span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>TestReport
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>└── test_iso
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    ├── voltage=&#39;high&#39;
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    │   ├── component=&#39;motor&#39;
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    │   ├── component=&#39;ducer&#39;
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>    │   └── component=&#39;valve&#39;
-</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    └── voltage=&#39;low&#39;
-</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>        ├── component=&#39;motor&#39;
-</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>        ├── component=&#39;ducer&#39;
-</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>        └── component=&#39;valve&#39;
-</span></code></pre></div>
-<p>Fixture-level parametrization participates too:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">])</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">widget</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">param</span>
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>
-</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_widget</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">widget</span><span class="p">):</span> <span class="o">...</span>
-</span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>TestReport
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>└── test_widget
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    ├── widget=&#39;a&#39;
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    └── widget=&#39;b&#39;
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>TestReport
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>├── test_rail[3.3]
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>├── test_rail[5.0]
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>└── test_rail[12.0]
 </span></code></pre></div>
 <h3 id="helper-functions">Helper functions<a class="headerlink" href="#helper-functions" title="Permanent link">&para;</a></h3>
 <p>Helpers called from a test do not auto-create a step. The plugin only sees
 pytest-collected nodes. To represent helper work in the report, open a
 substep at the call site and pass it into the helper:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">measure_rail</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">bounds</span><span class="p">):</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>    <span class="k">return</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_power_rails</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;3.3V rail&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rail_3v3</span><span class="p">:</span>
-</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>        <span class="n">measure_rail</span><span class="p">(</span><span class="n">rail_3v3</span><span class="p">,</span> <span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="mf">3.31</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">3.2</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">3.4</span><span class="p">})</span>
-</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>
-</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;5V rail&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rail_5v</span><span class="p">:</span>
-</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>        <span class="n">measure_rail</span><span class="p">(</span><span class="n">rail_5v</span><span class="p">,</span> <span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="mf">5.02</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.9</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.1</span><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">measure_rail</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">bounds</span><span class="p">):</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>    <span class="k">return</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_power_rails</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;3.3V rail&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rail_3v3</span><span class="p">:</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>        <span class="n">measure_rail</span><span class="p">(</span><span class="n">rail_3v3</span><span class="p">,</span> <span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="mf">3.31</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">3.2</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">3.4</span><span class="p">})</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;5V rail&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rail_5v</span><span class="p">:</span>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>        <span class="n">measure_rail</span><span class="p">(</span><span class="n">rail_5v</span><span class="p">,</span> <span class="s2">&quot;rail_v&quot;</span><span class="p">,</span> <span class="mf">5.02</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.9</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.1</span><span class="p">})</span>
 </span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>TestReport
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>└── test_power_rails
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    ├── 3.3V rail
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    │   └── rail_v        (measurement)
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    └── 5V rail
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>        └── rail_v        (measurement)
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>TestReport
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>└── test_power_rails
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>    ├── 3.3V rail
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>    │   └── rail_v        (measurement)
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>    └── 5V rail
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>        └── rail_v        (measurement)
 </span></code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Docstring-as-description is top-level only</p>
@@ -2058,20 +2252,20 @@ description. Docstrings on helper functions are not picked up. Pass
 function-scope) or <code>report_context.new_step(...)</code> (for any scope). The substep
 ends when the fixture's <code>yield</code> returns, which makes the report tree mirror
 the lifecycle.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">warmed_up_dut</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;warmup&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Bring DUT to operating temp&quot;</span><span class="p">):</span>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>        <span class="c1"># ... do warmup work ...</span>
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>        <span class="k">yield</span> <span class="s2">&quot;dut-handle&quot;</span>
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_steady_state</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">warmed_up_dut</span><span class="p">):</span>
-</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;temp_c&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">37.2</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">35.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">40.0</span><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">warmed_up_dut</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;warmup&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Bring DUT to operating temp&quot;</span><span class="p">):</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>        <span class="c1"># ... do warmup work ...</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>        <span class="k">yield</span> <span class="s2">&quot;dut-handle&quot;</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_steady_state</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">warmed_up_dut</span><span class="p">):</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;temp_c&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">37.2</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">35.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">40.0</span><span class="p">})</span>
 </span></code></pre></div>
-<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>TestReport
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>└── test_steady_state
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>    ├── warmup        (from fixture)
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>    └── temp_c        (measurement)
+<div class="language-text highlight"><span class="filename">Sift report</span><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>TestReport
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>└── test_steady_state
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    ├── warmup        (from fixture)
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>    └── temp_c        (measurement)
 </span></code></pre></div>
 <h2 id="measurement-variants">Measurement variants<a class="headerlink" href="#measurement-variants" title="Permanent link">&para;</a></h2>
 <p><code>step.measure(...)</code> records exactly one measurement. For datasets coming off a
@@ -2079,53 +2273,53 @@ sensor or calculated channel, use one of the bulk variants.</p>
 <h3 id="measure_avg-one-row-the-mean"><code>measure_avg</code>: one row, the mean<a class="headerlink" href="#measure_avg-one-row-the-mean" title="Permanent link">&para;</a></h3>
 <p><code>measure_avg</code> accepts a Python list, a NumPy array, or a pandas <code>Series</code>,
 takes the mean, and evaluates it against bounds.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>
-</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_list</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4.97</span><span class="p">,</span> <span class="mf">5.01</span><span class="p">,</span> <span class="mf">5.03</span><span class="p">,</span> <span class="mf">4.99</span><span class="p">,</span> <span class="mf">5.02</span><span class="p">]</span>
-</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
-</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bus_voltage_avg&quot;</span><span class="p">,</span>
-</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
-</span><span id="__span-26-10"><a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.9</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.1</span><span class="p">},</span>
-</span><span id="__span-26-11"><a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">,</span>
-</span><span id="__span-26-12"><a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a>    <span class="p">)</span>
-</span><span id="__span-26-13"><a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a>
-</span><span id="__span-26-14"><a id="__codelineno-26-14" name="__codelineno-26-14" href="#__codelineno-26-14"></a>
-</span><span id="__span-26-15"><a id="__codelineno-26-15" name="__codelineno-26-15" href="#__codelineno-26-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_numpy</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-26-16"><a id="__codelineno-26-16" name="__codelineno-26-16" href="#__codelineno-26-16"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">99.5</span><span class="p">,</span> <span class="mf">100.5</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-</span><span id="__span-26-17"><a id="__codelineno-26-17" name="__codelineno-26-17" href="#__codelineno-26-17"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
-</span><span id="__span-26-18"><a id="__codelineno-26-18" name="__codelineno-26-18" href="#__codelineno-26-18"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cpu_temp_avg&quot;</span><span class="p">,</span>
-</span><span id="__span-26-19"><a id="__codelineno-26-19" name="__codelineno-26-19" href="#__codelineno-26-19"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
-</span><span id="__span-26-20"><a id="__codelineno-26-20" name="__codelineno-26-20" href="#__codelineno-26-20"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">95.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">105.0</span><span class="p">},</span>
-</span><span id="__span-26-21"><a id="__codelineno-26-21" name="__codelineno-26-21" href="#__codelineno-26-21"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span>
-</span><span id="__span-26-22"><a id="__codelineno-26-22" name="__codelineno-26-22" href="#__codelineno-26-22"></a>    <span class="p">)</span>
-</span><span id="__span-26-23"><a id="__codelineno-26-23" name="__codelineno-26-23" href="#__codelineno-26-23"></a>
-</span><span id="__span-26-24"><a id="__codelineno-26-24" name="__codelineno-26-24" href="#__codelineno-26-24"></a>
-</span><span id="__span-26-25"><a id="__codelineno-26-25" name="__codelineno-26-25" href="#__codelineno-26-25"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_pandas</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-26-26"><a id="__codelineno-26-26" name="__codelineno-26-26" href="#__codelineno-26-26"></a>    <span class="n">series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.998</span><span class="p">,</span> <span class="mf">1.001</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="mf">1.002</span><span class="p">,</span> <span class="mf">1.000</span><span class="p">])</span>
-</span><span id="__span-26-27"><a id="__codelineno-26-27" name="__codelineno-26-27" href="#__codelineno-26-27"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
-</span><span id="__span-26-28"><a id="__codelineno-26-28" name="__codelineno-26-28" href="#__codelineno-26-28"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;reference_clock_ratio&quot;</span><span class="p">,</span>
-</span><span id="__span-26-29"><a id="__codelineno-26-29" name="__codelineno-26-29" href="#__codelineno-26-29"></a>        <span class="n">values</span><span class="o">=</span><span class="n">series</span><span class="p">,</span>
-</span><span id="__span-26-30"><a id="__codelineno-26-30" name="__codelineno-26-30" href="#__codelineno-26-30"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.99</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">1.01</span><span class="p">},</span>
-</span><span id="__span-26-31"><a id="__codelineno-26-31" name="__codelineno-26-31" href="#__codelineno-26-31"></a>    <span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_list</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4.97</span><span class="p">,</span> <span class="mf">5.01</span><span class="p">,</span> <span class="mf">5.03</span><span class="p">,</span> <span class="mf">4.99</span><span class="p">,</span> <span class="mf">5.02</span><span class="p">]</span>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bus_voltage_avg&quot;</span><span class="p">,</span>
+</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+</span><span id="__span-25-10"><a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.9</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.1</span><span class="p">},</span>
+</span><span id="__span-25-11"><a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">,</span>
+</span><span id="__span-25-12"><a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a>    <span class="p">)</span>
+</span><span id="__span-25-13"><a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>
+</span><span id="__span-25-14"><a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a>
+</span><span id="__span-25-15"><a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_numpy</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-25-16"><a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">99.5</span><span class="p">,</span> <span class="mf">100.5</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+</span><span id="__span-25-17"><a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
+</span><span id="__span-25-18"><a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cpu_temp_avg&quot;</span><span class="p">,</span>
+</span><span id="__span-25-19"><a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+</span><span id="__span-25-20"><a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">95.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">105.0</span><span class="p">},</span>
+</span><span id="__span-25-21"><a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span>
+</span><span id="__span-25-22"><a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a>    <span class="p">)</span>
+</span><span id="__span-25-23"><a id="__codelineno-25-23" name="__codelineno-25-23" href="#__codelineno-25-23"></a>
+</span><span id="__span-25-24"><a id="__codelineno-25-24" name="__codelineno-25-24" href="#__codelineno-25-24"></a>
+</span><span id="__span-25-25"><a id="__codelineno-25-25" name="__codelineno-25-25" href="#__codelineno-25-25"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_avg_with_pandas</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-25-26"><a id="__codelineno-25-26" name="__codelineno-25-26" href="#__codelineno-25-26"></a>    <span class="n">series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.998</span><span class="p">,</span> <span class="mf">1.001</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="mf">1.002</span><span class="p">,</span> <span class="mf">1.000</span><span class="p">])</span>
+</span><span id="__span-25-27"><a id="__codelineno-25-27" name="__codelineno-25-27" href="#__codelineno-25-27"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure_avg</span><span class="p">(</span>
+</span><span id="__span-25-28"><a id="__codelineno-25-28" name="__codelineno-25-28" href="#__codelineno-25-28"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;reference_clock_ratio&quot;</span><span class="p">,</span>
+</span><span id="__span-25-29"><a id="__codelineno-25-29" name="__codelineno-25-29" href="#__codelineno-25-29"></a>        <span class="n">values</span><span class="o">=</span><span class="n">series</span><span class="p">,</span>
+</span><span id="__span-25-30"><a id="__codelineno-25-30" name="__codelineno-25-30" href="#__codelineno-25-30"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.99</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">1.01</span><span class="p">},</span>
+</span><span id="__span-25-31"><a id="__codelineno-25-31" name="__codelineno-25-31" href="#__codelineno-25-31"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <h3 id="measure_all-only-out-of-bounds-rows"><code>measure_all</code>: only out-of-bounds rows<a class="headerlink" href="#measure_all-only-out-of-bounds-rows" title="Permanent link">&para;</a></h3>
 <p>Records measurements only for samples that fail bounds, so an all-pass
 dataset of N samples doesn't add N rows to the report. Returns <code>True</code> when
 every sample is in bounds.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_only_outliers_recorded</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="mf">10.1</span><span class="p">,</span> <span class="mf">10.2</span><span class="p">,</span> <span class="mf">10.3</span><span class="p">,</span> <span class="mf">99.9</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.1</span><span class="p">]</span>  <span class="c1"># 99.9 is the outlier</span>
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>    <span class="n">all_in_bounds</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">measure_all</span><span class="p">(</span>
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;pressure_psi&quot;</span><span class="p">,</span>
-</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
-</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">9.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">11.0</span><span class="p">},</span>
-</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;psi&quot;</span><span class="p">,</span>
-</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>    <span class="p">)</span>
-</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>    <span class="c1"># Returns False because 99.9 is out of bounds. The step is already</span>
-</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>    <span class="c1"># marked failed; raise here only if you also want pytest to fail.</span>
-</span><span id="__span-27-11"><a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a>    <span class="k">assert</span> <span class="n">all_in_bounds</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_only_outliers_recorded</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>    <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="mf">10.1</span><span class="p">,</span> <span class="mf">10.2</span><span class="p">,</span> <span class="mf">10.3</span><span class="p">,</span> <span class="mf">99.9</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.1</span><span class="p">]</span>  <span class="c1"># 99.9 is the outlier</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>    <span class="n">all_in_bounds</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">measure_all</span><span class="p">(</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;pressure_psi&quot;</span><span class="p">,</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>        <span class="n">values</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">9.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">11.0</span><span class="p">},</span>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;psi&quot;</span><span class="p">,</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>    <span class="p">)</span>
+</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>    <span class="c1"># Returns False because 99.9 is out of bounds. The step is already</span>
+</span><span id="__span-26-10"><a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a>    <span class="c1"># marked failed; raise here only if you also want pytest to fail.</span>
+</span><span id="__span-26-11"><a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a>    <span class="k">assert</span> <span class="n">all_in_bounds</span>
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title"><code>measure_all</code> requires at least one bound</p>
@@ -2136,20 +2330,20 @@ least one of <code>min</code> or <code>max</code> must be set.</p>
 <p>When the decision is computed elsewhere, drop it onto the report as a
 named substep with an optional reason. Returns the result you passed in,
 so you can use it inline.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_external_checks</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span>
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;config_loaded&quot;</span><span class="p">,</span>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>        <span class="n">result</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>        <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;loaded /etc/dut/config.yaml&quot;</span><span class="p">,</span>
-</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>    <span class="p">)</span>
-</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>
-</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>    <span class="c1"># Failures show up as a failed substep without raising.</span>
-</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>    <span class="n">rare_warning_seen</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span>
-</span><span id="__span-28-11"><a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;no_rare_warning&quot;</span><span class="p">,</span>
-</span><span id="__span-28-12"><a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a>        <span class="n">result</span><span class="o">=</span><span class="ow">not</span> <span class="n">rare_warning_seen</span><span class="p">,</span>
-</span><span id="__span-28-13"><a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a>        <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;grep&#39;d dmesg for the known-flaky warning&quot;</span><span class="p">,</span>
-</span><span id="__span-28-14"><a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a>    <span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_external_checks</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;config_loaded&quot;</span><span class="p">,</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>        <span class="n">result</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>        <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;loaded /etc/dut/config.yaml&quot;</span><span class="p">,</span>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>    <span class="p">)</span>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>    <span class="c1"># Failures show up as a failed substep without raising.</span>
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>    <span class="n">rare_warning_seen</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span>
+</span><span id="__span-27-11"><a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;no_rare_warning&quot;</span><span class="p">,</span>
+</span><span id="__span-27-12"><a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a>        <span class="n">result</span><span class="o">=</span><span class="ow">not</span> <span class="n">rare_warning_seen</span><span class="p">,</span>
+</span><span id="__span-27-13"><a id="__codelineno-27-13" name="__codelineno-27-13" href="#__codelineno-27-13"></a>        <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;grep&#39;d dmesg for the known-flaky warning&quot;</span><span class="p">,</span>
+</span><span id="__span-27-14"><a id="__codelineno-27-14" name="__codelineno-27-14" href="#__codelineno-27-14"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <h3 id="bounds-reference">Bounds reference<a class="headerlink" href="#bounds-reference" title="Permanent link">&para;</a></h3>
 <table>
@@ -2197,137 +2391,140 @@ so you can use it inline.</p>
 <li>Inside a test function, you can mark just one substep as skipped without
   aborting the whole test:</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_skip</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;optional_calibration&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cal</span><span class="p">:</span>
-</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">precondition_met</span><span class="p">():</span>
-</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>            <span class="n">cal</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">SKIPPED</span><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_skip</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;optional_calibration&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cal</span><span class="p">:</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">precondition_met</span><span class="p">():</span>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>            <span class="n">cal</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">SKIPPED</span><span class="p">})</span>
 </span></code></pre></div>
 <p>A manually-resolved status is honored by the step's exit handler. No
   further bookkeeping required. <code>SKIPPED</code> does not propagate as a failure.</p>
 <h2 id="running-the-suite">Running the suite<a class="headerlink" href="#running-the-suite" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Full run against your Sift tenant</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>pytest
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># Pin the log file so you can replay it later if the import worker dies</span>
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>pytest<span class="w"> </span>--sift-log-file<span class="o">=</span>./sift-results.jsonl
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Full run against your Sift tenant</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>pytest
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># Pin the log file so you can replay it later if the import worker dies</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>pytest<span class="w"> </span>--sift-log-file<span class="o">=</span>./sift-results.jsonl
 </span></code></pre></div>
-<p>See <a href="#running-offline">Running offline</a> for capturing a run locally and
-replaying it later, and
-<a href="#running-without-the-plugin-pytest_plugin_noop">Running without the plugin</a>
-for keeping test code working when Sift isn't part of the pipeline.</p>
-<h2 id="modes">Modes<a class="headerlink" href="#modes" title="Permanent link">&para;</a></h2>
-<p>The plugin has two runtime modes. Bad configuration (missing <code>SIFT_API_KEY</code>
-/ <code>SIFT_GRPC_URI</code> / <code>SIFT_REST_URI</code>) is a hard error in online mode — the
-failure surfaces with the missing variable named — and tolerated in offline
-mode since no network call is attempted.</p>
+<p>See <a href="#running-modes">Running modes</a> for the offline and disabled flags
+that let the same suite run without (or without contacting) Sift.</p>
+<h2 id="running-modes">Running modes<a class="headerlink" href="#running-modes" title="Permanent link">&para;</a></h2>
+<p>The plugin runs in one of three modes, picked at invocation:</p>
 <table>
 <thead>
 <tr>
 <th>Mode</th>
 <th>Flag</th>
-<th>Session-start ping</th>
-<th>Transport</th>
+<th>Network</th>
 <th>Log file</th>
+<th><code>step.measure(...)</code></th>
+<th>When to use</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Online (default)</td>
-<td>—</td>
-<td>Required (hard fail)</td>
-<td>Live gRPC</td>
-<td>Optional write-through backup</td>
+<td><em>(none)</em></td>
+<td>yes (pings at session start, aborts if it fails)</td>
+<td>optional write-through backup</td>
+<td>real measurement against Sift</td>
+<td>CI with Sift credentials, local dev hitting your tenant</td>
 </tr>
 <tr>
 <td>Offline</td>
 <td><code>--sift-offline</code></td>
-<td>Skipped</td>
-<td>None</td>
-<td>Required (temp file by default)</td>
+<td>none</td>
+<td>required (the sole sink)</td>
+<td>real measurement queued to log</td>
+<td>field tests, air-gapped labs, CI without network</td>
+</tr>
+<tr>
+<td>Disabled</td>
+<td><code>--sift-disabled</code></td>
+<td>none</td>
+<td>none</td>
+<td>local bounds eval returning a real bool</td>
+<td>local dev or CI that doesn't have (or want) Sift</td>
 </tr>
 </tbody>
 </table>
-<p>If you want to keep test code working without the plugin loaded at all,
-wire in <a href="#running-without-the-plugin-pytest_plugin_noop"><code>sift_client.pytest_plugin_noop</code></a>
-instead.</p>
-<h2 id="running-offline">Running offline<a class="headerlink" href="#running-offline" title="Permanent link">&para;</a></h2>
-<p><code>--sift-offline</code> runs the suite without contacting Sift. Every create/update
-goes to a JSONL log file that you replay against Sift later with
-<code>import-test-result-log</code>. Useful for field tests, vehicles on remote sites,
-air-gapped labs, or CI that doesn't have Sift credentials.</p>
+<p>Pass both flags? Disabled wins. It's the "skip Sift entirely" hammer and
+supersedes everything else.</p>
+<h3 id="online-mode-default">Online mode (default)<a class="headerlink" href="#online-mode-default" title="Permanent link">&para;</a></h3>
+<p><code>report_context</code> resolves <code>client_has_connection</code> at session start. The
+default implementation calls <code>sift_client.ping.ping()</code>. A failed ping
+aborts the whole session with <code>pytest.UsageError</code> and points at
+<code>--sift-offline</code> and <code>--sift-disabled</code> as escape hatches.</p>
+<p>This is loud on purpose. A CI run that silently no-ops on a flaky network
+won't get noticed until somebody goes looking for the report, which is
+usually weeks later, which is usually too late.</p>
+<h4 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h4>
+<p>Override <code>client_has_connection</code> when ping isn't the right signal, for
+example a token cache that's only warm when authenticated:</p>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">client_has_connection</span><span class="p">(</span><span class="n">sift_client</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;~/.sift-token-cache&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+</span></code></pre></div>
+<p>The override is ignored under <code>--sift-offline</code> and <code>--sift-disabled</code>.</p>
+<h3 id="offline-mode-sift-offline">Offline mode (<code>--sift-offline</code>)<a class="headerlink" href="#offline-mode-sift-offline" title="Permanent link">&para;</a></h3>
+<p>Same fixtures, same <code>step.measure(...)</code> semantics as online. The
+difference is where the writes go: every create/update lands in a JSONL
+log file instead of hitting the Sift API. The session-start ping is
+skipped, missing <code>SIFT_*</code> env vars are tolerated (placeholders are
+filled), and the replay worker (<code>import-test-result-log --incremental</code>)
+does not get spawned at session end.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-log-file<span class="o">=</span>./run.jsonl
 </span></code></pre></div>
-<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="k">[pytest]</span>
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-offline</span>
+<p>Once you have connectivity, replay it:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>import-test-result-log<span class="w"> </span>./run.jsonl
 </span></code></pre></div>
-<p>What happens during the run:</p>
-<ul>
-<li>The plugin does not ping Sift at session start.</li>
-<li>Every report, step, and measurement create/update is written to the log
-  file. Responses are simulated locally and keyed by UUIDs that the replay
-  later maps to real IDs.</li>
-<li>Tests run against a real <code>step</code> fixture, so <code>step.measure(...)</code>, substeps,
-  parametrize, fixtures, and <code>module_substep</code> behave exactly as they do
-  online. No test-code changes are required.</li>
-<li>The plugin does not spawn the import worker subprocess; the log file is
-  the sole sink.</li>
-</ul>
-<p>Once you have connectivity, replay the file:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>import-test-result-log<span class="w"> </span>./run.jsonl
-</span></code></pre></div>
-<p>The replay creates the report, steps, and measurements against Sift in one
-batch. See <a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for
-details on cleanup and the incremental flag.</p>
+<p>That replay creates the report, steps, and measurements against Sift.
+See <a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for cleanup
+and the incremental flag.</p>
+<p><code>--sift-log-file=none</code> is rejected when offline is set. The
+log file is the only sink in offline mode, so without it the results are
+gone.</p>
 <div class="admonition warning">
 <p class="admonition-title">Pin the log path</p>
-<p>Without <code>--sift-log-file=&lt;path&gt;</code>, the plugin writes to a
-<code>tempfile.NamedTemporaryFile</code> and surfaces the path via a <code>logger.info</code>
-line at session start. Always pin a known path when you intend to replay
-the file later.</p>
+<p>Without <code>--sift-log-file=&lt;path&gt;</code>, offline mode writes to
+a <code>tempfile.NamedTemporaryFile</code> and only surfaces the path via a
+<code>logger.info</code> line. Pin a known path when you intend to replay later.</p>
 </div>
-<h3 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h3>
-<p>The default <code>client_has_connection</code> fixture calls <code>sift_client.ping.ping()</code>.
-Override it in your conftest when pinging is the wrong signal for your
-environment, for example a token cache that's only warm when authenticated:</p>
-<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>
-</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>
-</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
-</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">client_has_connection</span><span class="p">(</span><span class="n">sift_client</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;~/.sift-token-cache&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+<h3 id="disabled-mode-sift-disabled">Disabled mode (<code>--sift-disabled</code>)<a class="headerlink" href="#disabled-mode-sift-disabled" title="Permanent link">&para;</a></h3>
+<p>The plugin stays loaded so the autouse fixtures and markers still exist,
+but <code>report_context</code>, <code>step</code>, and <code>module_substep</code> yield stub objects.
+The stubs still do something useful: <code>step.measure(...)</code>,
+<code>step.measure_avg(...)</code>, <code>step.measure_all(...)</code>, and <code>step.substep(...)</code>
+all keep working, bounds are evaluated locally, and you get a real
+pass/fail boolean back. Nothing leaves the process. No log file, no
+<code>SIFT_*</code> env vars, no ini keys.</p>
+<p>How to turn it on, in the order most projects pick:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="c1"># In an .envrc, devcontainer, or CI job config</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SIFT_DISABLED</span><span class="o">=</span><span class="m">1</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="c1"># Per-invocation kill-switch</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>pytest<span class="w"> </span>--sift-disabled
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="c1"># Per-project default (uncommon; online is usually the right default)</span>
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a><span class="c1"># pyproject.toml:</span>
+</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a><span class="c1">#   [tool.pytest.ini_options]</span>
+</span><span id="__span-33-10"><a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a><span class="c1">#   sift_disabled = true</span>
 </span></code></pre></div>
-<p>The plugin only consults this fixture in online mode (the default), so the
-override has no effect when running with <code>--sift-offline</code>. Returning <code>False</code>
-or raising from the fixture aborts the session with <code>pytest.UsageError</code>.</p>
-<h2 id="running-without-the-plugin-pytest_plugin_noop">Running without the plugin: <code>pytest_plugin_noop</code><a class="headerlink" href="#running-without-the-plugin-pytest_plugin_noop" title="Permanent link">&para;</a></h2>
-<p>When you want test code that calls <code>step.measure(...)</code>, <code>step.substep(...)</code>,
-etc. to keep working without any Sift configuration, wire in
-<code>sift_client.pytest_plugin_noop</code> instead of the real plugin. It ships
-matching fixture names; <code>measure*</code> calls evaluate bounds locally and return
-the real pass/fail boolean, but nothing is sent to Sift and no log file is
-written.</p>
-<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>
-</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>    <span class="s2">&quot;sift_client.pytest_plugin&quot;</span>
-</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_ENABLED&quot;</span><span class="p">)</span>
-</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>    <span class="k">else</span> <span class="s2">&quot;sift_client.pytest_plugin_noop&quot;</span>
-</span><span id="__span-35-7"><a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="p">]</span>
-</span></code></pre></div>
-<p>The no-op plugin doesn't read <code>SIFT_API_KEY</code> / <code>SIFT_GRPC_URI</code> /
-<code>SIFT_REST_URI</code> and never constructs a <code>SiftClient</code>, so it's safe to load in
-environments that aren't allowed to talk to Sift at all. Use it instead of
-Pattern 1 when you'd rather have tests pass through silently than <code>None</code>-guard
-every <code>step</code> call site.</p>
+<p>Good fit for local dev without Sift credentials. Also for library
+consumers who don't have a Sift tenant. Also useful in CI for runs that
+shouldn't add noise to the report stream, like a PR job re-running the
+same suite five times in a row.</p>
 <h2 id="replaying-a-saved-log-file">Replaying a saved log file<a class="headerlink" href="#replaying-a-saved-log-file" title="Permanent link">&para;</a></h2>
 <p>When the worker doesn't finish cleanly the plugin will print a hint mentioning
 <code>import-test-result-log</code>. To import:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
 </span></code></pre></div>
 <p>That replays the saved JSONL log as a single batch (no <code>--incremental</code>) and
 deletes the file when it lives under the system temp dir.</p>
