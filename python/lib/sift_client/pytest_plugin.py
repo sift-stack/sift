@@ -428,6 +428,15 @@ _CREDENTIAL_KEYS: tuple[tuple[str, _Option | None], ...] = (
     ("SIFT_REST_URI", _REST_URI),
 )
 
+# Placeholder credentials used in --sift-offline mode when env/ini values
+# are missing. Offline mode never makes network calls, so the values are
+# only syntactically required by SiftConnectionConfig.
+_OFFLINE_DEFAULTS = {
+    "SIFT_API_KEY": "offline",
+    "SIFT_GRPC_URI": "offline.invalid:0",
+    "SIFT_REST_URI": "http://offline.invalid",
+}
+
 
 def _resolve_credential(
     pytestconfig: pytest.Config | None, env_name: str, opt: _Option | None
@@ -486,11 +495,6 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
             "conftest.py, or pass --sift-offline / --sift-disabled to run "
             "without contacting Sift."
         )
-    _OFFLINE_DEFAULTS = {
-        "SIFT_API_KEY": "offline",
-        "SIFT_GRPC_URI": "offline.invalid:0",
-        "SIFT_REST_URI": "http://offline.invalid",
-    }
     for env in missing:
         resolved[env] = _OFFLINE_DEFAULTS[env]
     # `or ""` is unreachable in practice since the `missing` check above guarantees
