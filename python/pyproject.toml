@@ -395,11 +395,10 @@ env_files = [
 # use its fixtures. Unit-test runs are flipped to `--sift-disabled` mode by
 # `lib/sift_client/_tests/conftest.py`.
 addopts = "-p pytester -p sift_client.pytest_plugin"
-# The Sift plugin is loaded for the whole project via `python/conftest.py`.
-# The autouse gate defaults to off here so unit tests don't use it. The
-# integration subtree (lib/sift_client/_tests/util/) opts back in via
-# `pytest.mark.sift_include` applied in its conftest.
-sift_test_results_autouse = false
+# The autouse gate defaults to off so unit tests don't use the Sift
+# fixtures. The integration subtree (lib/sift_client/_tests/util/) opts
+# back in via `pytest.mark.sift_include` applied in its conftest.
+sift_autouse = false
 testpaths = [
     "lib/sift_py",
     "lib/sift_client/_tests",

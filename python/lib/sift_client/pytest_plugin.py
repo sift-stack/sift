@@ -49,25 +49,25 @@ class _Option:
 
 
 _LOG_FILE = _Option(
-    cli_flag="--sift-test-results-log-file",
-    ini_name="sift_test_results_log_file",
+    cli_flag="--sift-log-file",
+    ini_name="sift_log_file",
     cli_help="Path to write the Sift test result log file. "
     "Use 'true' (default) to auto-create a temp file, "
     "False, 'false', or 'none' to disable logging, "
     "or a file path to write to a specific location.",
-    ini_help="Default value for --sift-test-results-log-file. Same values "
-    "accepted as the CLI flag (path, 'true', 'false', 'none').",
+    ini_help="Default value for --sift-log-file. Same values accepted as "
+    "the CLI flag (path, 'true', 'false', 'none').",
 )
 
 _GIT_METADATA = _Option(
-    cli_flag="--no-sift-test-results-git-metadata",
-    ini_name="sift_test_results_git_metadata",
+    cli_flag="--no-sift-git-metadata",
+    ini_name="sift_git_metadata",
     action="store_false",
     cli_help="Exclude git metadata from the Sift test results. "
     "Git metadata (repo, branch, commit) is included by default.",
     ini_help="Include git repo/branch/commit in the report (true/false). "
-    "Defaults to true. The --no-sift-test-results-git-metadata CLI flag "
-    "overrides this when passed.",
+    "Defaults to true. The --no-sift-git-metadata CLI flag overrides "
+    "this when passed.",
     ini_type="bool",
     ini_default=True,
 )
@@ -115,7 +115,7 @@ _REST_URI = _Option(
 )
 
 _AUTOUSE = _Option(
-    ini_name="sift_test_results_autouse",
+    ini_name="sift_autouse",
     ini_help="Default for the Sift autouse fixtures (report_context, step, "
     "module_substep). When true (default), tests are included unless marked "
     "with @pytest.mark.sift_exclude. When false, tests are skipped unless "
@@ -166,12 +166,12 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
         "sift_include: force the Sift autouse fixtures to activate for this test "
-        "regardless of the `sift_test_results_autouse` ini default.",
+        "regardless of the `sift_autouse` ini default.",
     )
     config.addinivalue_line(
         "markers",
         "sift_exclude: force the Sift autouse fixtures to skip this test "
-        "regardless of the `sift_test_results_autouse` ini default.",
+        "regardless of the `sift_autouse` ini default.",
     )
 
 
@@ -240,7 +240,7 @@ def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool |
     * ``None`` — unset; nothing was passed on the CLI and the ini key is
       absent. Treat as the default "use a temp file."
     * Python ``False`` — an explicit disable, typically set in a conftest via
-      ``config.option.sift_test_results_log_file = False``. Return ``None`` so
+      ``config.option.sift_log_file = False``. Return ``None`` so
       the rest of the pipeline knows to skip logging entirely.
     * A string (from CLI or ini) — interpret ``"true"`` / ``"1"`` as the temp
       file default, ``"false"`` / ``"none"`` as disable, anything else as a
@@ -333,9 +333,9 @@ class _NoopStep(AbstractContextManager["_NoopStep"]):
     """Step shim mirroring ``NewStep``'s public surface without any I/O.
 
     Used by ``--sift-disabled`` mode so test code that calls
-    ``step.measure(...)`` / ``step.substep(...)`` keeps working without any
-    Sift configuration. ``measure*`` calls evaluate bounds locally so pass/fail
-    outcomes match the real plugin exactly.
+    ``step.measure(...)`` or ``step.substep(...)`` keeps working without
+    any Sift configuration. ``measure*`` calls evaluate bounds locally and
+    return a real pass/fail boolean.
     """
 
     def __init__(self, name: str, description: str | None = None) -> None:
@@ -510,27 +510,28 @@ def report_context(
 ) -> Generator[ReportContext | _NoopReportContext, None, None]:
     """Lazy session-scoped Sift ReportContext.
 
-    The fixture is no longer autouse; it's instantiated on the first call to
-    ``request.getfixturevalue("report_context")``, which today happens inside
-    the gated ``step`` and ``module_substep`` fixtures. If every test in the
-    session is excluded via the marker gate, this fixture is never resolved
-    and no ReportContext (and no teardown subprocess) is created.
+    The fixture is no longer autouse; it's instantiated on the first call
+    to ``request.getfixturevalue("report_context")``, which today happens
+    inside the gated ``step`` and ``module_substep`` fixtures. If every
+    test in the session is excluded via the marker gate, this fixture is
+    never resolved and no ReportContext (or teardown subprocess) is created.
 
-    Mode selection:
+    What gets yielded depends on the mode:
 
-    * ``--sift-disabled`` — yield a stub context (no client, no network, no
-      log file). Test code calling ``step.measure(...)`` keeps working;
-      bounds are evaluated locally so pass/fail outcomes match the real
-      plugin exactly.
-    * ``--sift-offline`` — skip the session-start ping, route all
-      create/update calls through the JSONL log file, and don't spawn the
-      import-test-result-log replay subprocess at session end.
-    * default (online) — verify connectivity via the ``client_has_connection``
-      fixture. A failed ping aborts the session with ``pytest.UsageError``,
-      naming both ``--sift-offline`` and ``--sift-disabled`` as escape hatches.
+    * ``--sift-disabled``: a stub context with no client, no network, and
+      no log file. Test code that calls ``step.measure(...)`` keeps
+      working because bounds are evaluated locally.
+    * ``--sift-offline``: a real ReportContext, but the session-start ping
+      is skipped, all create/update calls go to the JSONL log file, and
+      the import-test-result-log replay subprocess is not spawned at
+      session end.
+    * default (online): verify connectivity via ``client_has_connection``
+      before constructing the context. A failed ping aborts the session
+      with ``pytest.UsageError`` and points at ``--sift-offline`` and
+      ``--sift-disabled`` as escape hatches.
 
-    The log file destination is controlled by ``--sift-test-results-log-file``;
-    defaults to a temp file when not set.
+    The log-file destination is controlled by
+    ``--sift-log-file``; defaults to a temp file when unset.
     """
     if _is_disabled(pytestconfig):
         global REPORT_CONTEXT
@@ -581,7 +582,7 @@ def step(
 
     Resolves the gate via `_sift_enabled_for(request.node, ini_default)`:
     `sift_exclude` marker forces off, `sift_include` forces on, otherwise the
-    `sift_test_results_autouse` ini default applies. When on, requests the
+    `sift_autouse` ini default applies. When on, requests the
     session `report_context` lazily — the first gated test in the session
     triggers its creation, subsequent gated tests reuse it. In
     ``--sift-disabled`` mode the report context is a stub, so the gate still

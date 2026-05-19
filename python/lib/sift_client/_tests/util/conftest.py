@@ -7,13 +7,13 @@ _HERE = Path(__file__).parent
 
 def pytest_configure(config: pytest.Config) -> None:
     """Configure the pytest configuration to disable the Sift test results log file."""
-    config.option.sift_test_results_log_file = False
+    config.option.sift_log_file = False
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: "list[pytest.Item]") -> None:
     """Bulk-apply ``@pytest.mark.sift_include`` to integration tests under util/.
 
-    The project-wide default in ``pyproject.toml`` is ``sift_test_results_autouse
+    The project-wide default in ``pyproject.toml`` is ``sift_autouse
     = false`` so unit tests pay nothing for the globally-loaded Sift plugin.
     Integration tests in this subtree still need the autouse fixtures, so this
     hook flips the gate back on for any test already marked

@@ -89,6 +89,6 @@ def pytest_configure(config: pytest.Config) -> None:
     """
     is_integration_run = "integration" in (config.option.markexpr or "")
     if is_integration_run:
-        config.option.sift_test_results_log_file = False
+        config.option.sift_log_file = False
     else:
         config.option.sift_disabled = True

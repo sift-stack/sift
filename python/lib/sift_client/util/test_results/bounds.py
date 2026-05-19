@@ -22,8 +22,8 @@ def to_numpy_array(
 ) -> NDArray[np.float64]:
     """Normalize a list / ndarray / pandas Series into a numpy array.
 
-    Shared by ``measure_avg`` and ``measure_all`` in both the real plugin and
-    the no-op sibling so the accepted input types stay in sync.
+    Shared by ``measure_avg`` and ``measure_all`` in both the real and
+    stub step implementations so the accepted input types stay in sync.
     """
     if isinstance(values, list):
         return np.array(values)

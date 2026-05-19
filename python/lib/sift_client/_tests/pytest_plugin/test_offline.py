@@ -3,7 +3,7 @@
 Offline mode routes every create/update through the JSONL log file without
 contacting Sift. The session-start ping is skipped, the import worker is not
 spawned, and missing ``SIFT_*`` env vars are tolerated (placeholders are
-filled). Offline + ``--sift-test-results-log-file=none`` is rejected as a
+filled). Offline + ``--sift-log-file=none`` is rejected as a
 usage error since the log file is the sole sink in this mode.
 """
 
@@ -43,11 +43,11 @@ class TestOfflineMode:
         pytester: pytest.Pytester,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """``--sift-test-results-log-file=none`` + ``--sift-offline`` is a usage error."""
+        """``--sift-log-file=none`` + ``--sift-offline`` is a usage error."""
         write_plugin_conftest()
         pytester.makepyfile("def test_should_not_run(): pass")
         result = pytester.runpytest_subprocess(
-            "--sift-offline", "--sift-test-results-log-file=none"
+            "--sift-offline", "--sift-log-file=none"
         )
         assert result.ret != 0
         combined = "\n".join(result.outlines + result.errlines)
@@ -96,7 +96,7 @@ class TestOfflineMode:
             """
         )
         result = pytester.runpytest_subprocess(
-            "--sift-offline", f"--sift-test-results-log-file={log_path}"
+            "--sift-offline", f"--sift-log-file={log_path}"
         )
         result.assert_outcomes(passed=1)
         assert log_path.exists(), f"offline mode did not create {log_path}"
@@ -116,8 +116,8 @@ class TestOfflineMode:
         """Offline mode never resolves ``client_has_connection``.
 
         Override the fixture to raise on resolution. If the override is
-        invoked, the session aborts; if it isn't, the inner test passes
-        cleanly — confirming the offline path skips the ping check.
+        invoked, the session aborts. If it isn't, the inner test passes
+        cleanly, which confirms the offline path skipped the ping check.
         """
         pytester.makeconftest(
             """
