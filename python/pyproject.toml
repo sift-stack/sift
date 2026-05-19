@@ -391,7 +391,10 @@ env_files = [
 # `pytester` is registered globally because pytest 8+ disallows `pytest_plugins`
 # in non-top-level conftests. Only the plugin test suite uses it; activating it
 # globally is harmless since the fixture is opt-in.
-addopts = "-p pytester"
+# The Sift pytest plugin is loaded so the project's own integration tests can
+# use its fixtures. Unit-test runs are flipped to `--sift-disabled` mode by
+# `lib/sift_client/_tests/conftest.py`.
+addopts = "-p pytester -p sift_client.pytest_plugin"
 # The Sift plugin is loaded for the whole project via `python/conftest.py`.
 # The autouse gate defaults to off here so unit tests don't use it. The
 # integration subtree (lib/sift_client/_tests/util/) opts back in via

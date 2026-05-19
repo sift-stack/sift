@@ -105,14 +105,18 @@ def pytest_collection_modifyitems(config, items):
 
 CLI options registered by the plugin:
 
+- `--sift-offline`: Run without contacting Sift. All create/update calls are
+  written to the JSONL log file for later replay via `import-test-result-log`.
+  No session-start ping is attempted.
+- `--sift-disabled`: Skip Sift entirely. Autouse fixtures yield stub objects;
+  `step.measure(...)` still returns real pass/fail booleans by evaluating
+  bounds locally, but nothing is sent to Sift and no log file is written.
+  Also honored via the `SIFT_DISABLED` env var. Incompatible with `--sift-offline`.
 - `--sift-test-results-log-file`: Path to write the JSONL log file. `true`
   (default) auto-creates a temp file. `false` or `none` disables logging.
   Any other value is treated as a file path.
 - `--no-sift-test-results-git-metadata`: Exclude git metadata (repo, branch,
   commit) from the test report. Included by default.
-- `--sift-test-results-check-connection`: Make `report_context`, `step`, and
-  `module_substep` no-op when the client has no connection. Requires a
-  `client_has_connection` fixture (the plugin ships a default).
 
 Each option has a matching ini key for per-project configuration under
 ``[tool.pytest.ini_options]`` in ``pyproject.toml`` (or ``[pytest]`` in
@@ -127,8 +131,7 @@ via the ``pytest-dotenv`` plugin or inject it via your CI secret manager.
 ```toml
 [tool.pytest.ini_options]
 sift_test_results_autouse = false
-sift_test_results_log_file = "false"
-sift_test_results_check_connection = true
+sift_offline = true
 sift_test_results_git_metadata = false
 sift_grpc_uri = "your-org.sift.example:443"
 sift_rest_uri = "https://your-org.sift.example"
