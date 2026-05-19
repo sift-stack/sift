@@ -87,26 +87,47 @@ class TestIniConfiguration:
         result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines([f"RESOLVED: {log_path}"])
 
-    def test_ini_check_connection_true(
+    def test_ini_offline_true(
         self,
         pytester: pytest.Pytester,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _check_connection_enabled
-            print("CHECK:", _check_connection_enabled(config))
+            from sift_client.pytest_plugin import _is_offline
+            print("OFFLINE:", _is_offline(config))
             """,
         )
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_check_connection = true
+            sift_offline = true
             """
         )
         pytester.makepyfile("def test_noop(): pass")
         result = pytester.runpytest_subprocess("-s", "--co")
-        result.stdout.fnmatch_lines(["CHECK: True"])
+        result.stdout.fnmatch_lines(["OFFLINE: True"])
+
+    def test_ini_disabled_true(
+        self,
+        pytester: pytest.Pytester,
+        write_probe_conftest: Callable[[str], None],
+    ) -> None:
+        write_probe_conftest(
+            """
+            from sift_client.pytest_plugin import _is_disabled
+            print("DISABLED:", _is_disabled(config))
+            """,
+        )
+        pytester.makepyprojecttoml(
+            """
+            [tool.pytest.ini_options]
+            sift_disabled = true
+            """
+        )
+        pytester.makepyfile("def test_noop(): pass")
+        result = pytester.runpytest_subprocess("-s", "--co")
+        result.stdout.fnmatch_lines(["DISABLED: True"])
 
     def test_ini_git_metadata_false(
         self,
@@ -154,21 +175,37 @@ class TestIniConfiguration:
         )
         result.stdout.fnmatch_lines([f"RESOLVED: {cli_path}"])
 
-    def test_cli_check_connection_flag(
+    def test_cli_offline_flag(
         self,
         pytester: pytest.Pytester,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
-        """The ``--sift-test-results-check-connection`` CLI flag flips the resolver to True."""
+        """The ``--sift-offline`` CLI flag flips the resolver to True."""
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _check_connection_enabled
-            print("CHECK:", _check_connection_enabled(config))
+            from sift_client.pytest_plugin import _is_offline
+            print("OFFLINE:", _is_offline(config))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest_subprocess("-s", "--co", "--sift-test-results-check-connection")
-        result.stdout.fnmatch_lines(["CHECK: True"])
+        result = pytester.runpytest_subprocess("-s", "--co", "--sift-offline")
+        result.stdout.fnmatch_lines(["OFFLINE: True"])
+
+    def test_cli_disabled_flag(
+        self,
+        pytester: pytest.Pytester,
+        write_probe_conftest: Callable[[str], None],
+    ) -> None:
+        """The ``--sift-disabled`` CLI flag flips the resolver to True."""
+        write_probe_conftest(
+            """
+            from sift_client.pytest_plugin import _is_disabled
+            print("DISABLED:", _is_disabled(config))
+            """,
+        )
+        pytester.makepyfile("def test_noop(): pass")
+        result = pytester.runpytest_subprocess("-s", "--co", "--sift-disabled")
+        result.stdout.fnmatch_lines(["DISABLED: True"])
 
     def test_cli_no_git_metadata_flag(
         self,
@@ -198,11 +235,13 @@ class TestIniConfiguration:
         write_probe_conftest(
             """
             from sift_client.pytest_plugin import (
-                _check_connection_enabled,
+                _is_disabled,
+                _is_offline,
                 _resolve_log_file,
             )
             print("RESOLVED:", _resolve_log_file(config))
-            print("CHECK:", _check_connection_enabled(config))
+            print("OFFLINE:", _is_offline(config))
+            print("DISABLED:", _is_disabled(config))
             print("INI_GIT:", config.getini("sift_test_results_git_metadata"))
             """,
         )
@@ -211,7 +250,8 @@ class TestIniConfiguration:
         result.stdout.fnmatch_lines(
             [
                 "RESOLVED: True",
-                "CHECK: False",
+                "OFFLINE: False",
+                "DISABLED: False",
                 "INI_GIT: True",
             ]
         )
