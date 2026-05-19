@@ -91,9 +91,11 @@ _DISABLED = _Option(
     cli_help="Disable Sift integration entirely. Autouse fixtures yield stub "
     "objects; `step.measure(...)` still returns real pass/fail booleans by "
     "evaluating bounds locally, but nothing is sent to Sift and no log file "
-    "is written. Also honored via the `SIFT_DISABLED` env var.",
+    "is written. Also honored via the `SIFT_DISABLED` env var. Supersedes "
+    "every other flag.",
     ini_help="When true, run in disabled mode (same effect as --sift-disabled). "
-    "Also honored via the SIFT_DISABLED env var. Defaults to false.",
+    "Also honored via the SIFT_DISABLED env var. Supersedes every other "
+    "setting. Defaults to false.",
     ini_type="bool",
     ini_default=False,
 )
@@ -160,7 +162,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Register markers and reject mutually exclusive mode flags."""
+    """Register the Sift gate markers so they show up in `pytest --markers`."""
     config.addinivalue_line(
         "markers",
         "sift_include: force the Sift autouse fixtures to activate for this test "
@@ -171,12 +173,6 @@ def pytest_configure(config: pytest.Config) -> None:
         "sift_exclude: force the Sift autouse fixtures to skip this test "
         "regardless of the `sift_test_results_autouse` ini default.",
     )
-    if _is_disabled(config) and _is_offline(config):
-        raise pytest.UsageError(
-            "--sift-disabled is incompatible with --sift-offline. Disabled mode "
-            "skips Sift entirely (no log file, no network); offline mode writes "
-            "to a log file for later replay. Pick one."
-        )
 
 
 def _is_offline(pytestconfig: pytest.Config | None) -> bool:

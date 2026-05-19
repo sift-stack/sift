@@ -79,15 +79,24 @@ class TestDisabledMode:
         result = pytester.runpytest_subprocess()
         result.assert_outcomes(passed=1)
 
-    def test_disabled_incompatible_with_offline(
+    def test_disabled_supersedes_offline(
         self,
         pytester: pytest.Pytester,
+        clear_sift_env: None,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """``--sift-disabled`` + ``--sift-offline`` is a usage error."""
+        """``--sift-disabled`` wins when combined with ``--sift-offline``.
+
+        Disabled is the "skip Sift entirely" hammer; passing it alongside
+        offline shouldn't error. The session runs without credentials, without
+        a log file, and without the offline-mode replay machinery.
+        """
         write_plugin_conftest()
-        pytester.makepyfile("def test_should_not_run(): pass")
+        pytester.makepyfile(
+            """
+            def test_runs(step):
+                assert step.measure(name="v", value=5.0, bounds={"max": 10.0}) is True
+            """
+        )
         result = pytester.runpytest_subprocess("--sift-disabled", "--sift-offline")
-        assert result.ret != 0
-        combined = "\n".join(result.outlines + result.errlines)
-        assert "incompatible with --sift-offline" in combined, combined
+        result.assert_outcomes(passed=1)

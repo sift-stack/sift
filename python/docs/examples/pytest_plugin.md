@@ -95,7 +95,7 @@ def sift_client() -> SiftClient:
 | Flag | Default | Effect |
 |---|---|---|
 | `--sift-offline` | off (online) | Skip the session-start ping and don't contact Sift. All create/update calls go to the JSONL log file for later replay via `import-test-result-log`. Missing `SIFT_*` env vars are tolerated; placeholders are filled. |
-| `--sift-disabled` | off | Skip Sift entirely. Autouse fixtures yield stub objects; `step.measure(...)` still returns real pass/fail booleans by evaluating bounds locally. Nothing is sent to Sift and no log file is written. Also honored via `SIFT_DISABLED=1`. Incompatible with `--sift-offline`. |
+| `--sift-disabled` | off | Skip Sift entirely. Autouse fixtures yield stub objects; `step.measure(...)` still returns real pass/fail booleans by evaluating bounds locally. Nothing is sent to Sift and no log file is written. Also honored via `SIFT_DISABLED=1`. Supersedes every other flag — if both `--sift-disabled` and `--sift-offline` are passed, disabled wins. |
 | `--sift-test-results-log-file=<path\|true\|false>` | temp file | Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an `import-test-result-log --incremental` worker that polls the file and replays entries against Sift while the run is in flight. Pass `false` to disable the file entirely; create/update calls then go straight to the API synchronously during tests. Incompatible with `--sift-offline` since offline mode needs the log file as its sole sink. |
 | `--no-sift-test-results-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
 
@@ -673,8 +673,9 @@ The plugin runs in one of three modes, selected at invocation:
 | Offline | `--sift-offline` | none | required (the sole sink) | real measurement queued to log | field tests, vehicles, air-gapped labs, CI without network |
 | Disabled | `--sift-disabled` | none | none | local bounds eval returning a real bool | local dev / CI without Sift credentials or where reports aren't wanted |
 
-`--sift-offline` and `--sift-disabled` are mutually exclusive — disabled
-writes nothing, offline writes everything to a log file.
+When both `--sift-offline` and `--sift-disabled` are passed, disabled wins.
+Disabled mode supersedes every other flag — it's the "skip Sift entirely"
+hammer.
 
 ### Online mode (default)
 
