@@ -79,7 +79,7 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         .context("error creating data import for hdf5")?
         .into_inner();
 
-    upload_gzipped_file(&ctx, &upload_url, file, "application/x-hdf5")
+    let job_id = upload_gzipped_file(&ctx, &upload_url, file, "application/x-hdf5")
         .await
         .context("failed to upload hdf5 file")?;
 
@@ -99,7 +99,7 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    wait_for_job_completion(grpc_channel, location).await
+    wait_for_job_completion(grpc_channel, job_id, location).await
 }
 
 pub fn build_hdf5_config(args: &ImportHdf5Args) -> Result<Hdf5Config> {

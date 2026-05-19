@@ -9,7 +9,6 @@ use anyhow::{Context as AnyhowContext, Result, anyhow};
 use chrono::DateTime;
 use crossterm::style::Stylize;
 use pbjson_types::Timestamp;
-use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
@@ -25,15 +24,12 @@ use crate::{
         Context,
         import::utils::{try_parse_bit_field_config, try_parse_enum_config},
     },
-    util::{
-        api::{create_grpc_channel, create_rest_client},
-        tty::Output,
-    },
+    util::{api::create_grpc_channel, tty::Output},
 };
 
 use super::{
     preview_import_config,
-    utils::{gzip_file, validate_time_format},
+    utils::{upload_gzipped_file, validate_time_format},
     wait_for_job_completion,
 };
 
@@ -75,28 +71,9 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
         .into_inner();
 
     csv_file.rewind()?;
-    let compressed_data = gzip_file(csv_file)?;
-
-    let rest_client = create_rest_client(&ctx)?;
-    let res = rest_client
-        .post(upload_url)
-        .header(CONTENT_ENCODING, "gzip")
-        .header(CONTENT_TYPE, "text/csv")
-        .body(compressed_data)
-        .send()
+    let job_id = upload_gzipped_file(&ctx, &upload_url, csv_file, "text/csv")
         .await
         .context("failed to upload CSV file")?;
-
-    if !res.status().is_success() {
-        let status = res.status();
-        let text = res
-            .text()
-            .await
-            .unwrap_or_else(|_| "<failed to read body>".into());
-        return Err(anyhow!(
-            "failed to upload CSV with http status {status}: {text}"
-        ));
-    }
 
     let location = args.run.as_ref().map_or_else(
         || format!("asset '{}'", args.asset.cyan()),
@@ -113,7 +90,7 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
 
         return Ok(ExitCode::SUCCESS);
     }
-    wait_for_job_completion(grpc_channel, location).await
+    wait_for_job_completion(grpc_channel, job_id, location).await
 }
 
 fn create_data_import_request<R: io::Read>(
@@ -300,14 +277,14 @@ fn create_data_import_request<R: io::Read>(
                     let mut enum_configs = Vec::new();
                     let mut bit_field_configs = Vec::new();
 
-                    if data_type == ChannelDataType::Enum.into() {
+                    if data_type == i32::from(ChannelDataType::Enum) {
                         let Some(configs) = enum_configs_iter.next() else {
                             return Err(anyhow!(
                                 "'{name}' was declared as type enum but --enum-config was not specified"
                             ));
                         };
                         enum_configs = configs;
-                    } else if data_type == ChannelDataType::BitField.into() {
+                    } else if data_type == i32::from(ChannelDataType::BitField) {
                         let Some(configs) = bit_field_configs_iter.next() else {
                             return Err(anyhow!(
                                 "'{name}' was declared as type bit-field but --bit-field-config was not specified"

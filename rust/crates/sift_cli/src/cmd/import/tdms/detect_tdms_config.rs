@@ -69,7 +69,7 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         .context("error creating data import for tdms")?
         .into_inner();
 
-    upload_gzipped_file(&ctx, &upload_url, file, "application/octet-stream")
+    let job_id = upload_gzipped_file(&ctx, &upload_url, file, "application/octet-stream")
         .await
         .context("failed to upload tdms file")?;
 
@@ -89,7 +89,7 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    wait_for_job_completion(grpc_channel, location).await
+    wait_for_job_completion(grpc_channel, job_id, location).await
 }
 
 pub fn build_tdms_config(args: &ImportTdmsArgs) -> Result<TdmsConfig> {
