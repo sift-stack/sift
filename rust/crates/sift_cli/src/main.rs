@@ -74,6 +74,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::ImportParquetCmd::FlatDataset(args) => {
                     run_future(cmd::import::parquet::flat_dataset::run(ctx, args))
                 }
+                cli::ImportParquetCmd::Scpr(args) => {
+                    run_future(cmd::import::parquet::scpr_dataset::run(ctx, args))
+                }
             },
             cli::ImportCmd::Tdms(args) => {
                 run_future(cmd::import::tdms::detect_tdms_config::run(ctx, args))

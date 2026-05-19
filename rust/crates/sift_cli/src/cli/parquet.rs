@@ -38,3 +38,21 @@ impl Display for ComplexTypesMode {
         }
     }
 }
+
+/// Single-channel-per-row mode: tells the importer how each row is shaped.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum ScprMode {
+    /// File has [time, value]. All rows belong to one named channel.
+    Single,
+    /// File has [time, name_column, value_column]. Channels created per unique name.
+    Multi,
+}
+
+impl Display for ScprMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Single => write!(f, "single"),
+            Self::Multi => write!(f, "multi"),
+        }
+    }
+}

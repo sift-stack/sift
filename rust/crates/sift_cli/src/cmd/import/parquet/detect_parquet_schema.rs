@@ -9,11 +9,12 @@ use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
-        ParquetDataColumn, ParquetFlatDatasetConfig, ParquetTimeColumn, TimeFormat,
+        ParquetDataColumn, ParquetFlatDatasetConfig, ParquetSingleChannelPerRowConfig,
+        ParquetTimeColumn, TimeFormat,
     },
 };
 
-use crate::cli::FlatDatasetArgs;
+use crate::cli::{FlatDatasetArgs, ScprArgs};
 
 pub fn detect_flat_dataset_config<R: ChunkReader>(
     file: &R,
@@ -99,4 +100,13 @@ pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDa
         DataType::List(_) | DataType::Map(_, _) => Some(ChannelDataType::Bytes),
         _ => None,
     }
+}
+
+pub fn detect_scpr_config<R: ChunkReader>(
+    _file: &R,
+    _args: &ScprArgs,
+) -> Result<ParquetSingleChannelPerRowConfig> {
+    todo!(
+        "detect SCPR config — walk Arrow schema, build time_column + columns + Single/Multi oneof from args"
+    )
 }

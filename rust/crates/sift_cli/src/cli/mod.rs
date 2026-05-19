@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, crate_description, crate_version};
 use clap_complete::Shell;
-use parquet::ComplexTypesMode;
+use parquet::{ComplexTypesMode, ScprMode};
 pub mod hdf5;
 pub mod tdms;
 use hdf5::Hdf5Schema;
@@ -340,6 +340,10 @@ pub enum ImportParquetCmd {
     /// A parquet file where every column is exclusive to a single channel except for the time
     /// column
     FlatDataset(FlatDatasetArgs),
+
+    /// A parquet file laid out single-channel-per-row, either one channel for the whole file
+    /// (single mode) or with a name column identifying the channel for each row (multi mode).
+    Scpr(ScprArgs),
 }
 
 #[derive(clap::Args)]
@@ -391,6 +395,73 @@ pub struct FlatDatasetArgs {
     /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's', long)]
     pub relative_start_time: Option<String>,
+
+    /// Strategy for handling complex types (maps, lists, structs)
+    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
+    pub complex_types_mode: ComplexTypesMode,
+
+    /// Wait until the import finishes processing
+    #[arg(short, long)]
+    pub wait: bool,
+
+    /// Preview the parsed schema without uploading
+    #[arg(short, long)]
+    pub preview: bool,
+}
+
+#[derive(clap::Args)]
+pub struct ScprArgs {
+    /// Path to the Parquet file to import
+    pub path: PathBuf,
+
+    /// Name of the asset this data belongs to
+    #[arg(short, long)]
+    pub asset: String,
+
+    /// Optional run name to associate with this import
+    #[arg(short, long)]
+    pub run: Option<String>,
+
+    /// SCPR mode: single-channel or multi-channel
+    #[arg(long)]
+    pub mode: ScprMode,
+
+    /// Path to the time column
+    #[arg(short, long)]
+    pub time_path: String,
+
+    /// Time format used in the time column
+    #[arg(short = 'f', long)]
+    pub time_format: TimeFormat,
+
+    /// Start time (RFC3339) to use if time format is relative
+    #[arg(short = 's', long)]
+    pub relative_start_time: Option<String>,
+
+    /// Path to the column holding values (used in both modes)
+    #[arg(long)]
+    pub data_path: String,
+
+    /// (single mode) Channel name for every row in the file
+    #[arg(long)]
+    pub channel_name: Option<String>,
+
+    /// (single mode) Data type for the channel. Use `"infer"` to have the program infer the
+    /// data type from the parquet schema.
+    #[arg(long)]
+    pub data_type: Option<DataType>,
+
+    /// (single mode) Channel units
+    #[arg(long)]
+    pub unit: Option<String>,
+
+    /// (single mode) Channel description
+    #[arg(short = 'n', long)]
+    pub description: Option<String>,
+
+    /// (multi mode) Path to the column holding channel names
+    #[arg(long)]
+    pub name_path: Option<String>,
 
     /// Strategy for handling complex types (maps, lists, structs)
     #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
