@@ -72,6 +72,13 @@ jobs:
         run: |
           mypy lib
 
+      # Re-run mypy with --platform=win32 so typeshed evaluates platform-gated
+      # stubs (e.g. fcntl) as if we were on Windows. Catches imports that
+      # would only fail at runtime on Windows.
+      - name: MyPy (Windows platform)
+        run: |
+          mypy --platform=win32 lib
+
       - name: Pyright
         run: |
           pyright lib

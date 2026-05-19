@@ -1,11 +1,15 @@
 """Internal log-format primitives for test-result simulation logs.
 
-Two files per run:
+Three files per run:
 
 * **Log file** (e.g. ``foo.jsonl``) - append-only record of each logged API call,
   one line per call. Written by :func:`log_request_to_file` in the test process
   and read by :func:`iter_log_data_lines` / the replay subprocess. Has no header:
   every line is a data line.
+* **Lock sidecar** (``foo.jsonl.lock``) - empty file used by :class:`filelock.FileLock`
+  to coordinate appends and snapshot reads across processes. Created on demand;
+  ``filelock`` unlinks it on release on Unix, and on Windows it may linger but is
+  harmless to leave or delete after the run.
 * **Tracking sidecar** (``foo.jsonl.tracking``) - small JSON file holding the
   incremental replay cursor (``lastUploadedLine``) and the simulated-to-real ID
   map. Written only by the replay subprocess via :meth:`LogTracking.save` using
@@ -15,26 +19,26 @@ Two files per run:
 
 # Concurrency
 
-With tracking moved out of the main log, the log file becomes strictly
-append-only and has exactly one in-place mutator (the writer) and one scanner
-(the replay subprocess). POSIX guarantees that an ``O_APPEND`` write atomically
-bumps the EOF, so parallel writers can't lose data. To keep a concurrent reader
-from observing a mid-append partial final line we still take ``LOCK_EX`` on the
-writer's single append and ``LOCK_SH`` on the reader's ``readlines()``; there
-is never any exclusive-vs-exclusive contention because nothing rewrites the
-file any more.
+With tracking moved out of the main log, the log file is strictly append-only
+and has exactly one in-place mutator (the writer) and one scanner (the replay
+subprocess). Both serialize through a cross-platform exclusive ``FileLock`` on
+the lock sidecar: the writer holds it across a single append, the reader holds
+it across the snapshot ``readlines()``. That keeps a concurrent reader from
+observing a mid-append partial final line on any OS, including Windows where
+POSIX advisory ``flock`` is unavailable. The exclusive-only lock means a hot
+reader briefly blocks the writer (and vice versa), which is acceptable because
+writes are tiny and we only have one reader.
 
-The sidecar has a single writer (the replay subprocess) and no live reader, so
-it needs no locking. Atomic rename is still used to keep the on-disk contents
-valid across crashes.
+The tracking sidecar has a single writer (the replay subprocess) and no live
+reader, so it needs no locking. Atomic rename is still used to keep the on-disk
+contents valid across crashes.
 
-``flock`` is advisory, so this contract only holds for processes that use these
-helpers; ad-hoc writers are not protected.
+The lock is advisory: it only protects callers that go through these helpers.
+Ad-hoc writers to the same path are not protected.
 """
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import re
@@ -42,6 +46,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
+from filelock import FileLock
 from google.protobuf import json_format
 
 if TYPE_CHECKING:
@@ -153,9 +158,10 @@ def log_request_to_file(
 ) -> None:
     """Append a request as a JSON-encoded line to ``log_file``.
 
-    Takes ``LOCK_EX`` across the append so a concurrent reader holding
-    ``LOCK_SH`` in :func:`iter_log_data_lines` can't see a mid-write partial
-    final line. See the module docstring for the full concurrency model.
+    Holds an exclusive :class:`filelock.FileLock` on the sidecar across the
+    append so a concurrent reader in :func:`iter_log_data_lines` can't see a
+    mid-write partial final line. See the module docstring for the full
+    concurrency model.
 
     Args:
         log_file: Path to the log file.
@@ -171,15 +177,15 @@ def log_request_to_file(
     request_dict = json_format.MessageToDict(request)
     request_json = json.dumps(request_dict, separators=(",", ":"))
     line = f"[{tag}] {request_json}\n"
-    with open(log_path, "a") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        # Closing the file flushes and releases the flock atomically; no
-        # explicit unlock needed here.
-        f.write(line)
+    with FileLock(str(log_path.with_name(log_path.name + ".lock"))):
+        with open(log_path, "a") as f:
+            # The inner ``with`` flushes and closes the file before the
+            # FileLock is released, so no reader sees a partial line.
+            f.write(line)
 
 
 def iter_log_data_lines(
-    log_path: Path,
+    log_path: str | Path,
     start_line: int = 0,
 ) -> Generator[tuple[str, str | None, str], None, None]:
     """Parse data lines from a log file.
@@ -191,15 +197,16 @@ def iter_log_data_lines(
     iterator skips the first ``start_line`` lines and yields the rest. Pass 0
     to read all data lines.
 
-    Acquires ``LOCK_SH`` only while snapshotting the file into memory, then
-    releases before yielding. Lines appended by a concurrent
-    :func:`log_request_to_file` after the snapshot are not visible this call --
-    they will be picked up on the next invocation.
+    Holds the sidecar :class:`filelock.FileLock` only while snapshotting the
+    file into memory, then releases before yielding. Lines appended by a
+    concurrent :func:`log_request_to_file` after the snapshot are not visible
+    this call -- they will be picked up on the next invocation.
     """
     line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
-    with open(log_path) as f:
-        fcntl.flock(f, fcntl.LOCK_SH)
-        raw_lines = f.readlines()
+    log_path = Path(log_path)
+    with FileLock(str(log_path.with_name(log_path.name + ".lock"))):
+        with open(log_path) as f:
+            raw_lines = f.readlines()
 
     data_line_count = 0
     for raw_line in raw_lines:

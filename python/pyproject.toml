@@ -44,6 +44,7 @@ dependencies = [
     "types-requests~=2.25",
     "googleapis-common-protos>=1.60",
     "protoc-gen-openapiv2>=0.0.1",
+    "filelock~=3.13",
 ]
 
 [project.urls]
