@@ -53,7 +53,7 @@ pub enum Cmd {
     #[command(subcommand)]
     Import(ImportCmd),
 
-    /// Ping the Sift API to check connectivity
+    /// Ping the Sift API to verify credentials and connectivity
     Ping,
 }
 
