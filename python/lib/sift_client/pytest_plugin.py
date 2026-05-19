@@ -329,7 +329,7 @@ class _NoopReport:
         return None
 
 
-class _NoopStep(AbstractContextManager["_NoopStep"]):
+class _NoopStep(AbstractContextManager):
     """Step shim mirroring ``NewStep``'s public surface without any I/O.
 
     Used by ``--sift-disabled`` mode so test code that calls
