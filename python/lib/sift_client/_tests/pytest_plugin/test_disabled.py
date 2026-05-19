@@ -135,9 +135,7 @@ class TestDisabledMode:
         log_path = tmp_path / "should-not-exist.jsonl"
         write_plugin_conftest()
         pytester.makepyfile("def test_runs(step): step.measure(name='v', value=1.0)")
-        result = pytester.runpytest_subprocess(
-            "--sift-disabled", f"--sift-log-file={log_path}"
-        )
+        result = pytester.runpytest_subprocess("--sift-disabled", f"--sift-log-file={log_path}")
         result.assert_outcomes(passed=1)
         assert not log_path.exists(), f"log file unexpectedly created at {log_path}"
 

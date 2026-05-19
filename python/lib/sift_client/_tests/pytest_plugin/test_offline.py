@@ -46,9 +46,7 @@ class TestOfflineMode:
         """``--sift-log-file=none`` + ``--sift-offline`` is a usage error."""
         write_plugin_conftest()
         pytester.makepyfile("def test_should_not_run(): pass")
-        result = pytester.runpytest_subprocess(
-            "--sift-offline", "--sift-log-file=none"
-        )
+        result = pytester.runpytest_subprocess("--sift-offline", "--sift-log-file=none")
         assert result.ret != 0
         combined = "\n".join(result.outlines + result.errlines)
         assert "incompatible with --sift-offline" in combined, combined
@@ -95,9 +93,7 @@ class TestOfflineMode:
                 ) is True
             """
         )
-        result = pytester.runpytest_subprocess(
-            "--sift-offline", f"--sift-log-file={log_path}"
-        )
+        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
         result.assert_outcomes(passed=1)
         assert log_path.exists(), f"offline mode did not create {log_path}"
         content = log_path.read_text()

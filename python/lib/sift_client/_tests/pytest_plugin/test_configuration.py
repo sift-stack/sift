@@ -170,9 +170,7 @@ class TestIniConfiguration:
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest_subprocess(
-            "-s", "--co", f"--sift-log-file={cli_path}"
-        )
+        result = pytester.runpytest_subprocess("-s", "--co", f"--sift-log-file={cli_path}")
         result.stdout.fnmatch_lines([f"RESOLVED: {cli_path}"])
 
     def test_cli_offline_flag(
