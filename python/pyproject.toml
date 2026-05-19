@@ -333,6 +333,7 @@ ignore_errors = true
 
 [tool.setuptools.packages.find]
 where = ["lib"]
+exclude = ["sift_client._tests", "sift_client._tests.*"]
 
 [tool.setuptools.package-data]
 sift_grafana = ["py.typed"]
