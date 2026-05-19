@@ -1672,26 +1672,27 @@ precedence over ini values, which take precedence over the built-in default.</p>
     <div class="doc doc-contents ">
 
         <p>Lazy session-scoped Sift ReportContext.</p>
-<p>The fixture is no longer autouse; it's instantiated on the first call to
-<code>request.getfixturevalue("report_context")</code>, which today happens inside
-the gated <code>step</code> and <code>module_substep</code> fixtures. If every test in the
-session is excluded via the marker gate, this fixture is never resolved
-and no ReportContext (and no teardown subprocess) is created.</p>
-<p>Mode selection:</p>
+<p>The fixture is no longer autouse; it's instantiated on the first call
+to <code>request.getfixturevalue("report_context")</code>, which today happens
+inside the gated <code>step</code> and <code>module_substep</code> fixtures. If every
+test in the session is excluded via the marker gate, this fixture is
+never resolved and no ReportContext (or teardown subprocess) is created.</p>
+<p>What gets yielded depends on the mode:</p>
 <ul>
-<li><code>--sift-disabled</code> — yield a stub context (no client, no network, no
-  log file). Test code calling <code>step.measure(...)</code> keeps working;
-  bounds are evaluated locally so pass/fail outcomes match the real
-  plugin exactly.</li>
-<li><code>--sift-offline</code> — skip the session-start ping, route all
-  create/update calls through the JSONL log file, and don't spawn the
-  import-test-result-log replay subprocess at session end.</li>
-<li>default (online) — verify connectivity via the <code>client_has_connection</code>
-  fixture. A failed ping aborts the session with <code>pytest.UsageError</code>,
-  naming both <code>--sift-offline</code> and <code>--sift-disabled</code> as escape hatches.</li>
+<li><code>--sift-disabled</code>: a stub context with no client, no network, and
+  no log file. Test code that calls <code>step.measure(...)</code> keeps
+  working because bounds are evaluated locally.</li>
+<li><code>--sift-offline</code>: a real ReportContext, but the session-start ping
+  is skipped, all create/update calls go to the JSONL log file, and
+  the import-test-result-log replay subprocess is not spawned at
+  session end.</li>
+<li>default (online): verify connectivity via <code>client_has_connection</code>
+  before constructing the context. A failed ping aborts the session
+  with <code>pytest.UsageError</code> and points at <code>--sift-offline</code> and
+  <code>--sift-disabled</code> as escape hatches.</li>
 </ul>
-<p>The log file destination is controlled by <code>--sift-test-results-log-file</code>;
-defaults to a temp file when not set.</p>
+<p>The log-file destination is controlled by
+<code>--sift-log-file</code>; defaults to a temp file when unset.</p>
 
 
     </div>
@@ -1752,7 +1753,7 @@ always used.</p>
         <p>Create an outer step for the function when the Sift gate is on.</p>
 <p>Resolves the gate via <code>_sift_enabled_for(request.node, ini_default)</code>:
 <code>sift_exclude</code> marker forces off, <code>sift_include</code> forces on, otherwise the
-<code>sift_test_results_autouse</code> ini default applies. When on, requests the
+<code>sift_autouse</code> ini default applies. When on, requests the
 session <code>report_context</code> lazily — the first gated test in the session
 triggers its creation, subsequent gated tests reuse it. In
 <code>--sift-disabled</code> mode the report context is a stub, so the gate still

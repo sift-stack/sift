@@ -2309,11 +2309,11 @@ and <code>SIFT_REST_URI</code> from the environment. Override it by defining you
 <code>sift_client</code> fixture in your conftest.</p>
 <p>Note: FedRAMP users: results are buffered to a temp file and uploaded by a
 subprocess at session end (no API calls during the run). Disable the buffer
-entirely with <code>--sift-test-results-log-file=false</code> for inline uploads.</p>
+entirely with <code>--sift-log-file=false</code> for inline uploads.</p>
 <h4 id="sift_client.util.test_results--controlling-which-tests-produce-reports">Controlling which tests produce reports<a class="headerlink" href="#sift_client.util.test_results--controlling-which-tests-produce-reports" title="Permanent link">&para;</a></h4>
 <p>The autouse fixtures fire for every test by default. To narrow that:</p>
 <ul>
-<li>Set <code>sift_test_results_autouse = false</code> in <code>pyproject.toml</code> to flip the
+<li>Set <code>sift_autouse = false</code> in <code>pyproject.toml</code> to flip the
   project default off, then opt tests back in below.</li>
 <li><code>@pytest.mark.sift_include</code> forces reporting on for a test, class, or
   module. <code>@pytest.mark.sift_exclude</code> forces it off. Closest marker wins.
@@ -2347,26 +2347,26 @@ entirely with <code>--sift-test-results-log-file=false</code> for inline uploads
 <li><code>--sift-disabled</code>: Skip Sift entirely. Autouse fixtures yield stub objects;
   <code>step.measure(...)</code> still returns real pass/fail booleans by evaluating
   bounds locally, but nothing is sent to Sift and no log file is written.
-  Also honored via the <code>SIFT_DISABLED</code> env var. Incompatible with <code>--sift-offline</code>.</li>
-<li><code>--sift-test-results-log-file</code>: Path to write the JSONL log file. <code>true</code>
+  Also honored via the <code>SIFT_DISABLED</code> env var. Supersedes every other flag.</li>
+<li><code>--sift-log-file</code>: Path to write the JSONL log file. <code>true</code>
   (default) auto-creates a temp file. <code>false</code> or <code>none</code> disables logging.
   Any other value is treated as a file path.</li>
-<li><code>--no-sift-test-results-git-metadata</code>: Exclude git metadata (repo, branch,
+<li><code>--no-sift-git-metadata</code>: Exclude git metadata (repo, branch,
   commit) from the test report. Included by default.</li>
 </ul>
 <p>Each option has a matching ini key for per-project configuration under
 <code>[tool.pytest.ini_options]</code> in <code>pyproject.toml</code> (or <code>[pytest]</code> in
 <code>pytest.ini</code>). CLI flags override ini values. The
-<code>sift_test_results_autouse</code> ini key (bool, default <code>true</code>) sets the
+<code>sift_autouse</code> ini key (bool, default <code>true</code>) sets the
 project-wide default for the gate described above. The default
 <code>sift_client</code> fixture reads <code>sift_grpc_uri</code> and <code>sift_rest_uri</code> as
 fallbacks when the corresponding env vars are unset (env vars win when
 both are set). <code>SIFT_API_KEY</code> is env-only. Load it from a <code>.env</code> file
 via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manager.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[tool.pytest.ini_options]</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">sift_test_results_autouse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">sift_autouse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">sift_test_results_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">sift_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-org.sift.example:443&quot;</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your-org.sift.example&quot;</span>
 </span></code></pre></div>
