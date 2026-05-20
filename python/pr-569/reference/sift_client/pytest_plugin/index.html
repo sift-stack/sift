@@ -1574,7 +1574,7 @@ mode without constructing a client.</p>
 <a href="#sift_client.pytest_plugin.module_substep" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">module_substep</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span> <span class="n">pytestconfig</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="n"><span title="sift_client.pytest_plugin._NoopStep">_NoopStep</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1664,9 +1664,7 @@ precedence over ini values, which take precedence over the built-in default.</p>
 <a href="#sift_client.pytest_plugin.report_context" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">report_context</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span> <span class="n">pytestconfig</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../util/test_results/#sift_client.util.test_results.ReportContext">ReportContext</a></span> <span class="o">|</span> <span class="n"><span title="sift_client.pytest_plugin._NoopReportContext">_NoopReportContext</span></span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../util/test_results/#sift_client.util.test_results.ReportContext">ReportContext</a></span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1679,9 +1677,12 @@ test in the session is excluded via the marker gate, this fixture is
 never resolved and no ReportContext (or teardown subprocess) is created.</p>
 <p>What gets yielded depends on the mode:</p>
 <ul>
-<li><code>--sift-disabled</code>: a stub context with no client, no network, and
-  no log file. Test code that calls <code>step.measure(...)</code> keeps
-  working because bounds are evaluated locally.</li>
+<li><code>--sift-disabled</code>: a real <code>ReportContext</code> against a placeholder
+  <code>SiftClient</code> with <code>_simulate=True</code>. Every test-results write
+  returns a synthesized response without contacting Sift; no log file
+  is written; the replay subprocess never spawns. Test code that calls
+  <code>step.measure(...)</code> keeps working because bounds are evaluated as
+  usual and routed through the simulate path.</li>
 <li><code>--sift-offline</code>: a real ReportContext, but the session-start ping
   is skipped, all create/update calls go to the JSONL log file, and
   the import-test-result-log replay subprocess is not spawned at
@@ -1745,7 +1746,7 @@ always used.</p>
 <a href="#sift_client.pytest_plugin.step" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">step</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span> <span class="n">pytestconfig</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="n"><span title="sift_client.pytest_plugin._NoopStep">_NoopStep</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1756,8 +1757,9 @@ always used.</p>
 <code>sift_autouse</code> ini default applies. When on, requests the
 session <code>report_context</code> lazily — the first gated test in the session
 triggers its creation, subsequent gated tests reuse it. In
-<code>--sift-disabled</code> mode the report context is a stub, so the gate still
-runs but the resulting step is a no-op shim.</p>
+<code>--sift-disabled</code> mode the report context is backed by a
+<code>SiftClient(_simulate=True)</code> placeholder, so every write returns a
+synthesized response without contacting Sift.</p>
 
 
     </div>

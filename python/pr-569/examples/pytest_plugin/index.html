@@ -1800,7 +1800,7 @@ plugin's default falls away in favor of your definition.</p>
 <tr>
 <td><code>--sift-disabled</code></td>
 <td>off</td>
-<td>Skip Sift entirely. Autouse fixtures yield stub objects; <code>step.measure(...)</code> still returns real pass/fail booleans by evaluating bounds locally. Nothing is sent to Sift and no log file is written. Also honored via <code>SIFT_DISABLED=1</code>. Supersedes every other flag (if both <code>--sift-disabled</code> and <code>--sift-offline</code> are passed, disabled wins).</td>
+<td>Skip Sift entirely. Nothing contacts the API and no log file is written; <code>step.measure(...)</code> still evaluates bounds and returns a real pass/fail boolean. Also honored via <code>SIFT_DISABLED=1</code>. Supersedes every other flag (disabled wins over offline).</td>
 </tr>
 <tr>
 <td><code>--sift-log-file=&lt;path\|true\|false&gt;</code></td>
@@ -2445,7 +2445,7 @@ that let the same suite run without (or without contacting) Sift.</p>
 <td><code>--sift-disabled</code></td>
 <td>none</td>
 <td>none</td>
-<td>local bounds eval returning a real bool</td>
+<td>bounds eval; returns a real bool</td>
 <td>local dev or CI that doesn't have (or want) Sift</td>
 </tr>
 </tbody>
@@ -2498,13 +2498,16 @@ a <code>tempfile.NamedTemporaryFile</code> and only surfaces the path via a
 <code>logger.info</code> line. Pin a known path when you intend to replay later.</p>
 </div>
 <h3 id="disabled-mode-sift-disabled">Disabled mode (<code>--sift-disabled</code>)<a class="headerlink" href="#disabled-mode-sift-disabled" title="Permanent link">&para;</a></h3>
-<p>The plugin stays loaded so the autouse fixtures and markers still exist,
-but <code>report_context</code>, <code>step</code>, and <code>module_substep</code> yield stub objects.
-The stubs still do something useful: <code>step.measure(...)</code>,
-<code>step.measure_avg(...)</code>, <code>step.measure_all(...)</code>, and <code>step.substep(...)</code>
-all keep working, bounds are evaluated locally, and you get a real
-pass/fail boolean back. Nothing leaves the process. No log file, no
-<code>SIFT_*</code> env vars, no ini keys.</p>
+<p>The plugin stays loaded with the same fixtures and markers as the other
+modes. Nothing contacts Sift, no log file is written, and no <code>SIFT_*</code>
+env vars are required. <code>step.measure(...)</code>, <code>step.measure_avg(...)</code>,
+<code>step.measure_all(...)</code>, <code>step.substep(...)</code>, and
+<code>report_context.report.update({...})</code> all behave normally — bounds
+evaluate and you get a real pass/fail boolean back.</p>
+<p>Entities returned in disabled mode report <code>is_simulated == True</code> (on
+<code>TestReport</code>, <code>TestStep</code>, <code>TestMeasurement</code>, and <code>ReportContext</code>) so
+consumers and tests can branch on provenance. Offline-mode entities
+also report <code>is_simulated == True</code>.</p>
 <p>How to turn it on, in the order most projects pick:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="c1"># In an .envrc, devcontainer, or CI job config</span>
 </span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SIFT_DISABLED</span><span class="o">=</span><span class="m">1</span>
