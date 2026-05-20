@@ -2,7 +2,6 @@ use std::{collections::HashMap, fs::File, io::Seek, process::ExitCode};
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use crossterm::style::Stylize;
-use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
@@ -20,14 +19,11 @@ use crate::{
         import::{
             parquet::FooterMetadata,
             preview_import_config,
-            utils::{gzip_file, try_parse_bit_field_config, try_parse_enum_config},
+            utils::{try_parse_bit_field_config, try_parse_enum_config, upload_gzipped_file},
             wait_for_job_completion,
         },
     },
-    util::{
-        api::{create_grpc_channel, create_rest_client},
-        tty::Output,
-    },
+    util::{api::create_grpc_channel, tty::Output},
 };
 
 pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
@@ -78,28 +74,9 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
         .into_inner();
 
     file.rewind()?;
-    let compressed_data = gzip_file(file)?;
-
-    let rest_client = create_rest_client(&ctx)?;
-    let res = rest_client
-        .post(upload_url)
-        .header(CONTENT_ENCODING, "gzip")
-        .header(CONTENT_TYPE, "application/vnd.apache.parquet")
-        .body(compressed_data)
-        .send()
+    let job_id = upload_gzipped_file(&ctx, &upload_url, file, "application/vnd.apache.parquet")
         .await
         .context("failed to upload Parquet file")?;
-
-    if !res.status().is_success() {
-        let status = res.status();
-        let text = res
-            .text()
-            .await
-            .unwrap_or_else(|_| "<failed to read body>".into());
-        return Err(anyhow!(
-            "failed to upload Parquet with http status {status}: {text}"
-        ));
-    }
 
     let location = args.run.as_ref().map_or_else(
         || format!("asset '{}'", args.asset.cyan()),
@@ -116,7 +93,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
 
         return Ok(ExitCode::SUCCESS);
     }
-    wait_for_job_completion(grpc_channel, location).await
+    wait_for_job_completion(grpc_channel, job_id, location).await
 }
 
 fn update_config_with_overrides(

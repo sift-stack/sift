@@ -3,13 +3,9 @@ use crossterm::style::Stylize;
 use std::{process::ExitCode, time::Duration};
 use tokio::time::sleep;
 
-use sift_rs::{
-    SiftChannel,
-    common::r#type::v1::ChannelConfig,
-    jobs::v1::{JobStatus, JobType},
-};
+use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatus};
 
-use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output, user::get_user_id};
+use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output};
 
 pub mod backup;
 pub mod csv;
@@ -25,18 +21,15 @@ const INDENT_4: &str = "        ";
 
 pub async fn wait_for_job_completion(
     grpc_channel: SiftChannel,
+    job_id: String,
     import_output_location: String,
 ) -> Result<ExitCode> {
     let spinner = Spinner::new();
     spinner.set_message(format!("{} file for processing", "Uploaded".green()));
 
-    let user_id = get_user_id(grpc_channel.clone()).await?;
     let mut job_service = JobServiceWrapper::new(grpc_channel.clone());
 
-    let Some(mut job) = job_service
-        .get_latest_job_for_user(&user_id, JobType::DataImport)
-        .await?
-    else {
+    let Some(mut job) = job_service.get_job(&job_id).await? else {
         spinner.finish_and_clear();
 
         Output::new()

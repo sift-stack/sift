@@ -11,13 +11,14 @@ use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelEnumType};
 use crate::{cli::time::TimeFormat, cmd::Context as CmdContext, util::api::create_rest_client};
 
 /// Gzip and upload a file to a pre-signed upload URL with the given content type.
-/// Reads from the file's current cursor position.
+/// Reads from the file's current cursor position. Returns the job ID from the
+/// upload response.
 pub async fn upload_gzipped_file(
     ctx: &CmdContext,
     upload_url: &str,
     file: File,
     content_type: &str,
-) -> Result<()> {
+) -> Result<String> {
     let compressed_data = gzip_file(file)?;
     let rest_client = create_rest_client(ctx).context("failed to create rest client")?;
 
@@ -38,7 +39,22 @@ pub async fn upload_gzipped_file(
             .unwrap_or_else(|_| "<failed to read body>".into());
         return Err(anyhow!("upload failed with http status {status}: {text}"));
     }
-    Ok(())
+    extract_job_id(res).await
+}
+
+/// Parses the `jobId` from a successful upload response.
+async fn extract_job_id(res: reqwest::Response) -> Result<String> {
+    let body_text = res
+        .text()
+        .await
+        .context("failed to read upload response body")?;
+    let body: serde_json::Value =
+        serde_json::from_str(&body_text).context("failed to parse upload response as JSON")?;
+    body.get("jobId")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .ok_or_else(|| anyhow!("upload response did not include jobId: {body_text}"))
 }
 
 /// Be sure that the file's cursor is rewinded to the start before hand.
