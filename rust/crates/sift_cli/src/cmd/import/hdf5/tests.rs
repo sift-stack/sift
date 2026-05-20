@@ -320,7 +320,10 @@ fn group_path_to_channel_name_root_dataset() {
 
 #[test]
 fn group_path_to_channel_name_single_nested_group() {
-    assert_eq!(group_path_to_channel_name("/group1/current"), "group1.current");
+    assert_eq!(
+        group_path_to_channel_name("/group1/current"),
+        "group1.current"
+    );
 }
 
 #[test]
@@ -333,5 +336,8 @@ fn group_path_to_channel_name_deeply_nested() {
 
 #[test]
 fn group_path_to_channel_name_no_leading_slash() {
-    assert_eq!(group_path_to_channel_name("group1/current"), "group1.current");
+    assert_eq!(
+        group_path_to_channel_name("group1/current"),
+        "group1.current"
+    );
 }
