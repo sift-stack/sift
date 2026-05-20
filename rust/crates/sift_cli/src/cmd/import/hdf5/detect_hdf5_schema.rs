@@ -18,11 +18,11 @@ pub fn basename(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
 }
 
-pub fn parent_path(path: &str) -> String {
+pub fn parent_path(path: &str) -> &str {
     match path.rfind('/') {
-        Some(0) => "/".to_string(),
-        Some(idx) => path[..idx].to_string(),
-        None => "/".to_string(),
+        Some(0) => "/",
+        Some(idx) => &path[..idx],
+        None => "/",
     }
 }
 
@@ -178,7 +178,7 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
         if !is_time_dataset_name(&name) || ds.ndim() != 1 {
             continue;
         }
-        group_time.entry(parent_path(&name)).or_insert(name);
+        group_time.entry(parent_path(&name).to_owned()).or_insert(name);
     }
 
     if group_time.is_empty() {
@@ -252,13 +252,13 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
 fn nearest_time_dataset(group_time: &HashMap<String, String>, value_path: &str) -> Option<String> {
     let mut current = parent_path(value_path);
     loop {
-        if let Some(t) = group_time.get(&current) {
+        if let Some(t) = group_time.get(current) {
             return Some(t.clone());
         }
         if current == "/" {
             return None;
         }
-        current = parent_path(&current);
+        current = parent_path(current);
     }
 }
 
