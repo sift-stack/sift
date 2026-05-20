@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from sift_client.sift_types import Channel
-from sift_client.sift_types.channel import ChannelDataType
+from sift_client.sift_types.channel import ChannelDataType, ChannelReference
 
 
 @pytest.fixture
@@ -103,6 +103,30 @@ class TestChannel:
         )
         mock_client.channels.get_data.assert_not_called()
         assert result == mock_data
+
+    def test_channel_reference_requires_one_target(self):
+        """ChannelReference must specify exactly one of identifier or version_id."""
+        with pytest.raises(ValueError, match="exactly one"):
+            ChannelReference(channel_reference="$1")
+        with pytest.raises(ValueError, match="exactly one"):
+            ChannelReference(
+                channel_reference="$1",
+                channel_identifier="ch",
+                calculated_channel_version_id="v-id",
+            )
+
+    def test_channel_reference_from_proto_reads_version_id_oneof(self):
+        """_from_proto picks calculated_channel_version_id when the oneof selects it."""
+        from sift.calculated_channels.v2.calculated_channels_pb2 import (
+            CalculatedChannelAbstractChannelReference,
+        )
+
+        proto = CalculatedChannelAbstractChannelReference(
+            channel_reference="$1", calculated_channel_version_id="v-abc"
+        )
+        ref = ChannelReference._from_proto(proto)
+        assert ref.calculated_channel_version_id == "v-abc"
+        assert ref.channel_identifier is None
 
     def test_data_method_with_minimal_params(self, mock_channel, mock_client):
         """Test that data() method works with minimal parameters."""

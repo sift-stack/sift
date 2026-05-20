@@ -7,6 +7,7 @@ import pytest
 
 from sift_client.sift_types import CalculatedChannel
 from sift_client.sift_types.calculated_channel import (
+    CalculatedChannelCreate,
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import ChannelReference
@@ -150,6 +151,45 @@ class TestCalculatedChannelBase:
                     ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                 ],
             )
+
+    def test_nested_calculated_channel_reference_serialized_to_version_id_oneof(self):
+        """A ChannelReference with calculated_channel_version_id sets the proto oneof."""
+        update = CalculatedChannelUpdate(
+            expression="$1 + $2",
+            expression_channel_references=[
+                ChannelReference(channel_reference="$1", channel_identifier="channel1"),
+                ChannelReference(channel_reference="$2", calculated_channel_version_id="v-nested"),
+            ],
+        )
+        update.resource_id = "test_calc_channel_id"
+
+        proto, _ = update.to_proto_with_mask()
+
+        refs = proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
+        assert len(refs) == 2
+        assert refs[0].channel_identifier == "channel1"
+        assert refs[0].WhichOneof("calculated_channel_reference") is None
+        assert refs[1].WhichOneof("calculated_channel_reference") == "calculated_channel_version_id"
+        assert refs[1].calculated_channel_version_id == "v-nested"
+        assert refs[1].channel_identifier == ""
+
+    def test_create_serializes_nested_calculated_channel_reference(self):
+        """CalculatedChannelCreate.to_proto routes version_id into the proto oneof."""
+        create = CalculatedChannelCreate(
+            name="nested-cc",
+            expression="$1 * 2",
+            expression_channel_references=[
+                ChannelReference(channel_reference="$1", calculated_channel_version_id="v-nested"),
+            ],
+            all_assets=True,
+        )
+
+        proto = create.to_proto()
+
+        refs = proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
+        assert len(refs) == 1
+        assert refs[0].WhichOneof("calculated_channel_reference") == "calculated_channel_version_id"
+        assert refs[0].calculated_channel_version_id == "v-nested"
 
     def test_expression_validator_accepts_both_set(self):
         """Test validator accepts expression and channel references together."""

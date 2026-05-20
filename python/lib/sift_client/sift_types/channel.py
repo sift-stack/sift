@@ -5,7 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sift.channels.v3.channels_pb2 import Channel as ChannelProto
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
@@ -344,13 +344,35 @@ class Channel(BaseType[ChannelProto, "Channel"]):
 
 
 class ChannelReference(BaseModel):
-    """Channel reference for calculated channel or rule."""
+    """Channel reference for calculated channel or rule.
+
+    Exactly one of `channel_identifier` or `calculated_channel_version_id` must be set.
+    Use `calculated_channel_version_id` to reference another calculated channel by its
+    version ID (required for nested calculated channels, since names are not unique).
+    """
 
     channel_reference: str  # The key of the channel in the expression i.e. $1, $2, etc.
-    channel_identifier: str  # The name of the channel
+    channel_identifier: str | None = None  # The name (or ID) of an existing channel.
+    calculated_channel_version_id: str | None = None  # The version ID of a calculated channel.
+
+    @model_validator(mode="after")
+    def _validate_exactly_one_target(self) -> ChannelReference:
+        has_identifier = bool(self.channel_identifier)
+        has_version_id = bool(self.calculated_channel_version_id)
+        if has_identifier == has_version_id:
+            raise ValueError(
+                "ChannelReference requires exactly one of channel_identifier or "
+                "calculated_channel_version_id to be set"
+            )
+        return self
 
     @classmethod
     def _from_proto(cls, proto) -> ChannelReference:
+        if proto.WhichOneof("calculated_channel_reference") == "calculated_channel_version_id":
+            return cls(
+                channel_reference=proto.channel_reference,
+                calculated_channel_version_id=proto.calculated_channel_version_id,
+            )
         return cls(
             channel_reference=proto.channel_reference,
             channel_identifier=proto.channel_identifier,

@@ -108,10 +108,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             description=proto.description,
             expression=proto.calculated_channel_configuration.query_configuration.sel.expression,
             channel_references=[
-                ChannelReference(
-                    channel_reference=ref_proto.channel_reference,
-                    channel_identifier=ref_proto.channel_identifier,
-                )
+                ChannelReference._from_proto(ref_proto)
                 for ref_proto in proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
             ],
             organization_id=proto.organization_id,

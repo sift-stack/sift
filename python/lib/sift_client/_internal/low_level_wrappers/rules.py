@@ -75,6 +75,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _channel_reference_to_proto(ref: ChannelReference) -> ChannelReferenceProto:
+    if ref.calculated_channel_version_id:
+        return ChannelReferenceProto(
+            calculated_channel_version_id=ref.calculated_channel_version_id
+        )
+    return ChannelReferenceProto(name=ref.channel_identifier)
+
+
 class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the RulesAPI.
 
@@ -126,7 +134,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             calculated_channel=CalculatedChannelConfig(
                 expression=create.expression,
                 channel_references={
-                    c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
+                    c.channel_reference: _channel_reference_to_proto(c)
                     for c in create.channel_references
                 },
             )
@@ -259,7 +267,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 CalculatedChannelConfig(
                     expression=expression,
                     channel_references={
-                        c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
+                        c.channel_reference: _channel_reference_to_proto(c)
                         for c in channel_references
                     },
                 )

@@ -42,6 +42,25 @@ class TestResolveCalculatedChannels:
         assert refs[0].channel_identifier == "resolved-uuid"
 
     @pytest.mark.asyncio
+    async def test_skips_lookup_for_calculated_channel_version_id(self):
+        api = MagicMock()
+        api.find = AsyncMock()
+        cc = CalculatedChannelCreate(
+            name="nested",
+            expression="$1 + 1",
+            expression_channel_references=[
+                ChannelReference(channel_reference="$1", calculated_channel_version_id="v-nested")
+            ],
+        )
+        result = await resolve_calculated_channels([cc], channels_api=api)
+        api.find.assert_not_awaited()
+        assert result is not None
+        refs = result[0].expression_channel_references
+        assert refs is not None
+        assert refs[0].calculated_channel_version_id == "v-nested"
+        assert refs[0].channel_identifier is None
+
+    @pytest.mark.asyncio
     async def test_keeps_identifier_when_not_found(self):
         api = MagicMock()
         api.find = AsyncMock(return_value=None)
