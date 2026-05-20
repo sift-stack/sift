@@ -86,18 +86,22 @@ pub fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
 }
 
 pub fn enum_types_for(ty: &TypeDescriptor) -> Result<Vec<ChannelEnumType>> {
-    let TypeDescriptor::Enum(e) = ty else {
+    let TypeDescriptor::Enum(enum_type) = ty else {
         return Ok(Vec::new());
     };
-    e.members
+    enum_type
+        .members
         .iter()
-        .map(|m| {
+        .map(|member| {
             Ok(ChannelEnumType {
-                name: m.name.clone(),
-                key: u32::try_from(m.value).with_context(|| {
-                    format!("enum member '{}' value {} doesn't fit in u32", m.name, m.value)
+                name: member.name.clone(),
+                key: u32::try_from(member.value).with_context(|| {
+                    format!(
+                        "enum member '{}' value {} doesn't fit in u32",
+                        member.name, member.value
+                    )
                 })?,
-                is_signed: e.signed,
+                is_signed: enum_type.signed,
             })
         })
         .collect()
