@@ -85,16 +85,20 @@ pub fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
     }
 }
 
-pub fn enum_types_for(ty: &TypeDescriptor) -> Vec<ChannelEnumType> {
+pub fn enum_types_for(ty: &TypeDescriptor) -> Result<Vec<ChannelEnumType>> {
     let TypeDescriptor::Enum(e) = ty else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
     e.members
         .iter()
-        .map(|m| ChannelEnumType {
-            name: m.name.clone(),
-            key: m.value as u32,
-            is_signed: e.signed,
+        .map(|m| {
+            Ok(ChannelEnumType {
+                name: m.name.clone(),
+                key: u32::try_from(m.value).with_context(|| {
+                    format!("enum member '{}' value {} doesn't fit in u32", m.name, m.value)
+                })?,
+                is_signed: e.signed,
+            })
         })
         .collect()
 }
@@ -230,7 +234,7 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
             data_type: channel_type as i32,
             units,
             description,
-            enum_types: enum_types_for(&dtype),
+            enum_types: enum_types_for(&dtype)?,
             ..Default::default()
         };
 
@@ -312,7 +316,7 @@ fn detect_two_d(
             let channel_config = ChannelConfig {
                 name: channel_name,
                 data_type: channel_type as i32,
-                enum_types: enum_types_for(&dtype),
+                enum_types: enum_types_for(&dtype)?,
                 ..Default::default()
             };
 
@@ -388,7 +392,7 @@ fn detect_compound(
             let channel_config = ChannelConfig {
                 name: channel_name,
                 data_type: channel_type as i32,
-                enum_types: enum_types_for(&field.ty),
+                enum_types: enum_types_for(&field.ty)?,
                 ..Default::default()
             };
 
