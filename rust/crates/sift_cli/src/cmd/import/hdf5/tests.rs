@@ -8,7 +8,9 @@ use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
 use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
-use crate::cmd::import::hdf5::detect_hdf5_schema::{hdf5_to_sift_data_type, is_time_dataset_name};
+use crate::cmd::import::hdf5::detect_hdf5_schema::{
+    basename, hdf5_to_sift_data_type, is_time_dataset_name, parent_path,
+};
 use crate::cmd::import::hdf5::import::build_hdf5_config;
 
 fn make_args() -> ImportHdf5Args {
@@ -138,6 +140,31 @@ fn is_time_dataset_name_rejects_unrelated_names() {
 }
 
 #[test]
+fn is_time_dataset_name_recognizes_nested_paths() {
+    assert!(is_time_dataset_name("/group1/time"));
+    assert!(is_time_dataset_name("/a/b/c/Timestamp"));
+    assert!(is_time_dataset_name("nested/ts"));
+    assert!(!is_time_dataset_name("/group1/time_series"));
+    assert!(!is_time_dataset_name("/time/sensor"));
+}
+
+#[test]
+fn basename_returns_leaf() {
+    assert_eq!(basename("/group/sub/leaf"), "leaf");
+    assert_eq!(basename("/leaf"), "leaf");
+    assert_eq!(basename("leaf"), "leaf");
+    assert_eq!(basename("/"), "");
+}
+
+#[test]
+fn parent_path_walks_up() {
+    assert_eq!(parent_path("/a/b/c"), "/a/b");
+    assert_eq!(parent_path("/a"), "/");
+    assert_eq!(parent_path("/"), "/");
+    assert_eq!(parent_path("leaf"), "/");
+}
+
+#[test]
 fn hdf5_to_sift_data_type_maps_boolean() {
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::Boolean),
@@ -218,15 +245,63 @@ fn hdf5_to_sift_data_type_maps_float_u8() {
 }
 
 #[test]
-fn hdf5_to_sift_data_type_rejects_strings() {
-    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::VarLenUnicode), None);
-    assert_eq!(hdf5_to_sift_data_type(&TypeDescriptor::VarLenAscii), None);
+fn hdf5_to_sift_data_type_maps_strings() {
+    assert_eq!(
+        hdf5_to_sift_data_type(&TypeDescriptor::VarLenUnicode),
+        Some(ChannelDataType::String)
+    );
+    assert_eq!(
+        hdf5_to_sift_data_type(&TypeDescriptor::VarLenAscii),
+        Some(ChannelDataType::String)
+    );
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::FixedAscii(16)),
-        None
+        Some(ChannelDataType::String)
     );
     assert_eq!(
         hdf5_to_sift_data_type(&TypeDescriptor::FixedUnicode(16)),
-        None
+        Some(ChannelDataType::String)
     );
+}
+
+#[test]
+fn hdf5_to_sift_data_type_maps_enum() {
+    use hdf5::types::{EnumMember, EnumType};
+    let ty = TypeDescriptor::Enum(EnumType {
+        size: IntSize::U4,
+        signed: false,
+        members: vec![EnumMember {
+            name: "RED".into(),
+            value: 0,
+        }],
+    });
+    assert_eq!(hdf5_to_sift_data_type(&ty), Some(ChannelDataType::Enum));
+}
+
+#[test]
+fn enum_types_for_extracts_members() {
+    use hdf5::types::{EnumMember, EnumType};
+    use crate::cmd::import::hdf5::detect_hdf5_schema::enum_types_for;
+    let ty = TypeDescriptor::Enum(EnumType {
+        size: IntSize::U4,
+        signed: true,
+        members: vec![
+            EnumMember { name: "OFF".into(), value: 0 },
+            EnumMember { name: "ON".into(), value: 1 },
+        ],
+    });
+    let mapped = enum_types_for(&ty);
+    assert_eq!(mapped.len(), 2);
+    assert_eq!(mapped[0].name, "OFF");
+    assert_eq!(mapped[0].key, 0);
+    assert!(mapped[0].is_signed);
+    assert_eq!(mapped[1].name, "ON");
+    assert_eq!(mapped[1].key, 1);
+}
+
+#[test]
+fn enum_types_for_returns_empty_for_non_enum() {
+    use crate::cmd::import::hdf5::detect_hdf5_schema::enum_types_for;
+    assert!(enum_types_for(&TypeDescriptor::Boolean).is_empty());
+    assert!(enum_types_for(&TypeDescriptor::Integer(IntSize::U4)).is_empty());
 }
