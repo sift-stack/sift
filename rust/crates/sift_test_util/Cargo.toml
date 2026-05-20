@@ -1,0 +1,25 @@
+[package]
+name = "sift_test_util"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+categories.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+hyper-util.workspace = true
+mockall.workspace = true
+sift_connect.workspace = true
+sift_rs.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tonic.workspace = true
+tower.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }

@@ -1,14 +1,16 @@
 [workspace]
 resolver = "2"
 members = [
-  "rust/crates/sift_error",
-  "rust/crates/sift_rs",
-  "rust/crates/sift_stream",
-  "rust/crates/sift_error",
-  "rust/crates/sift_connect",
-  "rust/crates/sift_stream_bindings",
-  "rust/crates/sift_cli",
-  "rust/crates/sift_pbfs",
+    "rust/crates/sift_error",
+    "rust/crates/sift_rs",
+    "rust/crates/sift_stream",
+    "rust/crates/sift_error",
+    "rust/crates/sift_connect",
+    "rust/crates/sift_stream_bindings",
+    "rust/crates/sift_cli",
+    "rust/crates/sift_pbfs",
+    "rust/crates/sift_mcp",
+    "rust/crates/sift_test_util",
 ]
 
 [workspace.package]
@@ -28,8 +30,9 @@ arrow-array = "58.1.0"
 arrow-schema = "58.1.0"
 async-channel = "2.2"
 async-trait = "^0.1"
+mockall = "0.14.0"
 bytes = "1.11.1"
-bytesize = { version = "2" }
+bytesize = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 clap = { version = "4.6", features = ["cargo", "derive", "wrap_help"] }
 clap_complete = "4.6"
@@ -43,7 +46,7 @@ flate2 = "1.1"
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
 futures-core = "0.3"
 hyper = { version = "1.8", features = ["server", "http1"] }
-hyper-util = { version = "0.1", features = ["service", "server", "tokio"] }
+hyper-util = { version = "0.1.20", features = ["service", "server", "tokio"] }
 indicatif = "0.18"
 indoc = "2.0"
 parquet = "58.0"
@@ -51,23 +54,24 @@ prost = "^0.14"
 prost-types = "^0.14"
 pbjson = "^0.9"
 pbjson-types = "^0.9"
-pyo3 = { version = "0.28" }
+pyo3 = "0.28"
 pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
-pyo3-stub-gen = { version = "0.10" }
+pyo3-stub-gen = "0.10" 
 rand = "0.10"
 reqwest = "0.13"
-serde = { version = "^1.0" }
-serde_json = { version = "^1.0" }
+rmcp = "1.7.0"
+serde = "^1.0"
+serde_json = "^1.0" 
 tdms = "0.3.0"
 hdf5 = { package = "hdf5-metno", version = "0.12", features = ["static"] }
 tempdir = "0.3"
-tokio = { version = "1" }
+tokio = "1"
 tokio-stream = "0.1"
 toml = "0.9"
 tonic = { version = "^0.14", features = ["gzip"] }
 tonic-prost = "^0.14"
 tower = "^0.5"
-tracing = { version = "0.1" }
+tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 tracing-test = { version = "0.2", features = ["no-env-filter"] }
@@ -79,6 +83,8 @@ sift_rs = { version = "0.9.1", path = "rust/crates/sift_rs" }
 sift_error = { version = "0.9.1", path = "rust/crates/sift_error" }
 sift_stream = { version = "0.9.1", path = "rust/crates/sift_stream" }
 sift_pbfs = { version = "0.9.1", path = "rust/crates/sift_pbfs" }
+sift_mcp = { version = "0.9.1", path = "rust/crates/sift_mcp" }
+sift_test_util = { version = "0.9.1", path = "rust/crates/sift_test_util" }
 
 sift_stream_bindings = { version = "0.3.0", path = "rust/crates/sift_stream_bindings" }
 
