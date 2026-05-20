@@ -280,14 +280,20 @@ fn hdf5_to_sift_data_type_maps_enum() {
 
 #[test]
 fn enum_types_for_extracts_members() {
-    use hdf5::types::{EnumMember, EnumType};
     use crate::cmd::import::hdf5::detect_hdf5_schema::enum_types_for;
+    use hdf5::types::{EnumMember, EnumType};
     let ty = TypeDescriptor::Enum(EnumType {
         size: IntSize::U4,
         signed: true,
         members: vec![
-            EnumMember { name: "OFF".into(), value: 0 },
-            EnumMember { name: "ON".into(), value: 1 },
+            EnumMember {
+                name: "OFF".into(),
+                value: 0,
+            },
+            EnumMember {
+                name: "ON".into(),
+                value: 1,
+            },
         ],
     });
     let mapped = enum_types_for(&ty);

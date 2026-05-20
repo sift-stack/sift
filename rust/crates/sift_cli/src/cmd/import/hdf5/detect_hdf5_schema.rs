@@ -251,10 +251,7 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
     Ok((data_configs, channel_configs))
 }
 
-fn nearest_time_dataset(
-    group_time: &HashMap<String, String>,
-    value_path: &str,
-) -> Option<String> {
+fn nearest_time_dataset(group_time: &HashMap<String, String>, value_path: &str) -> Option<String> {
     let mut current = parent_path(value_path);
     loop {
         if let Some(t) = group_time.get(&current) {
