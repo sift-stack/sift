@@ -36,6 +36,7 @@ from sift_client.sift_types._base import (
     ModelUpdate,
 )
 from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
+from sift_client.sift_types._mixins.simulated import SimulatedMixin
 from sift_client.sift_types.channel import Channel
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
@@ -153,7 +154,7 @@ class TestStepCreate(TestStepBase, ModelCreate[TestStepProto]):
         return proto
 
 
-class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
+class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin, SimulatedMixin):
     """TestStep model representing a step in a test."""
 
     test_report_id: str
@@ -169,6 +170,8 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
     metadata: dict[str, str | float | bool] | None = None
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
+    # Set by the low-level wrapper when this instance came from the simulate path
+    _simulated: bool = False
 
     @classmethod
     def _from_proto(cls, proto: TestStepProto, sift_client: SiftClient | None = None) -> TestStep:
@@ -383,7 +386,7 @@ class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProt
         return proto
 
 
-class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
+class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"], SimulatedMixin):
     """TestMeasurement model representing a measurement in a test."""
 
     measurement_type: TestMeasurementType
@@ -404,6 +407,8 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
 
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
+    # Set by the low-level wrapper when this instance came from the simulate path
+    _simulated: bool = False
 
     @classmethod
     def _from_proto(
@@ -599,7 +604,7 @@ class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
         )
 
 
-class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
+class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin, SimulatedMixin):
     """TestReport model representing a test report."""
 
     status: TestStatus
@@ -617,6 +622,8 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
     is_archived: bool
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
+    # Set by the low-level wrapper when this instance came from the simulate path
+    _simulated: bool = False
 
     @classmethod
     def _from_proto(

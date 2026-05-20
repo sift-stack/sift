@@ -57,19 +57,20 @@ class TestOfflineMode:
         clear_sift_env: None,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """Offline mode keeps the real ``ReportContext`` / ``NewStep``, not the stubs."""
+        """Offline mode runs a real ReportContext; entities still report `is_simulated=True` because the log-file path synthesizes responses prior to replay."""
         write_plugin_conftest()
         pytester.makepyfile(
             """
-            from sift_client.pytest_plugin import _NoopReportContext, _NoopStep
             from sift_client.util.test_results import ReportContext
             from sift_client.util.test_results.context_manager import NewStep
 
             def test_types(step, report_context):
                 assert isinstance(report_context, ReportContext)
                 assert isinstance(step, NewStep)
-                assert not isinstance(report_context, _NoopReportContext)
-                assert not isinstance(step, _NoopStep)
+                assert report_context.client._simulate is False
+                # log-file mode synthesizes responses, so entities are flagged simulated.
+                assert report_context.is_simulated is True
+                assert step.current_step.is_simulated is True
             """
         )
         result = pytester.runpytest_subprocess("--sift-offline")

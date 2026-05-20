@@ -109,16 +109,20 @@ class TestDisabledMode:
         clear_sift_env: None,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """``step`` / ``report_context`` / ``module_substep`` are stub instances in disabled mode."""
+        """`report_context` / `step` / `module_substep` are real instances backed by a simulate client."""
         write_plugin_conftest()
         pytester.makepyfile(
             """
-            from sift_client.pytest_plugin import _NoopReportContext, _NoopStep
+            from sift_client.util.test_results import ReportContext
+            from sift_client.util.test_results.context_manager import NewStep
 
             def test_types(step, report_context, module_substep):
-                assert isinstance(step, _NoopStep)
-                assert isinstance(module_substep, _NoopStep)
-                assert isinstance(report_context, _NoopReportContext)
+                assert isinstance(report_context, ReportContext)
+                assert report_context.is_simulated is True
+                assert report_context.report.is_simulated is True
+                assert step.current_step.is_simulated is True
+                assert isinstance(step, NewStep)
+                assert isinstance(module_substep, NewStep)
             """
         )
         result = pytester.runpytest_subprocess("--sift-disabled")

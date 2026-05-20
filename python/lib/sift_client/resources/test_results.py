@@ -96,6 +96,7 @@ class TestResultsAPIAsync(ResourceBase):
         created_report = await self._low_level_client.create_test_report(
             test_report=test_report,
             log_file=log_file,
+            simulate=self.client._simulate,
         )
         return self._finalize(created_report, log_file)
 
@@ -271,7 +272,7 @@ class TestResultsAPIAsync(ResourceBase):
         update.resource_id = test_report_id
         existing = test_report if isinstance(test_report, TestReport) else None
         updated_test_report = await self._low_level_client.update_test_report(
-            update, log_file=log_file, existing=existing
+            update, log_file=log_file, existing=existing, simulate=self.client._simulate
         )
         return self._finalize(updated_test_report, log_file)
 
@@ -319,7 +320,7 @@ class TestResultsAPIAsync(ResourceBase):
         if isinstance(test_step, dict):
             test_step = TestStepCreate.model_validate(test_step)
         test_step_result = await self._low_level_client.create_test_step(
-            test_step, log_file=log_file
+            test_step, log_file=log_file, simulate=self.client._simulate
         )
         return self._finalize(test_step_result, log_file)
 
@@ -450,7 +451,7 @@ class TestResultsAPIAsync(ResourceBase):
         update.resource_id = test_step_id
         existing = test_step if isinstance(test_step, TestStep) else None
         updated_test_step = await self._low_level_client.update_test_step(
-            update, log_file=log_file, existing=existing
+            update, log_file=log_file, existing=existing, simulate=self.client._simulate
         )
         return self._finalize(updated_test_step, log_file)
 
@@ -484,10 +485,10 @@ class TestResultsAPIAsync(ResourceBase):
         if isinstance(test_measurement, dict):
             test_measurement = TestMeasurementCreate.model_validate(test_measurement)
         test_measurement_result = await self._low_level_client.create_test_measurement(
-            test_measurement, log_file=log_file
+            test_measurement, log_file=log_file, simulate=self.client._simulate
         )
         measurement = self._finalize(test_measurement_result, log_file)
-        if update_step and log_file is None:
+        if update_step and log_file is None and not self.client._simulate:
             step = await self.get_step(test_step=test_measurement_result.test_step_id)
             if step.status == TestStatus.PASSED and not measurement.passed:
                 await self.update_step(test_step=step, update={"status": TestStatus.FAILED})
@@ -508,7 +509,7 @@ class TestResultsAPIAsync(ResourceBase):
             A tuple of (measurements_created_count, measurement_ids).
         """
         return await self._low_level_client.create_test_measurements(
-            test_measurements, log_file=log_file
+            test_measurements, log_file=log_file, simulate=self.client._simulate
         )
 
     async def list_measurements(
@@ -621,10 +622,16 @@ class TestResultsAPIAsync(ResourceBase):
 
         update.resource_id = test_measurement.id_
         updated_test_measurement = await self._low_level_client.update_test_measurement(
-            update, log_file=log_file, existing=test_measurement
+            update, log_file=log_file, existing=test_measurement, simulate=self.client._simulate
         )
         updated_test_measurement = self._finalize(updated_test_measurement, log_file)
-        if update_step and log_file is None and update.passed is not None and not update.passed:
+        if (
+            update_step
+            and log_file is None
+            and not self.client._simulate
+            and update.passed is not None
+            and not update.passed
+        ):
             step = await self.get_step(test_step=updated_test_measurement.test_step_id)
             if step.status == TestStatus.PASSED:
                 await self.update_step(test_step=step, update={"status": TestStatus.FAILED})

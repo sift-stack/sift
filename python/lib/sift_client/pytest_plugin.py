@@ -1,30 +1,18 @@
 from __future__ import annotations
 
 import os
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
-import numpy as np
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
-from sift_client.util.test_results.bounds import (
-    all_within_bounds,
-    to_numpy_array,
-    value_passes_bounds,
-)
 
 if TYPE_CHECKING:
-    import pandas as pd
-    from numpy.typing import NDArray
-
-    from sift_client.sift_types.channel import Channel
-    from sift_client.sift_types.test_report import NumericBounds
     from sift_client.util.test_results.context_manager import NewStep
 
 REPORT_CONTEXT: Any = None
@@ -295,10 +283,14 @@ def _report_context_impl(
     else:
         base_name = "pytest " + " ".join(args) if args else "pytest"
         test_case = base_name
-    log_file = _resolve_log_file(pytestconfig)
+    # When the client is in simulate mode (disabled), bypass the log-file
+    # pipeline — pinning a path would create a file the simulate path never
+    # writes to — and skip the import subprocess (no real RPCs to replay).
+    simulate = sift_client._simulate
+    log_file: str | Path | bool | None = False if simulate else _resolve_log_file(pytestconfig)
     git_metadata = _option_or_ini(pytestconfig, _GIT_METADATA)
     include_git_metadata = True if git_metadata is None else bool(git_metadata)
-    offline = _is_offline(pytestconfig)
+    offline = False if simulate else _is_offline(pytestconfig)
     with ReportContext(
         sift_client,
         name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
@@ -310,116 +302,6 @@ def _report_context_impl(
         global REPORT_CONTEXT
         REPORT_CONTEXT = context
         yield context
-
-
-class _NoopTestStep:
-    """Stub for ``TestStep`` exposing only the attributes user code touches."""
-
-    description: str | None = None
-    status: Any = None
-
-    def update(self, *_args: Any, **_kwargs: Any) -> None:
-        return None
-
-
-class _NoopReport:
-    """Stub for ``TestReport`` exposing only ``.update(...)``."""
-
-    def update(self, *_args: Any, **_kwargs: Any) -> None:
-        return None
-
-
-class _NoopStep(AbstractContextManager):
-    """Step shim mirroring ``NewStep``'s public surface without any I/O.
-
-    Used by ``--sift-disabled`` mode so test code that calls
-    ``step.measure(...)`` or ``step.substep(...)`` keeps working without
-    any Sift configuration. ``measure*`` calls evaluate bounds locally and
-    return a real pass/fail boolean.
-    """
-
-    def __init__(self, name: str, description: str | None = None) -> None:
-        self.name = name
-        self.current_step = _NoopTestStep()
-        self.current_step.description = description
-
-    def __enter__(self) -> _NoopStep:
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb) -> None:
-        return None
-
-    def measure(
-        self,
-        *,
-        name: str,
-        value: float | str | bool | int,
-        bounds: dict[str, float] | NumericBounds | str | bool | None = None,
-        timestamp: datetime | None = None,
-        unit: str | None = None,
-        description: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-        channel_names: list[str] | list[Channel] | None = None,
-    ) -> bool:
-        return value_passes_bounds(value, bounds)
-
-    def measure_avg(
-        self,
-        *,
-        name: str,
-        values: list[float | int] | NDArray[np.float64] | pd.Series,
-        bounds: dict[str, float] | NumericBounds,
-        timestamp: datetime | None = None,
-        unit: str | None = None,
-        description: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-        channel_names: list[str] | list[Channel] | None = None,
-    ) -> bool:
-        return value_passes_bounds(float(np.mean(to_numpy_array(values))), bounds)
-
-    def measure_all(
-        self,
-        *,
-        name: str,
-        values: list[float | int] | NDArray[np.float64] | pd.Series,
-        bounds: dict[str, float] | NumericBounds,
-        timestamp: datetime | None = None,
-        unit: str | None = None,
-        description: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-        channel_names: list[str] | list[Channel] | None = None,
-    ) -> bool:
-        return all_within_bounds(to_numpy_array(values), bounds)
-
-    def report_outcome(self, name: str, result: bool, reason: str | None = None) -> bool:
-        return result
-
-    def substep(
-        self,
-        name: str,
-        description: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-    ) -> _NoopStep:
-        return _NoopStep(name=name, description=description)
-
-    def update_step_from_result(self, *_args: Any, **_kwargs: Any) -> None:
-        return None
-
-
-class _NoopReportContext:
-    """Report context shim exposing only what user code or autouse hooks touch."""
-
-    def __init__(self) -> None:
-        self.report = _NoopReport()
-
-    def new_step(
-        self,
-        name: str,
-        description: str | None = None,
-        assertion_as_fail_not_error: bool = True,
-        metadata: dict[str, str | float | bool] | None = None,
-    ) -> _NoopStep:
-        return _NoopStep(name=name, description=description)
 
 
 _CREDENTIAL_KEYS: tuple[tuple[str, _Option | None], ...] = (
@@ -436,6 +318,24 @@ _OFFLINE_DEFAULTS = {
     "SIFT_GRPC_URI": "offline.invalid:0",
     "SIFT_REST_URI": "http://offline.invalid",
 }
+
+
+def _build_disabled_client() -> SiftClient:
+    """Construct a SiftClient for ``--sift-disabled`` mode.
+
+    Tagged with ``_simulate=True`` so test-results writes short-circuit through
+    the existing low-level simulate path without contacting Sift. The URLs are
+    syntactically valid but unreachable; nothing dials them.
+    """
+    client = SiftClient(
+        connection_config=SiftConnectionConfig(
+            api_key="disabled",
+            grpc_url="disabled.invalid:0",
+            rest_url="http://disabled.invalid",
+        )
+    )
+    client._simulate = True
+    return client
 
 
 def _resolve_credential(
@@ -475,13 +375,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     always used.
     """
     if _is_disabled(pytestconfig):
-        return SiftClient(
-            connection_config=SiftConnectionConfig(
-                api_key=os.getenv("SIFT_API_KEY") or "disabled",
-                grpc_url=os.getenv("SIFT_GRPC_URI") or "disabled.invalid:0",
-                rest_url=os.getenv("SIFT_REST_URI") or "http://disabled.invalid",
-            )
-        )
+        return _build_disabled_client()
     resolved = {env: _resolve_credential(pytestconfig, env, opt) for env, opt in _CREDENTIAL_KEYS}
     missing = [env for env, value in resolved.items() if not value]
     if missing and not _is_offline(pytestconfig):
@@ -511,7 +405,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
 @pytest.fixture(scope="session")
 def report_context(
     request: pytest.FixtureRequest, pytestconfig: pytest.Config
-) -> Generator[ReportContext | _NoopReportContext, None, None]:
+) -> Generator[ReportContext, None, None]:
     """Lazy session-scoped Sift ReportContext.
 
     The fixture is no longer autouse; it's instantiated on the first call
@@ -522,9 +416,12 @@ def report_context(
 
     What gets yielded depends on the mode:
 
-    * ``--sift-disabled``: a stub context with no client, no network, and
-      no log file. Test code that calls ``step.measure(...)`` keeps
-      working because bounds are evaluated locally.
+    * ``--sift-disabled``: a real ``ReportContext`` against a placeholder
+      ``SiftClient`` with ``_simulate=True``. Every test-results write
+      returns a synthesized response without contacting Sift; no log file
+      is written; the replay subprocess never spawns. Test code that calls
+      ``step.measure(...)`` keeps working because bounds are evaluated as
+      usual and routed through the simulate path.
     * ``--sift-offline``: a real ReportContext, but the session-start ping
       is skipped, all create/update calls go to the JSONL log file, and
       the import-test-result-log replay subprocess is not spawned at
@@ -538,10 +435,9 @@ def report_context(
     ``--sift-log-file``; defaults to a temp file when unset.
     """
     if _is_disabled(pytestconfig):
-        global REPORT_CONTEXT
-        ctx = _NoopReportContext()
-        REPORT_CONTEXT = ctx
-        yield ctx
+        yield from _report_context_impl(
+            _build_disabled_client(), request, pytestconfig=pytestconfig
+        )
         return
     sift_client = request.getfixturevalue("sift_client")
     if not _is_offline(pytestconfig):
@@ -561,8 +457,8 @@ def report_context(
 
 
 def _step_impl(
-    report_context: ReportContext | _NoopReportContext, request: pytest.FixtureRequest
-) -> Generator[NewStep | _NoopStep, None, None]:
+    report_context: ReportContext, request: pytest.FixtureRequest
+) -> Generator[NewStep, None, None]:
     name = str(request.node.name)
     existing_docstring = request.node.obj.__doc__ or None
     with report_context.new_step(
@@ -581,7 +477,7 @@ def _step_impl(
 def step(
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
-) -> Generator[NewStep | _NoopStep | None, None, None]:
+) -> Generator[NewStep | None, None, None]:
     """Create an outer step for the function when the Sift gate is on.
 
     Resolves the gate via `_sift_enabled_for(request.node, ini_default)`:
@@ -589,8 +485,9 @@ def step(
     `sift_autouse` ini default applies. When on, requests the
     session `report_context` lazily — the first gated test in the session
     triggers its creation, subsequent gated tests reuse it. In
-    ``--sift-disabled`` mode the report context is a stub, so the gate still
-    runs but the resulting step is a no-op shim.
+    ``--sift-disabled`` mode the report context is backed by a
+    ``SiftClient(_simulate=True)`` placeholder, so every write returns a
+    synthesized response without contacting Sift.
     """
     default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
     if not _sift_enabled_for(request.node, default):
@@ -604,7 +501,7 @@ def step(
 def module_substep(
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
-) -> Generator[NewStep | _NoopStep | None, None, None]:
+) -> Generator[NewStep | None, None, None]:
     """Create a per-module step when at least one test in the module is gated on.
 
     Inspects the module's collected items rather than gating on a single marker,

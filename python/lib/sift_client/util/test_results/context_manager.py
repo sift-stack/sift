@@ -216,6 +216,15 @@ class ReportContext(AbstractContextManager):
 
         return True
 
+    @property
+    def is_simulated(self) -> bool:
+        """True when this context's report came from the simulate path.
+
+        Delegates to ``self.report.is_simulated``; see ``TestReport.is_simulated``
+        for the full semantics.
+        """
+        return self.report.is_simulated
+
     def new_step(
         self,
         name: str,
