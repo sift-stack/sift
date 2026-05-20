@@ -264,15 +264,13 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
 
 fn nearest_time_dataset(group_time: &HashMap<String, String>, value_path: &str) -> Option<String> {
     let mut current = parent_path(value_path);
-    loop {
+    while current != "/" {
         if let Some(t) = group_time.get(current) {
             return Some(t.clone());
         }
-        if current == "/" {
-            return None;
-        }
         current = parent_path(current);
     }
+    group_time.get("/").cloned()
 }
 
 fn one_d_channel_name(value_path: &str) -> String {
