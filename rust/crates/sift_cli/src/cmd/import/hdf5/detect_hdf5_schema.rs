@@ -39,10 +39,10 @@ fn is_value_leaf(name: &str) -> bool {
 fn collect_datasets_recursive(group: &Group) -> Result<Vec<Dataset>> {
     let mut datasets = group
         .datasets()
-        .map_err(|e| anyhow!("failed to enumerate datasets in {}: {e}", group.name()))?;
+        .with_context(|| anyhow!("failed to enumerate datasets in {}", group.name()))?;
     let subgroups = group
         .groups()
-        .map_err(|e| anyhow!("failed to enumerate groups in {}: {e}", group.name()))?;
+        .with_context(|| anyhow!("failed to enumerate groups in {}", group.name()))?;
     for sub in &subgroups {
         datasets.extend(collect_datasets_recursive(sub)?);
     }
