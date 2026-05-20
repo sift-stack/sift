@@ -188,7 +188,9 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
         if !is_time_dataset_name(&name) || ds.ndim() != 1 {
             continue;
         }
-        group_time.entry(parent_path(&name).to_owned()).or_insert(name);
+        group_time
+            .entry(parent_path(&name).to_owned())
+            .or_insert(name);
     }
 
     if group_time.is_empty() {

@@ -305,5 +305,9 @@ fn enum_types_for_extracts_members() {
 #[test]
 fn enum_types_for_returns_empty_for_non_enum() {
     assert!(enum_types_for(&TypeDescriptor::Boolean).unwrap().is_empty());
-    assert!(enum_types_for(&TypeDescriptor::Integer(IntSize::U4)).unwrap().is_empty());
+    assert!(
+        enum_types_for(&TypeDescriptor::Integer(IntSize::U4))
+            .unwrap()
+            .is_empty()
+    );
 }
