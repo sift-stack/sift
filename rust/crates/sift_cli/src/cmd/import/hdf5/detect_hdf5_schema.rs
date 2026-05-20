@@ -12,6 +12,7 @@ use sift_rs::{
 use crate::cli::hdf5::Hdf5Schema;
 use crate::util::tty::Output;
 
+const ROOT_PATH: &str = "/";
 const TIME_NAMES: &[&str] = &["time", "timestamp", "timestamps", "ts"];
 const VALUE_NAMES: &[&str] = &["value", "values"];
 
@@ -21,9 +22,9 @@ pub fn basename(path: &str) -> &str {
 
 pub fn parent_path(path: &str) -> &str {
     match path.rfind('/') {
-        Some(0) => "/",
+        Some(0) => ROOT_PATH,
         Some(idx) => &path[..idx],
-        None => "/",
+        None => ROOT_PATH,
     }
 }
 
@@ -264,19 +265,19 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
 
 fn nearest_time_dataset(group_time: &HashMap<String, String>, value_path: &str) -> Option<String> {
     let mut current = parent_path(value_path);
-    while current != "/" {
+    while current != ROOT_PATH {
         if let Some(t) = group_time.get(current) {
             return Some(t.clone());
         }
         current = parent_path(current);
     }
-    group_time.get("/").cloned()
+    group_time.get(ROOT_PATH).cloned()
 }
 
 fn one_d_channel_name(value_path: &str) -> String {
     if is_value_leaf(value_path) {
         let parent = parent_path(value_path);
-        if parent != "/" {
+        if parent != ROOT_PATH {
             return parent.trim_start_matches('/').to_string();
         }
     }
