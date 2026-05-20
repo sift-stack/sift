@@ -60,8 +60,6 @@ fn get_string_attr(ds: &Dataset, name: &str) -> Option<String> {
     None
 }
 
-/// Supported HDF5 channel types. Anything outside this set is rejected with a
-/// client-side error so users get clear feedback before upload.
 pub(super) const SUPPORTED_TYPES_BLURB: &str =
     "bool, int8/16/32/64, uint8/16/32/64, float32, float64, string, enum";
 
@@ -176,10 +174,10 @@ fn no_match_error(
 fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
     let mut group_time: HashMap<String, String> = HashMap::new();
     for ds in datasets {
-        if !is_time_dataset_name(&ds.name()) || ds.ndim() != 1 {
+        let name = ds.name();
+        if !is_time_dataset_name(&name) || ds.ndim() != 1 {
             continue;
         }
-        let name = ds.name();
         group_time.entry(parent_path(&name)).or_insert(name);
     }
 

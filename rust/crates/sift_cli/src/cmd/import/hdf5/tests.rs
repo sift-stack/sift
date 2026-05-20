@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use chrono::DateTime;
-use hdf5::types::{FloatSize, IntSize, TypeDescriptor};
+use hdf5::types::{EnumMember, EnumType, FloatSize, IntSize, TypeDescriptor};
 use sift_rs::common::r#type::v1::ChannelDataType;
 use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
 
@@ -9,7 +9,7 @@ use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
 use crate::cmd::import::hdf5::detect_hdf5_schema::{
-    basename, hdf5_to_sift_data_type, is_time_dataset_name, parent_path,
+    basename, enum_types_for, hdf5_to_sift_data_type, is_time_dataset_name, parent_path,
 };
 use crate::cmd::import::hdf5::import::build_hdf5_config;
 
@@ -266,7 +266,6 @@ fn hdf5_to_sift_data_type_maps_strings() {
 
 #[test]
 fn hdf5_to_sift_data_type_maps_enum() {
-    use hdf5::types::{EnumMember, EnumType};
     let ty = TypeDescriptor::Enum(EnumType {
         size: IntSize::U4,
         signed: false,
@@ -280,8 +279,6 @@ fn hdf5_to_sift_data_type_maps_enum() {
 
 #[test]
 fn enum_types_for_extracts_members() {
-    use crate::cmd::import::hdf5::detect_hdf5_schema::enum_types_for;
-    use hdf5::types::{EnumMember, EnumType};
     let ty = TypeDescriptor::Enum(EnumType {
         size: IntSize::U4,
         signed: true,
@@ -307,7 +304,6 @@ fn enum_types_for_extracts_members() {
 
 #[test]
 fn enum_types_for_returns_empty_for_non_enum() {
-    use crate::cmd::import::hdf5::detect_hdf5_schema::enum_types_for;
     assert!(enum_types_for(&TypeDescriptor::Boolean).is_empty());
     assert!(enum_types_for(&TypeDescriptor::Integer(IntSize::U4)).is_empty());
 }
