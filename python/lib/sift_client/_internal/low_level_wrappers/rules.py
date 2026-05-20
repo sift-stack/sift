@@ -80,6 +80,7 @@ def _channel_reference_to_proto(ref: ChannelReference) -> ChannelReferenceProto:
         return ChannelReferenceProto(
             calculated_channel_version_id=ref.calculated_channel_version_id
         )
+    assert ref.channel_identifier is not None
     return ChannelReferenceProto(name=ref.channel_identifier)
 
 

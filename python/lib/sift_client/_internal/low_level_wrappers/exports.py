@@ -49,7 +49,12 @@ def _build_calc_channel_configs(
                 channel_references=[
                     CalculatedChannelAbstractChannelReference(
                         channel_reference=ref.channel_reference,
-                        channel_identifier=ref.channel_identifier,
+                        calculated_channel_version_id=ref.calculated_channel_version_id,
+                    )
+                    if ref.calculated_channel_version_id
+                    else CalculatedChannelAbstractChannelReference(
+                        channel_reference=ref.channel_reference,
+                        channel_identifier=ref.channel_identifier or "",
                     )
                     for ref in refs
                 ],
