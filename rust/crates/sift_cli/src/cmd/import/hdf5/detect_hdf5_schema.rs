@@ -15,7 +15,7 @@ const TIME_NAMES: &[&str] = &["time", "timestamp", "timestamps", "ts"];
 const VALUE_NAMES: &[&str] = &["value", "values"];
 
 pub fn basename(path: &str) -> &str {
-    path.rsplit('/').nth(0).unwrap_or(path)
+    path.rsplit('/').next().unwrap_or(path)
 }
 
 pub fn parent_path(path: &str) -> String {
