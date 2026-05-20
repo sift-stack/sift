@@ -12,6 +12,7 @@ use crate::cmd::import::hdf5::detect_hdf5_schema::{
     basename, enum_types_for, hdf5_to_sift_data_type, is_time_dataset_name, parent_path,
 };
 use crate::cmd::import::hdf5::import::build_hdf5_config;
+use crate::cmd::import::utils::group_path_to_channel_name;
 
 fn make_args() -> ImportHdf5Args {
     ImportHdf5Args {
@@ -310,4 +311,27 @@ fn enum_types_for_returns_empty_for_non_enum() {
             .unwrap()
             .is_empty()
     );
+}
+
+#[test]
+fn group_path_to_channel_name_root_dataset() {
+    assert_eq!(group_path_to_channel_name("/cpu_usage"), "cpu_usage");
+}
+
+#[test]
+fn group_path_to_channel_name_single_nested_group() {
+    assert_eq!(group_path_to_channel_name("/group1/current"), "group1.current");
+}
+
+#[test]
+fn group_path_to_channel_name_deeply_nested() {
+    assert_eq!(
+        group_path_to_channel_name("/group2/group3/group4/cell_voltage"),
+        "group2.group3.group4.cell_voltage"
+    );
+}
+
+#[test]
+fn group_path_to_channel_name_no_leading_slash() {
+    assert_eq!(group_path_to_channel_name("group1/current"), "group1.current");
 }

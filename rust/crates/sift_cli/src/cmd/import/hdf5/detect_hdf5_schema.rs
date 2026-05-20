@@ -10,6 +10,7 @@ use sift_rs::{
 };
 
 use crate::cli::hdf5::Hdf5Schema;
+use crate::cmd::import::utils::group_path_to_channel_name;
 use crate::util::tty::Output;
 
 const ROOT_PATH: &str = "/";
@@ -280,10 +281,10 @@ fn one_d_channel_name(value_path: &str) -> String {
     if is_value_leaf(value_path) {
         let parent = parent_path(value_path);
         if parent != ROOT_PATH {
-            return parent.trim_start_matches('/').to_string();
+            return group_path_to_channel_name(parent);
         }
     }
-    value_path.trim_start_matches('/').to_string()
+    group_path_to_channel_name(value_path)
 }
 
 fn detect_two_d(
@@ -322,7 +323,7 @@ fn detect_two_d(
             if col == time_index {
                 continue;
             }
-            let channel_name = format!("{}.{col}", name.trim_start_matches('/'));
+            let channel_name = format!("{}.{col}", group_path_to_channel_name(&name));
             let channel_config = ChannelConfig {
                 name: channel_name,
                 data_type: channel_type as i32,
@@ -398,7 +399,7 @@ fn detect_compound(
                     field.ty
                 ));
             };
-            let channel_name = format!("{}.{}", name.trim_start_matches('/'), field.name);
+            let channel_name = format!("{}.{}", group_path_to_channel_name(&name), field.name);
             let channel_config = ChannelConfig {
                 name: channel_name,
                 data_type: channel_type as i32,
