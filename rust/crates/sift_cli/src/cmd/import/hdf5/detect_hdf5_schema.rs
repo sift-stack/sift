@@ -14,11 +14,11 @@ use crate::cli::hdf5::Hdf5Schema;
 const TIME_NAMES: &[&str] = &["time", "timestamp", "timestamps", "ts"];
 const VALUE_NAMES: &[&str] = &["value", "values"];
 
-pub(super) fn basename(path: &str) -> &str {
+pub fn basename(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
 }
 
-pub(super) fn parent_path(path: &str) -> String {
+pub fn parent_path(path: &str) -> String {
     match path.rfind('/') {
         Some(0) => "/".to_string(),
         Some(idx) => path[..idx].to_string(),
@@ -26,7 +26,7 @@ pub(super) fn parent_path(path: &str) -> String {
     }
 }
 
-pub(super) fn is_time_dataset_name(name: &str) -> bool {
+pub fn is_time_dataset_name(name: &str) -> bool {
     let leaf = basename(name).to_ascii_lowercase();
     TIME_NAMES.iter().any(|n| *n == leaf)
 }
@@ -60,10 +60,10 @@ fn get_string_attr(ds: &Dataset, name: &str) -> Option<String> {
     None
 }
 
-pub(super) const SUPPORTED_TYPES_BLURB: &str =
+pub const SUPPORTED_TYPES_BLURB: &str =
     "bool, int8/16/32/64, uint8/16/32/64, float32, float64, string, enum";
 
-pub(super) fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
+pub fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
     match ty {
         TypeDescriptor::Boolean => Some(ChannelDataType::Bool),
         TypeDescriptor::Integer(IntSize::U1)
@@ -85,7 +85,7 @@ pub(super) fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataT
     }
 }
 
-pub(super) fn enum_types_for(ty: &TypeDescriptor) -> Vec<ChannelEnumType> {
+pub fn enum_types_for(ty: &TypeDescriptor) -> Vec<ChannelEnumType> {
     let TypeDescriptor::Enum(e) = ty else {
         return Vec::new();
     };
@@ -99,7 +99,7 @@ pub(super) fn enum_types_for(ty: &TypeDescriptor) -> Vec<ChannelEnumType> {
         .collect()
 }
 
-pub(super) fn detect_config(
+pub fn detect_config(
     path: &Path,
     schema: Hdf5Schema,
     time_index: u64,
