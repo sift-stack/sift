@@ -10,6 +10,7 @@ use sift_rs::{
 };
 
 use crate::cli::hdf5::Hdf5Schema;
+use crate::util::tty::Output;
 
 const TIME_NAMES: &[&str] = &["time", "timestamp", "timestamps", "ts"];
 const VALUE_NAMES: &[&str] = &["value", "values"];
@@ -211,18 +212,22 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
         let dtype = match ds.dtype().and_then(|t| t.to_descriptor()) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!(
-                    "skipping {name}: cannot describe HDF5 dtype ({e}). \
-                     Supported types: {SUPPORTED_TYPES_BLURB}."
-                );
+                Output::new()
+                    .line(format!(
+                        "skipping {name}: cannot describe HDF5 dtype ({e}). \
+                         Supported types: {SUPPORTED_TYPES_BLURB}."
+                    ))
+                    .eprint();
                 continue;
             }
         };
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
-            eprintln!(
-                "skipping {name}: unsupported HDF5 type {dtype:?}. \
-                 Supported types: {SUPPORTED_TYPES_BLURB}."
-            );
+            Output::new()
+                .line(format!(
+                    "skipping {name}: unsupported HDF5 type {dtype:?}. \
+                     Supported types: {SUPPORTED_TYPES_BLURB}."
+                ))
+                .eprint();
             continue;
         };
 
