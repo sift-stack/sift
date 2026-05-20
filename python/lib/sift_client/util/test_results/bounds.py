@@ -22,8 +22,8 @@ def to_numpy_array(
 ) -> NDArray[np.float64]:
     """Normalize a list / ndarray / pandas Series into a numpy array.
 
-    Shared by ``measure_avg`` and ``measure_all`` in both the real and
-    stub step implementations so the accepted input types stay in sync.
+    Shared by ``measure_avg`` and ``measure_all`` on ``NewStep`` so the
+    accepted input types stay in sync across measurement variants.
     """
     if isinstance(values, list):
         return np.array(values)
@@ -90,12 +90,7 @@ def value_passes_bounds(
     value: float | str | bool,
     bounds: dict[str, float] | NumericBounds | str | bool | None,
 ) -> bool:
-    """Evaluate a value against bounds without recording a measurement.
-
-    Used by consumers that need pass/fail semantics matching the real plugin but
-    do not transmit a measurement (e.g. ``--sift-disabled`` mode in the pytest
-    plugin).
-    """
+    """Evaluate a value against bounds without recording a measurement."""
     if bounds is None:
         return True
     if isinstance(bounds, dict):

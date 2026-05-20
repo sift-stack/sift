@@ -95,7 +95,7 @@ def sift_client() -> SiftClient:
 | Flag | Default | Effect |
 |---|---|---|
 | `--sift-offline` | off (online) | Skip the session-start ping and don't contact Sift. All create/update calls go to the JSONL log file for later replay via `import-test-result-log`. Missing `SIFT_*` env vars are tolerated; placeholders are filled. |
-| `--sift-disabled` | off | Skip Sift entirely. Autouse fixtures yield stub objects; `step.measure(...)` still returns real pass/fail booleans by evaluating bounds locally. Nothing is sent to Sift and no log file is written. Also honored via `SIFT_DISABLED=1`. Supersedes every other flag (if both `--sift-disabled` and `--sift-offline` are passed, disabled wins). |
+| `--sift-disabled` | off | Skip Sift entirely. Nothing contacts the API and no log file is written; `step.measure(...)` still evaluates bounds and returns a real pass/fail boolean. Also honored via `SIFT_DISABLED=1`. Supersedes every other flag (disabled wins over offline). |
 | `--sift-log-file=<path\|true\|false>` | temp file | Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an `import-test-result-log --incremental` worker that polls the file and replays entries against Sift while the run is in flight. Pass `false` to disable the file entirely; create/update calls then go straight to the API synchronously during tests. Incompatible with `--sift-offline` since offline mode needs the log file as its sole sink. |
 | `--no-sift-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
 
@@ -671,7 +671,7 @@ The plugin runs in one of three modes, picked at invocation:
 |---|---|---|---|---|---|
 | Online (default) | _(none)_ | yes (pings at session start, aborts if it fails) | optional write-through backup | real measurement against Sift | CI with Sift credentials, local dev hitting your tenant |
 | Offline | `--sift-offline` | none | required (the sole sink) | real measurement queued to log | field tests, air-gapped labs, CI without network |
-| Disabled | `--sift-disabled` | none | none | local bounds eval returning a real bool | local dev or CI that doesn't have (or want) Sift |
+| Disabled | `--sift-disabled` | none | none | bounds eval; returns a real bool | local dev or CI that doesn't have (or want) Sift |
 
 Pass both flags? Disabled wins. It's the "skip Sift entirely" hammer and
 supersedes everything else.
@@ -739,13 +739,17 @@ gone.
 
 ### Disabled mode (`--sift-disabled`)
 
-The plugin stays loaded so the autouse fixtures and markers still exist,
-but `report_context`, `step`, and `module_substep` yield stub objects.
-The stubs still do something useful: `step.measure(...)`,
-`step.measure_avg(...)`, `step.measure_all(...)`, and `step.substep(...)`
-all keep working, bounds are evaluated locally, and you get a real
-pass/fail boolean back. Nothing leaves the process. No log file, no
-`SIFT_*` env vars, no ini keys.
+The plugin stays loaded with the same fixtures and markers as the other
+modes. Nothing contacts Sift, no log file is written, and no `SIFT_*`
+env vars are required. `step.measure(...)`, `step.measure_avg(...)`,
+`step.measure_all(...)`, `step.substep(...)`, and
+`report_context.report.update({...})` all behave normally — bounds
+evaluate and you get a real pass/fail boolean back.
+
+Entities returned in disabled mode report `is_simulated == True` (on
+`TestReport`, `TestStep`, `TestMeasurement`, and `ReportContext`) so
+consumers and tests can branch on provenance. Offline-mode entities
+also report `is_simulated == True`.
 
 How to turn it on, in the order most projects pick:
 

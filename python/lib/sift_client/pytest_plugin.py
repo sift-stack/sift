@@ -76,11 +76,11 @@ _DISABLED = _Option(
     cli_flag="--sift-disabled",
     ini_name="sift_disabled",
     action="store_true",
-    cli_help="Disable Sift integration entirely. Autouse fixtures yield stub "
-    "objects; `step.measure(...)` still returns real pass/fail booleans by "
-    "evaluating bounds locally, but nothing is sent to Sift and no log file "
-    "is written. Also honored via the `SIFT_DISABLED` env var. Supersedes "
-    "every other flag.",
+    cli_help="Disable Sift integration entirely. Nothing contacts the API "
+    "and no log file is written. `step.measure(...)` still returns real "
+    "pass/fail booleans. Returned entities expose `is_simulated == True`. "
+    "Also honored via the `SIFT_DISABLED` env var. Supersedes every other "
+    "flag.",
     ini_help="When true, run in disabled mode (same effect as --sift-disabled). "
     "Also honored via the SIFT_DISABLED env var. Supersedes every other "
     "setting. Defaults to false.",

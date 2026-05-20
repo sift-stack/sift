@@ -108,10 +108,11 @@ CLI options registered by the plugin:
 - `--sift-offline`: Run without contacting Sift. All create/update calls are
   written to the JSONL log file for later replay via `import-test-result-log`.
   No session-start ping is attempted.
-- `--sift-disabled`: Skip Sift entirely. Autouse fixtures yield stub objects;
-  `step.measure(...)` still returns real pass/fail booleans by evaluating
-  bounds locally, but nothing is sent to Sift and no log file is written.
-  Also honored via the `SIFT_DISABLED` env var. Supersedes every other flag.
+- `--sift-disabled`: Skip Sift entirely. Nothing contacts the API and no
+  log file is written. `step.measure(...)` still evaluates bounds and
+  returns a real pass/fail boolean. Returned entities expose
+  ``is_simulated == True``. Also honored via the `SIFT_DISABLED` env
+  var. Supersedes every other flag.
 - `--sift-log-file`: Path to write the JSONL log file. `true`
   (default) auto-creates a temp file. `false` or `none` disables logging.
   Any other value is treated as a file path.
