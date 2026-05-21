@@ -152,6 +152,11 @@ class SiftClient(
         WithGrpcClient.__init__(self, grpc_client=grpc_client)
         WithRestClient.__init__(self, rest_client=rest_client)
 
+        # When set, test-results writes return synthesized responses without
+        # contacting Sift. Read by `TestResultsAPIAsync._simulate`. Used by the
+        # pytest plugin's ``--sift-disabled`` mode.
+        self._simulate: bool = False
+
         self.ping = PingAPI(self)
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
