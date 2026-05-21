@@ -348,16 +348,8 @@ pub enum ImportParquetCmd {
 
 #[derive(clap::Args)]
 pub struct FlatDatasetArgs {
-    /// Path to the Parquet file to import
-    pub path: PathBuf,
-
-    /// Name of the asset this data belongs to
-    #[arg(short, long)]
-    pub asset: String,
-
-    /// Optional run name to associate with this import
-    #[arg(short, long)]
-    pub run: Option<String>,
+    #[command(flatten)]
+    pub common: CommonImportArgs,
 
     /// Paths of data columns to import; can be specified multiple times
     #[arg(short, long)]
@@ -399,28 +391,12 @@ pub struct FlatDatasetArgs {
     /// Strategy for handling complex types (maps, lists, structs)
     #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
     pub complex_types_mode: ComplexTypesMode,
-
-    /// Wait until the import finishes processing
-    #[arg(short, long)]
-    pub wait: bool,
-
-    /// Preview the parsed schema without uploading
-    #[arg(short, long)]
-    pub preview: bool,
 }
 
 #[derive(clap::Args)]
 pub struct ScprArgs {
-    /// Path to the Parquet file to import
-    pub path: PathBuf,
-
-    /// Name of the asset this data belongs to
-    #[arg(short, long)]
-    pub asset: String,
-
-    /// Optional run name to associate with this import
-    #[arg(short, long)]
-    pub run: Option<String>,
+    #[command(flatten)]
+    pub common: CommonImportArgs,
 
     /// SCPR mode: single-channel or multi-channel
     #[arg(long)]
