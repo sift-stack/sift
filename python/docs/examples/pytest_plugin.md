@@ -690,13 +690,12 @@ usually weeks later, which is usually too late.
 With the default `--sift-log-file` setting on, create/update calls are
 written to a JSONL log file during the run and an
 `import-test-result-log --incremental` worker replays them against Sift
-in the background. If the worker hits a connection failure mid-session,
-the session keeps writing to the log file and the failure is logged at
-session end with the worker's stderr and a `replay-test-result-log`
-command for manual recovery. Test outcomes are unaffected — the local
-log file is preserved so you can re-import after fixing connectivity.
-Pass `--sift-log-file=false` to make every create/update synchronous
-against the API instead.
+in the background. If the worker crashes mid-session (connection failure,
+API error) or is still draining its backlog at session end, the failure
+is logged at session end with a `replay-test-result-log` command for
+manual recovery — test outcomes are unaffected and the local log file is
+preserved. Pass `--sift-log-file=false` to make every create/update
+synchronous against the API instead.
 
 #### Overriding the connection check
 
