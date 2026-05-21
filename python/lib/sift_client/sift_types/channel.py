@@ -345,12 +345,12 @@ class Channel(BaseType[ChannelProto, "Channel"]):
 
 
 class ChannelReference(BaseModel):
-    """Channel reference for calculated channel or rule.
+    """Channel reference for a calculated channel or rule expression.
 
     Exactly one of `channel_identifier` or `calculated_channel` must be set.
-    Pass a `CalculatedChannel` (or its version_id string) to reference another
-    calculated channel, which is required for nested calculated channels since
-    names are not unique. The string form is interpreted as a version_id.
+    To reference another calculated channel (nested CC), pass either a fetched
+    `CalculatedChannel` (its `version_id` is used) or a `version_id` string
+    directly. Both normalize to the `version_id` string after validation.
     """
 
     channel_reference: str  # The key of the channel in the expression i.e. $1, $2, etc.
