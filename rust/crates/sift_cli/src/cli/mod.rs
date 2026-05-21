@@ -442,14 +442,6 @@ pub struct ScprArgs {
     /// Strategy for handling complex types (maps, lists, structs)
     #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
     pub complex_types_mode: ComplexTypesMode,
-
-    /// Wait until the import finishes processing
-    #[arg(short, long)]
-    pub wait: bool,
-
-    /// Preview the parsed schema without uploading
-    #[arg(short, long)]
-    pub preview: bool,
 }
 
 #[derive(clap::Args)]
