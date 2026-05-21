@@ -120,7 +120,7 @@ class ReportContext(AbstractContextManager):
         test_case: str | None = None,
         log_file: str | Path | bool | None = None,
         include_git_metadata: bool = False,
-        offline: bool = False,
+        replay_log_file: bool = True,
     ):
         """Initialize a new report context.
 
@@ -131,20 +131,25 @@ class ReportContext(AbstractContextManager):
             system_operator: The operator of the test system. Will default to the current user if not provided.
             test_case: The name of the test case. Will default to the basename of the file containing the test if not provided.
             log_file: If True, create a temp log file. If a path, use that path.
-                All create/update operations will be logged to this file.
+                If False/None, no log file is written and create/update calls
+                the API.
             include_git_metadata: If True, include git metadata in the report.
-            offline: If True, do not spawn the import-test-result-log replay subprocess.
-                A log file is required and will be created as a temp file if not provided.
+            replay_log_file: When True (the default) and ``log_file`` is set,
+                spawn ``import-test-result-log --incremental`` to push log
+                entries to Sift in the background during the session. When
+                False, the log file is just a record and no worker is spawned.
+                Replay happens later via ``replay-test-result-log <path>``.
+                Has no effect when ``log_file`` is None.
         """
         self.client = client
-        self.offline = offline
+        self.replay_log_file = replay_log_file
         self.step_is_open = False
         self.step_stack = []
         self.step_number_at_depth = {}
         self.open_step_results = {}
         self.any_failures = False
 
-        if log_file is True or (offline and not log_file):
+        if log_file is True:
             tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
             self.log_file = Path(tmp.name)
             logger.info(f"Created temporary log file: {self.log_file}")
@@ -170,7 +175,11 @@ class ReportContext(AbstractContextManager):
         self.report = client.test_results.create(create, log_file=self.log_file)
 
     def _open_import_proc(self):
-        """Open a subprocess to import the log file."""
+        """Open a subprocess to import the log file.
+
+        ``stderr`` is captured so a worker crash mid-session can surface its
+        error at session end via ``__exit__`` rather than failing silently.
+        """
         with _quiet_fork_stderr():
             self._import_proc = subprocess.Popen(
                 [
@@ -186,11 +195,11 @@ class ReportContext(AbstractContextManager):
                 ],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
             )
 
     def __enter__(self):
-        if self.log_file and not self.offline:
+        if self.log_file and self.replay_log_file:
             self._open_import_proc()
         return self
 
@@ -205,14 +214,41 @@ class ReportContext(AbstractContextManager):
         self.report.update(update)
 
         if self._import_proc is not None:
+            # Three outcomes for the replay worker at session end:
+            #   1. Exits cleanly (returncode 0). Common happy path: stdin EOF
+            #      from communicate() tells the worker to drain and finish.
+            #   2. Still running after the 1s grace window (TimeoutExpired).
+            #      Typically a healthy worker with a large backlog. We kill
+            #      it, surface replay instructions, and raise — preserving
+            #      pre-existing behavior so a known-incomplete delivery
+            #      doesn't silently pass.
+            #   3. Exited with non-zero. This is where connection failures
+            #      and API call errors land: the worker's replay loop has
+            #      no retry, so the first failed RPC crashes the subprocess.
+            #      We log stderr at ERROR with replay instructions but do
+            #      NOT raise — tests already ran and their pass/fail is
+            #      independent of delivery. The local log file is preserved
+            #      for manual `replay-test-result-log <path>` recovery.
             try:
-                self._import_proc.communicate(timeout=1)
+                _, stderr_bytes = self._import_proc.communicate(timeout=1)
             except subprocess.TimeoutExpired:
-                logger.error("Import process did not exit in 10s, killing it")
+                logger.error("Import process did not exit in 1s, killing it")
                 self._import_proc.kill()
                 self._import_proc.wait()
                 log_replay_instructions(self.log_file)
                 raise
+            if self._import_proc.returncode != 0:
+                stderr_text = (
+                    stderr_bytes.decode("utf-8", errors="replace").strip()
+                    if stderr_bytes
+                    else ""
+                )
+                logger.error(
+                    "Import process exited with code %d. stderr: %s",
+                    self._import_proc.returncode,
+                    stderr_text or "<empty>",
+                )
+                log_replay_instructions(self.log_file)
 
         return True
 

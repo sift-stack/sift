@@ -283,21 +283,22 @@ def _report_context_impl(
     else:
         base_name = "pytest " + " ".join(args) if args else "pytest"
         test_case = base_name
-    # When the client is in simulate mode (disabled), bypass the log-file
-    # pipeline — pinning a path would create a file the simulate path never
-    # writes to — and skip the import subprocess (no real RPCs to replay).
-    simulate = sift_client._simulate
-    log_file: str | Path | bool | None = False if simulate else _resolve_log_file(pytestconfig)
+    # Mode → ReportContext flags:
+    #   online (default): log_file=<temp or user path>, replay_log_file=True
+    #   --sift-offline:   log_file=<temp or user path>, replay_log_file=False
+    #   --sift-disabled:  log_file=False,               replay_log_file=False
+    disabled = sift_client._simulate
+    offline = False if disabled else _is_offline(pytestconfig)
+    log_file: str | Path | bool | None = False if disabled else _resolve_log_file(pytestconfig)
     git_metadata = _option_or_ini(pytestconfig, _GIT_METADATA)
     include_git_metadata = True if git_metadata is None else bool(git_metadata)
-    offline = False if simulate else _is_offline(pytestconfig)
     with ReportContext(
         sift_client,
         name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
         test_case=str(test_case),
         log_file=log_file,
         include_git_metadata=include_git_metadata,
-        offline=offline,
+        replay_log_file=not (disabled or offline),
     ) as context:
         global REPORT_CONTEXT
         REPORT_CONTEXT = context
