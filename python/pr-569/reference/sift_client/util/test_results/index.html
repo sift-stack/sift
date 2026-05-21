@@ -1432,10 +1432,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.ReportContext.offline" class="md-nav__link">
+  <a href="#sift_client.util.test_results.ReportContext.open_step_results" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;offline
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;open_step_results
       
     </span>
   </a>
@@ -1443,10 +1443,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.ReportContext.open_step_results" class="md-nav__link">
+  <a href="#sift_client.util.test_results.ReportContext.replay_log_file" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;open_step_results
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;replay_log_file
       
     </span>
   </a>
@@ -2106,10 +2106,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.ReportContext.offline" class="md-nav__link">
+  <a href="#sift_client.util.test_results.ReportContext.open_step_results" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;offline
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;open_step_results
       
     </span>
   </a>
@@ -2117,10 +2117,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.ReportContext.open_step_results" class="md-nav__link">
+  <a href="#sift_client.util.test_results.ReportContext.replay_log_file" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;open_step_results
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;replay_log_file
       
     </span>
   </a>
@@ -3759,7 +3759,7 @@ is associated with.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">test_case</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">include_git_metadata</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">offline</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">replay_log_file</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
 </span></code></pre></div>
 
@@ -3881,7 +3881,8 @@ is associated with.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>If True, create a temp log file. If a path, use that path.
-All create/update operations will be logged to this file.</p>
+If False/None, no log file is written and create/update calls
+the API.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -3917,12 +3918,16 @@ All create/update operations will be logged to this file.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>offline</code>
+                <code>replay_log_file</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>If True, do not spawn the import-test-result-log replay subprocess.
-A log file is required and will be created as a temp file if not provided.</p>
+                <p>When True (the default) and <code>log_file</code> is set,
+spawn <code>import-test-result-log --incremental</code> to push log
+entries to Sift in the background during the session. When
+False, the log file is just a record and no worker is spawned.
+Replay happens later via <code>replay-test-result-log &lt;path&gt;</code>.
+Has no effect when <code>log_file</code> is None.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -3931,7 +3936,7 @@ A log file is required and will be created as a temp file if not provided.</p>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code>False</code>
+                      <code>True</code>
                   </span>
               </p>
             </td>
@@ -4097,21 +4102,6 @@ A log file is required and will be created as a temp file if not provided.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            offline
-
-
-  
-      instance-attribute
-   (sift_client.util.test_results.ReportContext.offline)" href="#sift_client.util.test_results.ReportContext.offline">offline</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                
-              </div>
-              <p>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            open_step_results
 
 
@@ -4127,6 +4117,21 @@ A log file is required and will be created as a temp file if not provided.</p>
                     <b>TYPE:</b>
                       <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="bool">bool</span>]</code>
                   </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            replay_log_file
+
+
+  
+      instance-attribute
+   (sift_client.util.test_results.ReportContext.replay_log_file)" href="#sift_client.util.test_results.ReportContext.replay_log_file">replay_log_file</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
               </p>
             </td>
           </tr>
@@ -4326,16 +4331,16 @@ for the full semantics.</p>
 
 
 
-<h3 id="sift_client.util.test_results.ReportContext.offline" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">offline</span>
+<h3 id="sift_client.util.test_results.ReportContext.open_step_results" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">open_step_results</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#sift_client.util.test_results.ReportContext.offline" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">offline</span> <span class="o">=</span> <span class="n"><span title="sift_client.util.test_results.context_manager.ReportContext(offline)">offline</span></span>
+<a href="#sift_client.util.test_results.ReportContext.open_step_results" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">open_step_results</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4348,16 +4353,16 @@ for the full semantics.</p>
 
 
 
-<h3 id="sift_client.util.test_results.ReportContext.open_step_results" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">open_step_results</span>
+<h3 id="sift_client.util.test_results.ReportContext.replay_log_file" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">replay_log_file</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#sift_client.util.test_results.ReportContext.open_step_results" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">open_step_results</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<a href="#sift_client.util.test_results.ReportContext.replay_log_file" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">replay_log_file</span> <span class="o">=</span> <span class="n"><span title="sift_client.util.test_results.context_manager.ReportContext(replay_log_file)">replay_log_file</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">

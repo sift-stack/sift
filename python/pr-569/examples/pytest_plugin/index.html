@@ -2460,6 +2460,15 @@ aborts the whole session with <code>pytest.UsageError</code> and points at
 <p>This is loud on purpose. A CI run that silently no-ops on a flaky network
 won't get noticed until somebody goes looking for the report, which is
 usually weeks later, which is usually too late.</p>
+<p>With the default <code>--sift-log-file</code> setting on, create/update calls are
+written to a JSONL log file during the run and an
+<code>import-test-result-log --incremental</code> worker replays them against Sift
+in the background. If the worker crashes mid-session (connection failure,
+API error) or is still draining its backlog at session end, the failure
+is logged at session end with a <code>replay-test-result-log</code> command for
+manual recovery — test outcomes are unaffected and the local log file is
+preserved. Pass <code>--sift-log-file=false</code> to make every create/update
+synchronous against the API instead.</p>
 <h4 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h4>
 <p>Override <code>client_has_connection</code> when ping isn't the right signal, for
 example a token cache that's only warm when authenticated:</p>
