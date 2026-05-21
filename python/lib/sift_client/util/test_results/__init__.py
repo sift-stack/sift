@@ -68,13 +68,13 @@ and `SIFT_REST_URI` from the environment. Override it by defining your own
 
 Note: FedRAMP users: results are buffered to a temp file and uploaded by a
 subprocess at session end (no API calls during the run). Disable the buffer
-entirely with `--sift-test-results-log-file=false` for inline uploads.
+entirely with `--sift-log-file=false` for inline uploads.
 
 ### Controlling which tests produce reports
 
 The autouse fixtures fire for every test by default. To narrow that:
 
-- Set `sift_test_results_autouse = false` in `pyproject.toml` to flip the
+- Set `sift_autouse = false` in `pyproject.toml` to flip the
   project default off, then opt tests back in below.
 - `@pytest.mark.sift_include` forces reporting on for a test, class, or
   module. `@pytest.mark.sift_exclude` forces it off. Closest marker wins.
@@ -105,19 +105,24 @@ def pytest_collection_modifyitems(config, items):
 
 CLI options registered by the plugin:
 
-- `--sift-test-results-log-file`: Path to write the JSONL log file. `true`
+- `--sift-offline`: Run without contacting Sift. All create/update calls are
+  written to the JSONL log file for later replay via `import-test-result-log`.
+  No session-start ping is attempted.
+- `--sift-disabled`: Skip Sift entirely. Nothing contacts the API and no
+  log file is written. `step.measure(...)` still evaluates bounds and
+  returns a real pass/fail boolean. Returned entities expose
+  ``is_simulated == True``. Also honored via the `SIFT_DISABLED` env
+  var. Supersedes every other flag.
+- `--sift-log-file`: Path to write the JSONL log file. `true`
   (default) auto-creates a temp file. `false` or `none` disables logging.
   Any other value is treated as a file path.
-- `--no-sift-test-results-git-metadata`: Exclude git metadata (repo, branch,
+- `--no-sift-git-metadata`: Exclude git metadata (repo, branch,
   commit) from the test report. Included by default.
-- `--sift-test-results-check-connection`: Make `report_context`, `step`, and
-  `module_substep` no-op when the client has no connection. Requires a
-  `client_has_connection` fixture (the plugin ships a default).
 
 Each option has a matching ini key for per-project configuration under
 ``[tool.pytest.ini_options]`` in ``pyproject.toml`` (or ``[pytest]`` in
 ``pytest.ini``). CLI flags override ini values. The
-``sift_test_results_autouse`` ini key (bool, default ``true``) sets the
+``sift_autouse`` ini key (bool, default ``true``) sets the
 project-wide default for the gate described above. The default
 ``sift_client`` fixture reads ``sift_grpc_uri`` and ``sift_rest_uri`` as
 fallbacks when the corresponding env vars are unset (env vars win when
@@ -126,10 +131,9 @@ via the ``pytest-dotenv`` plugin or inject it via your CI secret manager.
 
 ```toml
 [tool.pytest.ini_options]
-sift_test_results_autouse = false
-sift_test_results_log_file = "false"
-sift_test_results_check_connection = true
-sift_test_results_git_metadata = false
+sift_autouse = false
+sift_offline = true
+sift_git_metadata = false
 sift_grpc_uri = "your-org.sift.example:443"
 sift_rest_uri = "https://your-org.sift.example"
 ```
