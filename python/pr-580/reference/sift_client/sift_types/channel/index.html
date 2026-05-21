@@ -2612,7 +2612,7 @@ You're not viewing the latest version.
    (sift_client.sift_types.channel.ChannelReference)" href="#sift_client.sift_types.channel.ChannelReference">ChannelReference</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Channel reference for calculated channel or rule.</p>
+                <p>Channel reference for a calculated channel or rule expression.</p>
               </div>
             </td>
           </tr>
@@ -4371,11 +4371,11 @@ You're not viewing the latest version.
             <p class="doc doc-class-bases">
               Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
 
-        <p>Channel reference for calculated channel or rule.</p>
+        <p>Channel reference for a calculated channel or rule expression.</p>
 <p>Exactly one of <code>channel_identifier</code> or <code>calculated_channel</code> must be set.
-Pass a <code>CalculatedChannel</code> (or its version_id string) to reference another
-calculated channel, which is required for nested calculated channels since
-names are not unique. The string form is interpreted as a version_id.</p>
+To reference another calculated channel (nested CC), pass either a fetched
+<code>CalculatedChannel</code> (its <code>version_id</code> is used) or a <code>version_id</code> string
+directly. Both normalize to the <code>version_id</code> string after validation.</p>
 
     
 
