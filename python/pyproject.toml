@@ -344,6 +344,13 @@ module = "nptdms"
 ignore_missing_imports = true
 ignore_errors = true
 
+# alive-progress 3.3.0 ships py.typed but its `alive_it` signature is too
+# tight (declares `Collection[Never]`), which breaks unpacking generators.
+[[tool.mypy.overrides]]
+module = "alive_progress"
+follow_imports = "skip"
+ignore_errors = true
+
 [tool.setuptools.packages.find]
 where = ["lib"]
 exclude = ["sift_client._tests", "sift_client._tests.*"]
