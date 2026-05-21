@@ -158,7 +158,7 @@ class TestRuleChannelReferenceSerialization:
         )
 
         proto = _channel_reference_to_proto(
-            ChannelReference(channel_reference="$1", calculated_channel_version_id="v-abc")
+            ChannelReference(channel_reference="$1", calculated_channel="v-abc")
         )
         assert proto.HasField("calculated_channel_version_id")
         assert proto.calculated_channel_version_id == "v-abc"
@@ -218,5 +218,5 @@ class TestRuleChannelReferenceSerialization:
         assert rule.channel_references is not None
         assert len(rule.channel_references) == 1
         ref = rule.channel_references[0]
-        assert ref.calculated_channel_version_id == "v-xyz"
+        assert ref.calculated_channel == "v-xyz"
         assert ref.channel_identifier is None

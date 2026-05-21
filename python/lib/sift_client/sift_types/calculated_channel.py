@@ -26,6 +26,28 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
+def _channel_reference_to_proto(
+    channel_reference: str,
+    channel_identifier: str | None = None,
+    calculated_channel: str | None = None,
+) -> CalculatedChannelAbstractChannelReference:
+    """Convert a ChannelReference dict (from model_dump) into its proto form.
+
+    Maps the ``calculated_channel`` field onto the proto's ``calculated_channel_version_id``
+    oneof. After ChannelReference validation, ``calculated_channel`` is always a
+    version_id string (or None).
+    """
+    if calculated_channel:
+        return CalculatedChannelAbstractChannelReference(
+            channel_reference=channel_reference,
+            calculated_channel_version_id=calculated_channel,
+        )
+    return CalculatedChannelAbstractChannelReference(
+        channel_reference=channel_reference,
+        channel_identifier=channel_identifier or "",
+    )
+
+
 class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     """Model of the Sift Calculated Channel."""
 
@@ -160,7 +182,7 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
         "expression_channel_references": MappingHelper(
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression_channel_references",
             update_field="query_configuration",
-            converter=CalculatedChannelAbstractChannelReference,
+            converter=_channel_reference_to_proto,
         ),
         "tag_ids": MappingHelper(
             proto_attr_path="calculated_channel_configuration.asset_configuration.selection.tag_ids",
@@ -222,3 +244,8 @@ class CalculatedChannelUpdate(CalculatedChannelBase, ModelUpdate[CalculatedChann
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.calculated_channel_id = self._resource_id
+
+
+# Resolve the forward reference to CalculatedChannel in ChannelReference now that
+# CalculatedChannel is defined in this module's namespace.
+ChannelReference.model_rebuild(_types_namespace={"CalculatedChannel": CalculatedChannel})  # type: ignore[arg-type]

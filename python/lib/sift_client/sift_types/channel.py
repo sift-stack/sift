@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.calculated_channel import CalculatedChannel
     from sift_client.sift_types.run import Run
 
 
@@ -346,23 +347,36 @@ class Channel(BaseType[ChannelProto, "Channel"]):
 class ChannelReference(BaseModel):
     """Channel reference for calculated channel or rule.
 
-    Exactly one of `channel_identifier` or `calculated_channel_version_id` must be set.
-    Use `calculated_channel_version_id` to reference another calculated channel by its
-    version ID (required for nested calculated channels, since names are not unique).
+    Exactly one of `channel_identifier` or `calculated_channel` must be set.
+    Pass a `CalculatedChannel` (or its version_id string) to reference another
+    calculated channel, which is required for nested calculated channels since
+    names are not unique. The string form is interpreted as a version_id.
     """
 
     channel_reference: str  # The key of the channel in the expression i.e. $1, $2, etc.
     channel_identifier: str | None = None  # The name (or ID) of an existing channel.
-    calculated_channel_version_id: str | None = None  # The version ID of a calculated channel.
+    # A CalculatedChannel or its version_id. Normalized to the version_id string after validation.
+    calculated_channel: CalculatedChannel | str | None = None
 
     @model_validator(mode="after")
-    def _validate_exactly_one_target(self) -> ChannelReference:
+    def _normalize_and_validate(self) -> ChannelReference:
+        # Lazy import avoids a circular dependency at module load time.
+        from sift_client.sift_types.calculated_channel import CalculatedChannel
+
+        if isinstance(self.calculated_channel, CalculatedChannel):
+            if not self.calculated_channel.version_id:
+                raise ValueError(
+                    "ChannelReference: provided CalculatedChannel has no version_id. "
+                    "Fetch it via client.calculated_channels.get(...) first."
+                )
+            self.calculated_channel = self.calculated_channel.version_id
+
         has_identifier = bool(self.channel_identifier)
-        has_version_id = bool(self.calculated_channel_version_id)
-        if has_identifier == has_version_id:
+        has_calc_channel = bool(self.calculated_channel)
+        if has_identifier == has_calc_channel:
             raise ValueError(
                 "ChannelReference requires exactly one of channel_identifier or "
-                "calculated_channel_version_id to be set"
+                "calculated_channel to be set"
             )
         return self
 
@@ -371,7 +385,7 @@ class ChannelReference(BaseModel):
         if proto.WhichOneof("calculated_channel_reference") == "calculated_channel_version_id":
             return cls(
                 channel_reference=proto.channel_reference,
-                calculated_channel_version_id=proto.calculated_channel_version_id,
+                calculated_channel=proto.calculated_channel_version_id,
             )
         return cls(
             channel_reference=proto.channel_reference,

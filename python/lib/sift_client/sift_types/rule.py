@@ -132,7 +132,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
             channel_references=[
                 ChannelReference(
                     channel_reference=ref,
-                    calculated_channel_version_id=c.calculated_channel_version_id,
+                    calculated_channel=c.calculated_channel_version_id,
                 )
                 if c.HasField("calculated_channel_version_id")
                 else ChannelReference(channel_reference=ref, channel_identifier=c.name)

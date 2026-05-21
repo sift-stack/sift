@@ -76,10 +76,10 @@ logger = logging.getLogger(__name__)
 
 
 def _channel_reference_to_proto(ref: ChannelReference) -> ChannelReferenceProto:
-    if ref.calculated_channel_version_id:
-        return ChannelReferenceProto(
-            calculated_channel_version_id=ref.calculated_channel_version_id
-        )
+    # After ChannelReference validation, calculated_channel is always a version_id string.
+    if ref.calculated_channel:
+        assert isinstance(ref.calculated_channel, str)
+        return ChannelReferenceProto(calculated_channel_version_id=ref.calculated_channel)
     assert ref.channel_identifier is not None
     return ChannelReferenceProto(name=ref.channel_identifier)
 

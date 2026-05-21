@@ -49,7 +49,7 @@ class TestResolveCalculatedChannels:
             name="nested",
             expression="$1 + 1",
             expression_channel_references=[
-                ChannelReference(channel_reference="$1", calculated_channel_version_id="v-nested")
+                ChannelReference(channel_reference="$1", calculated_channel="v-nested")
             ],
         )
         result = await resolve_calculated_channels([cc], channels_api=api)
@@ -57,7 +57,7 @@ class TestResolveCalculatedChannels:
         assert result is not None
         refs = result[0].expression_channel_references
         assert refs is not None
-        assert refs[0].calculated_channel_version_id == "v-nested"
+        assert refs[0].calculated_channel == "v-nested"
         assert refs[0].channel_identifier is None
 
     @pytest.mark.asyncio

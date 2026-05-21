@@ -32,7 +32,7 @@ async def resolve_calculated_channels(
 
         resolved_refs: list[ChannelReference] = []
         for ref in refs:
-            if ref.calculated_channel_version_id:
+            if ref.calculated_channel:
                 resolved_refs.append(ref)
                 continue
             channel = await channels_api.find(
