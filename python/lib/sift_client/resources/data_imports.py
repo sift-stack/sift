@@ -353,7 +353,7 @@ def _parse_parquet_detect_response(
         parquet_config = ParquetFlatDatasetImportConfig._from_proto(
             proto, footer_offset=footer_offset, footer_length=footer_length
         )
-        time_path = parquet_config.time_column.path
+        time_path: str | None = parquet_config.time_column.path
         if not time_path:
             time_path = _infer_time_column(
                 (dc.name, dc.data_type, dc.path) for dc in parquet_config.data_columns
