@@ -199,7 +199,9 @@ class TestCalculatedChannelBase:
             name="nested-cc",
             expression="$1 * 2",
             expression_channel_references=[
-                ChannelReference(channel_reference="$1", calculated_channel=mock_calculated_channel),
+                ChannelReference(
+                    channel_reference="$1", calculated_channel=mock_calculated_channel
+                ),
             ],
             all_assets=True,
         )
