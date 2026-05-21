@@ -76,12 +76,13 @@ logger = logging.getLogger(__name__)
 
 
 def _channel_reference_to_proto(ref: ChannelReference) -> ChannelReferenceProto:
-    # After ChannelReference validation, calculated_channel is always a version_id string.
+    # ChannelReference's validator normalizes calculated_channel to a version_id str
+    # and guarantees exactly one of calculated_channel / channel_identifier is set.
     if ref.calculated_channel:
-        assert isinstance(ref.calculated_channel, str)
-        return ChannelReferenceProto(calculated_channel_version_id=ref.calculated_channel)
-    assert ref.channel_identifier is not None
-    return ChannelReferenceProto(name=ref.channel_identifier)
+        return ChannelReferenceProto(
+            calculated_channel_version_id=cast("str", ref.calculated_channel)
+        )
+    return ChannelReferenceProto(name=cast("str", ref.channel_identifier))
 
 
 class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):

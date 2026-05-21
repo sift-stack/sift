@@ -351,11 +351,16 @@ class ChannelReference(BaseModel):
     To reference another calculated channel (nested CC), pass either a fetched
     `CalculatedChannel` (its `version_id` is used) or a `version_id` string
     directly. Both normalize to the `version_id` string after validation.
+
+    Attributes:
+        channel_reference: The key of the channel in the expression (e.g. ``$1``, ``$2``).
+        channel_identifier: The name (or ID) of an existing channel.
+        calculated_channel: A ``CalculatedChannel`` or its ``version_id``. Normalized
+            to the ``version_id`` string after validation.
     """
 
-    channel_reference: str  # The key of the channel in the expression i.e. $1, $2, etc.
-    channel_identifier: str | None = None  # The name (or ID) of an existing channel.
-    # A CalculatedChannel or its version_id. Normalized to the version_id string after validation.
+    channel_reference: str
+    channel_identifier: str | None = None
     calculated_channel: CalculatedChannel | str | None = None
 
     @model_validator(mode="after")
