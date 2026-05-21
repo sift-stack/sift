@@ -4377,6 +4377,81 @@ To reference another calculated channel (nested CC), pass either a fetched
 <code>CalculatedChannel</code> (its <code>version_id</code> is used) or a <code>version_id</code> string
 directly. Both normalize to the <code>version_id</code> string after validation.</p>
 
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">ATTRIBUTE</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            channel_reference
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.channel.ChannelReference.channel_reference)" href="#sift_client.sift_types.channel.ChannelReference.channel_reference">channel_reference</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The key of the channel in the expression (e.g. <code>$1</code>, <code>$2</code>).</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            channel_identifier
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.channel.ChannelReference.channel_identifier)" href="#sift_client.sift_types.channel.ChannelReference.channel_identifier">channel_identifier</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The name (or ID) of an existing channel.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            calculated_channel
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.channel.ChannelReference.calculated_channel)" href="#sift_client.sift_types.channel.ChannelReference.calculated_channel">calculated_channel</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>A <code>CalculatedChannel</code> or its <code>version_id</code>. Normalized
+to the <code>version_id</code> string after validation.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a> | <span title="str">str</span> | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
     
 
         <p>Fields:</p>
