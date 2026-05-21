@@ -1997,8 +1997,8 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>Normalize a list / ndarray / pandas Series into a numpy array.</p>
-<p>Shared by <code>measure_avg</code> and <code>measure_all</code> in both the real and
-stub step implementations so the accepted input types stay in sync.</p>
+<p>Shared by <code>measure_avg</code> and <code>measure_all</code> on <code>NewStep</code> so the
+accepted input types stay in sync across measurement variants.</p>
 
 
     </div>
@@ -2031,9 +2031,6 @@ stub step implementations so the accepted input types stay in sync.</p>
     <div class="doc doc-contents ">
 
         <p>Evaluate a value against bounds without recording a measurement.</p>
-<p>Used by consumers that need pass/fail semantics matching the real plugin but
-do not transmit a measurement (e.g. <code>--sift-disabled</code> mode in the pytest
-plugin).</p>
 
 
     </div>
