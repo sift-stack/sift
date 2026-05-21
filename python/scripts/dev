@@ -4,29 +4,32 @@ usage() {
   cat<<EOT
 Various development utilities.
 
-Upon running the 'bootstrap' subcommand, this script will be moved to the venv's bin
-directory so will be available as an in-path executable when the venv is activated.
+Each subcommand runs against the project's uv-managed environment.
+Bootstrap with './scripts/dev bootstrap' on a fresh checkout (requires uv
+installed: https://docs.astral.sh/uv/#installation).
 
 Usage: dev [SUBCOMMAND] [OPTIONS]
 
 Subcommands:
-  bootstrap      Initializes python virtual environment and installs project dependencies
-  docs           Boots up documentation server on port 8080
-  docs-build     Builds docs and emits to docs/sift_py
-  fmt            Runs 'ruff fmt' to format the lib directory
-  lint-fix       Runs 'ruff check --fix'
-  lint           Runs 'ruff check' to lint the lib directory
-  mypy           Runs 'mypy lib' for static analysis
-  pyright        Runs 'pyright lib' for type checking
-  check          Runs all python linting checks
-  gen-stubs      Generates pyi stubs for sift_client synchronous wrappers
-  gen-extras     Generates optional-dependencies in pyproject.toml
-  mypy-stubs     Runs stubtest (mypy) on the generated pyi stubs
-  pip-install    Install project dependencies
-  test           Execute tests
+  bootstrap        Create .venv and install all dev dependencies via uv
+  docs             Boots up documentation server on port 8080
+  docs-build       Builds docs and emits to docs/sift_py
+  fmt              Runs 'ruff format'
+  lint-fix         Runs 'ruff check --fix'
+  lint             Runs 'ruff check'
+  mypy             Runs 'mypy lib' for static analysis
+  mypy-win         Runs 'mypy --platform=win32 lib' (Windows compat check)
+  pyright          Runs 'pyright lib' for type checking
+  check            Runs lint-fix, fmt, mypy, mypy-win, pyright sequentially
+  gen-stubs        Generates pyi stubs for sift_client synchronous wrappers
+  gen-extras       Generates [project.optional-dependencies]
+  mypy-stubs       Runs stubtest (mypy) on the generated pyi stubs
+  pip-install      Re-install project dependencies (alias for 'uv sync --extra dev-all')
+  test             Execute non-integration tests against the project's Python
+  test-floor       Execute non-integration tests against the floor Python (3.8)
+  test-ceiling     Execute non-integration tests against the ceiling Python (3.14)
   test-integration Execute integration tests
-  test-all       Execute all non-integration tests
-  update-dev     Copies changes to the dev script over to the venv bin
+  test-all         Execute all tests
 
 Options:
   -h, --help     Print usage text
@@ -34,100 +37,106 @@ EOT
 }
 
 pip_install() {
-  source venv/bin/activate
-  pip install '.[dev-all]'
-  pip install -e .
-}
-
-update_dev() {
-  cp ./scripts/dev venv/bin
-  chmod u+x venv/bin/dev
+  uv sync --extra dev-all
 }
 
 bootstrap() {
-  rm -rf build lib/sift_stack_py.egg-info
-  python3 -m venv venv --clear
-  pip_install
-  update_dev
+  # Sweep any stale venv from the legacy pip-based setup so editor configs
+  # don't keep pointing at it.
+  rm -rf venv build lib/sift_stack_py.egg-info
+  uv sync --extra dev-all
 }
 
 run_mypy() {
-  source venv/bin/activate
-  mypy lib
+  uv run mypy lib
+}
+
+run_mypy_win() {
+  # Re-run mypy with --platform=win32 so typeshed evaluates platform-gated
+  # stubs (e.g. fcntl) as if we were on Windows. Catches imports that would
+  # only fail at runtime on Windows. The library ships to PyPI for all
+  # platforms, so Windows-specific import bugs need to fail CI too.
+  uv run mypy --platform=win32 lib
 }
 
 run_pyright() {
-  source venv/bin/activate
-  pyright lib
+  uv run pyright lib
 }
 
 run_checks() {
   lint_fix
   fmt
   run_mypy
+  run_mypy_win
   run_pyright
 }
 
 fmt() {
-  source venv/bin/activate
-  ruff format
+  uv run ruff format
 }
 
 lint() {
-  source venv/bin/activate
-  ruff check
+  uv run ruff check
 }
 
 lint_fix() {
-  source venv/bin/activate
-  ruff check --fix
+  uv run ruff check --fix
 }
 
 doc() {
-  source venv/bin/activate
-  mkdocs serve
+  uv run mkdocs serve
 }
 
 doc_build() {
-  source venv/bin/activate
-  mkdocs build
+  uv run mkdocs build
 }
 
 run_tests() {
-  source venv/bin/activate
-  pytest -m "not integration"
+  uv run pytest -m "not integration"
+}
+
+run_tests_floor() {
+  # uv auto-downloads a managed Python 3.8 (via python-build-standalone) on
+  # first run. `--no-project --with-editable '.[dev-all]'` resolves the
+  # project + dev-all extra ad hoc under 3.8, installing the project
+  # editable so pytest collects from the working tree.
+  uv run --python 3.8 --no-project --with-editable '.[dev-all]' pytest -m "not integration"
+}
+
+run_tests_ceiling() {
+  # Symmetric to test-floor: runs against the highest officially supported
+  # Python version (per the `Programming Language :: Python :: 3.14`
+  # classifier in pyproject.toml). uv downloads the interpreter on first
+  # run. Catches forward-compat issues (deprecated APIs, removed stdlib
+  # modules) the same way test-floor catches floor-version regressions.
+  uv run --python 3.14 --no-project --with-editable '.[dev-all]' pytest -m "not integration"
 }
 
 run_tests_integration() {
-  source venv/bin/activate
-  pytest -m "integration"
+  uv run pytest -m "integration"
 }
 
 run_tests_all() {
-  source venv/bin/activate
-  pytest
+  uv run pytest
 }
 
 
 gen_stubs() {
-  source venv/bin/activate
   cd lib
-  python3 sift_client/_internal/gen_pyi.py sift_client/resources/sync_stubs
+  uv run python sift_client/_internal/gen_pyi.py sift_client/resources/sync_stubs
   cd ..
-  ruff format ./lib/sift_client/resources/sync_stubs/*.pyi -q
-  ruff check ./lib/sift_client/resources/sync_stubs/*.pyi --fix --unsafe-fixes -q
+  uv run ruff format ./lib/sift_client/resources/sync_stubs/*.pyi -q
+  uv run ruff check ./lib/sift_client/resources/sync_stubs/*.pyi --fix --unsafe-fixes -q
 }
 
 mypy_stubs() {
-  source venv/bin/activate
   cd lib
-  stubtest sift_client.resources.sync_stubs
+  uv run stubtest sift_client.resources.sync_stubs
 }
 
 gen_extras() {
-  source venv/bin/activate
   cd scripts
-  python3 generate_extras.py
+  uv run python generate_extras.py
   cd ..
 }
 
@@ -162,6 +171,9 @@ case "$1" in
     mypy)
         run_mypy
         ;;
+    mypy-win)
+        run_mypy_win
+        ;;
     pyright)
         run_pyright
         ;;
@@ -170,6 +182,12 @@ case "$1" in
         ;;
     test)
         run_tests
+        ;;
+    test-floor)
+        run_tests_floor
+        ;;
+    test-ceiling)
+        run_tests_ceiling
         ;;
     test-integration)
         run_tests_integration
@@ -187,7 +205,8 @@ case "$1" in
         mypy_stubs
         ;;
     update-dev)
-        update_dev
+        echo "update-dev is no longer needed under uv; just run './scripts/dev <subcommand>' directly."
+        exit 1
         ;;
     "")
         echo "No subcommand provided"

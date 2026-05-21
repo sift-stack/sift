@@ -34,7 +34,7 @@ jobs:
               - 'rust/crates/sift_stream_bindings/**'
               - '.github/workflows/python_ci.yaml'
 
-  test-python:
+  static-checks:
     needs: [changes]
     if: |
       always() &&
@@ -49,28 +49,28 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.8"
+          enable-cache: true
 
-      - name: Pip install
-        id: install
-        run: |
-          python -m pip install --upgrade pip
-          pip install '.[dev-all]'
+      - name: Install dependencies
+        run: uv sync --extra dev-all
 
       - name: Lint
-        run: |
-          ruff check
+        run: uv run ruff check
 
       - name: Format
-        run: |
-          ruff format --check
+        run: uv run ruff format --check
 
       - name: MyPy
-        run: |
-          mypy lib
+        run: uv run mypy lib
+
+      # Re-run mypy with --platform=win32 so typeshed evaluates platform-gated
+      # stubs (e.g. fcntl) as if we were on Windows. Catches imports that
+      # would only fail at runtime on Windows.
+      - name: MyPy (Windows platform)
+        run: uv run mypy --platform=win32 lib
 
       # Re-run mypy with --platform=win32 so typeshed evaluates platform-gated
       # stubs (e.g. fcntl) as if we were on Windows. Catches imports that
@@ -80,22 +80,64 @@ jobs:
           mypy --platform=win32 lib
 
       - name: Pyright
-        run: |
-          pyright lib
+        run: uv run pyright lib
 
       - name: Check Stubs Generation
         working-directory: .
-        run: |
-          bash .githooks/pre-push-python/stubs.sh
+        run: bash .githooks/pre-push-python/stubs.sh
 
       - name: Check Extras Generation
         working-directory: .
-        run: |
-          bash .githooks/pre-push-python/extras.sh
+        run: bash .githooks/pre-push-python/extras.sh
 
-      - name: Pytest Unit Tests
+      - name: Sync Stubs Mypy
+        working-directory: python/lib
         run: |
-          pytest -m "not integration"
+          uv run stubtest \
+            --mypy-config-file ../pyproject.toml \
+            sift_client.resources.sync_stubs
+
+  test-python:
+    needs: [changes]
+    if: |
+      always() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.python == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor (3.8, per `requires-python`). This is the bug class local
+        # checks miss (devs run a newer Python; modern syntax slips into
+        # code that runs on 3.8). Ceiling testing is rarely useful in
+        # practice — Python's deprecation cycle is long and the project's
+        # stdlib usage is conservative — so it stays available locally as
+        # `./scripts/dev test-ceiling` rather than running on every PR.
+        # The full 3.8-3.14 install matrix lives in `python_build.yaml`.
+        python-version: ["3.8"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Pytest Unit Tests (Python ${{ matrix.python-version }})
+        # `--no-project --with-editable '.[dev-all]'` resolves the project +
+        # dev-all extra ad hoc under the matrix Python. Editable install so
+        # pytest collects from the working tree.
+        run: |
+          uv run \
+            --python ${{ matrix.python-version }} \
+            --no-project \
+            --with-editable '.[dev-all]' \
+            pytest -m "not integration"
 
       # Disabling integration tests that interact with Sift until a better solution is implemented
       # - name: Pytest Integration Tests
@@ -104,26 +146,20 @@ jobs:
       #     SIFT_REST_URI: ${{ vars.SIFT_REST_URI }}
       #     SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
       #   run: |
-      #     pytest -m "integration"
-
-      - name: Sync Stubs Mypy
-        working-directory: python/lib
-        run: |
-          stubtest \
-          --mypy-config-file ../pyproject.toml \
-          sift_client.resources.sync_stubs
+      #     uv run --python ${{ matrix.python-version }} --no-project --with-editable '.[dev-all]' pytest -m "integration"
 
   python-ci-status:
     if: always()
-    needs: [changes, test-python]
+    needs: [changes, static-checks, test-python]
     runs-on: ubuntu-latest
     steps:
       - name: Check result
         run: |
-          result="${{ needs.test-python.result }}"
-          if [[ "$result" == "success" || "$result" == "skipped" ]]; then
-            echo "python-ci passed (test-python: $result)"
+          static="${{ needs.static-checks.result }}"
+          tests="${{ needs.test-python.result }}"
+          if [[ ("$static" == "success" || "$static" == "skipped") && ("$tests" == "success" || "$tests" == "skipped") ]]; then
+            echo "python-ci passed (static-checks: $static, test-python: $tests)"
           else
-            echo "python-ci failed (test-python: $result)"
+            echo "python-ci failed (static-checks: $static, test-python: $tests)"
             exit 1
           fi

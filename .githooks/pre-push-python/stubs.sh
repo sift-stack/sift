@@ -1,5 +1,8 @@
 # ensure generated python stubs are up-to-date, from sync clients
 
+# Clear git env vars set by the parent hook so git commands resolve the work tree normally
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+
 # Store the root directory of the repository
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 PYTHON_DIR="$REPO_ROOT/python"
@@ -23,10 +26,8 @@ generate_python_stubs() {
     echo "     → Generating stubs..."
     cd "$PYTHON_DIR"
 
-    if [[ ! -d "$PYTHON_DIR/venv" ]]; then
-        echo "     → Running bootstrap script..."
-        bash ./scripts/dev bootstrap
-    fi
+    # Idempotent: fast on a warm cache, recreates .venv on a cold checkout.
+    uv sync --extra dev-all --quiet
 
     bash ./scripts/dev gen-stubs
     check_stub_changes "$STUBS_DIR"

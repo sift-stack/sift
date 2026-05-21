@@ -240,6 +240,18 @@ all = ["openssl", "sift-stream", "file-imports", "data-review"]
 dev-all = ["development", "all", "build"]
 docs-build = ["dev-all", "docs"] # Note python 3.9+
 
+[tool.uv]
+# Restrict uv's resolver to Python 3.10+ for the dev environment. The
+# `docs` extra requires `griffe-pydantic==1.3.1` (Python 3.10+), and uv
+# resolves against the full `requires-python` range plus all extras by
+# default. Without this, `uv run` / `uv sync` fail to find a solution
+# that covers 3.8/3.9 with `docs` installed. The library still supports
+# 3.8 at runtime (per `requires-python`); the dev env just doesn't need
+# to. The `test-floor` and `test-ceiling` subcommands sidestep this via
+# `uv run --no-project --python <ver>` which resolves ad hoc against
+# just `dev-all` (no docs).
+environments = ["python_version >= '3.10'"]
+
 [tool.mypy]
 python_version = "3.10" # Use the Python 3.10 type checker since we are using eval-type-backport and `from __future__ import annotations`
 
@@ -334,6 +346,7 @@ ignore_errors = true
 
 [tool.setuptools.packages.find]
 where = ["lib"]
+exclude = ["sift_client._tests", "sift_client._tests.*"]
 
 [tool.setuptools.package-data]
 sift_grafana = ["py.typed"]
