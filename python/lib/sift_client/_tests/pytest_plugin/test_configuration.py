@@ -34,7 +34,7 @@ class TestIniConfiguration:
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_log_file = "none"
+            sift_log_file = "none"
             """
         )
         pytester.makepyfile("def test_noop(): pass")
@@ -46,7 +46,7 @@ class TestIniConfiguration:
         pytester: pytest.Pytester,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
-        """`config.option.sift_test_results_log_file = False` disables logging.
+        """`config.option.sift_log_file = False` disables logging.
 
         Conftests use this pattern (see lib/sift_client/_tests/util/conftest.py)
         to opt their subtree out of log-file mode. Regression test for the
@@ -55,7 +55,7 @@ class TestIniConfiguration:
         """
         write_probe_conftest(
             """
-            config.option.sift_test_results_log_file = False
+            config.option.sift_log_file = False
             from sift_client.pytest_plugin import _resolve_log_file
             print("RESOLVED:", _resolve_log_file(config))
             """,
@@ -80,33 +80,54 @@ class TestIniConfiguration:
         pytester.makepyprojecttoml(
             f"""
             [tool.pytest.ini_options]
-            sift_test_results_log_file = "{log_path}"
+            sift_log_file = "{log_path}"
             """
         )
         pytester.makepyfile("def test_noop(): pass")
         result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines([f"RESOLVED: {log_path}"])
 
-    def test_ini_check_connection_true(
+    def test_ini_offline_true(
         self,
         pytester: pytest.Pytester,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _check_connection_enabled
-            print("CHECK:", _check_connection_enabled(config))
+            from sift_client.pytest_plugin import _is_offline
+            print("OFFLINE:", _is_offline(config))
             """,
         )
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_check_connection = true
+            sift_offline = true
             """
         )
         pytester.makepyfile("def test_noop(): pass")
         result = pytester.runpytest_subprocess("-s", "--co")
-        result.stdout.fnmatch_lines(["CHECK: True"])
+        result.stdout.fnmatch_lines(["OFFLINE: True"])
+
+    def test_ini_disabled_true(
+        self,
+        pytester: pytest.Pytester,
+        write_probe_conftest: Callable[[str], None],
+    ) -> None:
+        write_probe_conftest(
+            """
+            from sift_client.pytest_plugin import _is_disabled
+            print("DISABLED:", _is_disabled(config))
+            """,
+        )
+        pytester.makepyprojecttoml(
+            """
+            [tool.pytest.ini_options]
+            sift_disabled = true
+            """
+        )
+        pytester.makepyfile("def test_noop(): pass")
+        result = pytester.runpytest_subprocess("-s", "--co")
+        result.stdout.fnmatch_lines(["DISABLED: True"])
 
     def test_ini_git_metadata_false(
         self,
@@ -115,13 +136,13 @@ class TestIniConfiguration:
     ) -> None:
         write_probe_conftest(
             """
-            print("INI_GIT:", config.getini("sift_test_results_git_metadata"))
+            print("INI_GIT:", config.getini("sift_git_metadata"))
             """,
         )
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_git_metadata = false
+            sift_git_metadata = false
             """
         )
         pytester.makepyfile("def test_noop(): pass")
@@ -145,37 +166,51 @@ class TestIniConfiguration:
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_log_file = "none"
+            sift_log_file = "none"
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest_subprocess(
-            "-s", "--co", f"--sift-test-results-log-file={cli_path}"
-        )
+        result = pytester.runpytest_subprocess("-s", "--co", f"--sift-log-file={cli_path}")
         result.stdout.fnmatch_lines([f"RESOLVED: {cli_path}"])
 
-    def test_cli_check_connection_flag(
+    def test_cli_offline_flag(
         self,
         pytester: pytest.Pytester,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
-        """The ``--sift-test-results-check-connection`` CLI flag flips the resolver to True."""
+        """The ``--sift-offline`` CLI flag flips the resolver to True."""
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _check_connection_enabled
-            print("CHECK:", _check_connection_enabled(config))
+            from sift_client.pytest_plugin import _is_offline
+            print("OFFLINE:", _is_offline(config))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest_subprocess("-s", "--co", "--sift-test-results-check-connection")
-        result.stdout.fnmatch_lines(["CHECK: True"])
+        result = pytester.runpytest_subprocess("-s", "--co", "--sift-offline")
+        result.stdout.fnmatch_lines(["OFFLINE: True"])
+
+    def test_cli_disabled_flag(
+        self,
+        pytester: pytest.Pytester,
+        write_probe_conftest: Callable[[str], None],
+    ) -> None:
+        """The ``--sift-disabled`` CLI flag flips the resolver to True."""
+        write_probe_conftest(
+            """
+            from sift_client.pytest_plugin import _is_disabled
+            print("DISABLED:", _is_disabled(config))
+            """,
+        )
+        pytester.makepyfile("def test_noop(): pass")
+        result = pytester.runpytest_subprocess("-s", "--co", "--sift-disabled")
+        result.stdout.fnmatch_lines(["DISABLED: True"])
 
     def test_cli_no_git_metadata_flag(
         self,
         pytester: pytest.Pytester,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
-        """The ``--no-sift-test-results-git-metadata`` CLI flag flips git_metadata to False.
+        """The ``--no-sift-git-metadata`` CLI flag flips git_metadata to False.
 
         Guards the negation flag's ``dest`` binding: the flag name doesn't match
         the ini key, so a broken ``dest`` would silently fall back to the ini
@@ -183,11 +218,11 @@ class TestIniConfiguration:
         """
         write_probe_conftest(
             """
-            print("CLI_GIT:", config.getoption("sift_test_results_git_metadata"))
+            print("CLI_GIT:", config.getoption("sift_git_metadata"))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest_subprocess("-s", "--co", "--no-sift-test-results-git-metadata")
+        result = pytester.runpytest_subprocess("-s", "--co", "--no-sift-git-metadata")
         result.stdout.fnmatch_lines(["CLI_GIT: False"])
 
     def test_defaults_when_neither_set(
@@ -198,12 +233,14 @@ class TestIniConfiguration:
         write_probe_conftest(
             """
             from sift_client.pytest_plugin import (
-                _check_connection_enabled,
+                _is_disabled,
+                _is_offline,
                 _resolve_log_file,
             )
             print("RESOLVED:", _resolve_log_file(config))
-            print("CHECK:", _check_connection_enabled(config))
-            print("INI_GIT:", config.getini("sift_test_results_git_metadata"))
+            print("OFFLINE:", _is_offline(config))
+            print("DISABLED:", _is_disabled(config))
+            print("INI_GIT:", config.getini("sift_git_metadata"))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
@@ -211,7 +248,8 @@ class TestIniConfiguration:
         result.stdout.fnmatch_lines(
             [
                 "RESOLVED: True",
-                "CHECK: False",
+                "OFFLINE: False",
+                "DISABLED: False",
                 "INI_GIT: True",
             ]
         )
@@ -238,7 +276,7 @@ _GATE_INNER_CONFTEST = textwrap.dedent(
 
 
 class TestAutouseGate:
-    """`sift_include` / `sift_exclude` markers and the `sift_test_results_autouse` ini gate."""
+    """`sift_include` / `sift_exclude` markers and the `sift_autouse` ini gate."""
 
     def test_default_ini_true_activates(self, pytester: pytest.Pytester) -> None:
         """Plugin default (ini absent) keeps the autouse fixtures active."""
@@ -253,12 +291,12 @@ class TestAutouseGate:
         result.assert_outcomes(passed=1)
 
     def test_default_ini_false_skips(self, pytester: pytest.Pytester) -> None:
-        """`sift_test_results_autouse = false` makes the autouse fixtures no-op by default."""
+        """`sift_autouse = false` makes the autouse fixtures no-op by default."""
         pytester.makeconftest(_GATE_INNER_CONFTEST)
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_autouse = false
+            sift_autouse = false
             """
         )
         pytester.makepyfile(
@@ -276,7 +314,7 @@ class TestAutouseGate:
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_autouse = false
+            sift_autouse = false
             """
         )
         pytester.makepyfile(
@@ -328,7 +366,7 @@ class TestAutouseGate:
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_autouse = false
+            sift_autouse = false
             """
         )
         pytester.makepyfile(
@@ -359,7 +397,7 @@ class TestAutouseGate:
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_test_results_autouse = false
+            sift_autouse = false
             """
         )
         included = pytester.mkdir("included_subtree")

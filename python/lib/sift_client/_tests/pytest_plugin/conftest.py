@@ -25,6 +25,15 @@ from typing import Callable
 
 import pytest
 
+_SIFT_ENV_VARS = ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI", "SIFT_DISABLED")
+
+
+@pytest.fixture
+def clear_sift_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unset all ``SIFT_*`` environment variables for the duration of the test."""
+    for name in _SIFT_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
+
 
 @pytest.fixture
 def write_plugin_conftest(pytester: pytest.Pytester) -> Callable[[], None]:

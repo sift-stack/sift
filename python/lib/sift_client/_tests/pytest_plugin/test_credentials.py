@@ -31,8 +31,8 @@ class TestCredentials:
             [tool.pytest.ini_options]
             sift_grpc_uri = "ini-grpc:1234"
             sift_rest_uri = "https://ini-rest"
-            sift_test_results_check_connection = true
-            sift_test_results_log_file = "false"
+            sift_offline = true
+
             """
         )
         pytester.makepyfile(
@@ -62,8 +62,8 @@ class TestCredentials:
             [tool.pytest.ini_options]
             sift_grpc_uri = "ini-grpc:1234"
             sift_rest_uri = "https://ini-rest"
-            sift_test_results_check_connection = true
-            sift_test_results_log_file = "false"
+            sift_offline = true
+
             """
         )
         pytester.makepyfile(
