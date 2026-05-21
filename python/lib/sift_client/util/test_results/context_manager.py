@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 
 from sift_client.sift_types.test_report import (
     ErrorInfo,
@@ -28,9 +27,12 @@ from sift_client.sift_types.test_report import (
 )
 from sift_client.util.test_results.bounds import (
     evaluate_measurement_bounds,
+    out_of_bounds_mask,
+    to_numpy_array,
 )
 
 if TYPE_CHECKING:
+    import pandas as pd
     from numpy.typing import NDArray
 
     from sift_client.client import SiftClient
@@ -118,6 +120,7 @@ class ReportContext(AbstractContextManager):
         test_case: str | None = None,
         log_file: str | Path | bool | None = None,
         include_git_metadata: bool = False,
+        replay_log_file: bool = True,
     ):
         """Initialize a new report context.
 
@@ -128,10 +131,18 @@ class ReportContext(AbstractContextManager):
             system_operator: The operator of the test system. Will default to the current user if not provided.
             test_case: The name of the test case. Will default to the basename of the file containing the test if not provided.
             log_file: If True, create a temp log file. If a path, use that path.
-                All create/update operations will be logged to this file.
+                If False/None, no log file is written and create/update calls
+                the API.
             include_git_metadata: If True, include git metadata in the report.
+            replay_log_file: When True (the default) and ``log_file`` is set,
+                spawn ``import-test-result-log --incremental`` to push log
+                entries to Sift in the background during the session. When
+                False, the log file is just a record and no worker is spawned.
+                Replay happens later via ``replay-test-result-log <path>``.
+                Has no effect when ``log_file`` is None.
         """
         self.client = client
+        self.replay_log_file = replay_log_file
         self.step_is_open = False
         self.step_stack = []
         self.step_number_at_depth = {}
@@ -163,28 +174,41 @@ class ReportContext(AbstractContextManager):
         )
         self.report = client.test_results.create(create, log_file=self.log_file)
 
+    def _build_replay_command(self) -> list[str]:
+        """Build the argv for the import-test-result-log replay subprocess.
+
+        Factored out for testability — tests substitute commands that exit
+        with controlled returncodes / stderr to exercise the ``__exit__``
+        branches without depending on the real replay binary.
+        """
+        return [
+            "import-test-result-log",
+            "--incremental",
+            str(self.log_file),
+            "--grpc-url",
+            self.client.grpc_client._config.uri,
+            "--rest-url",
+            self.client.rest_client._config.base_url,
+            "--api-key",
+            self.client.grpc_client._config.api_key,
+        ]
+
     def _open_import_proc(self):
-        """Open a subprocess to import the log file."""
+        """Open a subprocess to import the log file.
+
+        ``stderr`` is captured so a worker crash mid-session can surface its
+        error at session end via ``__exit__`` rather than failing silently.
+        """
         with _quiet_fork_stderr():
             self._import_proc = subprocess.Popen(
-                [
-                    "import-test-result-log",
-                    "--incremental",
-                    str(self.log_file),
-                    "--grpc-url",
-                    self.client.grpc_client._config.uri,
-                    "--rest-url",
-                    self.client.rest_client._config.base_url,
-                    "--api-key",
-                    self.client.grpc_client._config.api_key,
-                ],
+                self._build_replay_command(),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
             )
 
     def __enter__(self):
-        if self.log_file:
+        if self.log_file and self.replay_log_file:
             self._open_import_proc()
         return self
 
@@ -199,16 +223,48 @@ class ReportContext(AbstractContextManager):
         self.report.update(update)
 
         if self._import_proc is not None:
+            # Three outcomes for the replay worker at session end. None of
+            # them fail the session — tests already ran and their outcome
+            # is independent of delivery. The local log file is the source
+            # of recovery for both failure modes via
+            # `replay-test-result-log <path>`:
+            #   1. Exits cleanly (returncode 0). Silent.
+            #   2. Still running after the 1s grace window (TimeoutExpired).
+            #      Healthy worker with a large backlog; kill and surface
+            #      replay instructions.
+            #   3. Exited with non-zero. Connection failures and API call
+            #      errors land here — the worker's replay loop has no retry,
+            #      so the first failed RPC crashes the subprocess. Log the
+            #      captured stderr at ERROR with replay instructions.
             try:
-                self._import_proc.communicate(timeout=1)
+                _, stderr_bytes = self._import_proc.communicate(timeout=1)
             except subprocess.TimeoutExpired:
-                logger.error("Import process did not exit in 10s, killing it")
+                logger.error("Import process did not exit in 1s, killing it")
                 self._import_proc.kill()
                 self._import_proc.wait()
                 log_replay_instructions(self.log_file)
-                raise
+                return True  # Ensures the session is marked as passed in pytest
+            if self._import_proc.returncode != 0:
+                stderr_text = (
+                    stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
+                )
+                logger.error(
+                    "Import process exited with code %d. stderr: %s",
+                    self._import_proc.returncode,
+                    stderr_text or "<empty>",
+                )
+                log_replay_instructions(self.log_file)
 
         return True
+
+    @property
+    def is_simulated(self) -> bool:
+        """True when this context's report came from the simulate path.
+
+        Delegates to ``self.report.is_simulated``; see ``TestReport.is_simulated``
+        for the full semantics.
+        """
+        return self.report.is_simulated
 
     def new_step(
         self,
@@ -505,15 +561,7 @@ class NewStep(AbstractContextManager):
         returns: The true if the average of the values is within the bounds, false otherwise.
         """
         timestamp = timestamp if timestamp else datetime.now(timezone.utc)
-        np_array = None
-        if isinstance(values, list):
-            np_array = np.array(values)
-        elif isinstance(values, np.ndarray):
-            np_array = values
-        elif isinstance(values, pd.Series):
-            np_array = values.to_numpy()
-        else:
-            raise ValueError(f"Invalid value type: {type(values)}")
+        np_array = to_numpy_array(values)
         avg = float(np.mean(np_array))
         result = self.measure(
             name=name,
@@ -561,31 +609,8 @@ class NewStep(AbstractContextManager):
         returns: The true if all values are within the bounds, false otherwise.
         """
         timestamp = timestamp if timestamp else datetime.now(timezone.utc)
-        np_array = None
-        if isinstance(values, list):
-            np_array = np.array(values)
-        elif isinstance(values, np.ndarray):
-            np_array = values
-        elif isinstance(values, pd.Series):
-            np_array = values.to_numpy()
-        else:
-            raise ValueError(f"Invalid value type: {type(values)}")
-
-        numeric_bounds = bounds
-        if isinstance(numeric_bounds, dict):
-            numeric_bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))  # type: ignore
-
-        # Construct a mask of the values that are outside the bounds.
-        mask = None
-        if numeric_bounds.min is not None:
-            mask = np_array < numeric_bounds.min
-        if numeric_bounds.max is not None:
-            val_above_max = np_array > numeric_bounds.max
-            mask = mask | val_above_max if mask is not None else val_above_max
-        if mask is None:
-            raise ValueError("No bounds provided")
-
-        rows_outside_bounds = np_array[mask]
+        np_array = to_numpy_array(values)
+        rows_outside_bounds = np_array[out_of_bounds_mask(np_array, bounds)]
         for row in rows_outside_bounds:
             self.measure(
                 name=name,

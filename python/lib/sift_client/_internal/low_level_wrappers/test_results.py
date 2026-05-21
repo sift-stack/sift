@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from google.protobuf import json_format
 from sift.test_reports.v1.test_reports_pb2 import (
@@ -69,6 +69,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+_EntityT = TypeVar("_EntityT", TestReport, TestStep, TestMeasurement)
+
+
 class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the TestResultsAPI.
 
@@ -82,6 +85,16 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client)
+
+    @staticmethod
+    def _mark_simulated(instance: _EntityT) -> _EntityT:
+        """Stamp an entity as having been produced by the simulate path.
+
+        Mirrors the ``__dict__`` write used by ``BaseType._apply_client_to_instance``
+        to bypass pydantic's frozen-model guard.
+        """
+        instance.__dict__["_simulated"] = True
+        return instance
 
     @staticmethod
     def simulate_create_test_report_response(
@@ -388,7 +401,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     request,
                     response_id=simulated_proto.test_report_id,
                 )
-            return TestReport._from_proto(simulated_proto)
+            return self._mark_simulated(TestReport._from_proto(simulated_proto))
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestReport(request)
         grpc_test_report = cast("CreateTestReportResponse", response).test_report
@@ -506,7 +519,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestReport", request)
-            return self.simulate_update_test_report_response(request, existing=existing)
+            return self._mark_simulated(
+                self.simulate_update_test_report_response(request, existing=existing)
+            )
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestReport(request)
         grpc_test_report = cast("UpdateTestReportResponse", response).test_report
@@ -561,7 +576,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     request,
                     response_id=simulated_proto.test_step_id,
                 )
-            return TestStep._from_proto(simulated_proto)
+            return self._mark_simulated(TestStep._from_proto(simulated_proto))
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestStep(request)
         grpc_test_step = cast("CreateTestStepResponse", response).test_step
@@ -662,7 +677,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestStep", request)
-            return self.simulate_update_test_step_response(request, existing=existing)
+            return self._mark_simulated(
+                self.simulate_update_test_step_response(request, existing=existing)
+            )
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestStep(request)
         grpc_test_step = cast("UpdateTestStepResponse", response).test_step
@@ -717,7 +734,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     request,
                     response_id=simulated_proto.measurement_id,
                 )
-            return TestMeasurement._from_proto(simulated_proto)
+            return self._mark_simulated(TestMeasurement._from_proto(simulated_proto))
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestMeasurement(
             request
@@ -862,7 +879,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestMeasurement", request)
-            return self.simulate_update_test_measurement_response(request, existing=existing)
+            return self._mark_simulated(
+                self.simulate_update_test_measurement_response(request, existing=existing)
+            )
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestMeasurement(
             request
