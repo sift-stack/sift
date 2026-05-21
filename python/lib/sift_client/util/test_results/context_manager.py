@@ -243,12 +243,10 @@ class ReportContext(AbstractContextManager):
                 self._import_proc.kill()
                 self._import_proc.wait()
                 log_replay_instructions(self.log_file)
-                return True # Ensures the session is marked as passed in pytest
+                return True  # Ensures the session is marked as passed in pytest
             if self._import_proc.returncode != 0:
                 stderr_text = (
-                    stderr_bytes.decode("utf-8", errors="replace").strip()
-                    if stderr_bytes
-                    else ""
+                    stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
                 )
                 logger.error(
                     "Import process exited with code %d. stderr: %s",
