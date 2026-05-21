@@ -88,21 +88,22 @@ def sift_client() -> SiftClient:
 | `report_context` | fixture (autouse) | session | The `ReportContext` backing the run's `TestReport`. Use it to attach metadata or open ad-hoc steps. |
 | `step` | fixture (autouse) | function | A `NewStep` created for the current test function. Exposes `measure*`, `substep`, `report_outcome`, and `current_step`. |
 | `module_substep` | fixture (autouse) | module | One step per test file with each function nested as a substep. |
-| `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted only when `--sift-test-results-check-connection` is set. |
+| `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted by `report_context` at session start in online mode (the default). Override to skip the ping or use a different reachability signal. |
 
 ### CLI options
 
 | Flag | Default | Effect |
 |---|---|---|
-| `--sift-test-results-log-file=<path\|true\|false>` | temp file | Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an `import-test-result-log --incremental` worker that polls the file and replays entries against Sift while the run is in flight. Pass `false` to disable the file entirely; create/update calls then go straight to the API synchronously during tests. |
-| `--no-sift-test-results-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
-| `--sift-test-results-check-connection` | off | Make `report_context`, `step`, and `module_substep` no-op (yield `None`) when `client_has_connection` is `False`. Lets the same suite run locally without a Sift backend. |
+| `--sift-offline` | off (online) | Skip the session-start ping and don't contact Sift. All create/update calls go to the JSONL log file for later replay via `import-test-result-log`. Missing `SIFT_*` env vars are tolerated; placeholders are filled. |
+| `--sift-disabled` | off | Skip Sift entirely. Nothing contacts the API and no log file is written; `step.measure(...)` still evaluates bounds and returns a real pass/fail boolean. Also honored via `SIFT_DISABLED=1`. Supersedes every other flag (disabled wins over offline). |
+| `--sift-log-file=<path\|true\|false>` | temp file | Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an `import-test-result-log --incremental` worker that polls the file and replays entries against Sift while the run is in flight. Pass `false` to disable the file entirely; create/update calls then go straight to the API synchronously during tests. Incompatible with `--sift-offline` since offline mode needs the log file as its sole sink. |
+| `--no-sift-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
 
 These can be passed permanently via `addopts`:
 
 ```ini title="pytest.ini"
 [pytest]
-addopts = --sift-test-results-check-connection
+addopts = --sift-offline
 ```
 
 Or set the matching ini key directly (recommended for stable per-project
@@ -112,10 +113,11 @@ CLI flags, when passed, override the ini values.
 
 | Ini key | Type | Equivalent CLI flag |
 |---|---|---|
-| `sift_test_results_log_file` | string (`true` / `false` / `none` / path) | `--sift-test-results-log-file=<value>` |
-| `sift_test_results_git_metadata` | bool (default `true`) | `--no-sift-test-results-git-metadata` (sets to `false`) |
-| `sift_test_results_check_connection` | bool (default `false`) | `--sift-test-results-check-connection` |
-| `sift_test_results_autouse` | bool (default `true`) | _(no CLI flag; controls the marker gate below)_ |
+| `sift_log_file` | string (`true` / `false` / `none` / path) | `--sift-log-file=<value>` |
+| `sift_git_metadata` | bool (default `true`) | `--no-sift-git-metadata` (sets to `false`) |
+| `sift_offline` | bool (default `false`) | `--sift-offline` |
+| `sift_disabled` | bool (default `false`) | `--sift-disabled` (also honors `SIFT_DISABLED` env var) |
+| `sift_autouse` | bool (default `true`) | _(no CLI flag; controls the marker gate below)_ |
 
 The default `sift_client` fixture reads its two URIs from environment first
 and falls back to ini keys when the env vars are unset. `SIFT_API_KEY` is
@@ -133,18 +135,16 @@ flags for credentials.
 
 ```toml title="pyproject.toml"
 [tool.pytest.ini_options]
-sift_test_results_check_connection = true
-sift_test_results_log_file = "false"
-sift_test_results_git_metadata = false
+sift_offline = true
+sift_git_metadata = false
 sift_grpc_uri = "your-org.sift.example:443"
 sift_rest_uri = "https://your-org.sift.example"
 ```
 
 ```ini title="pytest.ini"
 [pytest]
-sift_test_results_check_connection = true
-sift_test_results_log_file = false
-sift_test_results_git_metadata = false
+sift_offline = true
+sift_git_metadata = false
 sift_grpc_uri = your-org.sift.example:443
 sift_rest_uri = https://your-org.sift.example
 ```
@@ -171,7 +171,7 @@ into `os.environ` before tests run.
 glue is needed.
 
 !!! warning "FedRAMP / shared environments"
-    Pass `--sift-test-results-log-file=false` (or set the ini key to `"false"`)
+    Pass `--sift-log-file=false` (or set the ini key to `"false"`)
     to skip the temp file + worker pipeline. Create/update calls then run
     inline against the API instead of being deferred through a subprocess.
 
@@ -184,7 +184,7 @@ Every report the plugin creates includes:
 - `system_operator`: `getpass.getuser()`.
 - `start_time` / `end_time`: set on session enter/exit.
 - `status`: starts at `IN_PROGRESS`, finalized to `PASSED` or `FAILED` on session exit (failure if any step failed or an exception escaped the session).
-- `metadata.git_repo`, `metadata.git_branch`, `metadata.git_commit`: captured via `git remote get-url origin` / `git rev-parse --abbrev-ref HEAD` / `git describe --always --dirty --exclude '*'`. Suppressed by `--no-sift-test-results-git-metadata` or when not in a git repo.
+- `metadata.git_repo`, `metadata.git_branch`, `metadata.git_commit`: captured via `git remote get-url origin` / `git rev-parse --abbrev-ref HEAD` / `git describe --always --dirty --exclude '*'`. Suppressed by `--no-sift-git-metadata` or when not in a git repo.
 
 Example invocations:
 
@@ -207,7 +207,7 @@ useful when a repo holds tests that you don't want included in the Sift test rep
 
 | Setting                                                 | Effect                                                                                       |
 |---------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| `sift_test_results_autouse = false` in `pyproject.toml` | Flip the project-wide default off. Tests no longer produce steps unless explicitly opted in. |
+| `sift_autouse = false` in `pyproject.toml` | Flip the project-wide default off. Tests no longer produce steps unless explicitly opted in. |
 | `@pytest.mark.sift_include` on a test, class, or module | Force reporting on for that scope, regardless of the project default.                        |
 | `@pytest.mark.sift_exclude` on a test, class, or module | Force reporting off for that scope, regardless of the project default.                       |
 
@@ -237,7 +237,7 @@ def pytest_collection_modifyitems(config, items):
 ```
 
 This applies `sift_include` to every test collected under `tests/example/`.
-Combine with `sift_test_results_autouse = false` in `pyproject.toml` for
+Combine with `sift_autouse = false` in `pyproject.toml` for
 opting in to specific directories. 
 
 `pytest_collection_modifyitems` receives every item in the session, not just
@@ -657,95 +657,50 @@ The `unit` argument is a free-form string label (e.g. `"V"`, `"C"`, `"psi"`).
 pytest
 
 # Pin the log file so you can replay it later if the import worker dies
-pytest --sift-test-results-log-file=./sift-results.jsonl
+pytest --sift-log-file=./sift-results.jsonl
 ```
 
-See [Running offline](#running-offline) for the same suite running with or
-without a reachable Sift server.
+See [Running modes](#running-modes) for the offline and disabled flags
+that let the same suite run without (or without contacting) Sift.
 
-## Running offline
+## Running modes
 
-The plugin supports two offline workflows, depending on whether you want a
-Sift report at all when the test environment can't reach Sift. The first
-turns the plugin into a no-op when the server is unreachable. The second
-keeps the plugin running normally and writes every create/update to a local
-JSONL file that you upload from a connected machine afterward.
+The plugin runs in one of three modes, picked at invocation:
 
-| Pattern | Flag | Runtime behavior | Follow-up |
-|---|---|---|---|
-| Skip when offline | `--sift-test-results-check-connection` | Fixtures yield `None`, no log file, no report. Pytest still reports pass/fail. | None. |
-| Capture locally, upload later | `--sift-test-results-log-file=<path>` | Plugin writes every create/update to the JSONL file. | `import-test-result-log <path>` from a connected machine. |
+| Mode | Flag | Network | Log file | `step.measure(...)` | When to use |
+|---|---|---|---|---|---|
+| Online (default) | _(none)_ | yes (pings at session start, aborts if it fails) | optional write-through backup | real measurement against Sift | CI with Sift credentials, local dev hitting your tenant |
+| Offline | `--sift-offline` | none | required (the sole sink) | real measurement queued to log | field tests, air-gapped labs, CI without network |
+| Disabled | `--sift-disabled` | none | none | bounds eval; returns a real bool | local dev or CI that doesn't have (or want) Sift |
 
-Pattern 1 suits laptop dev and CI without Sift secrets. Pattern 2 suits
-field tests, vehicles on remote sites, and air-gapped labs.
+Pass both flags? Disabled wins. It's the "skip Sift entirely" hammer and
+supersedes everything else.
 
-### Pattern 1: skip when offline
+### Online mode (default)
 
-`--sift-test-results-check-connection` makes the plugin ping Sift once at
-session start through the `client_has_connection` fixture (which by default
-calls `sift_client.ping.ping()`). On a failed ping, `report_context`,
-`step`, and `module_substep` yield `None` for the rest of the session.
-Pytest still runs the tests and still reports pass/fail.
+`report_context` resolves `client_has_connection` at session start. The
+default implementation calls `sift_client.ping.ping()`. A failed ping
+aborts the whole session with `pytest.UsageError` and points at
+`--sift-offline` and `--sift-disabled` as escape hatches.
 
-```bash
-pytest --sift-test-results-check-connection
-```
+This is loud on purpose. A CI run that silently no-ops on a flaky network
+won't get noticed until somebody goes looking for the report, which is
+usually weeks later, which is usually too late.
 
-```ini title="pytest.ini"
-[pytest]
-addopts = --sift-test-results-check-connection
-```
-
-#### Handling `None` in tests
-
-Calls on `step` raise `AttributeError` when it's `None`, so tests that take
-`step` as a parameter need a guard. The cleanest fix is to shadow the
-plugin's `step` fixture in your conftest and turn the `None` case into an
-automatic skip.
-
-```python title="conftest.py"
-import pytest
-
-pytest_plugins = ["sift_client.pytest_plugin"]
-
-
-@pytest.fixture(autouse=True)
-def step(step):
-    if step is None:
-        pytest.skip("Sift unavailable")
-    yield step
-```
-
-The `step` parameter on the override resolves to the plugin's fixture, not
-to the override itself. `autouse=True` is required so the skip applies to
-tests that don't request `step` directly. The same shadowing trick works
-for `module_substep` and `report_context`.
-
-For one-off tests that don't share a conftest, an inline guard works just
-as well:
-
-```python
-def test_battery_voltage(step):
-    if step is None:
-        pytest.skip("Sift unavailable")
-    step.measure(name="battery_voltage", value=4.97, bounds={"min": 4.8, "max": 5.2})
-```
-
-If you'd rather have tests pass through silently than skip them, wrap the
-calls in a helper that no-ops on `None`:
-
-```python
-def safe_measure(step, **kwargs):
-    if step is None:
-        return True
-    return step.measure(**kwargs)
-```
+With the default `--sift-log-file` setting on, create/update calls are
+written to a JSONL log file during the run and an
+`import-test-result-log --incremental` worker replays them against Sift
+in the background. If the worker crashes mid-session (connection failure,
+API error) or is still draining its backlog at session end, the failure
+is logged at session end with a `replay-test-result-log` command for
+manual recovery — test outcomes are unaffected and the local log file is
+preserved. Pass `--sift-log-file=false` to make every create/update
+synchronous against the API instead.
 
 #### Overriding the connection check
 
-The default `client_has_connection` fixture calls `sift_client.ping.ping()`.
-Override it in your conftest if pinging is the wrong signal for your
-environment, for example a token cache that's only warm when authenticated:
+Override `client_has_connection` when ping isn't the right signal, for
+example a token cache that's only warm when authenticated:
 
 ```python title="conftest.py"
 from pathlib import Path
@@ -758,50 +713,73 @@ def client_has_connection(sift_client) -> bool:
     return Path("~/.sift-token-cache").expanduser().is_file()
 ```
 
-The plugin only consults this fixture when `--sift-test-results-check-connection`
-is set, so an unused override has no effect on a normal run.
+The override is ignored under `--sift-offline` and `--sift-disabled`.
 
-### Pattern 2: capture locally, upload later
+### Offline mode (`--sift-offline`)
 
-This pattern keeps the plugin running normally even when Sift is
-unreachable. The plugin writes to the log file, the worker dies on connect,
-and the file is left on disk for you to upload later. Pin the log file path
-so you can find it afterward, and don't pass
-`--sift-test-results-check-connection`, which would suppress the logging
-this pattern relies on.
+Same fixtures, same `step.measure(...)` semantics as online. The
+difference is where the writes go: every create/update lands in a JSONL
+log file instead of hitting the Sift API. The session-start ping is
+skipped, missing `SIFT_*` env vars are tolerated (placeholders are
+filled), and the replay worker (`import-test-result-log --incremental`)
+does not get spawned at session end.
 
 ```bash
-pytest --sift-test-results-log-file=./run.jsonl
+pytest --sift-offline --sift-log-file=./run.jsonl
 ```
 
-What happens during the run:
-
-- Every report, step, and measurement create/update is written to
-  `run.jsonl`. The plugin doesn't contact the Sift API for any of these
-  calls; they return simulated responses keyed by UUIDs that the replay
-  later maps to real IDs.
-- The `import-test-result-log --incremental` worker subprocess starts and
-  exits early when it can't reach Sift. The session does not fail when the
-  worker exits before the run ends.
-- Tests run against a real `step` fixture, so `step.measure(...)`,
-  substeps, parametrize, fixtures, and `module_substep` behave exactly as
-  they do online. No conftest changes are needed.
-
-Once you have connectivity, replay the file:
+Once you have connectivity, replay it:
 
 ```bash
 import-test-result-log ./run.jsonl
 ```
 
-The replay creates the report, steps, and measurements against Sift in one
-batch. See [Replaying a saved log file](#replaying-a-saved-log-file) for
-details on cleanup and the incremental flag.
+That replay creates the report, steps, and measurements against Sift.
+See [Replaying a saved log file](#replaying-a-saved-log-file) for cleanup
+and the incremental flag.
 
-!!! warning "Pin the log path for Pattern 2"
-    Without `--sift-test-results-log-file=<path>`, the plugin writes to a
-    `tempfile.NamedTemporaryFile` and only surfaces the path via a
-    `logger.info` line. Always pin a known path when you intend to replay
-    the file later.
+`--sift-log-file=none` is rejected when offline is set. The
+log file is the only sink in offline mode, so without it the results are
+gone.
+
+!!! warning "Pin the log path"
+    Without `--sift-log-file=<path>`, offline mode writes to
+    a `tempfile.NamedTemporaryFile` and only surfaces the path via a
+    `logger.info` line. Pin a known path when you intend to replay later.
+
+### Disabled mode (`--sift-disabled`)
+
+The plugin stays loaded with the same fixtures and markers as the other
+modes. Nothing contacts Sift, no log file is written, and no `SIFT_*`
+env vars are required. `step.measure(...)`, `step.measure_avg(...)`,
+`step.measure_all(...)`, `step.substep(...)`, and
+`report_context.report.update({...})` all behave normally — bounds
+evaluate and you get a real pass/fail boolean back.
+
+Entities returned in disabled mode report `is_simulated == True` (on
+`TestReport`, `TestStep`, `TestMeasurement`, and `ReportContext`) so
+consumers and tests can branch on provenance. Offline-mode entities
+also report `is_simulated == True`.
+
+How to turn it on, in the order most projects pick:
+
+```bash
+# In an .envrc, devcontainer, or CI job config
+export SIFT_DISABLED=1
+
+# Per-invocation kill-switch
+pytest --sift-disabled
+
+# Per-project default (uncommon; online is usually the right default)
+# pyproject.toml:
+#   [tool.pytest.ini_options]
+#   sift_disabled = true
+```
+
+Good fit for local dev without Sift credentials. Also for library
+consumers who don't have a Sift tenant. Also useful in CI for runs that
+shouldn't add noise to the report stream, like a PR job re-running the
+same suite five times in a row.
 
 ## Replaying a saved log file
 
