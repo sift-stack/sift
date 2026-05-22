@@ -1,4 +1,4 @@
-use crate::cli::{FlatDatasetArgs, parquet::ComplexTypesMode, time::TimeFormat};
+use crate::cli::{CommonImportArgs, FlatDatasetArgs, parquet::ComplexTypesMode, time::TimeFormat};
 use crate::cmd::import::parquet::detect_parquet_schema::{self, arrow_type_to_channel_data_type};
 use arrow_array::{
     BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
@@ -13,9 +13,14 @@ use std::sync::Arc;
 
 fn make_test_args(time_path: &str, time_format: TimeFormat) -> FlatDatasetArgs {
     FlatDatasetArgs {
-        path: PathBuf::from("test.parquet"),
-        asset: String::from("test-asset"),
-        run: None,
+        common: CommonImportArgs {
+            path: PathBuf::from("test.parquet"),
+            asset: String::from("test-asset"),
+            run: None,
+            run_id: None,
+            wait: false,
+            preview: false,
+        },
         channel_path: vec![],
         data_type: vec![],
         unit: vec![],
@@ -26,8 +31,6 @@ fn make_test_args(time_path: &str, time_format: TimeFormat) -> FlatDatasetArgs {
         time_format,
         relative_start_time: None,
         complex_types_mode: ComplexTypesMode::default(),
-        wait: false,
-        preview: false,
     }
 }
 
