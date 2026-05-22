@@ -266,6 +266,14 @@
     }
   },
   {
+    "version": "v0.16.2",
+    "title": "v0.16.2",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v0.16.1",
     "title": "v0.16.1",
     "aliases": [],
