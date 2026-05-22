@@ -1,9 +1,13 @@
-"""Tests for the plugin's class-step nesting behavior and step-nesting opt-out flags.
+"""Tests for the plugin's hierarchy-step nesting behavior.
 
-Same ``pytester`` + ``FakeReportContext`` harness as ``test_parametrize.py``.
-Each test spins up an inner pytest run whose conftest swaps in a
-``FakeReportContext`` that records every step creation to a JSON file; the
-outer test reads that file and asserts the resulting step tree.
+Covers every layer the plugin opens parent steps for — packages, modules,
+classes (including nested), parametrize axes — plus the ini opt-out flags,
+failure-cleanup semantics, and the drain helper.
+
+Each test spins up an inner pytest run via ``pytester`` whose conftest swaps
+in a ``FakeReportContext`` (from ``_fakes.py``) that records every step
+creation to a JSON file. The outer test reads that file and asserts the
+resulting step tree.
 """
 
 from __future__ import annotations
@@ -554,13 +558,11 @@ def test_sift_parametrize_nesting_false_keeps_flat_leaves(
 def test_sift_module_step_false_still_drains_across_modules(
     pytester: pytest.Pytester, steps_file: Path
 ) -> None:
-    """sift_module_step=false must not leak class/parametrize parents across modules.
+    """sift_module_step=false must not merge same-named classes across modules.
 
-    Two modules each declare ``class TestFoo``. Without per-module draining,
-    the second module's TestFoo would silently reuse the first module's stale
-    class step (the diff in _class_parents compares names only). The fix
-    drains at the module boundary regardless of whether the module step
-    itself was opened.
+    The hierarchy chain always includes the module ancestor for identity
+    (even when it's not rendered as a step), so two modules each declaring
+    ``class TestFoo`` produce two distinct ``TestFoo`` frames in the diff.
     """
     _write_ini(pytester, sift_module_step="false")
     pytester.makepyfile(
@@ -592,6 +594,101 @@ def test_sift_module_step_false_still_drains_across_modules(
     assert test_x_parent in foo_ids
     assert test_y_parent in foo_ids
     assert test_x_parent != test_y_parent
+
+
+def test_package_step_default_opens_for_init_dirs(
+    pytester: pytest.Pytester, steps_file: Path
+) -> None:
+    """Default: a directory with ``__init__.py`` produces a parent package step."""
+    pytester.mkpydir("pkg_a")
+    (pytester.path / "pkg_a" / "test_x.py").write_text(
+        dedent(
+            """
+            def test_one():
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_subprocess("-v")
+    result.assert_outcomes(passed=1)
+    steps = json.loads(steps_file.read_text())
+    by_name = _by_name(steps)
+    assert "pkg_a" in by_name
+    pkg_id = by_name["pkg_a"][0]["id"]
+    mod = by_name["test_x.py"][0]
+    assert mod["parent_step_id"] == pkg_id
+
+
+def test_same_named_packages_in_different_dirs_do_not_merge(
+    pytester: pytest.Pytester, steps_file: Path
+) -> None:
+    """Two packages with the same display name but different paths must stay distinct.
+
+    The hierarchy diff compares on ``nodeid`` (identity), not just the
+    display name — so a ``utils`` package under ``proj_a/`` and another
+    under ``proj_b/`` (where ``proj_a/`` and ``proj_b/`` are bare
+    directories that pytest treats as ``pytest.Dir`` nodes and the chain
+    walker skips) produce two distinct ``utils`` parent steps in the report
+    tree, not a silent merge.
+    """
+    (pytester.path / "proj_a" / "utils").mkdir(parents=True)
+    (pytester.path / "proj_a" / "utils" / "__init__.py").touch()
+    (pytester.path / "proj_a" / "utils" / "test_x.py").write_text(
+        dedent(
+            """
+            def test_one():
+                pass
+            """
+        )
+    )
+    (pytester.path / "proj_b" / "utils").mkdir(parents=True)
+    (pytester.path / "proj_b" / "utils" / "__init__.py").touch()
+    (pytester.path / "proj_b" / "utils" / "test_y.py").write_text(
+        dedent(
+            """
+            def test_two():
+                pass
+            """
+        )
+    )
+    # ``importlib`` import mode is required so two packages with the same
+    # name on disk don't collide during sys.path-based import.
+    result = pytester.runpytest_subprocess("-v", "--import-mode=importlib")
+    result.assert_outcomes(passed=2)
+    steps = json.loads(steps_file.read_text())
+    by_name = _by_name(steps)
+    # Two distinct ``utils`` package steps — one per project.
+    assert len(by_name["utils"]) == 2
+    utils_ids = {s["id"] for s in by_name["utils"]}
+    # Each module step parents to a different ``utils`` instance.
+    parent_x = by_name["test_x.py"][0]["parent_step_id"]
+    parent_y = by_name["test_y.py"][0]["parent_step_id"]
+    assert parent_x in utils_ids
+    assert parent_y in utils_ids
+    assert parent_x != parent_y
+
+
+def test_sift_package_step_false_skips_package_steps(
+    pytester: pytest.Pytester, steps_file: Path
+) -> None:
+    """With ``sift_package_step=false`` the directory step is suppressed."""
+    _write_ini(pytester, sift_package_step="false")
+    pytester.mkpydir("pkg_a")
+    (pytester.path / "pkg_a" / "test_x.py").write_text(
+        dedent(
+            """
+            def test_one():
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_subprocess("-v")
+    result.assert_outcomes(passed=1)
+    steps = json.loads(steps_file.read_text())
+    by_name = _by_name(steps)
+    assert "pkg_a" not in by_name
+    # The module step still opens and is now the top-level frame.
+    assert by_name["test_x.py"][0]["parent_step_id"] is None
 
 
 def test_all_three_flags_false_matches_legacy_behavior(
@@ -627,3 +724,158 @@ def test_all_three_flags_false_matches_legacy_behavior(
     assert "test_a[2]" in by_name
     assert by_name["test_a[1]"][0]["parent_step_id"] is None
     assert by_name["test_a[2]"][0]["parent_step_id"] is None
+
+
+# ---------------------------------------------------------------------------
+# Parametrize nesting
+# ---------------------------------------------------------------------------
+
+
+def test_single_parametrize_clusters_under_originalname(
+    pytester: pytest.Pytester, steps_file: Path
+) -> None:
+    pytester.makepyfile(
+        test_rail=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", [3.3, 5.0])
+            def test_rail(v):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_subprocess("-v")
+    result.assert_outcomes(passed=2)
+    steps = json.loads(steps_file.read_text())
+    by_name = _by_name(steps)
+    # Module step + one shared `test_rail` parent + two leaves.
+    assert len(by_name["test_rail.py"]) == 1
+    assert len(by_name["test_rail"]) == 1
+    assert len(by_name["v=3.3"]) == 1
+    assert len(by_name["v=5.0"]) == 1
+    test_rail_id = by_name["test_rail"][0]["id"]
+    assert by_name["v=3.3"][0]["parent_step_id"] == test_rail_id
+    assert by_name["v=5.0"][0]["parent_step_id"] == test_rail_id
+
+
+def test_stacked_parametrize_nests_outer_to_inner(
+    pytester: pytest.Pytester, steps_file: Path
+) -> None:
+    pytester.makepyfile(
+        test_iso=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("voltage", ["high", "low"])
+            @pytest.mark.parametrize("component", ["motor", "ducer"])
+            def test_iso(voltage, component):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_subprocess("-v")
+    result.assert_outcomes(passed=4)
+    steps = json.loads(steps_file.read_text())
+    by_name = _by_name(steps)
+    # One `test_iso` parent, two `voltage='…'` parents, four `component='…'` leaves.
+    assert len(by_name["test_iso"]) == 1
+    assert len(by_name["voltage='high'"]) == 1
+    assert len(by_name["voltage='low'"]) == 1
+    assert len(by_name["component='motor'"]) == 2  # one per voltage
+    assert len(by_name["component='ducer'"]) == 2
+    test_iso_id = by_name["test_iso"][0]["id"]
+    vh_id = by_name["voltage='high'"][0]["parent_step_id"]
+    vl_id = by_name["voltage='low'"][0]["parent_step_id"]
+    assert vh_id == test_iso_id
+    assert vl_id == test_iso_id
+    # Each component leaf parents to one of the voltage parents.
+    voltage_ids = {
+        by_name["voltage='high'"][0]["id"],
+        by_name["voltage='low'"][0]["id"],
+    }
+    for leaf in by_name["component='motor'"] + by_name["component='ducer'"]:
+        assert leaf["parent_step_id"] in voltage_ids
+
+
+def test_fixture_parametrization_participates(pytester: pytest.Pytester, steps_file: Path) -> None:
+    pytester.makepyfile(
+        test_widget=dedent(
+            """
+            import pytest
+
+            @pytest.fixture(params=["a", "b"])
+            def widget(request):
+                return request.param
+
+            def test_widget(widget):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_subprocess("-v")
+    result.assert_outcomes(passed=2)
+    steps = json.loads(steps_file.read_text())
+    by_name = _by_name(steps)
+    assert len(by_name["test_widget"]) == 1
+    parent_id = by_name["test_widget"][0]["id"]
+    assert by_name["widget='a'"][0]["parent_step_id"] == parent_id
+    assert by_name["widget='b'"][0]["parent_step_id"] == parent_id
+
+
+def test_module_boundary_isolates_parametrize_stack(
+    pytester: pytest.Pytester, steps_file: Path
+) -> None:
+    pytester.makepyfile(
+        test_a=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", [1, 2])
+            def test_one(v):
+                pass
+            """
+        ),
+        test_b=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("w", ["x", "y"])
+            def test_two(w):
+                pass
+            """
+        ),
+    )
+    result = pytester.runpytest_subprocess("-v")
+    result.assert_outcomes(passed=4)
+    steps = json.loads(steps_file.read_text())
+    by_name = _by_name(steps)
+    # Each module step contains its own `test_one`/`test_two` parametrize subtree.
+    mod_a = by_name["test_a.py"][0]
+    mod_b = by_name["test_b.py"][0]
+    assert by_name["test_one"][0]["parent_step_id"] == mod_a["id"]
+    assert by_name["test_two"][0]["parent_step_id"] == mod_b["id"]
+
+
+def test_leaf_parent_chain_terminates_at_report(
+    pytester: pytest.Pytester, steps_file: Path
+) -> None:
+    pytester.makepyfile(
+        test_chain=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("a", [1])
+            @pytest.mark.parametrize("b", ["x"])
+            def test_chain(a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_subprocess("-v")
+    result.assert_outcomes(passed=1)
+    steps = json.loads(steps_file.read_text())
+    leaf = next(s for s in steps if s["name"].startswith("b="))
+    chain = _ancestor_names(steps, leaf)
+    # leaf b=… → a=… → test_chain → test_chain.py (module step) → root
+    assert chain == ["b='x'", "a=1", "test_chain", "test_chain.py"]
