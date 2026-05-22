@@ -419,24 +419,46 @@ pub struct ScprArgs {
     pub data_path: String,
 
     /// Channel name for every row in the file
-    #[arg( long, required_if_eq("mode", "single"), conflicts_with = "name_path", help_heading = "Single mode options",)]
+    #[arg(
+        long,
+        required_if_eq("mode", "single"),
+        conflicts_with = "name_path",
+        help_heading = "Single mode options"
+    )]
     pub channel_name: Option<String>,
 
     /// Data type for the channel. Use `"infer"` to have the program infer the
     /// data type from the parquet schema.
-    #[arg(long, conflicts_with = "name_path", help_heading = "Single mode options")]
+    #[arg(
+        long,
+        conflicts_with = "name_path",
+        help_heading = "Single mode options"
+    )]
     pub data_type: Option<DataType>,
 
     /// Channel units
-    #[arg(long, conflicts_with = "name_path", help_heading = "Single mode options")]
+    #[arg(
+        long,
+        conflicts_with = "name_path",
+        help_heading = "Single mode options"
+    )]
     pub unit: Option<String>,
 
     /// Channel description
-    #[arg( short = 'n', long, conflicts_with = "name_path", help_heading = "Single mode options",)]
+    #[arg(
+        short = 'n',
+        long,
+        conflicts_with = "name_path",
+        help_heading = "Single mode options"
+    )]
     pub description: Option<String>,
 
     /// Path to the column holding channel names
-    #[arg( long, required_if_eq("mode", "multi"), help_heading = "Multi mode options",)]
+    #[arg(
+        long,
+        required_if_eq("mode", "multi"),
+        help_heading = "Multi mode options"
+    )]
     pub name_path: Option<String>,
 
     /// Strategy for handling complex types (maps, lists, structs)

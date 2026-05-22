@@ -113,7 +113,10 @@ pub fn detect_scpr_config<R: ChunkReader>(
         .iter()
         .find(|field| field.name() == &args.time_path)
         .with_context(|| {
-            format!("time column '{}' not found in parquet schema", args.time_path)
+            format!(
+                "time column '{}' not found in parquet schema",
+                args.time_path
+            )
         })?;
 
     let time_column = Some(ParquetTimeColumn {
@@ -127,7 +130,10 @@ pub fn detect_scpr_config<R: ChunkReader>(
         .iter()
         .find(|f| f.name() == &args.data_path)
         .with_context(|| {
-            format!("data column '{}' not found in parquet schema", args.data_path)
+            format!(
+                "data column '{}' not found in parquet schema",
+                args.data_path
+            )
         })?;
     let data_channel_type = arrow_type_to_channel_data_type(data_field.data_type())
         .with_context(|| format!("unsupported data type for column '{}'", args.data_path))?;
@@ -176,10 +182,8 @@ pub fn detect_scpr_config<R: ChunkReader>(
                 .with_context(|| {
                     format!("name column '{name_path}' not found in parquet schema")
                 })?;
-            let name_channel_type =
-                arrow_type_to_channel_data_type(name_field.data_type()).with_context(|| {
-                    format!("unsupported data type for name column '{name_path}'")
-                })?;
+            let name_channel_type = arrow_type_to_channel_data_type(name_field.data_type())
+                .with_context(|| format!("unsupported data type for name column '{name_path}'"))?;
 
             columns.push(ParquetColumn {
                 path: name_path.clone(),

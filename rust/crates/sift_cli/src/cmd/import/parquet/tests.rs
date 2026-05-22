@@ -480,8 +480,14 @@ fn test_detect_scpr_multi_basic() {
 
     // top-level columns should include both data and name columns
     let paths: Vec<&str> = cfg.columns.iter().map(|c| c.path.as_str()).collect();
-    assert!(paths.contains(&"value"), "columns should include data column");
-    assert!(paths.contains(&"channel"), "columns should include name column");
+    assert!(
+        paths.contains(&"value"),
+        "columns should include data column"
+    );
+    assert!(
+        paths.contains(&"channel"),
+        "columns should include name column"
+    );
 }
 
 #[test]
@@ -530,7 +536,13 @@ fn test_detect_scpr_multi_missing_name_column_errors() {
 
 #[test]
 fn test_discover_multi_channel_names_dedups_and_sorts() {
-    let batch = create_scpr_multi_batch(vec!["voltage", "temperature", "pressure", "voltage", "temperature"]);
+    let batch = create_scpr_multi_batch(vec![
+        "voltage",
+        "temperature",
+        "pressure",
+        "voltage",
+        "temperature",
+    ]);
     let bytes = write_to_parquet_bytes(&batch);
 
     let names = detect_parquet_schema::discover_multi_channel_names(bytes, "channel")
@@ -546,7 +558,8 @@ fn test_discover_multi_channel_names_errors_on_non_string_column() {
 
     let err = detect_parquet_schema::discover_multi_channel_names(bytes, "value").unwrap_err();
     assert!(
-        err.chain().any(|e| e.to_string().contains("must be a string type")),
+        err.chain()
+            .any(|e| e.to_string().contains("must be a string type")),
         "expected non-string error, got: {err:#}"
     );
 }
@@ -556,7 +569,8 @@ fn test_discover_multi_channel_names_missing_column_errors() {
     let batch = create_scpr_multi_batch(vec!["a"]);
     let bytes = write_to_parquet_bytes(&batch);
 
-    let err = detect_parquet_schema::discover_multi_channel_names(bytes, "no_such_col").unwrap_err();
+    let err =
+        detect_parquet_schema::discover_multi_channel_names(bytes, "no_such_col").unwrap_err();
     assert!(
         err.chain().any(|e| e.to_string().contains("not found")),
         "expected not-found error, got: {err:#}"

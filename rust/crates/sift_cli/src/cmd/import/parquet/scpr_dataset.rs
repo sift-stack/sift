@@ -31,7 +31,8 @@ pub async fn run(ctx: Context, args: ScprArgs) -> Result<ExitCode> {
     let mut file = File::open(&args.common.path).context("failed to open parquet file")?;
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
-    let scpr_config = detect_scpr_config(&file, &args).context("failed to detect parquet schema")?;
+    let scpr_config =
+        detect_scpr_config(&file, &args).context("failed to detect parquet schema")?;
 
     if args.common.preview {
         let run_label = args
