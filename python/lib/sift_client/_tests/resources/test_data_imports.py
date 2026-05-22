@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
@@ -40,6 +41,11 @@ from sift_client.sift_types.data_import import (
     TdmsImportConfig,
     TimeFormat,
 )
+
+if TYPE_CHECKING:
+    from sift.common.type.v1.channel_data_type_pb2 import (
+        ChannelDataType as ChannelDataTypeProto,
+    )
 
 
 @pytest.mark.integration
@@ -421,7 +427,10 @@ def _make_flat_dataset_response(
             data_columns=[
                 ParquetDataColumnProto(
                     path=path,
-                    channel_config=ChannelConfigProto(name=path, data_type=data_type),
+                    channel_config=ChannelConfigProto(
+                        name=path,
+                        data_type=cast("ChannelDataTypeProto.ValueType", data_type),
+                    ),
                 )
                 for path, data_type in data_columns
             ],
@@ -436,7 +445,10 @@ def _make_scpr_response(time_path: str, columns: list[tuple[str, int]]) -> Parqu
             columns=[
                 ParquetColumn(
                     path=path,
-                    column_config=ChannelConfigProto(name=path, data_type=data_type),
+                    column_config=ChannelConfigProto(
+                        name=path,
+                        data_type=cast("ChannelDataTypeProto.ValueType", data_type),
+                    ),
                 )
                 for path, data_type in columns
             ],
