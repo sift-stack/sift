@@ -5,7 +5,7 @@ import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, Generator, Tuple
 
 import pytest
 
@@ -39,12 +39,12 @@ REPORT_CONTEXT: Any = None
 
 _STASH_MISSING = object()
 
-_PARAMETRIZE_PATH_KEY = pytest.StashKey[tuple[str, ...]]()
+_PARAMETRIZE_PATH_KEY = pytest.StashKey[Tuple[str, ...]]()
 # Each frame: (path_key, open step). Frames are shared across sibling test items
 # and drained at session end.
 _PARAMETRIZE_STACK: list[tuple[str, Any]] = []
 
-_HIERARCHY_KEY = pytest.StashKey[tuple[tuple[str, str, "str | None", bool], ...]]()
+_HIERARCHY_KEY = pytest.StashKey[Tuple[Tuple[str, str, "str | None", bool], ...]]()
 # Outer-to-inner frames for the item's collection-tree ancestors. Each chain
 # entry is ``(identity, name, doc, rendered)``:
 #   - ``identity``: a globally-unique key (``node.nodeid``) used for diff
