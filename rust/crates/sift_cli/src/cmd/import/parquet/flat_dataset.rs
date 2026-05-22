@@ -29,7 +29,7 @@ use crate::{
 pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
     let mut data_imports_client = DataImportServiceClient::new(grpc_channel.clone());
-    let mut file = File::open(&args.path).context("failed to open parquet file")?;
+    let mut file = File::open(&args.common.path).context("failed to open parquet file")?;
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
     let mut config = {
@@ -43,7 +43,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     update_config_with_overrides(&mut config, &args)?;
     let create_data_import_req = create_data_import_request(&args, config, footer_md)?;
 
-    if args.preview {
+    if args.common.preview {
         let parquet_conf = create_data_import_req.parquet_config.unwrap();
         let Config::FlatDataset(flatset_conf) = parquet_conf.config.unwrap() else {
             anyhow::bail!("expected flatdataset config for preview");
@@ -78,12 +78,12 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
         .await
         .context("failed to upload Parquet file")?;
 
-    let location = args.run.as_ref().map_or_else(
-        || format!("asset '{}'", args.asset.cyan()),
+    let location = args.common.run.as_ref().map_or_else(
+        || format!("asset '{}'", args.common.asset.cyan()),
         |r| format!("run '{}'", r.clone().cyan()),
     );
 
-    if !args.wait {
+    if !args.common.wait {
         Output::new()
             .line(format!("{} file for processing", "Uploaded".green()))
             .tip(format!(
@@ -224,8 +224,9 @@ fn create_data_import_request(
 ) -> Result<CreateDataImportFromUploadRequest> {
     let req = CreateDataImportFromUploadRequest {
         parquet_config: Some(ParquetConfig {
-            asset_name: args.asset.clone(),
-            run_name: args.run.clone().unwrap_or_default(),
+            asset_name: args.common.asset.clone(),
+            run_name: args.common.run.clone().unwrap_or_default(),
+            run_id: args.common.run_id.clone().unwrap_or_default(),
             footer_offset: footer_md.offset,
             footer_length: u32::try_from(footer_md.length)
                 .context("parquet footer length too large")?,
@@ -234,7 +235,6 @@ fn create_data_import_request(
             )
             .into(),
             config: config.config,
-            ..Default::default()
         }),
         ..Default::default()
     };
