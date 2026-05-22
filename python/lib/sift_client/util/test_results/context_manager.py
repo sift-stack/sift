@@ -7,6 +7,7 @@ import socket
 import subprocess
 import tempfile
 import traceback
+import warnings
 from contextlib import AbstractContextManager, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
@@ -42,15 +44,19 @@ logger = logging.getLogger(__name__)
 
 
 def log_replay_instructions(log_file: str | Path | None) -> None:
-    """Log instructions for manually replaying a test result log file.
+    """Surface replay instructions when an import/replay attempt fails.
 
-    Used when an import/replay attempt fails so the user can retry against the same file.
+    Emitted as a ``SiftWarning`` (not a logger.error) so pytest and other
+    runners surface it in their warning summary; logger.error is suppressed
+    by default in most CLI tools.
     """
     if log_file is None:
         return
-    logger.error(
-        f"Error replaying log file: {log_file}.\n"
-        f"  Can replay with `replay-test-result-log {log_file}`."
+    warnings.warn(
+        f"Sift log file was not fully replayed: {log_file}. "
+        f"Re-run with `import-test-result-log {log_file}` to complete the upload.",
+        SiftWarning,
+        stacklevel=2,
     )
 
 
@@ -227,31 +233,39 @@ class ReportContext(AbstractContextManager):
             # them fail the session — tests already ran and their outcome
             # is independent of delivery. The local log file is the source
             # of recovery for both failure modes via
-            # `replay-test-result-log <path>`:
+            # `import-test-result-log <path>`:
             #   1. Exits cleanly (returncode 0). Silent.
-            #   2. Still running after the 1s grace window (TimeoutExpired).
+            #   2. Still running after the grace window (TimeoutExpired).
             #      Healthy worker with a large backlog; kill and surface
-            #      replay instructions.
+            #      replay instructions. 30 seconds is enough for a normal
+            #      test suite to drain; pathological backlogs should opt
+            #      into inline mode (`--sift-log-file=false`) instead.
             #   3. Exited with non-zero. Connection failures and API call
             #      errors land here — the worker's replay loop has no retry,
-            #      so the first failed RPC crashes the subprocess. Log the
-            #      captured stderr at ERROR with replay instructions.
+            #      so the first failed RPC crashes the subprocess. Surface
+            #      the captured stderr with replay instructions.
             try:
-                _, stderr_bytes = self._import_proc.communicate(timeout=1)
+                _, stderr_bytes = self._import_proc.communicate(timeout=30)
             except subprocess.TimeoutExpired:
-                logger.error("Import process did not exit in 1s, killing it")
                 self._import_proc.kill()
                 self._import_proc.wait()
+                warnings.warn(
+                    "Sift import worker did not exit in 30s; killing it. "
+                    "Local log file is preserved for manual replay.",
+                    SiftWarning,
+                    stacklevel=2,
+                )
                 log_replay_instructions(self.log_file)
                 return True  # Ensures the session is marked as passed in pytest
             if self._import_proc.returncode != 0:
                 stderr_text = (
                     stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
                 )
-                logger.error(
-                    "Import process exited with code %d. stderr: %s",
-                    self._import_proc.returncode,
-                    stderr_text or "<empty>",
+                warnings.warn(
+                    f"Sift import worker exited with code "
+                    f"{self._import_proc.returncode}. stderr: {stderr_text or '<empty>'}",
+                    SiftWarning,
+                    stacklevel=2,
                 )
                 log_replay_instructions(self.log_file)
 
@@ -409,6 +423,11 @@ class NewStep(AbstractContextManager):
         self.client = report_context.client
         self.current_step = self.report_context.create_step(name, description, metadata=metadata)
         self.assertion_as_fail_not_error = assertion_as_fail_not_error
+        # Per-step measurement-failure count for ``measurements_passed``.
+        # Tracks only direct ``measure*`` calls on this NewStep instance;
+        # substep / ``report_outcome`` failures are intentionally not folded
+        # in here (see ``measurements_passed`` vs ``passed``).
+        self._failed_measurement_count = 0
 
     def __enter__(self):
         """Enter the context manager to create a new step.
@@ -416,6 +435,35 @@ class NewStep(AbstractContextManager):
         returns: The current step.
         """
         return self
+
+    @property
+    def passed(self) -> bool:
+        """True if every measurement, substep, and ``report_outcome`` under this step has passed.
+
+        Reads the in-progress per-step result tracked by ``ReportContext``;
+        flips to ``False`` as soon as anything below this step records a
+        failure. Use ``assert step.passed`` at the end of a test to fail
+        pytest on any out-of-bounds measurement, failing substep, or failed
+        ``report_outcome``. See ``measurements_passed`` for a measurement-
+        only check that ignores substep and ``report_outcome`` failures.
+        """
+        step = self.current_step
+        if step is None:
+            return True
+        return self.report_context.open_step_results.get(step.step_path, True)
+
+    @property
+    def measurements_passed(self) -> bool:
+        """True if every measurement recorded directly on this step has passed.
+
+        Counts only ``step.measure``, ``step.measure_avg``, and
+        ``step.measure_all`` calls on this ``NewStep`` instance. Substep
+        failures, nested-step failures, and ``report_outcome`` results are
+        deliberately ignored. Use this when you want to check the
+        bounds-compliance of measurements specifically, independent of
+        other outcomes recorded on the step.
+        """
+        return self._failed_measurement_count == 0
 
     def update_step_from_result(
         self,
@@ -529,6 +577,8 @@ class NewStep(AbstractContextManager):
             create, log_file=self.report_context.log_file
         )
         self.report_context.record_step_outcome(measurement.passed, self.current_step)
+        if not measurement.passed:
+            self._failed_measurement_count += 1
 
         return measurement.passed
 

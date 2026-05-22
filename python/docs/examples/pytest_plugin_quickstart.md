@@ -1,34 +1,96 @@
-# Pytest plugin demo
+# Pytest Plugin Quickstart
 
-A self-contained pytest project that exercises every feature of
-`sift_client.pytest_plugin`: package / module / class / parametrize step
-nesting, nested classes, manual substeps, `step.measure(...)` against
-numeric / string / bool bounds, gate markers, and the ini opt-outs.
+A walkthrough of the runnable demo at
+[`python/examples/pytest_plugin/`](https://github.com/sift-stack/sift/tree/main/python/examples/pytest_plugin).
+The demo is a self-contained pytest project that exercises every layer of the
+plugin's step tree: packages, modules, classes (including nested), parametrize
+axes, manual substeps, and gate markers. It also includes a tests directory
+that uses no Sift APIs at all, to show how the autouse fixtures capture plain
+pytest tests for free.
+
+For a conceptual reference (fixtures, ini flags, status semantics), see
+[Pytest Plugin](pytest_plugin.md).
+
+## Project layout
 
 ```
 examples/pytest_plugin/
 ├── conftest.py                            # registers the plugin
 ├── pytest.ini                             # available ini knobs (all commented at defaults)
-├── .env.example                           # credential template (copy to .env for local runs)
+├── .env.example                           # credential template
 └── tests/
-    ├── pytest_only/                       # subpackage step: `pytest_only` opens a parent step
+    ├── pytest_only/                       # subpackage step
     │   ├── __init__.py
-    │   └── test_pytest_only_demo.py       # plain pytest tests with no Sift APIs
-    └── with_sift/                         # subpackage step: `with_sift` opens a parent step
+    │   └── test_pytest_only_demo.py       # plain pytest, no Sift APIs
+    └── with_sift/                         # subpackage step
         ├── __init__.py
-        └── test_with_sift_demo.py         # measurements, substeps, classes, nested classes,
-                                            # stacked parametrize, sift_exclude marker
+        └── test_with_sift_demo.py         # measurements, substeps, classes, parametrize, gates
 ```
 
-Every layer of organization shows up in the report tree: Python packages
-(directories with `__init__.py`), modules (test files), classes (including
-nested classes), and parametrize axes each open a parent step. Flip
-`sift_package_step`, `sift_module_step`, `sift_class_step`, or
-`sift_parametrize_nesting` to `false` in `pytest.ini` to disable this behavior.
+Every Python package (directory with `__init__.py`), test file, and test class
+above each test becomes its own parent step in the report tree.
+
+## `conftest.py`
+
+A single `pytest_plugins` declaration loads the plugin; `load_dotenv()` is
+optional and just lets the default `sift_client` fixture pick up
+`SIFT_API_KEY` / `SIFT_GRPC_URI` / `SIFT_REST_URI` from a local `.env`.
+
+```python title="conftest.py"
+--8<-- "examples/pytest_plugin/conftest.py"
+```
+
+## `pytest.ini`
+
+Every knob is commented at its default value. Uncomment any line to opt out of
+a layer of the step tree.
+
+```ini title="pytest.ini"
+--8<-- "examples/pytest_plugin/pytest.ini"
+```
+
+## `.env.example`
+
+```bash title=".env.example"
+--8<-- "examples/pytest_plugin/.env.example"
+```
+
+## The pytest_only module
+
+Plain pytest tests with no `sift_client` imports, no `step` fixture, no
+markers. Each one still becomes a leaf step in the report tree. The plugin's
+autouse fixtures capture pass/fail automatically.
+
+```python title="tests/pytest_only/test_pytest_only_demo.py"
+--8<-- "examples/pytest_plugin/tests/pytest_only/test_pytest_only_demo.py"
+```
+
+## The with_sift module
+
+Exercises the plugin's full surface: numeric / string / bool bounds, nested
+`step.substep`, `@pytest.mark.sift_exclude`, class steps with docstring
+descriptions, nested classes, stacked `@pytest.mark.parametrize`, and
+`step.report_outcome`.
+
+```python title="tests/with_sift/test_with_sift_demo.py"
+--8<-- "examples/pytest_plugin/tests/with_sift/test_with_sift_demo.py"
+```
 
 ## Run it
 
-**Against a real Sift org**:
+### Without Sift credentials
+
+```bash
+cd python/examples/pytest_plugin
+pytest --sift-disabled -v
+```
+
+`--sift-disabled` makes the plugin a no-op transport: `step.measure(...)`
+still evaluates bounds and returns a real pass/fail boolean, but nothing
+contacts Sift and no log file is written. Useful for previewing the report
+tree or unit-testing measurement logic.
+
+### Against a real Sift org
 
 ```bash
 cp .env.example .env
@@ -38,7 +100,7 @@ pytest -v
 
 A `TestReport` shows up in Sift once the session finishes.
 
-**Offline (record now, replay later - intended for offline environments)**:
+### Offline (record now, replay later)
 
 ```bash
 pytest --sift-offline --sift-log-file=/tmp/sift-demo.jsonl -v
@@ -46,10 +108,9 @@ pytest --sift-offline --sift-log-file=/tmp/sift-demo.jsonl -v
 import-test-result-log /tmp/sift-demo.jsonl
 ```
 
-## What the report tree looks like
+## Expected report tree
 
-With the plugin's defaults (everything in `pytest.ini` left commented), running
-this demo produces a tree like:
+With the plugin's defaults (every layer enabled), the demo produces:
 
 ```
 TestReport (FAILED, since failures propagate up from leaves)
@@ -107,15 +168,12 @@ measurements only, or `step.passed` to also fail on substep or
 `report_outcome` results. Expected
 pytest output is `16 passed, 3 failed, 1 skipped`.
 
-Toggle any of the `sift_*_step` / `sift_parametrize_nesting` flags in
+Flip any of the `sift_*_step` / `sift_parametrize_nesting` flags in
 `pytest.ini` to `false` to collapse a layer.
 
-## What each file demonstrates
+## Next steps
 
-| File | Feature |
-|---|---|
-| `conftest.py` | Plugin registration via `pytest_plugins`; optional `load_dotenv()` |
-| `pytest.ini` | The four nesting flags + git metadata flag at their defaults |
-| `tests/pytest_only/test_pytest_only_demo.py` | Plain pytest tests with no Sift APIs. The plugin captures pass/fail automatically; covers functions, fixtures, parametrize, classes, plus one each of `AssertionError` (FAILED), `pytest.skip` (SKIPPED), and a raised `ValueError` (ERROR) |
-| `tests/with_sift/test_with_sift_demo.py` | `step.measure` (numeric/string/bool bounds, units, description, metadata, `channel_names`), `step.measure_avg` and `step.measure_all` for series, an out-of-bounds measurement (pytest PASSED, Sift step FAILED), the recommended `assert step.passed` end-of-test pattern that fails pytest while still recording every measurement, nested `step.substep` (with step-level `metadata=...`), `@pytest.mark.sift_exclude`, class step + class docstring → description, nested classes, stacked `@pytest.mark.parametrize`, `step.report_outcome`, and session-level metadata via `report_context.report.update({...})` |
-| `tests/{pytest_only,with_sift}/__init__.py` | Each Python package (directory with `__init__.py`) becomes a parent step in the report tree |
+- [Pytest Plugin](pytest_plugin.md): conceptual reference covering fixtures,
+  ini flags, status semantics, and layout-mapping examples.
+- The demo's [README](https://github.com/sift-stack/sift/blob/main/python/examples/pytest_plugin/README.md)
+  on GitHub mirrors this page and is the canonical source.

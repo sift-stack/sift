@@ -31,3 +31,19 @@ def test_uses_a_pytest_fixture(tmp_path):
     """Normal pytest fixtures keep working the plugin doesn't intercept them."""
     (tmp_path / "marker").write_text("ok")
     assert (tmp_path / "marker").read_text() == "ok"
+
+
+def test_assertion_failure_marks_step_failed():
+    """An ``AssertionError`` resolves the Sift step as ``FAILED`` (no traceback attached)."""
+    assert 1 + 1 == 3
+
+
+@pytest.mark.skip(reason="Demonstrating the skip outcome")
+def test_skipped():
+    """Skipped tests resolve as ``SKIPPED`` in the Sift report."""
+    pass
+
+
+def test_unexpected_exception_marks_step_errored():
+    """Non-``AssertionError`` exceptions resolve the Sift step as ``ERROR`` with the traceback attached."""
+    raise ValueError("simulated environmental failure")

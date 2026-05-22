@@ -553,7 +553,19 @@ def _report_context_impl(
     ) as context:
         global REPORT_CONTEXT
         REPORT_CONTEXT = context
-        yield context
+        try:
+            yield context
+        finally:
+            # Drain the hierarchy + parametrize stacks INSIDE the
+            # ReportContext's ``with`` block, so the final ``__exit__``
+            # update calls for those parent steps are written to the log
+            # file BEFORE the import worker drains. Without this, the
+            # worker exits with a partial backlog and the parent steps
+            # are stuck IN_PROGRESS in the Sift report.
+            try:
+                _drain_parametrize_stack()
+            finally:
+                _drain_hierarchy_stack()
 
 
 _CREDENTIAL_KEYS: tuple[tuple[str, _Option | None], ...] = (
