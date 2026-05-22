@@ -408,6 +408,16 @@ class TestInferTimeColumn:
         path = _infer_time_column([("TimeStamp", ChannelDataType.INT_64, "TimeStamp")])
         assert path == "TimeStamp"
 
+    def test_multiple_candidates_sorted_alphabetically(self):
+        path = _infer_time_column(
+            [
+                ("timestamp", ChannelDataType.INT_64, "timestamp"),
+                ("time", ChannelDataType.INT_64, "time"),
+                ("ts", ChannelDataType.INT_64, "ts"),
+            ]
+        )
+        assert path == "time"
+
     def test_returns_none_when_no_canonical_int_column(self):
         path = _infer_time_column(
             [

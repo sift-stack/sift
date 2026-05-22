@@ -335,11 +335,12 @@ def _infer_time_column(
 ) -> str | None:
     """Pick a likely time column when the server couldn't identify one.
 
-    Returns the path of the first INT64 or UINT64 column whose name
+    Returns the path of an INT64 or UINT64 column whose name
     (case-insensitive) matches one of ``ts``, ``timestamp``, or ``time``.
     Returns None otherwise.
     """
-    for name, data_type, path in columns:
+    data_columns = sorted(columns, key=lambda c: c[0].lower())
+    for name, data_type, path in data_columns:
         if data_type in _TIME_COLUMN_TYPES and name.lower() in _TIME_COLUMN_NAMES:
             return path
     return None
@@ -370,12 +371,12 @@ def _parse_parquet_detect_response(
             proto, footer_offset=footer_offset, footer_length=footer_length
         )
         if not scpr_config.time_column.path:
-            inferred = _infer_time_column(
+            time_path = _infer_time_column(
                 (col.column_config.name, ChannelDataType(col.column_config.data_type), col.path)
                 for col in proto.single_channel_per_row.columns
             )
-            if inferred is not None:
-                scpr_config.time_column = ParquetTimeColumn(path=inferred)
+            if time_path is not None:
+                scpr_config.time_column = ParquetTimeColumn(path=time_path)
         return scpr_config
     raise ValueError(f"Unsupported parquet layout in DetectConfig response for '{filename}'.")
 
