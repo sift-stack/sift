@@ -1,19 +1,28 @@
 use crate::cmd::import::utils::validate_time_format;
 use anyhow::{Context, Result};
+use arrow_array::{Array, LargeStringArray, StringArray};
 use arrow_schema::DataType;
 use chrono::DateTime;
-use parquet::arrow::parquet_to_arrow_schema;
+use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use parquet::arrow::{ProjectionMask, parquet_to_arrow_schema};
 use parquet::file::metadata::ParquetMetaDataReader;
 use parquet::file::reader::ChunkReader;
 use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
-        ParquetDataColumn, ParquetFlatDatasetConfig, ParquetSingleChannelPerRowConfig,
-        ParquetTimeColumn, TimeFormat,
+        ParquetColumn, ParquetDataColumn, ParquetFlatDatasetConfig,
+        ParquetSingleChannelPerRowConfig, ParquetSingleChannelPerRowMultiChannelConfig,
+        ParquetSingleChannelPerRowSingleChannelConfig, ParquetTimeColumn, TimeFormat,
+        parquet_single_channel_per_row_config::Config as ScprInnerConfig,
     },
 };
+use std::collections::HashSet;
+use std::fs::File;
+use std::path::Path;
 
+use crate::cli::channel::DataType as CliDataType;
+use crate::cli::parquet::ScprMode;
 use crate::cli::{FlatDatasetArgs, ScprArgs};
 
 pub fn detect_flat_dataset_config<R: ChunkReader>(
@@ -78,6 +87,174 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
     })
 }
 
+pub fn detect_scpr_config<R: ChunkReader>(
+    file: &R,
+    args: &ScprArgs,
+) -> Result<ParquetSingleChannelPerRowConfig> {
+    validate_time_format(args.time_format, &args.relative_start_time)
+        .context("validating time format")?;
+
+    let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
+    let arrow_schema = parquet_to_arrow_schema(
+        metadata.file_metadata().schema_descr(),
+        metadata.file_metadata().key_value_metadata(),
+    )
+    .context("detecting scpr arrow schema")?;
+
+    let relative_start_time = match &args.relative_start_time {
+        Some(start) => {
+            let dt = DateTime::parse_from_rfc3339(start)
+                .context("--relative-start-time is not valid RFC3339")?;
+            Some(Timestamp::from(dt.to_utc()))
+        }
+        None => None,
+    };
+
+    arrow_schema
+        .fields()
+        .iter()
+        .find(|field| field.name() == &args.time_path)
+        .with_context(|| {
+            format!("time column '{}' not found in parquet schema", args.time_path)
+        })?;
+
+    let time_column = Some(ParquetTimeColumn {
+        relative_start_time,
+        path: args.time_path.clone(),
+        format: TimeFormat::from(args.time_format).into(),
+    });
+
+    let data_field = arrow_schema
+        .fields()
+        .iter()
+        .find(|f| f.name() == &args.data_path)
+        .with_context(|| {
+            format!("data column '{}' not found in parquet schema", args.data_path)
+        })?;
+    let data_channel_type = arrow_type_to_channel_data_type(data_field.data_type())
+        .with_context(|| format!("unsupported data type for column '{}'", args.data_path))?;
+
+    let mut columns = vec![ParquetColumn {
+        path: args.data_path.clone(),
+        column_config: Some(ChannelConfig {
+            data_type: data_channel_type.into(),
+            ..Default::default()
+        }),
+    }];
+
+    let inner_config = match args.mode {
+        ScprMode::Single => {
+            let channel_name = args
+                .channel_name
+                .as_ref()
+                .expect("clap enforces --channel-name for --mode single");
+
+            let resolved_type = match args.data_type {
+                None | Some(CliDataType::Infer) => data_channel_type,
+                Some(ref dt) => ChannelDataType::from(dt.clone()),
+            };
+
+            ScprInnerConfig::SingleChannel(ParquetSingleChannelPerRowSingleChannelConfig {
+                data_path: args.data_path.clone(),
+                channel: Some(ChannelConfig {
+                    name: channel_name.clone(),
+                    data_type: resolved_type.into(),
+                    units: args.unit.clone().unwrap_or_default(),
+                    description: args.description.clone().unwrap_or_default(),
+                    ..Default::default()
+                }),
+            })
+        }
+        ScprMode::Multi => {
+            let name_path = args
+                .name_path
+                .as_ref()
+                .expect("clap enforces --name-path for --mode multi");
+
+            let name_field = arrow_schema
+                .fields()
+                .iter()
+                .find(|f| f.name() == name_path)
+                .with_context(|| {
+                    format!("name column '{name_path}' not found in parquet schema")
+                })?;
+            let name_channel_type =
+                arrow_type_to_channel_data_type(name_field.data_type()).with_context(|| {
+                    format!("unsupported data type for name column '{name_path}'")
+                })?;
+
+            columns.push(ParquetColumn {
+                path: name_path.clone(),
+                column_config: Some(ChannelConfig {
+                    data_type: name_channel_type.into(),
+                    ..Default::default()
+                }),
+            });
+
+            ScprInnerConfig::MultiChannel(ParquetSingleChannelPerRowMultiChannelConfig {
+                name_path: name_path.clone(),
+                data_path: args.data_path.clone(),
+            })
+        }
+    };
+
+    Ok(ParquetSingleChannelPerRowConfig {
+        time_column,
+        columns,
+        config: Some(inner_config),
+    })
+}
+
+/// Scan the parquet file's name column and return the distinct channel names
+/// it contains (sorted, deduped). Used by multi-mode preview so the user can
+/// see what channels the server will create at ingest.
+pub fn discover_multi_channel_names(path: &Path, name_path: &str) -> Result<Vec<String>> {
+    let file = File::open(path).context("failed to open parquet file for channel discovery")?;
+    let builder = ParquetRecordBatchReaderBuilder::try_new(file)
+        .context("failed to build parquet record batch reader")?;
+
+    let schema = builder.schema().clone();
+    let name_idx = schema
+        .fields()
+        .iter()
+        .position(|f| f.name() == name_path)
+        .with_context(|| format!("name column '{name_path}' not found in parquet schema"))?;
+
+    let projection = ProjectionMask::roots(builder.parquet_schema(), [name_idx]);
+    let reader = builder
+        .with_projection(projection)
+        .build()
+        .context("failed to build projected parquet reader")?;
+
+    let mut seen: HashSet<String> = HashSet::new();
+    for batch in reader {
+        let batch = batch.context("failed to read parquet record batch")?;
+        let col = batch.column(0);
+        if let Some(arr) = col.as_any().downcast_ref::<StringArray>() {
+            for i in 0..arr.len() {
+                if !arr.is_null(i) {
+                    seen.insert(arr.value(i).to_string());
+                }
+            }
+        } else if let Some(arr) = col.as_any().downcast_ref::<LargeStringArray>() {
+            for i in 0..arr.len() {
+                if !arr.is_null(i) {
+                    seen.insert(arr.value(i).to_string());
+                }
+            }
+        } else {
+            anyhow::bail!(
+                "name column '{name_path}' must be a string type; got {:?}",
+                col.data_type()
+            );
+        }
+    }
+
+    let mut names: Vec<String> = seen.into_iter().collect();
+    names.sort();
+    Ok(names)
+}
+
 pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {
     match dt {
         DataType::Boolean => Some(ChannelDataType::Bool),
@@ -100,13 +277,4 @@ pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDa
         DataType::List(_) | DataType::Map(_, _) => Some(ChannelDataType::Bytes),
         _ => None,
     }
-}
-
-pub fn detect_scpr_config<R: ChunkReader>(
-    _file: &R,
-    _args: &ScprArgs,
-) -> Result<ParquetSingleChannelPerRowConfig> {
-    todo!(
-        "detect SCPR config — walk Arrow schema, build time_column + columns + Single/Multi oneof from args"
-    )
 }
