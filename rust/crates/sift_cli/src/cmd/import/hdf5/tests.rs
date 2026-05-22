@@ -305,6 +305,37 @@ fn enum_types_for_extracts_members() {
 }
 
 #[test]
+fn enum_types_for_unsigned_enum() {
+    let ty = TypeDescriptor::Enum(EnumType {
+        size: IntSize::U4,
+        signed: false,
+        members: vec![
+            EnumMember {
+                name: "IDLE".into(),
+                value: 0,
+            },
+            EnumMember {
+                name: "RUNNING".into(),
+                value: 1,
+            },
+            EnumMember {
+                name: "ERROR".into(),
+                value: 99,
+            },
+        ],
+    });
+    let mapped = enum_types_for(&ty).unwrap();
+    assert_eq!(mapped.len(), 3);
+    assert!(!mapped[0].is_signed);
+    assert!(!mapped[1].is_signed);
+    assert!(!mapped[2].is_signed);
+    assert_eq!(mapped[0].name, "IDLE");
+    assert_eq!(mapped[0].key, 0);
+    assert_eq!(mapped[2].name, "ERROR");
+    assert_eq!(mapped[2].key, 99);
+}
+
+#[test]
 fn enum_types_for_returns_empty_for_non_enum() {
     assert!(enum_types_for(&TypeDescriptor::Boolean).unwrap().is_empty());
     assert!(
