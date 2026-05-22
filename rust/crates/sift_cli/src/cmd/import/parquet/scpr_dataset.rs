@@ -143,8 +143,7 @@ pub(super) fn discover_multi_channel_names_for_preview<R: ChunkReader + 'static>
     file: R,
     name_path: &str,
 ) -> Result<Vec<String>> {
-    let reader =
-        SerializedFileReader::new(file).context("failed to build parquet file reader")?;
+    let reader = SerializedFileReader::new(file).context("failed to build parquet file reader")?;
 
     let file_schema = reader.metadata().file_metadata().schema();
     let root_name = file_schema.name().to_string();
