@@ -105,11 +105,6 @@ def test_assert_measurements_passed_at_end(step) -> None:
     measurement is recorded, including the failures, and the aggregate
     result is then folded into the pytest outcome.
 
-    Two properties are available for this pattern. ``step.measurements_passed``
-    counts only direct ``measure*`` calls on this step. ``step.passed`` is
-    broader and also flips to ``False`` on substep or ``report_outcome``
-    failures. Pick whichever matches the scope you actually want to gate on.
-
     The ``b`` measurement below is deliberately out of bounds. ``c`` still
     runs and is recorded; only the final ``assert`` fires.
     """

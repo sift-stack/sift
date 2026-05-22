@@ -102,9 +102,7 @@ then asserts `step.measurements_passed` once at the end, so every
 measurement still lands in the report even when one fails. The end-of-test
 assertion is the recommended pattern: asserting on an individual
 `step.measure(...)` call short-circuits on the first failure and skips
-every measurement that follows. Use `step.measurements_passed` to gate on
-measurements only, or `step.passed` to also fail on substep or
-`report_outcome` results. Expected
+every measurement that follows. Expected
 pytest output is `16 passed, 3 failed, 1 skipped`.
 
 Toggle any of the `sift_*_step` / `sift_parametrize_nesting` flags in
@@ -117,5 +115,5 @@ Toggle any of the `sift_*_step` / `sift_parametrize_nesting` flags in
 | `conftest.py` | Plugin registration via `pytest_plugins`; optional `load_dotenv()` |
 | `pytest.ini` | The four nesting flags + git metadata flag at their defaults |
 | `tests/pytest_only/test_pytest_only_demo.py` | Plain pytest tests with no Sift APIs. The plugin captures pass/fail automatically; covers functions, fixtures, parametrize, classes, plus one each of `AssertionError` (FAILED), `pytest.skip` (SKIPPED), and a raised `ValueError` (ERROR) |
-| `tests/with_sift/test_with_sift_demo.py` | `step.measure` (numeric/string/bool bounds, units, description, metadata, `channel_names`), `step.measure_avg` and `step.measure_all` for series, an out-of-bounds measurement (pytest PASSED, Sift step FAILED), the recommended `assert step.passed` end-of-test pattern that fails pytest while still recording every measurement, nested `step.substep` (with step-level `metadata=...`), `@pytest.mark.sift_exclude`, class step + class docstring → description, nested classes, stacked `@pytest.mark.parametrize`, `step.report_outcome`, and session-level metadata via `report_context.report.update({...})` |
+| `tests/with_sift/test_with_sift_demo.py` | `step.measure` (numeric/string/bool bounds, units, description, metadata, `channel_names`), `step.measure_avg` and `step.measure_all` for series, an out-of-bounds measurement (pytest PASSED, Sift step FAILED), the recommended `assert step.measurements_passed` end-of-test pattern that fails pytest while still recording every measurement, nested `step.substep` (with step-level `metadata=...`), `@pytest.mark.sift_exclude`, class step + class docstring → description, nested classes, stacked `@pytest.mark.parametrize`, `step.report_outcome`, and session-level metadata via `report_context.report.update({...})` |
 | `tests/{pytest_only,with_sift}/__init__.py` | Each Python package (directory with `__init__.py`) becomes a parent step in the report tree |

@@ -163,9 +163,7 @@ then asserts `step.measurements_passed` once at the end, so every
 measurement still lands in the report even when one fails. The end-of-test
 assertion is the recommended pattern: asserting on an individual
 `step.measure(...)` call short-circuits on the first failure and skips
-every measurement that follows. Use `step.measurements_passed` to gate on
-measurements only, or `step.passed` to also fail on substep or
-`report_outcome` results. Expected
+every measurement that follows. Expected
 pytest output is `16 passed, 3 failed, 1 skipped`.
 
 Flip any of the `sift_*_step` / `sift_parametrize_nesting` flags in

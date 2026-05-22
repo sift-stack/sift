@@ -437,31 +437,16 @@ class NewStep(AbstractContextManager):
         return self
 
     @property
-    def passed(self) -> bool:
-        """True if every measurement, substep, and ``report_outcome`` under this step has passed.
-
-        Reads the in-progress per-step result tracked by ``ReportContext``;
-        flips to ``False`` as soon as anything below this step records a
-        failure. Use ``assert step.passed`` at the end of a test to fail
-        pytest on any out-of-bounds measurement, failing substep, or failed
-        ``report_outcome``. See ``measurements_passed`` for a measurement-
-        only check that ignores substep and ``report_outcome`` failures.
-        """
-        step = self.current_step
-        if step is None:
-            return True
-        return self.report_context.open_step_results.get(step.step_path, True)
-
-    @property
     def measurements_passed(self) -> bool:
         """True if every measurement recorded directly on this step has passed.
 
         Counts only ``step.measure``, ``step.measure_avg``, and
-        ``step.measure_all`` calls on this ``NewStep`` instance. Substep
-        failures, nested-step failures, and ``report_outcome`` results are
-        deliberately ignored. Use this when you want to check the
-        bounds-compliance of measurements specifically, independent of
-        other outcomes recorded on the step.
+        ``step.measure_all`` calls on this ``NewStep`` instance. Useful for
+        the ``assert step.measurements_passed`` pattern at the end of a test
+        when you want to fail pytest on any out-of-bounds measurement
+        without short-circuiting on the first failure (asserting on
+        individual ``measure(...)`` return values skips every measurement
+        after the failing one).
         """
         return self._failed_measurement_count == 0
 
