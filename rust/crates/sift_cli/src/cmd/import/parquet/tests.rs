@@ -477,7 +477,6 @@ fn test_detect_scpr_multi_basic() {
     assert_eq!(multi.name_path, "channel");
     assert_eq!(multi.data_path, "value");
 
-    // top-level columns should include both data and name columns
     let paths: Vec<&str> = cfg.columns.iter().map(|c| c.path.as_str()).collect();
     assert!(
         paths.contains(&"value"),
@@ -551,7 +550,6 @@ fn test_discover_multi_channel_names_for_preview_dedups_and_sorts() {
 
 #[test]
 fn test_discover_multi_channel_names_for_preview_errors_on_non_string_column() {
-    // Use the single batch — `value` is Float64
     let batch = create_scpr_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
 
