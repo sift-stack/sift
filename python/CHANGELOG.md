@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.16.2] - May 21, 2026
+
+### Bugfixes
+- Resolve nested calculated channel references when fetching calculated channels so expressions that depend on other calculated channels evaluate correctly. ([#580](https://github.com/sift-stack/sift/pull/580))
+- Infer the parquet time column for integer timestamp columns in data imports so files with integer epoch time columns no longer fail detection. ([#582](https://github.com/sift-stack/sift/pull/582))
+
 ## [v0.16.1] - May 19, 2026
 
 ### Bugfixes
