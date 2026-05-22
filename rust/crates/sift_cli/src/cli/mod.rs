@@ -460,7 +460,11 @@ pub struct ImportHdf5Args {
 
     /// (compound) Name of the time field. Mutually exclusive with --time-index
     /// and --time-name.
-    #[arg(long, conflicts_with = "time_name", help_heading = "Compound schema options")]
+    #[arg(
+        long,
+        conflicts_with = "time_name",
+        help_heading = "Compound schema options"
+    )]
     pub time_field: Option<String>,
 
     /// (one-d) Leaf name of the time dataset when it doesn't match the default
