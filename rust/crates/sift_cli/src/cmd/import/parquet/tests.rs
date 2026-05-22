@@ -337,8 +337,6 @@ fn test_time_path_not_in_parquet_returns_error() {
     );
 }
 
-// ---------- SCPR helpers and tests ----------
-
 fn make_scpr_args(mode: ScprMode, time_format: TimeFormat) -> ScprArgs {
     ScprArgs {
         common: CommonImportArgs {
