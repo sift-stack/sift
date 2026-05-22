@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,24 +10,107 @@ from typing import TYPE_CHECKING, Any, Generator
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
+
+
+class SiftPytestPluginWarning(SiftWarning):
+    """Base warning for issues raised by the Sift pytest plugin."""
+
+
+class SiftPytestStepDrainWarning(SiftPytestPluginWarning):
+    """A step's ``__exit__`` raised while the plugin was draining its stack.
+
+    Surfaced at module-teardown or session-end so the drain can continue and
+    pytest test outcomes stay unaffected; the underlying exception is included
+    in the message for debugging.
+    """
+
+
+class SiftPytestStepDrainError(RuntimeError):
+    """Raised when mid-session drain fails — signals a likely upstream invariant break."""
+
 
 if TYPE_CHECKING:
     from sift_client.util.test_results.context_manager import NewStep
 
 REPORT_CONTEXT: Any = None
 
+_STASH_MISSING = object()
+
 _PARAMETRIZE_PATH_KEY = pytest.StashKey[tuple[str, ...]]()
 # Each frame: (path_key, open step). Frames are shared across sibling test items
 # and drained at module-substep teardown / session end.
 _PARAMETRIZE_STACK: list[tuple[str, Any]] = []
 
+_CLASS_CHAIN_KEY = pytest.StashKey[tuple[tuple[str, "str | None"], ...]]()
+# Each frame: (class_name, open step). Frames are shared across sibling test
+# items and drained at module-substep teardown / session end. Drained AFTER
+# _PARAMETRIZE_STACK since parametrize parents nest inside class parents.
+_CLASS_STACK: list[tuple[str, Any]] = []
 
-def _drain_parametrize_stack() -> None:
-    while _PARAMETRIZE_STACK:
-        _, ns = _PARAMETRIZE_STACK.pop()
+
+def _drain_step_stack(stack: list[tuple[str, Any]], *, swallow_errors: bool = True) -> None:
+    """Pop and close every frame.
+
+    With ``swallow_errors=True`` (default, used at teardown / session end),
+    per-frame failures are surfaced as ``SiftPytestStepDrainWarning`` so a
+    single misbehaving ``__exit__`` can't block the rest of the stack from
+    cleaning up or cascade out of pytest's finalizer chain.
+
+    With ``swallow_errors=False`` (mid-session, when a class transition forces
+    parametrize parents to close), the stack is still fully drained but the
+    first per-frame exception is re-raised at the end as a
+    ``SiftPytestStepDrainError`` so a real upstream invariant violation
+    surfaces as a test error instead of a silenceable warning.
+    """
+    errors: list[tuple[str, BaseException]] = []
+    while stack:
+        name, ns = stack.pop()
+        try:
+            ns.__exit__(None, None, None)
+        except Exception as exc:
+            if swallow_errors:
+                warnings.warn(
+                    f"Sift plugin: closing step {name!r} during drain raised "
+                    f"{type(exc).__name__}: {exc}",
+                    SiftPytestStepDrainWarning,
+                    stacklevel=2,
+                )
+            else:
+                errors.append((name, exc))
+    if errors:
+        first_name, first_exc = errors[0]
+        raise SiftPytestStepDrainError(
+            f"Sift plugin: {len(errors)} step(s) raised while draining mid-session; "
+            f"first failure on {first_name!r}: {type(first_exc).__name__}: {first_exc}"
+        ) from first_exc
+
+
+def _drain_parametrize_stack(*, swallow_errors: bool = True) -> None:
+    _drain_step_stack(_PARAMETRIZE_STACK, swallow_errors=swallow_errors)
+
+
+def _drain_class_stack(*, swallow_errors: bool = True) -> None:
+    _drain_step_stack(_CLASS_STACK, swallow_errors=swallow_errors)
+
+
+def _close_frame(name: str, ns: Any) -> None:
+    """Close a single frame, warning on per-frame failure.
+
+    Used by the mid-session class-stack pop and the rollback paths so a
+    misbehaving ``__exit__`` neither shadows the original exception nor leaks
+    sibling frames.
+    """
+    try:
         ns.__exit__(None, None, None)
+    except Exception as exc:
+        warnings.warn(
+            f"Sift plugin: closing step {name!r} raised {type(exc).__name__}: {exc}",
+            SiftPytestStepDrainWarning,
+            stacklevel=2,
+        )
 
 
 def _build_parametrize_path(item: pytest.Item) -> tuple[str, ...]:
@@ -43,6 +127,36 @@ def _build_parametrize_path(item: pytest.Item) -> tuple[str, ...]:
     for name, value in reversed(callspec.params.items()):
         frames.append(f"{name}={value!r}")
     return tuple(frames)
+
+
+def _build_class_chain(
+    item: pytest.Item | pytest.Collector,
+) -> tuple[tuple[str, str | None], ...]:
+    """Outer-to-inner ``(name, docstring)`` for the test item's enclosing classes.
+
+    Walks ``item.parent`` upward and collects every ``pytest.Class`` node so
+    nested classes (``class Outer: class Inner:``) produce a nested step tree.
+    Docstring is stripped; empty docstrings become ``None``.
+
+    The ``node.obj`` access is a pytest property that imports the class and
+    can raise *any* exception (ImportError, custom metaclass errors, descriptor
+    `__doc__` properties that throw). Guard broadly so a misbehaving class
+    doesn't abort the whole collection phase — that class's docstring just
+    becomes ``None``.
+    """
+    chain: list[tuple[str, str | None]] = []
+    # ``node.parent`` is typed as the internal ``_pytest.nodes.Node`` which
+    # isn't part of pytest's public API; widen to ``Any`` for the walk.
+    node: Any = item
+    while node is not None:
+        if isinstance(node, pytest.Class):
+            try:
+                doc = (getattr(node.obj, "__doc__", None) or "").strip() or None
+            except Exception:
+                doc = None
+            chain.append((node.name, doc))
+        node = node.parent
+    return tuple(reversed(chain))
 
 
 @dataclass(frozen=True)
@@ -140,6 +254,31 @@ _AUTOUSE = _Option(
     ini_default=True,
 )
 
+_MODULE_STEP = _Option(
+    ini_name="sift_module_step",
+    ini_help="When true (default), open a per-module parent step. Set to false "
+    "to skip module-level grouping in the report tree.",
+    ini_type="bool",
+    ini_default=True,
+)
+
+_CLASS_STEP = _Option(
+    ini_name="sift_class_step",
+    ini_help="When true (default), open per-class parent steps (including nested "
+    "classes). Set to false to keep class methods at module level.",
+    ini_type="bool",
+    ini_default=True,
+)
+
+_PARAMETRIZE_NESTING = _Option(
+    ini_name="sift_parametrize_nesting",
+    ini_help="When true (default), parametrized tests nest under shared parent "
+    "steps (e.g. test_a -> v=1, v=2). Set to false to keep the flat per-test "
+    "leaf naming (test_a[1], test_a[2]).",
+    ini_type="bool",
+    ini_default=True,
+)
+
 _OPTIONS: tuple[_Option, ...] = (
     _LOG_FILE,
     _GIT_METADATA,
@@ -148,6 +287,9 @@ _OPTIONS: tuple[_Option, ...] = (
     _GRPC_URI,
     _REST_URI,
     _AUTOUSE,
+    _MODULE_STEP,
+    _CLASS_STEP,
+    _PARAMETRIZE_NESTING,
 )
 
 
@@ -191,15 +333,38 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """Stash each item's parametrize path and cluster siblings by shared prefix."""
+    """Stash each item's class chain + parametrize path and cluster siblings.
+
+    Sorts by ``(file_path, class_chain, parametrize_path)`` so class methods
+    stay contiguous (otherwise a free function sorting between two class
+    methods would tear down + re-open the class step, producing duplicate
+    class parents in the report tree).
+    """
     for item in items:
+        item.stash[_CLASS_CHAIN_KEY] = _build_class_chain(item)
         item.stash[_PARAMETRIZE_PATH_KEY] = _build_parametrize_path(item)
-    items.sort(key=lambda i: i.stash[_PARAMETRIZE_PATH_KEY])
+    # Use ``.get(...)`` defensively: a third-party hook may inject items after
+    # our stashing loop runs, and we'd rather sort them at the tail than
+    # KeyError out of collection.
+    items.sort(
+        key=lambda i: (
+            str(i.path),
+            tuple(name for name, _ in i.stash.get(_CLASS_CHAIN_KEY, ())),
+            i.stash.get(_PARAMETRIZE_PATH_KEY, ()),
+        )
+    )
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    """Drain any parametrize parents still open (e.g. when module_substep was gated off)."""
-    _drain_parametrize_stack()
+    """Drain any parent steps still open (parametrize first, then class).
+
+    Wrapped so a failure in the inner drain does not prevent the outer one
+    from running — this is the session-end safety net.
+    """
+    try:
+        _drain_parametrize_stack()
+    finally:
+        _drain_class_stack()
 
 
 def _is_offline(pytestconfig: pytest.Config | None) -> bool:
@@ -503,10 +668,18 @@ def _step_impl(
     # Items get a parametrize path stashed in ``pytest_collection_modifyitems``;
     # modules/other nodes fall back to their node name. The leaf frame
     # (``path[-1]``) is the test-specific display name — parents are opened
-    # by ``_parametrize_parents``.
-    path = node.stash.get(_PARAMETRIZE_PATH_KEY, ())
-    name = path[-1] if path else str(node.name)
-    existing_docstring = node.obj.__doc__ or None
+    # by ``_parametrize_parents``. When parametrize-nesting is disabled, fall
+    # back to the bracket-mangled pytest name (e.g. ``test_a[1]``) so the leaf
+    # remains uniquely identifiable.
+    if _option_or_ini(request.config, _PARAMETRIZE_NESTING):
+        path = node.stash.get(_PARAMETRIZE_PATH_KEY, ())
+        name = path[-1] if path else str(node.name)
+    else:
+        name = str(node.name)
+    # ``node.obj`` may not exist (e.g., ``pytest.DoctestItem``) or may raise
+    # when accessed — fall back to no description in those cases rather than
+    # erroring out a perfectly valid test.
+    existing_docstring = getattr(getattr(node, "obj", None), "__doc__", None) or None
     with report_context.new_step(
         name=name, description=existing_docstring, assertion_as_fail_not_error=False
     ) as new_step:
@@ -520,9 +693,79 @@ def _step_impl(
 
 
 @pytest.fixture(autouse=True)
+def _class_parents(
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config,
+) -> None:
+    """Open/close class parent steps for the current item (incl. nested classes).
+
+    Same diff-stack pattern as ``_parametrize_parents`` but operates on
+    ``_CLASS_CHAIN_KEY``. When the class chain changes (pop or push), the
+    parametrize stack is drained first since parametrize parents nest INSIDE
+    class parents in the report tree.
+
+    Gated off when the item is excluded (avoids eager ``report_context`` setup)
+    or when ``sift_class_step=false``.
+    """
+    default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
+    if not _sift_enabled_for(request.node, default):
+        return None
+    if not _option_or_ini(pytestconfig, _CLASS_STEP):
+        return None
+    # Fall back to computing the chain on-demand for items that bypassed
+    # ``pytest_collection_modifyitems`` (e.g., dynamically inserted by another
+    # plugin's later hook). Defaulting to ``()`` would incorrectly drain the
+    # entire open class stack for those items.
+    desired = request.node.stash.get(_CLASS_CHAIN_KEY, _STASH_MISSING)
+    if desired is _STASH_MISSING:
+        desired = _build_class_chain(request.node)
+    common = 0
+    while (
+        common < len(_CLASS_STACK)
+        and common < len(desired)
+        and _CLASS_STACK[common][0] == desired[common][0]
+    ):
+        common += 1
+    # Any change to the class chain orphans parametrize parents from the
+    # previous test — drain them before mutating the class stack so
+    # ReportContext's top-of-stack invariant holds. Strict mode: a per-frame
+    # ``__exit__`` failure here signals a real upstream drift between the
+    # plugin stacks and ReportContext; raise it as a test error instead of a
+    # silenceable warning.
+    if common < len(_CLASS_STACK) or common < len(desired):
+        _drain_parametrize_stack(swallow_errors=False)
+    # Symmetric per-frame guard for the class pop so one bad ``__exit__``
+    # doesn't leave _CLASS_STACK partially drained for every subsequent test.
+    while len(_CLASS_STACK) > common:
+        name, ns = _CLASS_STACK.pop()
+        _close_frame(name, ns)
+    if not desired[common:]:
+        return None
+    rc = request.getfixturevalue("report_context")
+    # Roll back any partial push so a mid-loop exception doesn't leave half
+    # the chain orphaned on the stack. Per-frame guard inside the rollback so
+    # a failing ``__exit__`` doesn't shadow the original exception or leak
+    # the remaining opened frames.
+    opened: list[tuple[str, Any]] = []
+    try:
+        for name, doc in desired[common:]:
+            ns = rc.new_step(name=name, description=doc, assertion_as_fail_not_error=False)
+            ns.__enter__()
+            opened.append((name, ns))
+    except BaseException:
+        while opened:
+            name, ns = opened.pop()
+            _close_frame(name, ns)
+        raise
+    _CLASS_STACK.extend(opened)
+    return None
+
+
+@pytest.fixture(autouse=True)
 def _parametrize_parents(
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
+    _class_parents: None,
 ) -> None:
     """Open/close shared parametrize parent steps for the current item.
 
@@ -533,15 +776,21 @@ def _parametrize_parents(
     ``test_x`` container.
 
     Gated off when the current item is excluded so that excluded items don't
-    eagerly request ``report_context`` (which would defeat its lazy creation).
-    Any parents still open at the end of a module are drained by
-    ``module_substep`` teardown; anything left at session end is drained by
-    ``pytest_sessionfinish``.
+    eagerly request ``report_context`` (which would defeat its lazy creation),
+    or when ``sift_parametrize_nesting=false``. Any parents still open at the
+    end of a module are drained by ``module_substep`` teardown; anything left
+    at session end is drained by ``pytest_sessionfinish``.
     """
     default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
     if not _sift_enabled_for(request.node, default):
         return None
-    desired = request.node.stash.get(_PARAMETRIZE_PATH_KEY, ())
+    if not _option_or_ini(pytestconfig, _PARAMETRIZE_NESTING):
+        return None
+    # Fall back to on-demand computation for dynamically-inserted items;
+    # see _class_parents for the same rationale.
+    desired = request.node.stash.get(_PARAMETRIZE_PATH_KEY, _STASH_MISSING)
+    if desired is _STASH_MISSING:
+        desired = _build_parametrize_path(request.node)
     parents = desired[:-1]
     common = 0
     while (
@@ -550,16 +799,26 @@ def _parametrize_parents(
         and _PARAMETRIZE_STACK[common][0] == parents[common]
     ):
         common += 1
+    # Per-frame guard so one bad ``__exit__`` doesn't leave _PARAMETRIZE_STACK
+    # partially drained for every subsequent test.
     while len(_PARAMETRIZE_STACK) > common:
-        _, ns = _PARAMETRIZE_STACK.pop()
-        ns.__exit__(None, None, None)
+        name, ns = _PARAMETRIZE_STACK.pop()
+        _close_frame(name, ns)
     if not parents[common:]:
         return None
     rc = request.getfixturevalue("report_context")
-    for display in parents[common:]:
-        ns = rc.new_step(name=display, assertion_as_fail_not_error=False)
-        ns.__enter__()
-        _PARAMETRIZE_STACK.append((display, ns))
+    opened: list[tuple[str, Any]] = []
+    try:
+        for display in parents[common:]:
+            ns = rc.new_step(name=display, assertion_as_fail_not_error=False)
+            ns.__enter__()
+            opened.append((display, ns))
+    except BaseException:
+        while opened:
+            name, ns = opened.pop()
+            _close_frame(name, ns)
+        raise
+    _PARAMETRIZE_STACK.extend(opened)
     return None
 
 
@@ -605,19 +864,37 @@ def module_substep(
     if not _module_has_included_tests(request, default):
         yield None
         return
-    rc = request.getfixturevalue("report_context")
-    gen = _step_impl(rc, request)
-    new_step = next(gen)
+    # The module step itself is gated separately from class/parametrize
+    # parents. Even when the module step is suppressed, class/parametrize
+    # parents may have opened directly under the report root during this
+    # module's tests, and they MUST drain at the module boundary — otherwise
+    # frames with the same name in the next module (e.g., another
+    # ``class TestFoo``) would silently reuse stale steps.
+    module_step_enabled = bool(_option_or_ini(pytestconfig, _MODULE_STEP))
+    gen: Generator[NewStep, None, None] | None = None
+    new_step: NewStep | None = None
+    if module_step_enabled:
+        rc = request.getfixturevalue("report_context")
+        gen = _step_impl(rc, request)
+        new_step = next(gen)
     try:
         yield new_step
     finally:
-        # Drain parametrize parents nested under this module step before it
-        # exits — ReportContext.exit_step asserts the module step is the top.
-        _drain_parametrize_stack()
+        # Drain parametrize parents first, then class parents — innermost
+        # first so ReportContext's top-of-stack assertion holds. Each drain
+        # is guarded so a failure in one stage cannot prevent the others
+        # from running and the module step from closing cleanly.
         try:
-            next(gen)
-        except StopIteration:
-            pass
+            _drain_parametrize_stack()
+        finally:
+            try:
+                _drain_class_stack()
+            finally:
+                if gen is not None:
+                    try:
+                        next(gen)
+                    except StopIteration:
+                        pass
 
 
 @pytest.fixture(scope="session")
