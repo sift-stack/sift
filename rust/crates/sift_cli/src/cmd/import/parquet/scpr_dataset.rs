@@ -1,7 +1,10 @@
-use std::{fs::File, io::Seek, process::ExitCode};
+use std::{collections::HashSet, fs::File, io::Seek, process::ExitCode};
 
-use anyhow::{Context as AnyhowContext, Result};
+use anyhow::{Context as AnyhowContext, Result, anyhow};
 use crossterm::style::Stylize;
+use parquet::file::reader::{ChunkReader, FileReader, SerializedFileReader};
+use parquet::record::Field;
+use parquet::schema::types::Type as ParquetSchemaType;
 use sift_rs::{
     common::r#type::v1::ChannelConfig,
     data_imports::v2::{
@@ -13,9 +16,7 @@ use sift_rs::{
 };
 
 use crate::cli::ScprArgs;
-use crate::cmd::import::parquet::detect_parquet_schema::{
-    detect_scpr_config, discover_multi_channel_names_for_preview,
-};
+use crate::cmd::import::parquet::detect_parquet_schema::detect_scpr_config;
 use crate::cmd::{
     Context,
     import::{
@@ -133,4 +134,57 @@ fn create_data_import_request(
         }),
         ..Default::default()
     })
+}
+
+/// Scan the parquet file's name column and return the distinct channel names
+/// it contains (sorted, deduped). Used by multi-mode preview so the user can
+/// see what channels the server will create at ingest.
+pub(super) fn discover_multi_channel_names_for_preview<R: ChunkReader + 'static>(
+    file: R,
+    name_path: &str,
+) -> Result<Vec<String>> {
+    let reader =
+        SerializedFileReader::new(file).context("failed to build parquet file reader")?;
+
+    let file_schema = reader.metadata().file_metadata().schema();
+    let root_name = file_schema.name().to_string();
+    let name_field = file_schema
+        .get_fields()
+        .iter()
+        .find(|t| t.name() == name_path)
+        .with_context(|| format!("name column '{name_path}' not found in parquet schema"))?
+        .clone();
+
+    let projection = ParquetSchemaType::group_type_builder(&root_name)
+        .with_fields(vec![name_field])
+        .build()
+        .context("failed to build parquet projection schema")?;
+
+    let row_iter = reader
+        .get_row_iter(Some(projection))
+        .context("failed to build parquet row iterator")?;
+
+    let mut seen: HashSet<String> = HashSet::new();
+    for row_result in row_iter {
+        let row = row_result.context("failed to read parquet row")?;
+        let (_, field) = row
+            .get_column_iter()
+            .next()
+            .ok_or_else(|| anyhow!("internal: projected row missing column"))?;
+        match field {
+            Field::Str(s) => {
+                seen.insert(s.clone());
+            }
+            Field::Null => {}
+            other => {
+                return Err(anyhow!(
+                    "name column '{name_path}' must be a string type; got {other:?}"
+                ));
+            }
+        }
+    }
+
+    let mut names: Vec<String> = seen.into_iter().collect();
+    names.sort();
+    Ok(names)
 }

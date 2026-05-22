@@ -1,12 +1,10 @@
 use crate::cmd::import::utils::validate_time_format;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use arrow_schema::DataType;
 use chrono::DateTime;
 use parquet::arrow::parquet_to_arrow_schema;
 use parquet::file::metadata::ParquetMetaDataReader;
-use parquet::file::reader::{ChunkReader, FileReader, SerializedFileReader};
-use parquet::record::Field;
-use parquet::schema::types::Type as ParquetSchemaType;
+use parquet::file::reader::ChunkReader;
 use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
@@ -17,7 +15,6 @@ use sift_rs::{
         parquet_single_channel_per_row_config::Config as ScprInnerConfig,
     },
 };
-use std::collections::HashSet;
 
 use crate::cli::channel::DataType as CliDataType;
 use crate::cli::parquet::ScprMode;
@@ -205,56 +202,6 @@ pub fn detect_scpr_config<R: ChunkReader>(
         columns,
         config: Some(inner_config),
     })
-}
-
-pub fn discover_multi_channel_names_for_preview<R: ChunkReader + 'static>(
-    file: R,
-    name_path: &str,
-) -> Result<Vec<String>> {
-    let reader =
-        SerializedFileReader::new(file).context("failed to build parquet file reader")?;
-
-    let file_schema = reader.metadata().file_metadata().schema();
-    let root_name = file_schema.name().to_string();
-    let name_field = file_schema
-        .get_fields()
-        .iter()
-        .find(|t| t.name() == name_path)
-        .with_context(|| format!("name column '{name_path}' not found in parquet schema"))?
-        .clone();
-
-    let projection = ParquetSchemaType::group_type_builder(&root_name)
-        .with_fields(vec![name_field])
-        .build()
-        .context("failed to build parquet projection schema")?;
-
-    let row_iter = reader
-        .get_row_iter(Some(projection))
-        .context("failed to build parquet row iterator")?;
-
-    let mut seen: HashSet<String> = HashSet::new();
-    for row_result in row_iter {
-        let row = row_result.context("failed to read parquet row")?;
-        let (_, field) = row
-            .get_column_iter()
-            .next()
-            .ok_or_else(|| anyhow!("internal: projected row missing column"))?;
-        match field {
-            Field::Str(s) => {
-                seen.insert(s.clone());
-            }
-            Field::Null => {}
-            other => {
-                return Err(anyhow!(
-                    "name column '{name_path}' must be a string type; got {other:?}"
-                ));
-            }
-        }
-    }
-
-    let mut names: Vec<String> = seen.into_iter().collect();
-    names.sort();
-    Ok(names)
 }
 
 pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {

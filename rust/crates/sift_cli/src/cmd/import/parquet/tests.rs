@@ -5,6 +5,7 @@ use crate::cli::{
     time::TimeFormat,
 };
 use crate::cmd::import::parquet::detect_parquet_schema::{self, arrow_type_to_channel_data_type};
+use crate::cmd::import::parquet::scpr_dataset;
 use arrow_array::{
     BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
     TimestampSecondArray, UInt32Array, UInt64Array,
@@ -545,7 +546,7 @@ fn test_discover_multi_channel_names_for_preview_dedups_and_sorts() {
     ]);
     let bytes = write_to_parquet_bytes(&batch);
 
-    let names = detect_parquet_schema::discover_multi_channel_names_for_preview(bytes, "channel")
+    let names = scpr_dataset::discover_multi_channel_names_for_preview(bytes, "channel")
         .expect("discovery should succeed");
     assert_eq!(names, vec!["pressure", "temperature", "voltage"]);
 }
@@ -556,7 +557,7 @@ fn test_discover_multi_channel_names_for_preview_errors_on_non_string_column() {
     let batch = create_scpr_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
 
-    let err = detect_parquet_schema::discover_multi_channel_names_for_preview(bytes, "value").unwrap_err();
+    let err = scpr_dataset::discover_multi_channel_names_for_preview(bytes, "value").unwrap_err();
     assert!(
         err.chain()
             .any(|e| e.to_string().contains("must be a string type")),
@@ -570,7 +571,7 @@ fn test_discover_multi_channel_names_for_preview_missing_column_errors() {
     let bytes = write_to_parquet_bytes(&batch);
 
     let err =
-        detect_parquet_schema::discover_multi_channel_names_for_preview(bytes, "no_such_col").unwrap_err();
+        scpr_dataset::discover_multi_channel_names_for_preview(bytes, "no_such_col").unwrap_err();
     assert!(
         err.chain().any(|e| e.to_string().contains("not found")),
         "expected not-found error, got: {err:#}"
