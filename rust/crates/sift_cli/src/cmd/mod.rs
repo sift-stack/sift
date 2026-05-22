@@ -8,6 +8,7 @@ pub mod completions;
 pub mod config;
 pub mod export;
 pub mod import;
+pub mod mcp;
 pub mod ping;
 
 pub struct Context {

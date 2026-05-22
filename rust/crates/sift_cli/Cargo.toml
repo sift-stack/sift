@@ -9,8 +9,7 @@ repository.workspace = true
 keywords.workspace = true
 readme.workspace = true
 license.workspace = true
-description = "CLI to streamline programmatic workflows with Sift's API"
-changelog = "CHANGELOG.md"
+description = "Sift CLI"
 
 [[bin]]
 name = "sift-cli"
@@ -31,6 +30,7 @@ parquet = { workspace = true }
 pbjson-types = { workspace = true }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
+sift_mcp.workspace = true
 sift_pbfs = { workspace = true }
 tdms = { workspace = true }
 hdf5 = { workspace = true }

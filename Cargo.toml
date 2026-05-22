@@ -26,8 +26,9 @@ license = "MIT"
 
 [workspace.dependencies]
 anyhow = "1.0"
-arrow-array = "58.1.0"
-arrow-schema = "58.1.0"
+arrow = "58.3.0"
+arrow-array = "58.3.0"
+arrow-schema = "58.3.0"
 async-channel = "2.2"
 async-trait = "^0.1"
 mockall = "0.14.0"
@@ -49,11 +50,12 @@ hyper = { version = "1.8", features = ["server", "http1"] }
 hyper-util = { version = "0.1.20", features = ["service", "server", "tokio"] }
 indicatif = "0.18"
 indoc = "2.0"
-parquet = "58.0"
+parquet = "58.3.0"
 prost = "^0.14"
 prost-types = "^0.14"
 pbjson = "^0.9"
 pbjson-types = "^0.9"
+polars = { version = "0.53.0", features = ["sql", "lazy", "parquet"] }
 pyo3 = "0.28"
 pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
 pyo3-stub-gen = "0.10" 

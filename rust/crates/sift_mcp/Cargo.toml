@@ -21,7 +21,15 @@ tokio.workspace = true
 tonic.workspace = true
 anyhow.workspace = true
 clap = { workspace = true, features = ["cargo"] }
+pbjson-types.workspace = true
+prost.workspace = true
+arrow.workspace = true
+parquet.workspace = true
+polars = { workspace = true, features = ["lazy", "parquet", "sql"] }
+tokio-stream.workspace = true
 
 [dev-dependencies]
 sift_test_util.workspace = true
 tokio-stream.workspace = true
+bytes.workspace = true
+tempdir.workspace = true
