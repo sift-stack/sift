@@ -18,8 +18,6 @@ use sift_rs::{
     },
 };
 use std::collections::HashSet;
-use std::fs::File;
-use std::path::Path;
 
 use crate::cli::channel::DataType as CliDataType;
 use crate::cli::parquet::ScprMode;
@@ -208,8 +206,10 @@ pub fn detect_scpr_config<R: ChunkReader>(
 /// Scan the parquet file's name column and return the distinct channel names
 /// it contains (sorted, deduped). Used by multi-mode preview so the user can
 /// see what channels the server will create at ingest.
-pub fn discover_multi_channel_names(path: &Path, name_path: &str) -> Result<Vec<String>> {
-    let file = File::open(path).context("failed to open parquet file for channel discovery")?;
+pub fn discover_multi_channel_names<R: ChunkReader + 'static>(
+    file: R,
+    name_path: &str,
+) -> Result<Vec<String>> {
     let builder = ParquetRecordBatchReaderBuilder::try_new(file)
         .context("failed to build parquet record batch reader")?;
 

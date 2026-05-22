@@ -52,7 +52,9 @@ pub async fn run(ctx: Context, args: ScprArgs) -> Result<ExitCode> {
                     .map(|c| c.data_type)
                     .unwrap_or_default();
 
-                discover_multi_channel_names(&args.common.path, &multi.name_path)?
+                let discovery_file = File::open(&args.common.path)
+                    .context("failed to open parquet file for channel discovery")?;
+                discover_multi_channel_names(discovery_file, &multi.name_path)?
                     .into_iter()
                     .map(|name| ChannelConfig {
                         name,
