@@ -6,7 +6,7 @@ use windows::{FooterMetadata, get_footer};
 
 pub mod detect_parquet_schema;
 pub mod flat_dataset;
-pub mod scpr_dataset;
+pub mod cpr_dataset;
 
 #[cfg(test)]
 mod tests;

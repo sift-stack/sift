@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, crate_description, crate_version};
 use clap_complete::Shell;
-use parquet::{ComplexTypesMode, ScprMode};
+use parquet::{ComplexTypesMode, CprMode};
 pub mod hdf5;
 pub mod tdms;
 use hdf5::Hdf5Schema;
@@ -343,7 +343,7 @@ pub enum ImportParquetCmd {
 
     /// A parquet file laid out single-channel-per-row, either one channel for the whole file
     /// (single mode) or with a name column identifying the channel for each row (multi mode).
-    Scpr(ScprArgs),
+    Cpr(CprArgs),
 }
 
 #[derive(clap::Args)]
@@ -394,13 +394,13 @@ pub struct FlatDatasetArgs {
 }
 
 #[derive(clap::Args)]
-pub struct ScprArgs {
+pub struct CprArgs {
     #[command(flatten)]
     pub common: CommonImportArgs,
 
-    /// SCPR mode: single-channel or multi-channel
+    /// Channel-per-row mode: single-channel or multi-channel
     #[arg(long)]
-    pub mode: ScprMode,
+    pub mode: CprMode,
 
     /// Path to the time column
     #[arg(short, long)]

@@ -12,13 +12,13 @@ use sift_rs::{
         ParquetColumn, ParquetDataColumn, ParquetFlatDatasetConfig,
         ParquetSingleChannelPerRowConfig, ParquetSingleChannelPerRowMultiChannelConfig,
         ParquetSingleChannelPerRowSingleChannelConfig, ParquetTimeColumn, TimeFormat,
-        parquet_single_channel_per_row_config::Config as ScprInnerConfig,
+        parquet_single_channel_per_row_config::Config as CprInnerConfig,
     },
 };
 
 use crate::cli::channel::DataType as CliDataType;
-use crate::cli::parquet::ScprMode;
-use crate::cli::{FlatDatasetArgs, ScprArgs};
+use crate::cli::parquet::CprMode;
+use crate::cli::{FlatDatasetArgs, CprArgs};
 
 pub fn detect_flat_dataset_config<R: ChunkReader>(
     file: &R,
@@ -82,9 +82,9 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
     })
 }
 
-pub fn detect_scpr_config<R: ChunkReader>(
+pub fn detect_cpr_config<R: ChunkReader>(
     file: &R,
-    args: &ScprArgs,
+    args: &CprArgs,
 ) -> Result<ParquetSingleChannelPerRowConfig> {
     validate_time_format(args.time_format, &args.relative_start_time)
         .context("validating time format")?;
@@ -94,7 +94,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
         metadata.file_metadata().schema_descr(),
         metadata.file_metadata().key_value_metadata(),
     )
-    .context("detecting scpr arrow schema")?;
+    .context("detecting cpr arrow schema")?;
 
     let relative_start_time = match &args.relative_start_time {
         Some(start) => {
@@ -144,7 +144,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
     }];
 
     let inner_config = match args.mode {
-        ScprMode::Single => {
+        CprMode::Single => {
             let channel_name = args
                 .channel_name
                 .as_ref()
@@ -155,7 +155,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
                 Some(ref dt) => ChannelDataType::from(dt.clone()),
             };
 
-            ScprInnerConfig::SingleChannel(ParquetSingleChannelPerRowSingleChannelConfig {
+            CprInnerConfig::SingleChannel(ParquetSingleChannelPerRowSingleChannelConfig {
                 data_path: args.data_path.clone(),
                 channel: Some(ChannelConfig {
                     name: channel_name.clone(),
@@ -166,7 +166,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
                 }),
             })
         }
-        ScprMode::Multi => {
+        CprMode::Multi => {
             let name_path = args
                 .name_path
                 .as_ref()
@@ -190,7 +190,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
                 }),
             });
 
-            ScprInnerConfig::MultiChannel(ParquetSingleChannelPerRowMultiChannelConfig {
+            CprInnerConfig::MultiChannel(ParquetSingleChannelPerRowMultiChannelConfig {
                 name_path: name_path.clone(),
                 data_path: args.data_path.clone(),
             })
