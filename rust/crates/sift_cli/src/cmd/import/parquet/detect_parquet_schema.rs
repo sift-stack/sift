@@ -1,12 +1,12 @@
 use crate::cmd::import::utils::validate_time_format;
 use anyhow::{Context, Result, anyhow};
-use arrow_array::{Array, LargeStringArray, StringArray};
 use arrow_schema::DataType;
 use chrono::DateTime;
-use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
-use parquet::arrow::{ProjectionMask, parquet_to_arrow_schema};
+use parquet::arrow::parquet_to_arrow_schema;
 use parquet::file::metadata::ParquetMetaDataReader;
-use parquet::file::reader::ChunkReader;
+use parquet::file::reader::{ChunkReader, FileReader, SerializedFileReader};
+use parquet::record::Field;
+use parquet::schema::types::Type as ParquetSchemaType;
 use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
@@ -211,56 +211,43 @@ pub fn discover_multi_channel_names_for_preview<R: ChunkReader + 'static>(
     file: R,
     name_path: &str,
 ) -> Result<Vec<String>> {
-    let builder = ParquetRecordBatchReaderBuilder::try_new(file)
-        .context("failed to build parquet record batch reader")?;
+    let reader =
+        SerializedFileReader::new(file).context("failed to build parquet file reader")?;
 
-    let schema = builder.schema().clone();
-    let name_idx = schema
-        .fields()
+    let file_schema = reader.metadata().file_metadata().schema();
+    let root_name = file_schema.name().to_string();
+    let name_field = file_schema
+        .get_fields()
         .iter()
-        .position(|field| field.name() == name_path)
-        .with_context(|| format!("name column '{name_path}' not found in parquet schema"))?;
+        .find(|t| t.name() == name_path)
+        .with_context(|| format!("name column '{name_path}' not found in parquet schema"))?
+        .clone();
 
-    let name_col_type = schema.field(name_idx).data_type().clone();
-    let is_large = match name_col_type {
-        DataType::Utf8 => false,
-        DataType::LargeUtf8 => true,
-        other => {
-            return Err(anyhow!(
-                "name column '{name_path}' must be a string type; got {other:?}"
-            ));
-        }
-    };
-
-    let projection = ProjectionMask::roots(builder.parquet_schema(), [name_idx]);
-    let reader = builder
-        .with_projection(projection)
+    let projection = ParquetSchemaType::group_type_builder(&root_name)
+        .with_fields(vec![name_field])
         .build()
-        .context("failed to build projected parquet reader")?;
+        .context("failed to build parquet projection schema")?;
+
+    let row_iter = reader
+        .get_row_iter(Some(projection))
+        .context("failed to build parquet row iterator")?;
 
     let mut seen: HashSet<String> = HashSet::new();
-    for batch in reader {
-        let batch = batch.context("failed to read parquet record batch")?;
-        let col = batch.column(0);
-        if is_large {
-            let arr = col
-                .as_any()
-                .downcast_ref::<LargeStringArray>()
-                .expect("name column type validated above");
-            for i in 0..arr.len() {
-                if !arr.is_null(i) {
-                    seen.insert(arr.value(i).to_string());
-                }
+    for row_result in row_iter {
+        let row = row_result.context("failed to read parquet row")?;
+        let (_, field) = row
+            .get_column_iter()
+            .next()
+            .ok_or_else(|| anyhow!("internal: projected row missing column"))?;
+        match field {
+            Field::Str(s) => {
+                seen.insert(s.clone());
             }
-        } else {
-            let arr = col
-                .as_any()
-                .downcast_ref::<StringArray>()
-                .expect("name column type validated above");
-            for i in 0..arr.len() {
-                if !arr.is_null(i) {
-                    seen.insert(arr.value(i).to_string());
-                }
+            Field::Null => {}
+            other => {
+                return Err(anyhow!(
+                    "name column '{name_path}' must be a string type; got {other:?}"
+                ));
             }
         }
     }
