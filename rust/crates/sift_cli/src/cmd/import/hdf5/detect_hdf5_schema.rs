@@ -115,20 +115,21 @@ pub fn detect_config(
     schema: Hdf5Schema,
     time_index: u64,
     time_field: Option<&str>,
+    time_name: Option<&str>,
 ) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
     let file = File::open(path).map_err(|e| anyhow!("failed to open hdf5 file: {e}"))?;
     let datasets = collect_datasets_recursive(&file)?;
 
     let result = match schema {
-        Hdf5Schema::OneD => detect_one_d(&datasets),
+        Hdf5Schema::OneD => detect_one_d(&datasets, time_name),
         Hdf5Schema::TwoD => detect_two_d(&datasets, time_index),
         Hdf5Schema::Compound => detect_compound(&datasets, time_index, time_field),
     };
 
     match result {
-        Ok((data, _)) if data.is_empty() => {
-            Err(no_match_error(&datasets, schema, time_index, time_field))
-        }
+        Ok((data, _)) if data.is_empty() => Err(no_match_error(
+            &datasets, schema, time_index, time_field, time_name,
+        )),
         Ok(other) => Ok(other),
         Err(e) => Err(e),
     }
@@ -139,6 +140,7 @@ fn no_match_error(
     selected: Hdf5Schema,
     time_index: u64,
     time_field: Option<&str>,
+    time_name: Option<&str>,
 ) -> anyhow::Error {
     let alternatives: &[(Hdf5Schema, &str)] = &[
         (Hdf5Schema::OneD, "one-d"),
@@ -151,7 +153,7 @@ fn no_match_error(
         .filter(|(s, _)| *s != selected)
         .filter_map(|(s, name)| {
             let probe = match s {
-                Hdf5Schema::OneD => detect_one_d(datasets),
+                Hdf5Schema::OneD => detect_one_d(datasets, time_name),
                 Hdf5Schema::TwoD => detect_two_d(datasets, time_index),
                 Hdf5Schema::Compound => detect_compound(datasets, time_index, time_field),
             };
@@ -182,11 +184,18 @@ fn no_match_error(
     }
 }
 
-fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
+fn detect_one_d(
+    datasets: &[Dataset],
+    time_name: Option<&str>,
+) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
     let mut group_time: HashMap<String, String> = HashMap::new();
     for ds in datasets {
         let name = ds.name();
-        if !is_time_dataset_name(&name) || ds.ndim() != 1 {
+        let matches = match time_name {
+            Some(want) => basename(&name) == want,
+            None => is_time_dataset_name(&name),
+        };
+        if !matches || ds.ndim() != 1 {
             continue;
         }
         group_time
@@ -195,10 +204,17 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
     }
 
     if group_time.is_empty() {
-        return Err(anyhow!(
-            "no time dataset found — expected one of {TIME_NAMES:?} (case-insensitive) \
-             at the root or within any group"
-        ));
+        return Err(match time_name {
+            Some(want) => anyhow!(
+                "no time dataset found with name '{want}'. \
+                 Verify --time-name matches a leaf dataset name in the file."
+            ),
+            None => anyhow!(
+                "no time dataset found — expected one of {TIME_NAMES:?} (case-insensitive) \
+                 at the root or within any group. \
+                 If your file uses a custom name, pass it via --time-name."
+            ),
+        });
     }
 
     let mut data_configs = Vec::new();

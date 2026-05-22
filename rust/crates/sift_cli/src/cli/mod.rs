@@ -450,11 +450,18 @@ pub struct ImportHdf5Args {
     pub relative_start_time: Option<String>,
 
     /// (two-d / compound) Index of the time column or field. Defaults to 0.
-    /// Mutually exclusive with --time-field.
-    #[arg(long, conflicts_with = "time_field")]
+    /// Mutually exclusive with --time-field and --time-name.
+    #[arg(long, conflicts_with_all = ["time_field", "time_name"])]
     pub time_index: Option<u64>,
 
-    /// (compound) Name of the time field. Mutually exclusive with --time-index.
-    #[arg(long)]
+    /// (compound) Name of the time field. Mutually exclusive with --time-index
+    /// and --time-name.
+    #[arg(long, conflicts_with = "time_name")]
     pub time_field: Option<String>,
+
+    /// (one-d) Leaf name of the time dataset when it doesn't match the default
+    /// auto-detected names (time, timestamp, timestamps, ts). Mutually exclusive
+    /// with --time-index and --time-field.
+    #[arg(long)]
+    pub time_name: Option<String>,
 }

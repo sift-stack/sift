@@ -29,6 +29,7 @@ fn make_args() -> ImportHdf5Args {
         relative_start_time: None,
         time_index: None,
         time_field: None,
+        time_name: None,
     }
 }
 
