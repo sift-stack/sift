@@ -18,7 +18,7 @@ use sift_rs::{
 
 use crate::cli::channel::DataType as CliDataType;
 use crate::cli::parquet::CprMode;
-use crate::cli::{FlatDatasetArgs, CprArgs};
+use crate::cli::{CprArgs, FlatDatasetArgs};
 
 pub fn detect_flat_dataset_config<R: ChunkReader>(
     file: &R,

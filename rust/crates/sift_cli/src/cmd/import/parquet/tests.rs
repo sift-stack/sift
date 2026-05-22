@@ -1,11 +1,11 @@
 use crate::cli::channel::DataType as CliDataType;
 use crate::cli::{
-    CommonImportArgs, FlatDatasetArgs, CprArgs,
+    CommonImportArgs, CprArgs, FlatDatasetArgs,
     parquet::{ComplexTypesMode, CprMode},
     time::TimeFormat,
 };
-use crate::cmd::import::parquet::detect_parquet_schema::{self, arrow_type_to_channel_data_type};
 use crate::cmd::import::parquet::cpr_dataset;
+use crate::cmd::import::parquet::detect_parquet_schema::{self, arrow_type_to_channel_data_type};
 use arrow_array::{
     BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
     TimestampSecondArray, UInt32Array, UInt64Array,
