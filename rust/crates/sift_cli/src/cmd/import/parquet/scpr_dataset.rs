@@ -14,7 +14,7 @@ use sift_rs::{
 
 use crate::cli::ScprArgs;
 use crate::cmd::import::parquet::detect_parquet_schema::{
-    detect_scpr_config, discover_multi_channel_names,
+    detect_scpr_config, discover_multi_channel_names_for_preview,
 };
 use crate::cmd::{
     Context,
@@ -55,7 +55,7 @@ pub async fn run(ctx: Context, args: ScprArgs) -> Result<ExitCode> {
 
                 let discovery_file = File::open(&args.common.path)
                     .context("failed to open parquet file for channel discovery")?;
-                discover_multi_channel_names(discovery_file, &multi.name_path)?
+                discover_multi_channel_names_for_preview(discovery_file, &multi.name_path)?
                     .into_iter()
                     .map(|name| ChannelConfig {
                         name,

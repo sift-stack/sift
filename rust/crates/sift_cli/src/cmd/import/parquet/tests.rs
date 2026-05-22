@@ -535,7 +535,7 @@ fn test_detect_scpr_multi_missing_name_column_errors() {
 }
 
 #[test]
-fn test_discover_multi_channel_names_dedups_and_sorts() {
+fn test_discover_multi_channel_names_for_preview_dedups_and_sorts() {
     let batch = create_scpr_multi_batch(vec![
         "voltage",
         "temperature",
@@ -545,18 +545,18 @@ fn test_discover_multi_channel_names_dedups_and_sorts() {
     ]);
     let bytes = write_to_parquet_bytes(&batch);
 
-    let names = detect_parquet_schema::discover_multi_channel_names(bytes, "channel")
+    let names = detect_parquet_schema::discover_multi_channel_names_for_preview(bytes, "channel")
         .expect("discovery should succeed");
     assert_eq!(names, vec!["pressure", "temperature", "voltage"]);
 }
 
 #[test]
-fn test_discover_multi_channel_names_errors_on_non_string_column() {
+fn test_discover_multi_channel_names_for_preview_errors_on_non_string_column() {
     // Use the single batch — `value` is Float64
     let batch = create_scpr_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
 
-    let err = detect_parquet_schema::discover_multi_channel_names(bytes, "value").unwrap_err();
+    let err = detect_parquet_schema::discover_multi_channel_names_for_preview(bytes, "value").unwrap_err();
     assert!(
         err.chain()
             .any(|e| e.to_string().contains("must be a string type")),
@@ -565,12 +565,12 @@ fn test_discover_multi_channel_names_errors_on_non_string_column() {
 }
 
 #[test]
-fn test_discover_multi_channel_names_missing_column_errors() {
+fn test_discover_multi_channel_names_for_preview_missing_column_errors() {
     let batch = create_scpr_multi_batch(vec!["a"]);
     let bytes = write_to_parquet_bytes(&batch);
 
     let err =
-        detect_parquet_schema::discover_multi_channel_names(bytes, "no_such_col").unwrap_err();
+        detect_parquet_schema::discover_multi_channel_names_for_preview(bytes, "no_such_col").unwrap_err();
     assert!(
         err.chain().any(|e| e.to_string().contains("not found")),
         "expected not-found error, got: {err:#}"

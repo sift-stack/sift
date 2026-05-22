@@ -128,7 +128,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
     let data_field = arrow_schema
         .fields()
         .iter()
-        .find(|f| f.name() == &args.data_path)
+        .find(|field| field.name() == &args.data_path)
         .with_context(|| {
             format!(
                 "data column '{}' not found in parquet schema",
@@ -178,7 +178,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
             let name_field = arrow_schema
                 .fields()
                 .iter()
-                .find(|f| f.name() == name_path)
+                .find(|field| field.name() == name_path)
                 .with_context(|| {
                     format!("name column '{name_path}' not found in parquet schema")
                 })?;
@@ -207,10 +207,7 @@ pub fn detect_scpr_config<R: ChunkReader>(
     })
 }
 
-/// Scan the parquet file's name column and return the distinct channel names
-/// it contains (sorted, deduped). Used by multi-mode preview so the user can
-/// see what channels the server will create at ingest.
-pub fn discover_multi_channel_names<R: ChunkReader + 'static>(
+pub fn discover_multi_channel_names_for_preview<R: ChunkReader + 'static>(
     file: R,
     name_path: &str,
 ) -> Result<Vec<String>> {
@@ -221,7 +218,7 @@ pub fn discover_multi_channel_names<R: ChunkReader + 'static>(
     let name_idx = schema
         .fields()
         .iter()
-        .position(|f| f.name() == name_path)
+        .position(|field| field.name() == name_path)
         .with_context(|| format!("name column '{name_path}' not found in parquet schema"))?;
 
     let projection = ProjectionMask::roots(builder.parquet_schema(), [name_idx]);
