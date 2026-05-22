@@ -147,3 +147,76 @@ class TestRule:
             mock_update.assert_called_once_with(unarchived_rule)
             # Verify it returns self
             assert result is mock_rule
+
+
+class TestRuleChannelReferenceSerialization:
+    """Nested CC references flow through the low-level wrapper and back."""
+
+    def test_helper_routes_version_id_into_proto(self):
+        from sift_client._internal.low_level_wrappers.rules import (
+            _channel_reference_to_proto,
+        )
+
+        proto = _channel_reference_to_proto(
+            ChannelReference(channel_reference="$1", calculated_channel="v-abc")
+        )
+        assert proto.HasField("calculated_channel_version_id")
+        assert proto.calculated_channel_version_id == "v-abc"
+        assert proto.name == ""
+
+    def test_helper_routes_identifier_into_name(self):
+        from sift_client._internal.low_level_wrappers.rules import (
+            _channel_reference_to_proto,
+        )
+
+        proto = _channel_reference_to_proto(
+            ChannelReference(channel_reference="$1", channel_identifier="my-channel")
+        )
+        assert not proto.HasField("calculated_channel_version_id")
+        assert proto.name == "my-channel"
+
+    def test_from_proto_reads_version_id_when_present(self):
+        from google.protobuf.timestamp_pb2 import Timestamp
+        from sift.rules.v1.rules_pb2 import (
+            CalculatedChannelConfig,
+            RuleCondition,
+            RuleConditionExpression,
+        )
+        from sift.rules.v1.rules_pb2 import (
+            ChannelReference as ChannelReferenceProto,
+        )
+        from sift.rules.v1.rules_pb2 import (
+            Rule as RuleProto,
+        )
+        from sift.rules.v1.rules_pb2 import (
+            RuleAction as RuleActionProto,
+        )
+
+        ts = Timestamp()
+        ts.GetCurrentTime()
+        proto = RuleProto(
+            rule_id="r1",
+            name="r",
+            description="",
+            created_date=ts,
+            modified_date=ts,
+            conditions=[
+                RuleCondition(
+                    expression=RuleConditionExpression(
+                        calculated_channel=CalculatedChannelConfig(
+                            expression="$1 > 0",
+                            channel_references={
+                                "$1": ChannelReferenceProto(calculated_channel_version_id="v-xyz"),
+                            },
+                        )
+                    ),
+                    actions=[RuleActionProto(created_date=ts, modified_date=ts)],
+                )
+            ],
+        )
+        rule = Rule._from_proto(proto)
+        assert rule.channel_references is not None
+        assert len(rule.channel_references) == 1
+        ref = rule.channel_references[0]
+        assert ref.calculated_channel == "v-xyz"
+        assert ref.channel_identifier is None

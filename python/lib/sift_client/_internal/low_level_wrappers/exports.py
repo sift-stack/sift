@@ -26,8 +26,23 @@ from sift_client.transport import WithGrpcClient
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from sift_client.sift_types.channel import ChannelReference
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.transport.grpc_transport import GrpcClient
+
+
+def _abstract_ref_to_proto(ref: ChannelReference) -> CalculatedChannelAbstractChannelReference:
+    # After ChannelReference validation, calculated_channel is always a version_id string.
+    if ref.calculated_channel:
+        assert isinstance(ref.calculated_channel, str)
+        return CalculatedChannelAbstractChannelReference(
+            channel_reference=ref.channel_reference,
+            calculated_channel_version_id=ref.calculated_channel,
+        )
+    return CalculatedChannelAbstractChannelReference(
+        channel_reference=ref.channel_reference,
+        channel_identifier=ref.channel_identifier or "",
+    )
 
 
 def _build_calc_channel_configs(
@@ -46,13 +61,7 @@ def _build_calc_channel_configs(
             CalculatedChannelConfig(
                 name=cc.name,
                 expression=cc.expression or "",
-                channel_references=[
-                    CalculatedChannelAbstractChannelReference(
-                        channel_reference=ref.channel_reference,
-                        channel_identifier=ref.channel_identifier,
-                    )
-                    for ref in refs
-                ],
+                channel_references=[_abstract_ref_to_proto(ref) for ref in refs],
                 units=cc.units,
             )
         )

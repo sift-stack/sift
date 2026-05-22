@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from sift_client.sift_types import Channel
-from sift_client.sift_types.channel import ChannelDataType
+from sift_client.sift_types.channel import ChannelDataType, ChannelReference
 
 
 @pytest.fixture
@@ -103,6 +103,100 @@ class TestChannel:
         )
         mock_client.channels.get_data.assert_not_called()
         assert result == mock_data
+
+    def test_channel_reference_requires_one_target(self):
+        """ChannelReference must specify exactly one of identifier or calculated_channel."""
+        with pytest.raises(ValueError, match="exactly one"):
+            ChannelReference(channel_reference="$1")
+        with pytest.raises(ValueError, match="exactly one"):
+            ChannelReference(
+                channel_reference="$1",
+                channel_identifier="ch",
+                calculated_channel="v-id",
+            )
+
+    def test_channel_reference_accepts_version_id_string(self):
+        """A plain version_id string is stored as-is."""
+        ref = ChannelReference(channel_reference="$1", calculated_channel="v-abc")
+        assert ref.calculated_channel == "v-abc"
+        assert ref.channel_identifier is None
+
+    def test_channel_reference_accepts_calculated_channel_object(self):
+        """Passing a CalculatedChannel normalizes to its version_id string."""
+        from sift_client.sift_types.calculated_channel import CalculatedChannel
+
+        cc = CalculatedChannel(
+            proto=MagicMock(),
+            id_="cc-id",
+            name="parent",
+            description="",
+            expression="$1",
+            channel_references=[],
+            is_archived=False,
+            units=None,
+            asset_ids=["asset-1"],
+            tag_ids=None,
+            all_assets=False,
+            organization_id=None,
+            client_key=None,
+            archived_date=None,
+            version_id="v-abc",
+            version=1,
+            change_message=None,
+            user_notes=None,
+            created_date=datetime.now(timezone.utc),
+            modified_date=datetime.now(timezone.utc),
+            created_by_user_id="u",
+            modified_by_user_id="u",
+        )
+
+        ref = ChannelReference(channel_reference="$1", calculated_channel=cc)
+        assert ref.calculated_channel == "v-abc"
+
+    def test_channel_reference_rejects_calculated_channel_without_version_id(self):
+        """A CalculatedChannel missing version_id is unusable as a reference."""
+        from sift_client.sift_types.calculated_channel import CalculatedChannel
+
+        cc = CalculatedChannel(
+            proto=MagicMock(),
+            id_="cc-id",
+            name="parent",
+            description="",
+            expression="$1",
+            channel_references=[],
+            is_archived=False,
+            units=None,
+            asset_ids=["asset-1"],
+            tag_ids=None,
+            all_assets=False,
+            organization_id=None,
+            client_key=None,
+            archived_date=None,
+            version_id=None,
+            version=None,
+            change_message=None,
+            user_notes=None,
+            created_date=datetime.now(timezone.utc),
+            modified_date=datetime.now(timezone.utc),
+            created_by_user_id="u",
+            modified_by_user_id="u",
+        )
+
+        with pytest.raises(ValueError, match="no version_id"):
+            ChannelReference(channel_reference="$1", calculated_channel=cc)
+
+    def test_channel_reference_from_proto_reads_version_id_oneof(self):
+        """_from_proto picks calculated_channel when the proto oneof selects it."""
+        from sift.calculated_channels.v2.calculated_channels_pb2 import (
+            CalculatedChannelAbstractChannelReference,
+        )
+
+        proto = CalculatedChannelAbstractChannelReference(
+            channel_reference="$1", calculated_channel_version_id="v-abc"
+        )
+        ref = ChannelReference._from_proto(proto)
+        assert ref.calculated_channel == "v-abc"
+        assert ref.channel_identifier is None
 
     def test_data_method_with_minimal_params(self, mock_channel, mock_client):
         """Test that data() method works with minimal parameters."""
