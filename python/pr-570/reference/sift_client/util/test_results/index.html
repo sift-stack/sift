@@ -1305,17 +1305,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.passed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;passed
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.NewStep.report_context" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1994,17 +1983,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;measurements_passed
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.passed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;passed
       
     </span>
   </a>
@@ -2820,25 +2798,6 @@ via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manage
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            passed
-
-
-  
-      property
-   (sift_client.util.test_results.NewStep.passed)" href="#sift_client.util.test_results.NewStep.passed">passed</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                <p>True if every measurement, substep, and <code>report_outcome</code> under this step has passed.</p>
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="bool">bool</span></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            report_context
 
 
@@ -2968,41 +2927,12 @@ via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manage
 
         <p>True if every measurement recorded directly on this step has passed.</p>
 <p>Counts only <code>step.measure</code>, <code>step.measure_avg</code>, and
-<code>step.measure_all</code> calls on this <code>NewStep</code> instance. Substep
-failures, nested-step failures, and <code>report_outcome</code> results are
-deliberately ignored. Use this when you want to check the
-bounds-compliance of measurements specifically, independent of
-other outcomes recorded on the step.</p>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.util.test_results.NewStep.passed" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">passed</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-property"><code>property</code></small>
-  </span>
-
-<a href="#sift_client.util.test_results.NewStep.passed" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">passed</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>True if every measurement, substep, and <code>report_outcome</code> under this step has passed.</p>
-<p>Reads the in-progress per-step result tracked by <code>ReportContext</code>;
-flips to <code>False</code> as soon as anything below this step records a
-failure. Use <code>assert step.passed</code> at the end of a test to fail
-pytest on any out-of-bounds measurement, failing substep, or failed
-<code>report_outcome</code>. See <code>measurements_passed</code> for a measurement-
-only check that ignores substep and <code>report_outcome</code> failures.</p>
+<code>step.measure_all</code> calls on this <code>NewStep</code> instance. Useful for
+the <code>assert step.measurements_passed</code> pattern at the end of a test
+when you want to fail pytest on any out-of-bounds measurement
+without short-circuiting on the first failure (asserting on
+individual <code>measure(...)</code> return values skips every measurement
+after the failing one).</p>
 
     </div>
 
