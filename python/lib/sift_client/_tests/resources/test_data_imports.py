@@ -1,11 +1,31 @@
 """Unit tests for data import config models and helpers."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, cast
 
 import pytest
+from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
+from sift.data_imports.v2.data_imports_pb2 import (
+    ParquetColumn,
+    ParquetConfig,
+    ParquetFlatDatasetConfig,
+    ParquetSingleChannelPerRowConfig,
+)
+from sift.data_imports.v2.data_imports_pb2 import (
+    ParquetDataColumn as ParquetDataColumnProto,
+)
+from sift.data_imports.v2.data_imports_pb2 import (
+    ParquetTimeColumn as ParquetTimeColumnProto,
+)
 
 from sift_client.resources import DataImportAPI, DataImportAPIAsync
-from sift_client.resources.data_imports import _resolve_data_type_key
+from sift_client.resources.data_imports import (
+    _infer_time_column,
+    _parse_parquet_detect_response,
+    _resolve_data_type_key,
+)
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     CsvDataColumn,
@@ -21,6 +41,11 @@ from sift_client.sift_types.data_import import (
     TdmsImportConfig,
     TimeFormat,
 )
+
+if TYPE_CHECKING:
+    from sift.common.type.v1.channel_data_type_pb2 import (
+        ChannelDataType as ChannelDataTypeProto,
+    )
 
 
 @pytest.mark.integration
@@ -362,3 +387,130 @@ class TestResolveDataTypeKey:
     def test_unknown_extension_raises(self):
         with pytest.raises(ValueError, match="Unsupported file extension"):
             _resolve_data_type_key(".xyz", None)
+
+
+class TestInferTimeColumn:
+    def test_picks_canonical_skips_other_columns(self):
+        path = _infer_time_column(
+            [
+                ("delta_time", ChannelDataType.INT_64, "delta_time"),
+                ("voltage", ChannelDataType.DOUBLE, "voltage"),
+                ("timestamp", ChannelDataType.INT_64, "timestamp"),
+            ]
+        )
+        assert path == "timestamp"
+
+    def test_accepts_uint64(self):
+        path = _infer_time_column([("time", ChannelDataType.UINT_64, "time")])
+        assert path == "time"
+
+    def test_case_insensitive(self):
+        path = _infer_time_column([("TimeStamp", ChannelDataType.INT_64, "TimeStamp")])
+        assert path == "TimeStamp"
+
+    def test_multiple_candidates_sorted_alphabetically(self):
+        path = _infer_time_column(
+            [
+                ("timestamp", ChannelDataType.INT_64, "timestamp"),
+                ("time", ChannelDataType.INT_64, "time"),
+                ("ts", ChannelDataType.INT_64, "ts"),
+            ]
+        )
+        assert path == "time"
+
+    def test_returns_none_when_no_canonical_int_column(self):
+        path = _infer_time_column(
+            [
+                ("timestamp", ChannelDataType.DOUBLE, "timestamp"),
+                ("event_time", ChannelDataType.INT_64, "event_time"),
+            ]
+        )
+        assert path is None
+
+
+def _make_flat_dataset_response(
+    time_path: str, data_columns: list[tuple[str, int]]
+) -> ParquetConfig:
+    return ParquetConfig(
+        flat_dataset=ParquetFlatDatasetConfig(
+            time_column=ParquetTimeColumnProto(path=time_path),
+            data_columns=[
+                ParquetDataColumnProto(
+                    path=path,
+                    channel_config=ChannelConfigProto(
+                        name=path,
+                        data_type=cast("ChannelDataTypeProto.ValueType", data_type),
+                    ),
+                )
+                for path, data_type in data_columns
+            ],
+        )
+    )
+
+
+def _make_scpr_response(time_path: str, columns: list[tuple[str, int]]) -> ParquetConfig:
+    return ParquetConfig(
+        single_channel_per_row=ParquetSingleChannelPerRowConfig(
+            time_column=ParquetTimeColumnProto(path=time_path),
+            columns=[
+                ParquetColumn(
+                    path=path,
+                    column_config=ChannelConfigProto(
+                        name=path,
+                        data_type=cast("ChannelDataTypeProto.ValueType", data_type),
+                    ),
+                )
+                for path, data_type in columns
+            ],
+        )
+    )
+
+
+class TestParseParquetDetectResponseTimeFallback:
+    def test_flat_dataset_infers_int64_time_column(self):
+        proto = _make_flat_dataset_response(
+            time_path="",
+            data_columns=[
+                ("voltage", ChannelDataType.DOUBLE.value),
+                ("timestamp", ChannelDataType.INT_64.value),
+                ("status", ChannelDataType.INT_32.value),
+            ],
+        )
+        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        assert isinstance(config, ParquetFlatDatasetImportConfig)
+        assert config.time_column.path == "timestamp"
+        assert [dc.path for dc in config.data_columns] == ["voltage", "status"]
+
+    def test_flat_dataset_keeps_server_time_column_when_set(self):
+        proto = _make_flat_dataset_response(
+            time_path="server_ts",
+            data_columns=[
+                ("server_ts", ChannelDataType.INT_64.value),
+                ("timestamp", ChannelDataType.INT_64.value),
+                ("voltage", ChannelDataType.DOUBLE.value),
+            ],
+        )
+        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        assert config.time_column.path == "server_ts"
+        assert [dc.path for dc in config.data_columns] == ["timestamp", "voltage"]
+
+    def test_flat_dataset_no_int64_match_leaves_time_empty(self):
+        proto = _make_flat_dataset_response(
+            time_path="",
+            data_columns=[("voltage", ChannelDataType.DOUBLE.value)],
+        )
+        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        assert config.time_column.path == ""
+        assert [dc.path for dc in config.data_columns] == ["voltage"]
+
+    def test_scpr_infers_int64_time_column(self):
+        proto = _make_scpr_response(
+            time_path="",
+            columns=[
+                ("voltage", ChannelDataType.DOUBLE.value),
+                ("timestamp", ChannelDataType.INT_64.value),
+            ],
+        )
+        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        assert isinstance(config, ParquetSingleChannelPerRowImportConfig)
+        assert config.time_column.path == "timestamp"
