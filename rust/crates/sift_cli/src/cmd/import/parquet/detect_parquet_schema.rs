@@ -1,5 +1,5 @@
 use crate::cmd::import::utils::validate_time_format;
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use arrow_array::{Array, LargeStringArray, StringArray};
 use arrow_schema::DataType;
 use chrono::DateTime;
@@ -221,6 +221,17 @@ pub fn discover_multi_channel_names_for_preview<R: ChunkReader + 'static>(
         .position(|field| field.name() == name_path)
         .with_context(|| format!("name column '{name_path}' not found in parquet schema"))?;
 
+    let name_col_type = schema.field(name_idx).data_type().clone();
+    let is_large = match name_col_type {
+        DataType::Utf8 => false,
+        DataType::LargeUtf8 => true,
+        other => {
+            return Err(anyhow!(
+                "name column '{name_path}' must be a string type; got {other:?}"
+            ));
+        }
+    };
+
     let projection = ProjectionMask::roots(builder.parquet_schema(), [name_idx]);
     let reader = builder
         .with_projection(projection)
@@ -231,23 +242,26 @@ pub fn discover_multi_channel_names_for_preview<R: ChunkReader + 'static>(
     for batch in reader {
         let batch = batch.context("failed to read parquet record batch")?;
         let col = batch.column(0);
-        if let Some(arr) = col.as_any().downcast_ref::<StringArray>() {
-            for i in 0..arr.len() {
-                if !arr.is_null(i) {
-                    seen.insert(arr.value(i).to_string());
-                }
-            }
-        } else if let Some(arr) = col.as_any().downcast_ref::<LargeStringArray>() {
+        if is_large {
+            let arr = col
+                .as_any()
+                .downcast_ref::<LargeStringArray>()
+                .expect("name column type validated above");
             for i in 0..arr.len() {
                 if !arr.is_null(i) {
                     seen.insert(arr.value(i).to_string());
                 }
             }
         } else {
-            anyhow::bail!(
-                "name column '{name_path}' must be a string type; got {:?}",
-                col.data_type()
-            );
+            let arr = col
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .expect("name column type validated above");
+            for i in 0..arr.len() {
+                if !arr.is_null(i) {
+                    seen.insert(arr.value(i).to_string());
+                }
+            }
         }
     }
 
