@@ -1294,6 +1294,28 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.NewStep.measurements_passed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;measurements_passed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.NewStep.passed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;passed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.NewStep.report_context" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1968,6 +1990,28 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.NewStep.measurements_passed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;measurements_passed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.NewStep.passed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;passed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.NewStep.report_context" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2325,10 +2369,13 @@ from your <code>conftest.py</code>:</p>
 </span></code></pre></div>
 <p>By default, every test in the session produces a Sift report: one
 <code>TestReport</code> per session, one step per test function (<code>step</code>), and one
-parent step per test file (<code>module_substep</code>). The plugin also registers a
-default <code>sift_client</code> fixture that reads <code>SIFT_API_KEY</code>, <code>SIFT_GRPC_URI</code>,
-and <code>SIFT_REST_URI</code> from the environment. Override it by defining your own
-<code>sift_client</code> fixture in your conftest.</p>
+parent step per Python package (directory with <code>__init__.py</code>), test file,
+and test class
+above it. Individual layers can be flattened via the <code>sift_package_step</code>,
+<code>sift_module_step</code>, <code>sift_class_step</code>, and <code>sift_parametrize_nesting</code> ini
+flags. The plugin also registers a default <code>sift_client</code> fixture that reads
+<code>SIFT_API_KEY</code>, <code>SIFT_GRPC_URI</code>, and <code>SIFT_REST_URI</code> from the environment.
+Override it by defining your own <code>sift_client</code> fixture in your conftest.</p>
 <p>Note: FedRAMP users: results are buffered to a temp file and uploaded by a
 subprocess at session end (no API calls during the run). Disable the buffer
 entirely with <code>--sift-log-file=false</code> for inline uploads.</p>
@@ -2754,6 +2801,44 @@ via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manage
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            measurements_passed
+
+
+  
+      property
+   (sift_client.util.test_results.NewStep.measurements_passed)" href="#sift_client.util.test_results.NewStep.measurements_passed">measurements_passed</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>True if every measurement recorded directly on this step has passed.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            passed
+
+
+  
+      property
+   (sift_client.util.test_results.NewStep.passed)" href="#sift_client.util.test_results.NewStep.passed">passed</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>True if every measurement, substep, and <code>report_outcome</code> under this step has passed.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            report_context
 
 
@@ -2858,6 +2943,66 @@ via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manage
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.util.test_results.NewStep.measurements_passed" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">measurements_passed</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.util.test_results.NewStep.measurements_passed" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">measurements_passed</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>True if every measurement recorded directly on this step has passed.</p>
+<p>Counts only <code>step.measure</code>, <code>step.measure_avg</code>, and
+<code>step.measure_all</code> calls on this <code>NewStep</code> instance. Substep
+failures, nested-step failures, and <code>report_outcome</code> results are
+deliberately ignored. Use this when you want to check the
+bounds-compliance of measurements specifically, independent of
+other outcomes recorded on the step.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.util.test_results.NewStep.passed" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">passed</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.util.test_results.NewStep.passed" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">passed</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>True if every measurement, substep, and <code>report_outcome</code> under this step has passed.</p>
+<p>Reads the in-progress per-step result tracked by <code>ReportContext</code>;
+flips to <code>False</code> as soon as anything below this step records a
+failure. Use <code>assert step.passed</code> at the end of a test to fail
+pytest on any out-of-bounds measurement, failing substep, or failed
+<code>report_outcome</code>. See <code>measurements_passed</code> for a measurement-
+only check that ignores substep and <code>report_outcome</code> failures.</p>
 
     </div>
 

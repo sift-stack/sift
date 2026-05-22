@@ -730,10 +730,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.pytest_plugin.client_has_connection" class="md-nav__link">
+  <a href="#sift_client.pytest_plugin.SiftPytestPluginWarning" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;client_has_connection
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftPytestPluginWarning
       
     </span>
   </a>
@@ -741,10 +741,32 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.pytest_plugin.module_substep" class="md-nav__link">
+  <a href="#sift_client.pytest_plugin.SiftPytestStepDrainError" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;module_substep
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftPytestStepDrainError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.SiftPytestStepDrainWarning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftPytestStepDrainWarning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.client_has_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;client_has_connection
       
     </span>
   </a>
@@ -1285,10 +1307,10 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.pytest_plugin.client_has_connection" class="md-nav__link">
+  <a href="#sift_client.pytest_plugin.SiftPytestPluginWarning" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;client_has_connection
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftPytestPluginWarning
       
     </span>
   </a>
@@ -1296,10 +1318,32 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.pytest_plugin.module_substep" class="md-nav__link">
+  <a href="#sift_client.pytest_plugin.SiftPytestStepDrainError" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;module_substep
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftPytestStepDrainError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.SiftPytestStepDrainWarning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftPytestStepDrainWarning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.client_has_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;client_has_connection
       
     </span>
   </a>
@@ -1435,6 +1479,42 @@ You're not viewing the latest version.
 
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">CLASS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            SiftPytestPluginWarning (sift_client.pytest_plugin.SiftPytestPluginWarning)" href="#sift_client.pytest_plugin.SiftPytestPluginWarning">SiftPytestPluginWarning</a></code></td>
+            <td class="doc-class-details">
+              <div class="doc-md-description">
+                <p>Base warning for issues raised by the Sift pytest plugin.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            SiftPytestStepDrainError (sift_client.pytest_plugin.SiftPytestStepDrainError)" href="#sift_client.pytest_plugin.SiftPytestStepDrainError">SiftPytestStepDrainError</a></code></td>
+            <td class="doc-class-details">
+              <div class="doc-md-description">
+                <p>Raised when mid-session drain fails — signals a likely upstream invariant break.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            SiftPytestStepDrainWarning (sift_client.pytest_plugin.SiftPytestStepDrainWarning)" href="#sift_client.pytest_plugin.SiftPytestStepDrainWarning">SiftPytestStepDrainWarning</a></code></td>
+            <td class="doc-class-details">
+              <div class="doc-md-description">
+                <p>A step's <code>__exit__</code> raised while the plugin was draining its stack.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
 
 
 <table>
@@ -1454,14 +1534,6 @@ You're not viewing the latest version.
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            module_substep (sift_client.pytest_plugin.module_substep)" href="#sift_client.pytest_plugin.module_substep">module_substep</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Create a per-module step when at least one test in the module is gated on.</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            pytest_addoption (sift_client.pytest_plugin.pytest_addoption)" href="#sift_client.pytest_plugin.pytest_addoption">pytest_addoption</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -1473,7 +1545,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            pytest_collection_modifyitems (sift_client.pytest_plugin.pytest_collection_modifyitems)" href="#sift_client.pytest_plugin.pytest_collection_modifyitems">pytest_collection_modifyitems</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Stash each item's parametrize path and cluster siblings by shared prefix.</p>
+                  <p>Stash each item's class chain + parametrize path and cluster siblings.</p>
                 </div>
               </td>
             </tr>
@@ -1497,7 +1569,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            pytest_sessionfinish (sift_client.pytest_plugin.pytest_sessionfinish)" href="#sift_client.pytest_plugin.pytest_sessionfinish">pytest_sessionfinish</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Drain any parametrize parents still open (e.g. when module_substep was gated off).</p>
+                  <p>Drain any parent steps still open at session end (innermost first).</p>
                 </div>
               </td>
             </tr>
@@ -1595,6 +1667,117 @@ You're not viewing the latest version.
 
 
 
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="sift_client.pytest_plugin.SiftPytestPluginWarning" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SiftPytestPluginWarning</span>
+
+
+<a href="#sift_client.pytest_plugin.SiftPytestPluginWarning" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            SiftWarning (sift_client.errors.SiftWarning)" href="../errors/#sift_client.errors.SiftWarning">SiftWarning</a></code></p>
+
+
+
+        <p>Base warning for issues raised by the Sift pytest plugin.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="sift_client.pytest_plugin.SiftPytestStepDrainError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SiftPytestStepDrainError</span>
+
+
+<a href="#sift_client.pytest_plugin.SiftPytestStepDrainError" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="RuntimeError">RuntimeError</span></code></p>
+
+
+
+        <p>Raised when mid-session drain fails — signals a likely upstream invariant break.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="sift_client.pytest_plugin.SiftPytestStepDrainWarning" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SiftPytestStepDrainWarning</span>
+
+
+<a href="#sift_client.pytest_plugin.SiftPytestStepDrainWarning" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            SiftPytestPluginWarning (sift_client.pytest_plugin.SiftPytestPluginWarning)" href="#sift_client.pytest_plugin.SiftPytestPluginWarning">SiftPytestPluginWarning</a></code></p>
+
+
+
+        <p>A step's <code>__exit__</code> raised while the plugin was draining its stack.</p>
+<p>Surfaced at module-teardown or session-end so the drain can continue and
+pytest test outcomes stay unaffected; the underlying exception is included
+in the message for debugging.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -1618,33 +1801,6 @@ ping raises through <code>report_context</code> and aborts the session with
 different reachability signal (e.g. a cached auth token) for environments
 where pinging is the wrong check. Returns <code>False</code> in <code>--sift-disabled</code>
 mode without constructing a client.</p>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="sift_client.pytest_plugin.module_substep" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">module_substep</span>
-
-
-<a href="#sift_client.pytest_plugin.module_substep" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">module_substep</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span> <span class="n">pytestconfig</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Generator">Generator</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../util/test_results/context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Create a per-module step when at least one test in the module is gated on.</p>
-<p>Inspects the module's collected items rather than gating on a single marker,
-so a module with mixed inclusion/exclusion still produces the module-level
-step (individual <code>step</code> fixtures then decide per-test). When every test in
-the module is excluded, the substep is skipped without requesting
-<code>report_context</code>.</p>
 
 
     </div>
@@ -1689,7 +1845,12 @@ precedence over ini values, which take precedence over the built-in default.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Stash each item's parametrize path and cluster siblings by shared prefix.</p>
+        <p>Stash each item's class chain + parametrize path and cluster siblings.</p>
+<p>Sorts by <code>(file_path, hierarchy_chain, parametrize_path)</code> so sibling
+items under a shared parent (package, module, class, or parametrize axis)
+stay contiguous — otherwise a free function sorting between two class
+methods would tear down + re-open the class step, producing duplicate
+parents in the report tree.</p>
 
 
     </div>
@@ -1751,7 +1912,11 @@ precedence over ini values, which take precedence over the built-in default.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Drain any parametrize parents still open (e.g. when module_substep was gated off).</p>
+        <p>Drain any parent steps still open at session end (innermost first).</p>
+<p>Wrapped so a failure in the inner drain does not prevent the outer one
+from running. With <code>module_substep</code> removed, this is the sole place
+where hierarchy parents close — they persist across all tests and only
+drain when the session ends.</p>
 
 
     </div>
@@ -1776,9 +1941,10 @@ precedence over ini values, which take precedence over the built-in default.</p>
         <p>Lazy session-scoped Sift ReportContext.</p>
 <p>The fixture is no longer autouse; it's instantiated on the first call
 to <code>request.getfixturevalue("report_context")</code>, which today happens
-inside the gated <code>step</code> and <code>module_substep</code> fixtures. If every
-test in the session is excluded via the marker gate, this fixture is
-never resolved and no ReportContext (or teardown subprocess) is created.</p>
+inside the gated <code>step</code>, <code>_hierarchy_parents</code>, and
+<code>_parametrize_parents</code> fixtures. If every test in the session is
+excluded via the marker gate, this fixture is never resolved and no
+ReportContext (or teardown subprocess) is created.</p>
 <p>What gets yielded depends on the mode:</p>
 <ul>
 <li><code>--sift-disabled</code>: a real <code>ReportContext</code> against a placeholder
