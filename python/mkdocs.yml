@@ -59,7 +59,9 @@ nav:
       - examples/index.md
       - Basic Usage: examples/basic.ipynb
       - Data Ingestion: examples/ingestion.ipynb
+        # Will migrate to Guides in the future
       - Pytest Plugin: examples/pytest_plugin.md
+      - Pytest Plugin Quickstart: examples/pytest_plugin_quickstart.md
 #  - Guides:
 #      - Logging
 #      - Error Handling

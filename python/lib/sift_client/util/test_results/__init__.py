@@ -61,10 +61,13 @@ pytest_plugins = ["sift_client.pytest_plugin"]
 
 By default, every test in the session produces a Sift report: one
 `TestReport` per session, one step per test function (`step`), and one
-parent step per test file (`module_substep`). The plugin also registers a
-default `sift_client` fixture that reads `SIFT_API_KEY`, `SIFT_GRPC_URI`,
-and `SIFT_REST_URI` from the environment. Override it by defining your own
-`sift_client` fixture in your conftest.
+parent step per Python package (directory with `__init__.py`), test file,
+and test class
+above it. Individual layers can be flattened via the `sift_package_step`,
+`sift_module_step`, `sift_class_step`, and `sift_parametrize_nesting` ini
+flags. The plugin also registers a default `sift_client` fixture that reads
+`SIFT_API_KEY`, `SIFT_GRPC_URI`, and `SIFT_REST_URI` from the environment.
+Override it by defining your own `sift_client` fixture in your conftest.
 
 Note: FedRAMP users: results are buffered to a temp file and uploaded by a
 subprocess at session end (no API calls during the run). Disable the buffer
