@@ -302,10 +302,8 @@ ipython_config.py
 #poetry.lock
 
 # uv
-#   This project's direct dev deps are pinned exactly in pyproject.toml, so
-#   uv.lock would add transitive-dep pinning + supply-chain hashes without
-#   much marginal value for a library. Ignored to avoid PR churn.
-uv.lock
+#   uv.lock is committed for reproducible dev/test/CI runs.
+#uv.lock
 
 # pdm
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
