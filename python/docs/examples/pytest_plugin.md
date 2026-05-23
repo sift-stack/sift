@@ -87,7 +87,8 @@ def sift_client() -> SiftClient:
 |---|---|---|---|
 | `report_context` | fixture (autouse) | session | The `ReportContext` backing the run's `TestReport`. Use it to attach metadata or open ad-hoc steps. |
 | `step` | fixture (autouse) | function | A `NewStep` created for the current test function. Exposes `measure*`, `substep`, `report_outcome`, and `current_step`. |
-| `module_substep` | fixture (autouse) | module | One step per test file with each function nested as a substep. |
+| `_hierarchy_parents` | internal fixture (autouse) | function | Opens a parent step for each `pytest.Package`, `pytest.Module`, and `pytest.Class` ancestor of the current test. Each layer is gated independently — see [ini options](#ini-options). |
+| `_parametrize_parents` | internal fixture (autouse) | function | Opens a parent step for each `@pytest.mark.parametrize` axis (and fixture parametrization), nested inside the hierarchy parents. |
 | `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted by `report_context` at session start in online mode (the default). Override to skip the ping or use a different reachability signal. |
 
 ### CLI options
@@ -118,6 +119,10 @@ CLI flags, when passed, override the ini values.
 | `sift_offline` | bool (default `false`) | `--sift-offline` |
 | `sift_disabled` | bool (default `false`) | `--sift-disabled` (also honors `SIFT_DISABLED` env var) |
 | `sift_autouse` | bool (default `true`) | _(no CLI flag; controls the marker gate below)_ |
+| `sift_package_step` | bool (default `true`) | _(ini-only)_ — open a parent step for each Python package (directory with `__init__.py`) in the test path. |
+| `sift_module_step` | bool (default `true`) | _(ini-only)_ — open a parent step for each test module (file). |
+| `sift_class_step` | bool (default `true`) | _(ini-only)_ — open a parent step for each test class, including nested classes. |
+| `sift_parametrize_nesting` | bool (default `true`) | _(ini-only)_ — cluster parametrized tests under shared parents (`test_x → axis=value`) instead of flat leaves (`test_x[value]`). |
 
 The default `sift_client` fixture reads its two URIs from environment first
 and falls back to ini keys when the env vars are unset. `SIFT_API_KEY` is
@@ -302,8 +307,8 @@ outcomes into `TestStatus`:
 | Manual `step.current_step.update({"status": ...})` | Whatever you set; the step exit handler honors a manually-resolved status |
 
 A failure or error at any depth propagates upward: the parent substep, the
-function step, the module step (if `module_substep` is active), and the
-session report all get marked failed.
+function step, the class/module/package steps above it, and the session
+report all get marked failed.
 
 ## Nested steps
 
@@ -339,12 +344,14 @@ Each step gets a hierarchical `step_path` (`1`, `1.1`, `1.1.2`, `2`, …)
 assigned by `ReportContext`. Sibling substeps within the same parent
 auto-increment; opening a new top-level step starts a new branch.
 
-### One step per file
+### Mirroring the test layout
 
-`module_substep` is autouse and module-scoped. When it's active (it's pulled
-in by the star-import in `conftest.py`), each file becomes a parent step and
-every function in it nests one level down. Its name is the test file's
-basename and its description is the module's docstring (if any).
+The plugin opens a parent step for each Python package (`__init__.py`
+directory), test file, and test class above every test, plus a parent step
+for each `@pytest.mark.parametrize` axis. Every layer is on by default and
+individually opt-out via ini flags (`sift_package_step`, `sift_module_step`,
+`sift_class_step`, `sift_parametrize_nesting`). Class/module/package
+docstrings become the matching step's description.
 
 ### Linking a Run to the report
 
@@ -384,50 +391,43 @@ TestReport
 └── test_temperature
 ```
 
-### One step per file with `module_substep`
+### Modules nested under a package
 
-`module_substep` is autouse and module-scoped. Every file becomes a parent
-step and every function in it nests one level down.
+Two test files under the same Python package (directory with `__init__.py`)
+share that package step as their parent.
 
-```python title="test_battery.py"
+```python title="suites/__init__.py"
+```
+
+```python title="suites/test_battery.py"
 def test_voltage(step): ...
 def test_current(step): ...
 ```
 
-```python title="test_thermal.py"
+```python title="suites/test_thermal.py"
 def test_idle_temp(step): ...
 def test_load_temp(step): ...
 ```
 
 ```text title="Sift report"
 TestReport
-├── test_battery.py
-│   ├── test_voltage
-│   └── test_current
-└── test_thermal.py
-    ├── test_idle_temp
-    └── test_load_temp
+└── suites
+    ├── test_battery.py
+    │   ├── test_voltage
+    │   └── test_current
+    └── test_thermal.py
+        ├── test_idle_temp
+        └── test_load_temp
 ```
 
-### Test classes
+### Test classes (and nested classes)
 
-Pytest classes (`class TestFoo: ...`) do not create a parent step on their
-own. The plugin keys off the test node's `name`, which is just the method
-name. To group a class's methods under a class-level step, add a class-scoped
-fixture that opens a step with `report_context.new_step(...)`:
+`class TestFoo:` and `class TestOuter: class TestInner:` produce class and
+nested class steps automatically — no manual fixture needed.
 
 ```python title="test_charging.py"
-import pytest
-
-
 class TestCharging:
-    @pytest.fixture(scope="class", autouse=True)
-    def class_step(self, report_context):
-        with report_context.new_step(
-            name="TestCharging",
-            description="Charging subsystem",
-        ) as parent:
-            yield parent
+    """Charging subsystem."""
 
     def test_starts_at_zero(self, step): ...
     def test_reaches_full(self, step): ...
@@ -436,23 +436,20 @@ class TestCharging:
 
 ```text title="Sift report"
 TestReport
-└── TestCharging
-    ├── test_starts_at_zero
-    ├── test_reaches_full
-    └── test_thermal_throttle
+└── test_charging.py
+    └── TestCharging
+        ├── test_starts_at_zero
+        ├── test_reaches_full
+        └── test_thermal_throttle
 ```
 
-!!! note "Combining with `module_substep`"
-    `module_substep` and a class-scoped step both open at module/class scope,
-    so they each grab the next sibling slot under the report and the inner
-    one nests under the outer. If you want both layers (file → class →
-    method), make the class step itself open via the active outer step
-    rather than the report root.
+The class's docstring becomes the step description.
 
 ### Parametrized tests
 
-Each parametrize case is a distinct pytest node, so each gets its own step.
-The step name includes the parameter id pytest generates.
+Parametrized tests cluster under a parent step named after the test function,
+with one inner parent per parametrize axis (outer-to-inner in
+decorator-on-page order). Stacked parametrize produces nested step levels.
 
 ```python
 @pytest.mark.parametrize("voltage", [3.3, 5.0, 12.0])
@@ -462,10 +459,35 @@ def test_rail(step, voltage):
 
 ```text title="Sift report"
 TestReport
-├── test_rail[3.3]
-├── test_rail[5.0]
-└── test_rail[12.0]
+└── test_module.py
+    └── test_rail
+        ├── voltage=3.3
+        ├── voltage=5.0
+        └── voltage=12.0
 ```
+
+Stacked parametrize:
+
+```python
+@pytest.mark.parametrize("voltage", ["high", "low"])
+@pytest.mark.parametrize("component", ["motor", "valve"])
+def test_iso(step, voltage, component): ...
+```
+
+```text title="Sift report"
+TestReport
+└── test_module.py
+    └── test_iso
+        ├── voltage='high'
+        │   ├── component='motor'
+        │   └── component='valve'
+        └── voltage='low'
+            ├── component='motor'
+            └── component='valve'
+```
+
+Set `sift_parametrize_nesting = false` in `pytest.ini` to fall back to flat
+leaf names (`test_rail[3.3]`).
 
 ### Helper functions
 

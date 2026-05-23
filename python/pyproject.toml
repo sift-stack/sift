@@ -26,7 +26,11 @@ keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
     "grpcio~=1.13",
     "PyYAML~=6.0",
-    "rapidyaml~=0.11",
+    # TODO: rapidyaml 0.13.0 ships C++ source that fails to compile against
+    # the GCC version on current GitHub Actions runners (csubstr operator=
+    # and SFINAE errors in the bundled c4core). Cap below 0.13 until either
+    # rapidyaml ships fixed sdists or we move to binary wheels.
+    "rapidyaml>=0.11,<0.13",
     "pandas>=2.0,<3.1",
     "protobuf>=5.0",
     "pydantic~=2.10",
