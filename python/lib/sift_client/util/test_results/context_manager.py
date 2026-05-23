@@ -116,6 +116,11 @@ class ReportContext(AbstractContextManager):
     open_step_results: dict[str, bool]
     any_failures: bool
     _import_proc: subprocess.Popen | None = None
+    # Seconds to wait for the import worker subprocess to finish uploading
+    # the JSONL backlog at session end before killing it. Tests substitute
+    # a smaller value (via ``_make_context`` patching) so they don't wait
+    # the full window for the timeout branch to trigger.
+    _import_proc_timeout: float = 30.0
 
     def __init__(
         self,
@@ -245,12 +250,15 @@ class ReportContext(AbstractContextManager):
             #      so the first failed RPC crashes the subprocess. Surface
             #      the captured stderr with replay instructions.
             try:
-                _, stderr_bytes = self._import_proc.communicate(timeout=30)
+                _, stderr_bytes = self._import_proc.communicate(
+                    timeout=self._import_proc_timeout
+                )
             except subprocess.TimeoutExpired:
                 self._import_proc.kill()
                 self._import_proc.wait()
                 warnings.warn(
-                    "Sift import worker did not exit in 30s; killing it. "
+                    f"Sift import worker did not exit in "
+                    f"{self._import_proc_timeout}s; killing it. "
                     "Local log file is preserved for manual replay.",
                     SiftWarning,
                     stacklevel=2,

@@ -13,6 +13,7 @@ resulting step tree.
 from __future__ import annotations
 
 import json
+from pathlib import Path as _Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -23,7 +24,16 @@ if TYPE_CHECKING:
 
 _STEPS_FILE_ENV = "SIFT_FAKE_STEPS_FILE"
 
+# ``_fakes.py`` is excluded from the wheel by ``pyproject.toml``'s
+# ``packages.find`` rule that strips ``sift_client._tests``. The inner
+# pytester subprocess uses the installed package and cannot import from
+# ``sift_client._tests``. Embed the fake source directly into the inner
+# conftest so the subprocess gets a fully self-contained module to load.
+_FAKES_SOURCE = (_Path(__file__).parent / "_fakes.py").read_text()
+
 _INNER_CONFTEST = f"""
+{_FAKES_SOURCE}
+
 import os
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -31,8 +41,6 @@ from unittest.mock import MagicMock
 import pytest
 
 pytest_plugins = ["sift_client.pytest_plugin"]
-
-from sift_client._tests.pytest_plugin._fakes import FakeReportContext
 
 
 @pytest.fixture(scope="session")
