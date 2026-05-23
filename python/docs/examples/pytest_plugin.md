@@ -306,6 +306,10 @@ outcomes into `TestStatus`:
 | Non-`AssertionError` exception escapes the test (e.g. `ValueError`, `TimeoutError`) | `ERROR`, with the formatted traceback (last 10 frames plus the first frame) on `step.error_info.error_message` |
 | Manual `step.current_step.update({"status": ...})` | Whatever you set; the step exit handler honors a manually-resolved status |
 
+For the full contract, including skips, xfail/xpass, hard exits (`SystemExit`,
+`KeyboardInterrupt`), setup/teardown phase failures, and propagation rules,
+see the [Pass/Fail Behavior guide](../guides/pytest_plugin/pass_fail_behavior.md).
+
 A failure or error at any depth propagates upward: the parent substep, the
 function step, the class/module/package steps above it, and the session
 report all get marked failed.
