@@ -43,6 +43,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def format_truncated_traceback(
+    exc: type[BaseException] | None,
+    exc_value: BaseException | None,
+    tb: object | None,
+) -> ErrorInfo:
+    """Format an ErrorInfo from a traceback, keeping the first frame and the last 10."""
+    stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore[arg-type]
+    stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
+    return ErrorInfo(error_code=1, error_message="".join(stack))
+
+
 def log_replay_instructions(log_file: str | Path | None) -> None:
     """Surface replay instructions when an import/replay attempt fails.
 
@@ -363,6 +374,17 @@ class ReportContext(AbstractContextManager):
             self.open_step_results[step.step_path] = False
             self.any_failures = True
 
+    def mark_step_failed_after_close(self, step: TestStep):
+        """Mark a step's parent as failed after the step has already been popped from the stack.
+
+        Used by the pytest plugin when a teardown-phase report fires after the
+        fixture's ``__exit__`` has already resolved and exited the step.
+        """
+        self.any_failures = True
+        path_parts = step.step_path.split(".")
+        if len(path_parts) > 1:
+            self.open_step_results[".".join(path_parts[:-1])] = False
+
     def resolve_and_propagate_step_result(
         self,
         step: TestStep,
@@ -478,13 +500,7 @@ class NewStep(AbstractContextManager):
                 # If we're not showing assertion errors (i.e. pytest), mark step as failed but don't set error info.
                 self.report_context.record_step_outcome(False, self.current_step)
             else:
-                stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore
-                stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
-                trace = "".join(stack)
-                error_info = ErrorInfo(
-                    error_code=1,
-                    error_message=trace,
-                )
+                error_info = format_truncated_traceback(exc, exc_value, tb)
 
         # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
         result = self.report_context.resolve_and_propagate_step_result(
@@ -509,6 +525,27 @@ class NewStep(AbstractContextManager):
         return result
 
     def __exit__(self, exc, exc_value, tb):
+        if getattr(self, "_sift_managed_externally", False):
+            # The pytest fixture already resolved status from phase reports.
+            # Run the standard propagation so the parent step sees this step's
+            # pass/fail, emit one update_step with the resolved values, and pop
+            # from the stack without re-classifying.
+            assert self.current_step is not None
+            result = self.report_context.resolve_and_propagate_step_result(
+                self.current_step, self.current_step.error_info
+            )
+            self.current_step.update(
+                {
+                    "status": self.current_step.status,
+                    "end_time": datetime.now(timezone.utc),
+                    "error_info": self.current_step.error_info,
+                },
+            )
+            self.report_context.exit_step(self.current_step)
+            if hasattr(self, "force_result"):
+                result = self.force_result
+            return result
+
         result = self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.

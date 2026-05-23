@@ -5,14 +5,16 @@ import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Generator, Tuple
 
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.errors import SiftWarning
-from sift_client.sift_types.test_report import TestStatus
+from sift_client.sift_types.test_report import ErrorInfo, TestStatus
 from sift_client.util.test_results import ReportContext
+from sift_client.util.test_results.context_manager import format_truncated_traceback
 
 
 class SiftPytestPluginWarning(SiftWarning):
@@ -508,17 +510,151 @@ def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool |
     return Path(raw)
 
 
+def _error_info_from_longrepr(longrepr: Any) -> ErrorInfo:
+    """Fall back to the report's longrepr when no Python exception is available."""
+    return ErrorInfo(error_code=1, error_message=str(longrepr) if longrepr is not None else "")
+
+
+def _resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
+    """Resolve the function step's status from pytest's per-phase reports.
+
+    Reads ``_sift_phase_setup`` / ``_sift_phase_call`` and the test's xfail marker,
+    then mutates ``new_step.current_step`` in place and flips
+    ``new_step._sift_managed_externally`` so ``NewStep.__exit__`` emits the
+    resolved status without re-classifying.
+
+    When the call phase reports ``passed`` and no override is needed (i.e. the
+    test's own status or substep failures should drive the result), this leaves
+    the step alone so the default ``__exit__`` resolution stays in charge.
+    """
+    setup_phase = getattr(item, "_sift_phase_setup", None)
+    call_phase = getattr(item, "_sift_phase_call", None)
+    xfail_marker = item.get_closest_marker("xfail")
+    xfail_runs = xfail_marker.kwargs.get("run", True) if xfail_marker is not None else True
+
+    status: TestStatus | None = None
+    error_info: ErrorInfo | None = None
+    keep_managed = False
+
+    if setup_phase is not None and setup_phase.report.outcome == "failed":
+        status = TestStatus.ERROR
+        excinfo = setup_phase.call.excinfo
+        if excinfo is not None:
+            error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
+        else:
+            error_info = _error_info_from_longrepr(setup_phase.report.longrepr)
+    elif setup_phase is not None and setup_phase.report.outcome == "skipped":
+        status = TestStatus.SKIPPED
+    elif call_phase is None:
+        # Setup completed but the call-phase report never fired — the inner
+        # pytester session was aborted (e.g. by KeyboardInterrupt) before the
+        # plugin could observe the outcome. Leave the step at IN_PROGRESS so
+        # the report does not lie about a clean pass.
+        keep_managed = True
+    else:
+        wasxfail = getattr(call_phase.report, "wasxfail", None)
+        if wasxfail is not None:
+            if call_phase.report.outcome == "failed":
+                # Strict xpass: pytest synthesizes a failure when an xfail(strict=True)
+                # test unexpectedly passes. The xfail mark no longer matches reality.
+                status = TestStatus.FAILED
+            elif call_phase.report.outcome == "skipped":
+                if xfail_marker is not None and xfail_runs is False:
+                    # xfail(run=False): the test body never executed.
+                    status = TestStatus.SKIPPED
+                else:
+                    # xfail + expected failure: the test fulfilled its xfail expectation.
+                    status = TestStatus.PASSED
+            else:
+                # Non-strict xpass: passes that weren't required to fail.
+                status = TestStatus.PASSED
+        elif call_phase.report.outcome == "passed":
+            # Default __exit__ resolves PASSED/FAILED from open_step_results and any
+            # status the test code may have set. Don't override it here.
+            return
+        elif call_phase.report.outcome == "skipped":
+            status = TestStatus.SKIPPED
+        elif call_phase.report.outcome == "failed":
+            excinfo = call_phase.call.excinfo
+            if excinfo is None:
+                status = TestStatus.FAILED
+            elif isinstance(excinfo.value, AssertionError):
+                status = TestStatus.FAILED
+            elif isinstance(excinfo.value, pytest.fail.Exception):
+                status = TestStatus.FAILED
+            elif isinstance(excinfo.value, KeyboardInterrupt):
+                # Hold status at IN_PROGRESS; a session-aborting interrupt should
+                # not look like a clean pass. Keep the managed flag so the default
+                # exit path does not coerce IN_PROGRESS to PASSED.
+                keep_managed = True
+            elif isinstance(excinfo.value, SystemExit):
+                status = TestStatus.ERROR
+                error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
+            elif xfail_marker is not None:
+                # xfail(raises=X) with a non-matching exception: the contract failed.
+                status = TestStatus.FAILED
+                error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
+            else:
+                status = TestStatus.ERROR
+                error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
+
+    if status is None and not keep_managed:
+        return
+
+    assert new_step.current_step is not None
+    if status is not None:
+        # BaseType is frozen; mutate via __dict__ the same way _apply_client_to_instance does.
+        new_step.current_step.__dict__["status"] = status
+        if error_info is not None:
+            new_step.current_step.__dict__["error_info"] = error_info
+    new_step._sift_managed_externally = True
+
+
+def _finalize_after_teardown(item: pytest.Item, teardown_report: pytest.TestReport) -> None:
+    """Upgrade a closed step to FAILED when the teardown phase failed.
+
+    The autouse step fixture has already exited by the time the teardown
+    makereport hook fires, so call ``step.update`` again to override the status
+    server-side and propagate the failure to the still-open parent step.
+    """
+    step: NewStep | None = getattr(item, "_sift_step", None)
+    if step is None:
+        return
+    assert step.current_step is not None
+    if teardown_report.outcome == "failed" and step.current_step.status == TestStatus.PASSED:
+        step.current_step.update({"status": TestStatus.FAILED})
+        step.report_context.mark_step_failed_after_close(step.current_step)
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
-    """Capture pytest outcomes so assertion failures and skips land on the Sift step."""
+    """Capture per-phase reports and finalize step status after teardown.
+
+    Stashes both ``rep_<when>`` (the ``CallInfo``, kept for pytest plugins that
+    expect that conventional attribute) and ``_sift_phase_<when>`` (a
+    ``SimpleNamespace(call, report)`` used by ``_resolve_initial_status``). The
+    collection-time skip path is strictly gated on ``_sift_step`` being unset
+    so it does not duplicate steps the fixture already created.
+    """
     outcome = yield
     report = outcome.get_result()
-    if report.outcome == "skipped":
-        # Skipped tests bypass the autouse `step` fixture, so we record the step manually here.
-        if REPORT_CONTEXT:
-            with REPORT_CONTEXT.new_step(name=item.name) as new_step:
-                new_step.current_step.update({"status": TestStatus.SKIPPED})
     setattr(item, "rep_" + report.when, call)
+    setattr(item, "_sift_phase_" + report.when, SimpleNamespace(call=call, report=report))
+
+    # Collection-time skip (``@pytest.mark.skip`` / ``skipif``): the autouse
+    # ``step`` fixture never runs, so the hook is the only place that can
+    # record a step. Presence of ``_sift_step`` is the "fixture ran" signal.
+    if (
+        REPORT_CONTEXT
+        and report.when == "setup"
+        and report.outcome == "skipped"
+        and getattr(item, "_sift_step", None) is None
+    ):
+        with REPORT_CONTEXT.new_step(name=item.name) as inline_step:
+            inline_step.current_step.update({"status": TestStatus.SKIPPED})
+
+    if report.when == "teardown":
+        _finalize_after_teardown(item, report)
 
 
 def _report_context_impl(
@@ -748,13 +884,9 @@ def _step_impl(
     with report_context.new_step(
         name=name, description=existing_docstring, assertion_as_fail_not_error=False
     ) as new_step:
+        node._sift_step = new_step
         yield new_step
-        if hasattr(node, "rep_call") and node.rep_call.excinfo:
-            new_step.update_step_from_result(
-                node.rep_call.excinfo,
-                node.rep_call.excinfo.value,
-                node.rep_call.excinfo.tb,
-            )
+        _resolve_initial_status(new_step, node)
 
 
 @pytest.fixture(autouse=True)
