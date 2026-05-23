@@ -146,6 +146,8 @@ class _FakePing:
 
 
 class _FakeSiftClient:
+    _simulate = False
+
     def __init__(self):
         self.test_results = _FakeTestResults(self)
         self.ping = _FakePing()
@@ -158,8 +160,8 @@ def sift_client():
 
 
 _RUN_ARGS = (
-    "--sift-test-results-log-file=false",
-    "--no-sift-test-results-git-metadata",
+    "--sift-log-file=false",
+    "--no-sift-git-metadata",
 )
 
 
