@@ -250,9 +250,7 @@ class ReportContext(AbstractContextManager):
             #      so the first failed RPC crashes the subprocess. Surface
             #      the captured stderr with replay instructions.
             try:
-                _, stderr_bytes = self._import_proc.communicate(
-                    timeout=self._import_proc_timeout
-                )
+                _, stderr_bytes = self._import_proc.communicate(timeout=self._import_proc_timeout)
             except subprocess.TimeoutExpired:
                 self._import_proc.kill()
                 self._import_proc.wait()
