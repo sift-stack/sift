@@ -582,13 +582,11 @@ def _resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
                 status = TestStatus.FAILED
             elif isinstance(excinfo.value, pytest.fail.Exception):
                 status = TestStatus.FAILED
-            elif isinstance(excinfo.value, KeyboardInterrupt):
-                # Hold status at IN_PROGRESS; a session-aborting interrupt should
-                # not look like a clean pass. Keep the managed flag so the default
-                # exit path does not coerce IN_PROGRESS to PASSED.
-                keep_managed = True
-            elif isinstance(excinfo.value, SystemExit):
-                status = TestStatus.ERROR
+            elif isinstance(excinfo.value, (KeyboardInterrupt, SystemExit)):
+                # Hard exits the plugin can observe: pytest converted the
+                # raise into a call-phase report. The session-aborting variant
+                # (call_phase is None) lands earlier and stays IN_PROGRESS.
+                status = TestStatus.ABORTED
                 error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
             elif xfail_marker is not None:
                 # xfail(raises=X) with a non-matching exception: the contract failed.

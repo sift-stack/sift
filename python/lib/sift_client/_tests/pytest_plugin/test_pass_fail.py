@@ -27,155 +27,41 @@ pytest_plugins = ["pytester"]
 
 
 _INNER_CONFTEST_SRC = '''
-"""Auto-generated conftest for the step-status characterization suite.
-
-Installs the Sift pytest plugin and a fake ``sift_client`` that records
-every step status write into the outer test's CAPTURED_STEPS dict.
+"""Auto-generated conftest. Loading the Sift plugin is the only thing the
+inner session needs. ``--sift-offline`` on the CLI causes the plugin's
+default ``sift_client`` fixture to construct a placeholder client and the
+real ``ReportContext`` writes every API call to the JSONL log without
+contacting Sift.
 """
 
-from __future__ import annotations
-
-import uuid
-
-import pytest
-
-# Bring the Sift fixtures + the makereport hook into this inner session.
 pytest_plugins = ["sift_client.pytest_plugin"]
-
-from sift_client._tests.pytest_plugin._step_status_capture import CAPTURED_STEPS, CapturedStep
-from sift_client.sift_types.test_report import (
-    TestMeasurement,
-    TestReport,
-    TestStep,
-)
-
-
-
-class _FakeTestResults:
-    def __init__(self, client):
-        self._client = client
-
-    def create(self, test_report, log_file=None):
-        report = TestReport(
-            id_=str(uuid.uuid4()),
-            status=test_report.status,
-            name=test_report.name,
-            test_system_name=test_report.test_system_name,
-            test_case=test_report.test_case,
-            start_time=test_report.start_time,
-            end_time=test_report.end_time,
-            metadata=test_report.metadata or {},
-            is_archived=False,
-        )
-        report._apply_client_to_instance(self._client)
-        return report
-
-    def update(self, test_report, update, log_file=None):
-        return test_report
-
-    def create_step(self, test_step, log_file=None):
-        step_id = str(uuid.uuid4())
-        CAPTURED_STEPS[step_id] = CapturedStep(
-            step_id=step_id,
-            name=test_step.name,
-            step_path=test_step.step_path,
-            parent_step_id=test_step.parent_step_id,
-            statuses=[test_step.status],
-        )
-        step = TestStep(
-            id_=step_id,
-            test_report_id=test_step.test_report_id,
-            parent_step_id=test_step.parent_step_id,
-            name=test_step.name,
-            description=test_step.description,
-            step_type=test_step.step_type,
-            step_path=test_step.step_path,
-            status=test_step.status,
-            start_time=test_step.start_time,
-            end_time=test_step.end_time,
-            error_info=test_step.error_info,
-        )
-        step._apply_client_to_instance(self._client)
-        return step
-
-    def update_step(self, test_step, update, log_file=None):
-        new_status = (
-            update.get("status") if isinstance(update, dict) else update.status
-        )
-        if test_step.id_ in CAPTURED_STEPS and new_status is not None:
-            CAPTURED_STEPS[test_step.id_].statuses.append(new_status)
-        merged_status = new_status if new_status is not None else test_step.status
-        updated = TestStep(
-            id_=test_step.id_,
-            test_report_id=test_step.test_report_id,
-            parent_step_id=test_step.parent_step_id,
-            name=test_step.name,
-            description=test_step.description,
-            step_type=test_step.step_type,
-            step_path=test_step.step_path,
-            status=merged_status,
-            start_time=test_step.start_time,
-            end_time=test_step.end_time,
-            error_info=test_step.error_info,
-        )
-        updated._apply_client_to_instance(self._client)
-        return updated
-
-    def create_measurement(self, test_measurement, update_step=False, log_file=None):
-        measurement = TestMeasurement(
-            id_=str(uuid.uuid4()),
-            measurement_type=test_measurement.measurement_type,
-            name=test_measurement.name,
-            test_step_id=test_measurement.test_step_id,
-            numeric_value=test_measurement.numeric_value,
-            string_value=test_measurement.string_value,
-            boolean_value=test_measurement.boolean_value,
-            unit=test_measurement.unit,
-            numeric_bounds=test_measurement.numeric_bounds,
-            string_expected_value=test_measurement.string_expected_value,
-            passed=test_measurement.passed,
-            timestamp=test_measurement.timestamp,
-        )
-        measurement._apply_client_to_instance(self._client)
-        return measurement
-
-
-class _FakePing:
-    def ping(self):
-        return None
-
-
-class _FakeSiftClient:
-    _simulate = False
-
-    def __init__(self):
-        self.test_results = _FakeTestResults(self)
-        self.ping = _FakePing()
-
-
-@pytest.fixture(scope="session")
-def sift_client():
-    return _FakeSiftClient()
 '''
-
-
-_RUN_ARGS = (
-    "--sift-log-file=false",
-    "--no-sift-git-metadata",
-)
 
 
 @pytest.fixture
 def inner(pytester):
-    """Reset the capture state and install the inner conftest. Returns ``pytester``."""
-    capture.reset()
+    """Install the inner conftest. Returns ``pytester``."""
     pytester.makeconftest(_INNER_CONFTEST_SRC)
     return pytester
 
 
+# Prepended to every inner test file. Pytest skips marker-based ``skip`` items
+# before any autouse fixture runs, which would leave ``REPORT_CONTEXT`` unset
+# and the plugin's inline-skip recording inert. A single passing item up-front
+# forces ``report_context`` to initialize so the makereport hook can record
+# the skip into the same session's JSONL.
+_WARMUP = "def test_sift_warmup(): pass\n\n"
+
+
 def _run(pytester, body: str) -> None:
-    pytester.makepyfile(textwrap.dedent(body))
-    pytester.runpytest_inprocess(*_RUN_ARGS)
+    pytester.makepyfile(_WARMUP + textwrap.dedent(body))
+    log_path = pytester.path / "sift.log"
+    capture.set_log(log_path)
+    pytester.runpytest_inprocess(
+        "--sift-offline",
+        f"--sift-log-file={log_path}",
+        "--no-sift-git-metadata",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -219,7 +105,7 @@ def test_generic_exception_maps_to_error(inner):
     assert capture.final_status("test_x") == TestStatus.ERROR
 
 
-def test_system_exit_maps_to_error(inner):
+def test_system_exit_maps_to_aborted(inner):
     # Case: CALL-05
     _run(
         inner,
@@ -229,7 +115,7 @@ def test_system_exit_maps_to_error(inner):
             sys.exit(1)
         """,
     )
-    assert capture.final_status("test_x") == TestStatus.ERROR
+    assert capture.final_status("test_x") == TestStatus.ABORTED
 
 
 def test_pytest_fail_maps_to_failed(inner):
@@ -621,3 +507,35 @@ def test_skipped_substep_does_not_fail_parent(inner):
     outer = capture.test_step("test_x")
     assert outer is not None
     assert outer.statuses[-1] == TestStatus.PASSED
+
+
+def test_abort_inside_substep_marks_every_open_step_aborted(inner):
+    # Case: API-06
+    _run(
+        inner,
+        """
+        import sys
+        def test_x(step):
+            with step.substep(name="completed_sub"):
+                pass
+            with step.substep(name="outer_sub") as outer_sub:
+                with outer_sub.substep(name="inner_sub"):
+                    sys.exit(1)
+        """,
+    )
+    # SystemExit unwinds the substep stack on the way out. Every step that was
+    # open when the abort fired (inner substep, outer substep, test step)
+    # must record ABORTED. The sibling substep that closed cleanly before the
+    # abort must retain its PASSED status.
+    outer = capture.test_step("test_x")
+    assert outer is not None
+    assert outer.statuses[-1] == TestStatus.ABORTED
+    outer_sub = next(iter(capture.steps_by_name("outer_sub")), None)
+    inner_sub = next(iter(capture.steps_by_name("inner_sub")), None)
+    completed_sub = next(iter(capture.steps_by_name("completed_sub")), None)
+    assert outer_sub is not None
+    assert inner_sub is not None
+    assert completed_sub is not None
+    assert outer_sub.statuses[-1] == TestStatus.ABORTED
+    assert inner_sub.statuses[-1] == TestStatus.ABORTED
+    assert completed_sub.statuses[-1] == TestStatus.PASSED
