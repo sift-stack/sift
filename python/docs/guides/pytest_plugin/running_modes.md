@@ -22,8 +22,8 @@ pytest --sift-log-file=./sift-results.jsonl
 | Offline | `--sift-offline` | none | required (the sole sink) | real measurement queued to log | field tests, air-gapped labs, CI without network |
 | Disabled | `--sift-disabled` | none | none | bounds eval; returns a real bool | local dev or CI that doesn't have (or want) Sift |
 
-Pass both flags? Disabled wins. It's the "skip Sift entirely" hammer and
-supersedes everything else.
+Pass both flags and disabled wins: it skips Sift entirely and supersedes every
+other setting.
 
 ## Online mode (default)
 
