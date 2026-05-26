@@ -355,17 +355,8 @@ You're not viewing the latest version.
   
     
     
-      
-  
-  
-  
-    
-  
-  
-    
-    
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+        <a href="../../" class="md-tabs__link">
           
   
   
@@ -373,9 +364,6 @@ You're not viewing the latest version.
 
         </a>
       </li>
-    
-  
-
     
   
 
@@ -684,6 +672,34 @@ You're not viewing the latest version.
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -707,10 +723,10 @@ You're not viewing the latest version.
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
             
   
   
@@ -728,8 +744,8 @@ You're not viewing the latest version.
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -834,34 +850,6 @@ You're not viewing the latest version.
       On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#defaults-audit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Defaults audit
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Defaults audit">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#candidates-for-removal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Candidates for removal
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#credentials" class="md-nav__link">
@@ -1117,34 +1105,6 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#defaults-audit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Defaults audit
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Defaults audit">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#candidates-for-removal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Candidates for removal
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#credentials" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1287,179 +1247,7 @@ You're not viewing the latest version.
 <h1 id="configuration-defaults">Configuration &amp; Defaults<a class="headerlink" href="#configuration-defaults" title="Permanent link">&para;</a></h1>
 <p>This page is the full reference for everything the plugin exposes: fixtures, CLI
 flags, ini options, credential handling, and the markers that control which
-tests report. It opens with an audit that classifies every option so you know
-what belongs in the happy path and what is reserved for specific needs.</p>
-<h2 id="defaults-audit">Defaults audit<a class="headerlink" href="#defaults-audit" title="Permanent link">&para;</a></h2>
-<p>Every knob, marker, flag, and fixture, classified by how it should be used:</p>
-<ul>
-<li><strong>Default</strong>: part of the <a href="../">Overview</a> happy path. You get it with
-  zero config.</li>
-<li><strong>Advanced</strong>: documented here and in the other guides, kept off the happy
-  path. Reach for it when you have a specific need.</li>
-<li><strong>Removed</strong>: none. Removing an option is a code change outside the scope of
-  the docs; see <a href="#candidates-for-removal">Candidates for removal</a> below.</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Surface</th>
-<th>Classification</th>
-<th>Rationale</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>pytest_plugins = ["sift_client.pytest_plugin"]</code></td>
-<td><code>conftest.py</code> declaration</td>
-<td>Default</td>
-<td>The one required setup step.</td>
-</tr>
-<tr>
-<td><code>step</code></td>
-<td>fixture (autouse)</td>
-<td>Default</td>
-<td>Core API for measurements and substeps.</td>
-</tr>
-<tr>
-<td><code>step.measure(...)</code></td>
-<td>step method</td>
-<td>Default</td>
-<td>Primary way to record a measurement.</td>
-</tr>
-<tr>
-<td><code>SIFT_API_KEY</code></td>
-<td>env var</td>
-<td>Default</td>
-<td>Required credential in online mode.</td>
-</tr>
-<tr>
-<td><code>SIFT_GRPC_URI</code></td>
-<td>env var / <code>sift_grpc_uri</code> ini</td>
-<td>Default</td>
-<td>Required endpoint in online mode.</td>
-</tr>
-<tr>
-<td><code>SIFT_REST_URI</code></td>
-<td>env var / <code>sift_rest_uri</code> ini</td>
-<td>Default</td>
-<td>Required endpoint in online mode.</td>
-</tr>
-<tr>
-<td><code>sift_package_step</code></td>
-<td>ini (default <code>true</code>)</td>
-<td>Default</td>
-<td>Full step tree works out of the box.</td>
-</tr>
-<tr>
-<td><code>sift_module_step</code></td>
-<td>ini (default <code>true</code>)</td>
-<td>Default</td>
-<td>Full step tree works out of the box.</td>
-</tr>
-<tr>
-<td><code>sift_class_step</code></td>
-<td>ini (default <code>true</code>)</td>
-<td>Default</td>
-<td>Full step tree works out of the box.</td>
-</tr>
-<tr>
-<td><code>sift_parametrize_nesting</code></td>
-<td>ini (default <code>true</code>)</td>
-<td>Default</td>
-<td>Clustered parametrize tree works out of the box.</td>
-</tr>
-<tr>
-<td><code>sift_autouse</code></td>
-<td>ini (default <code>true</code>)</td>
-<td>Default on; Advanced to override</td>
-<td>On by default every test reports; set <code>false</code> only to opt in per test.</td>
-</tr>
-<tr>
-<td><code>sift_git_metadata</code></td>
-<td>ini (default <code>true</code>)</td>
-<td>Default on; Advanced to override</td>
-<td>Git metadata captured automatically; toggle off to suppress.</td>
-</tr>
-<tr>
-<td>online mode</td>
-<td>default</td>
-<td>Default</td>
-<td>Zero-config sends results to your tenant.</td>
-</tr>
-<tr>
-<td><code>report_context</code></td>
-<td>fixture (autouse)</td>
-<td>Advanced</td>
-<td>Only needed to set report metadata or link a Run.</td>
-</tr>
-<tr>
-<td><code>--sift-offline</code> / <code>sift_offline</code></td>
-<td>CLI / ini</td>
-<td>Advanced</td>
-<td>Field tests, air-gapped labs, CI without network.</td>
-</tr>
-<tr>
-<td><code>--sift-disabled</code> / <code>sift_disabled</code> / <code>SIFT_DISABLED</code></td>
-<td>CLI / ini / env</td>
-<td>Advanced</td>
-<td>Skip Sift entirely.</td>
-</tr>
-<tr>
-<td><code>--sift-log-file</code> / <code>sift_log_file</code></td>
-<td>CLI / ini</td>
-<td>Advanced</td>
-<td>Tune the replay sink; the default temp file is fine.</td>
-</tr>
-<tr>
-<td><code>--no-sift-git-metadata</code></td>
-<td>CLI</td>
-<td>Advanced</td>
-<td>Opt out of git metadata capture.</td>
-</tr>
-<tr>
-<td><code>sift_grpc_uri</code> / <code>sift_rest_uri</code></td>
-<td>ini</td>
-<td>Advanced</td>
-<td>Commit stable endpoints instead of using env vars.</td>
-</tr>
-<tr>
-<td><code>@pytest.mark.sift_include</code></td>
-<td>marker</td>
-<td>Advanced</td>
-<td>Force reporting on for a scope.</td>
-</tr>
-<tr>
-<td><code>@pytest.mark.sift_exclude</code></td>
-<td>marker</td>
-<td>Advanced</td>
-<td>Force reporting off for a scope.</td>
-</tr>
-<tr>
-<td><code>sift_client</code> override</td>
-<td>fixture</td>
-<td>Advanced</td>
-<td>Custom client construction (TLS, timeouts, credentials).</td>
-</tr>
-<tr>
-<td><code>client_has_connection</code> override</td>
-<td>fixture</td>
-<td>Advanced</td>
-<td>Custom reachability signal.</td>
-</tr>
-<tr>
-<td><code>pytest_collection_modifyitems</code></td>
-<td>hook</td>
-<td>Advanced</td>
-<td>Bulk-apply a marker to a directory.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="candidates-for-removal">Candidates for removal<a class="headerlink" href="#candidates-for-removal" title="Permanent link">&para;</a></h3>
-<p>No options are removed by this documentation. Each one above maps to live plugin
-behavior, and removing a knob is a code change that belongs in a separate
-follow-up. Revisit the "Advanced" rows if usage shows a knob is never changed
-from its default.</p>
+tests report.</p>
 <div class="admonition info">
 <p class="admonition-title">Where the plugin lives</p>
 <p>The plugin lives at <code>sift_client.pytest_plugin</code>. It is <strong>not</strong> registered as

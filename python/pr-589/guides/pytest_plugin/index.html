@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://sift-stack.github.io/sift/python/pr-589/guides/pytest_plugin/">
       
       
-        <link rel="prev" href="../../examples/pytest_plugin_quickstart/">
+        <link rel="prev" href="../">
       
       
         <link rel="next" href="configuration/">
@@ -355,17 +355,8 @@ You're not viewing the latest version.
   
     
     
-      
-  
-  
-  
-    
-  
-  
-    
-    
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -373,9 +364,6 @@ You're not viewing the latest version.
 
         </a>
       </li>
-    
-  
-
     
   
 
@@ -684,6 +672,34 @@ You're not viewing the latest version.
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -707,10 +723,10 @@ You're not viewing the latest version.
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
             
   
   
@@ -728,8 +744,8 @@ You're not viewing the latest version.
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1190,10 +1206,45 @@ after it.</p>
 <a href="configuration/">Configuration &amp; Defaults</a> for the full audit of every knob,
 marker, flag, and fixture.</p>
 <h2 id="running-modes">Running modes<a class="headerlink" href="#running-modes" title="Permanent link">&para;</a></h2>
-<p>The plugin runs in one of three modes, picked at invocation: <strong>online</strong> (the
-default, sends to Sift), <strong>offline</strong> (<code>--sift-offline</code>, records to a log file
-for later replay), and <strong>disabled</strong> (<code>--sift-disabled</code>, evaluates bounds but
-never contacts Sift). See <a href="running_modes/">Running Modes</a>.</p>
+<p>The plugin runs in one of three modes, picked at invocation.</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>How to select</th>
+<th>Contacts Sift</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Online</strong></td>
+<td>default (no flag)</td>
+<td>Yes, during the run</td>
+<td>Default choice</td>
+</tr>
+<tr>
+<td><strong>Offline</strong></td>
+<td><code>--sift-offline</code></td>
+<td>No; records to a log file for later replay</td>
+<td>Environments without Sift access.</td>
+</tr>
+<tr>
+<td><strong>Disabled</strong></td>
+<td><code>--sift-disabled</code></td>
+<td>No</td>
+<td>Local dev. Bounds still evaluate and return a real pass/fail.</td>
+</tr>
+</tbody>
+</table>
+<p>Online mode pings Sift once at session start and aborts if Sift is unreachable or the credentials are invalid, 
+so a misconfigured job fails immediately instead of silently producing no report. 
+During the run, every create and update is appended to a JSONL log file. 
+A background worker uploads new entries to Sift incrementally. 
+If the connection drops mid-test, the test keeps running and the log keeps writing locally. 
+The remaining entries can be uploaded afterward by running import-test-result-log, which the plugin prints on exit.</p>
+<p>See <a href="running_modes/">Running Modes</a> for the log-file and replay pipeline,
+overriding the connection check, and replaying a saved log.</p>
 <h2 id="report-structure">Report structure<a class="headerlink" href="#report-structure" title="Permanent link">&para;</a></h2>
 <p>The report tree mirrors your test layout: packages, modules, classes, and
 parametrize axes nest automatically, and you can open arbitrary substeps inside
