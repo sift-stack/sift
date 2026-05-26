@@ -136,7 +136,7 @@ TestReport (FAILED, since failures propagate up from leaves)
         │   (test_excluded: @sift_exclude, runs in pytest, NOT in tree)
         ├── test_measure_series                                      PASSED
         ├── test_failed_measurement_marks_sift_step_failed           FAILED  (pytest PASSED)
-        ├── test_assert_measurements_passed_at_end                                FAILED  (pytest FAILED)
+        ├── test_fail_if_measurements_failed_at_end                               FAILED  (pytest FAILED)
         ├── test_report_level_metadata                               PASSED
         └── TestClassStep
             ├── test_parametrize
@@ -158,12 +158,13 @@ The `with_sift` module shows two patterns for handling measurement results:
 `test_failed_measurement_marks_sift_step_failed` lets the test keep passing
 in pytest while the Sift step is `FAILED` (useful when measurements are
 diagnostic data you want to collect regardless of outcome); and
-`test_assert_measurements_passed_at_end` takes every measurement first and
-then asserts `step.measurements_passed` once at the end, so every
+`test_fail_if_measurements_failed_at_end` takes every measurement first and
+then calls `step.fail_if_measurements_failed()` once at the end, so every
 measurement still lands in the report even when one fails. The end-of-test
-assertion is the recommended pattern: asserting on an individual
-`step.measure(...)` call short-circuits on the first failure and skips
-every measurement that follows. Expected
+call is the recommended pattern: it fails via `pytest.fail` (no assertion
+noise in `error_info`), and unlike asserting on an individual
+`step.measure(...)` call it does not short-circuit on the first failure and
+skip every measurement that follows. Expected
 pytest output is `16 passed, 3 failed, 1 skipped`.
 
 Flip any of the `sift_*_step` / `sift_parametrize_nesting` flags in
