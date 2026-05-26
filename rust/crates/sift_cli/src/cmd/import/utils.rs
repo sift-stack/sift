@@ -91,6 +91,13 @@ pub fn validate_time_format(
     }
 }
 
+/// Convert a slash-delimited group path (HDF5 dataset path, TDMS group/channel,
+/// etc.) into a Sift channel name. Strips a leading `/` and rewrites remaining
+/// `/` separators as `.`.
+pub fn group_path_to_channel_name(path: &str) -> String {
+    path.trim_start_matches('/').replace('/', ".")
+}
+
 pub fn try_parse_enum_config(val: &str) -> Result<Vec<ChannelEnumType>> {
     let values = val.split("|").collect::<Vec<&str>>();
 

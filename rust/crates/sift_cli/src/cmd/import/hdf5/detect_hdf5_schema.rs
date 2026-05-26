@@ -1,20 +1,55 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use hdf5::types::{FloatSize, IntSize, TypeDescriptor, VarLenAscii, VarLenUnicode};
-use hdf5::{Dataset, File};
+use hdf5::{Dataset, File, Group};
 use sift_rs::{
-    common::r#type::v1::{ChannelConfig, ChannelDataType},
+    common::r#type::v1::{ChannelConfig, ChannelDataType, ChannelEnumType},
     data_imports::v2::Hdf5DataConfig,
 };
 
 use crate::cli::hdf5::Hdf5Schema;
+use crate::cmd::import::utils::group_path_to_channel_name;
+use crate::util::tty::Output;
 
+const ROOT_PATH: &str = "/";
 const TIME_NAMES: &[&str] = &["time", "timestamp", "timestamps", "ts"];
+const VALUE_NAMES: &[&str] = &["value", "values"];
 
-pub(super) fn is_time_dataset_name(name: &str) -> bool {
-    let trimmed = name.trim_start_matches('/').to_ascii_lowercase();
-    TIME_NAMES.iter().any(|n| *n == trimmed)
+pub fn basename(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
+}
+
+pub fn parent_path(path: &str) -> &str {
+    match path.rfind('/') {
+        Some(0) => ROOT_PATH,
+        Some(idx) => &path[..idx],
+        None => ROOT_PATH,
+    }
+}
+
+pub fn is_time_dataset_name(name: &str) -> bool {
+    let leaf = basename(name).to_ascii_lowercase();
+    TIME_NAMES.iter().any(|n| *n == leaf)
+}
+
+fn is_value_leaf(name: &str) -> bool {
+    let leaf = basename(name).to_ascii_lowercase();
+    VALUE_NAMES.iter().any(|n| *n == leaf)
+}
+
+fn collect_datasets_recursive(group: &Group) -> Result<Vec<Dataset>> {
+    let mut datasets = group
+        .datasets()
+        .with_context(|| format!("failed to enumerate datasets in {}", group.name()))?;
+    let subgroups = group
+        .groups()
+        .with_context(|| format!("failed to enumerate groups in {}", group.name()))?;
+    for sub in &subgroups {
+        datasets.extend(collect_datasets_recursive(sub)?);
+    }
+    Ok(datasets)
 }
 
 fn get_string_attr(ds: &Dataset, name: &str) -> Option<String> {
@@ -28,12 +63,10 @@ fn get_string_attr(ds: &Dataset, name: &str) -> Option<String> {
     None
 }
 
-/// Supported HDF5 channel types. Anything outside this set is rejected with a
-/// client-side error so users get clear feedback before upload.
-pub(super) const SUPPORTED_TYPES_BLURB: &str =
-    "bool, int8/16/32/64, uint8/16/32/64, float32, float64";
+pub const SUPPORTED_TYPES_BLURB: &str =
+    "bool, int8/16/32/64, uint8/16/32/64, float32, float64, string, enum";
 
-pub(super) fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
+pub fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
     match ty {
         TypeDescriptor::Boolean => Some(ChannelDataType::Bool),
         TypeDescriptor::Integer(IntSize::U1)
@@ -46,31 +79,57 @@ pub(super) fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataT
         TypeDescriptor::Unsigned(IntSize::U8) => Some(ChannelDataType::Uint64),
         TypeDescriptor::Float(FloatSize::U4) => Some(ChannelDataType::Float),
         TypeDescriptor::Float(FloatSize::U8) => Some(ChannelDataType::Double),
+        TypeDescriptor::VarLenUnicode
+        | TypeDescriptor::VarLenAscii
+        | TypeDescriptor::FixedAscii(_)
+        | TypeDescriptor::FixedUnicode(_) => Some(ChannelDataType::String),
+        TypeDescriptor::Enum(_) => Some(ChannelDataType::Enum),
         _ => None,
     }
 }
 
-pub(super) fn detect_config(
+pub fn enum_types_for(ty: &TypeDescriptor) -> Result<Vec<ChannelEnumType>> {
+    let TypeDescriptor::Enum(enum_type) = ty else {
+        return Ok(Vec::new());
+    };
+    enum_type
+        .members
+        .iter()
+        .map(|member| {
+            Ok(ChannelEnumType {
+                name: member.name.clone(),
+                key: u32::try_from(member.value).with_context(|| {
+                    format!(
+                        "enum member '{}' value {} doesn't fit in u32",
+                        member.name, member.value
+                    )
+                })?,
+                is_signed: enum_type.signed,
+            })
+        })
+        .collect()
+}
+
+pub fn detect_config(
     path: &Path,
     schema: Hdf5Schema,
     time_index: u64,
     time_field: Option<&str>,
+    time_name: Option<&str>,
 ) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
     let file = File::open(path).map_err(|e| anyhow!("failed to open hdf5 file: {e}"))?;
-    let datasets = file
-        .datasets()
-        .map_err(|e| anyhow!("failed to enumerate datasets: {e}"))?;
+    let datasets = collect_datasets_recursive(&file)?;
 
     let result = match schema {
-        Hdf5Schema::OneD => detect_one_d(&datasets),
+        Hdf5Schema::OneD => detect_one_d(&datasets, time_name),
         Hdf5Schema::TwoD => detect_two_d(&datasets, time_index),
         Hdf5Schema::Compound => detect_compound(&datasets, time_index, time_field),
     };
 
     match result {
-        Ok((data, _)) if data.is_empty() => {
-            Err(no_match_error(&datasets, schema, time_index, time_field))
-        }
+        Ok((data, _)) if data.is_empty() => Err(no_match_error(
+            &datasets, schema, time_index, time_field, time_name,
+        )),
         Ok(other) => Ok(other),
         Err(e) => Err(e),
     }
@@ -81,6 +140,7 @@ fn no_match_error(
     selected: Hdf5Schema,
     time_index: u64,
     time_field: Option<&str>,
+    time_name: Option<&str>,
 ) -> anyhow::Error {
     let alternatives: &[(Hdf5Schema, &str)] = &[
         (Hdf5Schema::OneD, "one-d"),
@@ -93,7 +153,7 @@ fn no_match_error(
         .filter(|(s, _)| *s != selected)
         .filter_map(|(s, name)| {
             let probe = match s {
-                Hdf5Schema::OneD => detect_one_d(datasets),
+                Hdf5Schema::OneD => detect_one_d(datasets, time_name),
                 Hdf5Schema::TwoD => detect_two_d(datasets, time_index),
                 Hdf5Schema::Compound => detect_compound(datasets, time_index, time_field),
             };
@@ -124,36 +184,71 @@ fn no_match_error(
     }
 }
 
-fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
-    let time_dataset = datasets
-        .iter()
-        .find(|d| is_time_dataset_name(&d.name()))
-        .map(|d| d.name())
-        .ok_or_else(|| {
-            anyhow!("no time dataset found — expected one of {TIME_NAMES:?} (case-insensitive)")
-        })?;
+fn detect_one_d(
+    datasets: &[Dataset],
+    time_name: Option<&str>,
+) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
+    let mut group_time: HashMap<String, String> = HashMap::new();
+    for ds in datasets {
+        let name = ds.name();
+        let matches = match time_name {
+            Some(want) => basename(&name) == want,
+            None => is_time_dataset_name(&name),
+        };
+        if !matches || ds.ndim() != 1 {
+            continue;
+        }
+        group_time
+            .entry(parent_path(&name).to_owned())
+            .or_insert(name);
+    }
+
+    if group_time.is_empty() {
+        return Err(match time_name {
+            Some(want) => anyhow!(
+                "no time dataset found with name '{want}'. \
+                 Verify --time-name matches a leaf dataset name in the file."
+            ),
+            None => anyhow!(
+                "no time dataset found — expected one of {TIME_NAMES:?} (case-insensitive) \
+                 at the root or within any group. \
+                 If your file uses a custom name, pass it via --time-name."
+            ),
+        });
+    }
 
     let mut data_configs = Vec::new();
     let mut channel_configs = Vec::new();
 
     for ds in datasets {
         let name = ds.name();
-        if name == time_dataset {
+        if is_time_dataset_name(&name) || ds.ndim() != 1 {
             continue;
         }
-        if ds.ndim() != 1 {
+        let Some(time_dataset) = nearest_time_dataset(&group_time, &name) else {
             continue;
-        }
-        let dtype = ds
-            .dtype()
-            .map_err(|e| anyhow!("failed to read dtype for {name}: {e}"))?
-            .to_descriptor()
-            .map_err(|e| anyhow!("failed to describe dtype for {name}: {e}"))?;
+        };
+
+        let dtype = match ds.dtype().and_then(|t| t.to_descriptor()) {
+            Ok(d) => d,
+            Err(e) => {
+                Output::new()
+                    .line(format!(
+                        "skipping {name}: cannot describe HDF5 dtype ({e}). \
+                         Supported types: {SUPPORTED_TYPES_BLURB}."
+                    ))
+                    .eprint();
+                continue;
+            }
+        };
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
-            return Err(anyhow!(
-                "unsupported HDF5 type for dataset {name}: {dtype:?}. \
-                 Supported types: {SUPPORTED_TYPES_BLURB}."
-            ));
+            Output::new()
+                .line(format!(
+                    "skipping {name}: unsupported HDF5 type {dtype:?}. \
+                     Supported types: {SUPPORTED_TYPES_BLURB}."
+                ))
+                .eprint();
+            continue;
         };
 
         let units = get_string_attr(ds, "units").unwrap_or_default();
@@ -161,16 +256,19 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
             .or_else(|| get_string_attr(ds, "description"))
             .unwrap_or_default();
 
+        let channel_name = one_d_channel_name(&name);
+
         let channel_config = ChannelConfig {
-            name: name.trim_start_matches('/').to_string(),
+            name: channel_name,
             data_type: channel_type as i32,
             units,
             description,
+            enum_types: enum_types_for(&dtype)?,
             ..Default::default()
         };
 
         data_configs.push(Hdf5DataConfig {
-            time_dataset: time_dataset.clone(),
+            time_dataset,
             time_index: 0,
             value_dataset: name.clone(),
             value_index: 0,
@@ -182,6 +280,27 @@ fn detect_one_d(datasets: &[Dataset]) -> Result<(Vec<Hdf5DataConfig>, Vec<Channe
     }
 
     Ok((data_configs, channel_configs))
+}
+
+fn nearest_time_dataset(group_time: &HashMap<String, String>, value_path: &str) -> Option<String> {
+    let mut current = parent_path(value_path);
+    while current != ROOT_PATH {
+        if let Some(t) = group_time.get(current) {
+            return Some(t.clone());
+        }
+        current = parent_path(current);
+    }
+    group_time.get(ROOT_PATH).cloned()
+}
+
+fn one_d_channel_name(value_path: &str) -> String {
+    if is_value_leaf(value_path) {
+        let parent = parent_path(value_path);
+        if parent != ROOT_PATH {
+            return group_path_to_channel_name(parent);
+        }
+    }
+    group_path_to_channel_name(value_path)
 }
 
 fn detect_two_d(
@@ -220,10 +339,11 @@ fn detect_two_d(
             if col == time_index {
                 continue;
             }
-            let channel_name = format!("{}.{col}", name.trim_start_matches('/'));
+            let channel_name = format!("{}.{col}", group_path_to_channel_name(&name));
             let channel_config = ChannelConfig {
                 name: channel_name,
                 data_type: channel_type as i32,
+                enum_types: enum_types_for(&dtype)?,
                 ..Default::default()
             };
 
@@ -295,10 +415,11 @@ fn detect_compound(
                     field.ty
                 ));
             };
-            let channel_name = format!("{}.{}", name.trim_start_matches('/'), field.name);
+            let channel_name = format!("{}.{}", group_path_to_channel_name(&name), field.name);
             let channel_config = ChannelConfig {
                 name: channel_name,
                 data_type: channel_type as i32,
+                enum_types: enum_types_for(&field.ty)?,
                 ..Default::default()
             };
 

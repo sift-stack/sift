@@ -44,6 +44,7 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
             args.schema,
             args.time_index.unwrap_or(0),
             args.time_field.as_deref(),
+            args.time_name.as_deref(),
         ) {
             Ok((_, channel_configs)) => {
                 let refs: Vec<&ChannelConfig> = channel_configs.iter().collect();
@@ -65,6 +66,7 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         args.schema,
         args.time_index.unwrap_or(0),
         args.time_field.as_deref(),
+        args.time_name.as_deref(),
     )
     .context("failed to parse hdf5 file")?;
     hdf5_config.data = data_configs;
