@@ -5,8 +5,9 @@ import os
 from dotenv import load_dotenv
 from sift_client import SiftClient
 from sift_client.sift_types.data_import import (
-    DataTypeKey,
     ParquetMultiChannelConfig,
+    ParquetSingleChannelPerRowImportConfig,
+    ParquetTimeColumn,
 )
 
 if __name__ == "__main__":
@@ -26,22 +27,20 @@ if __name__ == "__main__":
 
     client = SiftClient(api_key=apikey, grpc_url=grpc_uri, rest_url=rest_uri)
 
-    # SCPR requires declaring the channel layout. detect_config returns the time
-    # column but leaves single_channel/multi_channel unset; the caller picks one.
-    # Here each row identifies its channel via a name column, so we set
-    # multi_channel with the name and value column paths.
-    config = client.data_import.detect_config(
-        "sample_data.parquet",
-        data_type=DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW,
-    )
-    config.multi_channel = ParquetMultiChannelConfig(
-        name_path="channel",
-        data_path="value",
+    # SCPR requires declaring the channel layout explicitly. Here each row
+    # identifies its channel via a name column, so set multi_channel with the
+    # name and value column paths.
+    config = ParquetSingleChannelPerRowImportConfig(
+        asset_name=asset_name,
+        time_column=ParquetTimeColumn(path="timestamp"),
+        multi_channel=ParquetMultiChannelConfig(
+            name_path="channel",
+            data_path="value",
+        ),
     )
 
     import_job = client.data_import.import_from_path(
         "sample_data.parquet",
-        asset=asset_name,
         config=config,
     )
 
