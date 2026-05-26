@@ -8,8 +8,8 @@ axes, manual substeps, and gate markers. It also includes a tests directory
 that uses no Sift APIs at all, to show how the autouse fixtures capture plain
 pytest tests for free.
 
-For a conceptual reference (fixtures, ini flags, status semantics), see
-[Pytest Plugin](pytest_plugin.md).
+For a conceptual reference (fixtures, ini flags, status semantics), see the
+[Pytest Plugin guide](../guides/pytest_plugin/index.md).
 
 ## Project layout
 
@@ -172,7 +172,7 @@ Flip any of the `sift_*_step` / `sift_parametrize_nesting` flags in
 
 ## Next steps
 
-- [Pytest Plugin](pytest_plugin.md): conceptual reference covering fixtures,
-  ini flags, status semantics, and layout-mapping examples.
+- [Pytest Plugin guide](../guides/pytest_plugin/index.md): conceptual reference
+  covering fixtures, configuration, report structure, and pass/fail behavior.
 - The demo's [README](https://github.com/sift-stack/sift/blob/main/python/examples/pytest_plugin/README.md)
   on GitHub mirrors this page and is the canonical source.
