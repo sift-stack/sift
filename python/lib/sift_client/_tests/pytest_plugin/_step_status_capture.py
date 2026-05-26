@@ -27,6 +27,7 @@ class CapturedStep:
     step_path: str
     parent_step_id: str | None
     statuses: list[TestStatus] = field(default_factory=list)
+    error_messages: list[str] = field(default_factory=list)
 
 
 _PROTO_STATUS_NAMES = {
@@ -58,6 +59,7 @@ def parse_log(log_path: Path) -> dict[str, CapturedStep]:
     for request_type, response_id, json_str in iter_log_data_lines(log_path):
         payload = json.loads(json_str)
         test_step = payload.get("testStep", {})
+        error_message = test_step.get("errorInfo", {}).get("errorMessage")
         if request_type == "CreateTestStep" and response_id:
             steps[response_id] = CapturedStep(
                 step_id=response_id,
@@ -65,12 +67,15 @@ def parse_log(log_path: Path) -> dict[str, CapturedStep]:
                 step_path=test_step.get("stepPath", ""),
                 parent_step_id=test_step.get("parentStepId") or None,
                 statuses=[_status(test_step.get("status"))],
+                error_messages=[error_message] if error_message else [],
             )
         elif request_type == "UpdateTestStep":
             step_id = test_step.get("testStepId")
             new_status = test_step.get("status")
             if step_id and step_id in steps and new_status is not None:
                 steps[step_id].statuses.append(_status(new_status))
+                if error_message:
+                    steps[step_id].error_messages.append(error_message)
     return steps
 
 
@@ -115,6 +120,11 @@ def test_step(name: str) -> CapturedStep | None:
 def final_status(name: str) -> TestStatus | None:
     step = test_step(name)
     return step.statuses[-1] if step and step.statuses else None
+
+
+def final_error_message(name: str) -> str | None:
+    step = test_step(name)
+    return step.error_messages[-1] if step and step.error_messages else None
 
 
 def load_steps(log_path: Path) -> list[dict]:

@@ -14,7 +14,10 @@ from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import ErrorInfo, TestStatus
 from sift_client.util.test_results import ReportContext
-from sift_client.util.test_results.context_manager import format_truncated_traceback
+from sift_client.util.test_results.context_manager import (
+    format_assertion_message,
+    format_truncated_traceback,
+)
 
 
 class SiftPytestPluginWarning(SiftWarning):
@@ -588,6 +591,7 @@ def _resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
                 status = TestStatus.FAILED
             elif isinstance(excinfo.value, AssertionError):
                 status = TestStatus.FAILED
+                error_info = format_assertion_message(excinfo.type, excinfo.value)
             elif isinstance(excinfo.value, pytest.fail.Exception):
                 status = TestStatus.FAILED
             elif isinstance(excinfo.value, (KeyboardInterrupt, SystemExit)):
