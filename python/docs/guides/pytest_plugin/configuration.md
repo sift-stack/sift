@@ -2,53 +2,7 @@
 
 This page is the full reference for everything the plugin exposes: fixtures, CLI
 flags, ini options, credential handling, and the markers that control which
-tests report. It opens with an audit that classifies every option so you know
-what belongs in the happy path and what is reserved for specific needs.
-
-## Defaults audit
-
-Every knob, marker, flag, and fixture, classified by how it should be used:
-
-- **Default**: part of the [Overview](index.md) happy path. You get it with
-  zero config.
-- **Advanced**: documented here and in the other guides, kept off the happy
-  path. Reach for it when you have a specific need.
-- **Removed**: none. Removing an option is a code change outside the scope of
-  the docs; see [Candidates for removal](#candidates-for-removal) below.
-
-| Option | Surface | Classification | Rationale |
-|---|---|---|---|
-| `pytest_plugins = ["sift_client.pytest_plugin"]` | `conftest.py` declaration | Default | The one required setup step. |
-| `step` | fixture (autouse) | Default | Core API for measurements and substeps. |
-| `step.measure(...)` | step method | Default | Primary way to record a measurement. |
-| `SIFT_API_KEY` | env var | Default | Required credential in online mode. |
-| `SIFT_GRPC_URI` | env var / `sift_grpc_uri` ini | Default | Required endpoint in online mode. |
-| `SIFT_REST_URI` | env var / `sift_rest_uri` ini | Default | Required endpoint in online mode. |
-| `sift_package_step` | ini (default `true`) | Default | Full step tree works out of the box. |
-| `sift_module_step` | ini (default `true`) | Default | Full step tree works out of the box. |
-| `sift_class_step` | ini (default `true`) | Default | Full step tree works out of the box. |
-| `sift_parametrize_nesting` | ini (default `true`) | Default | Clustered parametrize tree works out of the box. |
-| `sift_autouse` | ini (default `true`) | Default on; Advanced to override | On by default every test reports; set `false` only to opt in per test. |
-| `sift_git_metadata` | ini (default `true`) | Default on; Advanced to override | Git metadata captured automatically; toggle off to suppress. |
-| online mode | default | Default | Zero-config sends results to your tenant. |
-| `report_context` | fixture (autouse) | Advanced | Only needed to set report metadata or link a Run. |
-| `--sift-offline` / `sift_offline` | CLI / ini | Advanced | Field tests, air-gapped labs, CI without network. |
-| `--sift-disabled` / `sift_disabled` / `SIFT_DISABLED` | CLI / ini / env | Advanced | Skip Sift entirely. |
-| `--sift-log-file` / `sift_log_file` | CLI / ini | Advanced | Tune the replay sink; the default temp file is fine. |
-| `--no-sift-git-metadata` | CLI | Advanced | Opt out of git metadata capture. |
-| `sift_grpc_uri` / `sift_rest_uri` | ini | Advanced | Commit stable endpoints instead of using env vars. |
-| `@pytest.mark.sift_include` | marker | Advanced | Force reporting on for a scope. |
-| `@pytest.mark.sift_exclude` | marker | Advanced | Force reporting off for a scope. |
-| `sift_client` override | fixture | Advanced | Custom client construction (TLS, timeouts, credentials). |
-| `client_has_connection` override | fixture | Advanced | Custom reachability signal. |
-| `pytest_collection_modifyitems` | hook | Advanced | Bulk-apply a marker to a directory. |
-
-### Candidates for removal
-
-No options are removed by this documentation. Each one above maps to live plugin
-behavior, and removing a knob is a code change that belongs in a separate
-follow-up. Revisit the "Advanced" rows if usage shows a knob is never changed
-from its default.
+tests report.
 
 !!! info "Where the plugin lives"
     The plugin lives at `sift_client.pytest_plugin`. It is **not** registered as

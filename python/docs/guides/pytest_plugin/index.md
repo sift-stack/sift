@@ -84,10 +84,23 @@ marker, flag, and fixture.
 
 ## Running modes
 
-The plugin runs in one of three modes, picked at invocation: **online** (the
-default, sends to Sift), **offline** (`--sift-offline`, records to a log file
-for later replay), and **disabled** (`--sift-disabled`, evaluates bounds but
-never contacts Sift). See [Running Modes](running_modes.md).
+The plugin runs in one of three modes, picked at invocation.
+
+| Mode | How to select | Contacts Sift | When to use                                                   |
+|---|---|---|---------------------------------------------------------------|
+| **Online** | default (no flag) | Yes, during the run | Default choice                                                |
+| **Offline** | `--sift-offline` | No; records to a log file for later replay | Environments without Sift access.                             |
+| **Disabled** | `--sift-disabled` | No | Local dev. Bounds still evaluate and return a real pass/fail. |
+
+Online mode pings Sift once at session start and aborts if Sift is unreachable or the credentials are invalid, 
+so a misconfigured job fails immediately instead of silently producing no report. 
+During the run, every create and update is appended to a JSONL log file. 
+A background worker uploads new entries to Sift incrementally. 
+If the connection drops mid-test, the test keeps running and the log keeps writing locally. 
+The remaining entries can be uploaded afterward by running import-test-result-log, which the plugin prints on exit.
+
+See [Running Modes](running_modes.md) for the log-file and replay pipeline,
+overriding the connection check, and replaying a saved log.
 
 ## Report structure
 
