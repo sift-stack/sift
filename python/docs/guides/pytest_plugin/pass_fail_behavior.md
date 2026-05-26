@@ -8,14 +8,14 @@ produce, and how that result rolls up to the parent steps and the report.
 
 The statuses below come from `sift_client.sift_types.test_report.TestStatus`.
 
-| Status        | Meaning                                                                                              |
-| ------------- | ---------------------------------------------------------------------------------------------------- |
-| `PASSED`      | The step completed and every check it owns succeeded.                                                |
-| `FAILED`      | An assertion, a `pytest.fail(...)`, a failed `report_outcome`, or a failing measurement marked it.   |
-| `ERROR`       | An unexpected exception escaped the test body or a fixture (setup or teardown).                      |
-| `ABORTED`     | A hard exit (`SystemExit`, observed `KeyboardInterrupt`) interrupted the test.                       |
-| `SKIPPED`     | The test was skipped at collection time, at runtime, or from a fixture.                              |
-| `IN_PROGRESS` | The plugin never observed a final outcome (e.g. a session-aborting interrupt killed pytest first).   |
+| Status        | Meaning                                                                                                                |
+| ------------- |------------------------------------------------------------------------------------------------------------------------|
+| `PASSED`      | The step completed and every check it owns succeeded.                                                                  |
+| `FAILED`      | An assertion, a `pytest.fail(...)`, a failed `report_outcome`, or a failing measurement marked it.                     |
+| `ERROR`       | An unexpected exception escaped the test body or a fixture (setup or teardown).                                        |
+| `ABORTED`     | A hard exit (`SystemExit`, observed `KeyboardInterrupt`) interrupted the test.                                         |
+| `SKIPPED`     | The test was skipped at collection time, at runtime, or from a fixture.                                                |
+| `IN_PROGRESS` | Test in progress or the plugin never observed a final outcome (e.g. a session-aborting interrupt killed pytest first). |
 
 ## Normal test outcomes
 
@@ -27,9 +27,7 @@ The statuses below come from `sift_client.sift_types.test_report.TestStatus`.
 | Uncaught non-assertion exception          | `raise ValueError("boom")`           | `ERROR`  |
 
 A non-assertion exception gets its formatted traceback recorded on
-`step.error_info.error_message` (first frame plus the last ten frames).
-Assertions and `pytest.fail` skip the traceback; pytest already prints one
-in the runner output.
+`step.error_info.error_message`.
 
 ## Hard exits
 
@@ -45,10 +43,8 @@ session down before the plugin sees the exit, the step stays at
 
 ### Abort propagation through nested substeps
 
-When a hard exit fires inside nested substeps, the exception unwinds the
-substep stack. Every step that was open when the abort fired records
-`ABORTED`. A sibling substep that closed cleanly before the abort keeps
-its prior status.
+Every step that was open when the abort fired records
+`ABORTED`.
 
 ```python title="test_abort.py"
 import sys
@@ -59,7 +55,7 @@ def test_x(step):
         pass  # closes as PASSED before the abort
     with step.substep(name="outer_sub") as outer_sub:
         with outer_sub.substep(name="inner_sub"):
-            sys.exit(1)  # ABORTED unwinds through inner_sub, outer_sub, and the test step
+            sys.exit(1)  # ABORTED applied to inner_sub, outer_sub, and the test step
 ```
 
 The Sift report shows `completed_sub` as `PASSED` and the three steps
@@ -78,14 +74,6 @@ itself) as `ABORTED`.
 `SKIPPED` does not propagate as a failure. A skipped substep or test does
 not block its parent from resolving to `PASSED`.
 
-!!! info "Collection-time skip path"
-    `@pytest.mark.skip` and `@pytest.mark.skipif` short-circuit before any
-    autouse fixture fires, so the plugin records the step from inside its
-    `pytest_runtest_makereport` hook rather than from the `step` fixture.
-    Runtime skips (`pytest.skip(...)`) and skips from inside a fixture go
-    through the normal fixture path, with the autouse `step` resolving to
-    `SKIPPED`.
-
 ## Expected failures (xfail / xpass)
 
 xfail marks declare that a test is expected to fail. The plugin follows
@@ -98,23 +86,6 @@ the same semantics pytest does.
 | Non-strict xfail that unexpectedly passes | `@pytest.mark.xfail()` + `assert True`                     | `PASSED` (`strict=False` does not insist on the failure)      |
 | `xfail(raises=...)` with wrong exception  | `@pytest.mark.xfail(raises=ValueError)` + `raise KeyError` | `FAILED` (the `raises=` mismatch is a real test failure)      |
 | `xfail(run=False)`                        | `@pytest.mark.xfail(run=False)`                            | `SKIPPED` (the body never ran)                                |
-
-## Setup and teardown phases
-
-Fixture failures land on the test step the fixture was resolving for.
-Setup-phase and teardown-phase failures resolve differently:
-
-| Scenario                                     | Trigger                                                          | Outcome                                                       |
-| -------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
-| Setup-phase fixture failure                  | `@pytest.fixture` raises before `yield`; body never runs         | `ERROR`                                                       |
-| Teardown-phase fixture failure               | `@pytest.fixture` raises after `yield`; body passed              | `FAILED` (the plugin upgrades the closed step after teardown) |
-| Call-phase failure plus teardown failure     | `assert 1 == 2` in the body AND a `@pytest.fixture` raises after `yield` | `FAILED` (the call-phase failure dominates)            |
-
-## Collection and fixture resolution
-
-| Scenario        | Trigger                            | Outcome |
-| --------------- | ---------------------------------- | ------- |
-| Missing fixture | `def test_x(nonexistent_fixture):` | `ERROR` (surfaces as a setup-phase failure) |
 
 ## Influencing outcomes from test code
 
@@ -174,14 +145,21 @@ def test_with_substep(step):
 
 ## Propagation rules
 
-Steps the plugin opens (function, class, module, package) and substeps
-your test opens follow the same rules:
+Every non-`PASSED`/`SKIPPED` step marks its parent as failed. What the
+parent records depends on whether the failure raised an exception:
 
-- A step whose status is anything other than `PASSED` or `SKIPPED`
-  propagates failure to its parent and to the report.
-- `SKIPPED` does not propagate as a failure.
-- A status set explicitly via `current_step.update` is kept; the plugin
-  does not overwrite it.
-- `error_info` is free-form diagnostic data. The step's status is the
-  authoritative signal; `error_info` rides along for the dashboard but
-  does not change how propagation behaves.
+- When an exception is raised, every step it passes through on its way
+  up records the matching status: `ABORTED` for `SystemExit` and observed
+  `KeyboardInterrupt`, `ERROR` for everything else.
+- When the failure is recorded without raising (failed measurement,
+  failed `report_outcome`, manual non-PASSED status), the parent only
+  sees a child-failed signal and resolves to `FAILED` unless its own
+  logic says otherwise.
+
+Pytest catches the test body's exception at the test function step, so
+the exception-driven chain ends there. Hierarchy parents above (class,
+module, package) and the report only see the child-failed signal and
+resolve to `FAILED`.
+
+`SKIPPED` does not propagate. A status set explicitly via
+`current_step.update` is kept.
