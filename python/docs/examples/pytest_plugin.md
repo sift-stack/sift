@@ -86,7 +86,7 @@ def sift_client() -> SiftClient:
 | Name | Kind | Scope | Purpose |
 |---|---|---|---|
 | `report_context` | fixture (autouse) | session | The `ReportContext` backing the run's `TestReport`. Use it to attach metadata or open ad-hoc steps. |
-| `step` | fixture (autouse) | function | A `NewStep` created for the current test function. Exposes `measure*`, `substep`, `report_outcome`, and `current_step`. |
+| `step` | fixture (autouse) | function | A `NewStep` created for the current test function. Exposes `measure*`, `substep`, `report_outcome`, `fail_if_measurements_failed`, and `current_step`. |
 | `_hierarchy_parents` | internal fixture (autouse) | function | Opens a parent step for each `pytest.Package`, `pytest.Module`, and `pytest.Class` ancestor of the current test. Each layer is gated independently — see [ini options](#ini-options). |
 | `_parametrize_parents` | internal fixture (autouse) | function | Opens a parent step for each `@pytest.mark.parametrize` axis (and fixture parametrization), nested inside the hierarchy parents. |
 | `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted by `report_context` at session start in online mode (the default). Override to skip the ping or use a different reachability signal. |
@@ -263,13 +263,15 @@ def test_no_fixtures_still_creates_a_step():
 def test_measure_a_single_value(step):
     """Take `step` explicitly when you want to record a measurement."""
     voltage = 4.97
-    passed = step.measure(
+    step.measure(
         name="battery_voltage",
         value=voltage,
         bounds={"min": 4.8, "max": 5.2},
         unit="V",
     )
-    assert passed, f"voltage {voltage}V out of bounds"
+    # An out-of-bounds measurement already marks the step FAILED. Call this at
+    # the end to also fail pytest, without an assertion message in error_info.
+    step.fail_if_measurements_failed()
 
 
 def test_measure_strings_and_booleans(step):
@@ -612,8 +614,8 @@ def test_only_outliers_recorded(step):
         unit="psi",
     )
     # Returns False because 99.9 is out of bounds. The step is already
-    # marked failed; raise here only if you also want pytest to fail.
-    assert all_in_bounds
+    # marked failed; call this only if you also want pytest to fail.
+    step.fail_if_measurements_failed()
 ```
 
 !!! note "`measure_all` requires at least one bound"

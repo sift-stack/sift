@@ -94,24 +94,25 @@ def test_failed_measurement_marks_sift_step_failed(step) -> None:
     )
 
 
-def test_assert_measurements_passed_at_end(step) -> None:
-    """Recommended pattern: take every measurement first, then assert
-    ``step.measurements_passed`` once at the end.
+def test_fail_if_measurements_failed_at_end(step) -> None:
+    """Recommended pattern: take every measurement first, then call
+    ``step.fail_if_measurements_failed()`` once at the end.
 
     Asserting on individual ``step.measure(...)`` calls raises
     ``AssertionError`` on the first failure, so any measurements after the
     failing one never run and never land in the Sift report. The end-of-test
-    assertion is strictly better for diagnostic completeness: every
-    measurement is recorded, including the failures, and the aggregate
-    result is then folded into the pytest outcome.
+    call is strictly better for diagnostic completeness: every measurement is
+    recorded, including the failures, and the aggregate result is then folded
+    into the pytest outcome. It fails via ``pytest.fail`` rather than an
+    assertion, so the failed step carries no assertion noise in ``error_info``.
 
     The ``b`` measurement below is deliberately out of bounds. ``c`` still
-    runs and is recorded; only the final ``assert`` fires.
+    runs and is recorded; only the final call fails the test.
     """
     step.measure(name="a", value=1.0, bounds={"min": 0.0, "max": 2.0})
     step.measure(name="b", value=99.0, bounds={"min": 0.0, "max": 2.0})  # out of bounds
     step.measure(name="c", value=1.5, bounds={"min": 0.0, "max": 2.0})  # still recorded
-    assert step.measurements_passed, "one or more measurements out of bounds"
+    step.fail_if_measurements_failed()
 
 
 def test_report_level_metadata(step, report_context) -> None:

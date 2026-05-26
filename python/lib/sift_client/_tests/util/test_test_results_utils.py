@@ -463,7 +463,11 @@ class TestContextManager:
         assert parent_step.status == TestStatus.FAILED
         assert substep.status == TestStatus.FAILED
         assert nested_substep.status == TestStatus.FAILED
-        assert nested_substep.error_info is None
+        # The assertion-as-fail path records the concise assertion message (no
+        # traceback frames) on error_info while keeping the FAILED status.
+        assert nested_substep.error_info is not None
+        assert "AssertionError" in nested_substep.error_info.error_message
+        assert "Traceback (most recent call last)" not in nested_substep.error_info.error_message
         assert nested_substep_2.status == TestStatus.ERROR
         assert "AssertionError" in nested_substep_2.error_info.error_message
         assert sibling_substep.status == TestStatus.PASSED
