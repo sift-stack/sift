@@ -1,19 +1,19 @@
+"""Import a Parquet (flat dataset) file into Sift."""
+
 import os
 
 from dotenv import load_dotenv
-from sift_py.data_import.parquet import ParquetUploadService
-from sift_py.data_import.status import DataImportService
-from sift_py.data_import.time_format import TimeFormatType
-from sift_py.rest import SiftRestConfig
+from sift_client import SiftClient
+from sift_client.sift_types.data_import import DataTypeKey
 
 if __name__ == "__main__":
-    """
-    Example usage for uploading a Parquet (flat dataset).
-    """
     load_dotenv()
 
-    sift_uri = os.getenv("SIFT_API_URI")
-    assert sift_uri, "expected 'SIFT_API_URI' environment variable to be set"
+    grpc_uri = os.getenv("SIFT_GRPC_URI")
+    assert grpc_uri, "expected 'SIFT_GRPC_URI' environment variable to be set"
+
+    rest_uri = os.getenv("SIFT_REST_URI")
+    assert rest_uri, "expected 'SIFT_REST_URI' environment variable to be set"
 
     apikey = os.getenv("SIFT_API_KEY")
     assert apikey, "expected 'SIFT_API_KEY' environment variable to be set"
@@ -21,24 +21,34 @@ if __name__ == "__main__":
     asset_name = os.getenv("ASSET_NAME")
     assert asset_name, "expected 'ASSET_NAME' environment variable to be set"
 
-    rest_config: SiftRestConfig = {
-        "uri": sift_uri,
-        "apikey": apikey,
-    }
+    client = SiftClient(api_key=apikey, grpc_url=grpc_uri, rest_url=rest_uri)
 
-    parquet_upload_service = ParquetUploadService(rest_config)
-
-    import_service: DataImportService = parquet_upload_service.flat_dataset_upload(
-        asset_name=asset_name,
-        run_name="Example Parquet Upload",
-        path="sample_data.parquet",
-        time_path="timestamp",
-        time_format=TimeFormatType.ABSOLUTE_UNIX_NANOSECONDS,
+    # Auto-detect the config and import the file. Parquet requires the layout
+    # (data_type) to be specified since the extension alone is ambiguous.
+    import_job = client.data_import.import_from_path(
+        "sample_data.parquet",
+        asset=asset_name,
+        data_type=DataTypeKey.PARQUET_FLATDATASET,
     )
 
-    data_import = import_service.get_data_import()
-    print(data_import.model_dump_json(indent=1))
+    import_job.wait_until_complete()
 
-    print("Waiting for upload to complete...")
-    import_service.wait_until_complete()
-    print("Upload example complete!")
+    # If auto-detect doesn't quite match your file, inspect the config and patch
+    # it before importing. Common fixes: change the time column, override a
+    # column's data type, or drop a column that shouldn't be imported.
+    #
+    # config = client.data_import.detect_config(
+    #     "sample_data.parquet",
+    #     data_type=DataTypeKey.PARQUET_FLATDATASET,
+    # )
+    # print(config)  # inspect what was auto-detected
+    #
+    # # Example: drop a column from the import
+    # config.data_columns = [dc for dc in config.data_columns if dc.path != "channel_0"]
+    #
+    # import_job = client.data_import.import_from_path(
+    #     "sample_data.parquet",
+    #     asset=asset_name,
+    #     config=config,
+    # )
+    # import_job.wait_until_complete()
