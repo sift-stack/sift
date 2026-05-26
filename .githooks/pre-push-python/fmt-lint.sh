@@ -2,12 +2,20 @@
 
 set -e
 
+# Clear git env vars set by the parent hook so git commands resolve the work tree normally
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+
 # Store the root directory of the repository
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 PYTHON_DIR="$REPO_ROOT/python"
 
 # Change to Python directory
 cd "$PYTHON_DIR"
+
+# Ensure the dev environment is in place. Idempotent: fast on a warm
+# cache, recreates .venv on a cold checkout. Without this, a fresh
+# clone's first push fails with "ruff: command not found".
+uv sync --extra dev-all --quiet
 
 # Run ruff format (formatter)
 echo "     → Running ruff format..."

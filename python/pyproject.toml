@@ -65,7 +65,7 @@ all = [
     'polars~=1.8',
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
-    'rosbags~=0.0',
+    "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'sift-stream-bindings==0.3.0',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -105,7 +105,7 @@ dev-all = [
     'pytest-dotenv==0.5.2',
     'pytest-mock==3.14.0',
     'pytest==8.2.2',
-    'rosbags~=0.0',
+    "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
     'sift-stream-bindings==0.3.0',
     'tomlkit~=0.13.3',
@@ -124,28 +124,28 @@ development = [
     'tomlkit~=0.13.3',
 ]
 docs = [
-    'griffe-pydantic==1.3.1',
-    'mike==2.1.3',
-    'mkdocs-api-autonav==0.4.0',
-    'mkdocs-include-markdown-plugin==7.1.6',
-    'mkdocs-jupyter==0.25.1',
-    'mkdocs-material==9.7.5',
-    'mkdocs==1.6.1',
-    'mkdocstrings[python]==1.0.3',
+    "griffe-pydantic==1.3.1 ; python_version >= '3.10'",
+    "mike==2.1.3 ; python_version >= '3.10'",
+    "mkdocs-api-autonav==0.4.0 ; python_version >= '3.10'",
+    "mkdocs-include-markdown-plugin==7.1.6 ; python_version >= '3.10'",
+    "mkdocs-jupyter==0.25.1 ; python_version >= '3.10'",
+    "mkdocs-material==9.7.5 ; python_version >= '3.10'",
+    "mkdocs==1.6.1 ; python_version >= '3.10'",
+    "mkdocstrings[python]==1.0.3 ; python_version >= '3.10'",
 ]
 docs-build = [
     'build==1.2.1',
     'cffi~=1.14',
-    'griffe-pydantic==1.3.1',
+    "griffe-pydantic==1.3.1 ; python_version >= '3.10'",
     'grpcio-testing~=1.13',
     'h5py~=3.11',
-    'mike==2.1.3',
-    'mkdocs-api-autonav==0.4.0',
-    'mkdocs-include-markdown-plugin==7.1.6',
-    'mkdocs-jupyter==0.25.1',
-    'mkdocs-material==9.7.5',
-    'mkdocs==1.6.1',
-    'mkdocstrings[python]==1.0.3',
+    "mike==2.1.3 ; python_version >= '3.10'",
+    "mkdocs-api-autonav==0.4.0 ; python_version >= '3.10'",
+    "mkdocs-include-markdown-plugin==7.1.6 ; python_version >= '3.10'",
+    "mkdocs-jupyter==0.25.1 ; python_version >= '3.10'",
+    "mkdocs-material==9.7.5 ; python_version >= '3.10'",
+    "mkdocs==1.6.1 ; python_version >= '3.10'",
+    "mkdocstrings[python]==1.0.3 ; python_version >= '3.10'",
     'mypy==1.10.0',
     'npTDMS~=1.9',
     'pdoc==14.5.0',
@@ -158,7 +158,7 @@ docs-build = [
     'pytest-dotenv==0.5.2',
     'pytest-mock==3.14.0',
     'pytest==8.2.2',
-    'rosbags~=0.0',
+    "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
     'sift-stream-bindings==0.3.0',
     'tomlkit~=0.13.3',
@@ -168,7 +168,7 @@ file-imports = [
     'h5py~=3.11',
     'npTDMS~=1.9',
     'polars~=1.8',
-    'rosbags~=0.0',
+    "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
 hdf5 = [
     'h5py~=3.11',
@@ -180,7 +180,7 @@ openssl = [
     'types-pyOpenSSL<24.0.0',
 ]
 rosbags = [
-    'rosbags~=0.0',
+    "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
 sift-stream = [
     'sift-stream-bindings==0.3.0',
@@ -209,19 +209,21 @@ development = [
     "tomlkit~=0.13.3"
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
-docs = ["mkdocs==1.6.1",
-    "mkdocs-material==9.7.5",
-    "mkdocstrings[python]==1.0.3",
-    "mkdocs-include-markdown-plugin==7.1.6",
-    "mkdocs-api-autonav==0.4.0",
-    "mike==2.1.3",
-    "griffe-pydantic==1.3.1",
-    "mkdocs-jupyter==0.25.1"]
+docs = [
+    "mkdocs==1.6.1 ; python_version >= '3.10'",
+    "mkdocs-material==9.7.5 ; python_version >= '3.10'",
+    "mkdocstrings[python]==1.0.3 ; python_version >= '3.10'",
+    "mkdocs-include-markdown-plugin==7.1.6 ; python_version >= '3.10'",
+    "mkdocs-api-autonav==0.4.0 ; python_version >= '3.10'",
+    "mike==2.1.3 ; python_version >= '3.10'",
+    "griffe-pydantic==1.3.1 ; python_version >= '3.10'",
+    "mkdocs-jupyter==0.25.1 ; python_version >= '3.10'",
+]
 
 # May be required for certain library functionality
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
-rosbags = ["rosbags~=0.0"]
+rosbags = ["rosbags~=0.0 ; python_full_version >= '3.8.2'"]
 sift-stream = ["sift-stream-bindings==0.3.0"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
 data-review = ["pyarrow>=17.0.0"]
@@ -239,6 +241,16 @@ all = ["openssl", "sift-stream", "file-imports", "data-review"]
 
 dev-all = ["development", "all", "build"]
 docs-build = ["dev-all", "docs"] # Note python 3.9+
+
+[tool.uv]
+# Fork resolution per Python minor in the support range. Each fork resolves
+# independently, which lets 3.8 pick numpy 1.24.x + rosbags 0.9.23 without
+# being constrained by the 3.9+ universe (numpy 2.0 drops 3.8).
+environments = [
+    "python_version < '3.9'",
+    "python_version == '3.9.*'",
+    "python_version >= '3.10'",
+]
 
 [tool.mypy]
 python_version = "3.10" # Use the Python 3.10 type checker since we are using eval-type-backport and `from __future__ import annotations`
@@ -332,8 +344,16 @@ module = "nptdms"
 ignore_missing_imports = true
 ignore_errors = true
 
+# alive-progress 3.3.0 ships py.typed but its `alive_it` signature is too
+# tight (declares `Collection[Never]`), which breaks unpacking generators.
+[[tool.mypy.overrides]]
+module = "alive_progress"
+follow_imports = "skip"
+ignore_errors = true
+
 [tool.setuptools.packages.find]
 where = ["lib"]
+exclude = ["sift_client._tests", "sift_client._tests.*"]
 
 [tool.setuptools.package-data]
 sift_grafana = ["py.typed"]
