@@ -9,13 +9,17 @@ conftests those inner sessions need:
   block inside ``pytest_configure``, useful for inspecting internal state
   without running tests against a real backend
 
-Every test in this suite invokes the inner session via
-``pytester.runpytest_subprocess(...)`` rather than ``pytester.runpytest(...)``.
-``runpytest`` runs the inner pytest in-process, which re-imports the Sift
-plugin on each test; the plugin transitively imports numpy, whose C
-extensions refuse to initialize twice in one process and raise
-``cannot load module more than once per process``. Spawning a subprocess
-gives each inner session a fresh interpreter and sidesteps that guard.
+The offline-log tests (``test_hierarchy.py``, ``test_pass_fail.py``) drive the
+inner session in-process via ``pytester.runpytest_inprocess(...)``. This is
+fast because the outer session already preloads the plugin (``pyproject.toml``
+sets ``addopts = "... -p sift_client.pytest_plugin ..."``), so the numpy C
+extensions the plugin pulls in are imported once for the whole outer process
+and reused by every inner run — no per-test interpreter spawn, and no
+``cannot load module more than once per process`` re-init guard to trip.
+
+Tests that need true process isolation (fresh env vars, credential and
+connection resolution, ini parsing) still use ``pytester.runpytest_subprocess(...)``
+so the inner session starts from a clean interpreter.
 """
 
 from __future__ import annotations
