@@ -54,6 +54,20 @@ def format_truncated_traceback(
     return ErrorInfo(error_code=1, error_message="".join(stack))
 
 
+def format_assertion_message(
+    exc: type[BaseException] | None,
+    exc_value: BaseException | None,
+) -> ErrorInfo:
+    """Format an ErrorInfo from just the exception line(s), no traceback frames.
+
+    For assertion failures the rewritten ``assert`` explanation lives on the
+    exception itself, so stack frames add noise without information. Equivalent
+    to pytest's ``excinfo.exconly()``.
+    """
+    lines = traceback.format_exception_only(exc, exc_value)  # type: ignore[arg-type]
+    return ErrorInfo(error_code=1, error_message="".join(lines))
+
+
 def log_replay_instructions(log_file: str | Path | None) -> None:
     """Surface replay instructions when an import/replay attempt fails.
 
@@ -465,14 +479,30 @@ class NewStep(AbstractContextManager):
         """True if every measurement recorded directly on this step has passed.
 
         Counts only ``step.measure``, ``step.measure_avg``, and
-        ``step.measure_all`` calls on this ``NewStep`` instance. Useful for
-        the ``assert step.measurements_passed`` pattern at the end of a test
-        when you want to fail pytest on any out-of-bounds measurement
-        without short-circuiting on the first failure (asserting on
-        individual ``measure(...)`` return values skips every measurement
-        after the failing one).
+        ``step.measure_all`` calls on this ``NewStep`` instance. Pair it with
+        ``fail_if_measurements_failed()`` at the end of a test to fail pytest on
+        any out-of-bounds measurement without short-circuiting on the first
+        failure (asserting on individual ``measure(...)`` return values skips
+        every measurement after the failing one).
         """
         return self._failed_measurement_count == 0
+
+    def fail_if_measurements_failed(
+        self, message: str = "one or more measurements out of bounds"
+    ) -> None:
+        """Fail the pytest test if any measurement on this step was out of bounds.
+
+        Use instead of ``assert step.measurements_passed``: it fails via
+        ``pytest.fail`` so the step resolves to FAILED without attaching an
+        assertion message to ``error_info``. No-op when every measurement
+        passed. Call once at the end of the test so every measurement is still
+        recorded before the failure fires.
+        """
+        if self.measurements_passed:
+            return
+        import pytest
+
+        pytest.fail(message, pytrace=False)
 
     def update_step_from_result(
         self,
@@ -501,8 +531,11 @@ class NewStep(AbstractContextManager):
         errored = False
         if exc:
             if isinstance(exc_value, AssertionError) and not self.assertion_as_fail_not_error:
-                # If we're not showing assertion errors (i.e. pytest), mark step as failed but don't set error info.
+                # pytest-style: an assertion is a plain failure, not an error. Record the
+                # failure and attach the concise assertion message (no traceback) so the
+                # UI can show what was asserted.
                 self.report_context.record_step_outcome(False, current_step)
+                error_info = format_assertion_message(exc, exc_value)
             elif isinstance(exc_value, (KeyboardInterrupt, SystemExit)):
                 # Hard exit propagating through the substep stack: record as
                 # ABORTED so every in-progress step on the way out reflects
