@@ -29,7 +29,8 @@ The statuses below come from `sift_client.sift_types.test_report.TestStatus`.
 An assertion failure records the concise assertion message (the exception
 line(s), no traceback frames) on `step.error_info.error_message` while still
 mapping to `FAILED`. A non-assertion exception gets its formatted traceback
-recorded on `step.error_info.error_message`.
+(the last 10 frames plus the first frame) recorded on
+`step.error_info.error_message`.
 
 ## Hard exits
 
@@ -75,6 +76,22 @@ itself) as `ABORTED`.
 
 `SKIPPED` does not propagate as a failure. A skipped substep or test does
 not block its parent from resolving to `PASSED`.
+
+Inside a test function, you can mark just one substep as skipped without
+aborting the whole test:
+
+```python
+from sift_client.sift_types.test_report import TestStatus
+
+
+def test_runtime_skip(step):
+    with step.substep(name="optional_calibration") as cal:
+        if not precondition_met():
+            cal.current_step.update({"status": TestStatus.SKIPPED})
+```
+
+A manually-resolved status is honored by the step's exit handler. No further
+bookkeeping required.
 
 ## Expected failures (xfail / xpass)
 

@@ -6,8 +6,11 @@ This section contains interactive Jupyter notebook examples demonstrating how to
 
 - **[Basic Usage](basic.ipynb)** - Introduction to the Sift Python client, covering basic operations and API usage
 - **[Data Ingestion](ingestion.ipynb)** - Learn how to ingest telemetry data into Sift using various methods
-- **[Pytest Plugin](pytest_plugin.md)** - Turn a pytest run into a Sift TestReport with measurements, nested steps, and pass/fail outcomes
 - **[Pytest Plugin Quickstart](pytest_plugin_quickstart.md)** - Guided tour of the runnable demo project under `python/examples/pytest_plugin/`
+
+For the conceptual reference on the pytest plugin (fixtures, configuration,
+report structure, and pass/fail behavior), see the
+[Pytest Plugin guide](../guides/pytest_plugin/index.md).
 
 ## Running Examples Locally
 
