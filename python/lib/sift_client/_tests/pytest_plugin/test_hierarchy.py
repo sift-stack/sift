@@ -4,65 +4,43 @@ Covers every layer the plugin opens parent steps for — packages, modules,
 classes (including nested), parametrize axes — plus the ini opt-out flags,
 failure-cleanup semantics, and the drain helper.
 
-Each test spins up an inner pytest run via ``pytester`` whose conftest swaps
-in a ``FakeReportContext`` (from ``_fakes.py``) that records every step
-creation to a JSON file. The outer test reads that file and asserts the
-resulting step tree.
+Each test spins up an inner pytest run via ``pytester`` configured with
+``--sift-offline`` and a known log path. The plugin writes every test-result
+API call to that JSONL log, and the outer test parses it via
+``_step_status_capture.load_steps`` to reconstruct the step tree.
 """
 
 from __future__ import annotations
 
-import json
-from pathlib import Path as _Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
 import pytest
 
+from sift_client._tests.pytest_plugin import _step_status_capture as capture
+
 if TYPE_CHECKING:
     from pathlib import Path
 
-_STEPS_FILE_ENV = "SIFT_FAKE_STEPS_FILE"
 
-# ``_fakes.py`` is excluded from the wheel by ``pyproject.toml``'s
-# ``packages.find`` rule that strips ``sift_client._tests``. The inner
-# pytester subprocess uses the installed package and cannot import from
-# ``sift_client._tests``. Embed the fake source directly into the inner
-# conftest so the subprocess gets a fully self-contained module to load.
-_FAKES_SOURCE = (_Path(__file__).parent / "_fakes.py").read_text()
-
-_INNER_CONFTEST = f"""
-{_FAKES_SOURCE}
-
-import os
-from pathlib import Path
-from unittest.mock import MagicMock
-
-import pytest
-
-pytest_plugins = ["sift_client.pytest_plugin"]
+_INNER_CONFTEST = 'pytest_plugins = ["sift_client.pytest_plugin"]\n'
 
 
-@pytest.fixture(scope="session")
-def sift_client():
-    return MagicMock()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def report_context(sift_client):
-    import sift_client.pytest_plugin as plugin_module
-    steps_file = Path(os.environ[{_STEPS_FILE_ENV!r}])
-    with FakeReportContext(steps_file) as ctx:
-        plugin_module.REPORT_CONTEXT = ctx
-        yield ctx
-"""
+def _base_ini_lines(log_path: Path) -> list[str]:
+    """Default ini settings every inner pytester run needs."""
+    return [
+        "[pytest]",
+        "sift_offline = true",
+        f"sift_log_file = {log_path}",
+        "sift_git_metadata = false",
+    ]
 
 
 @pytest.fixture
-def steps_file(pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch) -> Path:
-    path = pytester.path / "captured_steps.json"
+def log_file(pytester: pytest.Pytester) -> Path:
+    path = pytester.path / "sift.log"
     pytester.makeconftest(_INNER_CONFTEST)
-    monkeypatch.setenv(_STEPS_FILE_ENV, str(path))
+    pytester.makefile(".ini", pytest="\n".join(_base_ini_lines(path)) + "\n")
     return path
 
 
@@ -85,9 +63,7 @@ def _ancestor_names(steps: list[dict], leaf: dict) -> list[str]:
     return chain
 
 
-def test_class_methods_cluster_under_class_step(
-    pytester: pytest.Pytester, steps_file: Path
-) -> None:
+def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_klass=dedent(
             """
@@ -102,7 +78,7 @@ def test_class_methods_cluster_under_class_step(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert len(by_name["TestFoo"]) == 1
     class_id = by_name["TestFoo"][0]["id"]
@@ -110,7 +86,7 @@ def test_class_methods_cluster_under_class_step(
     assert by_name["test_b"][0]["parent_step_id"] == class_id
 
 
-def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, steps_file: Path) -> None:
+def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_nested=dedent(
             """
@@ -123,7 +99,7 @@ def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, steps_fi
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert len(by_name["TestOuter"]) == 1
     assert len(by_name["TestInner"]) == 1
@@ -136,7 +112,7 @@ def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, steps_fi
     ]
 
 
-def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, steps_file: Path) -> None:
+def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_cp=dedent(
             """
@@ -151,7 +127,7 @@ def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, steps_fi
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     class_id = by_name["TestFoo"][0]["id"]
     test_a_id = by_name["test_a"][0]["id"]
@@ -160,7 +136,7 @@ def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, steps_fi
     assert by_name["v=2"][0]["parent_step_id"] == test_a_id
 
 
-def test_two_sibling_classes_in_module(pytester: pytest.Pytester, steps_file: Path) -> None:
+def test_two_sibling_classes_in_module(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_sib=dedent(
             """
@@ -176,7 +152,7 @@ def test_two_sibling_classes_in_module(pytester: pytest.Pytester, steps_file: Pa
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     mod_id = by_name["test_sib.py"][0]["id"]
     assert by_name["TestA"][0]["parent_step_id"] == mod_id
@@ -186,7 +162,7 @@ def test_two_sibling_classes_in_module(pytester: pytest.Pytester, steps_file: Pa
     assert len(by_name["TestB"]) == 1
 
 
-def test_mixed_class_and_free_function(pytester: pytest.Pytester, steps_file: Path) -> None:
+def test_mixed_class_and_free_function(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_mix=dedent(
             """
@@ -201,7 +177,7 @@ def test_mixed_class_and_free_function(pytester: pytest.Pytester, steps_file: Pa
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     mod_id = by_name["test_mix.py"][0]["id"]
     # Class method parents to TestA; free function parents directly to module.
@@ -211,7 +187,7 @@ def test_mixed_class_and_free_function(pytester: pytest.Pytester, steps_file: Pa
 
 
 def test_class_with_all_excluded_methods_no_class_step(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     pytester.makepyfile(
         test_excl=dedent(
@@ -231,14 +207,14 @@ def test_class_with_all_excluded_methods_no_class_step(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert "TestFoo" not in by_name
     assert "test_a" not in by_name
     assert "test_b" not in by_name
 
 
-def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, steps_file: Path) -> None:
+def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_clsexcl=dedent(
             """
@@ -256,14 +232,14 @@ def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, steps_file:
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert "TestFoo" not in by_name
     assert "test_a" not in by_name
 
 
 def test_class_docstring_becomes_step_description(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     pytester.makepyfile(
         test_doc=dedent(
@@ -278,7 +254,7 @@ def test_class_docstring_becomes_step_description(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # The fake records step creation but not all fields — check the class
     # step was recorded, then read the description via the FakeStep's
@@ -289,7 +265,7 @@ def test_class_docstring_becomes_step_description(
 
 
 def test_transition_between_class_chains_drains_parametrize(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     pytester.makepyfile(
         test_trans=dedent(
@@ -310,7 +286,7 @@ def test_transition_between_class_chains_drains_parametrize(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # Each class opens exactly once; parametrize parents under the right class.
     assert len(by_name["TestA"]) == 1
@@ -396,7 +372,7 @@ def test_drain_step_stack_strict_drains_fully_then_raises() -> None:
 
 
 def test_failing_test_in_class_does_not_orphan_class_step(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     """A failing class method must not block the class step from cleaning up.
 
@@ -422,7 +398,7 @@ def test_failing_test_in_class_does_not_orphan_class_step(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2, failed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert len(by_name["TestFoo"]) == 1
     assert len(by_name["TestBar"]) == 1
@@ -439,7 +415,7 @@ def test_failing_test_in_class_does_not_orphan_class_step(
 
 
 def test_failing_parametrized_method_in_class_closes_full_chain(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     """A failing parametrized class method must not orphan its parametrize parents."""
     pytester.makepyfile(
@@ -460,7 +436,7 @@ def test_failing_parametrized_method_in_class_closes_full_chain(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2, failed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     foo_id = by_name["TestFoo"][0]["id"]
     test_a_id = by_name["test_a"][0]["id"]
@@ -476,18 +452,18 @@ def test_failing_parametrized_method_in_class_closes_full_chain(
 # ---------------------------------------------------------------------------
 
 
-def _write_ini(pytester: pytest.Pytester, **overrides: object) -> None:
-    """Write a pytest.ini with the given sift_* overrides set under [pytest]."""
-    lines = ["[pytest]"]
+def _write_ini(pytester: pytest.Pytester, log_file: Path, **overrides: object) -> None:
+    """Write a pytest.ini with the given sift_* overrides, preserving the
+    offline/log/git-metadata defaults the ``log_file`` fixture installs.
+    """
+    lines = _base_ini_lines(log_file)
     for key, value in overrides.items():
         lines.append(f"{key} = {value}")
     pytester.makefile(".ini", pytest="\n".join(lines) + "\n")
 
 
-def test_sift_class_step_false_skips_class_steps(
-    pytester: pytest.Pytester, steps_file: Path
-) -> None:
-    _write_ini(pytester, sift_class_step="false")
+def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, log_file: Path) -> None:
+    _write_ini(pytester, log_file, sift_class_step="false")
     pytester.makepyfile(
         test_noclass=dedent(
             """
@@ -502,7 +478,7 @@ def test_sift_class_step_false_skips_class_steps(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert "TestFoo" not in by_name
     mod_id = by_name["test_noclass.py"][0]["id"]
@@ -511,9 +487,9 @@ def test_sift_class_step_false_skips_class_steps(
 
 
 def test_sift_module_step_false_skips_module_step(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
-    _write_ini(pytester, sift_module_step="false")
+    _write_ini(pytester, log_file, sift_module_step="false")
     pytester.makepyfile(
         test_nomod=dedent(
             """
@@ -525,7 +501,7 @@ def test_sift_module_step_false_skips_module_step(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert "test_nomod.py" not in by_name
     # TestFoo attaches to the report root (no parent recorded by the fake).
@@ -534,9 +510,9 @@ def test_sift_module_step_false_skips_module_step(
 
 
 def test_sift_parametrize_nesting_false_keeps_flat_leaves(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
-    _write_ini(pytester, sift_parametrize_nesting="false")
+    _write_ini(pytester, log_file, sift_parametrize_nesting="false")
     pytester.makepyfile(
         test_flat=dedent(
             """
@@ -550,7 +526,7 @@ def test_sift_parametrize_nesting_false_keeps_flat_leaves(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # No parametrize parent step.
     assert "test_a" not in by_name
@@ -564,7 +540,7 @@ def test_sift_parametrize_nesting_false_keeps_flat_leaves(
 
 
 def test_sift_module_step_false_still_drains_across_modules(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     """sift_module_step=false must not merge same-named classes across modules.
 
@@ -572,7 +548,7 @@ def test_sift_module_step_false_still_drains_across_modules(
     (even when it's not rendered as a step), so two modules each declaring
     ``class TestFoo`` produce two distinct ``TestFoo`` frames in the diff.
     """
-    _write_ini(pytester, sift_module_step="false")
+    _write_ini(pytester, log_file, sift_module_step="false")
     pytester.makepyfile(
         test_a=dedent(
             """
@@ -591,7 +567,7 @@ def test_sift_module_step_false_still_drains_across_modules(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # Two distinct TestFoo class steps — one per module — not a shared frame.
     assert len(by_name["TestFoo"]) == 2
@@ -605,7 +581,7 @@ def test_sift_module_step_false_still_drains_across_modules(
 
 
 def test_package_step_default_opens_for_init_dirs(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     """Default: a directory with ``__init__.py`` produces a parent package step."""
     pytester.mkpydir("pkg_a")
@@ -619,7 +595,7 @@ def test_package_step_default_opens_for_init_dirs(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert "pkg_a" in by_name
     pkg_id = by_name["pkg_a"][0]["id"]
@@ -628,7 +604,7 @@ def test_package_step_default_opens_for_init_dirs(
 
 
 def test_same_named_packages_in_different_dirs_do_not_merge(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     """Two packages with the same display name but different paths must stay distinct.
 
@@ -663,7 +639,7 @@ def test_same_named_packages_in_different_dirs_do_not_merge(
     # name on disk don't collide during sys.path-based import.
     result = pytester.runpytest_subprocess("-v", "--import-mode=importlib")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # Two distinct ``utils`` package steps — one per project.
     assert len(by_name["utils"]) == 2
@@ -677,10 +653,10 @@ def test_same_named_packages_in_different_dirs_do_not_merge(
 
 
 def test_sift_package_step_false_skips_package_steps(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     """With ``sift_package_step=false`` the directory step is suppressed."""
-    _write_ini(pytester, sift_package_step="false")
+    _write_ini(pytester, log_file, sift_package_step="false")
     pytester.mkpydir("pkg_a")
     (pytester.path / "pkg_a" / "test_x.py").write_text(
         dedent(
@@ -692,7 +668,7 @@ def test_sift_package_step_false_skips_package_steps(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert "pkg_a" not in by_name
     # The module step still opens and is now the top-level frame.
@@ -700,10 +676,11 @@ def test_sift_package_step_false_skips_package_steps(
 
 
 def test_all_three_flags_false_matches_legacy_behavior(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     _write_ini(
         pytester,
+        log_file,
         sift_module_step="false",
         sift_class_step="false",
         sift_parametrize_nesting="false",
@@ -722,7 +699,7 @@ def test_all_three_flags_false_matches_legacy_behavior(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # No module, class, or parametrize parents — just bracket-mangled leaves.
     assert "test_legacy.py" not in by_name
@@ -740,7 +717,7 @@ def test_all_three_flags_false_matches_legacy_behavior(
 
 
 def test_single_parametrize_clusters_under_originalname(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     pytester.makepyfile(
         test_rail=dedent(
@@ -755,7 +732,7 @@ def test_single_parametrize_clusters_under_originalname(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # Module step + one shared `test_rail` parent + two leaves.
     assert len(by_name["test_rail.py"]) == 1
@@ -768,7 +745,7 @@ def test_single_parametrize_clusters_under_originalname(
 
 
 def test_stacked_parametrize_nests_outer_to_inner(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     pytester.makepyfile(
         test_iso=dedent(
@@ -784,7 +761,7 @@ def test_stacked_parametrize_nests_outer_to_inner(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=4)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # One `test_iso` parent, two `voltage='…'` parents, four `component='…'` leaves.
     assert len(by_name["test_iso"]) == 1
@@ -806,7 +783,7 @@ def test_stacked_parametrize_nests_outer_to_inner(
         assert leaf["parent_step_id"] in voltage_ids
 
 
-def test_fixture_parametrization_participates(pytester: pytest.Pytester, steps_file: Path) -> None:
+def test_fixture_parametrization_participates(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_widget=dedent(
             """
@@ -823,7 +800,7 @@ def test_fixture_parametrization_participates(pytester: pytest.Pytester, steps_f
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     assert len(by_name["test_widget"]) == 1
     parent_id = by_name["test_widget"][0]["id"]
@@ -832,7 +809,7 @@ def test_fixture_parametrization_participates(pytester: pytest.Pytester, steps_f
 
 
 def test_module_boundary_isolates_parametrize_stack(
-    pytester: pytest.Pytester, steps_file: Path
+    pytester: pytest.Pytester, log_file: Path
 ) -> None:
     pytester.makepyfile(
         test_a=dedent(
@@ -856,7 +833,7 @@ def test_module_boundary_isolates_parametrize_stack(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=4)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
     # Each module step contains its own `test_one`/`test_two` parametrize subtree.
     mod_a = by_name["test_a.py"][0]
@@ -865,9 +842,7 @@ def test_module_boundary_isolates_parametrize_stack(
     assert by_name["test_two"][0]["parent_step_id"] == mod_b["id"]
 
 
-def test_leaf_parent_chain_terminates_at_report(
-    pytester: pytest.Pytester, steps_file: Path
-) -> None:
+def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_chain=dedent(
             """
@@ -882,7 +857,7 @@ def test_leaf_parent_chain_terminates_at_report(
     )
     result = pytester.runpytest_subprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = json.loads(steps_file.read_text())
+    steps = capture.load_steps(log_file)
     leaf = next(s for s in steps if s["name"].startswith("b="))
     chain = _ancestor_names(steps, leaf)
     # leaf b=… → a=… → test_chain → test_chain.py (module step) → root
