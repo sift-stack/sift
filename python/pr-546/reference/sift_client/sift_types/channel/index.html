@@ -1426,6 +1426,17 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.channel.ChannelReference.calculated_channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;calculated_channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.channel.ChannelReference.channel_identifier" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2472,6 +2483,17 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.channel.ChannelReference.calculated_channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;calculated_channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.channel.ChannelReference.channel_identifier" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2590,7 +2612,7 @@ You're not viewing the latest version.
    (sift_client.sift_types.channel.ChannelReference)" href="#sift_client.sift_types.channel.ChannelReference">ChannelReference</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Channel reference for calculated channel or rule.</p>
+                <p>Channel reference for a calculated channel or rule expression.</p>
               </div>
             </td>
           </tr>
@@ -4349,7 +4371,86 @@ You're not viewing the latest version.
             <p class="doc doc-class-bases">
               Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
 
-        <p>Channel reference for calculated channel or rule.</p>
+        <p>Channel reference for a calculated channel or rule expression.</p>
+<p>Exactly one of <code>channel_identifier</code> or <code>calculated_channel</code> must be set.
+To reference another calculated channel (nested CC), pass either a fetched
+<code>CalculatedChannel</code> (its <code>version_id</code> is used) or a <code>version_id</code> string
+directly. Both normalize to the <code>version_id</code> string after validation.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">ATTRIBUTE</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            channel_reference
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.channel.ChannelReference.channel_reference)" href="#sift_client.sift_types.channel.ChannelReference.channel_reference">channel_reference</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The key of the channel in the expression (e.g. <code>$1</code>, <code>$2</code>).</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            channel_identifier
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.channel.ChannelReference.channel_identifier)" href="#sift_client.sift_types.channel.ChannelReference.channel_identifier">channel_identifier</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The name (or ID) of an existing channel.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            calculated_channel
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.channel.ChannelReference.calculated_channel)" href="#sift_client.sift_types.channel.ChannelReference.calculated_channel">calculated_channel</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>A <code>CalculatedChannel</code> or its <code>version_id</code>. Normalized
+to the <code>version_id</code> string after validation.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a> | <span title="str">str</span> | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
     
 
@@ -4371,10 +4472,30 @@ You're not viewing the latest version.
   
       pydantic-field
    (sift_client.sift_types.channel.ChannelReference.channel_identifier)" href="#sift_client.sift_types.channel.ChannelReference.channel_identifier">channel_identifier</a></code>
-                (<code><span title="str">str</span></code>)
+                (<code><span title="str">str</span> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            calculated_channel
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.channel.ChannelReference.calculated_channel)" href="#sift_client.sift_types.channel.ChannelReference.calculated_channel">calculated_channel</a></code>
+                (<code><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a> | <span title="str">str</span> | None</code>)
             </li>
         </ul>
 
+        <p>Validators:</p>
+        <ul>
+            <li>
+              <code><span title="sift_client.sift_types.channel.ChannelReference._normalize_and_validate">_normalize_and_validate</span></code>
+            </li>
+        </ul>
 
 
 
@@ -4390,6 +4511,33 @@ You're not viewing the latest version.
 
 
 
+<h3 id="sift_client.sift_types.channel.ChannelReference.calculated_channel" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">calculated_channel</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.channel.ChannelReference.calculated_channel" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">calculated_channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
 <h3 id="sift_client.sift_types.channel.ChannelReference.channel_identifier" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel_identifier</span>
 
@@ -4399,7 +4547,7 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_client.sift_types.channel.ChannelReference.channel_identifier" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel_identifier</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel_identifier</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
