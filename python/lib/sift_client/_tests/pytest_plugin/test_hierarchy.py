@@ -63,9 +63,7 @@ def _ancestor_names(steps: list[dict], leaf: dict) -> list[str]:
     return chain
 
 
-def test_class_methods_cluster_under_class_step(
-    pytester: pytest.Pytester, log_file: Path
-) -> None:
+def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_klass=dedent(
             """
@@ -456,16 +454,15 @@ def test_failing_parametrized_method_in_class_closes_full_chain(
 
 def _write_ini(pytester: pytest.Pytester, log_file: Path, **overrides: object) -> None:
     """Write a pytest.ini with the given sift_* overrides, preserving the
-    offline/log/git-metadata defaults the ``log_file`` fixture installs."""
+    offline/log/git-metadata defaults the ``log_file`` fixture installs.
+    """
     lines = _base_ini_lines(log_file)
     for key, value in overrides.items():
         lines.append(f"{key} = {value}")
     pytester.makefile(".ini", pytest="\n".join(lines) + "\n")
 
 
-def test_sift_class_step_false_skips_class_steps(
-    pytester: pytest.Pytester, log_file: Path
-) -> None:
+def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, log_file: Path) -> None:
     _write_ini(pytester, log_file, sift_class_step="false")
     pytester.makepyfile(
         test_noclass=dedent(
@@ -845,9 +842,7 @@ def test_module_boundary_isolates_parametrize_stack(
     assert by_name["test_two"][0]["parent_step_id"] == mod_b["id"]
 
 
-def test_leaf_parent_chain_terminates_at_report(
-    pytester: pytest.Pytester, log_file: Path
-) -> None:
+def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_chain=dedent(
             """

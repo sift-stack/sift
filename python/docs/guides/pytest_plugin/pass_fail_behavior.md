@@ -146,20 +146,19 @@ def test_with_substep(step):
 ## Propagation rules
 
 Every non-`PASSED`/`SKIPPED` step marks its parent as failed. What the
-parent records depends on whether the failure raised an exception:
+parent records depends on whether its own scope had an abort and whether
+a child already failed:
 
-- When an exception is raised, every step it passes through on its way
-  up records the matching status: `ABORTED` for `SystemExit` and observed
-  `KeyboardInterrupt`, `ERROR` for everything else.
-- When the failure is recorded without raising (failed measurement,
-  failed `report_outcome`, manual non-PASSED status), the parent only
-  sees a child-failed signal and resolves to `FAILED` unless its own
-  logic says otherwise.
-
-Pytest catches the test body's exception at the test function step, so
-the exception-driven chain ends there. Hierarchy parents above (class,
-module, package) and the report only see the child-failed signal and
-resolve to `FAILED`.
+- A hard exit (`SystemExit` or an observed `KeyboardInterrupt`) in the
+  step's own scope records `ABORTED`. `ABORTED` propagates through every
+  step the abort passes through on its way up.
+- A child that already recorded a non-`PASSED`/`SKIPPED` outcome marks
+  the parent as `FAILED`. This holds whether or not an exception is still
+  propagating through the parent's scope: only the originating substep
+  records `ERROR`; ancestors inherit `FAILED`. The traceback stays on
+  the originating step's `error_info`.
+- A step records `ERROR` only when its own scope raised a non-Assertion
+  exception AND no child has failed.
 
 `SKIPPED` does not propagate. A status set explicitly via
 `current_step.update` is kept.

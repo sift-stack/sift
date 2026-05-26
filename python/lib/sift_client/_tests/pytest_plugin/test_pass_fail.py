@@ -153,6 +153,27 @@ def test_keyboard_interrupt_leaves_step_in_progress(inner):
     assert outer.statuses[-1] == TestStatus.IN_PROGRESS
 
 
+def test_substep_exception_records_error_with_failed_parent(inner):
+    # Case: CALL-07
+    _run(
+        inner,
+        """
+        def test_x(step):
+            with step.substep(name="inner"):
+                raise ValueError("boom")
+        """,
+    )
+    # Only the originating substep records ERROR. The test step inherits the
+    # child-failed signal and resolves to FAILED, even though the same
+    # ValueError propagated through its scope.
+    inner_sub = next(iter(capture.steps_by_name("inner")), None)
+    test_x = capture.test_step("test_x")
+    assert inner_sub is not None
+    assert test_x is not None
+    assert inner_sub.statuses[-1] == TestStatus.ERROR
+    assert test_x.statuses[-1] == TestStatus.FAILED
+
+
 # ---------------------------------------------------------------------------
 # Skip paths
 # ---------------------------------------------------------------------------

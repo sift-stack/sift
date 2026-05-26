@@ -11,10 +11,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers._test_results_log import iter_log_data_lines
 from sift_client.sift_types.test_report import TestStatus
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass

@@ -37,6 +37,7 @@ be traced back to its row here without rereading the scenario:
 | `CALL-04` | `pytest.fail("...")` from body  | `pytest.fail("intentional failure")` | `FAILED`                                                                                                 |
 | `CALL-05` | `SystemExit` from the test body | `sys.exit(1)`                        | `ABORTED`                                                                                                |
 | `CALL-06` | `KeyboardInterrupt` in body     | `raise KeyboardInterrupt`            | `IN_PROGRESS` — session aborts before the plugin sees the interrupt; `ABORTED` if the plugin does see it |
+| `CALL-07` | Substep raises non-Assertion exception | `with step.substep(...): raise ValueError("boom")` | Substep `ERROR`, test step `FAILED` (child-failed signal outranks the propagating exception) |
 
 ## Skip paths
 

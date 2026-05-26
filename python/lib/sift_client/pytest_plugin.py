@@ -527,6 +527,11 @@ def _resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
     test's own status or substep failures should drive the result), this leaves
     the step alone so the default ``__exit__`` resolution stays in charge.
     """
+    current_step = new_step.current_step
+    if current_step is None:
+        # The step never opened (the autouse fixture short-circuited or was
+        # disabled). Nothing to resolve.
+        return
     setup_phase = getattr(item, "_sift_phase_setup", None)
     call_phase = getattr(item, "_sift_phase_call", None)
     xfail_marker = item.get_closest_marker("xfail")
@@ -576,6 +581,9 @@ def _resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
             status = TestStatus.SKIPPED
         elif call_phase.report.outcome == "failed":
             excinfo = call_phase.call.excinfo
+            children_passed = new_step.report_context.open_step_results.get(
+                current_step.step_path, True
+            )
             if excinfo is None:
                 status = TestStatus.FAILED
             elif isinstance(excinfo.value, AssertionError):
@@ -592,6 +600,10 @@ def _resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
                 # xfail(raises=X) with a non-matching exception: the contract failed.
                 status = TestStatus.FAILED
                 error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
+            elif not children_passed:
+                # A substep already recorded the error and carries the traceback;
+                # the test step only inherits the child-failed signal.
+                status = TestStatus.FAILED
             else:
                 status = TestStatus.ERROR
                 error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
@@ -599,12 +611,11 @@ def _resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
     if status is None and not keep_managed:
         return
 
-    assert new_step.current_step is not None
     if status is not None:
         # BaseType is frozen; mutate via __dict__ the same way _apply_client_to_instance does.
-        new_step.current_step.__dict__["status"] = status
+        current_step.__dict__["status"] = status
         if error_info is not None:
-            new_step.current_step.__dict__["error_info"] = error_info
+            current_step.__dict__["error_info"] = error_info
     new_step._sift_managed_externally = True
 
 
@@ -618,10 +629,12 @@ def _finalize_after_teardown(item: pytest.Item, teardown_report: pytest.TestRepo
     step: NewStep | None = getattr(item, "_sift_step", None)
     if step is None:
         return
-    assert step.current_step is not None
-    if teardown_report.outcome == "failed" and step.current_step.status == TestStatus.PASSED:
-        step.current_step.update({"status": TestStatus.FAILED})
-        step.report_context.mark_step_failed_after_close(step.current_step)
+    current_step = step.current_step
+    if current_step is None:
+        return
+    if teardown_report.outcome == "failed" and current_step.status == TestStatus.PASSED:
+        current_step.update({"status": TestStatus.FAILED})
+        step.report_context.mark_step_failed_after_close(current_step)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
