@@ -4628,7 +4628,7 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'development'", specifier = "==3.14.0" },
     { name = "pytest-mock", marker = "extra == 'docs-build'", specifier = "==3.14.0" },
     { name = "pyyaml", specifier = "~=6.0" },
-    { name = "rapidyaml", specifier = ">=0.11" },
+    { name = "rapidyaml", specifier = "~=0.11" },
     { name = "requests", specifier = "~=2.25" },
     { name = "requests-toolbelt", specifier = "~=1.0" },
     { name = "rosbags", marker = "python_full_version >= '3.8.2' and extra == 'all'", specifier = "~=0.0" },
