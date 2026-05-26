@@ -91,6 +91,12 @@ def test_assert_failure_maps_to_failed(inner):
         """,
     )
     assert capture.final_status("test_x") == TestStatus.FAILED
+    # The concise assertion message is recorded on error_info for the UI, but
+    # without the full traceback frames.
+    message = capture.final_error_message("test_x")
+    assert message is not None
+    assert "assert 1 == 2" in message
+    assert "Traceback (most recent call last)" not in message
 
 
 def test_generic_exception_maps_to_error(inner):
@@ -129,6 +135,34 @@ def test_pytest_fail_maps_to_failed(inner):
         """,
     )
     assert capture.final_status("test_x") == TestStatus.FAILED
+
+
+def test_fail_if_measurements_failed_fails_without_error_info(inner):
+    # An out-of-bounds measurement plus step.fail_if_measurements_failed()
+    # fails the test via pytest.fail, so the step is FAILED with no assertion
+    # message in error_info (the reason this helper exists over `assert`).
+    _run(
+        inner,
+        """
+        def test_x(step):
+            step.measure(name="b", value=99.0, bounds={"min": 0.0, "max": 2.0})
+            step.fail_if_measurements_failed()
+        """,
+    )
+    assert capture.final_status("test_x") == TestStatus.FAILED
+    assert capture.final_error_message("test_x") is None
+
+
+def test_fail_if_measurements_failed_passes_when_in_bounds(inner):
+    _run(
+        inner,
+        """
+        def test_x(step):
+            step.measure(name="a", value=1.0, bounds={"min": 0.0, "max": 2.0})
+            step.fail_if_measurements_failed()
+        """,
+    )
+    assert capture.final_status("test_x") == TestStatus.PASSED
 
 
 def test_keyboard_interrupt_leaves_step_in_progress(inner):
@@ -172,6 +206,27 @@ def test_substep_exception_records_error_with_failed_parent(inner):
     assert test_x is not None
     assert inner_sub.statuses[-1] == TestStatus.ERROR
     assert test_x.statuses[-1] == TestStatus.FAILED
+
+
+def test_substep_assert_failure_records_message_with_failed(inner):
+    # Case: CALL-02 (substep). A substep inherits assertion_as_fail_not_error
+    # from the autouse step (False under pytest), so a failed assertion in a
+    # substep resolves to FAILED and records the concise assertion message.
+    _run(
+        inner,
+        """
+        def test_x(step):
+            with step.substep(name="inner"):
+                assert 1 == 2
+        """,
+    )
+    inner_sub = next(iter(capture.steps_by_name("inner")), None)
+    assert inner_sub is not None
+    assert inner_sub.statuses[-1] == TestStatus.FAILED
+    assert inner_sub.error_messages
+    message = inner_sub.error_messages[-1]
+    assert "assert 1 == 2" in message
+    assert "Traceback (most recent call last)" not in message
 
 
 # ---------------------------------------------------------------------------

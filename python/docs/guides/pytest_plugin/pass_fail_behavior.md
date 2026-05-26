@@ -26,8 +26,10 @@ The statuses below come from `sift_client.sift_types.test_report.TestStatus`.
 | `pytest.fail("...")` from the body        | `pytest.fail("intentional failure")` | `FAILED` |
 | Uncaught non-assertion exception          | `raise ValueError("boom")`           | `ERROR`  |
 
-A non-assertion exception gets its formatted traceback recorded on
-`step.error_info.error_message`.
+An assertion failure records the concise assertion message (the exception
+line(s), no traceback frames) on `step.error_info.error_message` while still
+mapping to `FAILED`. A non-assertion exception gets its formatted traceback
+recorded on `step.error_info.error_message`.
 
 ## Hard exits
 
