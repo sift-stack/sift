@@ -3,6 +3,30 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.17.0] - Unreleased
+
+### What's New
+#### Pytest Plugin
+The client now ships a pytest plugin that turns a pytest run into a `TestReport` in Sift. Register it with a single `pytest_plugins = ["sift_client.pytest_plugin"]` line in your top-level `conftest.py`. Each test function becomes a `TestStep`, measurements appear as rows under that step, and failures roll up through nested substeps to the report. Enable it for a test by taking the autouse `step` fixture as an argument and calling `step.measure(...)` to record values against bounds.
+
+Highlights:
+- **Hierarchical report tree.** Packages, modules, classes, and parametrize axes above a test each become a parent step, so the report mirrors your test layout. Arbitrary substeps can be opened inside a test.
+- **Three running modes.** Online (default) pings Sift at session start and streams create/update calls during the run; offline records to a JSONL log for later replay; disabled evaluates bounds locally without contacting Sift. Select with `--sift-offline` or `--sift-disabled`.
+- **Graceful connection handling.** Online mode aborts at session start if Sift is unreachable or credentials are invalid, so a misconfigured job fails fast. If the connection drops mid-run, tests keep running and the log keeps writing locally; remaining entries upload afterward via the import command the plugin prints on exit.
+- **Pass/fail mapping.** Every pytest outcome (pass, assertion failure, exception, skip, xfail, hard exit) maps to a `TestStatus` and propagates to parent steps and the report. `step.measure(...)` returns a pass/fail boolean without raising, so all measurements land in the report even when one fails; `step.fail_if_measurements_failed()` fails the test at the end without adding assertion noise to `error_info`.
+- **Assertion messages as error info.** Assertion failure messages are reported as the step's error info.
+- **Git metadata.** Repo, branch, and commit are captured on the report automatically.
+
+See the [Pytest Plugin guide](https://github.com/sift-stack/sift/blob/main/python/docs/guides/pytest_plugin/index.md) and the runnable quickstart example for full configuration.
+
+### Full Changelog
+- [Pytest plugin improvements](https://github.com/sift-stack/sift/pull/567)
+- [Graceful handling of missing connection](https://github.com/sift-stack/sift/pull/569)
+- [Hierarchical pytest report tree](https://github.com/sift-stack/sift/pull/570)
+- [Pass/fail behavior improvements](https://github.com/sift-stack/sift/pull/568)
+- [Report assertion message as error info](https://github.com/sift-stack/sift/pull/587)
+- [Pytest docs reorganization](https://github.com/sift-stack/sift/pull/589)
+
 ## [v0.16.2] - May 21, 2026
 
 ### Bugfixes
