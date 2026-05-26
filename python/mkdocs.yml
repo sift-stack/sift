@@ -62,6 +62,9 @@ nav:
         # Will migrate to Guides in the future
       - Pytest Plugin: examples/pytest_plugin.md
       - Pytest Plugin Quickstart: examples/pytest_plugin_quickstart.md
+  - Guides:
+      - Pytest Plugin:
+          - Pass/Fail Behavior: guides/pytest_plugin/pass_fail_behavior.md
 #  - Guides:
 #      - Logging
 #      - Error Handling
