@@ -43,6 +43,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def format_truncated_traceback(
+    exc: type[BaseException] | None,
+    exc_value: BaseException | None,
+    tb: object | None,
+) -> ErrorInfo:
+    """Format an ErrorInfo from a traceback, keeping the first frame and the last 10."""
+    stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore[arg-type]
+    stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
+    return ErrorInfo(error_code=1, error_message="".join(stack))
+
+
 def log_replay_instructions(log_file: str | Path | None) -> None:
     """Surface replay instructions when an import/replay attempt fails.
 
@@ -363,30 +374,33 @@ class ReportContext(AbstractContextManager):
             self.open_step_results[step.step_path] = False
             self.any_failures = True
 
-    def resolve_and_propagate_step_result(
-        self,
-        step: TestStep,
-        error_info: ErrorInfo | None = None,
-    ) -> bool:
-        """Resolve the result of a step and propagate the result to the parent step if it failed."""
-        result = self.open_step_results.get(step.step_path, True)
-        if error_info:
-            result = False
-        if step.status != TestStatus.IN_PROGRESS:
-            # The step was manually completed so use that result.
-            # Skipped steps are considered passed.
-            result = step.status in (TestStatus.PASSED, TestStatus.SKIPPED)
+    def mark_step_failed_after_close(self, step: TestStep):
+        """Mark a step's parent as failed after the step has already been popped from the stack.
 
-        # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
-        if not result:
+        Used by the pytest plugin when a teardown-phase report fires after the
+        fixture's ``__exit__`` has already resolved and exited the step.
+        """
+        self.any_failures = True
+        path_parts = step.step_path.split(".")
+        if len(path_parts) > 1:
+            self.open_step_results[".".join(path_parts[:-1])] = False
+
+    def propagate_step_result(self, step: TestStep, status: TestStatus) -> bool:
+        """Propagate this step's final status to the parent step.
+
+        Status is the governor: anything outside ``{PASSED, SKIPPED}`` counts
+        as a failure for the parent. ``error_info`` is intentionally not
+        consulted here; it is free-form diagnostic data that may sit on a
+        step regardless of status.
+        """
+        succeeded = status in (TestStatus.PASSED, TestStatus.SKIPPED)
+        if not succeeded:
             self.any_failures = True
             self.open_step_results[step.step_path] = False
             path_parts = step.step_path.split(".")
             if len(path_parts) > 1:
-                parent_step_path = ".".join(path_parts[:-1])
-                self.open_step_results[parent_step_path] = False
-
-        return result
+                self.open_step_results[".".join(path_parts[:-1])] = False
+        return succeeded
 
     def exit_step(self, step: TestStep):
         """Exit a step and update the report context."""
@@ -407,6 +421,10 @@ class NewStep(AbstractContextManager):
     client: SiftClient
     assertion_as_fail_not_error: bool = True
     current_step: TestStep | None = None
+    # Set by the pytest plugin's ``_resolve_initial_status`` to signal that
+    # status was already resolved upstream and ``__exit__`` should skip
+    # re-classifying. Read via ``getattr`` so unset is treated as False.
+    _sift_managed_externally: bool = False
 
     def __init__(
         self,
@@ -471,34 +489,55 @@ class NewStep(AbstractContextManager):
 
         returns: The false if step failed or errored, true otherwise.
         """
+        current_step = self.current_step
+        if current_step is None:
+            # The step was never opened; nothing to resolve. Treat as a pass
+            # so callers that branch on the return value don't see a spurious
+            # failure.
+            return True
+
         error_info = None
-        assert self.current_step is not None
+        aborted = False
+        errored = False
         if exc:
             if isinstance(exc_value, AssertionError) and not self.assertion_as_fail_not_error:
                 # If we're not showing assertion errors (i.e. pytest), mark step as failed but don't set error info.
-                self.report_context.record_step_outcome(False, self.current_step)
+                self.report_context.record_step_outcome(False, current_step)
+            elif isinstance(exc_value, (KeyboardInterrupt, SystemExit)):
+                # Hard exit propagating through the substep stack: record as
+                # ABORTED so every in-progress step on the way out reflects
+                # the abort rather than coercing to ERROR.
+                aborted = True
+                error_info = format_truncated_traceback(exc, exc_value, tb)
             else:
-                stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore
-                stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
-                trace = "".join(stack)
-                error_info = ErrorInfo(
-                    error_code=1,
-                    error_message=trace,
-                )
+                errored = True
+                error_info = format_truncated_traceback(exc, exc_value, tb)
 
-        # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
-        result = self.report_context.resolve_and_propagate_step_result(
-            self.current_step, error_info
-        )
-
-        # Mark the step as completed
-        status = self.current_step.status
+        # Status is the governor: anything other than IN_PROGRESS was set
+        # deliberately (manual override, plugin pre-resolution, etc.) and must
+        # not be silently overwritten by side-channel signals. When the step is
+        # still IN_PROGRESS, resolve from independent state: aborts first, then
+        # a child-failed signal (parents inherit FAILED, not the originating
+        # ERROR), then the step's own captured exception, then the children-pass
+        # default. error_info is diagnostic and never drives status.
+        status = current_step.status
         if status == TestStatus.IN_PROGRESS:
-            # Update the status only if the step was in progress i.e. not updated elsewhere.
-            status = TestStatus.PASSED if result else TestStatus.FAILED
-        if error_info:
-            status = TestStatus.ERROR
-        self.current_step.update(
+            children_passed = self.report_context.open_step_results.get(
+                current_step.step_path, True
+            )
+            if aborted:
+                status = TestStatus.ABORTED
+            elif not children_passed:
+                status = TestStatus.FAILED
+            elif errored:
+                status = TestStatus.ERROR
+            else:
+                status = TestStatus.PASSED
+
+        # Propagate based on the resolved status; error_info rides along as
+        # pure diagnostics and does not affect propagation.
+        result = self.report_context.propagate_step_result(current_step, status)
+        current_step.update(
             {
                 "status": status,
                 "end_time": datetime.now(timezone.utc),
@@ -509,6 +548,28 @@ class NewStep(AbstractContextManager):
         return result
 
     def __exit__(self, exc, exc_value, tb):
+        if getattr(self, "_sift_managed_externally", False):
+            # The pytest fixture already resolved status from phase reports.
+            # Propagate based on that resolved status, emit one update_step
+            # with the resolved values, and pop from the stack without
+            # re-classifying.
+            current_step = self.current_step
+            if current_step is None:
+                # The step was never opened; nothing to propagate.
+                return True
+            result = self.report_context.propagate_step_result(current_step, current_step.status)
+            current_step.update(
+                {
+                    "status": current_step.status,
+                    "end_time": datetime.now(timezone.utc),
+                    "error_info": current_step.error_info,
+                },
+            )
+            self.report_context.exit_step(current_step)
+            if hasattr(self, "force_result"):
+                result = self.force_result
+            return result
+
         result = self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
