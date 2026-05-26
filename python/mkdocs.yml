@@ -51,6 +51,10 @@ extra:
     provider: mike
     alias: true
 
+# Kept out of the nav but still built so the old URL redirects to the guide.
+not_in_nav: |
+  /examples/pytest_plugin.md
+
 nav:
   - Home: index.md
   - Sift Client API
@@ -59,11 +63,14 @@ nav:
       - examples/index.md
       - Basic Usage: examples/basic.ipynb
       - Data Ingestion: examples/ingestion.ipynb
-        # Will migrate to Guides in the future
-      - Pytest Plugin: examples/pytest_plugin.md
       - Pytest Plugin Quickstart: examples/pytest_plugin_quickstart.md
   - Guides:
+      - guides/index.md
       - Pytest Plugin:
+          - Overview: guides/pytest_plugin/index.md
+          - Configuration & Defaults: guides/pytest_plugin/configuration.md
+          - Running Modes: guides/pytest_plugin/running_modes.md
+          - Report Structure: guides/pytest_plugin/report_structure.md
           - Pass/Fail Behavior: guides/pytest_plugin/pass_fail_behavior.md
 #  - Guides:
 #      - Logging
