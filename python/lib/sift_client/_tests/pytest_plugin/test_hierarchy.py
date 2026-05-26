@@ -76,7 +76,7 @@ def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_f
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -97,7 +97,7 @@ def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, log_file
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -125,7 +125,7 @@ def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, log_file
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -150,7 +150,7 @@ def test_two_sibling_classes_in_module(pytester: pytest.Pytester, log_file: Path
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -175,7 +175,7 @@ def test_mixed_class_and_free_function(pytester: pytest.Pytester, log_file: Path
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -205,7 +205,7 @@ def test_class_with_all_excluded_methods_no_class_step(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -230,7 +230,7 @@ def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, log_file: P
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -252,7 +252,7 @@ def test_class_docstring_becomes_step_description(
             '''
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -284,7 +284,7 @@ def test_transition_between_class_chains_drains_parametrize(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -396,7 +396,7 @@ def test_failing_test_in_class_does_not_orphan_class_step(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2, failed=1)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -434,7 +434,7 @@ def test_failing_parametrized_method_in_class_closes_full_chain(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2, failed=1)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -476,7 +476,7 @@ def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, log_
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -499,7 +499,7 @@ def test_sift_module_step_false_skips_module_step(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -524,7 +524,7 @@ def test_sift_parametrize_nesting_false_keeps_flat_leaves(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -565,7 +565,7 @@ def test_sift_module_step_false_still_drains_across_modules(
             """
         ),
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -593,7 +593,7 @@ def test_package_step_default_opens_for_init_dirs(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -637,7 +637,7 @@ def test_same_named_packages_in_different_dirs_do_not_merge(
     )
     # ``importlib`` import mode is required so two packages with the same
     # name on disk don't collide during sys.path-based import.
-    result = pytester.runpytest_subprocess("-v", "--import-mode=importlib")
+    result = pytester.runpytest_inprocess("-v", "--import-mode=importlib")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -666,7 +666,7 @@ def test_sift_package_step_false_skips_package_steps(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -697,7 +697,7 @@ def test_all_three_flags_false_matches_legacy_behavior(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -730,7 +730,7 @@ def test_single_parametrize_clusters_under_originalname(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -759,7 +759,7 @@ def test_stacked_parametrize_nests_outer_to_inner(
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=4)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -798,7 +798,7 @@ def test_fixture_parametrization_participates(pytester: pytest.Pytester, log_fil
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -831,7 +831,7 @@ def test_module_boundary_isolates_parametrize_stack(
             """
         ),
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=4)
     steps = capture.load_steps(log_file)
     by_name = _by_name(steps)
@@ -855,7 +855,7 @@ def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, log_f
             """
         )
     )
-    result = pytester.runpytest_subprocess("-v")
+    result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     steps = capture.load_steps(log_file)
     leaf = next(s for s in steps if s["name"].startswith("b="))
