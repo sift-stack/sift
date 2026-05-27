@@ -106,19 +106,6 @@ def _collect_datasets(h5file: h5py.File) -> list[h5py.Dataset]:
     return out
 
 
-def _identify_time_dataset(group: list[h5py.Dataset]) -> h5py.Dataset | None:
-    """Pick the per-group time dataset by leaf name, case-insensitive, in
-    priority order. Only 1D non-compound datasets are eligible. Returns
-    ``None`` if no candidate matches, in which case callers fall back to an
-    ancestor group's time before giving up."""
-    one_d = [ds for ds in group if _is_1d_non_compound(ds)]
-    for candidate in _TIME_DATASET_NAMES:
-        for ds in one_d:
-            if ds.name.rsplit("/", 1)[-1].lower() == candidate:
-                return ds
-    return None
-
-
 def _group_by_parent(datasets: list[h5py.Dataset]) -> dict[str, list[h5py.Dataset]]:
     """Group datasets by their parent group path (``""`` for root-level)."""
     out: dict[str, list[h5py.Dataset]] = {}
@@ -146,6 +133,17 @@ def _build_one_d_configs(datasets: list[h5py.Dataset]) -> list[Hdf5DataColumn]:
     """1D non-compound schema: at each group, pick a time dataset (by name)
     and pair every other 1D dataset in that group as a value channel.
     Datasets that aren't 1D non-compound are not included."""
+
+    def identify_time_dataset(group: list[h5py.Dataset]) -> h5py.Dataset | None:
+        """Pick the group's time dataset by leaf name, case-insensitive, in
+        priority order. Returns ``None`` if no candidate matches; callers
+        fall back to an ancestor group's time before giving up."""
+        for candidate in _TIME_DATASET_NAMES:
+            for ds in group:
+                if ds.name.rsplit("/", 1)[-1].lower() == candidate:
+                    return ds
+        return None
+
     columns: list[Hdf5DataColumn] = []
     dedupe = _make_name_deduper()
 
@@ -155,7 +153,7 @@ def _build_one_d_configs(datasets: list[h5py.Dataset]) -> list[Hdf5DataColumn]:
     # First pass: each group's own time dataset (if any).
     per_group_time: dict[str, str] = {}
     for group_path, group in grouped.items():
-        time_ds = _identify_time_dataset(group)
+        time_ds = identify_time_dataset(group)
         if time_ds is not None:
             per_group_time[group_path] = time_ds.name.lstrip("/")
 
