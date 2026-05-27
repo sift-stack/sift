@@ -88,11 +88,7 @@ EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
 
 
 class Hdf5Schema(Enum):
-    """How an HDF5 file's datasets map to Sift channels.
-
-    Required when importing HDF5: the same file extension covers multiple
-    layouts and a single file can satisfy more than one, so the caller picks
-    which to apply.
+    """Supported HDF5 layouts for auto-detection.
 
     Attributes:
         ONE_D: Separate 1D datasets. A per-group time dataset (matched by
