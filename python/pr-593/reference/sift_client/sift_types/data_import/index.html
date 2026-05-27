@@ -7233,12 +7233,15 @@ You're not viewing the latest version.
    (sift_client.sift_types.data_import.Hdf5ImportConfig.time_format)" href="#sift_client.sift_types.data_import.Hdf5ImportConfig.time_format">time_format</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>The time format used across all time datasets.</p>
+                <p>The time format used across all time datasets. Always
+left unset by <code>detect_config</code>: HDF5 timestamps aren't self-describing,
+so the caller must set this before importing. Importing without it
+raises <code>ValueError</code>.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
                   </span>
               </p>
             </td>
@@ -7317,7 +7320,7 @@ You're not viewing the latest version.
   
       pydantic-field
    (sift_client.sift_types.data_import.Hdf5ImportConfig.time_format)" href="#sift_client.sift_types.data_import.Hdf5ImportConfig.time_format">time_format</a></code>
-                (<code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></code>)
+                (<code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            relative_start_time
@@ -7475,7 +7478,7 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_client.sift_types.data_import.Hdf5ImportConfig.time_format" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9795,12 +9798,16 @@ automatically when using <code>detect_config</code>.</p>
    (sift_client.sift_types.data_import.ParquetTimeColumn.format)" href="#sift_client.sift_types.data_import.ParquetTimeColumn.format">format</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>The time format. Defaults to <code>ABSOLUTE_UNIX_NANOSECONDS</code>.</p>
+                <p>The time format. Optional at construction so that
+<code>detect_config</code> / <code>import_from_path</code> can apply the standard
+precedence chain (caller-passed <code>time_format</code> &gt; server-detected
+format &gt; <code>ABSOLUTE_UNIX_NANOSECONDS</code> fallback). Importing
+without a format set raises <code>ValueError</code>.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
                   </span>
               </p>
             </td>
@@ -9837,7 +9844,7 @@ automatically when using <code>detect_config</code>.</p>
   
       pydantic-field
    (sift_client.sift_types.data_import.ParquetTimeColumn.format)" href="#sift_client.sift_types.data_import.ParquetTimeColumn.format">format</a></code>
-                (<code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></code>)
+                (<code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>)
             </li>
         </ul>
 
@@ -9871,13 +9878,7 @@ automatically when using <code>detect_config</code>.</p>
   </span>
 
 <a href="#sift_client.sift_types.data_import.ParquetTimeColumn.format" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            ABSOLUTE_UNIX_NANOSECONDS
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.data_import.TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)" href="#sift_client.sift_types.data_import.TimeFormat.ABSOLUTE_UNIX_NANOSECONDS">ABSOLUTE_UNIX_NANOSECONDS</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
