@@ -40,6 +40,18 @@ where
     runtime.block_on(fut)
 }
 
+fn run_future_mt<F>(fut: F) -> Result<ExitCode>
+where
+    F: Future<Output = Result<ExitCode>> + 'static,
+{
+    let runtime = runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .context("failed to initialize Tokio runtime")?;
+
+    runtime.block_on(fut)
+}
+
 fn run(clargs: cli::Args) -> Result<ExitCode> {
     // These commands don't require `Context`
     match clargs.cmd {
@@ -56,11 +68,17 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         _ => (),
     }
 
+    let ctx = Context::new(clargs.profile.clone(), clargs.disable_tls)?;
+
+    // Mcp Server
+    if let Cmd::Mcp = clargs.cmd {
+        return run_future_mt(cmd::mcp::run(ctx));
+    }
+
     let profile = clargs
         .profile
         .as_ref()
         .map_or_else(|| "default".to_string().cyan(), |s| s.clone().cyan());
-    let ctx = Context::new(clargs.profile, clargs.disable_tls)?;
 
     Output::new()
         .line(format!("{} profile '{profile}'", "Using".green()))

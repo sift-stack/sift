@@ -3,12 +3,12 @@ use clap::{crate_name, crate_version};
 use rmcp::{ServiceExt, transport::stdio};
 use sift_rs::{Credentials, SiftChannelBuilder};
 
-pub(crate) mod server;
+mod server;
 use server::SiftMcpServer;
 
-pub mod tool;
-
 mod error;
+mod service;
+mod tool;
 
 pub async fn run(credentials: Credentials, use_tls: bool) -> Result<()> {
     let channel = SiftChannelBuilder::new(credentials)

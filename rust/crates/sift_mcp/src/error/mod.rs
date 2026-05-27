@@ -1,26 +1,15 @@
 use rmcp::model::{CallToolResult, ErrorCode};
-use serde_json::json;
 use tonic::{Code, Status};
 
 pub type McpResult = Result<CallToolResult, rmcp::ErrorData>;
 
-pub fn from_grpc_status(status: Status) -> rmcp::ErrorData {
-    let code = from_grpc_code(status.code());
-    let message = status.message().to_string();
-    let data = Some(json!({
-        "grpc_code": status.code().to_string(),
-    }));
-
-    rmcp::ErrorData {
-        code,
-        message: message.into(),
-        data,
-    }
-}
-
 pub fn from_anyhow(error: anyhow::Error) -> rmcp::ErrorData {
-    let code = ErrorCode::INTERNAL_ERROR;
+    let mut code = ErrorCode::INTERNAL_ERROR;
     let message = format!("{error:?}");
+
+    if let Ok(grpc_status) = error.downcast::<Status>() {
+        code = from_grpc_code(grpc_status.code());
+    }
 
     rmcp::ErrorData {
         code,
