@@ -9,7 +9,6 @@ don't fit the chosen schema are not included in the resulting config."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
@@ -33,17 +32,6 @@ _DESCRIPTION_ATTRS = ("Description", "description")
 
 # Per-group time dataset names, case-insensitive, in priority order.
 _TIME_DATASET_NAMES = ("time", "timestamp", "timestamps", "ts")
-
-
-@dataclass(frozen=True)
-class _DetectedDataset:
-    path: str
-    """Slash-joined path from the file root, e.g. ``group_a/sub/value``."""
-    group_path: str
-    """Parent group path, ``""`` for root-level datasets."""
-    name: str
-    """Final path segment, e.g. ``value``."""
-    dataset: h5py.Dataset
 
 
 def _read_string_attr(dataset: h5py.Dataset, candidates: tuple[str, ...]) -> str:
@@ -107,39 +95,36 @@ def _make_name_deduper() -> Callable[[str, str], str]:
     return dedupe
 
 
-def _collect_datasets(h5file: h5py.File) -> list[_DetectedDataset]:
-    """Recursively walk every dataset in the file, preserving full paths."""
-    out: list[_DetectedDataset] = []
+def _collect_datasets(h5file: h5py.File) -> list[h5py.Dataset]:
+    """Recursively walk every dataset in the file."""
+    out: list[h5py.Dataset] = []
 
-    def visit(path: str, obj: object) -> None:
-        if not isinstance(obj, h5py.Dataset):
-            return
-        slash = path.rfind("/")
-        group_path = "" if slash < 0 else path[:slash]
-        name = path if slash < 0 else path[slash + 1 :]
-        out.append(_DetectedDataset(path=path, group_path=group_path, name=name, dataset=obj))
+    def visit(_name: str, obj: object) -> None:
+        if isinstance(obj, h5py.Dataset):
+            out.append(obj)
 
     h5file.visititems(visit)
     return out
 
 
-def _identify_time_dataset(group: list[_DetectedDataset]) -> _DetectedDataset | None:
-    """Pick the per-group time dataset by name, case-insensitive, in priority
-    order. Only 1D non-compound datasets are eligible. Returns ``None`` if no
-    candidate matches, in which case callers fall back to an ancestor group's
-    time before giving up."""
-    one_d = [d for d in group if _is_1d_non_compound(d.dataset)]
+def _identify_time_dataset(group: list[h5py.Dataset]) -> h5py.Dataset | None:
+    """Pick the per-group time dataset by leaf name, case-insensitive, in
+    priority order. Only 1D non-compound datasets are eligible. Returns
+    ``None`` if no candidate matches, in which case callers fall back to an
+    ancestor group's time before giving up."""
+    one_d = [ds for ds in group if _is_1d_non_compound(ds)]
     for candidate in _TIME_DATASET_NAMES:
         for ds in one_d:
-            if ds.name.lower() == candidate:
+            if ds.name.rsplit("/", 1)[-1].lower() == candidate:
                 return ds
     return None
 
 
-def _group_by_parent(datasets: list[_DetectedDataset]) -> dict[str, list[_DetectedDataset]]:
-    out: dict[str, list[_DetectedDataset]] = {}
+def _group_by_parent(datasets: list[h5py.Dataset]) -> dict[str, list[h5py.Dataset]]:
+    """Group datasets by their parent group path (``""`` for root-level)."""
+    out: dict[str, list[h5py.Dataset]] = {}
     for ds in datasets:
-        out.setdefault(ds.group_path, []).append(ds)
+        out.setdefault(ds.name.lstrip("/").rpartition("/")[0], []).append(ds)
     return out
 
 
@@ -158,14 +143,14 @@ def _resolve_ancestor_time(group_path: str, per_group_time: dict[str, str]) -> s
     return ""
 
 
-def _build_one_d_configs(datasets: list[_DetectedDataset]) -> list[Hdf5DataColumn]:
+def _build_one_d_configs(datasets: list[h5py.Dataset]) -> list[Hdf5DataColumn]:
     """1D non-compound schema: at each group, pick a time dataset (by name)
     and pair every other 1D dataset in that group as a value channel.
     Datasets that aren't 1D non-compound are not included."""
     columns: list[Hdf5DataColumn] = []
     dedupe = _make_name_deduper()
 
-    one_d = [ds for ds in datasets if _is_1d_non_compound(ds.dataset)]
+    one_d = [ds for ds in datasets if _is_1d_non_compound(ds)]
     grouped = _group_by_parent(one_d)
 
     # First pass: each group's own time dataset (if any).
@@ -173,24 +158,25 @@ def _build_one_d_configs(datasets: list[_DetectedDataset]) -> list[Hdf5DataColum
     for group_path, group in grouped.items():
         time_ds = _identify_time_dataset(group)
         if time_ds is not None:
-            per_group_time[group_path] = time_ds.path
+            per_group_time[group_path] = time_ds.name.lstrip("/")
 
     for group_path, group in grouped.items():
         own_time_path = per_group_time.get(group_path)
         time_path = own_time_path or _resolve_ancestor_time(group_path, per_group_time)
         for ds in group:
-            if own_time_path and ds.path == own_time_path:
+            ds_path = ds.name.lstrip("/")
+            if own_time_path and ds_path == own_time_path:
                 continue
-            name, units, description = _read_channel_metadata(ds.dataset)
-            fallback = _path_to_channel_name(ds.path)
+            name, units, description = _read_channel_metadata(ds)
+            fallback = _path_to_channel_name(ds_path)
             columns.append(
                 Hdf5DataColumn(
                     name=dedupe(name or fallback, fallback),
-                    data_type=numpy_to_sift_type(ds.dataset.dtype),
+                    data_type=numpy_to_sift_type(ds.dtype),
                     units=units,
                     description=description,
                     time_dataset=time_path,
-                    value_dataset=ds.path,
+                    value_dataset=ds_path,
                     time_index=0,
                     value_index=0,
                 )
@@ -199,25 +185,26 @@ def _build_one_d_configs(datasets: list[_DetectedDataset]) -> list[Hdf5DataColum
     return columns
 
 
-def _build_two_d_configs(datasets: list[_DetectedDataset]) -> list[Hdf5DataColumn]:
+def _build_two_d_configs(datasets: list[h5py.Dataset]) -> list[Hdf5DataColumn]:
     """2D schema: every dataset with shape ``[N, 2]`` becomes one channel
     (col 0 = time, col 1 = value). Other shapes are not included."""
     columns: list[Hdf5DataColumn] = []
     dedupe = _make_name_deduper()
 
     for ds in datasets:
-        if not _is_2d_n_by_2(ds.dataset):
+        if not _is_2d_n_by_2(ds):
             continue
-        name, units, description = _read_channel_metadata(ds.dataset)
-        fallback = _path_to_channel_name(ds.path)
+        ds_path = ds.name.lstrip("/")
+        name, units, description = _read_channel_metadata(ds)
+        fallback = _path_to_channel_name(ds_path)
         columns.append(
             Hdf5DataColumn(
                 name=dedupe(name or fallback, fallback),
-                data_type=numpy_to_sift_type(ds.dataset.dtype),
+                data_type=numpy_to_sift_type(ds.dtype),
                 units=units,
                 description=description,
-                time_dataset=ds.path,
-                value_dataset=ds.path,
+                time_dataset=ds_path,
+                value_dataset=ds_path,
                 time_index=0,
                 value_index=1,
             )
@@ -226,33 +213,34 @@ def _build_two_d_configs(datasets: list[_DetectedDataset]) -> list[Hdf5DataColum
     return columns
 
 
-def _build_compound_configs(datasets: list[_DetectedDataset]) -> list[Hdf5DataColumn]:
+def _build_compound_configs(datasets: list[h5py.Dataset]) -> list[Hdf5DataColumn]:
     """Compound schema: every compound dataset becomes one channel per
     non-time member. First member is time. Non-compound datasets are not included."""
     columns: list[Hdf5DataColumn] = []
     dedupe = _make_name_deduper()
 
     for ds in datasets:
-        if not _is_compound(ds.dataset):
+        if not _is_compound(ds):
             continue
-        field_names = ds.dataset.dtype.names
+        field_names = ds.dtype.names
         assert field_names is not None  # guaranteed by _is_compound
         time_field = field_names[0]
         value_fields = field_names[1:]
-        name, units, description = _read_channel_metadata(ds.dataset)
-        dataset_name = name or _path_to_channel_name(ds.path)
+        ds_path = ds.name.lstrip("/")
+        name, units, description = _read_channel_metadata(ds)
+        dataset_name = name or _path_to_channel_name(ds_path)
 
         for value_field in value_fields:
             base_name = f"{dataset_name}.{value_field}" if len(value_fields) > 1 else dataset_name
-            fallback_suffix = f"{_path_to_channel_name(ds.path)}.{value_field}"
+            fallback_suffix = f"{_path_to_channel_name(ds_path)}.{value_field}"
             columns.append(
                 Hdf5DataColumn(
                     name=dedupe(base_name, fallback_suffix),
-                    data_type=numpy_to_sift_type(ds.dataset.dtype[value_field]),
+                    data_type=numpy_to_sift_type(ds.dtype[value_field]),
                     units=units,
                     description=description,
-                    time_dataset=ds.path,
-                    value_dataset=ds.path,
+                    time_dataset=ds_path,
+                    value_dataset=ds_path,
                     time_index=0,
                     value_index=0,
                     time_field=time_field,
@@ -263,7 +251,7 @@ def _build_compound_configs(datasets: list[_DetectedDataset]) -> list[Hdf5DataCo
     return columns
 
 
-_BUILDERS: dict[Hdf5Schema, Callable[[list[_DetectedDataset]], list[Hdf5DataColumn]]] = {
+_BUILDERS: dict[Hdf5Schema, Callable[[list[h5py.Dataset]], list[Hdf5DataColumn]]] = {
     Hdf5Schema.ONE_D: _build_one_d_configs,
     Hdf5Schema.TWO_D: _build_two_d_configs,
     Hdf5Schema.COMPOUND: _build_compound_configs,
