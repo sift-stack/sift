@@ -20,7 +20,6 @@ from sift_client.sift_types.data_import import (
     Hdf5DataColumn,
     Hdf5ImportConfig,
     Hdf5Schema,
-    TimeFormat,
 )
 
 # Heuristic attribute names for channel metadata, in priority order. The
@@ -260,13 +259,11 @@ _BUILDERS: dict[Hdf5Schema, Callable[[list[h5py.Dataset]], list[Hdf5DataColumn]]
 
 def detect_hdf5_config(file_path: str | Path, schema: Hdf5Schema) -> Hdf5ImportConfig:
     """Detect an HDF5 import config under the given ``schema``. Datasets that
-    don't fit the chosen schema are not included."""
+    don't fit the chosen schema are not included. ``time_format`` is always
+    left unset: HDF5 timestamps aren't self-describing, so the caller must set
+    ``config.time_format`` before importing."""
     path = Path(file_path)
     with h5py.File(path, "r") as h5file:
         columns = _BUILDERS[schema](_collect_datasets(h5file))
 
-    return Hdf5ImportConfig(
-        asset_name="",
-        time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
-        data=columns,
-    )
+    return Hdf5ImportConfig(asset_name="", data=columns)

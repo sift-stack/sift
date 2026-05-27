@@ -13,11 +13,14 @@ from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
     DataTypeKey,
+    Hdf5ImportConfig,
     Hdf5Schema,
     ImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
     ParquetTimeColumn,
+    TdmsImportConfig,
+    TimeFormat,
 )
 from sift_client.sift_types.run import Run
 
@@ -50,6 +53,7 @@ class DataImportAPIAsync(ResourceBase):
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         hdf5_schema: Hdf5Schema | None = None,
+        time_format: TimeFormat | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
@@ -112,6 +116,12 @@ class DataImportAPIAsync(ResourceBase):
                 multiple layouts (1D datasets, ``[N, 2]`` datasets,
                 compound datasets) under the same file extension. Only
                 used when ``config`` is not provided.
+            time_format: Time format override. When provided, takes
+                precedence over the format returned by detection. When
+                omitted, the returned config uses the detected format if
+                available, falling back to
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. Only used when
+                ``config`` is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
@@ -131,7 +141,10 @@ class DataImportAPIAsync(ResourceBase):
 
         if config is None:
             config = await self.detect_config(
-                file_path, data_type=data_type, hdf5_schema=hdf5_schema
+                file_path,
+                data_type=data_type,
+                hdf5_schema=hdf5_schema,
+                time_format=time_format,
             )
 
         if asset is not None:
@@ -199,6 +212,7 @@ class DataImportAPIAsync(ResourceBase):
         file_path: str | Path,
         data_type: DataTypeKey | None = None,
         hdf5_schema: Hdf5Schema | None = None,
+        time_format: TimeFormat | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
@@ -240,6 +254,11 @@ class DataImportAPIAsync(ResourceBase):
             hdf5_schema: Which HDF5 layout to detect. Required for HDF5
                 files, since the same file extension covers 1D datasets,
                 ``[N, 2]`` datasets, and compound datasets.
+            time_format: Time format override. When provided, takes
+                precedence over the format returned by detection. When
+                omitted, the returned config uses the detected format if
+                available, falling back to
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``.
 
         Returns:
             The detected import config.
@@ -255,7 +274,20 @@ class DataImportAPIAsync(ResourceBase):
             raise FileNotFoundError(f"File not found: {file_path}")
 
         data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
+        config = await self._detect_config_for_type(path, data_type_key, hdf5_schema=hdf5_schema)
+        if time_format is not None:
+            _apply_time_format(config, time_format)
+        elif not isinstance(config, TdmsImportConfig) and _get_time_format(config) is None:
+            _apply_time_format(config, TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
+        return config
 
+    async def _detect_config_for_type(
+        self,
+        path: Path,
+        data_type_key: DataTypeKey,
+        *,
+        hdf5_schema: Hdf5Schema | None,
+    ) -> ImportConfig:
         if data_type_key == DataTypeKey.HDF5:
             if hdf5_schema is None:
                 raise ValueError(
@@ -316,6 +348,32 @@ class DataImportAPIAsync(ResourceBase):
             f"No supported configuration detected for '{path.name}'. "
             "Only CSV, Parquet, HDF5, and TDMS are supported by auto-detection."
         )
+
+
+def _apply_time_format(config: ImportConfig, time_format: TimeFormat) -> None:
+    """Set the time format on a detected config, dispatching by config type.
+    CSV and Parquet store the format under ``time_column.format``; TDMS and
+    HDF5 store it on ``time_format`` directly.
+    """
+    if isinstance(
+        config,
+        (CsvImportConfig, ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig),
+    ):
+        config.time_column.format = time_format
+    elif isinstance(config, (TdmsImportConfig, Hdf5ImportConfig)):
+        config.time_format = time_format
+
+
+def _get_time_format(config: ImportConfig) -> TimeFormat | None:
+    """Read the current time format off a config, regardless of where it's stored."""
+    if isinstance(
+        config,
+        (CsvImportConfig, ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig),
+    ):
+        return config.time_column.format
+    if isinstance(config, (TdmsImportConfig, Hdf5ImportConfig)):
+        return config.time_format
+    return None
 
 
 def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeKey:

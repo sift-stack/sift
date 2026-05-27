@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         DataTypeKey,
         Hdf5Schema,
         ImportConfig,
+        TimeFormat,
     )
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
@@ -661,6 +662,7 @@ class DataImportAPI:
         file_path: str | Path,
         data_type: DataTypeKey | None = None,
         hdf5_schema: Hdf5Schema | None = None,
+        time_format: TimeFormat | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
@@ -702,6 +704,11 @@ class DataImportAPI:
             hdf5_schema: Which HDF5 layout to detect. Required for HDF5
                 files, since the same file extension covers 1D datasets,
                 ``[N, 2]`` datasets, and compound datasets.
+            time_format: Time format override. When provided, takes
+                precedence over the format returned by detection. When
+                omitted, the returned config uses the detected format if
+                available, falling back to
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``.
 
         Returns:
             The detected import config.
@@ -741,6 +748,7 @@ class DataImportAPI:
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         hdf5_schema: Hdf5Schema | None = None,
+        time_format: TimeFormat | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
@@ -803,6 +811,12 @@ class DataImportAPI:
                 multiple layouts (1D datasets, ``[N, 2]`` datasets,
                 compound datasets) under the same file extension. Only
                 used when ``config`` is not provided.
+            time_format: Time format override. When provided, takes
+                precedence over the format returned by detection. When
+                omitted, the returned config uses the detected format if
+                available, falling back to
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. Only used when
+                ``config`` is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
