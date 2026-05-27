@@ -15,6 +15,7 @@ from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import ErrorInfo, TestStatus
 from sift_client.util.test_results import ReportContext
 from sift_client.util.test_results.context_manager import (
+    _git_metadata,
     _quiet_fork_stderr,
     format_assertion_message,
     format_truncated_traceback,
@@ -377,6 +378,17 @@ _PARAMETRIZE_NESTING = _Option(
     ini_default=True,
 )
 
+_REPORT_NAME = _Option(
+    cli_flag="--sift-report-name",
+    ini_name="sift_report_name",
+    cli_help="Template for the Sift report display name. Supports the "
+    "placeholders {target}, {command}, {args}, {rootdir}, {timestamp}, {count}, "
+    "{git_repo}, {git_branch}, and {git_commit}. Defaults to "
+    "'{target} {timestamp}'.",
+    ini_help="Default for --sift-report-name. Same placeholders accepted as the "
+    "CLI flag. Defaults to '{target} {timestamp}'.",
+)
+
 _OPTIONS: tuple[_Option, ...] = (
     _LOG_FILE,
     _GIT_METADATA,
@@ -391,6 +403,7 @@ _OPTIONS: tuple[_Option, ...] = (
     _MODULE_STEP,
     _CLASS_STEP,
     _PARAMETRIZE_NESTING,
+    _REPORT_NAME,
 )
 
 
@@ -1007,6 +1020,48 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         _finalize_after_teardown(item, report)
 
 
+def _render_report_name(
+    base_name: str,
+    command: str,
+    args: tuple[str, ...],
+    request: pytest.FixtureRequest,
+    pytestconfig: pytest.Config | None,
+) -> str:
+    """Render the report display name from the ``sift_report_name`` template.
+
+    The default template ``"{target} {timestamp}"`` reproduces the historical
+    behavior (target base name + ISO timestamp). An invalid or unknown
+    placeholder falls back to that default and warns rather than aborting the
+    session, since a bad name template should never block test results from
+    being recorded.
+    """
+    items = getattr(request.session, "items", ()) or ()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    git = _git_metadata() or {}
+    fields = {
+        "target": base_name,
+        "command": command,
+        "args": " ".join(args),
+        "rootdir": request.config.rootpath.name,
+        "timestamp": timestamp,
+        "count": len(items),
+        "git_repo": git.get("git_repo", ""),
+        "git_branch": git.get("git_branch", ""),
+        "git_commit": git.get("git_commit", ""),
+    }
+    template = _option_or_ini(pytestconfig, _REPORT_NAME) or "{target} {timestamp}"
+    try:
+        return template.format(**fields)
+    except (KeyError, IndexError, ValueError) as exc:
+        warnings.warn(
+            f"Invalid sift_report_name template {template!r} ({exc}); "
+            "falling back to the default name.",
+            SiftPytestPluginWarning,
+            stacklevel=2,
+        )
+        return f"{base_name} {timestamp}"
+
+
 def _report_context_impl(
     sift_client: SiftClient,
     request: pytest.FixtureRequest,
@@ -1020,6 +1075,11 @@ def _report_context_impl(
     else:
         base_name = "pytest " + " ".join(args) if args else "pytest"
         test_case = base_name
+    # The full invocation is preserved on the report metadata as a record; the
+    # display name is rendered from a user-configurable template that defaults
+    # to the prior behavior (base name + timestamp).
+    command = "pytest " + " ".join(args) if args else "pytest"
+    name = _render_report_name(base_name, command, args, request, pytestconfig)
     # Mode → ReportContext flags:
     #   online (default): log_file=<temp or user path>, replay_log_file=True
     #   --sift-offline:   log_file=<temp or user path>, replay_log_file=False
@@ -1031,11 +1091,12 @@ def _report_context_impl(
     include_git_metadata = True if git_metadata is None else bool(git_metadata)
     with ReportContext(
         sift_client,
-        name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
+        name=name,
         test_case=str(test_case),
         log_file=log_file,
         include_git_metadata=include_git_metadata,
         replay_log_file=not (disabled or offline),
+        metadata={"pytest_command": command},
     ) as context:
         global REPORT_CONTEXT
         REPORT_CONTEXT = context

@@ -17,6 +17,7 @@ Highlights:
 - **Assertion messages as error info.** Assertion failure messages are reported as the step's error info.
 - **Git metadata.** Repo, branch, and commit are captured on the report automatically.
 - **Terminal output.** The plugin prints a session header with the SDK version and active mode, and an end-of-run `Sift report` panel showing the test case, outcome, step and measurement breakdowns (color-coded), test system/operator, plus a link to the report (online), the saved log and upload command (offline), or a disabled note. Both suppress under `-q`. `SiftClient.app_url` exposes the web-app origin; set `sift_report_url_base` for on-prem or custom deployments. `--sift-open-report` opens the report in a browser at session end.
+- **Configurable report name.** The report display name is rendered from a template you set with `--sift-report-name` or the `sift_report_name` ini key, using the `{target}`, `{command}`, `{args}`, `{rootdir}`, `{timestamp}`, `{count}`, `{git_repo}`, `{git_branch}`, and `{git_commit}` placeholders. The full pytest command is always preserved on the report under the `pytest_command` metadata key.
 
 See the [Pytest Plugin guide](https://github.com/sift-stack/sift/blob/main/python/docs/guides/pytest_plugin/index.md) and the runnable quickstart example for full configuration.
 
@@ -27,6 +28,7 @@ See the [Pytest Plugin guide](https://github.com/sift-stack/sift/blob/main/pytho
 - [Pass/fail behavior improvements](https://github.com/sift-stack/sift/pull/568)
 - [Report assertion message as error info](https://github.com/sift-stack/sift/pull/587)
 - [Pytest docs reorganization](https://github.com/sift-stack/sift/pull/589)
+- [Configurable report name template and preserved pytest command](https://github.com/sift-stack/sift/pull/591)
 
 ## [v0.16.2] - May 21, 2026
 

@@ -172,6 +172,7 @@ class ReportContext(AbstractContextManager):
         log_file: str | Path | bool | None = None,
         include_git_metadata: bool = False,
         replay_log_file: bool = True,
+        metadata: dict[str, str | float | bool] | None = None,
     ):
         """Initialize a new report context.
 
@@ -185,6 +186,9 @@ class ReportContext(AbstractContextManager):
                 If False/None, no log file is written and create/update calls
                 the API.
             include_git_metadata: If True, include git metadata in the report.
+            metadata: Structured key/value metadata to attach to the report. Merged
+                on top of git metadata when ``include_git_metadata`` is True, so
+                explicit keys win on collision.
             replay_log_file: When True (the default) and ``log_file`` is set,
                 spawn ``import-test-result-log --incremental`` to push log
                 entries to Sift in the background during the session. When
@@ -216,6 +220,10 @@ class ReportContext(AbstractContextManager):
         test_case = test_case if test_case else os.path.basename(__file__)
         test_system_name = test_system_name if test_system_name else socket.gethostname()
         system_operator = system_operator if system_operator else getpass.getuser()
+        combined_metadata = {
+            **(_git_metadata() or {} if include_git_metadata else {}),
+            **(metadata or {}),
+        }
         create = TestReportCreate(
             name=name,
             test_system_name=test_system_name,
@@ -224,7 +232,7 @@ class ReportContext(AbstractContextManager):
             end_time=datetime.now(timezone.utc),
             status=TestStatus.IN_PROGRESS,
             system_operator=system_operator,
-            metadata=_git_metadata() if include_git_metadata else None,  # type: ignore
+            metadata=combined_metadata or None,  # type: ignore
         )
         self.report = client.test_results.create(create, log_file=self.log_file)
 

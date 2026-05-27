@@ -134,6 +134,7 @@ def sift_client() -> SiftClient:
 | `--no-sift-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
 | `--sift-report-url-base=<origin>` | derived from REST URI | Web-app origin used to build the clickable report link in the terminal footer (e.g. `https://app.siftstack.com`). Set this for on-prem or custom deployments whose API host can't be mapped to a frontend automatically. Also honored via the `SIFT_APP_URL` environment variable. When unset, the link is derived from the REST URI for known Sift hosts. |
 | `--sift-open-report` | off | Open the resulting report in a browser at session end. Online mode only; a no-op when the report URL can't be resolved. Intended for local development. |
+| `--sift-report-name=<template>` | `{target} {timestamp}` | Template for the report display name. See [Report name](#report-name) for the available placeholders. |
 
 These can be passed permanently via `addopts`:
 
@@ -161,6 +162,7 @@ CLI flags, when passed, override the ini values.
 | `sift_class_step` | bool (default `true`) | _(ini-only)_. Opens a parent step for each test class, including nested classes. |
 | `sift_parametrize_nesting` | bool (default `true`) | _(ini-only)_. Clusters parametrized tests under shared parents (`test_x`, `axis=value`) instead of flat leaves (`test_x[value]`). |
 | `sift_open_report` | bool (default `false`) | `--sift-open-report` |
+| `sift_report_name` | string (default `{target} {timestamp}`) | `--sift-report-name=<template>` |
 
 ```toml title="pyproject.toml"
 [tool.pytest.ini_options]
@@ -177,6 +179,41 @@ sift_git_metadata = false
 sift_grpc_uri = your-org.sift.example:443
 sift_rest_uri = https://your-org.sift.example
 ```
+
+## Report name
+
+Each run produces one `TestReport` whose display name is rendered from a
+template. The default, `{target} {timestamp}`, reproduces the historical
+behavior: the test path (or `pytest <args>` for a broader run) followed by an ISO
+timestamp. Set `--sift-report-name` or the `sift_report_name` ini key to choose
+your own, which is the better fit for a run that spans many files where the
+command line makes a poor display name.
+
+| Placeholder | Value |
+|---|---|
+| `{target}` | What pytest was pointed at: the test path basename, or `pytest <args>` when no single path was given. |
+| `{command}` | The full pytest invocation, e.g. `pytest tests/ -k smoke`. |
+| `{args}` | The invocation arguments without the leading `pytest`. |
+| `{rootdir}` | The pytest rootdir name (typically the project directory). |
+| `{timestamp}` | The report start time in ISO 8601 (UTC). |
+| `{count}` | The number of collected tests in the run. |
+| `{git_repo}` | The `origin` remote URL, or empty when not in a git repo. |
+| `{git_branch}` | The current branch, or empty when not in a git repo. |
+| `{git_commit}` | The current commit (`git describe --always --dirty`), or empty when not in a git repo. |
+
+```toml title="pyproject.toml"
+[tool.pytest.ini_options]
+sift_report_name = "{rootdir} {git_branch} ({count} tests) {timestamp}"
+```
+
+The git placeholders are resolved independently of `--no-sift-git-metadata`
+(which only controls whether git values are stored on the report metadata) and
+render empty outside a git checkout. An unknown placeholder is reported as a
+warning and the name falls back to the default rather than failing the run.
+
+Regardless of the name, the full pytest command is always preserved on the
+report's metadata under the `pytest_command` key, so the exact invocation stays
+queryable and viewable in the report detail.
 
 ## Controlling which tests produce reports
 
