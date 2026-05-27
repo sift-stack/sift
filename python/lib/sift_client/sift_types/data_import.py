@@ -87,6 +87,29 @@ EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
 }
 
 
+class Hdf5Schema(Enum):
+    """How an HDF5 file's datasets map to Sift channels.
+
+    Required when importing HDF5: the same file extension covers multiple
+    layouts and a single file can satisfy more than one, so the caller picks
+    which to apply.
+
+    Attributes:
+        ONE_D: Separate 1D datasets. A per-group time dataset (matched by
+            name against ``time``, ``timestamp``, ``timestamps``, or ``ts``,
+            with an ancestor walk-up when a group has no own time dataset)
+            pairs with sibling 1D value datasets.
+        TWO_D: ``[N, 2]`` datasets where column 0 is time and column 1 is
+            value. Each matching dataset becomes one channel.
+        COMPOUND: Compound (struct-like) datasets whose first member is time
+            and remaining members are value channels.
+    """
+
+    ONE_D = "one_d"
+    TWO_D = "two_d"
+    COMPOUND = "compound"
+
+
 class TimeColumnBase(BaseModel, ABC):
     """Base class for time column configurations.
 
