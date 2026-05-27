@@ -52,7 +52,7 @@ class DataImportAPIAsync(ResourceBase):
         asset: Asset | str | None = None,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
-        hdf5_schema: Hdf5Schema | None = None,
+        schema: Hdf5Schema | None = None,
         time_format: TimeFormat | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
@@ -111,11 +111,10 @@ class DataImportAPIAsync(ResourceBase):
             data_type: Explicit data type key. Required for formats like
                 Parquet where the extension alone is ambiguous. Only used
                 when ``config`` is not provided.
-            hdf5_schema: Which HDF5 layout to detect. Required for HDF5
-                files when ``config`` is not provided, since HDF5 supports
-                multiple layouts (1D datasets, ``[N, 2]`` datasets,
-                compound datasets) under the same file extension. Only
-                used when ``config`` is not provided.
+            schema: Layout override for formats with multiple supported
+                layouts. Required for HDF5 (pass an ``Hdf5Schema``) when
+                ``config`` is not provided. Only used when ``config`` is
+                not provided.
             time_format: Time format override. When provided, takes
                 precedence over the format returned by detection. When
                 omitted, the returned config uses the detected format if
@@ -143,7 +142,7 @@ class DataImportAPIAsync(ResourceBase):
             config = await self.detect_config(
                 file_path,
                 data_type=data_type,
-                hdf5_schema=hdf5_schema,
+                schema=schema,
                 time_format=time_format,
             )
 
@@ -211,7 +210,7 @@ class DataImportAPIAsync(ResourceBase):
         self,
         file_path: str | Path,
         data_type: DataTypeKey | None = None,
-        hdf5_schema: Hdf5Schema | None = None,
+        schema: Hdf5Schema | None = None,
         time_format: TimeFormat | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
@@ -245,15 +244,14 @@ class DataImportAPIAsync(ResourceBase):
 
         For file types with multiple layouts (e.g. Parquet), ``data_type``
         must be specified explicitly. HDF5 also has multiple layouts;
-        ``hdf5_schema`` must be specified for HDF5 files.
+        ``schema`` must be specified for HDF5 files.
 
         Args:
             file_path: Path to the file to analyze.
             data_type: Explicit data type key. Required for formats like
                 Parquet where the extension alone is ambiguous.
-            hdf5_schema: Which HDF5 layout to detect. Required for HDF5
-                files, since the same file extension covers 1D datasets,
-                ``[N, 2]`` datasets, and compound datasets.
+            schema: Layout override for formats with multiple supported
+                layouts. Required for HDF5 (pass an ``Hdf5Schema``).
             time_format: Time format override. When provided, takes
                 precedence over the format returned by detection. When
                 omitted, the returned config uses the detected format if
@@ -266,7 +264,7 @@ class DataImportAPIAsync(ResourceBase):
         Raises:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file extension is unsupported, no supported
-                configuration could be detected, or ``hdf5_schema`` was
+                configuration could be detected, or ``schema`` was
                 omitted for an HDF5 file.
         """
         path = Path(file_path)
@@ -274,7 +272,7 @@ class DataImportAPIAsync(ResourceBase):
             raise FileNotFoundError(f"File not found: {file_path}")
 
         data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
-        config = await self._detect_config_for_type(path, data_type_key, hdf5_schema=hdf5_schema)
+        config = await self._detect_config_for_type(path, data_type_key, schema=schema)
         if time_format is not None:
             _apply_time_format(config, time_format)
         elif not isinstance(config, TdmsImportConfig) and _get_time_format(config) is None:
@@ -286,13 +284,13 @@ class DataImportAPIAsync(ResourceBase):
         path: Path,
         data_type_key: DataTypeKey,
         *,
-        hdf5_schema: Hdf5Schema | None,
+        schema: Hdf5Schema | None,
     ) -> ImportConfig:
         if data_type_key == DataTypeKey.HDF5:
-            if hdf5_schema is None:
+            if not isinstance(schema, Hdf5Schema):
                 raise ValueError(
-                    "hdf5_schema is required for HDF5 imports. "
-                    "Pass Hdf5Schema.ONE_D, Hdf5Schema.TWO_D, or Hdf5Schema.COMPOUND."
+                    "HDF5 imports require schema to be an Hdf5Schema "
+                    "(Hdf5Schema.ONE_D, Hdf5Schema.TWO_D, or Hdf5Schema.COMPOUND)."
                 )
             try:
                 from sift_client._internal.util.hdf5 import detect_hdf5_config
@@ -301,7 +299,7 @@ class DataImportAPIAsync(ResourceBase):
                     "h5py is required for HDF5 import. "
                     "Install it via `pip install sift-stack-py[hdf5]`."
                 ) from e
-            return await run_sync_function(lambda: detect_hdf5_config(path, hdf5_schema))
+            return await run_sync_function(lambda: detect_hdf5_config(path, schema))
         if data_type_key == DataTypeKey.TDMS:
             try:
                 from sift_client._internal.util.tdms import detect_tdms_config
