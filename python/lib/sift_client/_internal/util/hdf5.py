@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable
 
 import h5py
+import numpy as np
 
 from sift_client._internal.util.numpy_types import numpy_to_sift_type
 from sift_client.sift_types.data_import import (
@@ -55,9 +56,9 @@ def _read_string_attr(dataset: h5py.Dataset, candidates: tuple[str, ...]) -> str
             value = value.decode("utf-8", errors="replace")
         if isinstance(value, str) and value:
             return value
-        # h5py returns list/ndarray for multi-element string attrs; take the first.
-        if hasattr(value, "__len__") and hasattr(value, "__getitem__") and len(value) > 0:
-            first = value[0]
+        # h5py returns multi-element string attrs as ndarrays; take the first.
+        if isinstance(value, np.ndarray) and value.size > 0:
+            first = value.flat[0]
             if isinstance(first, bytes):
                 first = first.decode("utf-8", errors="replace")
             if isinstance(first, str) and first:
