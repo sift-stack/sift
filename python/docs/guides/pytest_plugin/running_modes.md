@@ -25,6 +25,88 @@ pytest --sift-log-file=./sift-results.jsonl
 Pass both flags and disabled wins: it skips Sift entirely and supersedes every
 other setting.
 
+## Terminal output
+
+Each run prints a header with the SDK version and active mode, and an end-of-run
+`Sift report` panel summarizing the outcome. Both are suppressed under `-q`. The
+panel is color-coded when the terminal supports it (green pass, red
+failure/error, yellow skip, cyan link) and plain text otherwise (`--color=no`,
+captured output, CI logs).
+
+The section title carries the report name (truncated if long). The `Steps` row
+tallies every step in the report by final status, so it counts substeps and the
+package/module/class/parametrize grouping steps too — its totals are expected to
+exceed pytest's own test count. The `Measurements` row tallies recorded
+measurements (`step.measure(...)`) and is omitted when there are none. The
+`Test case` and `System` rows echo the report's test case, test system, and
+operator.
+
+**Online** shows the report metadata, step and measurement breakdowns, and a
+clickable link. The web host is derived from the REST URI for known Sift hosts;
+for on-prem or custom deployments set `--sift-report-url-base`
+(ini: `sift_report_url_base`, env: `SIFT_APP_URL`). Add `--sift-open-report` to
+open the report in a browser at session end.
+
+```text
+============================= test session starts ==============================
+platform linux -- Python 3.11.8, pytest-8.3.2, pluggy-1.5.0
+Sift: sift-stack-py 0.17.0 — online mode
+collected 12 items
+
+tests/test_battery.py ........                                           [ 66%]
+tests/test_thermal.py ....                                               [100%]
+
+================ Sift report · pytest tests/ 2026-05-27T22:44:23Z ==============
+  Test case    pytest tests/
+  Status       PASSED       online · sift-stack-py 0.17.0
+  Steps        14 passed
+  Measurements 42 passed
+  System       ci-runner-7 · cibot
+  Log file     /tmp/sift-a1b2c3.jsonl
+  Report       https://app.siftstack.com/test-results/0193f1a2-7c44-7e5b-9b1a-2f6c0d9e84aa
+============================== 12 passed in 3.45s ==============================
+```
+
+If the background uploader doesn't finish, the panel still links the report and
+flags that it may be incomplete:
+
+```text
+================ Sift report · pytest tests/ 2026-05-27T22:44:23Z ==============
+  Test case    pytest tests/
+  Status       FAILED       online · sift-stack-py 0.17.0
+  Steps        11 passed · 2 failed · 1 error
+  Measurements 40 passed · 3 failed
+  System       ci-runner-7 · cibot
+  Log file     /tmp/sift-a1b2c3.jsonl
+  Report       https://app.siftstack.com/test-results/0193f1a2-7c44-7e5b-9b1a-2f6c0d9e84aa
+               may be incomplete — finish with: import-test-result-log /tmp/sift-a1b2c3.jsonl
+```
+
+When the web host can't be resolved and no override is set, the `Report` row
+shows the report id instead of a link.
+
+**Offline** shows the metadata and breakdowns, then the upload command under a
+small rule (the log path is part of the command):
+
+```text
+================ Sift report · pytest tests/ 2026-05-27T22:44:23Z ==============
+  Test case    pytest tests/
+  Status       PASSED       offline · not uploaded
+  Steps        14 passed
+  Measurements 42 passed
+  System       ci-runner-7 · cibot
+  Log file     ./run.jsonl
+------------------------------ to upload to Sift -------------------------------
+  >> import-test-result-log ./run.jsonl
+```
+
+**Disabled** notes that no report was created:
+
+```text
+===================================== Sift =====================================
+Sift disabled — no test report created.
+```
+
 ## Online mode (default)
 
 `report_context` resolves `client_has_connection` at session start. The default
