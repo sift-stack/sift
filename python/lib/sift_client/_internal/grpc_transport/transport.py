@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING, Any, TypedDict, cast
-from urllib.parse import ParseResult, urlparse
 
 import grpc
 import grpc.aio as grpc_aio
@@ -21,6 +20,7 @@ from sift_client._internal.grpc_transport._interceptors.metadata import (
     Metadata,
     MetadataInterceptor,
 )
+from sift_client._internal.urls import parse_host
 
 if TYPE_CHECKING:
     from sift_client._internal.grpc_transport._async_interceptors.base import ClientAsyncInterceptor
@@ -81,7 +81,7 @@ def use_sift_channel(
 
     credentials = get_ssl_credentials(cert_via_openssl)
     options = _compute_channel_options(config)
-    api_uri = _clean_uri(config["uri"], use_ssl)
+    api_uri = parse_host(config["uri"])
     channel = grpc.secure_channel(api_uri, credentials, options)
     interceptors = _compute_sift_interceptors(config, metadata)
     return grpc.intercept_channel(channel, *interceptors)
@@ -101,7 +101,7 @@ def use_sift_async_channel(
         return _use_insecure_sift_async_channel(config, metadata)
 
     return grpc_aio.secure_channel(
-        target=_clean_uri(config["uri"], use_ssl),
+        target=parse_host(config["uri"]),
         credentials=get_ssl_credentials(cert_via_openssl),
         options=_compute_channel_options(config),
         interceptors=_compute_sift_async_interceptors(config, metadata),
@@ -115,7 +115,7 @@ def _use_insecure_sift_channel(
     FOR DEVELOPMENT PURPOSES ONLY
     """
     options = _compute_channel_options(config)
-    api_uri = _clean_uri(config["uri"], False)
+    api_uri = parse_host(config["uri"])
     channel = grpc.insecure_channel(api_uri, options)
     interceptors = _compute_sift_interceptors(config, metadata)
     return grpc.intercept_channel(channel, *interceptors)
@@ -128,7 +128,7 @@ def _use_insecure_sift_async_channel(
     FOR DEVELOPMENT PURPOSES ONLY
     """
     return grpc_aio.insecure_channel(
-        target=_clean_uri(config["uri"], False),
+        target=parse_host(config["uri"]),
         options=_compute_channel_options(config),
         interceptors=_compute_sift_async_interceptors(config, metadata),
     )
@@ -207,21 +207,6 @@ def _metadata_async_interceptor(
             md.append((key, val))
 
     return MetadataAsyncInterceptor(md)
-
-
-def _clean_uri(uri: str, use_ssl: bool) -> str:
-    """
-    This will automatically transform the URI to an acceptable form regardless of whether or not
-    users included the scheme in the URL or included trailing slashes.
-    """
-
-    if "http://" in uri or "https://" in uri:
-        parsed: ParseResult = urlparse(uri)
-        return parsed.netloc
-
-    full_uri = f"https://{uri}" if use_ssl else f"http://{uri}"
-    parsed_res: ParseResult = urlparse(full_uri)
-    return parsed_res.netloc
 
 
 def _compute_user_agent() -> str:
