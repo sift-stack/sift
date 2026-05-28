@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import concurrent.futures
 import logging
 import threading
 from typing import Any
@@ -102,6 +103,9 @@ class GrpcClient:
         # map each asyncio loop to its async channel and stub dict
         self._channels_async: dict[asyncio.AbstractEventLoop, Any] = {}
         self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = {}
+        # Guards close() / close_sync() against running twice. The atexit
+        # handler always fires, so an explicit close must leave it a no-op.
+        self._closed = False
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
         atexit.register(self.close_sync)
@@ -160,21 +164,47 @@ class GrpcClient:
         return stubs[stub_class]
 
     def close_sync(self):
-        """Close the sync channel and all async channels."""
+        """Close the sync channel and all async channels. Idempotent."""
+        if self._closed:
+            return
+        self._closed = True
         try:
-            for ch in self._channels_async.values():
-                asyncio.run_coroutine_threadsafe(ch.close(), self._default_loop).result()
-            self._default_loop.call_soon_threadsafe(self._default_loop.stop)
+            # Only drive the loop if it's still running; submitting a coroutine
+            # to a stopped loop never resolves and would hang on .result().
+            if self._default_loop.is_running():
+                for ch in self._channels_async.values():
+                    asyncio.run_coroutine_threadsafe(ch.close(), self._default_loop).result(
+                        timeout=5.0
+                    )
+                self._default_loop.call_soon_threadsafe(self._default_loop.stop)
             self._default_loop_thread.join(timeout=1.0)
-        except ValueError:
+        except (ValueError, RuntimeError, concurrent.futures.TimeoutError):
             ...
+        finally:
+            self._release_channels()
 
     async def close(self):
-        """Close sync and async channels and stop the default loop."""
+        """Close sync and async channels and stop the default loop. Idempotent."""
+        if self._closed:
+            return
+        self._closed = True
         for ch in self._channels_async.values():
             await ch.close()
         self._default_loop.call_soon_threadsafe(self._default_loop.stop)
         self._default_loop_thread.join(timeout=1.0)
+        self._release_channels()
+
+    def _release_channels(self):
+        """Drop references to the closed channels and stubs.
+
+        The gRPC C-core defers a channel's resource release until the Python
+        object is destroyed, not merely closed. Holding the channels in these
+        maps keeps them alive until interpreter finalization, which races the
+        C-core's own exit-time shutdown ("grpc_wait_for_shutdown_with_timeout()
+        timed out"). Clearing the maps lets the channels be collected promptly.
+        """
+        self._channels_async.clear()
+        self._stubs_async_map.clear()
 
     async def __aenter__(self):
         return self
