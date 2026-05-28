@@ -359,6 +359,36 @@ Previously the package shipped its own bundled copies of the generated Python bi
 - `google.api` and `protoc_gen_openapiv2` are now pulled in via the `googleapis-common-protos` and `protoc-gen-openapiv2` runtime dependencies, so pip installs the upstream-maintained versions.
 - `buf.validate` has been removed entirely. The protovalidate field annotations were stripped from the affected `.proto` files, so the generated `_pb2.py` files no longer reference `buf.validate`.
 
+#### Upgrading from a pre-v0.14.0 install
+Upgrading in place can leave behind `__init__.py` files and the `buf/` directory from the previously-bundled copies. When that happens, the leftover `google/__init__.py` and `google/api/__init__.py` turn `google` and `google.api` into regular packages and collapse the PEP 420 namespace, hiding the upstream `googleapis-common-protos` contribution. The symptom is an `ImportError` such as:
+
+```
+ImportError: cannot import name 'annotations_pb2' from 'google.api' (unknown location)
+```
+
+A fresh virtualenv resolves it cleanly:
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install sift-stack-py
+```
+
+To repair an existing environment in place:
+
+```bash
+SITE=$(python -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
+rm -f  "$SITE/google/__init__.py" "$SITE/google/api/__init__.py"
+rm -rf "$SITE/buf"
+pip install --force-reinstall --no-deps \
+  googleapis-common-protos protoc-gen-openapiv2 sift-stack-py
+```
+
+Verify with:
+
+```bash
+python -c "from google.api import annotations_pb2; print(annotations_pb2.__file__)"
+```
+
 ### Bugfixes
 - Add `py.typed` to the generated proto directory so type checkers pick up protobuf types correctly.
 
