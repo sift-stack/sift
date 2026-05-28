@@ -1,6 +1,6 @@
 use crate::cmd::import::utils::validate_time_format;
 use anyhow::{Context, Result};
-use arrow_schema::DataType;
+use arrow_schema::{DataType, Field, TimeUnit};
 use chrono::DateTime;
 use parquet::arrow::parquet_to_arrow_schema;
 use parquet::file::metadata::ParquetMetaDataReader;
@@ -14,6 +14,7 @@ use sift_rs::{
 };
 
 use crate::cli::FlatDatasetArgs;
+use crate::cli::time::TimeFormat as CliTimeFormat;
 
 pub fn detect_flat_dataset_config<R: ChunkReader>(
     file: &R,
@@ -27,7 +28,34 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
     )
     .context("detecting flat dataset config arrow schema")?;
 
-    validate_time_format(args.time_format, &args.relative_start_time)
+    let time_field: &Field = match &args.time_path {
+        Some(path) => arrow_schema
+            .fields()
+            .iter()
+            .find(|f| f.name() == path)
+            .map(|f| &**f)
+            .with_context(|| format!("time column '{path}' not found in parquet schema"))?,
+        None => arrow_schema
+            .fields()
+            .iter()
+            .find_map(|f| auto_detect_time_column_field(f))
+            .context(
+                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, ts)",
+            )?,
+    };
+    let time_path = time_field.name().clone();
+
+    let resolved_format = match args.time_format {
+        Some(fmt) => fmt,
+        None => infer_time_format_from_arrow(time_field.data_type()).with_context(|| {
+            format!(
+                "could not infer time format for column '{time_path}' (Arrow type {:?}) — pass --time-format explicitly",
+                time_field.data_type()
+            )
+        })?,
+    };
+
+    validate_time_format(resolved_format, &args.relative_start_time)
         .context("validating time format")?;
 
     let relative_start_time_input = match &args.relative_start_time {
@@ -40,41 +68,53 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
         None => None,
     };
 
-    let mut time_column = None;
+    let time_column = Some(ParquetTimeColumn {
+        relative_start_time: relative_start_time_input,
+        path: time_path.clone(),
+        format: TimeFormat::from(resolved_format).into(),
+    });
+
     let mut data_columns = Vec::new();
-
     for field in arrow_schema.fields() {
-        if field.name() == &args.time_path {
-            time_column = Some(ParquetTimeColumn {
-                relative_start_time: relative_start_time_input,
-                path: args.time_path.clone(),
-                format: TimeFormat::from(args.time_format).into(),
-            });
-        } else if let Some(channel_type) = arrow_type_to_channel_data_type(field.data_type()) {
-            data_columns.push(ParquetDataColumn {
-                path: field.name().to_string(),
-                channel_config: Some(ChannelConfig {
-                    name: field.name().to_string(),
-                    data_type: channel_type.into(),
-                    ..Default::default()
-                }),
-            });
-        } else {
-            anyhow::bail!("unsupported column type for '{}'", field.name());
+        if field.name() == &time_path {
+            continue;
         }
-    }
-
-    if time_column.is_none() {
-        anyhow::bail!(
-            "time column '{}' not found in parquet schema",
-            args.time_path
-        );
+        let Some(channel_type) = arrow_type_to_channel_data_type(field.data_type()) else {
+            anyhow::bail!("unsupported column type for '{}'", field.name());
+        };
+        data_columns.push(ParquetDataColumn {
+            path: field.name().to_string(),
+            channel_config: Some(ChannelConfig {
+                name: field.name().to_string(),
+                data_type: channel_type.into(),
+                ..Default::default()
+            }),
+        });
     }
 
     Ok(ParquetFlatDatasetConfig {
         time_column,
         data_columns,
     })
+}
+
+pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
+    match field.name().as_str() {
+        "time" | "timestamp" | "ts" => Some(field),
+        _ => None,
+    }
+}
+
+pub(super) fn infer_time_format_from_arrow(dt: &DataType) -> Option<CliTimeFormat> {
+    match dt {
+        DataType::Timestamp(TimeUnit::Second, _) => Some(CliTimeFormat::AbsoluteUnixSeconds),
+        DataType::Timestamp(TimeUnit::Millisecond, _) => Some(CliTimeFormat::AbsoluteUnixMilliseconds),
+        DataType::Timestamp(TimeUnit::Microsecond, _) => Some(CliTimeFormat::AbsoluteUnixMicroseconds),
+        DataType::Timestamp(TimeUnit::Nanosecond, _) => Some(CliTimeFormat::AbsoluteUnixNanoseconds),
+        DataType::Int64 => Some(CliTimeFormat::AbsoluteUnixNanoseconds),
+        DataType::Utf8 | DataType::LargeUtf8 => Some(CliTimeFormat::AbsoluteRfc3339),
+        _ => None,
+    }
 }
 
 pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {
