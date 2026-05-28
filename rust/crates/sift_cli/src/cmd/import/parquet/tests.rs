@@ -1,7 +1,7 @@
 use crate::cli::channel::DataType as CliDataType;
 use crate::cli::{
     ChannelPerRowArgs, CommonImportArgs, FlatDatasetArgs,
-    parquet::{ChannelPerRowMode, ComplexTypesMode},
+    parquet::{ChannelMode, ComplexTypesMode},
     time::TimeFormat,
 };
 use crate::cmd::import::parquet::channel_per_row_dataset;
@@ -338,7 +338,7 @@ fn test_time_path_not_in_parquet_returns_error() {
 }
 
 fn make_channel_per_row_args(
-    mode: ChannelPerRowMode,
+    mode: ChannelMode,
     time_format: TimeFormat,
 ) -> ChannelPerRowArgs {
     ChannelPerRowArgs {
@@ -404,7 +404,7 @@ fn test_detect_channel_per_row_single_basic_infers_data_type() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args =
-        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
 
     let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
@@ -429,7 +429,7 @@ fn test_detect_channel_per_row_single_honors_data_type_override() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args =
-        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.data_type = Some(CliDataType::Float);
 
@@ -451,7 +451,7 @@ fn test_detect_channel_per_row_single_propagates_units_and_description() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args =
-        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.unit = Some("celsius".into());
     args.description = Some("ambient temperature".into());
@@ -471,7 +471,7 @@ fn test_detect_channel_per_row_multi_basic() {
     let batch = create_channel_per_row_multi_batch(vec!["a", "b", "c"]);
     let bytes = write_to_parquet_bytes(&batch);
     let mut args =
-        make_channel_per_row_args(ChannelPerRowMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+        make_channel_per_row_args(ChannelMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
     args.name_path = Some("channel".into());
 
     let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
@@ -500,7 +500,7 @@ fn test_detect_channel_per_row_missing_time_column_errors() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args =
-        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.time_path = "nonexistent_time".into();
 
@@ -516,7 +516,7 @@ fn test_detect_channel_per_row_missing_data_column_errors() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args =
-        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.data_path = "nonexistent_value".into();
 
@@ -532,7 +532,7 @@ fn test_detect_channel_per_row_multi_missing_name_column_errors() {
     let batch = create_channel_per_row_multi_batch(vec!["a"]);
     let bytes = write_to_parquet_bytes(&batch);
     let mut args =
-        make_channel_per_row_args(ChannelPerRowMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+        make_channel_per_row_args(ChannelMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
     args.name_path = Some("nonexistent_name".into());
 
     let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();

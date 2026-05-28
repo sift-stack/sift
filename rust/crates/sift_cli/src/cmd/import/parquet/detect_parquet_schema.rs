@@ -17,7 +17,7 @@ use sift_rs::{
 };
 
 use crate::cli::channel::DataType as CliDataType;
-use crate::cli::parquet::ChannelPerRowMode;
+use crate::cli::parquet::ChannelMode;
 use crate::cli::{ChannelPerRowArgs, FlatDatasetArgs};
 
 pub fn detect_flat_dataset_config<R: ChunkReader>(
@@ -144,7 +144,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
     }];
 
     let inner_config = match args.mode {
-        ChannelPerRowMode::Single => {
+        ChannelMode::Single => {
             let channel_name = args
                 .channel_name
                 .as_ref()
@@ -166,7 +166,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
                 }),
             })
         }
-        ChannelPerRowMode::Multi => {
+        ChannelMode::Multi => {
             let name_path = args
                 .name_path
                 .as_ref()

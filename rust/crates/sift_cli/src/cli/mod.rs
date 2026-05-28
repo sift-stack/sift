@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, crate_description, crate_version};
 use clap_complete::Shell;
-use parquet::{ChannelPerRowMode, ComplexTypesMode};
+use parquet::{ChannelMode, ComplexTypesMode};
 pub mod hdf5;
 pub mod tdms;
 use hdf5::Hdf5Schema;
@@ -399,9 +399,9 @@ pub struct ChannelPerRowArgs {
     #[command(flatten)]
     pub common: CommonImportArgs,
 
-    /// Channel-per-row mode: single-channel or multi-channel
+    /// Channel mode: single-channel or multi-channel
     #[arg(long)]
-    pub mode: ChannelPerRowMode,
+    pub mode: ChannelMode,
 
     /// Path to the time column
     #[arg(short, long)]
