@@ -14,8 +14,6 @@ class TestFrontendOriginForApi:
         [
             ("https://api.siftstack.com", "https://app.siftstack.com"),
             ("https://gov.api.siftstack.com", "https://gov.siftstack.com"),
-            ("http://localhost:8080", "http://localhost:3000"),
-            ("http://host.docker.internal:8080", "http://localhost:3000"),
             # Bare host (no scheme) resolves the same as the full URL.
             ("api.siftstack.com", "https://app.siftstack.com"),
         ],

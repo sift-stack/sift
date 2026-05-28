@@ -509,6 +509,9 @@ class NewStep(AbstractContextManager):
         # substep / ``report_outcome`` failures are intentionally not folded
         # in here (see ``measurements_passed`` vs ``passed``).
         self._failed_measurement_count = 0
+        # Out-of-bounds measurements recorded on this step, retained so
+        # ``fail_if_measurements_failed`` can name them in the failure message.
+        self._failed_measurements: list[TestMeasurement] = []
 
     def __enter__(self):
         """Enter the context manager to create a new step.
@@ -530,9 +533,7 @@ class NewStep(AbstractContextManager):
         """
         return self._failed_measurement_count == 0
 
-    def fail_if_measurements_failed(
-        self, message: str = "one or more measurements out of bounds"
-    ) -> None:
+    def fail_if_measurements_failed(self, message: str = "measurements out of bounds") -> None:
         """Fail the pytest test if any measurement on this step was out of bounds.
 
         Use instead of ``assert step.measurements_passed``: it fails via
@@ -540,12 +541,18 @@ class NewStep(AbstractContextManager):
         assertion message to ``error_info``. No-op when every measurement
         passed. Call once at the end of the test so every measurement is still
         recorded before the failure fires.
+
+        The failure message names each out-of-bounds measurement with its
+        recorded value and bounds. ``message`` is used as the header line.
         """
         if self.measurements_passed:
             return
         import pytest
 
-        pytest.fail(message, pytrace=False)
+        failed = self._failed_measurements
+        header = f"{message} ({len(failed)}):" if failed else message
+        body = [f"  - {m}" for m in failed]
+        pytest.fail("\n".join([header, *body]), pytrace=False)
 
     def update_step_from_result(
         self,
@@ -708,6 +715,7 @@ class NewStep(AbstractContextManager):
         self.report_context.record_measurement(measurement)
         if not measurement.passed:
             self._failed_measurement_count += 1
+            self._failed_measurements.append(measurement)
 
         return measurement.passed
 
