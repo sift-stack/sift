@@ -8,7 +8,7 @@ import pytest
 
 from sift_client._internal.util.hdf5 import detect_hdf5_config
 from sift_client.sift_types.channel import ChannelDataType
-from sift_client.sift_types.data_import import Hdf5Schema
+from sift_client.sift_types.data_import import DataTypeKey
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def test_one_d_root_time_and_value_datasets(create_hdf5_file):
         f.create_dataset("voltage", data=np.random.rand(10).astype("<f8"))
         f.create_dataset("current", data=np.random.rand(10).astype("<f4"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     assert len(config.data) == 2
     names = {col.name for col in config.data}
@@ -51,7 +51,7 @@ def test_one_d_ancestor_time_walkup(create_hdf5_file):
         f.create_dataset("time", data=np.arange(10, dtype="<i8"))
         f.create_dataset("group_a/value", data=np.random.rand(10).astype("<f8"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     assert len(config.data) == 1
     assert config.data[0].value_dataset == "group_a/value"
@@ -66,7 +66,7 @@ def test_one_d_per_group_time_overrides_ancestor(create_hdf5_file):
         f.create_dataset("group_a/time", data=np.arange(10, dtype="<i8"))
         f.create_dataset("group_a/value", data=np.random.rand(10).astype("<f8"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     value_col = next(c for c in config.data if c.value_dataset == "group_a/value")
     assert value_col.time_dataset == "group_a/time"
@@ -81,7 +81,7 @@ def test_one_d_heuristic_time_dataset_names(create_hdf5_file):
         f.create_dataset("timestamp", data=np.arange(10, dtype="<i8"))
         f.create_dataset("voltage", data=np.random.rand(10).astype("<f8"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     voltage = next(c for c in config.data if c.value_dataset == "voltage")
     assert voltage.time_dataset == "timestamp"
@@ -96,7 +96,7 @@ def test_one_d_drops_compound_datasets(create_hdf5_file):
         f.create_dataset("voltage", data=np.random.rand(10).astype("<f8"))
         f.create_dataset("compound_thing", shape=(10,), dtype=compound_dtype)
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     assert {c.value_dataset for c in config.data} == {"voltage"}
 
@@ -107,7 +107,7 @@ def test_one_d_no_time_anywhere(create_hdf5_file):
     def populate(f):
         f.create_dataset("voltage", data=np.random.rand(10).astype("<f8"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     assert len(config.data) == 1
     assert config.data[0].time_dataset == ""
@@ -120,7 +120,7 @@ def test_two_d_happy_path(create_hdf5_file):
         f.create_dataset("sensor_a", data=np.random.rand(10, 2).astype("<f8"))
         f.create_dataset("sensor_b", data=np.random.rand(10, 2).astype("<f4"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.TWO_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_TWO_D)
 
     assert len(config.data) == 2
     for col in config.data:
@@ -137,7 +137,7 @@ def test_two_d_drops_non_n_by_2_shapes(create_hdf5_file):
         f.create_dataset("one_d", data=np.random.rand(10).astype("<f8"))
         f.create_dataset("wide_2d", data=np.random.rand(10, 3).astype("<f8"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.TWO_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_TWO_D)
 
     assert {c.value_dataset for c in config.data} == {"good"}
 
@@ -149,7 +149,7 @@ def test_compound_multi_field(create_hdf5_file):
     def populate(f):
         f.create_dataset("sensors", shape=(10,), dtype=compound_dtype)
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.COMPOUND)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_COMPOUND)
 
     assert len(config.data) == 2
     voltage = next(c for c in config.data if c.value_field == "voltage")
@@ -168,7 +168,7 @@ def test_compound_single_value_field_uses_bare_dataset_name(create_hdf5_file):
     def populate(f):
         f.create_dataset("sensor", shape=(10,), dtype=compound_dtype)
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.COMPOUND)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_COMPOUND)
 
     assert len(config.data) == 1
     assert config.data[0].name == "sensor"
@@ -183,7 +183,7 @@ def test_compound_drops_non_compound(create_hdf5_file):
         f.create_dataset("sensor", shape=(10,), dtype=compound_dtype)
         f.create_dataset("voltage", data=np.random.rand(10).astype("<f8"))
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.COMPOUND)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_COMPOUND)
 
     assert {c.value_dataset for c in config.data} == {"sensor"}
 
@@ -201,7 +201,7 @@ def test_attribute_discovery_reads_alternate_names_and_units(create_hdf5_file):
         b.attrs["Sensor"] = "current_sensor"
         b.attrs["unit"] = "A"
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     by_dataset = {c.value_dataset: c for c in config.data}
     assert by_dataset["raw_a"].name == "voltage"
@@ -219,7 +219,7 @@ def test_list_valued_attribute_uses_first_element(create_hdf5_file):
         ds = f.create_dataset("raw", data=np.random.rand(5).astype("<f8"))
         ds.attrs.create("Name", data=["voltage", "secondary"], dtype=h5py.string_dtype())
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     voltage = next(c for c in config.data if c.value_dataset == "raw")
     assert voltage.name == "voltage"
@@ -235,7 +235,7 @@ def test_duplicate_names_get_disambiguated(create_hdf5_file):
         b = f.create_dataset("group2/sensor", data=np.random.rand(10).astype("<f8"))
         b.attrs["Name"] = "pressure"
 
-    config = detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+    config = detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)
 
     names = [c.name for c in config.data]
     assert len(names) == len(set(names))
@@ -251,4 +251,4 @@ def test_unsupported_dtype_raises(create_hdf5_file):
         f.create_dataset("data", data=np.zeros(5, dtype=np.float16))
 
     with pytest.raises(ValueError, match="Unsupported numpy dtype"):
-        detect_hdf5_config(create_hdf5_file(populate), Hdf5Schema.ONE_D)
+        detect_hdf5_config(create_hdf5_file(populate), DataTypeKey.HDF5_ONE_D)

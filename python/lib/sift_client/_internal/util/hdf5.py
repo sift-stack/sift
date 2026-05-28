@@ -17,9 +17,9 @@ import numpy as np
 
 from sift_client._internal.util.numpy_types import numpy_to_sift_type
 from sift_client.sift_types.data_import import (
+    DataTypeKey,
     Hdf5DataColumn,
     Hdf5ImportConfig,
-    Hdf5Schema,
 )
 
 # Heuristic attribute names for channel metadata, in priority order. The
@@ -117,8 +117,8 @@ def _group_by_parent(datasets: list[h5py.Dataset]) -> dict[str, list[h5py.Datase
 def _resolve_ancestor_time(group_path: str, per_group_time: dict[str, str]) -> str:
     """Return the closest-ancestor time dataset path for ``group_path``,
     walking up to the root. Empty string if no ancestor has one."""
-    cursor: str | None = group_path
-    while cursor is not None:
+    cursor = group_path
+    while True:
         found = per_group_time.get(cursor)
         if found:
             return found
@@ -126,7 +126,6 @@ def _resolve_ancestor_time(group_path: str, per_group_time: dict[str, str]) -> s
             return ""
         slash = cursor.rfind("/")
         cursor = "" if slash < 0 else cursor[:slash]
-    return ""
 
 
 def _build_one_d_configs(datasets: list[h5py.Dataset]) -> list[Hdf5DataColumn]:
@@ -248,20 +247,25 @@ def _build_compound_configs(datasets: list[h5py.Dataset]) -> list[Hdf5DataColumn
     return columns
 
 
-_BUILDERS: dict[Hdf5Schema, Callable[[list[h5py.Dataset]], list[Hdf5DataColumn]]] = {
-    Hdf5Schema.ONE_D: _build_one_d_configs,
-    Hdf5Schema.TWO_D: _build_two_d_configs,
-    Hdf5Schema.COMPOUND: _build_compound_configs,
+_BUILDERS: dict[DataTypeKey, Callable[[list[h5py.Dataset]], list[Hdf5DataColumn]]] = {
+    DataTypeKey.HDF5_ONE_D: _build_one_d_configs,
+    DataTypeKey.HDF5_TWO_D: _build_two_d_configs,
+    DataTypeKey.HDF5_COMPOUND: _build_compound_configs,
 }
 
 
-def detect_hdf5_config(file_path: str | Path, schema: Hdf5Schema) -> Hdf5ImportConfig:
-    """Detect an HDF5 import config under the given ``schema``. Datasets that
-    don't fit the chosen schema are not included. ``time_format`` is always
+def detect_hdf5_config(file_path: str | Path, data_type_key: DataTypeKey) -> Hdf5ImportConfig:
+    """Detect an HDF5 import config under the given variant. Datasets that
+    don't fit the chosen variant are not included. ``time_format`` is always
     left unset: HDF5 timestamps aren't self-describing, so the caller must set
     ``config.time_format`` before importing."""
+    if data_type_key not in _BUILDERS:
+        raise ValueError(
+            f"detect_hdf5_config requires an HDF5 DataTypeKey variant "
+            f"(HDF5_ONE_D, HDF5_TWO_D, or HDF5_COMPOUND); got {data_type_key}."
+        )
     path = Path(file_path)
     with h5py.File(path, "r") as h5file:
-        columns = _BUILDERS[schema](_collect_datasets(h5file))
+        columns = _BUILDERS[data_type_key](_collect_datasets(h5file))
 
     return Hdf5ImportConfig(asset_name="", data=columns)

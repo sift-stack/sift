@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from sift_client.sift_types.channel import Channel
     from sift_client.sift_types.data_import import (
         DataTypeKey,
-        Hdf5Schema,
         ImportConfig,
         TimeFormat,
     )
@@ -661,7 +660,6 @@ class DataImportAPI:
         self,
         file_path: str | Path,
         data_type: DataTypeKey | None = None,
-        schema: Hdf5Schema | None = None,
         time_format: TimeFormat | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
@@ -693,16 +691,14 @@ class DataImportAPI:
         in the metadata row; they are applied server-side during import
         but are not included in the returned config.
 
-        For file types with multiple layouts (e.g. Parquet), ``data_type``
-        must be specified explicitly. HDF5 also has multiple layouts;
-        ``schema`` must be specified for HDF5 files.
+        For file types with multiple supported layouts (Parquet, HDF5),
+        ``data_type`` must be specified explicitly.
 
         Args:
             file_path: Path to the file to analyze.
-            data_type: Explicit data type key. Required for formats like
-                Parquet where the extension alone is ambiguous.
-            schema: Layout override for formats with multiple supported
-                layouts. Required for HDF5 (pass an ``Hdf5Schema``).
+            data_type: Explicit data type key. Required for formats with
+                multiple supported layouts (Parquet, HDF5) where the file
+                extension alone is ambiguous.
             time_format: Time format override. When provided, takes
                 precedence over the format returned by detection. When
                 omitted, the returned config uses the detected format if
@@ -715,8 +711,8 @@ class DataImportAPI:
         Raises:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file extension is unsupported, no supported
-                configuration could be detected, or ``schema`` was
-                omitted for an HDF5 file.
+                configuration could be detected, or ``data_type`` was
+                omitted for a file format that requires a variant.
         """
         ...
 
@@ -746,7 +742,6 @@ class DataImportAPI:
         asset: Asset | str | None = None,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
-        schema: Hdf5Schema | None = None,
         time_format: TimeFormat | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
@@ -802,12 +797,9 @@ class DataImportAPI:
                 the config is auto-detected via ``detect_config``. You can
                 call ``detect_config`` yourself to inspect and modify the
                 config before passing it here.
-            data_type: Explicit data type key. Required for formats like
-                Parquet where the extension alone is ambiguous. Only used
-                when ``config`` is not provided.
-            schema: Layout override for formats with multiple supported
-                layouts. Required for HDF5 (pass an ``Hdf5Schema``) when
-                ``config`` is not provided. Only used when ``config`` is
+            data_type: Explicit data type key. Required for formats with
+                multiple supported layouts (Parquet, HDF5) where the file
+                extension alone is ambiguous. Only used when ``config`` is
                 not provided.
             time_format: Time format override. When provided, takes
                 precedence over the format returned by detection. When

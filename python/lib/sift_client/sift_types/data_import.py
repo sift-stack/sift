@@ -70,40 +70,32 @@ class TimeFormat(Enum):
 
 
 class DataTypeKey(Enum):
-    """Supported file types for data import detection."""
+    """Supported file types and layouts for data import detection."""
 
-    CSV = DATA_TYPE_KEY_CSV
-    PARQUET_FLATDATASET = DATA_TYPE_KEY_PARQUET_FLATDATASET
-    PARQUET_SINGLE_CHANNEL_PER_ROW = DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW
-    TDMS = DATA_TYPE_KEY_TDMS
-    HDF5 = DATA_TYPE_KEY_HDF5
+    CSV = "csv"
+    PARQUET_FLATDATASET = "parquet_flatdataset"
+    PARQUET_SINGLE_CHANNEL_PER_ROW = "parquet_single_channel_per_row"
+    TDMS = "tdms"
+    HDF5_ONE_D = "hdf5_one_d"
+    HDF5_TWO_D = "hdf5_two_d"
+    HDF5_COMPOUND = "hdf5_compound"
+
+
+DATA_TYPE_KEY_TO_PROTO: dict[DataTypeKey, int] = {
+    DataTypeKey.CSV: DATA_TYPE_KEY_CSV,
+    DataTypeKey.PARQUET_FLATDATASET: DATA_TYPE_KEY_PARQUET_FLATDATASET,
+    DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW: DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
+    DataTypeKey.TDMS: DATA_TYPE_KEY_TDMS,
+    DataTypeKey.HDF5_ONE_D: DATA_TYPE_KEY_HDF5,
+    DataTypeKey.HDF5_TWO_D: DATA_TYPE_KEY_HDF5,
+    DataTypeKey.HDF5_COMPOUND: DATA_TYPE_KEY_HDF5,
+}
 
 
 EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
     ".csv": DataTypeKey.CSV,
     ".tdms": DataTypeKey.TDMS,
-    ".h5": DataTypeKey.HDF5,
-    ".hdf5": DataTypeKey.HDF5,
 }
-
-
-class Hdf5Schema(Enum):
-    """Supported HDF5 layouts for auto-detection.
-
-    Attributes:
-        ONE_D: Separate 1D datasets. A per-group time dataset (matched by
-            name against ``time``, ``timestamp``, ``timestamps``, or ``ts``,
-            with an ancestor walk-up when a group has no own time dataset)
-            pairs with sibling 1D value datasets.
-        TWO_D: ``[N, 2]`` datasets where column 0 is time and column 1 is
-            value. Each matching dataset becomes one channel.
-        COMPOUND: Compound (struct-like) datasets whose first member is time
-            and remaining members are value channels.
-    """
-
-    ONE_D = "one_d"
-    TWO_D = "two_d"
-    COMPOUND = "compound"
 
 
 class TimeColumnBase(BaseModel, ABC):
