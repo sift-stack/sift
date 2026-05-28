@@ -321,7 +321,10 @@ fn test_invalid_rfc3339_relative_start_time_returns_error() {
 fn test_time_path_not_in_parquet_returns_error() {
     let batch = create_test_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let args = make_test_args(Some("nonexistent_column"), Some(TimeFormat::AbsoluteUnixSeconds));
+    let args = make_test_args(
+        Some("nonexistent_column"),
+        Some(TimeFormat::AbsoluteUnixSeconds),
+    );
 
     let result = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args);
     assert!(
@@ -442,7 +445,10 @@ fn test_auto_detect_excludes_time_column_from_data_columns() {
     }
 }
 
-fn build_parquet_with_time_field(time_field: Field, time_array: Arc<dyn arrow_array::Array>) -> Bytes {
+fn build_parquet_with_time_field(
+    time_field: Field,
+    time_array: Arc<dyn arrow_array::Array>,
+) -> Bytes {
     let schema = Arc::new(Schema::new(vec![
         time_field,
         Field::new("a", DataType::Int32, false),
@@ -473,7 +479,11 @@ fn test_infer_format_timestamp_second() {
 #[test]
 fn test_infer_format_timestamp_millisecond() {
     let bytes = build_parquet_with_time_field(
-        Field::new("time", DataType::Timestamp(TimeUnit::Millisecond, None), false),
+        Field::new(
+            "time",
+            DataType::Timestamp(TimeUnit::Millisecond, None),
+            false,
+        ),
         Arc::new(TimestampMillisecondArray::from(vec![1, 2, 3])),
     );
     let args = make_test_args(None, None);
@@ -488,7 +498,11 @@ fn test_infer_format_timestamp_millisecond() {
 #[test]
 fn test_infer_format_timestamp_microsecond() {
     let bytes = build_parquet_with_time_field(
-        Field::new("time", DataType::Timestamp(TimeUnit::Microsecond, None), false),
+        Field::new(
+            "time",
+            DataType::Timestamp(TimeUnit::Microsecond, None),
+            false,
+        ),
         Arc::new(TimestampMicrosecondArray::from(vec![1, 2, 3])),
     );
     let args = make_test_args(None, None);
@@ -503,7 +517,11 @@ fn test_infer_format_timestamp_microsecond() {
 #[test]
 fn test_infer_format_timestamp_nanosecond() {
     let bytes = build_parquet_with_time_field(
-        Field::new("time", DataType::Timestamp(TimeUnit::Nanosecond, None), false),
+        Field::new(
+            "time",
+            DataType::Timestamp(TimeUnit::Nanosecond, None),
+            false,
+        ),
         Arc::new(TimestampNanosecondArray::from(vec![1, 2, 3])),
     );
     let args = make_test_args(None, None);
@@ -534,7 +552,11 @@ fn test_infer_format_int64_defaults_to_nanoseconds() {
 fn test_infer_format_utf8_defaults_to_rfc3339() {
     let bytes = build_parquet_with_time_field(
         Field::new("time", DataType::Utf8, false),
-        Arc::new(StringArray::from(vec!["2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z", "2024-01-03T00:00:00Z"])),
+        Arc::new(StringArray::from(vec![
+            "2024-01-01T00:00:00Z",
+            "2024-01-02T00:00:00Z",
+            "2024-01-03T00:00:00Z",
+        ])),
     );
     let args = make_test_args(None, None);
     let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)

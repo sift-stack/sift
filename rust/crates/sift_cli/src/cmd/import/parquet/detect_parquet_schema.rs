@@ -108,9 +108,15 @@ pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
 pub(super) fn infer_time_format_from_arrow(dt: &DataType) -> Option<CliTimeFormat> {
     match dt {
         DataType::Timestamp(TimeUnit::Second, _) => Some(CliTimeFormat::AbsoluteUnixSeconds),
-        DataType::Timestamp(TimeUnit::Millisecond, _) => Some(CliTimeFormat::AbsoluteUnixMilliseconds),
-        DataType::Timestamp(TimeUnit::Microsecond, _) => Some(CliTimeFormat::AbsoluteUnixMicroseconds),
-        DataType::Timestamp(TimeUnit::Nanosecond, _) => Some(CliTimeFormat::AbsoluteUnixNanoseconds),
+        DataType::Timestamp(TimeUnit::Millisecond, _) => {
+            Some(CliTimeFormat::AbsoluteUnixMilliseconds)
+        }
+        DataType::Timestamp(TimeUnit::Microsecond, _) => {
+            Some(CliTimeFormat::AbsoluteUnixMicroseconds)
+        }
+        DataType::Timestamp(TimeUnit::Nanosecond, _) => {
+            Some(CliTimeFormat::AbsoluteUnixNanoseconds)
+        }
         DataType::Int64 => Some(CliTimeFormat::AbsoluteUnixNanoseconds),
         DataType::Utf8 | DataType::LargeUtf8 => Some(CliTimeFormat::AbsoluteRfc3339),
         _ => None,
