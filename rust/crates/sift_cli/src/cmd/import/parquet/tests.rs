@@ -337,10 +337,7 @@ fn test_time_path_not_in_parquet_returns_error() {
     );
 }
 
-fn make_channel_per_row_args(
-    mode: ChannelMode,
-    time_format: TimeFormat,
-) -> ChannelPerRowArgs {
+fn make_channel_per_row_args(mode: ChannelMode, time_format: TimeFormat) -> ChannelPerRowArgs {
     ChannelPerRowArgs {
         common: CommonImportArgs {
             path: PathBuf::from("test.parquet"),

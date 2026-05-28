@@ -32,8 +32,8 @@ pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     let mut file = File::open(&args.common.path).context("failed to open parquet file")?;
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
-    let channel_per_row_config = detect_channel_per_row_config(&file, &args)
-        .context("failed to detect parquet schema")?;
+    let channel_per_row_config =
+        detect_channel_per_row_config(&file, &args).context("failed to detect parquet schema")?;
 
     if args.common.preview {
         let run_label = args
