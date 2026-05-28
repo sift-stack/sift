@@ -739,9 +739,7 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
         _write_count_row(terminalreporter, "Measurements", measurement_segments)
 
     # Provenance row: test system and operator.
-    system = " · ".join(
-        part for part in (report.test_system_name, report.system_operator) if part
-    )
+    system = " · ".join(part for part in (report.test_system_name, report.system_operator) if part)
     if system:
         _sift_kv(terminalreporter, "System", system)
 
@@ -773,11 +771,7 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
             f"id {report_id}  (set sift_report_url_base for a clickable link)",
         )
 
-    if (
-        report_id
-        and getattr(context, "replay_incomplete", False)
-        and log_file is not None
-    ):
+    if report_id and getattr(context, "replay_incomplete", False) and log_file is not None:
         _sift_kv(
             terminalreporter,
             "",

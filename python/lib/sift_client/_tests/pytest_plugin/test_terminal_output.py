@@ -28,9 +28,7 @@ if TYPE_CHECKING:
 
 class TestStepCountSegments:
     def test_lists_nonzero_statuses_in_order_with_color(self) -> None:
-        counts = Counter(
-            {TestStatus.PASSED: 4, TestStatus.FAILED: 2, TestStatus.SKIPPED: 1}
-        )
+        counts = Counter({TestStatus.PASSED: 4, TestStatus.FAILED: 2, TestStatus.SKIPPED: 1})
         assert _step_count_segments(counts) == [
             ("4 passed", {"green": True}),
             ("2 failed", {"red": True}),
