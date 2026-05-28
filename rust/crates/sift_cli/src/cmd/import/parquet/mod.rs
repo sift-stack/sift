@@ -4,7 +4,7 @@ use unix::FooterMetadata;
 #[cfg(target_os = "windows")]
 use windows::{FooterMetadata, get_footer};
 
-pub mod cpr_dataset;
+pub mod channel_per_row_dataset;
 pub mod detect_parquet_schema;
 pub mod flat_dataset;
 

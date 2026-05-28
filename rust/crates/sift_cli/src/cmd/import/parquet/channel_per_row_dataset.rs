@@ -11,12 +11,12 @@ use sift_rs::{
         CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse,
         ParquetComplexTypesImportMode, ParquetConfig,
         data_import_service_client::DataImportServiceClient, parquet_config::Config,
-        parquet_single_channel_per_row_config::Config as CprInnerConfig,
+        parquet_single_channel_per_row_config::Config as ChannelPerRowInnerConfig,
     },
 };
 
-use crate::cli::CprArgs;
-use crate::cmd::import::parquet::detect_parquet_schema::detect_cpr_config;
+use crate::cli::ChannelPerRowArgs;
+use crate::cmd::import::parquet::detect_parquet_schema::detect_channel_per_row_config;
 use crate::cmd::{
     Context,
     import::{
@@ -26,13 +26,14 @@ use crate::cmd::{
 };
 use crate::util::{api::create_grpc_channel, tty::Output};
 
-pub async fn run(ctx: Context, args: CprArgs) -> Result<ExitCode> {
+pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
     let mut data_imports_client = DataImportServiceClient::new(grpc_channel.clone());
     let mut file = File::open(&args.common.path).context("failed to open parquet file")?;
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
-    let cpr_config = detect_cpr_config(&file, &args).context("failed to detect parquet schema")?;
+    let channel_per_row_config = detect_channel_per_row_config(&file, &args)
+        .context("failed to detect parquet schema")?;
 
     if args.common.preview {
         let run_label = args
@@ -43,9 +44,9 @@ pub async fn run(ctx: Context, args: CprArgs) -> Result<ExitCode> {
             .or(args.common.run.as_deref())
             .unwrap_or("");
 
-        let multi_channels: Vec<ChannelConfig> = match cpr_config.config.as_ref() {
-            Some(CprInnerConfig::MultiChannel(multi)) => {
-                let data_type = cpr_config
+        let multi_channels: Vec<ChannelConfig> = match channel_per_row_config.config.as_ref() {
+            Some(ChannelPerRowInnerConfig::MultiChannel(multi)) => {
+                let data_type = channel_per_row_config
                     .columns
                     .iter()
                     .find(|c| c.path == multi.data_path)
@@ -67,9 +68,11 @@ pub async fn run(ctx: Context, args: CprArgs) -> Result<ExitCode> {
             _ => Vec::new(),
         };
 
-        let preview_channels: Vec<&ChannelConfig> = match cpr_config.config.as_ref() {
-            Some(CprInnerConfig::SingleChannel(single)) => single.channel.iter().collect(),
-            Some(CprInnerConfig::MultiChannel(_)) => multi_channels.iter().collect(),
+        let preview_channels: Vec<&ChannelConfig> = match channel_per_row_config.config.as_ref() {
+            Some(ChannelPerRowInnerConfig::SingleChannel(single)) => {
+                single.channel.iter().collect()
+            }
+            Some(ChannelPerRowInnerConfig::MultiChannel(_)) => multi_channels.iter().collect(),
             None => Vec::new(),
         };
 
@@ -78,7 +81,7 @@ pub async fn run(ctx: Context, args: CprArgs) -> Result<ExitCode> {
     }
 
     let parquet_config = ParquetConfig {
-        config: Some(Config::SingleChannelPerRow(cpr_config)),
+        config: Some(Config::SingleChannelPerRow(channel_per_row_config)),
         ..Default::default()
     };
     let create_data_import_req = create_data_import_request(&args, parquet_config, footer_md)?;
@@ -113,7 +116,7 @@ pub async fn run(ctx: Context, args: CprArgs) -> Result<ExitCode> {
 }
 
 fn create_data_import_request(
-    args: &CprArgs,
+    args: &ChannelPerRowArgs,
     config: ParquetConfig,
     footer_md: FooterMetadata,
 ) -> Result<CreateDataImportFromUploadRequest> {

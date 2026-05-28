@@ -1,10 +1,10 @@
 use crate::cli::channel::DataType as CliDataType;
 use crate::cli::{
-    CommonImportArgs, CprArgs, FlatDatasetArgs,
-    parquet::{ComplexTypesMode, CprMode},
+    ChannelPerRowArgs, CommonImportArgs, FlatDatasetArgs,
+    parquet::{ChannelPerRowMode, ComplexTypesMode},
     time::TimeFormat,
 };
-use crate::cmd::import::parquet::cpr_dataset;
+use crate::cmd::import::parquet::channel_per_row_dataset;
 use crate::cmd::import::parquet::detect_parquet_schema::{self, arrow_type_to_channel_data_type};
 use arrow_array::{
     BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
@@ -337,8 +337,11 @@ fn test_time_path_not_in_parquet_returns_error() {
     );
 }
 
-fn make_cpr_args(mode: CprMode, time_format: TimeFormat) -> CprArgs {
-    CprArgs {
+fn make_channel_per_row_args(
+    mode: ChannelPerRowMode,
+    time_format: TimeFormat,
+) -> ChannelPerRowArgs {
+    ChannelPerRowArgs {
         common: CommonImportArgs {
             path: PathBuf::from("test.parquet"),
             asset: "test-asset".into(),
@@ -361,7 +364,7 @@ fn make_cpr_args(mode: CprMode, time_format: TimeFormat) -> CprArgs {
     }
 }
 
-fn create_cpr_single_batch() -> RecordBatch {
+fn create_channel_per_row_single_batch() -> RecordBatch {
     let schema = Arc::new(Schema::new(vec![
         Field::new("timestamp", DataType::Int64, false),
         Field::new("value", DataType::Float64, false),
@@ -373,10 +376,10 @@ fn create_cpr_single_batch() -> RecordBatch {
             Arc::new(Float64Array::from(vec![10.0, 20.0, 30.0])),
         ],
     )
-    .expect("failed to create cpr single batch")
+    .expect("failed to create channel-per-row single batch")
 }
 
-fn create_cpr_multi_batch(names: Vec<&str>) -> RecordBatch {
+fn create_channel_per_row_multi_batch(names: Vec<&str>) -> RecordBatch {
     let n = names.len();
     let schema = Arc::new(Schema::new(vec![
         Field::new("timestamp", DataType::Int64, false),
@@ -393,18 +396,19 @@ fn create_cpr_multi_batch(names: Vec<&str>) -> RecordBatch {
             Arc::new(StringArray::from(names)),
         ],
     )
-    .expect("failed to create cpr multi batch")
+    .expect("failed to create channel-per-row multi batch")
 }
 
 #[test]
-fn test_detect_cpr_single_basic_infers_data_type() {
-    let batch = create_cpr_single_batch();
+fn test_detect_channel_per_row_single_basic_infers_data_type() {
+    let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_cpr_args(CprMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args =
+        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
 
-    let cfg = detect_parquet_schema::detect_cpr_config(&bytes, &args)
-        .expect("detect_cpr_config should succeed");
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("detect_channel_per_row_config should succeed");
 
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
     let inner = cfg.config.as_ref().expect("inner config present");
@@ -421,14 +425,15 @@ fn test_detect_cpr_single_basic_infers_data_type() {
 }
 
 #[test]
-fn test_detect_cpr_single_honors_data_type_override() {
-    let batch = create_cpr_single_batch();
+fn test_detect_channel_per_row_single_honors_data_type_override() {
+    let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_cpr_args(CprMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args =
+        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.data_type = Some(CliDataType::Float);
 
-    let cfg = detect_parquet_schema::detect_cpr_config(&bytes, &args).unwrap();
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
 
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
     let InnerConfig::SingleChannel(single) = cfg.config.as_ref().unwrap() else {
@@ -442,15 +447,16 @@ fn test_detect_cpr_single_honors_data_type_override() {
 }
 
 #[test]
-fn test_detect_cpr_single_propagates_units_and_description() {
-    let batch = create_cpr_single_batch();
+fn test_detect_channel_per_row_single_propagates_units_and_description() {
+    let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_cpr_args(CprMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args =
+        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.unit = Some("celsius".into());
     args.description = Some("ambient temperature".into());
 
-    let cfg = detect_parquet_schema::detect_cpr_config(&bytes, &args).unwrap();
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
     let InnerConfig::SingleChannel(single) = cfg.config.as_ref().unwrap() else {
         panic!("expected SingleChannel variant");
@@ -461,14 +467,15 @@ fn test_detect_cpr_single_propagates_units_and_description() {
 }
 
 #[test]
-fn test_detect_cpr_multi_basic() {
-    let batch = create_cpr_multi_batch(vec!["a", "b", "c"]);
+fn test_detect_channel_per_row_multi_basic() {
+    let batch = create_channel_per_row_multi_batch(vec!["a", "b", "c"]);
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_cpr_args(CprMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args =
+        make_channel_per_row_args(ChannelPerRowMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
     args.name_path = Some("channel".into());
 
-    let cfg = detect_parquet_schema::detect_cpr_config(&bytes, &args)
-        .expect("detect_cpr_config multi should succeed");
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("detect_channel_per_row_config multi should succeed");
 
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
     let InnerConfig::MultiChannel(multi) = cfg.config.as_ref().unwrap() else {
@@ -489,14 +496,15 @@ fn test_detect_cpr_multi_basic() {
 }
 
 #[test]
-fn test_detect_cpr_missing_time_column_errors() {
-    let batch = create_cpr_single_batch();
+fn test_detect_channel_per_row_missing_time_column_errors() {
+    let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_cpr_args(CprMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args =
+        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.time_path = "nonexistent_time".into();
 
-    let err = detect_parquet_schema::detect_cpr_config(&bytes, &args).unwrap_err();
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
     assert!(
         err.chain().any(|e| e.to_string().contains("time column")),
         "expected time column error, got: {err:#}"
@@ -504,14 +512,15 @@ fn test_detect_cpr_missing_time_column_errors() {
 }
 
 #[test]
-fn test_detect_cpr_missing_data_column_errors() {
-    let batch = create_cpr_single_batch();
+fn test_detect_channel_per_row_missing_data_column_errors() {
+    let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_cpr_args(CprMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args =
+        make_channel_per_row_args(ChannelPerRowMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
     args.channel_name = Some("temperature".into());
     args.data_path = "nonexistent_value".into();
 
-    let err = detect_parquet_schema::detect_cpr_config(&bytes, &args).unwrap_err();
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
     assert!(
         err.chain().any(|e| e.to_string().contains("data column")),
         "expected data column error, got: {err:#}"
@@ -519,13 +528,14 @@ fn test_detect_cpr_missing_data_column_errors() {
 }
 
 #[test]
-fn test_detect_cpr_multi_missing_name_column_errors() {
-    let batch = create_cpr_multi_batch(vec!["a"]);
+fn test_detect_channel_per_row_multi_missing_name_column_errors() {
+    let batch = create_channel_per_row_multi_batch(vec!["a"]);
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_cpr_args(CprMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args =
+        make_channel_per_row_args(ChannelPerRowMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
     args.name_path = Some("nonexistent_name".into());
 
-    let err = detect_parquet_schema::detect_cpr_config(&bytes, &args).unwrap_err();
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
     assert!(
         err.chain().any(|e| e.to_string().contains("name column")),
         "expected name column error, got: {err:#}"
@@ -534,7 +544,7 @@ fn test_detect_cpr_multi_missing_name_column_errors() {
 
 #[test]
 fn test_discover_multi_channel_names_for_preview_dedups_and_sorts() {
-    let batch = create_cpr_multi_batch(vec![
+    let batch = create_channel_per_row_multi_batch(vec![
         "voltage",
         "temperature",
         "pressure",
@@ -543,17 +553,18 @@ fn test_discover_multi_channel_names_for_preview_dedups_and_sorts() {
     ]);
     let bytes = write_to_parquet_bytes(&batch);
 
-    let names = cpr_dataset::discover_multi_channel_names_for_preview(bytes, "channel")
+    let names = channel_per_row_dataset::discover_multi_channel_names_for_preview(bytes, "channel")
         .expect("discovery should succeed");
     assert_eq!(names, vec!["pressure", "temperature", "voltage"]);
 }
 
 #[test]
 fn test_discover_multi_channel_names_for_preview_errors_on_non_string_column() {
-    let batch = create_cpr_single_batch();
+    let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
 
-    let err = cpr_dataset::discover_multi_channel_names_for_preview(bytes, "value").unwrap_err();
+    let err = channel_per_row_dataset::discover_multi_channel_names_for_preview(bytes, "value")
+        .unwrap_err();
     assert!(
         err.chain()
             .any(|e| e.to_string().contains("must be a string type")),
@@ -563,11 +574,12 @@ fn test_discover_multi_channel_names_for_preview_errors_on_non_string_column() {
 
 #[test]
 fn test_discover_multi_channel_names_for_preview_missing_column_errors() {
-    let batch = create_cpr_multi_batch(vec!["a"]);
+    let batch = create_channel_per_row_multi_batch(vec!["a"]);
     let bytes = write_to_parquet_bytes(&batch);
 
     let err =
-        cpr_dataset::discover_multi_channel_names_for_preview(bytes, "no_such_col").unwrap_err();
+        channel_per_row_dataset::discover_multi_channel_names_for_preview(bytes, "no_such_col")
+            .unwrap_err();
     assert!(
         err.chain().any(|e| e.to_string().contains("not found")),
         "expected not-found error, got: {err:#}"

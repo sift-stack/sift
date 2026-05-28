@@ -41,14 +41,14 @@ impl Display for ComplexTypesMode {
 
 /// Channel-per-row mode: tells the importer how each row is shaped.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
-pub enum CprMode {
+pub enum ChannelPerRowMode {
     /// File has [time, value]. All rows belong to one named channel.
     Single,
     /// File has [time, name_column, value_column]. Channels created per unique name.
     Multi,
 }
 
-impl Display for CprMode {
+impl Display for ChannelPerRowMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Single => write!(f, "single"),
