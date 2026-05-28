@@ -16,6 +16,7 @@ Highlights:
 - **Pass/fail mapping.** Every pytest outcome (pass, assertion failure, exception, skip, xfail, hard exit) maps to a `TestStatus` and propagates to parent steps and the report. `step.measure(...)` returns a pass/fail boolean without raising, so all measurements land in the report even when one fails; `step.fail_if_measurements_failed()` fails the test at the end without adding assertion noise to `error_info`.
 - **Assertion messages as error info.** Assertion failure messages are reported as the step's error info.
 - **Git metadata.** Repo, branch, and commit are captured on the report automatically.
+- **Terminal output.** The plugin prints a session header with the SDK version and active mode, and an end-of-run `Sift report` panel showing the test case, outcome, step and measurement breakdowns (color-coded), test system/operator, plus a link to the report (online), the saved log and upload command (offline), or a disabled note. Both suppress under `-q`. `SiftClient.app_url` exposes the web-app origin; set `sift_report_url_base` for on-prem or custom deployments. `--sift-open-report` opens the report in a browser at session end.
 
 See the [Pytest Plugin guide](https://github.com/sift-stack/sift/blob/main/python/docs/guides/pytest_plugin/index.md) and the runnable quickstart example for full configuration.
 

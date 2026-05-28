@@ -410,6 +410,38 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"], Simulat
     # Set by the low-level wrapper when this instance came from the simulate path
     _simulated: bool = False
 
+    def __str__(self) -> str:
+        """Human-readable form: ``[STATUS] name = value [unit] (bounds)``.
+
+        Used for failure messages, logs, and the REPL. The string omits whichever
+        parts aren't set (no unit, no bounds), and falls back to ``?`` if no
+        value type is populated. The status prefix reflects ``self.passed``.
+        """
+        status = "PASSED" if self.passed else "FAILED"
+        if self.numeric_value is not None:
+            value = f"{self.numeric_value}"
+            if self.unit:
+                value += f" {self.unit}"
+        elif self.string_value is not None:
+            value = repr(self.string_value)
+        elif self.boolean_value is not None:
+            value = str(self.boolean_value).lower()
+        else:
+            value = "?"
+        bounds = ""
+        nb = self.numeric_bounds
+        if nb is not None:
+            parts: list[str] = []
+            if nb.min is not None:
+                parts.append(f"min {nb.min}")
+            if nb.max is not None:
+                parts.append(f"max {nb.max}")
+            if parts:
+                bounds = f" ({', '.join(parts)})"
+        elif self.string_expected_value:
+            bounds = f" (expected {self.string_expected_value!r})"
+        return f"[{status}] {self.name} = {value}{bounds}"
+
     @classmethod
     def _from_proto(
         cls, proto: TestMeasurementProto, sift_client: SiftClient | None = None
