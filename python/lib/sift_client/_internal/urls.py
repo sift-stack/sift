@@ -19,7 +19,7 @@ _API_HOST_TO_FRONTEND_ORIGIN: dict[str, str] = {
 }
 
 
-def _origin(url: str) -> str:
+def parse_origin(url: str) -> str:
     """Normalize a URL or bare host into a ``scheme://host[:port]`` origin.
 
     Bare hosts (no scheme) are assumed to be ``https``.
@@ -29,7 +29,7 @@ def _origin(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
 
 
-def _host(url: str) -> str:
+def parse_host(url: str) -> str:
     """Extract ``host[:port]`` from a URL or bare host string."""
     candidate = url if "://" in url else f"https://{url}"
     return urlparse(candidate).netloc
@@ -49,7 +49,7 @@ def frontend_origin_for_api(api_base_url: str, override: str | None = None) -> s
         when no override is given and the API host isn't recognized.
     """
     if override:
-        return _origin(override)
+        return parse_origin(override)
     if not api_base_url:
         return None
-    return _API_HOST_TO_FRONTEND_ORIGIN.get(_host(api_base_url))
+    return _API_HOST_TO_FRONTEND_ORIGIN.get(parse_host(api_base_url))
