@@ -70,20 +70,31 @@ class TimeFormat(Enum):
 
 
 class DataTypeKey(Enum):
-    """Supported file types for data import detection."""
+    """Supported file types and layouts for data import detection."""
 
-    CSV = DATA_TYPE_KEY_CSV
-    PARQUET_FLATDATASET = DATA_TYPE_KEY_PARQUET_FLATDATASET
-    PARQUET_SINGLE_CHANNEL_PER_ROW = DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW
-    TDMS = DATA_TYPE_KEY_TDMS
-    HDF5 = DATA_TYPE_KEY_HDF5
+    CSV = "csv"
+    PARQUET_FLATDATASET = "parquet_flatdataset"
+    PARQUET_SINGLE_CHANNEL_PER_ROW = "parquet_single_channel_per_row"
+    TDMS = "tdms"
+    HDF5_ONE_D = "hdf5_one_d"
+    HDF5_TWO_D = "hdf5_two_d"
+    HDF5_COMPOUND = "hdf5_compound"
+
+
+DATA_TYPE_KEY_TO_PROTO = {
+    DataTypeKey.CSV: DATA_TYPE_KEY_CSV,
+    DataTypeKey.PARQUET_FLATDATASET: DATA_TYPE_KEY_PARQUET_FLATDATASET,
+    DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW: DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
+    DataTypeKey.TDMS: DATA_TYPE_KEY_TDMS,
+    DataTypeKey.HDF5_ONE_D: DATA_TYPE_KEY_HDF5,
+    DataTypeKey.HDF5_TWO_D: DATA_TYPE_KEY_HDF5,
+    DataTypeKey.HDF5_COMPOUND: DATA_TYPE_KEY_HDF5,
+}
 
 
 EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
     ".csv": DataTypeKey.CSV,
     ".tdms": DataTypeKey.TDMS,
-    ".h5": DataTypeKey.HDF5,
-    ".hdf5": DataTypeKey.HDF5,
 }
 
 
@@ -100,7 +111,11 @@ class TimeColumnBase(BaseModel, ABC):
 
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> TimeColumnBase:
-        if self.format.name.startswith("RELATIVE_") and self.relative_start_time is None:
+        if (
+            self.format is not None
+            and self.format.name.startswith("RELATIVE_")
+            and self.relative_start_time is None
+        ):
             raise ValueError(
                 f"'relative_start_time' is required when using a relative time format ({self.format.name})."
             )
@@ -260,15 +275,25 @@ class ParquetTimeColumn(TimeColumnBase):
 
     Attributes:
         path: The column path in the Parquet schema (e.g. ``"timestamp"``).
-        format: The time format. Defaults to ``ABSOLUTE_UNIX_NANOSECONDS``.
+        format: The time format. Optional at construction so that
+            ``detect_config`` / ``import_from_path`` can apply the standard
+            precedence chain (caller-passed ``time_format`` > server-detected
+            format > ``ABSOLUTE_UNIX_NANOSECONDS`` fallback). Importing
+            without a format set raises ``ValueError``.
     """
 
     path: str
-    format: TimeFormat = TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+    format: TimeFormat | None = None  # type: ignore[assignment]
 
     def _to_proto(self) -> ParquetTimeColumnProto:
         if not self.path:
             raise ValueError("ParquetTimeColumn.path must be set before importing.")
+        if self.format is None:
+            raise ValueError(
+                "ParquetTimeColumn.format must be set before importing. "
+                "Pass time_format to detect_config/import_from_path, or set "
+                "config.time_column.format explicitly."
+            )
         proto = ParquetTimeColumnProto(
             path=self.path,
             format=self.format.value,
@@ -285,7 +310,7 @@ class ParquetTimeColumn(TimeColumnBase):
 
             relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
 
-        fmt = TimeFormat(proto.format) if proto.format else TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+        fmt = TimeFormat(proto.format) if proto.format else None
         return cls(
             path=proto.path or "",
             format=fmt,
@@ -746,12 +771,15 @@ class Hdf5ImportConfig(ImportConfigBase):
 
     Attributes:
         data: List of dataset mappings, each pairing a time and value dataset to a channel.
-        time_format: The time format used across all time datasets.
+        time_format: The time format used across all time datasets. Always
+            left unset by ``detect_config``: HDF5 timestamps aren't self-describing,
+            so the caller must set this before importing. Importing without it
+            raises ``ValueError``.
         relative_start_time: Required when using a relative time format.
     """
 
     data: list[Hdf5DataColumn]
-    time_format: TimeFormat
+    time_format: TimeFormat | None = None
     relative_start_time: datetime | None = None
 
     def __getitem__(self, name: str) -> Hdf5DataColumn:
@@ -768,13 +796,23 @@ class Hdf5ImportConfig(ImportConfigBase):
 
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> Hdf5ImportConfig:
-        if self.time_format.name.startswith("RELATIVE_") and self.relative_start_time is None:
+        if (
+            self.time_format is not None
+            and self.time_format.name.startswith("RELATIVE_")
+            and self.relative_start_time is None
+        ):
             raise ValueError(
                 f"'relative_start_time' is required when using a relative time format ({self.time_format.name})."
             )
         return self
 
     def _to_proto(self) -> Hdf5ConfigProto:
+        if self.time_format is None:
+            raise ValueError(
+                "time_format is required to import HDF5 files. Set "
+                "config.time_format explicitly (e.g. TimeFormat.ABSOLUTE_UNIX_NANOSECONDS "
+                "or TimeFormat.ABSOLUTE_DATETIME) before importing."
+            )
         proto = Hdf5ConfigProto(
             asset_name=self.asset_name,
             run_name=self.run_name or "",

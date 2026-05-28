@@ -78,7 +78,9 @@ def parquet_config():
     return ParquetFlatDatasetImportConfig(
         asset_name="test_asset",
         run_name="test_run",
-        time_column=ParquetTimeColumn(path="timestamp"),
+        time_column=ParquetTimeColumn(
+            path="timestamp", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+        ),
         data_columns=[
             ParquetDataColumn(path="cpu_util", name="cpu_util", data_type=ChannelDataType.DOUBLE),
             ParquetDataColumn(
@@ -299,6 +301,15 @@ class TestHdf5Config:
         proto = config._to_proto()
         assert not proto.HasField("relative_start_time")
 
+    def test_missing_time_format_raises_on_to_proto(self):
+        """HDF5 timestamps aren't self-describing, so an unset time_format
+        must fail loudly at upload rather than be silently defaulted.
+        """
+        config = Hdf5ImportConfig(asset_name="my_asset", data=[])
+        assert config.time_format is None
+        with pytest.raises(ValueError, match="time_format is required"):
+            config._to_proto()
+
 
 class TestCsvToProto:
     def test_to_proto(self, csv_config):
@@ -343,7 +354,7 @@ class TestParquetToProto:
 
         config = ParquetSingleChannelPerRowImportConfig(
             asset_name="a",
-            time_column=ParquetTimeColumn(path="ts"),
+            time_column=ParquetTimeColumn(path="ts", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS),
             single_channel=ParquetSingleChannelConfig(
                 data_path="value",
                 name="voltage",
@@ -359,8 +370,18 @@ class TestParquetToProto:
 
 class TestParquetTimeColumnToProto:
     def test_empty_path_raises(self):
-        col = ParquetTimeColumn(path="")
+        col = ParquetTimeColumn(path="", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
         with pytest.raises(ValueError, match="path must be set"):
+            col._to_proto()
+
+    def test_missing_format_raises(self):
+        """An unset format must fail loudly at upload rather than be silently
+        defaulted; the precedence chain in detect_config/import_from_path is
+        the supported way to populate it.
+        """
+        col = ParquetTimeColumn(path="timestamp")
+        assert col.format is None
+        with pytest.raises(ValueError, match="format must be set"):
             col._to_proto()
 
 
