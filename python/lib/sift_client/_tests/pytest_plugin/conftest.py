@@ -29,7 +29,7 @@ from typing import Callable
 
 import pytest
 
-_SIFT_ENV_VARS = ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI", "SIFT_DISABLED")
+_SIFT_ENV_VARS = ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI", "SIFT_DISABLED", "SIFT_APP_URL")
 
 
 @pytest.fixture

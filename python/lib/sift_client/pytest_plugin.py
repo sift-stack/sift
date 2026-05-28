@@ -15,6 +15,7 @@ from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import ErrorInfo, TestStatus
 from sift_client.util.test_results import ReportContext
 from sift_client.util.test_results.context_manager import (
+    _quiet_fork_stderr,
     format_assertion_message,
     format_truncated_traceback,
 )
@@ -41,6 +42,12 @@ if TYPE_CHECKING:
     from sift_client.util.test_results.context_manager import NewStep
 
 REPORT_CONTEXT: Any = None
+
+# Set at session end with the resolved (real) report id/URL when online and
+# uploaded. Read from a project's conftest in a later hook (e.g.
+# ``pytest_unconfigure``) to post the link, write a file, etc.
+SIFT_REPORT_ID_STASH_KEY = pytest.StashKey[str]()
+SIFT_REPORT_URL_STASH_KEY = pytest.StashKey[str]()
 
 _STASH_MISSING = object()
 
@@ -297,6 +304,33 @@ _REST_URI = _Option(
     "this ini value.",
 )
 
+_REPORT_URL_BASE = _Option(
+    cli_flag="--sift-report-url-base",
+    ini_name="sift_report_url_base",
+    cli_help="Sift web-app origin used to build the clickable report link in the "
+    "terminal footer (e.g. https://app.siftstack.com). Set this for on-prem or "
+    "custom deployments whose API host can't be mapped to a frontend "
+    "automatically. Also honored via the SIFT_APP_URL env var. When unset, the "
+    "link is derived from the REST URI for known Sift hosts.",
+    ini_help="Default for --sift-report-url-base. The Sift web-app origin used to "
+    "build the report link in the terminal footer. Also honored via the "
+    "SIFT_APP_URL env var. When unset, the link is derived from the REST URI for "
+    "known Sift hosts.",
+)
+
+_OPEN = _Option(
+    cli_flag="--sift-open-report",
+    ini_name="sift_open_report",
+    action="store_true",
+    cli_help="Open the resulting Sift test report in a browser at session end. "
+    "Online mode only; no-op when the report URL can't be resolved. Intended for "
+    "local development.",
+    ini_help="When true, open the report in a browser at session end (online only). "
+    "Defaults to false.",
+    ini_type="bool",
+    ini_default=False,
+)
+
 _AUTOUSE = _Option(
     ini_name="sift_autouse",
     ini_help="Default for the Sift autouse fixtures (report_context, step, "
@@ -350,6 +384,8 @@ _OPTIONS: tuple[_Option, ...] = (
     _DISABLED,
     _GRPC_URI,
     _REST_URI,
+    _REPORT_URL_BASE,
+    _OPEN,
     _AUTOUSE,
     _PACKAGE_STEP,
     _MODULE_STEP,
@@ -443,6 +479,311 @@ def _is_disabled(pytestconfig: pytest.Config | None) -> bool:
     if bool(_option_or_ini(pytestconfig, _DISABLED)):
         return True
     return os.getenv("SIFT_DISABLED", "").lower() in ("1", "true", "yes")
+
+
+def _sdk_version() -> str:
+    """Return the installed ``sift_stack_py`` version, or ``"unknown"``."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("sift_stack_py")
+    except PackageNotFoundError:
+        return "unknown"
+
+
+def _mode_label(config: pytest.Config) -> str:
+    """Resolve the active mode for the terminal header: disabled > offline > online."""
+    if _is_disabled(config):
+        return "disabled"
+    if _is_offline(config):
+        return "offline"
+    return "online"
+
+
+def pytest_report_header(config: pytest.Config) -> str | None:
+    """Emit a session-start header with the SDK version and active mode.
+
+    Suppressed under ``-q`` (negative verbosity), matching how pytest hides its
+    own platform/plugin header.
+    """
+    if config.get_verbosity() < 0:
+        return None
+    return f"Sift: sift-stack-py {_sdk_version()} — {_mode_label(config)} mode"
+
+
+def _resolve_real_report_id(context: Any) -> str | None:
+    """Resolve the real server-side report id for the online footer link.
+
+    In synchronous online mode (``--sift-log-file=false``) the report is created
+    directly against the API, so ``report.id_`` is already the real id. In the
+    default incremental mode the report is created through the simulate path
+    (a client-side UUID) and the background worker maps it to the real id on
+    replay, recording it in the ``<log>.tracking`` sidecar's ``id_map``. By the
+    time this footer runs the session-scoped report context has torn down and
+    the worker has drained, so the sidecar is final.
+
+    Returns ``None`` when the worker never mapped the report (e.g. it died before
+    replaying the create), meaning no real report exists to link.
+    """
+    report = context.report
+    if not report.id_:
+        # No id was ever assigned (unset/empty); nothing to link.
+        return None
+    sim_id = str(report.id_)
+    if not getattr(report, "is_simulated", False):
+        return sim_id
+    log_file = getattr(context, "log_file", None)
+    if log_file is None:
+        return None
+    from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
+
+    return LogTracking.load(log_file).id_map.get(sim_id)
+
+
+_LABEL_WIDTH = 13
+
+
+def _sift_kv(terminalreporter: Any, label: str, value: str, **value_markup: bool) -> None:
+    """Write an indented ``label  value`` row, bolding the label.
+
+    ``value_markup`` (e.g. ``green=True``, ``cyan=True``) styles only the value.
+    Color is dropped automatically when the terminal has no markup (not a TTY or
+    ``--color=no``), so captured/CI output stays plain text.
+    """
+    terminalreporter.write("  ")
+    terminalreporter.write(f"{label:<{_LABEL_WIDTH}}", bold=True)
+    terminalreporter.write_line(value, **value_markup)
+
+
+# Step-count breakdown order and labels for the footer's "Steps" row.
+_STEP_COUNT_ORDER: tuple[tuple[TestStatus, str], ...] = (
+    (TestStatus.PASSED, "passed"),
+    (TestStatus.FAILED, "failed"),
+    (TestStatus.ERROR, "error"),
+    (TestStatus.ABORTED, "aborted"),
+    (TestStatus.SKIPPED, "skipped"),
+    (TestStatus.IN_PROGRESS, "in progress"),
+)
+
+
+# Per-status color for the footer's step breakdown: green pass, red
+# failure/error/abort, yellow skip; in-progress (and anything else) stays plain.
+_STEP_STATUS_MARKUP: dict[TestStatus, dict[str, bool]] = {
+    TestStatus.PASSED: {"green": True},
+    TestStatus.FAILED: {"red": True},
+    TestStatus.ERROR: {"red": True},
+    TestStatus.ABORTED: {"red": True},
+    TestStatus.SKIPPED: {"yellow": True},
+}
+
+
+def _step_count_segments(counts: Any) -> list[tuple[str, dict[str, bool]]]:
+    """Build ``(text, markup)`` segments for a step tally, non-zero only."""
+    return [
+        (f"{counts.get(status, 0)} {label}", _STEP_STATUS_MARKUP.get(status, {}))
+        for status, label in _STEP_COUNT_ORDER
+        if counts.get(status, 0)
+    ]
+
+
+def _measurement_segments(counts: Any) -> list[tuple[str, dict[str, bool]]]:
+    """Build ``(text, markup)`` segments for a measurement tally, non-zero only."""
+    segments: list[tuple[str, dict[str, bool]]] = []
+    if counts.get(True, 0):
+        segments.append((f"{counts[True]} passed", {"green": True}))
+    if counts.get(False, 0):
+        segments.append((f"{counts[False]} failed", {"red": True}))
+    return segments
+
+
+def _write_count_row(
+    terminalreporter: Any, label: str, segments: list[tuple[str, dict[str, bool]]]
+) -> None:
+    """Write a ``label  a · b · c`` row, applying each segment's color markup."""
+    terminalreporter.write("  ")
+    terminalreporter.write(f"{label:<{_LABEL_WIDTH}}", bold=True)
+    for index, (text, markup) in enumerate(segments):
+        if index:
+            terminalreporter.write(" · ")
+        terminalreporter.write(text, **markup)
+    terminalreporter.write_line("")
+
+
+def _report_panel_title(report: Any, terminalreporter: Any) -> str:
+    """``Sift report · <name>`` for the section rule, truncated to the terminal width.
+
+    The report name embeds a timestamp (and, for invocation-based runs, the
+    pytest args), so a long name is truncated with an ellipsis to keep the
+    separator line from wrapping.
+    """
+    base = "Sift report"
+    name = getattr(report, "name", None)
+    if not name:
+        return base
+    title = f"{base} · {name}"
+    fullwidth = getattr(getattr(terminalreporter, "_tw", None), "fullwidth", 80)
+    # Reserve room for the separator characters and spaces write_sep adds.
+    limit = max(len(base), fullwidth - 8)
+    if len(title) > limit:
+        title = title[: limit - 1] + "…"
+    return title
+
+
+def _maybe_open_report(url: str) -> None:
+    """Best-effort open the report URL in a browser (for ``--sift-open-report``).
+
+    Skipped on CI or non-interactive sessions so a committed ``sift_open_report``
+    setting can't spawn a browser on a headless agent; the flag is meant for
+    local development.
+    """
+    import sys
+    import webbrowser
+
+    if os.environ.get("CI") or not sys.stdout.isatty():
+        return
+    try:
+        # webbrowser.open forks/execs the platform opener while the gRPC client's
+        # background threads are live; redirect fd 2 across the fork to swallow
+        # gRPC's prefork notice (same treatment as the plugin's other fork sites).
+        with _quiet_fork_stderr():
+            webbrowser.open(url)
+    except Exception:
+        # Headless / no browser available: opening is a convenience, never fatal.
+        pass
+
+
+def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pytest.Config) -> None:
+    """Emit a session-end Sift report summary, adapting per mode.
+
+    The printed panel is suppressed under ``-q``, but programmatic side effects
+    (stashing the report ref for ``conftest.py``, ``--sift-open-report``) still run so
+    other plugins and CI steps can consume the result. The panel shows the
+    outcome (green/red), step and measurement tallies, and a per-mode action: a
+    report link (online), the upload command (offline), or a disabled note.
+    """
+    quiet = config.get_verbosity() < 0
+
+    if _is_disabled(config):
+        if not quiet:
+            terminalreporter.write_sep("=", "Sift", cyan=True, bold=True)
+            terminalreporter.write_line("Sift disabled — no test report created.")
+        return
+
+    context = REPORT_CONTEXT
+    if context is None:
+        # No gated test ran, so no report context was created. Nothing to show.
+        return
+
+    log_file = getattr(context, "log_file", None)
+    offline = _is_offline(config)
+
+    # Resolve the report link first so stashing and --sift-open-report run even under
+    # -q (programmatic consumers don't care about verbosity). Truthiness, not
+    # ``is not None``: a resolved-but-empty id (degenerate sidecar mapping, unset
+    # proto field) must fall through to the "not uploaded" path, not produce a
+    # ``/test-results/`` link.
+    report_id = None if offline else _resolve_real_report_id(context)
+    report_url = (
+        f"{context.client.app_url}/test-results/{report_id}"
+        if report_id and context.client.app_url
+        else None
+    )
+    if report_id:
+        config.stash[SIFT_REPORT_ID_STASH_KEY] = report_id
+    if report_url is not None:
+        config.stash[SIFT_REPORT_URL_STASH_KEY] = report_url
+        if _option_or_ini(config, _OPEN):
+            _maybe_open_report(report_url)
+
+    if quiet:
+        return
+
+    failed = bool(getattr(context, "any_failures", False))
+    status_word, status_markup = (
+        ("FAILED", {"red": True, "bold": True})
+        if failed
+        else ("PASSED", {"green": True, "bold": True})
+    )
+    # Offline results live only in the local log until replayed, so the status
+    # row calls that out instead of repeating the version (already in the header).
+    status_context = (
+        f"{_mode_label(config)} · not uploaded"
+        if offline
+        else f"{_mode_label(config)} · sift-stack-py {_sdk_version()}"
+    )
+
+    report = context.report
+
+    terminalreporter.write_sep(
+        "=", _report_panel_title(report, terminalreporter), cyan=True, bold=True
+    )
+
+    # Identity row: the test case (test path or pytest invocation).
+    if report.test_case:
+        _sift_kv(terminalreporter, "Test case", str(report.test_case))
+
+    # Status row: colored outcome, then compact mode context.
+    terminalreporter.write("  ")
+    terminalreporter.write(f"{'Status':<{_LABEL_WIDTH}}", bold=True)
+    terminalreporter.write(status_word, **status_markup)
+    terminalreporter.write_line(f"      {status_context}")
+
+    # Step + measurement tallies (green pass, red failure, yellow skip).
+    _write_count_row(
+        terminalreporter,
+        "Steps",
+        _step_count_segments(context.step_status_counts) or [("no steps", {})],
+    )
+    measurement_segments = _measurement_segments(context.measurement_counts)
+    if measurement_segments:
+        _write_count_row(terminalreporter, "Measurements", measurement_segments)
+
+    # Provenance row: test system and operator.
+    system = " · ".join(
+        part for part in (report.test_system_name, report.system_operator) if part
+    )
+    if system:
+        _sift_kv(terminalreporter, "System", system)
+
+    # Local log file (write-through backup online, sole sink offline).
+    if log_file is not None:
+        _sift_kv(terminalreporter, "Log file", str(log_file))
+
+    if offline:
+        if log_file is not None:
+            terminalreporter.write_sep("-", "to upload to Sift")
+            terminalreporter.write_line(f"  >> import-test-result-log {log_file}", cyan=True)
+        return
+
+    if not report_id:
+        # Incremental upload never mapped the report (the worker died before
+        # replaying the create), so there's no real report to link.
+        _sift_kv(
+            terminalreporter,
+            "Report",
+            f"not uploaded — replay with: import-test-result-log {log_file}",
+            yellow=True,
+        )
+    elif report_url is not None:
+        _sift_kv(terminalreporter, "Report", report_url, cyan=True)
+    else:
+        _sift_kv(
+            terminalreporter,
+            "Report",
+            f"id {report_id}  (set sift_report_url_base for a clickable link)",
+        )
+
+    if (
+        report_id
+        and getattr(context, "replay_incomplete", False)
+        and log_file is not None
+    ):
+        _sift_kv(
+            terminalreporter,
+            "",
+            f"may be incomplete — finish with: import-test-result-log {log_file}",
+            yellow=True,
+        )
 
 
 def _sift_enabled_for(node: pytest.Item | pytest.Collector, default: bool) -> bool:
@@ -806,6 +1147,10 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
         )
     for env in missing:
         resolved[env] = _OFFLINE_DEFAULTS[env]
+    # Web-app origin for the report link: the sift_report_url_base CLI/ini option
+    # wins, then the SIFT_APP_URL env var, else host-based derivation in
+    # SiftClient.app_url.
+    report_url_base = _option_or_ini(pytestconfig, _REPORT_URL_BASE) or os.getenv("SIFT_APP_URL")
     # `or ""` is unreachable in practice since the `missing` check above guarantees
     # non-None values
     return SiftClient(
@@ -813,6 +1158,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
             api_key=resolved.get("SIFT_API_KEY") or "",
             grpc_url=resolved.get("SIFT_GRPC_URI") or "",
             rest_url=resolved.get("SIFT_REST_URI") or "",
+            app_url=report_url_base or None,
         )
     )
 

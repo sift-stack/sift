@@ -132,6 +132,8 @@ def sift_client() -> SiftClient:
 | `--sift-disabled` | off | Skip Sift entirely. Nothing contacts the API and no log file is written; `step.measure(...)` still evaluates bounds and returns a real pass/fail boolean. Also honored via `SIFT_DISABLED=1`. Supersedes every other flag (disabled wins over offline). |
 | `--sift-log-file=<path\|true\|false>` | temp file | Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an `import-test-result-log --incremental` worker that polls the file and replays entries against Sift while the run is in flight. Pass `false` to disable the file entirely; create/update calls then go straight to the API synchronously during tests. Incompatible with `--sift-offline` since offline mode needs the log file as its sole sink. |
 | `--no-sift-git-metadata` | git metadata on | Skip capturing git repo/branch/commit on the report's metadata. |
+| `--sift-report-url-base=<origin>` | derived from REST URI | Web-app origin used to build the clickable report link in the terminal footer (e.g. `https://app.siftstack.com`). Set this for on-prem or custom deployments whose API host can't be mapped to a frontend automatically. Also honored via the `SIFT_APP_URL` environment variable. When unset, the link is derived from the REST URI for known Sift hosts. |
+| `--sift-open-report` | off | Open the resulting report in a browser at session end. Online mode only; a no-op when the report URL can't be resolved. Intended for local development. |
 
 These can be passed permanently via `addopts`:
 
@@ -158,6 +160,7 @@ CLI flags, when passed, override the ini values.
 | `sift_module_step` | bool (default `true`) | _(ini-only)_. Opens a parent step for each test module (file). |
 | `sift_class_step` | bool (default `true`) | _(ini-only)_. Opens a parent step for each test class, including nested classes. |
 | `sift_parametrize_nesting` | bool (default `true`) | _(ini-only)_. Clusters parametrized tests under shared parents (`test_x`, `axis=value`) instead of flat leaves (`test_x[value]`). |
+| `sift_open_report` | bool (default `false`) | `--sift-open-report` |
 
 ```toml title="pyproject.toml"
 [tool.pytest.ini_options]

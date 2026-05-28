@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import traceback
 import warnings
+from collections import Counter
 from contextlib import AbstractContextManager, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +20,7 @@ from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
+    TestMeasurement,
     TestMeasurementCreate,
     TestReport,
     TestReportCreate,
@@ -140,6 +142,19 @@ class ReportContext(AbstractContextManager):
     step_number_at_depth: dict[int, int]
     open_step_results: dict[str, bool]
     any_failures: bool
+    # Every step created in this report (including hierarchy/parametrize
+    # parents), retained after close so end-of-run summaries can tally final
+    # statuses. ``update`` mutates step instances in place, so these references
+    # reflect late status changes (e.g. a teardown-phase failure).
+    created_steps: list[TestStep]
+    # Every measurement recorded in this report, retained for end-of-run
+    # summaries. Appended in ``NewStep.measure``. A measurement's ``passed`` is
+    # fixed at creation, so the retained references stay accurate.
+    created_measurements: list[TestMeasurement]
+    # Set True in ``__exit__`` when the background replay worker timed out or
+    # exited non-zero, so callers (e.g. the pytest plugin footer) can flag that
+    # the uploaded report may be missing entries.
+    replay_incomplete: bool = False
     _import_proc: subprocess.Popen | None = None
     # Seconds to wait for the import worker subprocess to finish uploading
     # the JSONL backlog at session end before killing it. Tests substitute
@@ -184,6 +199,9 @@ class ReportContext(AbstractContextManager):
         self.step_number_at_depth = {}
         self.open_step_results = {}
         self.any_failures = False
+        self.created_steps = []
+        self.created_measurements = []
+        self.replay_incomplete = False
 
         if log_file is True:
             tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
@@ -279,6 +297,7 @@ class ReportContext(AbstractContextManager):
             except subprocess.TimeoutExpired:
                 self._import_proc.kill()
                 self._import_proc.wait()
+                self.replay_incomplete = True
                 warnings.warn(
                     f"Sift import worker did not exit in "
                     f"{self._import_proc_timeout}s; killing it. "
@@ -289,6 +308,7 @@ class ReportContext(AbstractContextManager):
                 log_replay_instructions(self.log_file)
                 return True  # Ensures the session is marked as passed in pytest
             if self._import_proc.returncode != 0:
+                self.replay_incomplete = True
                 stderr_text = (
                     stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
                 )
@@ -310,6 +330,23 @@ class ReportContext(AbstractContextManager):
         for the full semantics.
         """
         return self.report.is_simulated
+
+    @property
+    def step_status_counts(self) -> Counter[TestStatus]:
+        """Tally of every created step by its current status.
+
+        Includes hierarchy/parametrize parent steps. Read at the end of a run for
+        summaries; reflects late status changes since steps are mutated in place.
+        """
+        return Counter(step.status for step in self.created_steps)
+
+    @property
+    def measurement_counts(self) -> Counter[bool]:
+        """Tally of recorded measurements keyed by ``passed`` (True/False).
+
+        Read at the end of a run for summaries.
+        """
+        return Counter(m.passed for m in self.created_measurements)
 
     def new_step(
         self,
@@ -378,6 +415,8 @@ class ReportContext(AbstractContextManager):
         )
         self.step_stack.append(step)
         self.open_step_results[step.step_path] = True
+        # Retained for end-of-run tallies; never popped (unlike step_stack).
+        self.created_steps.append(step)
 
         return step
 
@@ -387,6 +426,10 @@ class ReportContext(AbstractContextManager):
         if not outcome:
             self.open_step_results[step.step_path] = False
             self.any_failures = True
+
+    def record_measurement(self, measurement: TestMeasurement) -> None:
+        """Retain a recorded measurement for end-of-run summaries."""
+        self.created_measurements.append(measurement)
 
     def mark_step_failed_after_close(self, step: TestStep):
         """Mark a step's parent as failed after the step has already been popped from the stack.
@@ -662,6 +705,7 @@ class NewStep(AbstractContextManager):
             create, log_file=self.report_context.log_file
         )
         self.report_context.record_step_outcome(measurement.passed, self.current_step)
+        self.report_context.record_measurement(measurement)
         if not measurement.passed:
             self._failed_measurement_count += 1
 
