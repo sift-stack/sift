@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from sift_client.sift_types import Channel
-from sift_client.sift_types.channel import ChannelDataType, ChannelReference
+from sift_client.sift_types.channel import ChannelDataType, ChannelReference, ChannelUpdate
 
 
 @pytest.fixture
@@ -22,6 +22,10 @@ def mock_channel(mock_client):
         bit_field_elements=[],
         enum_types={},
         asset_id="test_asset_id",
+        display_description="display description",
+        display_unit="m/s",
+        metadata={},
+        active=True,
         created_date=datetime.now(timezone.utc),
         modified_date=datetime.now(timezone.utc),
         created_by_user_id="user1",
@@ -215,3 +219,83 @@ class TestChannel:
             limit=None,
         )
         assert result == mock_data
+
+    def test_update_calls_client_and_updates_self(self, mock_channel, mock_client):
+        """Test that update() calls client.channels.update and calls _update."""
+        updated_channel = MagicMock()
+        mock_client.channels.update.return_value = updated_channel
+
+        with MagicMock() as mock_update:
+            mock_channel._update = mock_update
+
+            update = ChannelUpdate(display_description="new description")
+            result = mock_channel.update(update)
+
+            mock_client.channels.update.assert_called_once_with(channel=mock_channel, update=update)
+            mock_update.assert_called_once_with(updated_channel)
+            assert result is mock_channel
+
+    def test_archive_sets_active_false_via_update(self, mock_channel, mock_client):
+        """archive() delegates to update with active=False and updates in place."""
+        updated = MagicMock()
+        mock_client.channels.update.return_value = updated
+
+        with MagicMock() as mock_update:
+            mock_channel._update = mock_update
+            result = mock_channel.archive()
+
+            mock_client.channels.update.assert_called_once_with(
+                channel=mock_channel, update={"active": False}
+            )
+            mock_update.assert_called_once_with(updated)
+            assert result is mock_channel
+
+    def test_unarchive_sets_active_true_via_update(self, mock_channel, mock_client):
+        """unarchive() delegates to update with active=True and updates in place."""
+        updated = MagicMock()
+        mock_client.channels.update.return_value = updated
+
+        with MagicMock() as mock_update:
+            mock_channel._update = mock_update
+            result = mock_channel.unarchive()
+
+            mock_client.channels.update.assert_called_once_with(
+                channel=mock_channel, update={"active": True}
+            )
+            mock_update.assert_called_once_with(updated)
+            assert result is mock_channel
+
+
+class TestChannelUpdate:
+    """Channel-specific field wiring for ChannelUpdate.
+
+    The generic ModelUpdate behavior (field-mask generation, unset/None exclusion,
+    resource-id requirement, the metadata converter and MappingHelper path expansion)
+    is already covered in test_base.py and test_asset.py. These tests only assert the
+    parts unique to ChannelUpdate: which proto fields its fields map onto.
+    """
+
+    def test_fields_map_to_correct_proto_fields(self):
+        """Each ChannelUpdate field targets its matching Channel proto field and mask path."""
+        update = ChannelUpdate(
+            display_description="new description",
+            display_unit="volts",
+            metadata={"source": "pytest"},
+            active=False,
+        )
+        update.resource_id = "test_channel_id"
+
+        proto, mask = update.to_proto_with_mask()
+
+        assert proto.channel_id == "test_channel_id"
+        assert proto.display_description == "new description"
+        # display_unit is renamed onto the proto's display_unit_id field.
+        assert proto.display_unit_id == "volts"
+        assert {md.key.name: md.string_value for md in proto.metadata} == {"source": "pytest"}
+        assert proto.active is False
+        assert set(mask.paths) == {
+            "display_description",
+            "display_unit_id",
+            "metadata",
+            "active",
+        }
