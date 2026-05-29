@@ -191,16 +191,15 @@ and tests can branch on provenance. Offline-mode entities also report
 How to turn it on, in the order most projects pick:
 
 ```bash
-# In an .envrc, devcontainer, or CI job config
-export SIFT_DISABLED=1
-
 # Per-invocation kill-switch
 pytest --sift-disabled
+```
 
+```toml
 # Per-project default (uncommon; online is usually the right default)
 # pyproject.toml:
-#   [tool.pytest.ini_options]
-#   sift_disabled = true
+[tool.pytest.ini_options]
+sift_disabled = true
 ```
 
 Good fit for local dev without Sift credentials. Also for library consumers who

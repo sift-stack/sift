@@ -16,7 +16,7 @@ For a conceptual reference (fixtures, ini flags, status semantics), see the
 ```
 examples/pytest_plugin/
 ├── conftest.py                            # registers the plugin
-├── pytest.ini                             # available ini knobs (all commented at defaults)
+├── pyproject.toml                         # pytest knobs + report name/test_case/metadata
 ├── .env.example                           # credential template
 └── tests/
     ├── pytest_only/                       # subpackage step
@@ -32,21 +32,26 @@ above each test becomes its own parent step in the report tree.
 
 ## `conftest.py`
 
-A single `pytest_plugins` declaration loads the plugin; `load_dotenv()` is
-optional and just lets the default `sift_client` fixture pick up
-`SIFT_API_KEY` / `SIFT_GRPC_URI` / `SIFT_REST_URI` from a local `.env`.
+A single `pytest_plugins` declaration loads the plugin. The default
+`sift_client` fixture reads `SIFT_API_KEY` / `SIFT_GRPC_URI` / `SIFT_REST_URI`
+from the environment — set them in your shell, your CI secret store, or a
+local `.env` (`pip install pytest-dotenv` auto-loads it).
 
 ```python title="conftest.py"
 --8<-- "examples/pytest_plugin/conftest.py"
 ```
 
-## `pytest.ini`
+## `pyproject.toml`
 
-Every knob is commented at its default value. Uncomment any line to opt out of
-a layer of the step tree.
+Pytest behavior knobs sit under `[tool.pytest.ini_options]`, each commented at
+its default — uncomment any line to opt out of a layer of the step tree. The
+report's display `name`, `test_case`, and free-form `metadata` are set under
+`[tool.sift.pytest.report]`; `name` and `test_case` accept template
+placeholders, and metadata values can be overridden per run with
+`SIFT_REPORT_METADATA_<KEY>` env vars.
 
-```ini title="pytest.ini"
---8<-- "examples/pytest_plugin/pytest.ini"
+```toml title="pyproject.toml"
+--8<-- "examples/pytest_plugin/pyproject.toml"
 ```
 
 ## `.env.example`
@@ -168,7 +173,7 @@ skip every measurement that follows. Expected
 pytest output is `16 passed, 3 failed, 1 skipped`.
 
 Flip any of the `sift_*_step` / `sift_parametrize_nesting` flags in
-`pytest.ini` to `false` to collapse a layer.
+`pyproject.toml` to `false` to collapse a layer.
 
 ## Next steps
 

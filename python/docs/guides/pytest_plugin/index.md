@@ -10,27 +10,27 @@ the report itself.
 Install the client and pytest:
 
 ```bash
-pip install sift-stack-py pytest python-dotenv
+pip install sift-stack-py pytest
 ```
 
-Set your connection details in a `.env` next to your tests:
+The default `sift_client` fixture reads its connection details from the
+environment:
 
-```bash title=".env"
+```bash
 SIFT_API_KEY="..."
 SIFT_GRPC_URI="..."
 SIFT_REST_URI="..."
 ```
 
-Find these on the Sift Manage page, where you can also generate an API key.
+Find these on the Sift Manage page, where you can also generate an API key. Set
+them in your shell or CI secret store. For local dev, `pip install
+pytest-dotenv` and drop the same values in a `.env` next to your tests — it
+loads them automatically, no code required.
 
 Register the plugin with a single `pytest_plugins` declaration in your top-level
 `conftest.py`:
 
 ```python title="conftest.py"
-from dotenv import load_dotenv
-
-load_dotenv()
-
 pytest_plugins = ["sift_client.pytest_plugin"]
 ```
 

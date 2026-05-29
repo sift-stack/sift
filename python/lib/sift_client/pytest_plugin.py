@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Generator, Tuple
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client._internal.pyproject_config import load_tool_sift
 from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import ErrorInfo, TestStatus
 from sift_client.util.test_results import ReportContext
@@ -192,9 +193,9 @@ def _build_hierarchy_chain(
     broadly so a misbehaving collector doesn't abort the whole collection
     phase — that frame's docstring just becomes ``None``.
     """
-    include_package = bool(_option_or_ini(config, _PACKAGE_STEP))
-    include_module = bool(_option_or_ini(config, _MODULE_STEP))
-    include_class = bool(_option_or_ini(config, _CLASS_STEP))
+    include_package = bool(_PACKAGE_STEP.resolve(config))
+    include_module = bool(_MODULE_STEP.resolve(config))
+    include_class = bool(_CLASS_STEP.resolve(config))
 
     chain: list[tuple[str, str, str | None, bool]] = []
     # ``node.parent`` is typed as the internal ``_pytest.nodes.Node`` which
@@ -221,172 +222,386 @@ def _build_hierarchy_chain(
     return tuple(reversed(chain))
 
 
+# Settings-reference categories. Each maps to a docs subsection and, in the
+# renderer, to the column subset that category actually uses.
+_CAT_BEHAVIOR = "Pytest behavior"
+_CAT_CONNECTION = "Connection"
+_CAT_REPORT = "Report content"
+_CATEGORIES = (_CAT_BEHAVIOR, _CAT_CONNECTION, _CAT_REPORT)
+
+_TOOL_SIFT_KEY = pytest.StashKey[dict]()
+
+
+def _tool_sift(config: pytest.Config | None) -> dict[str, Any]:
+    """Session-cached ``[tool.sift]`` table.
+
+    Every option that reads TOML, plus the typo detector, would otherwise
+    re-parse pyproject.toml on the session-start path — and re-emit the
+    malformed-file warning each time. Parse once per session via the config
+    stash; ``load_tool_sift`` stays the uncached parser for direct callers.
+    """
+    if config is None:
+        return {}
+    cached = config.stash.get(_TOOL_SIFT_KEY, None)
+    if cached is None:
+        cached = load_tool_sift(config)
+        config.stash[_TOOL_SIFT_KEY] = cached
+    return cached
+
+
 @dataclass(frozen=True)
 class _Option:
-    """A single Sift plugin setting, registered as a CLI flag and/or an ini key.
+    """One setting, declared once across every surface it exposes.
 
-    ``ini_name`` is used as both the ini key and the CLI ``dest``, so a value
-    set either way lands on the same config slot. ``cli_flag=None`` makes the
-    option ini-only (e.g. the URI fallbacks).
+    Declare only the surfaces the setting uses. ``pytest_addoption``, the
+    resolvers (:meth:`resolve` / :meth:`resolve_merged`), the docs renderer
+    (:func:`_render_settings_reference`), and the typo detector all read from
+    the same registry, so adding or changing a setting is one edit.
+
+    Two shapes:
+
+    - **Scalar** (default): :meth:`resolve` walks env > cli > ini > toml > None
+      following only the surfaces declared. In practice no current option uses
+      both env and cli, so the chain isn't ambiguous.
+    - **Merged dict** (``merge=True``): :meth:`resolve_merged` starts from the
+      TOML table and overlays env vars whose name starts with ``env_prefix``
+      (key = the suffix lowercased). Used for ``metadata``.
+
+    Surface fields:
+
+    - ``cli`` / ``cli_action``: CLI flag (e.g. ``"--sift-offline"``) and
+      argparse action; ``cli_dest`` is derived from the flag.
+    - ``ini`` / ``ini_type`` / ``ini_default``: pytest ini key under
+      ``[tool.pytest.ini_options]`` and its pytest type + default.
+    - ``toml``: tuple path under ``[tool.sift...]``, e.g.
+      ``("pytest", "report", "name")`` -> ``tool.sift.pytest.report.name``.
+    - ``env``: full env var name, e.g. ``"SIFT_API_KEY"``.
+    - ``env_prefix``: env-var prefix for ``merge`` dict shape, e.g.
+      ``"SIFT_REPORT_METADATA_"`` -> entries become metadata keys.
+
+    ``category`` groups the option in the docs settings reference (one of
+    ``_CATEGORIES``).
     """
 
-    ini_name: str
-    ini_help: str
-    cli_flag: str | None = None
-    cli_help: str | None = None
-    action: str | None = None
+    name: str
+    help: str
+    category: str
+    cli: str | None = None
+    cli_action: str | None = None
+    ini: str | None = None
     ini_type: str | None = None
     ini_default: Any = None
+    toml: tuple[str, ...] | None = None
+    env: str | None = None
+    env_prefix: str | None = None
+    merge: bool = False
+
+    @property
+    def cli_dest(self) -> str:
+        """Argparse ``dest`` for the option.
+
+        When the option has both a CLI flag and an ini key, the dest matches
+        the ini name so ``config.getoption(ini_name)`` returns the CLI value
+        (and falls through to ``config.getini(ini_name)`` when the flag wasn't
+        passed). Without an ini key, the dest derives from the flag name.
+        """
+        if self.ini:
+            return self.ini
+        if self.cli is None:
+            return self.name
+        return self.cli.lstrip("-").replace("-", "_")
+
+    def __post_init__(self) -> None:
+        if self.cli_action and not self.cli:
+            raise ValueError(f"_Option({self.name!r}): cli_action requires cli")
+        if self.ini_type and not self.ini:
+            raise ValueError(f"_Option({self.name!r}): ini_type requires ini")
+        if self.merge and not (self.env_prefix or self.toml):
+            raise ValueError(f"_Option({self.name!r}): merge=True needs env_prefix or toml")
+        if not any([self.cli, self.ini, self.toml, self.env, self.env_prefix]):
+            raise ValueError(f"_Option({self.name!r}): declares no surfaces")
+        if self.category not in _CATEGORIES:
+            raise ValueError(f"_Option({self.name!r}): category must be one of {_CATEGORIES}")
+
+    def resolve(self, config: pytest.Config | None) -> Any:
+        """First set value from declared surfaces; ``None`` when unset everywhere.
+
+        Walk order is env > cli > ini > toml. No current option declares both
+        env and cli (per R7), so the chain isn't ambiguous in practice.
+        ``getini`` returns the typed default for unset bool/list keys, so this
+        only returns ini values for booleans (always meaningful), non-empty
+        strings, and non-empty lists.
+        """
+        if self.env:
+            env_value = os.getenv(self.env)
+            if env_value not in (None, ""):
+                return env_value
+        if config is None:
+            return None
+        if self.cli:
+            cli_value = config.getoption(self.cli_dest, default=None)
+            if cli_value is not None:
+                return cli_value
+        if self.ini:
+            try:
+                ini_value = config.getini(self.ini)
+            except (KeyError, ValueError):
+                ini_value = None
+            if isinstance(ini_value, bool):
+                return ini_value
+            if isinstance(ini_value, str) and ini_value:
+                return ini_value
+            if isinstance(ini_value, list) and ini_value:
+                return ini_value
+        if self.toml:
+            toml_value = _walk_toml(_tool_sift(config), self.toml)
+            if toml_value not in (None, ""):
+                return toml_value
+        return None
+
+    def resolve_merged(self, config: pytest.Config | None) -> dict[str, str | float | bool]:
+        """For ``merge=True`` dict-shape settings: TOML table + env-prefix entries.
+
+        Env entries win on collision, mirroring "per-run dynamic injection
+        overrides static project defaults" (R7). TOML values that don't fit
+        ``dict[str, str | float | bool]`` (nested tables, lists, ``None``) are
+        dropped with a warning so a malformed entry can't crash report
+        creation.
+        """
+        result: dict[str, str | float | bool] = {}
+        if config is not None and self.toml:
+            base = _walk_toml(_tool_sift(config), self.toml)
+            if isinstance(base, dict):
+                for key, value in base.items():
+                    if not isinstance(key, str):
+                        continue
+                    if isinstance(value, (bool, str, int, float)):
+                        # ``bool`` first since ``isinstance(True, int)`` is True.
+                        result[key] = value  # type: ignore[assignment]
+                        continue
+                    warnings.warn(
+                        f"[tool.sift.{'.'.join(self.toml)}] entry {key!r} ignored: "
+                        f"unsupported type {type(value).__name__}.",
+                        SiftPytestPluginWarning,
+                        stacklevel=2,
+                    )
+        if self.env_prefix:
+            for env_name, env_value in os.environ.items():
+                if not env_name.startswith(self.env_prefix):
+                    continue
+                suffix = env_name[len(self.env_prefix) :]
+                if not suffix:
+                    continue
+                result[suffix.lower()] = env_value
+        return result
 
 
+def _walk_toml(data: dict[str, Any], path: tuple[str, ...]) -> Any:
+    """Walk a parsed TOML tree along ``path``; return None on any missing key."""
+    cur: Any = data
+    for key in path:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+        if cur is None:
+            return None
+    return cur
+
+
+# ---------------------------------------------------------------------------
+# Settings registry.
+#
+# Rules (see ``project_sift_pytest_config_rules`` in memory for the why):
+#   R1 secrets live in env vars only.
+#   R2 pytest behavior lives in [tool.pytest.ini_options] so it integrates with
+#      `pytest --help` / `--co` / `--trace-config`.
+#   R3 sift-domain report data lives in [tool.sift.pytest.report.*].
+#   R4 non-secret endpoints get env + one static home (ini OR toml, not both).
+#   R5 a CLI flag has to earn its place — real per-run override workflow.
+#   R6 one home per setting unless a second has distinct value.
+#   R7 dynamic per-run injection uses env vars; pytest-dotenv covers .env for
+#      local dev; CI sets the same names from its secret store.
+#
+# Add new options here. The registry drives `pytest_addoption`, resolution,
+# the docs settings-reference table, and the unknown-key typo detector.
+# ---------------------------------------------------------------------------
+
+# Pytest behavior (R2). CLI flag survives because per-run override is real.
 _LOG_FILE = _Option(
-    cli_flag="--sift-log-file",
-    ini_name="sift_log_file",
-    cli_help="Path to write the Sift test result log file. "
-    "Use 'true' (default) to auto-create a temp file, "
-    "False, 'false', or 'none' to disable logging, "
-    "or a file path to write to a specific location.",
-    ini_help="Default value for --sift-log-file. Same values accepted as "
-    "the CLI flag (path, 'true', 'false', 'none').",
+    name="log_file",
+    category=_CAT_BEHAVIOR,
+    help="Path to the JSONL log of create/update calls (path | true | false | none).",
+    cli="--sift-log-file",
+    ini="sift_log_file",
 )
-
 _GIT_METADATA = _Option(
-    cli_flag="--no-sift-git-metadata",
-    ini_name="sift_git_metadata",
-    action="store_false",
-    cli_help="Exclude git metadata from the Sift test results. "
-    "Git metadata (repo, branch, commit) is included by default.",
-    ini_help="Include git repo/branch/commit in the report (true/false). "
-    "Defaults to true. The --no-sift-git-metadata CLI flag overrides "
-    "this when passed.",
+    name="git_metadata",
+    category=_CAT_BEHAVIOR,
+    help="Capture git repo/branch/commit on the report.",
+    cli="--no-sift-git-metadata",
+    cli_action="store_false",
+    ini="sift_git_metadata",
     ini_type="bool",
     ini_default=True,
 )
-
 _OFFLINE = _Option(
-    cli_flag="--sift-offline",
-    ini_name="sift_offline",
-    action="store_true",
-    cli_help="Run without contacting Sift. All create/update calls are written "
-    "to a JSONL log file for later replay via `import-test-result-log`. "
-    "No session-start ping is attempted.",
-    ini_help="When true, run in offline mode (same effect as --sift-offline). Defaults to false.",
+    name="offline",
+    category=_CAT_BEHAVIOR,
+    help="Skip the session-start ping; route create/update through the JSONL log.",
+    cli="--sift-offline",
+    cli_action="store_true",
+    ini="sift_offline",
     ini_type="bool",
     ini_default=False,
 )
-
 _DISABLED = _Option(
-    cli_flag="--sift-disabled",
-    ini_name="sift_disabled",
-    action="store_true",
-    cli_help="Disable Sift integration entirely. Nothing contacts the API "
-    "and no log file is written. `step.measure(...)` still returns real "
-    "pass/fail booleans. Returned entities expose `is_simulated == True`. "
-    "Also honored via the `SIFT_DISABLED` env var. Supersedes every other "
-    "flag.",
-    ini_help="When true, run in disabled mode (same effect as --sift-disabled). "
-    "Also honored via the SIFT_DISABLED env var. Supersedes every other "
-    "setting. Defaults to false.",
+    name="disabled",
+    category=_CAT_BEHAVIOR,
+    help="Disable Sift entirely (no API calls, no log file). Supersedes --sift-offline.",
+    cli="--sift-disabled",
+    cli_action="store_true",
+    ini="sift_disabled",
     ini_type="bool",
     ini_default=False,
-)
-
-_GRPC_URI = _Option(
-    ini_name="sift_grpc_uri",
-    ini_help="Sift gRPC endpoint URI. The default `sift_client` fixture "
-    "prefers the SIFT_GRPC_URI environment variable and falls back to "
-    "this ini value.",
-)
-
-_REST_URI = _Option(
-    ini_name="sift_rest_uri",
-    ini_help="Sift REST endpoint URI. The default `sift_client` fixture "
-    "prefers the SIFT_REST_URI environment variable and falls back to "
-    "this ini value.",
 )
 
 _REPORT_URL_BASE = _Option(
-    cli_flag="--sift-report-url-base",
-    ini_name="sift_report_url_base",
-    cli_help="Sift web-app origin used to build the clickable report link in the "
-    "terminal footer (e.g. https://app.siftstack.com). Set this for on-prem or "
-    "custom deployments whose API host can't be mapped to a frontend "
-    "automatically. Also honored via the SIFT_APP_URL env var. When unset, the "
-    "link is derived from the REST URI for known Sift hosts.",
-    ini_help="Default for --sift-report-url-base. The Sift web-app origin used to "
-    "build the report link in the terminal footer. Also honored via the "
-    "SIFT_APP_URL env var. When unset, the link is derived from the REST URI for "
-    "known Sift hosts.",
+    name="report_url_base",
+    category=_CAT_BEHAVIOR,
+    help="Sift web-app origin for the report link in the terminal footer (e.g. "
+    "https://app.siftstack.com). Also honored via the SIFT_APP_URL env var; when "
+    "unset, the link is derived from the REST URI for known Sift hosts.",
+    cli="--sift-report-url-base",
+    ini="sift_report_url_base",
 )
-
 _OPEN = _Option(
-    cli_flag="--sift-open-report",
-    ini_name="sift_open_report",
-    action="store_true",
-    cli_help="Open the resulting Sift test report in a browser at session end. "
-    "Online mode only; no-op when the report URL can't be resolved. Intended for "
-    "local development.",
-    ini_help="When true, open the report in a browser at session end (online only). "
-    "Defaults to false.",
+    name="open_report",
+    category=_CAT_BEHAVIOR,
+    help="Open the resulting report in a browser at session end (online only; "
+    "no-op when the report URL can't be resolved).",
+    cli="--sift-open-report",
+    cli_action="store_true",
+    ini="sift_open_report",
     ini_type="bool",
     ini_default=False,
 )
 
+# Pytest behavior (R2), set-once project defaults (R5 -> no CLI flag).
 _AUTOUSE = _Option(
-    ini_name="sift_autouse",
-    ini_help="Default for the Sift autouse fixtures (report_context, step, "
-    "_hierarchy_parents, _parametrize_parents). When true (default), tests "
-    "are included unless marked with @pytest.mark.sift_exclude. When false, "
-    "tests are skipped unless marked with @pytest.mark.sift_include. "
-    "Bulk-apply markers in a directory's conftest via "
-    "`pytest_collection_modifyitems`.",
+    name="autouse",
+    category=_CAT_BEHAVIOR,
+    help="Default for the Sift autouse fixtures (report_context, step, hierarchy/parametrize parents).",
+    ini="sift_autouse",
     ini_type="bool",
     ini_default=True,
 )
-
 _PACKAGE_STEP = _Option(
-    ini_name="sift_package_step",
-    ini_help="When true (default), open a parent step for each Python package "
-    "(directory with an ``__init__.py``) in the test path. Set to false to "
-    "flatten package grouping.",
+    name="package_step",
+    category=_CAT_BEHAVIOR,
+    help="Open a parent step for each Python package in the test path.",
+    ini="sift_package_step",
     ini_type="bool",
     ini_default=True,
 )
-
 _MODULE_STEP = _Option(
-    ini_name="sift_module_step",
-    ini_help="When true (default), open a per-module parent step. Set to false "
-    "to skip module-level grouping in the report tree.",
+    name="module_step",
+    category=_CAT_BEHAVIOR,
+    help="Open a parent step for each test module.",
+    ini="sift_module_step",
     ini_type="bool",
     ini_default=True,
 )
-
 _CLASS_STEP = _Option(
-    ini_name="sift_class_step",
-    ini_help="When true (default), open per-class parent steps (including nested "
-    "classes). Set to false to keep class methods at module level.",
+    name="class_step",
+    category=_CAT_BEHAVIOR,
+    help="Open per-class parent steps, including nested classes.",
+    ini="sift_class_step",
     ini_type="bool",
     ini_default=True,
 )
-
 _PARAMETRIZE_NESTING = _Option(
-    ini_name="sift_parametrize_nesting",
-    ini_help="When true (default), parametrized tests nest under shared parent "
-    "steps (e.g. test_a -> v=1, v=2). Set to false to keep the flat per-test "
-    "leaf naming (test_a[1], test_a[2]).",
+    name="parametrize_nesting",
+    category=_CAT_BEHAVIOR,
+    help="Cluster parametrized tests under shared parent steps (e.g. test_a -> v=1, v=2).",
+    ini="sift_parametrize_nesting",
     ini_type="bool",
     ini_default=True,
 )
 
+# Credentials (R1, R4). API key is env-only; URIs accept env + ini.
+_API_KEY = _Option(
+    name="api_key",
+    category=_CAT_CONNECTION,
+    help="Sift API key (secret, env-only).",
+    env="SIFT_API_KEY",
+)
+_GRPC_URI = _Option(
+    name="grpc_uri",
+    category=_CAT_CONNECTION,
+    help="Sift gRPC endpoint URI.",
+    env="SIFT_GRPC_URI",
+    ini="sift_grpc_uri",
+)
+_REST_URI = _Option(
+    name="rest_uri",
+    category=_CAT_CONNECTION,
+    help="Sift REST endpoint URI.",
+    env="SIFT_REST_URI",
+    ini="sift_rest_uri",
+)
+
+# Report content (R3, R7). Project defaults in [tool.sift.pytest.report]; CI
+# injects per-run values via SIFT_REPORT_* env vars (pytest-dotenv handles
+# .env files for local dev).
 _REPORT_NAME = _Option(
-    cli_flag="--sift-report-name",
-    ini_name="sift_report_name",
-    cli_help="Template for the Sift report display name. Supports the "
-    "placeholders {target}, {command}, {args}, {rootdir}, {timestamp}, {count}, "
-    "{git_repo}, {git_branch}, and {git_commit}. Defaults to "
-    "'{target} {timestamp}'.",
-    ini_help="Default for --sift-report-name. Same placeholders accepted as the "
-    "CLI flag. Defaults to '{target} {timestamp}'.",
+    name="report_name",
+    category=_CAT_REPORT,
+    help="Template for the report display name. Placeholders: {target}, {command}, {args}, "
+    "{rootdir}, {timestamp}, {count}, {git_repo}, {git_branch}, {git_commit}.",
+    toml=("pytest", "report", "name"),
+)
+_TEST_CASE = _Option(
+    name="test_case",
+    category=_CAT_REPORT,
+    help="Template for the report's test_case field (same placeholders as report_name).",
+    toml=("pytest", "report", "test_case"),
+)
+_TEST_SYSTEM_NAME = _Option(
+    name="test_system_name",
+    category=_CAT_REPORT,
+    help="Name of the test system / rig. Defaults to the host's name.",
+    env="SIFT_REPORT_TEST_SYSTEM_NAME",
+    toml=("pytest", "report", "test_system_name"),
+)
+_SYSTEM_OPERATOR = _Option(
+    name="system_operator",
+    category=_CAT_REPORT,
+    help="Operator running the test. Defaults to the OS user.",
+    env="SIFT_REPORT_SYSTEM_OPERATOR",
+    toml=("pytest", "report", "system_operator"),
+)
+_SERIAL_NUMBER = _Option(
+    name="serial_number",
+    category=_CAT_REPORT,
+    help="Serial number of the unit under test.",
+    env="SIFT_REPORT_SERIAL_NUMBER",
+    toml=("pytest", "report", "serial_number"),
+)
+_PART_NUMBER = _Option(
+    name="part_number",
+    category=_CAT_REPORT,
+    help="Part number of the unit under test.",
+    env="SIFT_REPORT_PART_NUMBER",
+    toml=("pytest", "report", "part_number"),
+)
+_METADATA = _Option(
+    name="metadata",
+    category=_CAT_REPORT,
+    help="Free-form report metadata. TOML table is the base; SIFT_REPORT_METADATA_<KEY> env "
+    "vars merge on top (env wins on collision; suffix lowercased becomes the key).",
+    toml=("pytest", "report", "metadata"),
+    env_prefix="SIFT_REPORT_METADATA_",
+    merge=True,
 )
 
 _OPTIONS: tuple[_Option, ...] = (
@@ -394,8 +609,6 @@ _OPTIONS: tuple[_Option, ...] = (
     _GIT_METADATA,
     _OFFLINE,
     _DISABLED,
-    _GRPC_URI,
-    _REST_URI,
     _REPORT_URL_BASE,
     _OPEN,
     _AUTOUSE,
@@ -403,37 +616,45 @@ _OPTIONS: tuple[_Option, ...] = (
     _MODULE_STEP,
     _CLASS_STEP,
     _PARAMETRIZE_NESTING,
+    _API_KEY,
+    _GRPC_URI,
+    _REST_URI,
     _REPORT_NAME,
+    _TEST_CASE,
+    _TEST_SYSTEM_NAME,
+    _SYSTEM_OPERATOR,
+    _SERIAL_NUMBER,
+    _PART_NUMBER,
+    _METADATA,
 )
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Register Sift-specific command-line options and ini keys.
+    """Register every CLI flag and pytest ini key declared in ``_OPTIONS``.
 
-    Each option can be set on the command line or under ``[tool.pytest.ini_options]``
-    in ``pyproject.toml`` (or ``[pytest]`` in ``pytest.ini``). CLI values take
-    precedence over ini values, which take precedence over the built-in default.
+    One loop drives both surfaces — adding a setting is one entry in the
+    registry, not three edits across this function and a docs table.
     """
     group = parser.getgroup("sift", description="Sift test results")
     for opt in _OPTIONS:
-        if opt.cli_flag is not None:
+        if opt.cli is not None:
             cli_kwargs: dict[str, Any] = {
-                "dest": opt.ini_name,
+                "dest": opt.cli_dest,
                 "default": None,
-                "help": opt.cli_help,
+                "help": opt.help,
             }
-            if opt.action is not None:
-                cli_kwargs["action"] = opt.action
-            group.addoption(opt.cli_flag, **cli_kwargs)
-
-        ini_kwargs: dict[str, Any] = {"help": opt.ini_help, "default": opt.ini_default}
-        if opt.ini_type is not None:
-            ini_kwargs["type"] = opt.ini_type
-        parser.addini(opt.ini_name, **ini_kwargs)
+            if opt.cli_action is not None:
+                cli_kwargs["action"] = opt.cli_action
+            group.addoption(opt.cli, **cli_kwargs)
+        if opt.ini is not None:
+            ini_kwargs: dict[str, Any] = {"help": opt.help, "default": opt.ini_default}
+            if opt.ini_type is not None:
+                ini_kwargs["type"] = opt.ini_type
+            parser.addini(opt.ini, **ini_kwargs)
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Register the Sift gate markers so they show up in `pytest --markers`."""
+    """Register the Sift gate markers and warn on unknown ``SIFT_*`` settings."""
     config.addinivalue_line(
         "markers",
         "sift_include: force the Sift autouse fixtures to activate for this test "
@@ -444,6 +665,164 @@ def pytest_configure(config: pytest.Config) -> None:
         "sift_exclude: force the Sift autouse fixtures to skip this test "
         "regardless of the `sift_autouse` ini default.",
     )
+    # Surface typos in env vars and [tool.sift...] keys at session start so a
+    # silent no-op (env var that doesn't match anything, table key the loader
+    # ignores) becomes visible. The registry is the source of truth for what's
+    # known.
+    _warn_on_unknown_env_vars()
+    _warn_on_unknown_toml_keys(config)
+
+
+def _render_settings_reference() -> str:
+    """Render the Markdown settings reference from ``_OPTIONS``.
+
+    One ``### <category>`` subsection per category, each table showing only the
+    columns that category uses (so no dead all-``—`` columns). The plugin docs
+    at ``docs/guides/pytest_plugin/configuration.md`` embed this output verbatim
+    so the registry and the docs can't drift;
+    ``test_settings_reference_docs_in_sync`` is the guard rail. Regenerate with::
+
+        uv run python -c "from sift_client.pytest_plugin import _render_settings_reference; print(_render_settings_reference())"
+    """
+
+    def _cli_cell(opt: _Option) -> str:
+        return f"`{opt.cli}`" if opt.cli else "—"
+
+    def _ini_cell(opt: _Option) -> str:
+        return f"`{opt.ini}`" if opt.ini else "—"
+
+    def _toml_cell(opt: _Option) -> str:
+        if not opt.toml:
+            return "—"
+        if opt.merge:
+            return f"`[tool.sift.{'.'.join(opt.toml)}]` (table)"
+        section = ".".join(opt.toml[:-1])
+        return f"`[tool.sift.{section}] {opt.toml[-1]}`"
+
+    def _env_cell(opt: _Option) -> str:
+        if opt.env:
+            return f"`{opt.env}`"
+        if opt.env_prefix:
+            return f"`{opt.env_prefix}<KEY>`"
+        return "—"
+
+    # Per-category column layout: only the surfaces that category actually uses.
+    # Each column is (header, cell-renderer).
+    columns_by_category = {
+        _CAT_BEHAVIOR: [
+            ("CLI flag", _cli_cell),
+            ("Ini (`[tool.pytest.ini_options]`)", _ini_cell),
+        ],
+        _CAT_CONNECTION: [
+            ("Ini (`[tool.pytest.ini_options]`)", _ini_cell),
+            ("Env var", _env_cell),
+        ],
+        _CAT_REPORT: [
+            ("TOML (`[tool.sift...]`)", _toml_cell),
+            ("Env var", _env_cell),
+        ],
+    }
+
+    def _escape(cell: str) -> str:
+        # Literal pipes inside a Markdown table cell need backslash escaping or
+        # they'd be parsed as column separators.
+        return cell.replace("|", "\\|")
+
+    blocks: list[str] = []
+    for category in _CATEGORIES:
+        opts = [o for o in _OPTIONS if o.category == category]
+        if not opts:
+            continue
+        columns = columns_by_category[category]
+        headers = ["Setting", *(h for h, _ in columns)]
+        lines = [
+            f"### {category}",
+            "",
+            "| " + " | ".join(headers) + " |",
+            "|" + "|".join(["---"] * len(headers)) + "|",
+        ]
+        for opt in opts:
+            cells = [opt.help, *(render(opt) for _, render in columns)]
+            lines.append("| " + " | ".join(_escape(c) for c in cells) + " |")
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
+def _warn_on_unknown_env_vars() -> None:
+    """Emit a warning for any ``SIFT_*`` env var not declared in the registry.
+
+    The registry declares either a full env var name (``opt.env``) or an env
+    prefix for dict-shape options (``opt.env_prefix``); env vars that match
+    neither are almost always typos.
+    """
+    import difflib
+
+    known_full = {opt.env for opt in _OPTIONS if opt.env}
+    known_prefixes = {opt.env_prefix for opt in _OPTIONS if opt.env_prefix}
+    suggestion_pool = sorted(known_full | {p + "<KEY>" for p in known_prefixes})
+    for name in sorted(os.environ):
+        if not name.startswith("SIFT_"):
+            continue
+        if name in known_full:
+            continue
+        if any(name.startswith(p) and len(name) > len(p) for p in known_prefixes):
+            continue
+        close = difflib.get_close_matches(name, suggestion_pool, n=1, cutoff=0.6)
+        hint = f" (did you mean `{close[0]}`?)" if close else ""
+        warnings.warn(
+            f"Unknown SIFT_* env var `{name}`{hint}; ignored.",
+            SiftPytestPluginWarning,
+            stacklevel=2,
+        )
+
+
+def _warn_on_unknown_toml_keys(config: pytest.Config) -> None:
+    """Walk ``[tool.sift.pytest.*]`` in pyproject.toml and warn on keys outside the registry.
+
+    Only the ``tool.sift.pytest`` subtree is checked. Other ``tool.sift.*``
+    subtrees are reserved for non-pytest Sift tooling (e.g. ``tool.sift.extras``
+    is consumed by this repo's extras-generation script) and aren't our
+    concern. Free-form subtrees (``merge=True`` options like ``metadata``)
+    stop the walk — their keys are user-defined and not validated.
+    """
+    import difflib
+
+    data = _tool_sift(config)
+    pytest_table = (data or {}).get("pytest")
+    if not isinstance(pytest_table, dict):
+        return
+    # Build leaf/free-form/prefix sets relative to the ``("pytest", ...)`` root
+    # the registry already uses, so the walk runs on the table we just sliced.
+    leaves = {opt.toml for opt in _OPTIONS if opt.toml and not opt.merge}
+    free_form = {opt.toml for opt in _OPTIONS if opt.toml and opt.merge}
+    prefixes: set[tuple[str, ...]] = set()
+    for full in leaves | free_form:
+        for i in range(len(full)):
+            prefixes.add(full[:i])
+
+    def _walk(node: Any, base: tuple[str, ...]) -> None:
+        if base in free_form or not isinstance(node, dict):
+            return
+        for key, value in node.items():
+            path = (*base, str(key))
+            if path in leaves or path in free_form:
+                continue
+            if path in prefixes:
+                _walk(value, path)
+                continue
+            full_name = "tool.sift." + ".".join(path)
+            same_depth = [
+                ".".join(p) for p in (leaves | free_form | prefixes) if len(p) == len(path)
+            ]
+            close = difflib.get_close_matches(".".join(path), same_depth, n=1, cutoff=0.6)
+            hint = f" (did you mean `tool.sift.{close[0]}`?)" if close else ""
+            warnings.warn(
+                f"Unknown sift config key `{full_name}`{hint}; ignored.",
+                SiftPytestPluginWarning,
+                stacklevel=2,
+            )
+
+    _walk(pytest_table, ("pytest",))
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -485,13 +864,11 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 
 
 def _is_offline(pytestconfig: pytest.Config | None) -> bool:
-    return bool(_option_or_ini(pytestconfig, _OFFLINE))
+    return bool(_OFFLINE.resolve(pytestconfig))
 
 
 def _is_disabled(pytestconfig: pytest.Config | None) -> bool:
-    if bool(_option_or_ini(pytestconfig, _DISABLED)):
-        return True
-    return os.getenv("SIFT_DISABLED", "").lower() in ("1", "true", "yes")
+    return bool(_DISABLED.resolve(pytestconfig))
 
 
 def _sdk_version() -> str:
@@ -705,7 +1082,7 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
         config.stash[SIFT_REPORT_ID_STASH_KEY] = report_id
     if report_url is not None:
         config.stash[SIFT_REPORT_URL_STASH_KEY] = report_url
-        if _option_or_ini(config, _OPEN):
+        if _OPEN.resolve(config):
             _maybe_open_report(report_url)
 
     if quiet:
@@ -806,24 +1183,6 @@ def _sift_enabled_for(node: pytest.Item | pytest.Collector, default: bool) -> bo
     return default
 
 
-def _option_or_ini(pytestconfig: pytest.Config | None, opt: _Option) -> Any:
-    """Resolve a Sift plugin setting from CLI > ini > None.
-
-    The ``addoption`` registrations use ``default=None`` so we can tell whether
-    the CLI was actually used. When the CLI didn't set a value, fall back to
-    the matching ``addini`` key.
-    """
-    if pytestconfig is None:
-        return None
-    cli = pytestconfig.getoption(opt.ini_name, default=None)
-    if cli is not None:
-        return cli
-    try:
-        return pytestconfig.getini(opt.ini_name)
-    except (KeyError, ValueError):
-        return None
-
-
 def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool | None:
     """Determine log_file value from CLI flag or ini key.
 
@@ -841,7 +1200,7 @@ def _resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool |
     Rejects ``--sift-log-file=none`` combined with ``--sift-offline`` since
     offline mode needs the log file as its sole sink.
     """
-    raw = _option_or_ini(pytestconfig, _LOG_FILE)
+    raw = _LOG_FILE.resolve(pytestconfig)
     disabled = raw is False or (isinstance(raw, str) and raw.lower() in ("false", "none"))
     if disabled and _is_offline(pytestconfig):
         raise pytest.UsageError(
@@ -1020,46 +1379,114 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         _finalize_after_teardown(item, report)
 
 
-def _render_report_name(
-    base_name: str,
+def _relativize(path: Path, rootpath: Path) -> str:
+    """Path relative to rootdir, or the basename when it sits outside the tree."""
+    try:
+        rel = str(path.relative_to(rootpath))
+    except ValueError:
+        return path.name
+    return "" if rel == "." else rel
+
+
+def _strip_param(nodeid: str) -> str:
+    """Drop the trailing ``[param]`` from a nodeid, keeping ``file::Class::func``.
+
+    The parametrize id is a variation of the test, not its identity — leaving it
+    in would make a re-parametrization silently shift the grouping key. Splits on
+    the last ``::`` segment and cuts at its first ``[``; class/function names
+    never contain ``[``, so nested brackets in a param value can't confuse it.
+    """
+    head, sep, leaf = nodeid.rpartition("::")
+    leaf = leaf.split("[", 1)[0]
+    return f"{head}{sep}{leaf}"
+
+
+def _derive_target(request: pytest.FixtureRequest, args: tuple[str, ...]) -> str:
+    """Describe what was run, from the collected items rather than the command line.
+
+    Collection is the ground truth of selection — independent of flag order,
+    ``-k`` / ``-m`` filters, or which path form was typed. Every value is
+    anchored to the rootdir (project) name so the shape is uniform; granularity
+    narrows with the selection:
+
+    * a single test -> ``project/tests/test_motor.py::test_spin`` (param stripped)
+    * a single file -> ``project/tests/test_motor.py``
+    * many files    -> their common directory, ``project/tests/motor``
+    * whole tree / nothing collected / paths outside rootdir -> ``project``
+
+    The report is session-level and individual tests are its steps, so the
+    file/directory grain is the natural unit of "what ran" for the report
+    itself. The verbatim invocation stays available via ``{command}`` and the
+    ``pytest_command`` metadata key.
+    """
+    rootpath = request.config.rootpath
+    root = rootpath.name
+
+    def _anchor(rel: str) -> str:
+        return f"{root}/{rel}" if rel else root
+
+    items = list(getattr(request.session, "items", ()) or ())
+    if not items:
+        return root
+    if len(items) == 1:
+        return _anchor(_strip_param(items[0].nodeid))
+    paths = {p for p in (getattr(i, "path", None) for i in items) if p is not None}
+    if not paths:
+        return root
+    if len(paths) == 1:
+        return _anchor(_relativize(next(iter(paths)), rootpath))
+    try:
+        common = Path(os.path.commonpath([str(p) for p in paths]))
+    except ValueError:
+        # e.g. paths on different drives (Windows); fall back to the project.
+        return root
+    return _anchor(_relativize(common, rootpath))
+
+
+def _build_template_fields(
+    target: str,
     command: str,
     args: tuple[str, ...],
     request: pytest.FixtureRequest,
-    pytestconfig: pytest.Config | None,
-) -> str:
-    """Render the report display name from the ``sift_report_name`` template.
-
-    The default template ``"{target} {timestamp}"`` reproduces the historical
-    behavior (target base name + ISO timestamp). An invalid or unknown
-    placeholder falls back to that default and warns rather than aborting the
-    session, since a bad name template should never block test results from
-    being recorded.
-    """
+) -> dict[str, Any]:
+    """Build the placeholder mapping shared by the name and test_case templates."""
     items = getattr(request.session, "items", ()) or ()
-    timestamp = datetime.now(timezone.utc).isoformat()
     git = _git_metadata() or {}
-    fields = {
-        "target": base_name,
+    return {
+        "target": target,
         "command": command,
         "args": " ".join(args),
         "rootdir": request.config.rootpath.name,
-        "timestamp": timestamp,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "count": len(items),
         "git_repo": git.get("git_repo", ""),
         "git_branch": git.get("git_branch", ""),
         "git_commit": git.get("git_commit", ""),
     }
-    template = _option_or_ini(pytestconfig, _REPORT_NAME) or "{target} {timestamp}"
+
+
+def _format_template(
+    template: str,
+    fields: dict[str, Any],
+    *,
+    fallback: str,
+    option_label: str,
+) -> str:
+    """Format ``template`` with ``fields``; on bad input, warn and return ``fallback``.
+
+    A bad template should never block test results from being recorded, so the
+    rendering errors collapse to a warning + fallback rather than aborting the
+    session.
+    """
     try:
         return template.format(**fields)
     except (KeyError, IndexError, ValueError) as exc:
         warnings.warn(
-            f"Invalid sift_report_name template {template!r} ({exc}); "
-            "falling back to the default name.",
+            f"Invalid {option_label} template {template!r} ({exc}); using fallback.",
             SiftPytestPluginWarning,
             stacklevel=2,
         )
-        return f"{base_name} {timestamp}"
+        return fallback
 
 
 def _report_context_impl(
@@ -1068,18 +1495,39 @@ def _report_context_impl(
     pytestconfig: pytest.Config | None = None,
 ) -> Generator[ReportContext, None, None]:
     args = request.config.invocation_params.args
-    test_path = Path(args[0]) if args else None
-    if test_path is not None and test_path.exists():
-        base_name = test_path.name
-        test_case: Path | str = test_path
-    else:
-        base_name = "pytest " + " ".join(args) if args else "pytest"
-        test_case = base_name
-    # The full invocation is preserved on the report metadata as a record; the
-    # display name is rendered from a user-configurable template that defaults
-    # to the prior behavior (base name + timestamp).
+    # ``target`` is "what ran", derived from the collected items (see
+    # _derive_target) — invocation-independent, unlike parsing the command
+    # line. Both the display name and test_case default to it; the verbatim
+    # command stays available via {command} and the pytest_command metadata.
+    target = _derive_target(request, args)
     command = "pytest " + " ".join(args) if args else "pytest"
-    name = _render_report_name(base_name, command, args, request, pytestconfig)
+    fields = _build_template_fields(target, command, args, request)
+    name_template = _REPORT_NAME.resolve(pytestconfig) or "{target} {timestamp}"
+    name = _format_template(
+        name_template,
+        fields,
+        fallback=f"{target} {fields['timestamp']}",
+        option_label="sift_report_name",
+    )
+    test_case_template = _TEST_CASE.resolve(pytestconfig)
+    test_case = (
+        _format_template(
+            test_case_template,
+            fields,
+            fallback=target,
+            option_label="sift_test_case",
+        )
+        if test_case_template
+        else target
+    )
+    # Metadata is a merged dict-shape resolution: [tool.sift.pytest.report.metadata]
+    # is the base, SIFT_REPORT_METADATA_<KEY> env vars merge on top (env wins
+    # on collision), and the auto-recorded pytest_command layers in last so the
+    # user can't accidentally overwrite it.
+    report_metadata: dict[str, str | float | bool] = {
+        **_METADATA.resolve_merged(pytestconfig),
+        "pytest_command": command,
+    }
     # Mode → ReportContext flags:
     #   online (default): log_file=<temp or user path>, replay_log_file=True
     #   --sift-offline:   log_file=<temp or user path>, replay_log_file=False
@@ -1087,16 +1535,19 @@ def _report_context_impl(
     disabled = sift_client._simulate
     offline = False if disabled else _is_offline(pytestconfig)
     log_file: str | Path | bool | None = False if disabled else _resolve_log_file(pytestconfig)
-    git_metadata = _option_or_ini(pytestconfig, _GIT_METADATA)
-    include_git_metadata = True if git_metadata is None else bool(git_metadata)
+    include_git_metadata = bool(_GIT_METADATA.resolve(pytestconfig))
     with ReportContext(
         sift_client,
         name=name,
-        test_case=str(test_case),
+        test_case=test_case,
+        test_system_name=_TEST_SYSTEM_NAME.resolve(pytestconfig) or None,
+        system_operator=_SYSTEM_OPERATOR.resolve(pytestconfig) or None,
+        serial_number=_SERIAL_NUMBER.resolve(pytestconfig) or None,
+        part_number=_PART_NUMBER.resolve(pytestconfig) or None,
         log_file=log_file,
         include_git_metadata=include_git_metadata,
         replay_log_file=not (disabled or offline),
-        metadata={"pytest_command": command},
+        metadata=report_metadata,
     ) as context:
         global REPORT_CONTEXT
         REPORT_CONTEXT = context
@@ -1114,12 +1565,6 @@ def _report_context_impl(
             finally:
                 _drain_hierarchy_stack()
 
-
-_CREDENTIAL_KEYS: tuple[tuple[str, _Option | None], ...] = (
-    ("SIFT_API_KEY", None),  # env-only; never read from ini to keep secrets out of source control.
-    ("SIFT_GRPC_URI", _GRPC_URI),
-    ("SIFT_REST_URI", _REST_URI),
-)
 
 # Placeholder credentials used in --sift-offline mode when env/ini values
 # are missing. Offline mode never makes network calls, so the values are
@@ -1149,19 +1594,6 @@ def _build_disabled_client() -> SiftClient:
     return client
 
 
-def _resolve_credential(
-    pytestconfig: pytest.Config | None, env_name: str, opt: _Option | None
-) -> str | None:
-    """Resolve a Sift credential: env var first, then ini key (if registered), else None."""
-    env_value = os.getenv(env_name)
-    if env_value:
-        return env_value
-    if opt is None or pytestconfig is None:
-        return None
-    ini_value = pytestconfig.getini(opt.ini_name)
-    return ini_value if isinstance(ini_value, str) and ini_value else None
-
-
 @pytest.fixture(scope="session")
 def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     """Default ``SiftClient`` resolved from environment variables and ini keys.
@@ -1187,15 +1619,19 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     """
     if _is_disabled(pytestconfig):
         return _build_disabled_client()
-    resolved = {env: _resolve_credential(pytestconfig, env, opt) for env, opt in _CREDENTIAL_KEYS}
+    resolved = {
+        "SIFT_API_KEY": _API_KEY.resolve(pytestconfig),
+        "SIFT_GRPC_URI": _GRPC_URI.resolve(pytestconfig),
+        "SIFT_REST_URI": _REST_URI.resolve(pytestconfig),
+    }
     missing = [env for env, value in resolved.items() if not value]
     if missing and not _is_offline(pytestconfig):
         raise pytest.UsageError(
             "Sift credentials missing: "
             + ", ".join(missing)
             + ". Set the environment variable(s) — pytest-dotenv loads them "
-            "from a `.env` file automatically — or set the URIs via "
-            "`sift_grpc_uri` / `sift_rest_uri` under `[tool.pytest.ini_options]` "
+            "from a `.env` file automatically — or set the URIs under "
+            "`sift_grpc_uri` / `sift_rest_uri` in `[tool.pytest.ini_options]` "
             "in pyproject.toml, or override the sift_client fixture in your "
             "conftest.py, or pass --sift-offline / --sift-disabled to run "
             "without contacting Sift."
@@ -1205,14 +1641,12 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     # Web-app origin for the report link: the sift_report_url_base CLI/ini option
     # wins, then the SIFT_APP_URL env var, else host-based derivation in
     # SiftClient.app_url.
-    report_url_base = _option_or_ini(pytestconfig, _REPORT_URL_BASE) or os.getenv("SIFT_APP_URL")
-    # `or ""` is unreachable in practice since the `missing` check above guarantees
-    # non-None values
+    report_url_base = _REPORT_URL_BASE.resolve(pytestconfig) or os.getenv("SIFT_APP_URL")
     return SiftClient(
         connection_config=SiftConnectionConfig(
-            api_key=resolved.get("SIFT_API_KEY") or "",
-            grpc_url=resolved.get("SIFT_GRPC_URI") or "",
-            rest_url=resolved.get("SIFT_REST_URI") or "",
+            api_key=resolved["SIFT_API_KEY"] or "",
+            grpc_url=resolved["SIFT_GRPC_URI"] or "",
+            rest_url=resolved["SIFT_REST_URI"] or "",
             app_url=report_url_base or None,
         )
     )
@@ -1283,7 +1717,7 @@ def _step_impl(
     # by ``_parametrize_parents``. When parametrize-nesting is disabled, fall
     # back to the bracket-mangled pytest name (e.g. ``test_a[1]``) so the leaf
     # remains uniquely identifiable.
-    if _option_or_ini(request.config, _PARAMETRIZE_NESTING):
+    if _PARAMETRIZE_NESTING.resolve(request.config):
         path = node.stash.get(_PARAMETRIZE_PATH_KEY, ())
         name = path[-1] if path else str(node.name)
     else:
@@ -1321,7 +1755,7 @@ def _hierarchy_parents(
 
     Gated off when the item is excluded (avoids eager ``report_context`` setup).
     """
-    default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
+    default = bool(_AUTOUSE.resolve(pytestconfig))
     if not _sift_enabled_for(request.node, default):
         return None
     # Fall back to computing the chain on-demand for items that bypassed
@@ -1403,10 +1837,10 @@ def _parametrize_parents(
     diff against a subsequent test's chain pops them, or until
     ``pytest_sessionfinish`` drains anything left at session end.
     """
-    default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
+    default = bool(_AUTOUSE.resolve(pytestconfig))
     if not _sift_enabled_for(request.node, default):
         return None
-    if not _option_or_ini(pytestconfig, _PARAMETRIZE_NESTING):
+    if not _PARAMETRIZE_NESTING.resolve(pytestconfig):
         return None
     # Fall back to on-demand computation for dynamically-inserted items;
     # see _hierarchy_parents for the same rationale.
@@ -1461,7 +1895,7 @@ def step(
     ``SiftClient(_simulate=True)`` placeholder, so every write returns a
     synthesized response without contacting Sift.
     """
-    default = bool(_option_or_ini(pytestconfig, _AUTOUSE))
+    default = bool(_AUTOUSE.resolve(pytestconfig))
     if not _sift_enabled_for(request.node, default):
         yield None
         return
