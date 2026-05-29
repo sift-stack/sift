@@ -38,3 +38,21 @@ impl Display for ComplexTypesMode {
         }
     }
 }
+
+/// Whether the file holds a single channel or many channels keyed by a name column.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub enum ChannelMode {
+    /// File has [time, value]. All rows belong to one named channel.
+    Single,
+    /// File has [time, name_column, value_column]. Channels created per unique name.
+    Multi,
+}
+
+impl Display for ChannelMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Single => write!(f, "single"),
+            Self::Multi => write!(f, "multi"),
+        }
+    }
+}

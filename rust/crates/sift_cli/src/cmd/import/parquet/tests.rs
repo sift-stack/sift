@@ -1,4 +1,10 @@
-use crate::cli::{FlatDatasetArgs, parquet::ComplexTypesMode, time::TimeFormat};
+use crate::cli::channel::DataType as CliDataType;
+use crate::cli::{
+    ChannelPerRowArgs, CommonImportArgs, FlatDatasetArgs,
+    parquet::{ChannelMode, ComplexTypesMode},
+    time::TimeFormat,
+};
+use crate::cmd::import::parquet::channel_per_row_dataset;
 use crate::cmd::import::parquet::detect_parquet_schema::{self, arrow_type_to_channel_data_type};
 use arrow_array::{
     BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
@@ -13,9 +19,14 @@ use std::sync::Arc;
 
 fn make_test_args(time_path: &str, time_format: TimeFormat) -> FlatDatasetArgs {
     FlatDatasetArgs {
-        path: PathBuf::from("test.parquet"),
-        asset: String::from("test-asset"),
-        run: None,
+        common: CommonImportArgs {
+            path: PathBuf::from("test.parquet"),
+            asset: String::from("test-asset"),
+            run: None,
+            run_id: None,
+            wait: false,
+            preview: false,
+        },
         channel_path: vec![],
         data_type: vec![],
         unit: vec![],
@@ -26,8 +37,6 @@ fn make_test_args(time_path: &str, time_format: TimeFormat) -> FlatDatasetArgs {
         time_format,
         relative_start_time: None,
         complex_types_mode: ComplexTypesMode::default(),
-        wait: false,
-        preview: false,
     }
 }
 
@@ -325,5 +334,251 @@ fn test_time_path_not_in_parquet_returns_error() {
     assert!(
         result.is_err(),
         "should error when time path is not found in parquet schema"
+    );
+}
+
+fn make_channel_per_row_args(mode: ChannelMode, time_format: TimeFormat) -> ChannelPerRowArgs {
+    ChannelPerRowArgs {
+        common: CommonImportArgs {
+            path: PathBuf::from("test.parquet"),
+            asset: "test-asset".into(),
+            run: None,
+            run_id: None,
+            wait: false,
+            preview: false,
+        },
+        mode,
+        time_path: "timestamp".into(),
+        time_format,
+        relative_start_time: None,
+        data_path: "value".into(),
+        channel_name: None,
+        data_type: None,
+        unit: None,
+        description: None,
+        name_path: None,
+        complex_types_mode: ComplexTypesMode::default(),
+    }
+}
+
+fn create_channel_per_row_single_batch() -> RecordBatch {
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("timestamp", DataType::Int64, false),
+        Field::new("value", DataType::Float64, false),
+    ]));
+    RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(Int64Array::from(vec![1, 2, 3])),
+            Arc::new(Float64Array::from(vec![10.0, 20.0, 30.0])),
+        ],
+    )
+    .expect("failed to create channel-per-row single batch")
+}
+
+fn create_channel_per_row_multi_batch(names: Vec<&str>) -> RecordBatch {
+    let n = names.len();
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("timestamp", DataType::Int64, false),
+        Field::new("value", DataType::Float64, false),
+        Field::new("channel", DataType::Utf8, false),
+    ]));
+    let timestamps: Vec<i64> = (0..n as i64).collect();
+    let values: Vec<f64> = (0..n).map(|i| i as f64).collect();
+    RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(Int64Array::from(timestamps)),
+            Arc::new(Float64Array::from(values)),
+            Arc::new(StringArray::from(names)),
+        ],
+    )
+    .expect("failed to create channel-per-row multi batch")
+}
+
+#[test]
+fn test_detect_channel_per_row_single_basic_infers_data_type() {
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args =
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    args.channel_name = Some("temperature".into());
+
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("detect_channel_per_row_config should succeed");
+
+    use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
+    let inner = cfg.config.as_ref().expect("inner config present");
+    let InnerConfig::SingleChannel(single) = inner else {
+        panic!("expected SingleChannel variant");
+    };
+    let channel = single.channel.as_ref().expect("channel config present");
+    assert_eq!(channel.name, "temperature");
+    assert_eq!(channel.data_type, i32::from(ChannelDataType::Double));
+    assert_eq!(single.data_path, "value");
+
+    let time = cfg.time_column.as_ref().expect("time column present");
+    assert_eq!(time.path, "timestamp");
+}
+
+#[test]
+fn test_detect_channel_per_row_single_honors_data_type_override() {
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args =
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    args.channel_name = Some("temperature".into());
+    args.data_type = Some(CliDataType::Float);
+
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
+
+    use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
+    let InnerConfig::SingleChannel(single) = cfg.config.as_ref().unwrap() else {
+        panic!("expected SingleChannel variant");
+    };
+    assert_eq!(
+        single.channel.as_ref().unwrap().data_type,
+        i32::from(ChannelDataType::Float),
+        "explicit --data-type should win over parquet-inferred type"
+    );
+}
+
+#[test]
+fn test_detect_channel_per_row_single_propagates_units_and_description() {
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args =
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    args.channel_name = Some("temperature".into());
+    args.unit = Some("celsius".into());
+    args.description = Some("ambient temperature".into());
+
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
+    use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
+    let InnerConfig::SingleChannel(single) = cfg.config.as_ref().unwrap() else {
+        panic!("expected SingleChannel variant");
+    };
+    let channel = single.channel.as_ref().unwrap();
+    assert_eq!(channel.units, "celsius");
+    assert_eq!(channel.description, "ambient temperature");
+}
+
+#[test]
+fn test_detect_channel_per_row_multi_basic() {
+    let batch = create_channel_per_row_multi_batch(vec!["a", "b", "c"]);
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args =
+        make_channel_per_row_args(ChannelMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+    args.name_path = Some("channel".into());
+
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("detect_channel_per_row_config multi should succeed");
+
+    use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
+    let InnerConfig::MultiChannel(multi) = cfg.config.as_ref().unwrap() else {
+        panic!("expected MultiChannel variant");
+    };
+    assert_eq!(multi.name_path, "channel");
+    assert_eq!(multi.data_path, "value");
+
+    let paths: Vec<&str> = cfg.columns.iter().map(|c| c.path.as_str()).collect();
+    assert!(
+        paths.contains(&"value"),
+        "columns should include data column"
+    );
+    assert!(
+        paths.contains(&"channel"),
+        "columns should include name column"
+    );
+}
+
+#[test]
+fn test_detect_channel_per_row_missing_time_column_errors() {
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args =
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    args.channel_name = Some("temperature".into());
+    args.time_path = "nonexistent_time".into();
+
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
+    assert!(
+        err.chain().any(|e| e.to_string().contains("time column")),
+        "expected time column error, got: {err:#}"
+    );
+}
+
+#[test]
+fn test_detect_channel_per_row_missing_data_column_errors() {
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args =
+        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    args.channel_name = Some("temperature".into());
+    args.data_path = "nonexistent_value".into();
+
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
+    assert!(
+        err.chain().any(|e| e.to_string().contains("data column")),
+        "expected data column error, got: {err:#}"
+    );
+}
+
+#[test]
+fn test_detect_channel_per_row_multi_missing_name_column_errors() {
+    let batch = create_channel_per_row_multi_batch(vec!["a"]);
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args =
+        make_channel_per_row_args(ChannelMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+    args.name_path = Some("nonexistent_name".into());
+
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
+    assert!(
+        err.chain().any(|e| e.to_string().contains("name column")),
+        "expected name column error, got: {err:#}"
+    );
+}
+
+#[test]
+fn test_discover_multi_channel_names_for_preview_dedups_and_sorts() {
+    let batch = create_channel_per_row_multi_batch(vec![
+        "voltage",
+        "temperature",
+        "pressure",
+        "voltage",
+        "temperature",
+    ]);
+    let bytes = write_to_parquet_bytes(&batch);
+
+    let names = channel_per_row_dataset::discover_multi_channel_names_for_preview(bytes, "channel")
+        .expect("discovery should succeed");
+    assert_eq!(names, vec!["pressure", "temperature", "voltage"]);
+}
+
+#[test]
+fn test_discover_multi_channel_names_for_preview_errors_on_non_string_column() {
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+
+    let err = channel_per_row_dataset::discover_multi_channel_names_for_preview(bytes, "value")
+        .unwrap_err();
+    assert!(
+        err.chain()
+            .any(|e| e.to_string().contains("must be a string type")),
+        "expected non-string error, got: {err:#}"
+    );
+}
+
+#[test]
+fn test_discover_multi_channel_names_for_preview_missing_column_errors() {
+    let batch = create_channel_per_row_multi_batch(vec!["a"]);
+    let bytes = write_to_parquet_bytes(&batch);
+
+    let err =
+        channel_per_row_dataset::discover_multi_channel_names_for_preview(bytes, "no_such_col")
+            .unwrap_err();
+    assert!(
+        err.chain().any(|e| e.to_string().contains("not found")),
+        "expected not-found error, got: {err:#}"
     );
 }
