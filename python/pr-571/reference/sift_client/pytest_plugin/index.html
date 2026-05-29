@@ -750,6 +750,28 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.SIFT_REPORT_ID_STASH_KEY" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;SIFT_REPORT_ID_STASH_KEY
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.SIFT_REPORT_URL_STASH_KEY" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;SIFT_REPORT_URL_STASH_KEY
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.SiftPytestPluginWarning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -827,6 +849,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.pytest_report_header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_report_header
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.pytest_runtest_makereport" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -842,6 +875,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_sessionfinish
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.pytest_terminal_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_terminal_summary
       
     </span>
   </a>
@@ -1380,6 +1424,28 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.SIFT_REPORT_ID_STASH_KEY" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;SIFT_REPORT_ID_STASH_KEY
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.SIFT_REPORT_URL_STASH_KEY" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;SIFT_REPORT_URL_STASH_KEY
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.SiftPytestPluginWarning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1457,6 +1523,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.pytest_report_header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_report_header
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.pytest_runtest_makereport" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1472,6 +1549,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_sessionfinish
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.pytest_terminal_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_terminal_summary
       
     </span>
   </a>
@@ -1631,6 +1719,14 @@ You're not viewing the latest version.
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            pytest_report_header (sift_client.pytest_plugin.pytest_report_header)" href="#sift_client.pytest_plugin.pytest_report_header">pytest_report_header</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Emit a session-start header with the SDK version and active mode.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            pytest_runtest_makereport (sift_client.pytest_plugin.pytest_runtest_makereport)" href="#sift_client.pytest_plugin.pytest_runtest_makereport">pytest_runtest_makereport</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -1643,6 +1739,14 @@ You're not viewing the latest version.
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Drain any parent steps still open at session end (innermost first).</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            pytest_terminal_summary (sift_client.pytest_plugin.pytest_terminal_summary)" href="#sift_client.pytest_plugin.pytest_terminal_summary">pytest_terminal_summary</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Emit a session-end Sift report summary, adapting per mode.</p>
                 </div>
               </td>
             </tr>
@@ -1703,6 +1807,36 @@ You're not viewing the latest version.
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            SIFT_REPORT_ID_STASH_KEY
+
+
+  
+      module-attribute
+   (sift_client.pytest_plugin.SIFT_REPORT_ID_STASH_KEY)" href="#sift_client.pytest_plugin.SIFT_REPORT_ID_STASH_KEY">SIFT_REPORT_ID_STASH_KEY</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            SIFT_REPORT_URL_STASH_KEY
+
+
+  
+      module-attribute
+   (sift_client.pytest_plugin.SIFT_REPORT_URL_STASH_KEY)" href="#sift_client.pytest_plugin.SIFT_REPORT_URL_STASH_KEY">SIFT_REPORT_URL_STASH_KEY</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+              </p>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -1730,6 +1864,50 @@ You're not viewing the latest version.
 
 <a href="#sift_client.pytest_plugin.REPORT_CONTEXT" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">REPORT_CONTEXT</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="sift_client.pytest_plugin.SIFT_REPORT_ID_STASH_KEY" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">SIFT_REPORT_ID_STASH_KEY</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#sift_client.pytest_plugin.SIFT_REPORT_ID_STASH_KEY" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SIFT_REPORT_ID_STASH_KEY</span> <span class="o">=</span> <span class="n"><span title="pytest.StashKey">StashKey</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]()</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="sift_client.pytest_plugin.SIFT_REPORT_URL_STASH_KEY" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">SIFT_REPORT_URL_STASH_KEY</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#sift_client.pytest_plugin.SIFT_REPORT_URL_STASH_KEY" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SIFT_REPORT_URL_STASH_KEY</span> <span class="o">=</span> <span class="n"><span title="pytest.StashKey">StashKey</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]()</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1953,6 +2131,28 @@ parents in the report tree.</p>
 <div class="doc doc-object doc-function">
 
 
+<h2 id="sift_client.pytest_plugin.pytest_report_header" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">pytest_report_header</span>
+
+
+<a href="#sift_client.pytest_plugin.pytest_report_header" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pytest_report_header</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Emit a session-start header with the SDK version and active mode.</p>
+<p>Suppressed under <code>-q</code> (negative verbosity), matching how pytest hides its
+own platform/plugin header.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h2 id="sift_client.pytest_plugin.pytest_runtest_makereport" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">pytest_runtest_makereport</span>
 
@@ -1995,6 +2195,33 @@ so it does not duplicate steps the fixture already created.</p>
 from running. With <code>module_substep</code> removed, this is the sole place
 where hierarchy parents close — they persist across all tests and only
 drain when the session ends.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.pytest_plugin.pytest_terminal_summary" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">pytest_terminal_summary</span>
+
+
+<a href="#sift_client.pytest_plugin.pytest_terminal_summary" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pytest_terminal_summary</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">terminalreporter</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span> <span class="n">exitstatus</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n"><span title="pytest.Config">Config</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Emit a session-end Sift report summary, adapting per mode.</p>
+<p>The printed panel is suppressed under <code>-q</code>, but programmatic side effects
+(stashing the report ref for <code>conftest.py</code>, <code>--sift-open-report</code>) still run so
+other plugins and CI steps can consume the result. The panel shows the
+outcome (green/red), step and measurement tallies, and a per-mode action: a
+report link (online), the upload command (offline), or a disabled note.</p>
 
 
     </div>

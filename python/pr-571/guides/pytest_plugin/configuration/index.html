@@ -1437,6 +1437,16 @@ plugin's default falls away in favor of your definition.</p>
 <td>git metadata on</td>
 <td>Skip capturing git repo/branch/commit on the report's metadata.</td>
 </tr>
+<tr>
+<td><code>--sift-report-url-base=&lt;origin&gt;</code></td>
+<td>derived from REST URI</td>
+<td>Web-app origin used to build the clickable report link in the terminal footer (e.g. <code>https://app.siftstack.com</code>). Set this for on-prem or custom deployments whose API host can't be mapped to a frontend automatically. Also honored via the <code>SIFT_APP_URL</code> environment variable. When unset, the link is derived from the REST URI for known Sift hosts.</td>
+</tr>
+<tr>
+<td><code>--sift-open-report</code></td>
+<td>off</td>
+<td>Open the resulting report in a browser at session end. Online mode only; a no-op when the report URL can't be resolved. Intended for local development.</td>
+</tr>
 </tbody>
 </table>
 <p>These can be passed permanently via <code>addopts</code>:</p>
@@ -1501,6 +1511,11 @@ CLI flags, when passed, override the ini values.</p>
 <td><code>sift_parametrize_nesting</code></td>
 <td>bool (default <code>true</code>)</td>
 <td><em>(ini-only)</em>. Clusters parametrized tests under shared parents (<code>test_x</code>, <code>axis=value</code>) instead of flat leaves (<code>test_x[value]</code>).</td>
+</tr>
+<tr>
+<td><code>sift_open_report</code></td>
+<td>bool (default <code>false</code>)</td>
+<td><code>--sift-open-report</code></td>
 </tr>
 </tbody>
 </table>
