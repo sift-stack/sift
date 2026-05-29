@@ -43,8 +43,8 @@ operator.
 
 **Online** shows the report metadata, step and measurement breakdowns, and a
 clickable link. The web host is derived from the REST URI for known Sift hosts;
-for on-prem or custom deployments set `--sift-report-url-base`
-(ini: `sift_report_url_base`, env: `SIFT_APP_URL`). Add `--sift-open-report` to
+for on-prem or custom deployments set `sift_app_url`
+(ini) or the `SIFT_APP_URL` env var. Add `--sift-open-report` to
 open the report in a browser at session end.
 
 ```text

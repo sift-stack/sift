@@ -150,7 +150,6 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Capture git repo/branch/commit on the report. | `--no-sift-git-metadata` | `sift_git_metadata` |
 | Skip the session-start ping; route create/update through the JSONL log. | `--sift-offline` | `sift_offline` |
 | Disable Sift entirely (no API calls, no log file). Supersedes --sift-offline. | `--sift-disabled` | `sift_disabled` |
-| Sift web-app origin for the report link in the terminal footer (e.g. https://app.siftstack.com). Also honored via the SIFT_APP_URL env var; when unset, the link is derived from the REST URI for known Sift hosts. | `--sift-report-url-base` | `sift_report_url_base` |
 | Open the resulting report in a browser at session end (online only; no-op when the report URL can't be resolved). | `--sift-open-report` | `sift_open_report` |
 | Default for the Sift autouse fixtures (report_context, step, hierarchy/parametrize parents). | — | `sift_autouse` |
 | Open a parent step for each Python package in the test path. | — | `sift_package_step` |
@@ -165,6 +164,7 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Sift API key (secret, env-only). | — | `SIFT_API_KEY` |
 | Sift gRPC endpoint URI. | `sift_grpc_uri` | `SIFT_GRPC_URI` |
 | Sift REST endpoint URI. | `sift_rest_uri` | `SIFT_REST_URI` |
+| Sift web-app origin for the report link in the terminal footer (e.g. https://app.siftstack.com). When unset, the link is derived from the REST URI for known Sift hosts. | `sift_app_url` | `SIFT_APP_URL` |
 
 ### Report content
 

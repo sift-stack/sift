@@ -465,15 +465,6 @@ _DISABLED = _Option(
     ini_default=False,
 )
 
-_REPORT_URL_BASE = _Option(
-    name="report_url_base",
-    category=_CAT_BEHAVIOR,
-    help="Sift web-app origin for the report link in the terminal footer (e.g. "
-    "https://app.siftstack.com). Also honored via the SIFT_APP_URL env var; when "
-    "unset, the link is derived from the REST URI for known Sift hosts.",
-    cli="--sift-report-url-base",
-    ini="sift_report_url_base",
-)
 _OPEN = _Option(
     name="open_report",
     category=_CAT_BEHAVIOR,
@@ -549,6 +540,15 @@ _REST_URI = _Option(
     env="SIFT_REST_URI",
     ini="sift_rest_uri",
 )
+_APP_URL = _Option(
+    name="app_url",
+    category=_CAT_CONNECTION,
+    help="Sift web-app origin for the report link in the terminal footer (e.g. "
+    "https://app.siftstack.com). When unset, the link is derived from the REST URI "
+    "for known Sift hosts.",
+    env="SIFT_APP_URL",
+    ini="sift_app_url",
+)
 
 # Report content (R3, R7). Project defaults in [tool.sift.pytest.report]; CI
 # injects per-run values via SIFT_REPORT_* env vars (pytest-dotenv handles
@@ -609,7 +609,6 @@ _OPTIONS: tuple[_Option, ...] = (
     _GIT_METADATA,
     _OFFLINE,
     _DISABLED,
-    _REPORT_URL_BASE,
     _OPEN,
     _AUTOUSE,
     _PACKAGE_STEP,
@@ -619,6 +618,7 @@ _OPTIONS: tuple[_Option, ...] = (
     _API_KEY,
     _GRPC_URI,
     _REST_URI,
+    _APP_URL,
     _REPORT_NAME,
     _TEST_CASE,
     _TEST_SYSTEM_NAME,
@@ -1158,7 +1158,7 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
         _sift_kv(
             terminalreporter,
             "Report",
-            f"id {report_id}  (set sift_report_url_base for a clickable link)",
+            f"id {report_id}  (set sift_app_url for a clickable link)",
         )
 
     if report_id and getattr(context, "replay_incomplete", False) and log_file is not None:
@@ -1638,16 +1638,15 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
         )
     for env in missing:
         resolved[env] = _OFFLINE_DEFAULTS[env]
-    # Web-app origin for the report link: the sift_report_url_base CLI/ini option
-    # wins, then the SIFT_APP_URL env var, else host-based derivation in
-    # SiftClient.app_url.
-    report_url_base = _REPORT_URL_BASE.resolve(pytestconfig) or os.getenv("SIFT_APP_URL")
+    # Web-app origin for the report link: the SIFT_APP_URL env var wins, then the
+    # sift_app_url ini key, else host-based derivation in SiftClient.app_url.
+    app_url = _APP_URL.resolve(pytestconfig)
     return SiftClient(
         connection_config=SiftConnectionConfig(
             api_key=resolved["SIFT_API_KEY"] or "",
             grpc_url=resolved["SIFT_GRPC_URI"] or "",
             rest_url=resolved["SIFT_REST_URI"] or "",
-            app_url=report_url_base or None,
+            app_url=app_url or None,
         )
     )
 
