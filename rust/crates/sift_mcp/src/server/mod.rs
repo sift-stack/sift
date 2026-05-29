@@ -1,4 +1,12 @@
-use rmcp::{ServerHandler, handler::server::tool::ToolRouter, tool_handler};
+use rmcp::{
+    RoleServer, ServerHandler,
+    handler::server::router::prompt::PromptRouter,
+    handler::server::tool::ToolRouter,
+    model::{GetPromptRequestParams, GetPromptResult, ListPromptsResult, PaginatedRequestParams},
+    prompt_handler,
+    service::RequestContext,
+    tool_handler,
+};
 use sift_rs::SiftChannel;
 
 use crate::service::{
@@ -9,6 +17,7 @@ use crate::service::{
 #[derive(Clone)]
 pub struct SiftMcpServer {
     pub tool_router: ToolRouter<Self>,
+    pub prompt_router: PromptRouter<Self>,
 
     pub asset_service: AssetService,
     pub channel_service: ChannelService,
@@ -23,6 +32,7 @@ pub struct SiftMcpServer {
     version = "0.1.0",
     instructions = "Sift MCP Server",
 )]
+#[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {}
 
 impl SiftMcpServer {
@@ -31,6 +41,8 @@ impl SiftMcpServer {
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::list_router();
         tool_router.merge(Self::data_router());
+
+        let prompt_router = Self::prompt_router();
 
         let asset_service = AssetService::new(channel.clone());
         let data_service = DataService::new(channel.clone());
@@ -45,6 +57,7 @@ impl SiftMcpServer {
             ingest_service,
             run_service,
             tool_router,
+            prompt_router,
         }
     }
 }

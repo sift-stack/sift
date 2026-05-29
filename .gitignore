@@ -366,3 +366,5 @@ cython_debug/
 
 
 rust/crates/**/target/
+rust/crates/sift_cli/assets/docs/book/**
+rust/crates/sift_cli/assets/docs/book-dev/**

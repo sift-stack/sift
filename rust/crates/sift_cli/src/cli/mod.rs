@@ -4,14 +4,14 @@ use parquet::{ChannelMode, ComplexTypesMode};
 pub mod hdf5;
 pub mod tdms;
 use hdf5::Hdf5Schema;
-use std::path::PathBuf;
+use std::{net::SocketAddr, path::PathBuf};
 use tdms::TdmsFallbackMethod;
 
 pub mod channel;
 use channel::DataType;
 
+pub mod agent;
 pub mod export;
-
 pub mod parquet;
 
 pub mod time;
@@ -41,9 +41,10 @@ pub enum Cmd {
     #[command(subcommand)]
     Config(ConfigCmd),
 
-    /// Manage shell autocompletions
+    Doc(DocArgs),
+
     #[command(subcommand)]
-    Completions(CompletionsCmd),
+    Install(InstallCmd),
 
     /// Export asset/run data from Sift
     #[command(subcommand)]
@@ -58,6 +59,39 @@ pub enum Cmd {
 
     /// Ping the Sift API to verify credentials and connectivity
     Ping,
+}
+
+/// Serve the bundled Sift CLI user documentation over HTTP.
+#[derive(clap::Args)]
+pub struct DocArgs {
+    /// Address the documentation HTTP server binds to.
+    #[arg(long, default_value_t = Self::default_addr())]
+    pub addr: SocketAddr,
+}
+
+/// Install optional Sift tooling such as autocompletions or Agent skills
+#[derive(Subcommand)]
+pub enum InstallCmd {
+    #[command(subcommand)]
+    Completions(CompletionsCmd),
+
+    /// Install Sift-specific skills for agentic tooling
+    AgentSkills(AgentSkillsArgs),
+}
+
+#[derive(clap::Args)]
+pub struct AgentSkillsArgs {
+    /// The agentic coding assistant to install the skill for.
+    pub agent: agent::Agent,
+
+    /// Path to write the skill file to. When omitted, defaults to the
+    /// standard skill location for the selected agent.
+    #[arg(long)]
+    pub output: Option<String>,
+
+    /// Print the skill content to stdout instead of writing it to --output.
+    #[arg(long)]
+    pub print: bool,
 }
 
 #[derive(Subcommand)]
@@ -537,4 +571,10 @@ pub struct ImportHdf5Args {
     /// with --time-index and --time-field.
     #[arg(long, help_heading = "One-d schema options")]
     pub time_name: Option<String>,
+}
+
+impl DocArgs {
+    fn default_addr() -> SocketAddr {
+        "0.0.0.0:3000".parse().unwrap()
+    }
 }

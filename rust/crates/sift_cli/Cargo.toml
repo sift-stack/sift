@@ -40,6 +40,9 @@ tokio = { workspace = true, features = ["full", "net", "time"] }
 tokio-stream = { workspace = true }
 toml = { workspace = true }
 zip = { workspace = true }
+axum.workspace = true
+tower-serve-static.workspace = true
+include_dir.workspace = true
 
 [dev-dependencies]
 indoc = { workspace = true }

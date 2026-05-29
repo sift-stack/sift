@@ -14,6 +14,8 @@ use util::tty::Output;
 
 use clap::Parser;
 
+use crate::cli::InstallCmd;
+
 const BIN_NAME: &str = "sift-cli";
 
 fn main() -> ExitCode {
@@ -61,9 +63,13 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             ConfigCmd::Where => return cmd::config::config_where(),
             ConfigCmd::Update(args) => return cmd::config::update(clargs.profile, args),
         },
-        Cmd::Completions(cmd) => match cmd {
-            cli::CompletionsCmd::Print(args) => return cmd::completions::print(args),
-            cli::CompletionsCmd::Update => return cmd::completions::update(),
+        Cmd::Doc(args) => return run_future(cmd::doc::serve(args)),
+        Cmd::Install(cmd) => match cmd {
+            InstallCmd::Completions(cmd) => match cmd {
+                cli::CompletionsCmd::Print(args) => return cmd::install::completions::print(args),
+                cli::CompletionsCmd::Update => return cmd::install::completions::update(),
+            },
+            InstallCmd::AgentSkills(args) => return cmd::install::agent::skills(args),
         },
         _ => (),
     }

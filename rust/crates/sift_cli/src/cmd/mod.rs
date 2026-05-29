@@ -4,10 +4,11 @@ use crossterm::style::Stylize;
 use std::{fs::read_to_string, io::ErrorKind};
 use toml::{Table, Value};
 
-pub mod completions;
 pub mod config;
+pub mod doc;
 pub mod export;
 pub mod import;
+pub mod install;
 pub mod mcp;
 pub mod ping;
 
