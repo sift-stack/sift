@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.16.2"
+version = "0.17.0.dev1"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -409,6 +409,21 @@ select = [
 env_files = [
     ".env"
 ]
+# `pytester` is registered globally because pytest 8+ disallows `pytest_plugins`
+# in non-top-level conftests. Only the plugin test suite uses it; activating it
+# globally is harmless since the fixture is opt-in.
+# The Sift pytest plugin is loaded so the project's own integration tests can
+# use its fixtures. Unit-test runs are flipped to `--sift-disabled` mode by
+# `lib/sift_client/_tests/conftest.py`.
+# `--import-mode=importlib` loads test files by path with unique synthetic
+# module names. The default `prepend` mode would try to import
+# `lib/sift_client/_tests/conftest.py` as `sift_client._tests.conftest`, which
+# fails because `_tests` is excluded from the wheel (see packages.find above).
+addopts = "-p pytester -p sift_client.pytest_plugin --import-mode=importlib"
+# The autouse gate defaults to off so unit tests don't use the Sift
+# fixtures. The integration subtree (lib/sift_client/_tests/util/) opts
+# back in via `pytest.mark.sift_include` applied in its conftest.
+sift_autouse = false
 testpaths = [
     "lib/sift_py",
     "lib/sift_client/_tests",

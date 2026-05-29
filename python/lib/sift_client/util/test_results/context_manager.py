@@ -7,17 +7,20 @@ import socket
 import subprocess
 import tempfile
 import traceback
+import warnings
+from collections import Counter
 from contextlib import AbstractContextManager, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 
+from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
+    TestMeasurement,
     TestMeasurementCreate,
     TestReport,
     TestReportCreate,
@@ -28,9 +31,12 @@ from sift_client.sift_types.test_report import (
 )
 from sift_client.util.test_results.bounds import (
     evaluate_measurement_bounds,
+    out_of_bounds_mask,
+    to_numpy_array,
 )
 
 if TYPE_CHECKING:
+    import pandas as pd
     from numpy.typing import NDArray
 
     from sift_client.client import SiftClient
@@ -39,16 +45,45 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def log_replay_instructions(log_file: str | Path | None) -> None:
-    """Log instructions for manually replaying a test result log file.
+def format_truncated_traceback(
+    exc: type[BaseException] | None,
+    exc_value: BaseException | None,
+    tb: object | None,
+) -> ErrorInfo:
+    """Format an ErrorInfo from a traceback, keeping the first frame and the last 10."""
+    stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore[arg-type]
+    stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
+    return ErrorInfo(error_code=1, error_message="".join(stack))
 
-    Used when an import/replay attempt fails so the user can retry against the same file.
+
+def format_assertion_message(
+    exc: type[BaseException] | None,
+    exc_value: BaseException | None,
+) -> ErrorInfo:
+    """Format an ErrorInfo from just the exception line(s), no traceback frames.
+
+    For assertion failures the rewritten ``assert`` explanation lives on the
+    exception itself, so stack frames add noise without information. Equivalent
+    to pytest's ``excinfo.exconly()``.
+    """
+    lines = traceback.format_exception_only(exc, exc_value)  # type: ignore[arg-type]
+    return ErrorInfo(error_code=1, error_message="".join(lines))
+
+
+def log_replay_instructions(log_file: str | Path | None) -> None:
+    """Surface replay instructions when an import/replay attempt fails.
+
+    Emitted as a ``SiftWarning`` (not a logger.error) so pytest and other
+    runners surface it in their warning summary; logger.error is suppressed
+    by default in most CLI tools.
     """
     if log_file is None:
         return
-    logger.error(
-        f"Error replaying log file: {log_file}.\n"
-        f"  Can replay with `replay-test-result-log {log_file}`."
+    warnings.warn(
+        f"Sift log file was not fully replayed: {log_file}. "
+        f"Re-run with `import-test-result-log {log_file}` to complete the upload.",
+        SiftWarning,
+        stacklevel=2,
     )
 
 
@@ -107,7 +142,25 @@ class ReportContext(AbstractContextManager):
     step_number_at_depth: dict[int, int]
     open_step_results: dict[str, bool]
     any_failures: bool
+    # Every step created in this report (including hierarchy/parametrize
+    # parents), retained after close so end-of-run summaries can tally final
+    # statuses. ``update`` mutates step instances in place, so these references
+    # reflect late status changes (e.g. a teardown-phase failure).
+    created_steps: list[TestStep]
+    # Every measurement recorded in this report, retained for end-of-run
+    # summaries. Appended in ``NewStep.measure``. A measurement's ``passed`` is
+    # fixed at creation, so the retained references stay accurate.
+    created_measurements: list[TestMeasurement]
+    # Set True in ``__exit__`` when the background replay worker timed out or
+    # exited non-zero, so callers (e.g. the pytest plugin footer) can flag that
+    # the uploaded report may be missing entries.
+    replay_incomplete: bool = False
     _import_proc: subprocess.Popen | None = None
+    # Seconds to wait for the import worker subprocess to finish uploading
+    # the JSONL backlog at session end before killing it. Tests substitute
+    # a smaller value (via ``_make_context`` patching) so they don't wait
+    # the full window for the timeout branch to trigger.
+    _import_proc_timeout: float = 30.0
 
     def __init__(
         self,
@@ -118,6 +171,7 @@ class ReportContext(AbstractContextManager):
         test_case: str | None = None,
         log_file: str | Path | bool | None = None,
         include_git_metadata: bool = False,
+        replay_log_file: bool = True,
     ):
         """Initialize a new report context.
 
@@ -128,15 +182,26 @@ class ReportContext(AbstractContextManager):
             system_operator: The operator of the test system. Will default to the current user if not provided.
             test_case: The name of the test case. Will default to the basename of the file containing the test if not provided.
             log_file: If True, create a temp log file. If a path, use that path.
-                All create/update operations will be logged to this file.
+                If False/None, no log file is written and create/update calls
+                the API.
             include_git_metadata: If True, include git metadata in the report.
+            replay_log_file: When True (the default) and ``log_file`` is set,
+                spawn ``import-test-result-log --incremental`` to push log
+                entries to Sift in the background during the session. When
+                False, the log file is just a record and no worker is spawned.
+                Replay happens later via ``replay-test-result-log <path>``.
+                Has no effect when ``log_file`` is None.
         """
         self.client = client
+        self.replay_log_file = replay_log_file
         self.step_is_open = False
         self.step_stack = []
         self.step_number_at_depth = {}
         self.open_step_results = {}
         self.any_failures = False
+        self.created_steps = []
+        self.created_measurements = []
+        self.replay_incomplete = False
 
         if log_file is True:
             tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
@@ -163,28 +228,41 @@ class ReportContext(AbstractContextManager):
         )
         self.report = client.test_results.create(create, log_file=self.log_file)
 
+    def _build_replay_command(self) -> list[str]:
+        """Build the argv for the import-test-result-log replay subprocess.
+
+        Factored out for testability — tests substitute commands that exit
+        with controlled returncodes / stderr to exercise the ``__exit__``
+        branches without depending on the real replay binary.
+        """
+        return [
+            "import-test-result-log",
+            "--incremental",
+            str(self.log_file),
+            "--grpc-url",
+            self.client.grpc_client._config.uri,
+            "--rest-url",
+            self.client.rest_client._config.base_url,
+            "--api-key",
+            self.client.grpc_client._config.api_key,
+        ]
+
     def _open_import_proc(self):
-        """Open a subprocess to import the log file."""
+        """Open a subprocess to import the log file.
+
+        ``stderr`` is captured so a worker crash mid-session can surface its
+        error at session end via ``__exit__`` rather than failing silently.
+        """
         with _quiet_fork_stderr():
             self._import_proc = subprocess.Popen(
-                [
-                    "import-test-result-log",
-                    "--incremental",
-                    str(self.log_file),
-                    "--grpc-url",
-                    self.client.grpc_client._config.uri,
-                    "--rest-url",
-                    self.client.rest_client._config.base_url,
-                    "--api-key",
-                    self.client.grpc_client._config.api_key,
-                ],
+                self._build_replay_command(),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
             )
 
     def __enter__(self):
-        if self.log_file:
+        if self.log_file and self.replay_log_file:
             self._open_import_proc()
         return self
 
@@ -199,16 +277,76 @@ class ReportContext(AbstractContextManager):
         self.report.update(update)
 
         if self._import_proc is not None:
+            # Three outcomes for the replay worker at session end. None of
+            # them fail the session — tests already ran and their outcome
+            # is independent of delivery. The local log file is the source
+            # of recovery for both failure modes via
+            # `import-test-result-log <path>`:
+            #   1. Exits cleanly (returncode 0). Silent.
+            #   2. Still running after the grace window (TimeoutExpired).
+            #      Healthy worker with a large backlog; kill and surface
+            #      replay instructions. 30 seconds is enough for a normal
+            #      test suite to drain; pathological backlogs should opt
+            #      into inline mode (`--sift-log-file=false`) instead.
+            #   3. Exited with non-zero. Connection failures and API call
+            #      errors land here — the worker's replay loop has no retry,
+            #      so the first failed RPC crashes the subprocess. Surface
+            #      the captured stderr with replay instructions.
             try:
-                self._import_proc.communicate(timeout=1)
+                _, stderr_bytes = self._import_proc.communicate(timeout=self._import_proc_timeout)
             except subprocess.TimeoutExpired:
-                logger.error("Import process did not exit in 10s, killing it")
                 self._import_proc.kill()
                 self._import_proc.wait()
+                self.replay_incomplete = True
+                warnings.warn(
+                    f"Sift import worker did not exit in "
+                    f"{self._import_proc_timeout}s; killing it. "
+                    "Local log file is preserved for manual replay.",
+                    SiftWarning,
+                    stacklevel=2,
+                )
                 log_replay_instructions(self.log_file)
-                raise
+                return True  # Ensures the session is marked as passed in pytest
+            if self._import_proc.returncode != 0:
+                self.replay_incomplete = True
+                stderr_text = (
+                    stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
+                )
+                warnings.warn(
+                    f"Sift import worker exited with code "
+                    f"{self._import_proc.returncode}. stderr: {stderr_text or '<empty>'}",
+                    SiftWarning,
+                    stacklevel=2,
+                )
+                log_replay_instructions(self.log_file)
 
         return True
+
+    @property
+    def is_simulated(self) -> bool:
+        """True when this context's report came from the simulate path.
+
+        Delegates to ``self.report.is_simulated``; see ``TestReport.is_simulated``
+        for the full semantics.
+        """
+        return self.report.is_simulated
+
+    @property
+    def step_status_counts(self) -> Counter[TestStatus]:
+        """Tally of every created step by its current status.
+
+        Includes hierarchy/parametrize parent steps. Read at the end of a run for
+        summaries; reflects late status changes since steps are mutated in place.
+        """
+        return Counter(step.status for step in self.created_steps)
+
+    @property
+    def measurement_counts(self) -> Counter[bool]:
+        """Tally of recorded measurements keyed by ``passed`` (True/False).
+
+        Read at the end of a run for summaries.
+        """
+        return Counter(m.passed for m in self.created_measurements)
 
     def new_step(
         self,
@@ -277,6 +415,8 @@ class ReportContext(AbstractContextManager):
         )
         self.step_stack.append(step)
         self.open_step_results[step.step_path] = True
+        # Retained for end-of-run tallies; never popped (unlike step_stack).
+        self.created_steps.append(step)
 
         return step
 
@@ -287,30 +427,37 @@ class ReportContext(AbstractContextManager):
             self.open_step_results[step.step_path] = False
             self.any_failures = True
 
-    def resolve_and_propagate_step_result(
-        self,
-        step: TestStep,
-        error_info: ErrorInfo | None = None,
-    ) -> bool:
-        """Resolve the result of a step and propagate the result to the parent step if it failed."""
-        result = self.open_step_results.get(step.step_path, True)
-        if error_info:
-            result = False
-        if step.status != TestStatus.IN_PROGRESS:
-            # The step was manually completed so use that result.
-            # Skipped steps are considered passed.
-            result = step.status in (TestStatus.PASSED, TestStatus.SKIPPED)
+    def record_measurement(self, measurement: TestMeasurement) -> None:
+        """Retain a recorded measurement for end-of-run summaries."""
+        self.created_measurements.append(measurement)
 
-        # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
-        if not result:
+    def mark_step_failed_after_close(self, step: TestStep):
+        """Mark a step's parent as failed after the step has already been popped from the stack.
+
+        Used by the pytest plugin when a teardown-phase report fires after the
+        fixture's ``__exit__`` has already resolved and exited the step.
+        """
+        self.any_failures = True
+        path_parts = step.step_path.split(".")
+        if len(path_parts) > 1:
+            self.open_step_results[".".join(path_parts[:-1])] = False
+
+    def propagate_step_result(self, step: TestStep, status: TestStatus) -> bool:
+        """Propagate this step's final status to the parent step.
+
+        Status is the governor: anything outside ``{PASSED, SKIPPED}`` counts
+        as a failure for the parent. ``error_info`` is intentionally not
+        consulted here; it is free-form diagnostic data that may sit on a
+        step regardless of status.
+        """
+        succeeded = status in (TestStatus.PASSED, TestStatus.SKIPPED)
+        if not succeeded:
             self.any_failures = True
             self.open_step_results[step.step_path] = False
             path_parts = step.step_path.split(".")
             if len(path_parts) > 1:
-                parent_step_path = ".".join(path_parts[:-1])
-                self.open_step_results[parent_step_path] = False
-
-        return result
+                self.open_step_results[".".join(path_parts[:-1])] = False
+        return succeeded
 
     def exit_step(self, step: TestStep):
         """Exit a step and update the report context."""
@@ -331,6 +478,10 @@ class NewStep(AbstractContextManager):
     client: SiftClient
     assertion_as_fail_not_error: bool = True
     current_step: TestStep | None = None
+    # Set by the pytest plugin's ``_resolve_initial_status`` to signal that
+    # status was already resolved upstream and ``__exit__`` should skip
+    # re-classifying. Read via ``getattr`` so unset is treated as False.
+    _sift_managed_externally: bool = False
 
     def __init__(
         self,
@@ -353,6 +504,14 @@ class NewStep(AbstractContextManager):
         self.client = report_context.client
         self.current_step = self.report_context.create_step(name, description, metadata=metadata)
         self.assertion_as_fail_not_error = assertion_as_fail_not_error
+        # Per-step measurement-failure count for ``measurements_passed``.
+        # Tracks only direct ``measure*`` calls on this NewStep instance;
+        # substep / ``report_outcome`` failures are intentionally not folded
+        # in here (see ``measurements_passed`` vs ``passed``).
+        self._failed_measurement_count = 0
+        # Out-of-bounds measurements recorded on this step, retained so
+        # ``fail_if_measurements_failed`` can name them in the failure message.
+        self._failed_measurements: list[TestMeasurement] = []
 
     def __enter__(self):
         """Enter the context manager to create a new step.
@@ -360,6 +519,40 @@ class NewStep(AbstractContextManager):
         returns: The current step.
         """
         return self
+
+    @property
+    def measurements_passed(self) -> bool:
+        """True if every measurement recorded directly on this step has passed.
+
+        Counts only ``step.measure``, ``step.measure_avg``, and
+        ``step.measure_all`` calls on this ``NewStep`` instance. Pair it with
+        ``fail_if_measurements_failed()`` at the end of a test to fail pytest on
+        any out-of-bounds measurement without short-circuiting on the first
+        failure (asserting on individual ``measure(...)`` return values skips
+        every measurement after the failing one).
+        """
+        return self._failed_measurement_count == 0
+
+    def fail_if_measurements_failed(self, message: str = "measurements out of bounds") -> None:
+        """Fail the pytest test if any measurement on this step was out of bounds.
+
+        Use instead of ``assert step.measurements_passed``: it fails via
+        ``pytest.fail`` so the step resolves to FAILED without attaching an
+        assertion message to ``error_info``. No-op when every measurement
+        passed. Call once at the end of the test so every measurement is still
+        recorded before the failure fires.
+
+        The failure message names each out-of-bounds measurement with its
+        recorded value and bounds. ``message`` is used as the header line.
+        """
+        if self.measurements_passed:
+            return
+        import pytest
+
+        failed = self._failed_measurements
+        header = f"{message} ({len(failed)}):" if failed else message
+        body = [f"  - {m}" for m in failed]
+        pytest.fail("\n".join([header, *body]), pytrace=False)
 
     def update_step_from_result(
         self,
@@ -376,34 +569,58 @@ class NewStep(AbstractContextManager):
 
         returns: The false if step failed or errored, true otherwise.
         """
+        current_step = self.current_step
+        if current_step is None:
+            # The step was never opened; nothing to resolve. Treat as a pass
+            # so callers that branch on the return value don't see a spurious
+            # failure.
+            return True
+
         error_info = None
-        assert self.current_step is not None
+        aborted = False
+        errored = False
         if exc:
             if isinstance(exc_value, AssertionError) and not self.assertion_as_fail_not_error:
-                # If we're not showing assertion errors (i.e. pytest), mark step as failed but don't set error info.
-                self.report_context.record_step_outcome(False, self.current_step)
+                # pytest-style: an assertion is a plain failure, not an error. Record the
+                # failure and attach the concise assertion message (no traceback) so the
+                # UI can show what was asserted.
+                self.report_context.record_step_outcome(False, current_step)
+                error_info = format_assertion_message(exc, exc_value)
+            elif isinstance(exc_value, (KeyboardInterrupt, SystemExit)):
+                # Hard exit propagating through the substep stack: record as
+                # ABORTED so every in-progress step on the way out reflects
+                # the abort rather than coercing to ERROR.
+                aborted = True
+                error_info = format_truncated_traceback(exc, exc_value, tb)
             else:
-                stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore
-                stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
-                trace = "".join(stack)
-                error_info = ErrorInfo(
-                    error_code=1,
-                    error_message=trace,
-                )
+                errored = True
+                error_info = format_truncated_traceback(exc, exc_value, tb)
 
-        # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
-        result = self.report_context.resolve_and_propagate_step_result(
-            self.current_step, error_info
-        )
-
-        # Mark the step as completed
-        status = self.current_step.status
+        # Status is the governor: anything other than IN_PROGRESS was set
+        # deliberately (manual override, plugin pre-resolution, etc.) and must
+        # not be silently overwritten by side-channel signals. When the step is
+        # still IN_PROGRESS, resolve from independent state: aborts first, then
+        # a child-failed signal (parents inherit FAILED, not the originating
+        # ERROR), then the step's own captured exception, then the children-pass
+        # default. error_info is diagnostic and never drives status.
+        status = current_step.status
         if status == TestStatus.IN_PROGRESS:
-            # Update the status only if the step was in progress i.e. not updated elsewhere.
-            status = TestStatus.PASSED if result else TestStatus.FAILED
-        if error_info:
-            status = TestStatus.ERROR
-        self.current_step.update(
+            children_passed = self.report_context.open_step_results.get(
+                current_step.step_path, True
+            )
+            if aborted:
+                status = TestStatus.ABORTED
+            elif not children_passed:
+                status = TestStatus.FAILED
+            elif errored:
+                status = TestStatus.ERROR
+            else:
+                status = TestStatus.PASSED
+
+        # Propagate based on the resolved status; error_info rides along as
+        # pure diagnostics and does not affect propagation.
+        result = self.report_context.propagate_step_result(current_step, status)
+        current_step.update(
             {
                 "status": status,
                 "end_time": datetime.now(timezone.utc),
@@ -414,6 +631,28 @@ class NewStep(AbstractContextManager):
         return result
 
     def __exit__(self, exc, exc_value, tb):
+        if getattr(self, "_sift_managed_externally", False):
+            # The pytest fixture already resolved status from phase reports.
+            # Propagate based on that resolved status, emit one update_step
+            # with the resolved values, and pop from the stack without
+            # re-classifying.
+            current_step = self.current_step
+            if current_step is None:
+                # The step was never opened; nothing to propagate.
+                return True
+            result = self.report_context.propagate_step_result(current_step, current_step.status)
+            current_step.update(
+                {
+                    "status": current_step.status,
+                    "end_time": datetime.now(timezone.utc),
+                    "error_info": current_step.error_info,
+                },
+            )
+            self.report_context.exit_step(current_step)
+            if hasattr(self, "force_result"):
+                result = self.force_result
+            return result
+
         result = self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
@@ -473,6 +712,10 @@ class NewStep(AbstractContextManager):
             create, log_file=self.report_context.log_file
         )
         self.report_context.record_step_outcome(measurement.passed, self.current_step)
+        self.report_context.record_measurement(measurement)
+        if not measurement.passed:
+            self._failed_measurement_count += 1
+            self._failed_measurements.append(measurement)
 
         return measurement.passed
 
@@ -505,15 +748,7 @@ class NewStep(AbstractContextManager):
         returns: The true if the average of the values is within the bounds, false otherwise.
         """
         timestamp = timestamp if timestamp else datetime.now(timezone.utc)
-        np_array = None
-        if isinstance(values, list):
-            np_array = np.array(values)
-        elif isinstance(values, np.ndarray):
-            np_array = values
-        elif isinstance(values, pd.Series):
-            np_array = values.to_numpy()
-        else:
-            raise ValueError(f"Invalid value type: {type(values)}")
+        np_array = to_numpy_array(values)
         avg = float(np.mean(np_array))
         result = self.measure(
             name=name,
@@ -561,31 +796,8 @@ class NewStep(AbstractContextManager):
         returns: The true if all values are within the bounds, false otherwise.
         """
         timestamp = timestamp if timestamp else datetime.now(timezone.utc)
-        np_array = None
-        if isinstance(values, list):
-            np_array = np.array(values)
-        elif isinstance(values, np.ndarray):
-            np_array = values
-        elif isinstance(values, pd.Series):
-            np_array = values.to_numpy()
-        else:
-            raise ValueError(f"Invalid value type: {type(values)}")
-
-        numeric_bounds = bounds
-        if isinstance(numeric_bounds, dict):
-            numeric_bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))  # type: ignore
-
-        # Construct a mask of the values that are outside the bounds.
-        mask = None
-        if numeric_bounds.min is not None:
-            mask = np_array < numeric_bounds.min
-        if numeric_bounds.max is not None:
-            val_above_max = np_array > numeric_bounds.max
-            mask = mask | val_above_max if mask is not None else val_above_max
-        if mask is None:
-            raise ValueError("No bounds provided")
-
-        rows_outside_bounds = np_array[mask]
+        np_array = to_numpy_array(values)
+        rows_outside_bounds = np_array[out_of_bounds_mask(np_array, bounds)]
         for row in rows_outside_bounds:
             self.measure(
                 name=name,

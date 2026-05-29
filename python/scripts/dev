@@ -220,4 +220,5 @@ case "$1" in
         ;;
 esac
 
-exit 0
+# Leave the script's exit code as the subcommand's. A trailing `exit 0` here
+# silently masked ruff / mypy / pytest failures from the pre-push hook.

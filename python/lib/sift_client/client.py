@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sift_client._internal.urls import frontend_origin_for_api
 from sift_client.resources import (
     AssetsAPI,
     AssetsAPIAsync,
@@ -124,6 +125,7 @@ class SiftClient(
         grpc_url: str | None = None,
         rest_url: str | None = None,
         connection_config: SiftConnectionConfig | None = None,
+        app_url: str | None = None,
     ):
         """Initialize the SiftClient with specific connection parameters or a connection_config.
 
@@ -132,6 +134,10 @@ class SiftClient(
             grpc_url: The Sift gRPC API URL.
             rest_url: The Sift REST API URL.
             connection_config: A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
+            app_url: The Sift web-app origin (e.g. ``https://app.siftstack.com``).
+                Set this for on-prem or custom deployments whose API host can't be
+                mapped to a frontend automatically; see the ``app_url`` property.
+                A value here takes precedence over ``connection_config.app_url``.
         """
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
@@ -151,6 +157,17 @@ class SiftClient(
 
         WithGrpcClient.__init__(self, grpc_client=grpc_client)
         WithRestClient.__init__(self, rest_client=rest_client)
+
+        # Explicit web-app origin override; falls back to the connection config's
+        # value, then to host-based derivation in the ``app_url`` property.
+        self._app_url: str | None = app_url or (
+            connection_config.app_url if connection_config else None
+        )
+
+        # When set, test-results writes return synthesized responses without
+        # contacting Sift. Read by `TestResultsAPIAsync._simulate`. Used by the
+        # pytest plugin's ``--sift-disabled`` mode.
+        self._simulate: bool = False
 
         self.ping = PingAPI(self)
         self.assets = AssetsAPI(self)
@@ -193,3 +210,18 @@ class SiftClient(
     def rest_client(self) -> RestClient:
         """The REST client used by the SiftClient for making REST API calls."""
         return self._rest_client
+
+    @property
+    def app_url(self) -> str | None:
+        """The Sift web-app origin for this client, or None if it can't be determined.
+
+        Uses the explicit override passed at construction when set, otherwise
+        derives the origin from the REST host for known Sift deployments (e.g.
+        ``https://api.siftstack.com`` -> ``https://app.siftstack.com``). Returns
+        None for unrecognized hosts with no override.
+
+        # TODO: Add a ``WithAppPage`` mixin on BaseType so resources (TestReport,
+        # Run, ...) can expose their own web-app link from ``_client.app_url`` plus
+        # a per-type path, instead of callers assembling paths by hand.
+        """
+        return frontend_origin_for_api(self.rest_client.base_url, override=self._app_url)

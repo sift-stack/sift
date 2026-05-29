@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from typing_extensions import NotRequired
 from urllib3.util import Retry
 
-from sift_client._internal.grpc_transport.transport import _clean_uri
+from sift_client._internal.urls import parse_host
 
 _DEFAULT_REST_RETRY = Retry(total=3, status_forcelist=[500, 502, 503, 504], backoff_factor=1)
 
@@ -33,7 +33,7 @@ class SiftRestConfig(TypedDict):
 def compute_uri(restconf: SiftRestConfig) -> str:
     uri = restconf["uri"]
     use_ssl = restconf.get("use_ssl", True)
-    clean_uri = _clean_uri(uri, use_ssl)
+    clean_uri = parse_host(uri)
 
     if use_ssl:
         return f"https://{clean_uri}"
