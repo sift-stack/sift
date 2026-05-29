@@ -1,4 +1,3 @@
-use crate::BIN_NAME;
 use anyhow::{Context, Result, anyhow};
 use clap::CommandFactory;
 use clap_complete::{Shell, generate};
@@ -13,6 +12,7 @@ use std::{
 };
 
 use crate::{
+    BIN_NAME,
     cli::{self, CompletionsPrintArgs},
     util::tty::Output,
 };

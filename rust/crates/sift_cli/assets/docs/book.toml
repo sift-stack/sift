@@ -1,0 +1,18 @@
+[book]
+title = "Sift CLI"
+authors = ["solidiquis"]
+language = "en"
+description = "Guide to installing, configuring, and using the Sift CLI."
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/sift-stack/sift"
+edit-url-template = "https://github.com/sift-stack/sift/edit/main/rust/crates/sift_cli/assets/docs/{path}"
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.search]
+enable = true
