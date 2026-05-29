@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from sift_client.sift_types.data_import import (
         DataTypeKey,
         ImportConfig,
+        TimeFormat,
     )
     from sift_client.sift_types.export import ExportOutputFormat
     from sift_client.sift_types.file_attachment import (
@@ -656,7 +657,10 @@ class DataImportAPI:
 
     def _run(self, coro): ...
     def detect_config(
-        self, file_path: str | Path, data_type: DataTypeKey | None = None
+        self,
+        file_path: str | Path,
+        data_type: DataTypeKey | None = None,
+        time_format: TimeFormat | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
@@ -687,21 +691,28 @@ class DataImportAPI:
         in the metadata row; they are applied server-side during import
         but are not included in the returned config.
 
-        For file types with multiple layouts (e.g. Parquet), ``data_type``
-        must be specified explicitly.
+        For file types with multiple supported layouts (Parquet, HDF5),
+        ``data_type`` must be specified explicitly.
 
         Args:
             file_path: Path to the file to analyze.
-            data_type: Explicit data type key. Required for formats like
-                Parquet where the extension alone is ambiguous.
+            data_type: Explicit data type key. Required for formats with
+                multiple supported layouts (Parquet, HDF5) where the file
+                extension alone is ambiguous.
+            time_format: Time format override. When provided, takes
+                precedence over the format returned by detection. When
+                omitted, the returned config uses the detected format if
+                available, falling back to
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``.
 
         Returns:
             The detected import config.
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If the file extension is unsupported or no
-                supported configuration could be detected.
+            ValueError: If the file extension is unsupported, no supported
+                configuration could be detected, or ``data_type`` was
+                omitted for a file format that requires a variant.
         """
         ...
 
@@ -731,6 +742,7 @@ class DataImportAPI:
         asset: Asset | str | None = None,
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
+        time_format: TimeFormat | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
@@ -785,9 +797,16 @@ class DataImportAPI:
                 the config is auto-detected via ``detect_config``. You can
                 call ``detect_config`` yourself to inspect and modify the
                 config before passing it here.
-            data_type: Explicit data type key. Required for formats like
-                Parquet where the extension alone is ambiguous. Only used
-                when ``config`` is not provided.
+            data_type: Explicit data type key. Required for formats with
+                multiple supported layouts (Parquet, HDF5) where the file
+                extension alone is ambiguous. Only used when ``config`` is
+                not provided.
+            time_format: Time format override. When provided, takes
+                precedence over the format returned by detection. When
+                omitted, the returned config uses the detected format if
+                available, falling back to
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. Only used when
+                ``config`` is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
