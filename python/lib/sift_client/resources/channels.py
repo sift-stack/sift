@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.channel import Channel, ChannelUpdate
 from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
@@ -16,7 +17,6 @@ if TYPE_CHECKING:
     import pyarrow as pa
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.channel import Channel
 
 
 def _channel_ids_from_list(items: list[str | Channel]) -> list[str]:
@@ -190,6 +190,28 @@ class ChannelsAPIAsync(ResourceBase):
         elif len(channels) == 1:
             return channels[0]
         return None
+
+    async def update(
+        self,
+        channel: str | Channel,
+        update: ChannelUpdate | dict,
+    ) -> Channel:
+        """Update a Channel.
+
+        Args:
+            channel: The Channel or channel ID to update.
+            update: Updates to apply to the Channel. See ChannelUpdate for the updatable fields
+                (display description, display unit, metadata, and active status).
+
+        Returns:
+            The updated Channel.
+        """
+        channel_id = channel._id_or_error if isinstance(channel, Channel) else channel
+        if isinstance(update, dict):
+            update = ChannelUpdate.model_validate(update)
+        update.resource_id = channel_id
+        updated_channel = await self._low_level_client.update_channel(update=update)
+        return self._apply_client_to_instance(updated_channel)
 
     async def archive(self, channels: list[str | Channel]) -> None:
         """Batch archive channels by setting active to false.
