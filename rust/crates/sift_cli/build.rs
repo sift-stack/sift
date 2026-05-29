@@ -30,9 +30,6 @@ fn require_mdbook() {
         .unwrap_or(false);
 
     if !installed {
-        panic!(
-            "`mdbook` not found on PATH. Install it with `cargo install mdbook --locked` \
-             or run `make bootstrap`."
-        );
+        panic!("`mdbook` not found on PATH. Install it with `cargo install mdbook --locked`.");
     }
 }

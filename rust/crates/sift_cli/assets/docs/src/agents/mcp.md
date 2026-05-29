@@ -34,6 +34,12 @@ not run interactively.
 A typical agent flow is `list_assets` → `list_channels` → `get_data` → `sql`,
 and `upload_dataset` to write results back.
 
+## Built-in prompts
+
+The server also ships [built-in prompts](./prompts.md): ready-made workflows
+that chain these tools to explore an asset, analyze a run, or derive and upload
+a new dataset.
+
 ## Configuring a client
 
 Most MCP clients take a command and arguments. Point yours at the CLI:
