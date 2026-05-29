@@ -10,11 +10,13 @@ from sift.channels.v3.channels_pb2 import (
     GetChannelResponse,
     ListChannelsRequest,
     ListChannelsResponse,
+    UpdateChannelRequest,
+    UpdateChannelResponse,
 )
 from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.channel import Channel, ChannelUpdate
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
@@ -119,6 +121,21 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             order_by=order_by,
             max_results=max_results,
         )
+
+    async def update_channel(self, update: ChannelUpdate) -> Channel:
+        """Update a channel.
+
+        Args:
+            update: The ChannelUpdate to apply.
+
+        Returns:
+            The updated Channel.
+        """
+        grpc_channel, update_mask = update.to_proto_with_mask()
+        request = UpdateChannelRequest(channel=grpc_channel, update_mask=update_mask)
+        response = await self._grpc_client.get_stub(ChannelServiceStub).UpdateChannel(request)
+        updated_grpc_channel = cast("UpdateChannelResponse", response).channel
+        return Channel._from_proto(updated_grpc_channel)
 
     async def batch_archive_channels(self, channel_ids: list[str]) -> None:
         """Batch archive channels by setting active to false.

@@ -142,6 +142,7 @@ from sift_client.sift_types.channel import (
     ChannelBitFieldElement,
     ChannelDataType,
     ChannelReference,
+    ChannelUpdate,
 )
 from sift_client.sift_types.ingestion import (
     ChannelConfig,
@@ -215,6 +216,7 @@ __all__ = [
     "ChannelConfig",
     "ChannelDataType",
     "ChannelReference",
+    "ChannelUpdate",
     "DataExportDetails",
     "DataExportStatusDetails",
     "DataImportDetails",

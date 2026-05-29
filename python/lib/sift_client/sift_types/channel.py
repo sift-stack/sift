@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from pydantic import BaseModel, Field, model_validator
@@ -25,7 +25,8 @@ from sift.data.v2.data_pb2 import (
     Uint64Values,
 )
 
-from sift_client.sift_types._base import BaseType
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_stream_bindings import ChannelBitFieldElementPy, ChannelDataTypePy
@@ -253,6 +254,10 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
     enum_types: dict[str, int] = Field(default_factory=dict)
     asset_id: str
+    display_description: str
+    display_unit: str
+    metadata: dict[str, str | float | bool] = Field(default_factory=dict)
+    active: bool
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
@@ -286,6 +291,10 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             ],
             enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
             asset_id=proto.asset_id,
+            display_description=proto.display_description,
+            display_unit=proto.display_unit_id,
+            metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
+            active=proto.active,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
@@ -332,6 +341,35 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             )
         return data
 
+    def update(self, update: ChannelUpdate | dict) -> Channel:
+        """Update the Channel.
+
+        Args:
+            update: Either a ChannelUpdate instance or a dictionary of fields to update.
+
+        Returns:
+            The updated Channel.
+        """
+        updated_channel = self.client.channels.update(channel=self, update=update)
+        self._update(updated_channel)
+        return self
+
+    def archive(self) -> Channel:
+        """Archive the channel by setting it inactive.
+
+        Returns:
+            The archived Channel.
+        """
+        return self.update({"active": False})
+
+    def unarchive(self) -> Channel:
+        """Unarchive the channel by setting it active.
+
+        Returns:
+            The unarchived Channel.
+        """
+        return self.update({"active": True})
+
     @property
     def asset(self) -> Asset:
         """Get the asset that this channel belongs to."""
@@ -342,6 +380,35 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     def runs(self) -> list[Run]:
         """Get all runs associated with this channel's asset."""
         return self.asset.runs
+
+
+class ChannelUpdate(ModelUpdate[ChannelProto]):
+    """Model of the Channel fields that can be updated."""
+
+    display_description: str | None = None
+    display_unit: str | None = None
+    metadata: dict[str, str | float | bool] | None = None
+    active: bool | None = None
+
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        "display_unit": MappingHelper(
+            proto_attr_path="display_unit_id",
+            update_field="display_unit_id",
+        ),
+        "metadata": MappingHelper(
+            proto_attr_path="metadata",
+            update_field="metadata",
+            converter=metadata_dict_to_proto,
+        ),
+    }
+
+    def _get_proto_class(self) -> type[ChannelProto]:
+        return ChannelProto
+
+    def _add_resource_id_to_proto(self, proto_msg: ChannelProto):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.channel_id = self._resource_id
 
 
 class ChannelReference(BaseModel):
