@@ -43,8 +43,8 @@ operator.
 
 **Online** shows the report metadata, step and measurement breakdowns, and a
 clickable link. The web host is derived from the REST URI for known Sift hosts;
-for on-prem or custom deployments set `--sift-report-url-base`
-(ini: `sift_report_url_base`, env: `SIFT_APP_URL`). Add `--sift-open-report` to
+for on-prem or custom deployments set `sift_app_url`
+(ini) or the `SIFT_APP_URL` env var. Add `--sift-open-report` to
 open the report in a browser at session end.
 
 ```text
@@ -191,16 +191,15 @@ and tests can branch on provenance. Offline-mode entities also report
 How to turn it on, in the order most projects pick:
 
 ```bash
-# In an .envrc, devcontainer, or CI job config
-export SIFT_DISABLED=1
-
 # Per-invocation kill-switch
 pytest --sift-disabled
+```
 
+```toml
 # Per-project default (uncommon; online is usually the right default)
 # pyproject.toml:
-#   [tool.pytest.ini_options]
-#   sift_disabled = true
+[tool.pytest.ini_options]
+sift_disabled = true
 ```
 
 Good fit for local dev without Sift credentials. Also for library consumers who

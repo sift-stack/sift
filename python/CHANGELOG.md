@@ -16,7 +16,8 @@ Highlights:
 - **Pass/fail mapping.** Every pytest outcome (pass, assertion failure, exception, skip, xfail, hard exit) maps to a `TestStatus` and propagates to parent steps and the report. `step.measure(...)` returns a pass/fail boolean without raising, so all measurements land in the report even when one fails; `step.fail_if_measurements_failed()` fails the test at the end without adding assertion noise to `error_info`.
 - **Assertion messages as error info.** Assertion failure messages are reported as the step's error info.
 - **Git metadata.** Repo, branch, and commit are captured on the report automatically.
-- **Terminal output.** The plugin prints a session header with the SDK version and active mode, and an end-of-run `Sift report` panel showing the test case, outcome, step and measurement breakdowns (color-coded), test system/operator, plus a link to the report (online), the saved log and upload command (offline), or a disabled note. Both suppress under `-q`. `SiftClient.app_url` exposes the web-app origin; set `sift_report_url_base` for on-prem or custom deployments. `--sift-open-report` opens the report in a browser at session end.
+- **Terminal output.** The plugin prints a session header with the SDK version and active mode, and an end-of-run `Sift report` panel showing the test case, outcome, step and measurement breakdowns (color-coded), test system/operator, plus a link to the report (online), the saved log and upload command (offline), or a disabled note. Both suppress under `-q`. `SiftClient.app_url` exposes the web-app origin; set `sift_app_url` for on-prem or custom deployments. `--sift-open-report` opens the report in a browser at session end.
+- **Configurable report content via `[tool.sift.pytest.report]` and `SIFT_REPORT_*` env vars.** Static defaults (`name`, `test_case`, `test_system_name`, `system_operator`, `serial_number`, `part_number`, and `metadata`) live under `[tool.sift.pytest.report]` in `pyproject.toml`. `name` and `test_case` accept the `{target}`, `{command}`, `{args}`, `{rootdir}`, `{timestamp}`, `{count}`, `{git_repo}`, `{git_branch}`, `{git_commit}` placeholders. `[tool.sift.pytest.report.metadata]` is a TOML table whose typed values land on the report's metadata alongside git fields and the auto-recorded `pytest_command`. For dynamic per-run injection (CI, hardware-bench unit cycling), set `SIFT_REPORT_TEST_SYSTEM_NAME` / `_SYSTEM_OPERATOR` / `_SERIAL_NUMBER` / `_PART_NUMBER` or `SIFT_REPORT_METADATA_<KEY>` env vars — pytest-dotenv loads them from `.env` for local dev. Env entries win over TOML; metadata env entries merge with the TOML table.
 
 See the [Pytest Plugin guide](https://github.com/sift-stack/sift/blob/main/python/docs/guides/pytest_plugin/index.md) and the runnable quickstart example for full configuration.
 
@@ -27,6 +28,7 @@ See the [Pytest Plugin guide](https://github.com/sift-stack/sift/blob/main/pytho
 - [Pass/fail behavior improvements](https://github.com/sift-stack/sift/pull/568)
 - [Report assertion message as error info](https://github.com/sift-stack/sift/pull/587)
 - [Pytest docs reorganization](https://github.com/sift-stack/sift/pull/589)
+- [Configurable report name template and preserved pytest command](https://github.com/sift-stack/sift/pull/591)
 
 ## [v0.16.2] - May 21, 2026
 

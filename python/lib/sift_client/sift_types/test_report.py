@@ -167,6 +167,8 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin, Simula
     start_time: datetime
     end_time: datetime
     error_info: ErrorInfo | None = None
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool] | None = None
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
@@ -402,6 +404,8 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"], Simulat
     passed: bool
     timestamp: datetime
     description: str | None = None
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool] | None = None
     channel_names: list[str] | None = None
 
@@ -645,6 +649,8 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin, 
     test_case: str
     start_time: datetime
     end_time: datetime
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool]
     serial_number: str | None = None
     part_number: str | None = None
