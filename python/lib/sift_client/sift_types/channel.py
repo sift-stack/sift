@@ -254,8 +254,6 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
     enum_types: dict[str, int] = Field(default_factory=dict)
     asset_id: str
-    display_description: str
-    display_unit: str
     metadata: dict[str, str | float | bool] = Field(default_factory=dict)
     active: bool
     created_date: datetime
@@ -284,15 +282,16 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             id_=proto.channel_id,
             name=proto.name,
             data_type=ChannelDataType(proto.data_type),
-            description=proto.description,
-            unit=proto.unit_id,
+            # Prefer the user-set display override, falling back to the canonical
+            # value set at channel creation. This mirrors how the Sift app resolves
+            # these (displayDescription || description, displayUnit || unit).
+            description=proto.display_description or proto.description,
+            unit=proto.display_unit_id or proto.unit_id,
             bit_field_elements=[
                 ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
             ],
             enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
             asset_id=proto.asset_id,
-            display_description=proto.display_description,
-            display_unit=proto.display_unit_id,
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             active=proto.active,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
@@ -383,17 +382,27 @@ class Channel(BaseType[ChannelProto, "Channel"]):
 
 
 class ChannelUpdate(ModelUpdate[ChannelProto]):
-    """Model of the Channel fields that can be updated."""
+    """Model of the Channel fields that can be updated.
 
-    display_description: str | None = None
-    display_unit: str | None = None
+    A channel's canonical description and unit are set at creation and are immutable
+    afterward. Updating ``description`` or ``unit`` writes the channel's display
+    override (``display_description`` / ``display_unit_id``), which is the value the
+    Sift app shows in place of the canonical one.
+    """
+
+    description: str | None = None
+    unit: str | None = None
     metadata: dict[str, str | float | bool] | None = None
     active: bool | None = None
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
-        "display_unit": MappingHelper(
+        "description": MappingHelper(
+            proto_attr_path="display_description",
+            update_field="display_description",
+        ),
+        "unit": MappingHelper(
             proto_attr_path="display_unit_id",
-            update_field="display_unit_id",
+            update_field="display_units",
         ),
         "metadata": MappingHelper(
             proto_attr_path="metadata",

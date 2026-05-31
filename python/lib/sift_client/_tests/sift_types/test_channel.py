@@ -22,8 +22,6 @@ def mock_channel(mock_client):
         bit_field_elements=[],
         enum_types={},
         asset_id="test_asset_id",
-        display_description="display description",
-        display_unit="m/s",
         metadata={},
         active=True,
         created_date=datetime.now(timezone.utc),
@@ -228,7 +226,7 @@ class TestChannel:
         with MagicMock() as mock_update:
             mock_channel._update = mock_update
 
-            update = ChannelUpdate(display_description="new description")
+            update = ChannelUpdate(description="new description")
             result = mock_channel.update(update)
 
             mock_client.channels.update.assert_called_once_with(channel=mock_channel, update=update)
@@ -278,8 +276,8 @@ class TestChannelUpdate:
     def test_fields_map_to_correct_proto_fields(self):
         """Each ChannelUpdate field targets its matching Channel proto field and mask path."""
         update = ChannelUpdate(
-            display_description="new description",
-            display_unit="volts",
+            description="new description",
+            unit="volts",
             metadata={"source": "pytest"},
             active=False,
         )
@@ -288,14 +286,17 @@ class TestChannelUpdate:
         proto, mask = update.to_proto_with_mask()
 
         assert proto.channel_id == "test_channel_id"
+        # description/unit write the display override fields, the only ones the
+        # server allows UpdateChannel to mutate.
         assert proto.display_description == "new description"
-        # display_unit is renamed onto the proto's display_unit_id field.
         assert proto.display_unit_id == "volts"
         assert {md.key.name: md.string_value for md in proto.metadata} == {"source": "pytest"}
         assert proto.active is False
+        # The server's update mask accepts "display_units" (not "display_unit_id")
+        # for the unit; see channel_service.go UpdateChannel.
         assert set(mask.paths) == {
             "display_description",
-            "display_unit_id",
+            "display_units",
             "metadata",
             "active",
         }
