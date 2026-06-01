@@ -44,9 +44,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
             .fields()
             .iter()
             .find_map(|f| auto_detect_time_column_field(f))
-            .context(
-                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, timestamps, ts)",
-            )?,
+            .with_context(auto_detect_failure_message)?,
     };
     let time_path = time_field.name().clone();
 
@@ -54,7 +52,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
         Some(fmt) => fmt,
         None => infer_time_format_from_arrow(time_field.data_type()).with_context(|| {
             format!(
-                "could not infer time format for column '{time_path}' (Arrow type {:?}) — pass --time-format explicitly",
+                "time column '{time_path}' has ambiguous Arrow type {:?} — please pass --time-format explicitly (e.g. absolute-unix-seconds, absolute-unix-milliseconds, absolute-unix-nanoseconds, absolute-rfc3339)",
                 time_field.data_type()
             )
         })?,
@@ -103,6 +101,10 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
     })
 }
 
+fn auto_detect_failure_message() -> String {
+    "could not find a time column — please pass --time-path".to_string()
+}
+
 pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
     match field.name().to_lowercase().as_str() {
         "time" | "timestamp" | "timestamps" | "ts" => Some(field),
@@ -111,6 +113,10 @@ pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
 }
 
 pub(super) fn infer_time_format_from_arrow(dt: &DataType) -> Option<CliTimeFormat> {
+    // Only infer when the Arrow type tells us the unit unambiguously.
+    // Int64, strings, floats, etc. are intentionally not inferred — too many
+    // valid interpretations (seconds vs. millis vs. nanos, RFC3339 vs. custom strings).
+    // Force the user to pass --time-format so we never silently misinterpret data.
     match dt {
         DataType::Timestamp(TimeUnit::Second, _) => Some(CliTimeFormat::AbsoluteUnixSeconds),
         DataType::Timestamp(TimeUnit::Millisecond, _) => {
@@ -122,8 +128,6 @@ pub(super) fn infer_time_format_from_arrow(dt: &DataType) -> Option<CliTimeForma
         DataType::Timestamp(TimeUnit::Nanosecond, _) => {
             Some(CliTimeFormat::AbsoluteUnixNanoseconds)
         }
-        DataType::Int64 => Some(CliTimeFormat::AbsoluteUnixNanoseconds),
-        DataType::Utf8 | DataType::LargeUtf8 => Some(CliTimeFormat::AbsoluteRfc3339),
         _ => None,
     }
 }
@@ -150,9 +154,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
             .fields()
             .iter()
             .find_map(|f| auto_detect_time_column_field(f))
-            .context(
-                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, timestamps, ts)",
-            )?,
+            .with_context(auto_detect_failure_message)?,
     };
     let time_path = time_field.name().clone();
 
@@ -160,7 +162,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
         Some(fmt) => fmt,
         None => infer_time_format_from_arrow(time_field.data_type()).with_context(|| {
             format!(
-                "could not infer time format for column '{time_path}' (Arrow type {:?}) — pass --time-format explicitly",
+                "time column '{time_path}' has ambiguous Arrow type {:?} — please pass --time-format explicitly (e.g. absolute-unix-seconds, absolute-unix-milliseconds, absolute-unix-nanoseconds, absolute-rfc3339)",
                 time_field.data_type()
             )
         })?,

@@ -479,9 +479,15 @@ fn test_auto_detect_errors_when_no_candidate_column() {
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
     let result = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args);
+    let err = result.expect_err("should error when no candidate column exists");
+    let msg = format!("{err:#}");
     assert!(
-        result.is_err(),
-        "should error when no time/timestamp/ts column exists and --time-path is missing"
+        msg.contains("could not find a time column"),
+        "error should state we couldn't find a time column, got: {msg}"
+    );
+    assert!(
+        msg.contains("--time-path"),
+        "error should suggest --time-path, got: {msg}"
     );
 }
 
@@ -707,22 +713,25 @@ fn test_infer_format_timestamp_nanosecond() {
 }
 
 #[test]
-fn test_infer_format_int64_defaults_to_nanoseconds() {
+fn test_infer_format_int64_is_ambiguous_and_errors() {
+    // Int64 could be seconds, millis, micros, or nanos — strict policy requires --time-format.
     let bytes = build_parquet_with_time_field(
         Field::new("time", DataType::Int64, false),
         Arc::new(Int64Array::from(vec![1i64, 2, 3])),
     );
     let args = make_test_args(None, None);
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
-        .expect("failed to infer format");
-    assert_eq!(
-        config.time_column.expect("time column").format,
-        ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,
+    let err = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect_err("Int64 time column should error — unit is ambiguous");
+    let msg = format!("{err:#}");
+    assert!(
+        msg.contains("ambiguous") && msg.contains("--time-format"),
+        "should ask for explicit --time-format, got: {msg}",
     );
 }
 
 #[test]
-fn test_infer_format_utf8_defaults_to_rfc3339() {
+fn test_infer_format_utf8_is_ambiguous_and_errors() {
+    // Strings could be RFC3339 or any number of custom formats — strict policy requires --time-format.
     let bytes = build_parquet_with_time_field(
         Field::new("time", DataType::Utf8, false),
         Arc::new(StringArray::from(vec![
@@ -732,11 +741,12 @@ fn test_infer_format_utf8_defaults_to_rfc3339() {
         ])),
     );
     let args = make_test_args(None, None);
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
-        .expect("failed to infer format");
-    assert_eq!(
-        config.time_column.expect("time column").format,
-        ProtoTimeFormat::AbsoluteRfc3339 as i32,
+    let err = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect_err("string time column should error — format is ambiguous");
+    let msg = format!("{err:#}");
+    assert!(
+        msg.contains("ambiguous") && msg.contains("--time-format"),
+        "should ask for explicit --time-format, got: {msg}",
     );
 }
 
@@ -944,18 +954,20 @@ fn test_channel_per_row_auto_detect_time_column() {
 }
 
 #[test]
-fn test_channel_per_row_auto_detect_format_from_int64() {
-    // "timestamp" column is Int64 — format should infer as AbsoluteUnixNanoseconds
+fn test_channel_per_row_int64_time_format_is_ambiguous_and_errors() {
+    // "timestamp" column is Int64 — strict policy requires explicit --time-format.
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args = make_channel_per_row_args(ChannelMode::Single, None, None);
     args.channel_name = Some("temperature".into());
 
-    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
-        .expect("should auto-detect time and infer format");
-    let time = cfg.time_column.as_ref().expect("time column present");
-    assert_eq!(time.path, "timestamp");
-    assert_eq!(time.format, ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,);
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect_err("Int64 time column should error — unit is ambiguous");
+    let msg = format!("{err:#}");
+    assert!(
+        msg.contains("ambiguous") && msg.contains("--time-format"),
+        "should ask for explicit --time-format, got: {msg}",
+    );
 }
 
 #[test]
@@ -984,21 +996,26 @@ fn test_channel_per_row_auto_detect_errors_when_no_candidate() {
     let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
     assert!(
         err.chain()
-            .any(|e| e.to_string().contains("no time column auto-detected")),
+            .any(|e| e.to_string().contains("could not find a time column")),
         "expected auto-detect error, got: {err:#}"
     );
 }
 
 #[test]
-fn test_channel_per_row_multi_auto_detect_time_and_format() {
+fn test_channel_per_row_multi_auto_detect_column_with_explicit_format() {
+    // Time column auto-detects to "timestamp"; format must be passed explicitly since it's Int64.
     let batch = create_channel_per_row_multi_batch(vec!["a", "b", "c"]);
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args = make_channel_per_row_args(ChannelMode::Multi, None, None);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Multi,
+        None,
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.name_path = Some("channel".into());
 
     let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
         .expect("multi mode auto-detect should succeed");
     let time = cfg.time_column.as_ref().expect("time column present");
     assert_eq!(time.path, "timestamp");
-    assert_eq!(time.format, ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,);
+    assert_eq!(time.format, ProtoTimeFormat::AbsoluteUnixMilliseconds as i32);
 }
