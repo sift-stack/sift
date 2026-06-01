@@ -6,12 +6,13 @@ use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
         CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse,
-        ParquetComplexTypesImportMode, ParquetConfig, TimeFormat as ProtoTimeFormat,
+        ParquetComplexTypesImportMode, ParquetConfig,
         data_import_service_client::DataImportServiceClient, parquet_config::Config,
     },
 };
 
 use crate::cmd::import::parquet::detect_parquet_schema::detect_flat_dataset_config;
+use crate::cmd::import::parquet::proto_time_format_display;
 use crate::{
     cli::{FlatDatasetArgs, channel::DataType},
     cmd::{
@@ -26,17 +27,6 @@ use crate::{
     },
     util::{api::create_grpc_channel, tty::Output},
 };
-
-fn proto_time_format_display(value: i32) -> String {
-    ProtoTimeFormat::try_from(value)
-        .map(|f| {
-            f.as_str_name()
-                .trim_start_matches("TIME_FORMAT_")
-                .to_lowercase()
-                .replace('_', "-")
-        })
-        .unwrap_or_else(|_| "unspecified".to_string())
-}
 
 pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
