@@ -9,10 +9,10 @@ from sift.unit.v2.unit_pb2 import (
     ListUnitsRequest,
     ListUnitsResponse,
 )
+from sift.unit.v2.unit_pb2 import Unit as UnitProto
 from sift.unit.v2.unit_pb2_grpc import UnitServiceStub
 
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
-from sift_client.sift_types.unit import Unit
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class UnitsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client)
 
-    async def create_unit(self, name: str) -> Unit:
+    async def create_unit(self, name: str) -> UnitProto:
         """Create a new unit.
 
         If a unit with the same name already exists, it is returned instead of creating a duplicate.
@@ -45,7 +45,7 @@ class UnitsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             name: The name of the unit.
 
         Returns:
-            The created Unit.
+            The created unit proto, whose unit_id is used to reference the unit.
 
         Raises:
             ValueError: If name is not provided.
@@ -55,8 +55,7 @@ class UnitsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = CreateUnitRequest(name=name)
         response = await self._grpc_client.get_stub(UnitServiceStub).CreateUnit(request)
-        grpc_unit = cast("CreateUnitResponse", response).unit
-        return Unit._from_proto(grpc_unit)
+        return cast("CreateUnitResponse", response).unit
 
     async def list_units(
         self,
@@ -65,17 +64,17 @@ class UnitsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
-    ) -> tuple[list[Unit], str]:
+    ) -> tuple[list[UnitProto], str]:
         """List units with optional filtering and pagination.
 
         Args:
             page_size: The maximum number of units to return.
             page_token: A page token for pagination.
-            query_filter: A CEL filter string.
+            query_filter: A CEL filter string (e.g. filtering on unit_id or abbreviated_name).
             order_by: How to order the retrieved units.
 
         Returns:
-            A tuple of (units, next_page_token).
+            A tuple of (unit protos, next_page_token).
         """
         request_kwargs: dict[str, Any] = {}
         if page_size is not None:
@@ -91,5 +90,4 @@ class UnitsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(UnitServiceStub).ListUnits(request)
         response = cast("ListUnitsResponse", response)
 
-        units = [Unit._from_proto(unit) for unit in response.units]
-        return units, response.next_page_token
+        return list(response.units), response.next_page_token
