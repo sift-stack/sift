@@ -1730,9 +1730,9 @@ suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately
 <td><code>SIFT_REPORT_PART_NUMBER</code></td>
 </tr>
 <tr>
-<td>Free-form report metadata. TOML table is the base; SIFT_REPORT_METADATA_<KEY> env vars merge on top (env wins on collision; suffix lowercased becomes the key).</td>
+<td>Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, attach them in conftest via the report_context fixture.</td>
 <td><code>[tool.sift.pytest.report.metadata]</code> (table)</td>
-<td><code>SIFT_REPORT_METADATA_&lt;KEY&gt;</code></td>
+<td>—</td>
 </tr>
 </tbody>
 </table>
@@ -1755,8 +1755,6 @@ suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately
 <div class="language-bash highlight"><span class="filename">CI env (set by your runner)</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span>...<span class="w">                    </span><span class="c1"># from a secret manager</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">SIFT_REPORT_SYSTEM_OPERATOR</span><span class="o">=</span>ci-bot
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nv">SIFT_REPORT_SERIAL_NUMBER</span><span class="o">=</span><span class="nv">$UNIT_SN</span><span class="w">  </span><span class="c1"># cycles per matrix job</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nv">SIFT_REPORT_METADATA_RUN_ID</span><span class="o">=</span><span class="nv">$BUILD_ID</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nv">SIFT_REPORT_METADATA_BRANCH</span><span class="o">=</span><span class="nv">$GIT_BRANCH</span>
 </span></code></pre></div>
 <div class="language-ini highlight"><span class="filename">pytest.ini (alternative — pytest-execution flags only)</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[pytest]</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="na">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
@@ -1903,16 +1901,9 @@ and any key/value data not otherwise modeled.</p>
 </span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">lane</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w">          </span><span class="c1"># ints, floats, and bools come through with their TOML type</span>
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">verbose</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span></code></pre></div>
-<p>For per-run dynamic entries, set <code>SIFT_REPORT_METADATA_&lt;KEY&gt;</code> env vars. The
-suffix after the prefix is lowercased to form the metadata key:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">SIFT_REPORT_METADATA_BUILD_ID</span><span class="o">=</span>v1.2.3
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">SIFT_REPORT_METADATA_RUN_ID</span><span class="o">=</span><span class="nv">$CI_RUN_ID</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">SIFT_REPORT_METADATA_BRANCH</span><span class="o">=</span><span class="nv">$GIT_BRANCH</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># -&gt; metadata = {&quot;build_id&quot;: &quot;v1.2.3&quot;, &quot;run_id&quot;: &quot;...&quot;, &quot;branch&quot;: &quot;...&quot;}</span>
-</span></code></pre></div>
-<p>Env entries <strong>merge</strong> with the TOML table — env keys win on collision, and
-env-only keys are added. Env values are always strings (use the TOML table
-for typed ints, floats, and bools).</p>
+<p>For per-run dynamic entries (CI build IDs, cycling serial numbers), attach them
+in your <code>conftest.py</code> through the <code>report_context</code> fixture rather than the TOML
+table.</p>
 <p>Nested tables, lists, and <code>null</code> values in
 <code>[tool.sift.pytest.report.metadata]</code> are skipped with a warning since the
 report's metadata is a flat <code>dict[str, str | float | bool]</code>.</p>
@@ -1947,20 +1938,20 @@ repo holds tests that you don't want included in the Sift test report.</p>
 <h3 id="bulk-applying-a-marker-to-a-directory">Bulk-applying a marker to a directory<a class="headerlink" href="#bulk-applying-a-marker-to-a-directory" title="Permanent link">&para;</a></h3>
 <p>To opt an entire directory in (or out) without editing each file, hook
 <code>pytest_collection_modifyitems</code> in the directory's <code>conftest.py</code>:</p>
-<div class="language-python highlight"><span class="filename">tests/example/conftest.py</span><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">_HERE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">pytest_collection_modifyitems</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
-</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>        <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>            <span class="n">item</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">_HERE</span><span class="p">)</span>
-</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>            <span class="k">continue</span>
-</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>        <span class="n">item</span><span class="o">.</span><span class="n">add_marker</span><span class="p">(</span><span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">sift_include</span><span class="p">)</span>
+<div class="language-python highlight"><span class="filename">tests/example/conftest.py</span><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">_HERE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">pytest_collection_modifyitems</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>            <span class="n">item</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">_HERE</span><span class="p">)</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>            <span class="k">continue</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>        <span class="n">item</span><span class="o">.</span><span class="n">add_marker</span><span class="p">(</span><span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">sift_include</span><span class="p">)</span>
 </span></code></pre></div>
 <p>This applies <code>sift_include</code> to every test collected under <code>tests/example/</code>.
 Combine with <code>sift_autouse = false</code> in <code>pyproject.toml</code> for opting in to
