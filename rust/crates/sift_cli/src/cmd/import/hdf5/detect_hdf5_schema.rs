@@ -131,11 +131,7 @@ pub fn detect_config(
             &datasets, schema, time_index, time_field, time_name,
         )),
         Ok((data, channel_configs)) => {
-            let woven = if matches!(schema, Hdf5Schema::TwoD) {
-                channel_configs
-            } else {
-                weave_time_channel_rows(&data, &channel_configs)
-            };
+            let woven = weave_time_channel_rows(&data, &channel_configs);
             Ok((data, woven))
         }
         Err(e) => Err(e),
