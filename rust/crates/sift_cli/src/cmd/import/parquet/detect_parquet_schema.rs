@@ -104,7 +104,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
 }
 
 pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
-    match field.name().as_str() {
+    match field.name().to_lowercase().as_str() {
         "time" | "timestamp" | "timestamps" | "ts" => Some(field),
         _ => None,
     }

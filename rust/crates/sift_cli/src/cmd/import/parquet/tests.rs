@@ -401,6 +401,40 @@ fn test_auto_detect_time_column_named_ts() {
 }
 
 #[test]
+fn test_auto_detect_time_column_case_insensitive_preserves_original_name() {
+    // "Time" should match (case-insensitive), and the returned path should keep original casing.
+    let batch = make_batch_with_time_col_named("Time");
+    let bytes = write_to_parquet_bytes(&batch);
+    let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
+
+    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect("failed to auto-detect time column 'Time'");
+
+    assert_eq!(
+        config.time_column.expect("time column").path,
+        "Time",
+        "time column path should preserve the original casing"
+    );
+}
+
+#[test]
+fn test_auto_detect_time_column_uppercase_variants() {
+    for name in ["TIMESTAMP", "TS", "TimeStamp", "Ts"] {
+        let batch = make_batch_with_time_col_named(name);
+        let bytes = write_to_parquet_bytes(&batch);
+        let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
+
+        let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+            .unwrap_or_else(|e| panic!("failed to auto-detect '{name}': {e:#}"));
+        assert_eq!(
+            config.time_column.expect("time column").path,
+            name,
+            "auto-detect should preserve original casing for {name}",
+        );
+    }
+}
+
+#[test]
 fn test_auto_detect_time_column_named_timestamps() {
     let batch = make_batch_with_time_col_named("timestamps");
     let bytes = write_to_parquet_bytes(&batch);
