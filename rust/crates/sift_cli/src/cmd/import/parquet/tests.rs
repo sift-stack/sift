@@ -485,7 +485,11 @@ fn test_infer_format_timestamp_second() {
     );
 }
 
-fn make_channel_per_row_args(mode: ChannelMode, time_format: TimeFormat) -> ChannelPerRowArgs {
+fn make_channel_per_row_args(
+    mode: ChannelMode,
+    time_path: Option<&str>,
+    time_format: Option<TimeFormat>,
+) -> ChannelPerRowArgs {
     ChannelPerRowArgs {
         common: CommonImportArgs {
             path: PathBuf::from("test.parquet"),
@@ -496,7 +500,7 @@ fn make_channel_per_row_args(mode: ChannelMode, time_format: TimeFormat) -> Chan
             preview: false,
         },
         mode,
-        time_path: "timestamp".into(),
+        time_path: time_path.map(|s| s.to_string()),
         time_format,
         relative_start_time: None,
         data_path: "value".into(),
@@ -548,8 +552,11 @@ fn create_channel_per_row_multi_batch(names: Vec<&str>) -> RecordBatch {
 fn test_detect_channel_per_row_single_basic_infers_data_type() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args =
-        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        Some("timestamp"),
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.channel_name = Some("temperature".into());
 
     let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
@@ -573,8 +580,11 @@ fn test_detect_channel_per_row_single_basic_infers_data_type() {
 fn test_detect_channel_per_row_single_honors_data_type_override() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args =
-        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        Some("timestamp"),
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.channel_name = Some("temperature".into());
     args.data_type = Some(CliDataType::Float);
 
@@ -700,8 +710,11 @@ fn test_infer_format_errors_for_float64_time_column() {
 fn test_detect_channel_per_row_single_propagates_units_and_description() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args =
-        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        Some("timestamp"),
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.channel_name = Some("temperature".into());
     args.unit = Some("celsius".into());
     args.description = Some("ambient temperature".into());
@@ -720,8 +733,11 @@ fn test_detect_channel_per_row_single_propagates_units_and_description() {
 fn test_detect_channel_per_row_multi_basic() {
     let batch = create_channel_per_row_multi_batch(vec!["a", "b", "c"]);
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args =
-        make_channel_per_row_args(ChannelMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Multi,
+        Some("timestamp"),
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.name_path = Some("channel".into());
 
     let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
@@ -765,10 +781,13 @@ fn test_explicit_format_overrides_inference() {
 fn test_detect_channel_per_row_missing_time_column_errors() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args =
-        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        Some("timestamp"),
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.channel_name = Some("temperature".into());
-    args.time_path = "nonexistent_time".into();
+    args.time_path = Some("nonexistent_time".into());
 
     let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
     assert!(
@@ -781,8 +800,11 @@ fn test_detect_channel_per_row_missing_time_column_errors() {
 fn test_detect_channel_per_row_missing_data_column_errors() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args =
-        make_channel_per_row_args(ChannelMode::Single, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        Some("timestamp"),
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.channel_name = Some("temperature".into());
     args.data_path = "nonexistent_value".into();
 
@@ -797,8 +819,11 @@ fn test_detect_channel_per_row_missing_data_column_errors() {
 fn test_detect_channel_per_row_multi_missing_name_column_errors() {
     let batch = create_channel_per_row_multi_batch(vec!["a"]);
     let bytes = write_to_parquet_bytes(&batch);
-    let mut args =
-        make_channel_per_row_args(ChannelMode::Multi, TimeFormat::AbsoluteUnixMilliseconds);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Multi,
+        Some("timestamp"),
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
     args.name_path = Some("nonexistent_name".into());
 
     let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
@@ -850,4 +875,82 @@ fn test_discover_multi_channel_names_for_preview_missing_column_errors() {
         err.chain().any(|e| e.to_string().contains("not found")),
         "expected not-found error, got: {err:#}"
     );
+}
+
+#[test]
+fn test_channel_per_row_auto_detect_time_column() {
+    // schema has "timestamp" as the time column — should auto-detect when --time-path omitted
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        None,
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
+    args.channel_name = Some("temperature".into());
+
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("should auto-detect timestamp column");
+    let time = cfg.time_column.as_ref().expect("time column present");
+    assert_eq!(time.path, "timestamp");
+}
+
+#[test]
+fn test_channel_per_row_auto_detect_format_from_int64() {
+    // "timestamp" column is Int64 — format should infer as AbsoluteUnixNanoseconds
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args = make_channel_per_row_args(ChannelMode::Single, None, None);
+    args.channel_name = Some("temperature".into());
+
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("should auto-detect time and infer format");
+    let time = cfg.time_column.as_ref().expect("time column present");
+    assert_eq!(time.path, "timestamp");
+    assert_eq!(time.format, ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,);
+}
+
+#[test]
+fn test_channel_per_row_auto_detect_errors_when_no_candidate() {
+    // No column named time/timestamp/ts — should error
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("ts_col", DataType::Int64, false),
+        Field::new("value", DataType::Float64, false),
+    ]));
+    let batch = RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(Int64Array::from(vec![1, 2, 3])),
+            Arc::new(Float64Array::from(vec![1.0, 2.0, 3.0])),
+        ],
+    )
+    .expect("failed to create batch without time column");
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        None,
+        Some(TimeFormat::AbsoluteUnixMilliseconds),
+    );
+    args.channel_name = Some("temperature".into());
+
+    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap_err();
+    assert!(
+        err.chain()
+            .any(|e| e.to_string().contains("no time column auto-detected")),
+        "expected auto-detect error, got: {err:#}"
+    );
+}
+
+#[test]
+fn test_channel_per_row_multi_auto_detect_time_and_format() {
+    let batch = create_channel_per_row_multi_batch(vec!["a", "b", "c"]);
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args = make_channel_per_row_args(ChannelMode::Multi, None, None);
+    args.name_path = Some("channel".into());
+
+    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("multi mode auto-detect should succeed");
+    let time = cfg.time_column.as_ref().expect("time column present");
+    assert_eq!(time.path, "timestamp");
+    assert_eq!(time.format, ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,);
 }

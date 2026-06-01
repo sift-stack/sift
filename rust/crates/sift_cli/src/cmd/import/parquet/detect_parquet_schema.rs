@@ -132,15 +132,42 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
     file: &R,
     args: &ChannelPerRowArgs,
 ) -> Result<ParquetSingleChannelPerRowConfig> {
-    validate_time_format(args.time_format, &args.relative_start_time)
-        .context("validating time format")?;
-
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
     let arrow_schema = parquet_to_arrow_schema(
         metadata.file_metadata().schema_descr(),
         metadata.file_metadata().key_value_metadata(),
     )
     .context("detecting channel-per-row arrow schema")?;
+
+    let time_field: &Field = match &args.time_path {
+        Some(path) => arrow_schema
+            .fields()
+            .iter()
+            .find(|f| f.name() == path)
+            .map(|f| &**f)
+            .with_context(|| format!("time column '{path}' not found in parquet schema"))?,
+        None => arrow_schema
+            .fields()
+            .iter()
+            .find_map(|f| auto_detect_time_column_field(f))
+            .context(
+                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, ts)",
+            )?,
+    };
+    let time_path = time_field.name().clone();
+
+    let resolved_format = match args.time_format {
+        Some(fmt) => fmt,
+        None => infer_time_format_from_arrow(time_field.data_type()).with_context(|| {
+            format!(
+                "could not infer time format for column '{time_path}' (Arrow type {:?}) — pass --time-format explicitly",
+                time_field.data_type()
+            )
+        })?,
+    };
+
+    validate_time_format(resolved_format, &args.relative_start_time)
+        .context("validating time format")?;
 
     let relative_start_time = match &args.relative_start_time {
         Some(start) => {
@@ -151,21 +178,10 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
         None => None,
     };
 
-    arrow_schema
-        .fields()
-        .iter()
-        .find(|field| field.name() == &args.time_path)
-        .with_context(|| {
-            format!(
-                "time column '{}' not found in parquet schema",
-                args.time_path
-            )
-        })?;
-
     let time_column = Some(ParquetTimeColumn {
         relative_start_time,
-        path: args.time_path.clone(),
-        format: TimeFormat::from(args.time_format).into(),
+        path: time_path,
+        format: TimeFormat::from(resolved_format).into(),
     });
 
     let data_field = arrow_schema
