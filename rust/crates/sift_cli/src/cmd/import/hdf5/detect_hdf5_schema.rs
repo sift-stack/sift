@@ -130,9 +130,37 @@ pub fn detect_config(
         Ok((data, _)) if data.is_empty() => Err(no_match_error(
             &datasets, schema, time_index, time_field, time_name,
         )),
-        Ok(other) => Ok(other),
+        Ok((data, mut channel_configs)) => {
+            let time_rows = build_time_channel_rows(&data);
+            channel_configs.splice(0..0, time_rows);
+            Ok((data, channel_configs))
+        }
         Err(e) => Err(e),
     }
+}
+
+pub(super) fn build_time_channel_rows(data: &[Hdf5DataConfig]) -> Vec<ChannelConfig> {
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut rows: Vec<ChannelConfig> = Vec::new();
+    for cfg in data {
+        let dataset_name = group_path_to_channel_name(&cfg.time_dataset);
+        let name = match &cfg.time_field {
+            Some(field) if !field.is_empty() => format!("{dataset_name}.{field}"),
+            _ if cfg.time_dataset == cfg.value_dataset => {
+                format!("{dataset_name}.{}", cfg.time_index)
+            }
+            _ => dataset_name,
+        };
+        if seen.insert(name.clone()) {
+            rows.push(ChannelConfig {
+                name,
+                description: "[time]".into(),
+                data_type: ChannelDataType::Int64 as i32,
+                ..Default::default()
+            });
+        }
+    }
+    rows
 }
 
 fn no_match_error(

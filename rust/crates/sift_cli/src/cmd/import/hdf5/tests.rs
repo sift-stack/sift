@@ -9,7 +9,8 @@ use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
 use crate::cmd::import::hdf5::detect_hdf5_schema::{
-    basename, enum_types_for, hdf5_to_sift_data_type, is_time_dataset_name, parent_path,
+    basename, build_time_channel_rows, enum_types_for, hdf5_to_sift_data_type,
+    is_time_dataset_name, parent_path,
 };
 use crate::cmd::import::hdf5::import::build_hdf5_config;
 use crate::cmd::import::utils::group_path_to_channel_name;
@@ -372,4 +373,74 @@ fn group_path_to_channel_name_no_leading_slash() {
         group_path_to_channel_name("group1/current"),
         "group1.current"
     );
+}
+
+fn make_data_config(
+    time_dataset: &str,
+    value_dataset: &str,
+    time_index: u64,
+    time_field: Option<&str>,
+) -> sift_rs::data_imports::v2::Hdf5DataConfig {
+    sift_rs::data_imports::v2::Hdf5DataConfig {
+        time_dataset: time_dataset.into(),
+        time_index,
+        value_dataset: value_dataset.into(),
+        value_index: 0,
+        channel_config: None,
+        time_field: time_field.map(Into::into),
+        value_field: None,
+    }
+}
+
+#[test]
+fn build_time_channel_rows_one_d_dedups_shared_time_dataset() {
+    let configs = vec![
+        make_data_config("/group_a/time", "/group_a/voltage", 0, None),
+        make_data_config("/group_a/time", "/group_a/current", 0, None),
+        make_data_config("/group_b/timestamp", "/group_b/value", 0, None),
+    ];
+    let rows = build_time_channel_rows(&configs);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].name, "group_a.time");
+    assert_eq!(rows[0].description, "[time]");
+    assert_eq!(rows[0].data_type, ChannelDataType::Int64 as i32);
+    assert_eq!(rows[1].name, "group_b.timestamp");
+    assert_eq!(rows[1].description, "[time]");
+}
+
+#[test]
+fn build_time_channel_rows_two_d_includes_time_index() {
+    let configs = vec![
+        make_data_config("/sensor_0", "/sensor_0", 0, None),
+        make_data_config("/sensor_1", "/sensor_1", 0, None),
+    ];
+    let rows = build_time_channel_rows(&configs);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].name, "sensor_0.0");
+    assert_eq!(rows[1].name, "sensor_1.0");
+}
+
+#[test]
+fn build_time_channel_rows_compound_renders_dataset_dot_field() {
+    let configs = vec![
+        make_data_config("/measurements/run1", "/measurements/run1", 0, Some("ts")),
+        make_data_config("/measurements/run1", "/measurements/run1", 0, Some("ts")),
+        make_data_config(
+            "/measurements/run2",
+            "/measurements/run2",
+            0,
+            Some("timestamp"),
+        ),
+    ];
+    let rows = build_time_channel_rows(&configs);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].name, "measurements.run1.ts");
+    assert_eq!(rows[0].description, "[time]");
+    assert_eq!(rows[1].name, "measurements.run2.timestamp");
+}
+
+#[test]
+fn build_time_channel_rows_empty_when_no_data_configs() {
+    let rows = build_time_channel_rows(&[]);
+    assert!(rows.is_empty());
 }
