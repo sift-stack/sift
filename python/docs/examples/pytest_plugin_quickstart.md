@@ -47,8 +47,7 @@ Pytest behavior knobs sit under `[tool.pytest.ini_options]`, each commented at
 its default — uncomment any line to opt out of a layer of the step tree. The
 report's display `name`, `test_case`, and free-form `metadata` are set under
 `[tool.sift.pytest.report]`; `name` and `test_case` accept template
-placeholders, and metadata values can be overridden per run with
-`SIFT_REPORT_METADATA_<KEY>` env vars.
+placeholders.
 
 ```toml title="pyproject.toml"
 --8<-- "examples/pytest_plugin/pyproject.toml"

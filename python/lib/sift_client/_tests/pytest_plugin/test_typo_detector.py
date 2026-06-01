@@ -38,9 +38,8 @@ class TestTypoDetector:
         monkeypatch: pytest.MonkeyPatch,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """Declared env vars (full and prefix-matched) don't warn."""
+        """Declared env vars don't warn."""
         monkeypatch.setenv("SIFT_REPORT_SERIAL_NUMBER", "SN-1")
-        monkeypatch.setenv("SIFT_REPORT_METADATA_BUILD_ID", "v1.2.3")
         write_plugin_conftest()
         pytester.makepyfile("def test_runs(): pass")
         result = pytester.runpytest_subprocess("--sift-disabled")

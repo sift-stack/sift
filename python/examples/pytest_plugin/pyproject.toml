@@ -28,7 +28,6 @@ test_case = "pytest-plugin-demo {git_branch}"
 
 [tool.sift.pytest.report.metadata]
 # Free-form key/value metadata stamped on every report. Values keep their TOML
-# type (string, int, float, bool). Add or override per run with
-# SIFT_REPORT_METADATA_<KEY> environment variables.
+# type (string, int, float, bool).
 ci_revision = 2
 test_source = 'pytest-plugin-demo'

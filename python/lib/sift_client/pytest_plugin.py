@@ -263,9 +263,10 @@ class _Option:
     - **Scalar** (default): :meth:`resolve` walks env > cli > ini > toml > None
       following only the surfaces declared. In practice no current option uses
       both env and cli, so the chain isn't ambiguous.
-    - **Merged dict** (``merge=True``): :meth:`resolve_merged` starts from the
-      TOML table and overlays env vars whose name starts with ``env_prefix``
-      (key = the suffix lowercased). Used for ``metadata``.
+    - **Free-form dict** (``merge=True``): a TOML table whose keys are
+      user-defined. :meth:`resolve_merged` returns the table with non-scalar
+      values dropped, and the typo detector leaves its keys unvalidated. Used
+      for ``metadata``.
 
     Surface fields:
 
@@ -276,8 +277,6 @@ class _Option:
     - ``toml``: tuple path under ``[tool.sift...]``, e.g.
       ``("pytest", "report", "name")`` -> ``tool.sift.pytest.report.name``.
     - ``env``: full env var name, e.g. ``"SIFT_API_KEY"``.
-    - ``env_prefix``: env-var prefix for ``merge`` dict shape, e.g.
-      ``"SIFT_REPORT_METADATA_"`` -> entries become metadata keys.
 
     ``category`` groups the option in the docs settings reference (one of
     ``_CATEGORIES``).
@@ -293,7 +292,6 @@ class _Option:
     ini_default: Any = None
     toml: tuple[str, ...] | None = None
     env: str | None = None
-    env_prefix: str | None = None
     merge: bool = False
 
     @property
@@ -316,9 +314,9 @@ class _Option:
             raise ValueError(f"_Option({self.name!r}): cli_action requires cli")
         if self.ini_type and not self.ini:
             raise ValueError(f"_Option({self.name!r}): ini_type requires ini")
-        if self.merge and not (self.env_prefix or self.toml):
-            raise ValueError(f"_Option({self.name!r}): merge=True needs env_prefix or toml")
-        if not any([self.cli, self.ini, self.toml, self.env, self.env_prefix]):
+        if self.merge and not self.toml:
+            raise ValueError(f"_Option({self.name!r}): merge=True needs toml")
+        if not any([self.cli, self.ini, self.toml, self.env]):
             raise ValueError(f"_Option({self.name!r}): declares no surfaces")
         if self.category not in _CATEGORIES:
             raise ValueError(f"_Option({self.name!r}): category must be one of {_CATEGORIES}")
@@ -360,13 +358,11 @@ class _Option:
         return None
 
     def resolve_merged(self, config: pytest.Config | None) -> dict[str, str | float | bool]:
-        """For ``merge=True`` dict-shape settings: TOML table + env-prefix entries.
+        """For ``merge=True`` dict-shape settings: the free-form TOML table.
 
-        Env entries win on collision, mirroring "per-run dynamic injection
-        overrides static project defaults" (R7). TOML values that don't fit
-        ``dict[str, str | float | bool]`` (nested tables, lists, ``None``) are
-        dropped with a warning so a malformed entry can't crash report
-        creation.
+        TOML values that don't fit ``dict[str, str | float | bool]`` (nested
+        tables, lists, ``None``) are dropped with a warning so a malformed
+        entry can't crash report creation.
         """
         result: dict[str, str | float | bool] = {}
         if config is not None and self.toml:
@@ -385,14 +381,6 @@ class _Option:
                         SiftPytestPluginWarning,
                         stacklevel=2,
                     )
-        if self.env_prefix:
-            for env_name, env_value in os.environ.items():
-                if not env_name.startswith(self.env_prefix):
-                    continue
-                suffix = env_name[len(self.env_prefix) :]
-                if not suffix:
-                    continue
-                result[suffix.lower()] = env_value
         return result
 
 
@@ -597,10 +585,9 @@ _PART_NUMBER = _Option(
 _METADATA = _Option(
     name="metadata",
     category=_CAT_REPORT,
-    help="Free-form report metadata. TOML table is the base; SIFT_REPORT_METADATA_<KEY> env "
-    "vars merge on top (env wins on collision; suffix lowercased becomes the key).",
+    help="Free-form report metadata, as a TOML table of scalar values. For "
+    "dynamic per-run keys, attach them in conftest via the report_context fixture.",
     toml=("pytest", "report", "metadata"),
-    env_prefix="SIFT_REPORT_METADATA_",
     merge=True,
 )
 
@@ -702,8 +689,6 @@ def _render_settings_reference() -> str:
     def _env_cell(opt: _Option) -> str:
         if opt.env:
             return f"`{opt.env}`"
-        if opt.env_prefix:
-            return f"`{opt.env_prefix}<KEY>`"
         return "—"
 
     # Per-category column layout: only the surfaces that category actually uses.
@@ -751,21 +736,17 @@ def _render_settings_reference() -> str:
 def _warn_on_unknown_env_vars() -> None:
     """Emit a warning for any ``SIFT_*`` env var not declared in the registry.
 
-    The registry declares either a full env var name (``opt.env``) or an env
-    prefix for dict-shape options (``opt.env_prefix``); env vars that match
-    neither are almost always typos.
+    The registry declares each env var by its full name (``opt.env``); a
+    ``SIFT_*`` var that matches none of them is almost always a typo.
     """
     import difflib
 
     known_full = {opt.env for opt in _OPTIONS if opt.env}
-    known_prefixes = {opt.env_prefix for opt in _OPTIONS if opt.env_prefix}
-    suggestion_pool = sorted(known_full | {p + "<KEY>" for p in known_prefixes})
+    suggestion_pool = sorted(known_full)
     for name in sorted(os.environ):
         if not name.startswith("SIFT_"):
             continue
         if name in known_full:
-            continue
-        if any(name.startswith(p) and len(name) > len(p) for p in known_prefixes):
             continue
         close = difflib.get_close_matches(name, suggestion_pool, n=1, cutoff=0.6)
         hint = f" (did you mean `{close[0]}`?)" if close else ""
@@ -1520,10 +1501,9 @@ def _report_context_impl(
         if test_case_template
         else target
     )
-    # Metadata is a merged dict-shape resolution: [tool.sift.pytest.report.metadata]
-    # is the base, SIFT_REPORT_METADATA_<KEY> env vars merge on top (env wins
-    # on collision), and the auto-recorded pytest_command layers in last so the
-    # user can't accidentally overwrite it.
+    # Metadata starts from the [tool.sift.pytest.report.metadata] TOML table, and
+    # the auto-recorded pytest_command layers in last so the user can't
+    # accidentally overwrite it.
     report_metadata: dict[str, str | float | bool] = {
         **_METADATA.resolve_merged(pytestconfig),
         "pytest_command": command,

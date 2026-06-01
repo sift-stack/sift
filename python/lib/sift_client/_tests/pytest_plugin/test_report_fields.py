@@ -249,18 +249,15 @@ class TestReportFields:
         # Auto-recorded keys still present alongside the typed entries.
         assert "pytest_command" in pairs
 
-    def test_metadata_env_merges_with_toml(
+    def test_metadata_from_toml_table(
         self,
         pytester: pytest.Pytester,
         tmp_path: Path,
-        monkeypatch: pytest.MonkeyPatch,
         clear_sift_env: None,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """``SIFT_REPORT_METADATA_<KEY>`` env vars merge into the TOML table; env wins on collision."""
+        """Report metadata comes from the ``[tool.sift.pytest.report.metadata]`` TOML table."""
         log_path = tmp_path / "run.jsonl"
-        monkeypatch.setenv("SIFT_REPORT_METADATA_SHIFT", "night")
-        monkeypatch.setenv("SIFT_REPORT_METADATA_RUN_ID", "42")
         write_plugin_conftest()
         pytester.makepyprojecttoml(
             """
@@ -273,12 +270,8 @@ class TestReportFields:
         result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
         result.assert_outcomes(passed=1)
         pairs = _metadata_pairs(_create_report_dict(log_path.read_text()))
-        # TOML-only value survives.
         assert pairs.get("build_id") == "v1.2.3"
-        # Env overrides the TOML value on collision (env var suffix lowercased -> "shift").
-        assert pairs.get("shift") == "night"
-        # Env-only value is added (suffix lowercased -> "run_id").
-        assert pairs.get("run_id") == "42"
+        assert pairs.get("shift") == "day"
 
     def test_loader_warns_on_bad_toml(
         self,

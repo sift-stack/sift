@@ -176,7 +176,7 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Operator running the test. Defaults to the OS user. | `[tool.sift.pytest.report] system_operator` | `SIFT_REPORT_SYSTEM_OPERATOR` |
 | Serial number of the unit under test. | `[tool.sift.pytest.report] serial_number` | `SIFT_REPORT_SERIAL_NUMBER` |
 | Part number of the unit under test. | `[tool.sift.pytest.report] part_number` | `SIFT_REPORT_PART_NUMBER` |
-| Free-form report metadata. TOML table is the base; SIFT_REPORT_METADATA_<KEY> env vars merge on top (env wins on collision; suffix lowercased becomes the key). | `[tool.sift.pytest.report.metadata]` (table) | `SIFT_REPORT_METADATA_<KEY>` |
+| Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, attach them in conftest via the report_context fixture. | `[tool.sift.pytest.report.metadata]` (table) | — |
 <!-- END settings-reference -->
 
 ### Quick-start examples
@@ -200,8 +200,6 @@ build_id = "v1.2.3"
 SIFT_API_KEY=...                    # from a secret manager
 SIFT_REPORT_SYSTEM_OPERATOR=ci-bot
 SIFT_REPORT_SERIAL_NUMBER=$UNIT_SN  # cycles per matrix job
-SIFT_REPORT_METADATA_RUN_ID=$BUILD_ID
-SIFT_REPORT_METADATA_BRANCH=$GIT_BRANCH
 ```
 
 ```ini title="pytest.ini (alternative — pytest-execution flags only)"
@@ -314,19 +312,9 @@ lane     = 2          # ints, floats, and bools come through with their TOML typ
 verbose  = true
 ```
 
-For per-run dynamic entries, set `SIFT_REPORT_METADATA_<KEY>` env vars. The
-suffix after the prefix is lowercased to form the metadata key:
-
-```bash
-SIFT_REPORT_METADATA_BUILD_ID=v1.2.3
-SIFT_REPORT_METADATA_RUN_ID=$CI_RUN_ID
-SIFT_REPORT_METADATA_BRANCH=$GIT_BRANCH
-# -> metadata = {"build_id": "v1.2.3", "run_id": "...", "branch": "..."}
-```
-
-Env entries **merge** with the TOML table — env keys win on collision, and
-env-only keys are added. Env values are always strings (use the TOML table
-for typed ints, floats, and bools).
+For per-run dynamic entries (CI build IDs, cycling serial numbers), attach them
+in your `conftest.py` through the `report_context` fixture rather than the TOML
+table.
 
 Nested tables, lists, and `null` values in
 `[tool.sift.pytest.report.metadata]` are skipped with a warning since the
