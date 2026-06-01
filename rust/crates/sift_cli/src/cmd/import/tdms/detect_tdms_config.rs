@@ -234,8 +234,7 @@ fn detect_config(path: &Path, fallback_method: TdmsFallbackMethod) -> Result<Vec
                 continue;
             };
 
-            let is_waveform = is_waveform_channel(channel);
-            let has_timing = is_waveform || time_channel_name.is_some();
+            let has_timing = is_waveform_channel(channel) || time_channel_name.is_some();
             if !has_timing {
                 match fallback_method {
                     TdmsFallbackMethod::IgnoreError => continue,
@@ -249,23 +248,10 @@ fn detect_config(path: &Path, fallback_method: TdmsFallbackMethod) -> Result<Vec
                 }
             }
 
-            let description = {
-                let raw = get_string_property(channel, "description");
-                if is_waveform {
-                    if raw.is_empty() {
-                        "[waveform timing]".to_string()
-                    } else {
-                        format!("[waveform timing] {raw}")
-                    }
-                } else {
-                    raw
-                }
-            };
-
             channels_vec.push(ChannelConfig {
                 name: format!("{}.{}", group, channel_name),
                 units: get_string_property(channel, "unit_string"),
-                description,
+                description: get_string_property(channel, "description"),
                 data_type: data_type as i32,
                 ..Default::default()
             });
