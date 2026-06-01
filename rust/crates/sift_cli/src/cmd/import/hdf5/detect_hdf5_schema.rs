@@ -131,9 +131,6 @@ pub fn detect_config(
             &datasets, schema, time_index, time_field, time_name,
         )),
         Ok((data, channel_configs)) => {
-            // 2D mode has no signal — the time column is whatever index the user passed
-            // via --time-index. We can't verify it, so we don't tag it in the preview.
-            // 1D auto-detects from dataset name; compound takes an explicit --time-field.
             let woven = if matches!(schema, Hdf5Schema::TwoD) {
                 channel_configs
             } else {
