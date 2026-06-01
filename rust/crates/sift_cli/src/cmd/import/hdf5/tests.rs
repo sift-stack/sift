@@ -9,8 +9,8 @@ use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
 use crate::cmd::import::hdf5::detect_hdf5_schema::{
-    basename, build_time_channel_rows, enum_types_for, hdf5_to_sift_data_type,
-    is_time_dataset_name, parent_path,
+    basename, enum_types_for, hdf5_to_sift_data_type, is_time_dataset_name, parent_path,
+    weave_time_channel_rows,
 };
 use crate::cmd::import::hdf5::import::build_hdf5_config;
 use crate::cmd::import::utils::group_path_to_channel_name;
@@ -392,37 +392,46 @@ fn make_data_config(
     }
 }
 
+fn make_channel(name: &str) -> sift_rs::common::r#type::v1::ChannelConfig {
+    sift_rs::common::r#type::v1::ChannelConfig {
+        name: name.into(),
+        data_type: ChannelDataType::Double as i32,
+        ..Default::default()
+    }
+}
+
 #[test]
-fn build_time_channel_rows_one_d_dedups_shared_time_dataset() {
-    let configs = vec![
+fn weave_one_d_shared_time_appears_once_before_channels() {
+    let data = vec![
         make_data_config("/group_a/time", "/group_a/voltage", 0, None),
         make_data_config("/group_a/time", "/group_a/current", 0, None),
         make_data_config("/group_b/timestamp", "/group_b/value", 0, None),
     ];
-    let rows = build_time_channel_rows(&configs);
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].name, "group_a.time");
-    assert_eq!(rows[0].description, "[time]");
-    assert_eq!(rows[0].data_type, ChannelDataType::Int64 as i32);
-    assert_eq!(rows[1].name, "group_b.timestamp");
-    assert_eq!(rows[1].description, "[time]");
-}
-
-#[test]
-fn build_time_channel_rows_two_d_includes_time_index() {
-    let configs = vec![
-        make_data_config("/sensor_0", "/sensor_0", 0, None),
-        make_data_config("/sensor_1", "/sensor_1", 0, None),
+    let channels = vec![
+        make_channel("group_a.voltage"),
+        make_channel("group_a.current"),
+        make_channel("group_b.value"),
     ];
-    let rows = build_time_channel_rows(&configs);
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].name, "sensor_0.0");
-    assert_eq!(rows[1].name, "sensor_1.0");
+    let woven = weave_time_channel_rows(&data, &channels);
+    let layout: Vec<(&str, &str)> = woven
+        .iter()
+        .map(|c| (c.name.as_str(), c.description.as_str()))
+        .collect();
+    assert_eq!(
+        layout,
+        vec![
+            ("group_a.time", "[time]"),
+            ("group_a.voltage", ""),
+            ("group_a.current", ""),
+            ("group_b.timestamp", "[time]"),
+            ("group_b.value", ""),
+        ]
+    );
 }
 
 #[test]
-fn build_time_channel_rows_compound_renders_dataset_dot_field() {
-    let configs = vec![
+fn weave_compound_shows_dataset_dot_field_once_per_compound_dataset() {
+    let data = vec![
         make_data_config("/measurements/run1", "/measurements/run1", 0, Some("ts")),
         make_data_config("/measurements/run1", "/measurements/run1", 0, Some("ts")),
         make_data_config(
@@ -432,15 +441,27 @@ fn build_time_channel_rows_compound_renders_dataset_dot_field() {
             Some("timestamp"),
         ),
     ];
-    let rows = build_time_channel_rows(&configs);
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].name, "measurements.run1.ts");
-    assert_eq!(rows[0].description, "[time]");
-    assert_eq!(rows[1].name, "measurements.run2.timestamp");
+    let channels = vec![
+        make_channel("measurements.run1.voltage"),
+        make_channel("measurements.run1.current"),
+        make_channel("measurements.run2.voltage"),
+    ];
+    let woven = weave_time_channel_rows(&data, &channels);
+    let names: Vec<&str> = woven.iter().map(|c| c.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec![
+            "measurements.run1.ts",
+            "measurements.run1.voltage",
+            "measurements.run1.current",
+            "measurements.run2.timestamp",
+            "measurements.run2.voltage",
+        ]
+    );
 }
 
 #[test]
-fn build_time_channel_rows_empty_when_no_data_configs() {
-    let rows = build_time_channel_rows(&[]);
-    assert!(rows.is_empty());
+fn weave_empty_returns_empty() {
+    let woven = weave_time_channel_rows(&[], &[]);
+    assert!(woven.is_empty());
 }
