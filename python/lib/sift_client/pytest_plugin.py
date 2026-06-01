@@ -325,7 +325,7 @@ class _Option:
         """First set value from declared surfaces; ``None`` when unset everywhere.
 
         Walk order is env > cli > ini > toml. No current option declares both
-        env and cli (per R7), so the chain isn't ambiguous in practice.
+        env and cli, so the chain isn't ambiguous in practice.
         ``getini`` returns the typed default for unset bool/list keys, so this
         only returns ini values for booleans (always meaningful), non-empty
         strings, and non-empty lists.
@@ -399,22 +399,25 @@ def _walk_toml(data: dict[str, Any], path: tuple[str, ...]) -> Any:
 # ---------------------------------------------------------------------------
 # Settings registry.
 #
-# Rules (see ``project_sift_pytest_config_rules`` in memory for the why):
-#   R1 secrets live in env vars only.
-#   R2 pytest behavior lives in [tool.pytest.ini_options] so it integrates with
-#      `pytest --help` / `--co` / `--trace-config`.
-#   R3 sift-domain report data lives in [tool.sift.pytest.report.*].
-#   R4 non-secret endpoints get env + one static home (ini OR toml, not both).
-#   R5 a CLI flag has to earn its place — real per-run override workflow.
-#   R6 one home per setting unless a second has distinct value.
-#   R7 dynamic per-run injection uses env vars; pytest-dotenv covers .env for
-#      local dev; CI sets the same names from its secret store.
-#
 # Add new options here. The registry drives `pytest_addoption`, resolution,
-# the docs settings-reference table, and the unknown-key typo detector.
+# the docs settings-reference table, and the unknown-key typo detector, so a
+# setting is declared once instead of wired up in several places.
+#
+# Where each setting lives follows a few principles:
+#   - Secrets (the API key) come from environment variables only, never a
+#     committed file.
+#   - Pytest behavior lives in [tool.pytest.ini_options] so it integrates with
+#     `pytest --help` / `--co` / `--trace-config`.
+#   - Sift report content lives in [tool.sift.pytest.report.*].
+#   - Non-secret endpoints take an env var plus one static home (ini or toml,
+#     not both).
+#   - A CLI flag is added only when there is a real per-run override workflow;
+#     stable project config stays in ini/toml.
+#   - Dynamic per-run values are injected via environment variables (pytest-dotenv
+#     loads .env for local dev; CI sets the same names from its secret store).
 # ---------------------------------------------------------------------------
 
-# Pytest behavior (R2). CLI flag survives because per-run override is real.
+# Pytest behavior. The CLI flag survives because the per-run override is real.
 _LOG_FILE = _Option(
     name="log_file",
     category=_CAT_BEHAVIOR,
@@ -465,7 +468,7 @@ _OPEN = _Option(
     ini_default=False,
 )
 
-# Pytest behavior (R2), set-once project defaults (R5 -> no CLI flag).
+# Pytest behavior: set-once project defaults (no CLI flag — no per-run override).
 _AUTOUSE = _Option(
     name="autouse",
     category=_CAT_BEHAVIOR,
@@ -507,7 +510,7 @@ _PARAMETRIZE_NESTING = _Option(
     ini_default=True,
 )
 
-# Credentials (R1, R4). API key is env-only; URIs accept env + ini.
+# Credentials. The API key is env-only; the URIs accept env + ini.
 _API_KEY = _Option(
     name="api_key",
     category=_CAT_CONNECTION,
@@ -538,9 +541,9 @@ _APP_URL = _Option(
     ini="sift_app_url",
 )
 
-# Report content (R3, R7). Project defaults in [tool.sift.pytest.report]; CI
-# injects per-run values via SIFT_REPORT_* env vars (pytest-dotenv handles
-# .env files for local dev).
+# Report content. Project defaults in [tool.sift.pytest.report]; CI injects
+# per-run values via SIFT_REPORT_* env vars (pytest-dotenv handles .env files
+# for local dev).
 _REPORT_NAME = _Option(
     name="report_name",
     category=_CAT_REPORT,
