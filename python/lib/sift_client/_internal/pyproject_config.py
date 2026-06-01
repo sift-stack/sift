@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 try:
     import tomllib  # type: ignore[import-not-found,unused-ignore]
 except ImportError:  # pragma: no cover - exercised on 3.8-3.10 only
-    import tomli as tomllib  # type: ignore[no-redef]
+    import tomli as tomllib  # type: ignore[no-redef,import-not-found,unused-ignore]
 
 if TYPE_CHECKING:
     import pytest
