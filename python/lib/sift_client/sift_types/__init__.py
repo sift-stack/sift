@@ -188,7 +188,7 @@ from sift_client.sift_types.test_report import (
     TestStepCreate,
     TestStepType,
 )
-from sift_client.sift_types.unit import Unit, UnitCreate
+from sift_client.sift_types.unit import Unit
 
 if "pytest" in sys.modules:
     # These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
@@ -259,5 +259,4 @@ __all__ = [
     "TestStepCreate",
     "TestStepType",
     "Unit",
-    "UnitCreate",
 ]

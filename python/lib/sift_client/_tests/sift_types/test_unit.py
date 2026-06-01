@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from sift.unit.v2.unit_pb2 import Unit as UnitProto
 
-from sift_client.sift_types.unit import Unit, UnitCreate
+from sift_client.sift_types.unit import Unit
 
 
 @pytest.fixture
@@ -18,23 +18,6 @@ def mock_unit(mock_client):
     )
     unit._apply_client_to_instance(mock_client)
     return unit
-
-
-class TestUnitCreate:
-    """Unit tests for UnitCreate model."""
-
-    def test_unit_create_basic(self):
-        """Test basic UnitCreate instantiation."""
-        create = UnitCreate(name="volts")
-
-        assert create.name == "volts"
-
-    def test_unit_create_to_proto(self):
-        """Test that UnitCreate converts to a CreateUnitRequest proto correctly."""
-        create = UnitCreate(name="volts")
-        proto = create.to_proto()
-
-        assert proto.name == "volts"
 
 
 class TestUnit:

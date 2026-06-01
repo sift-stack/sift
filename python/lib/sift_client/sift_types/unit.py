@@ -2,25 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sift.unit.v2.unit_pb2 import CreateUnitRequest as CreateUnitRequestProto
 from sift.unit.v2.unit_pb2 import Unit as UnitProto
 
-from sift_client.sift_types._base import (
-    BaseType,
-    ModelCreate,
-)
+from sift_client.sift_types._base import BaseType
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-
-
-class UnitCreate(ModelCreate[CreateUnitRequestProto]):
-    """Create model for Unit."""
-
-    name: str
-
-    def _get_proto_class(self) -> type[CreateUnitRequestProto]:
-        return CreateUnitRequestProto
 
 
 class Unit(BaseType[UnitProto, "Unit"]):
