@@ -6,7 +6,7 @@ use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
         CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse,
-        ParquetComplexTypesImportMode, ParquetConfig,
+        ParquetComplexTypesImportMode, ParquetConfig, TimeFormat as ProtoTimeFormat,
         data_import_service_client::DataImportServiceClient, parquet_config::Config,
     },
 };
@@ -17,6 +17,7 @@ use crate::{
     cmd::{
         Context,
         import::{
+            TimePreview,
             parquet::FooterMetadata,
             preview_import_config,
             utils::{try_parse_bit_field_config, try_parse_enum_config, upload_gzipped_file},
@@ -25,6 +26,17 @@ use crate::{
     },
     util::{api::create_grpc_channel, tty::Output},
 };
+
+fn proto_time_format_display(value: i32) -> String {
+    ProtoTimeFormat::try_from(value)
+        .map(|f| {
+            f.as_str_name()
+                .trim_start_matches("TIME_FORMAT_")
+                .to_lowercase()
+                .replace('_', "-")
+        })
+        .unwrap_or_else(|_| "unspecified".to_string())
+}
 
 pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
@@ -55,6 +67,15 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
             .filter_map(|col| col.channel_config.as_ref())
             .collect::<Vec<&ChannelConfig>>();
 
+        let time_format_display = flatset_conf
+            .time_column
+            .as_ref()
+            .map(|tc| proto_time_format_display(tc.format));
+        let time_preview = flatset_conf.time_column.as_ref().map(|tc| TimePreview {
+            path: tc.path.as_str(),
+            format: time_format_display.as_deref().unwrap_or("unspecified"),
+        });
+
         preview_import_config(
             &parquet_conf.asset_name,
             if parquet_conf.run_id.is_empty() {
@@ -62,6 +83,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
             } else {
                 parquet_conf.run_id.as_str()
             },
+            time_preview,
             &channel_confs,
         );
         return Ok(ExitCode::SUCCESS);

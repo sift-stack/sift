@@ -48,10 +48,10 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         ) {
             Ok((_, channel_configs)) => {
                 let refs: Vec<&ChannelConfig> = channel_configs.iter().collect();
-                preview_import_config(&args.common.asset, run_label, &refs);
+                preview_import_config(&args.common.asset, run_label, None, &refs);
             }
             Err(e) => {
-                preview_import_config(&args.common.asset, run_label, &[]);
+                preview_import_config(&args.common.asset, run_label, None, &[]);
                 Output::new()
                     .line(format!("client-side preview parse failed: {e:#}"))
                     .tip("the server-side parser may still ingest this file correctly")

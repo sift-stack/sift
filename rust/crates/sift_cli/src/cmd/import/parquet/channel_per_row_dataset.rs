@@ -9,7 +9,7 @@ use sift_rs::{
     common::r#type::v1::ChannelConfig,
     data_imports::v2::{
         CreateDataImportFromUploadRequest, CreateDataImportFromUploadResponse,
-        ParquetComplexTypesImportMode, ParquetConfig,
+        ParquetComplexTypesImportMode, ParquetConfig, TimeFormat as ProtoTimeFormat,
         data_import_service_client::DataImportServiceClient, parquet_config::Config,
         parquet_single_channel_per_row_config::Config as ChannelPerRowInnerConfig,
     },
@@ -20,11 +20,22 @@ use crate::cmd::import::parquet::detect_parquet_schema::detect_channel_per_row_c
 use crate::cmd::{
     Context,
     import::{
-        parquet::FooterMetadata, preview_import_config, utils::upload_gzipped_file,
+        TimePreview, parquet::FooterMetadata, preview_import_config, utils::upload_gzipped_file,
         wait_for_job_completion,
     },
 };
 use crate::util::{api::create_grpc_channel, tty::Output};
+
+fn proto_time_format_display(value: i32) -> String {
+    ProtoTimeFormat::try_from(value)
+        .map(|f| {
+            f.as_str_name()
+                .trim_start_matches("TIME_FORMAT_")
+                .to_lowercase()
+                .replace('_', "-")
+        })
+        .unwrap_or_else(|_| "unspecified".to_string())
+}
 
 pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
@@ -74,7 +85,19 @@ pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
             None => Vec::new(),
         };
 
-        preview_import_config(&args.common.asset, run_label, &preview_channels);
+        let time_format_display = channel_per_row_config
+            .time_column
+            .as_ref()
+            .map(|tc| proto_time_format_display(tc.format));
+        let time_preview = channel_per_row_config
+            .time_column
+            .as_ref()
+            .map(|tc| TimePreview {
+                path: tc.path.as_str(),
+                format: time_format_display.as_deref().unwrap_or("unspecified"),
+            });
+
+        preview_import_config(&args.common.asset, run_label, time_preview, &preview_channels);
         return Ok(ExitCode::SUCCESS);
     }
 
