@@ -79,7 +79,7 @@ fn test_detect_parquet_on_import() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(Some("time"), Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to detect flat dataset config");
 
     let time_col = config
@@ -100,7 +100,7 @@ fn test_time_column_excluded_from_data_columns() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(Some("time"), Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to detect flat dataset config");
 
     for col in &config.data_columns {
@@ -273,7 +273,7 @@ fn test_detect_config_assigns_correct_data_types_for_varied_columns() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(Some("time"), Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to detect flat dataset config");
 
     assert_eq!(config.data_columns.len(), 8);
@@ -364,7 +364,7 @@ fn test_auto_detect_time_column_named_time() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to auto-detect time column 'time'");
 
     assert_eq!(config.time_column.expect("time column").path, "time");
@@ -378,7 +378,7 @@ fn test_auto_detect_time_column_named_timestamp() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to auto-detect time column 'timestamp'");
 
     assert_eq!(config.time_column.expect("time column").path, "timestamp");
@@ -392,7 +392,7 @@ fn test_auto_detect_time_column_named_ts() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to auto-detect time column 'ts'");
 
     assert_eq!(config.time_column.expect("time column").path, "ts");
@@ -402,12 +402,11 @@ fn test_auto_detect_time_column_named_ts() {
 
 #[test]
 fn test_auto_detect_time_column_case_insensitive_preserves_original_name() {
-    // "Time" should match (case-insensitive), and the returned path should keep original casing.
     let batch = make_batch_with_time_col_named("Time");
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to auto-detect time column 'Time'");
 
     assert_eq!(
@@ -424,7 +423,7 @@ fn test_auto_detect_time_column_uppercase_variants() {
         let bytes = write_to_parquet_bytes(&batch);
         let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
-        let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
             .unwrap_or_else(|e| panic!("failed to auto-detect '{name}': {e:#}"));
         assert_eq!(
             config.time_column.expect("time column").path,
@@ -440,7 +439,7 @@ fn test_auto_detect_time_column_named_timestamps() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to auto-detect time column 'timestamps'");
 
     assert_eq!(config.time_column.expect("time column").path, "timestamps");
@@ -497,7 +496,7 @@ fn test_auto_detect_excludes_time_column_from_data_columns() {
     let bytes = write_to_parquet_bytes(&batch);
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
 
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to auto-detect");
 
     for col in &config.data_columns {
@@ -531,7 +530,7 @@ fn test_infer_format_timestamp_second() {
         Arc::new(TimestampSecondArray::from(vec![1, 2, 3])),
     );
     let args = make_test_args(None, None);
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to infer format");
     assert_eq!(
         config.time_column.expect("time column").format,
@@ -613,7 +612,7 @@ fn test_detect_channel_per_row_single_basic_infers_data_type() {
     );
     args.channel_name = Some("temperature".into());
 
-    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+    let (cfg, _) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
         .expect("detect_channel_per_row_config should succeed");
 
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
@@ -642,7 +641,7 @@ fn test_detect_channel_per_row_single_honors_data_type_override() {
     args.channel_name = Some("temperature".into());
     args.data_type = Some(CliDataType::Float);
 
-    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
+    let (cfg, _) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
 
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
     let InnerConfig::SingleChannel(single) = cfg.config.as_ref().unwrap() else {
@@ -666,7 +665,7 @@ fn test_infer_format_timestamp_millisecond() {
         Arc::new(TimestampMillisecondArray::from(vec![1, 2, 3])),
     );
     let args = make_test_args(None, None);
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to infer format");
     assert_eq!(
         config.time_column.expect("time column").format,
@@ -685,7 +684,7 @@ fn test_infer_format_timestamp_microsecond() {
         Arc::new(TimestampMicrosecondArray::from(vec![1, 2, 3])),
     );
     let args = make_test_args(None, None);
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to infer format");
     assert_eq!(
         config.time_column.expect("time column").format,
@@ -704,7 +703,7 @@ fn test_infer_format_timestamp_nanosecond() {
         Arc::new(TimestampNanosecondArray::from(vec![1, 2, 3])),
     );
     let args = make_test_args(None, None);
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed to infer format");
     assert_eq!(
         config.time_column.expect("time column").format,
@@ -713,25 +712,23 @@ fn test_infer_format_timestamp_nanosecond() {
 }
 
 #[test]
-fn test_infer_format_int64_is_ambiguous_and_errors() {
-    // Int64 could be seconds, millis, micros, or nanos — strict policy requires --time-format.
+fn test_infer_format_int64_defaults_to_nanoseconds() {
     let bytes = build_parquet_with_time_field(
         Field::new("time", DataType::Int64, false),
         Arc::new(Int64Array::from(vec![1i64, 2, 3])),
     );
     let args = make_test_args(None, None);
-    let err = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
-        .expect_err("Int64 time column should error — unit is ambiguous");
-    let msg = format!("{err:#}");
-    assert!(
-        msg.contains("ambiguous") && msg.contains("--time-format"),
-        "should ask for explicit --time-format, got: {msg}",
+    let (config, source) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect("Int64 time column should default, not error");
+    assert_eq!(
+        config.time_column.expect("time column").format,
+        ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,
     );
+    assert_eq!(source, detect_parquet_schema::TimeFormatSource::Defaulted);
 }
 
 #[test]
-fn test_infer_format_utf8_is_ambiguous_and_errors() {
-    // Strings could be RFC3339 or any number of custom formats — strict policy requires --time-format.
+fn test_infer_format_utf8_defaults_to_nanoseconds() {
     let bytes = build_parquet_with_time_field(
         Field::new("time", DataType::Utf8, false),
         Arc::new(StringArray::from(vec![
@@ -741,27 +738,29 @@ fn test_infer_format_utf8_is_ambiguous_and_errors() {
         ])),
     );
     let args = make_test_args(None, None);
-    let err = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
-        .expect_err("string time column should error — format is ambiguous");
-    let msg = format!("{err:#}");
-    assert!(
-        msg.contains("ambiguous") && msg.contains("--time-format"),
-        "should ask for explicit --time-format, got: {msg}",
+    let (config, source) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect("string time column should default, not error");
+    assert_eq!(
+        config.time_column.expect("time column").format,
+        ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,
     );
+    assert_eq!(source, detect_parquet_schema::TimeFormatSource::Defaulted);
 }
 
 #[test]
-fn test_infer_format_errors_for_float64_time_column() {
+fn test_infer_format_float64_defaults_to_nanoseconds() {
     let bytes = build_parquet_with_time_field(
         Field::new("time", DataType::Float64, false),
         Arc::new(Float64Array::from(vec![1.0, 2.0, 3.0])),
     );
     let args = make_test_args(None, None);
-    let result = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args);
-    assert!(
-        result.is_err(),
-        "should error when time column has a type we can't map to a format"
+    let (config, source) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect("Float64 time column should default, not error");
+    assert_eq!(
+        config.time_column.expect("time column").format,
+        ProtoTimeFormat::AbsoluteUnixNanoseconds as i32,
     );
+    assert_eq!(source, detect_parquet_schema::TimeFormatSource::Defaulted);
 }
 
 #[test]
@@ -777,7 +776,7 @@ fn test_detect_channel_per_row_single_propagates_units_and_description() {
     args.unit = Some("celsius".into());
     args.description = Some("ambient temperature".into());
 
-    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
+    let (cfg, _) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args).unwrap();
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
     let InnerConfig::SingleChannel(single) = cfg.config.as_ref().unwrap() else {
         panic!("expected SingleChannel variant");
@@ -798,7 +797,7 @@ fn test_detect_channel_per_row_multi_basic() {
     );
     args.name_path = Some("channel".into());
 
-    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+    let (cfg, _) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
         .expect("detect_channel_per_row_config multi should succeed");
 
     use sift_rs::data_imports::v2::parquet_single_channel_per_row_config::Config as InnerConfig;
@@ -821,13 +820,12 @@ fn test_detect_channel_per_row_multi_basic() {
 
 #[test]
 fn test_explicit_format_overrides_inference() {
-    // Time column is Int64 — would infer nanoseconds. Explicit format should win.
     let bytes = build_parquet_with_time_field(
         Field::new("time", DataType::Int64, false),
         Arc::new(Int64Array::from(vec![1i64, 2, 3])),
     );
     let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixMilliseconds));
-    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
         .expect("failed with explicit format");
     assert_eq!(
         config.time_column.expect("time column").format,
@@ -937,7 +935,6 @@ fn test_discover_multi_channel_names_for_preview_missing_column_errors() {
 
 #[test]
 fn test_channel_per_row_auto_detect_time_column() {
-    // schema has "timestamp" as the time column — should auto-detect when --time-path omitted
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args = make_channel_per_row_args(
@@ -947,32 +944,28 @@ fn test_channel_per_row_auto_detect_time_column() {
     );
     args.channel_name = Some("temperature".into());
 
-    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+    let (cfg, _) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
         .expect("should auto-detect timestamp column");
     let time = cfg.time_column.as_ref().expect("time column present");
     assert_eq!(time.path, "timestamp");
 }
 
 #[test]
-fn test_channel_per_row_int64_time_format_is_ambiguous_and_errors() {
-    // "timestamp" column is Int64 — strict policy requires explicit --time-format.
+fn test_channel_per_row_int64_time_defaults_to_nanoseconds() {
     let batch = create_channel_per_row_single_batch();
     let bytes = write_to_parquet_bytes(&batch);
     let mut args = make_channel_per_row_args(ChannelMode::Single, None, None);
     args.channel_name = Some("temperature".into());
 
-    let err = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
-        .expect_err("Int64 time column should error — unit is ambiguous");
-    let msg = format!("{err:#}");
-    assert!(
-        msg.contains("ambiguous") && msg.contains("--time-format"),
-        "should ask for explicit --time-format, got: {msg}",
-    );
+    let (cfg, source) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("Int64 time column should default to nanoseconds, not error");
+    let time = cfg.time_column.as_ref().expect("time column present");
+    assert_eq!(time.format, ProtoTimeFormat::AbsoluteUnixNanoseconds as i32);
+    assert_eq!(source, detect_parquet_schema::TimeFormatSource::Defaulted);
 }
 
 #[test]
 fn test_channel_per_row_auto_detect_errors_when_no_candidate() {
-    // No column named time/timestamp/ts — should error
     let schema = Arc::new(Schema::new(vec![
         Field::new("ts_col", DataType::Int64, false),
         Field::new("value", DataType::Float64, false),
@@ -1003,7 +996,6 @@ fn test_channel_per_row_auto_detect_errors_when_no_candidate() {
 
 #[test]
 fn test_channel_per_row_multi_auto_detect_column_with_explicit_format() {
-    // Time column auto-detects to "timestamp"; format must be passed explicitly since it's Int64.
     let batch = create_channel_per_row_multi_batch(vec!["a", "b", "c"]);
     let bytes = write_to_parquet_bytes(&batch);
     let mut args = make_channel_per_row_args(
@@ -1013,9 +1005,12 @@ fn test_channel_per_row_multi_auto_detect_column_with_explicit_format() {
     );
     args.name_path = Some("channel".into());
 
-    let cfg = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+    let (cfg, _) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
         .expect("multi mode auto-detect should succeed");
     let time = cfg.time_column.as_ref().expect("time column present");
     assert_eq!(time.path, "timestamp");
-    assert_eq!(time.format, ProtoTimeFormat::AbsoluteUnixMilliseconds as i32);
+    assert_eq!(
+        time.format,
+        ProtoTimeFormat::AbsoluteUnixMilliseconds as i32
+    );
 }

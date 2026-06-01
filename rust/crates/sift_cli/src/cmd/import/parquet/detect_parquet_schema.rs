@@ -21,10 +21,17 @@ use crate::cli::parquet::ChannelMode;
 use crate::cli::time::TimeFormat as CliTimeFormat;
 use crate::cli::{ChannelPerRowArgs, FlatDatasetArgs};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeFormatSource {
+    Explicit,
+    InferredFromArrow,
+    Defaulted,
+}
+
 pub fn detect_flat_dataset_config<R: ChunkReader>(
     file: &R,
     args: &FlatDatasetArgs,
-) -> Result<ParquetFlatDatasetConfig> {
+) -> Result<(ParquetFlatDatasetConfig, TimeFormatSource)> {
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
 
     let arrow_schema = parquet_to_arrow_schema(
@@ -48,15 +55,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
     };
     let time_path = time_field.name().clone();
 
-    let resolved_format = match args.time_format {
-        Some(fmt) => fmt,
-        None => infer_time_format_from_arrow(time_field.data_type()).with_context(|| {
-            format!(
-                "time column '{time_path}' has ambiguous Arrow type {:?} — please pass --time-format explicitly (e.g. absolute-unix-seconds, absolute-unix-milliseconds, absolute-unix-nanoseconds, absolute-rfc3339)",
-                time_field.data_type()
-            )
-        })?,
-    };
+    let (resolved_format, format_source) = resolve_time_format(args.time_format, time_field);
 
     validate_time_format(resolved_format, &args.relative_start_time)
         .context("validating time format")?;
@@ -95,14 +94,33 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
         });
     }
 
-    Ok(ParquetFlatDatasetConfig {
-        time_column,
-        data_columns,
-    })
+    Ok((
+        ParquetFlatDatasetConfig {
+            time_column,
+            data_columns,
+        },
+        format_source,
+    ))
 }
 
 fn auto_detect_failure_message() -> String {
     "could not find a time column — please pass --time-path".to_string()
+}
+
+fn resolve_time_format(
+    user: Option<CliTimeFormat>,
+    time_field: &Field,
+) -> (CliTimeFormat, TimeFormatSource) {
+    if let Some(fmt) = user {
+        return (fmt, TimeFormatSource::Explicit);
+    }
+    match infer_time_format_from_arrow(time_field.data_type()) {
+        Some(fmt) => (fmt, TimeFormatSource::InferredFromArrow),
+        None => (
+            CliTimeFormat::AbsoluteUnixNanoseconds,
+            TimeFormatSource::Defaulted,
+        ),
+    }
 }
 
 pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
@@ -113,10 +131,6 @@ pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
 }
 
 pub(super) fn infer_time_format_from_arrow(dt: &DataType) -> Option<CliTimeFormat> {
-    // Only infer when the Arrow type tells us the unit unambiguously.
-    // Int64, strings, floats, etc. are intentionally not inferred — too many
-    // valid interpretations (seconds vs. millis vs. nanos, RFC3339 vs. custom strings).
-    // Force the user to pass --time-format so we never silently misinterpret data.
     match dt {
         DataType::Timestamp(TimeUnit::Second, _) => Some(CliTimeFormat::AbsoluteUnixSeconds),
         DataType::Timestamp(TimeUnit::Millisecond, _) => {
@@ -135,7 +149,7 @@ pub(super) fn infer_time_format_from_arrow(dt: &DataType) -> Option<CliTimeForma
 pub fn detect_channel_per_row_config<R: ChunkReader>(
     file: &R,
     args: &ChannelPerRowArgs,
-) -> Result<ParquetSingleChannelPerRowConfig> {
+) -> Result<(ParquetSingleChannelPerRowConfig, TimeFormatSource)> {
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
     let arrow_schema = parquet_to_arrow_schema(
         metadata.file_metadata().schema_descr(),
@@ -158,15 +172,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
     };
     let time_path = time_field.name().clone();
 
-    let resolved_format = match args.time_format {
-        Some(fmt) => fmt,
-        None => infer_time_format_from_arrow(time_field.data_type()).with_context(|| {
-            format!(
-                "time column '{time_path}' has ambiguous Arrow type {:?} — please pass --time-format explicitly (e.g. absolute-unix-seconds, absolute-unix-milliseconds, absolute-unix-nanoseconds, absolute-rfc3339)",
-                time_field.data_type()
-            )
-        })?,
-    };
+    let (resolved_format, format_source) = resolve_time_format(args.time_format, time_field);
 
     validate_time_format(resolved_format, &args.relative_start_time)
         .context("validating time format")?;
@@ -261,11 +267,14 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
         }
     };
 
-    Ok(ParquetSingleChannelPerRowConfig {
-        time_column,
-        columns,
-        config: Some(inner_config),
-    })
+    Ok((
+        ParquetSingleChannelPerRowConfig {
+            time_column,
+            columns,
+            config: Some(inner_config),
+        },
+        format_source,
+    ))
 }
 
 pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {
