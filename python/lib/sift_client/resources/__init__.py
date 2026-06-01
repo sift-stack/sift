@@ -162,6 +162,7 @@ from sift_client.resources.rules import RulesAPIAsync
 from sift_client.resources.runs import RunsAPIAsync
 from sift_client.resources.tags import TagsAPIAsync
 from sift_client.resources.test_results import TestResultsAPIAsync
+from sift_client.resources.units import UnitsAPIAsync
 from sift_client.resources.data_imports import DataImportAPIAsync
 from sift_client.resources.exports import DataExportAPIAsync
 
@@ -177,6 +178,7 @@ from sift_client.resources.sync_stubs import (
     RunsAPI,
     TagsAPI,
     TestResultsAPI,
+    UnitsAPI,
     FileAttachmentsAPI,
     DataExportAPI,
     DataImportAPI,
@@ -215,6 +217,8 @@ __all__ = [
     "TagsAPIAsync",
     "TestResultsAPI",
     "TestResultsAPIAsync",
+    "UnitsAPI",
+    "UnitsAPIAsync",
     "TracingConfig",
     "DataExportAPI",
     "DataExportAPIAsync",

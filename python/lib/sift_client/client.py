@@ -28,6 +28,8 @@ from sift_client.resources import (
     TagsAPIAsync,
     TestResultsAPI,
     TestResultsAPIAsync,
+    UnitsAPI,
+    UnitsAPIAsync,
 )
 from sift_client.transport import (
     GrpcClient,
@@ -109,6 +111,9 @@ class SiftClient(
     test_results: TestResultsAPI
     """Instance of the Test Results API for making synchronous requests."""
 
+    units: UnitsAPI
+    """Instance of the Units API for making synchronous requests."""
+
     data_export: DataExportAPI
     """Instance of the Data Export API for making synchronous requests."""
 
@@ -163,6 +168,7 @@ class SiftClient(
         self.runs = RunsAPI(self)
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
+        self.units = UnitsAPI(self)
         self.data_export = DataExportAPI(self)
         self.data_import = DataImportAPI(self)
 
@@ -180,6 +186,7 @@ class SiftClient(
             runs=RunsAPIAsync(self),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
+            units=UnitsAPIAsync(self),
             data_export=DataExportAPIAsync(self),
             data_import=DataImportAPIAsync(self),
         )

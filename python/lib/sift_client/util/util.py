@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         RunsAPIAsync,
         TagsAPIAsync,
         TestResultsAPIAsync,
+        UnitsAPIAsync,
     )
 
 
@@ -59,6 +60,9 @@ class AsyncAPIs(NamedTuple):
 
     test_results: TestResultsAPIAsync
     """Instance of the Test Results API for making asynchronous requests."""
+
+    units: UnitsAPIAsync
+    """Instance of the Units API for making asynchronous requests."""
 
     data_export: DataExportAPIAsync
     """Instance of the Data Export API for making asynchronous requests."""

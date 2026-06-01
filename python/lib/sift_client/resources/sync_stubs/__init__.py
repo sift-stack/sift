@@ -17,6 +17,7 @@ from sift_client.resources import (
     RunsAPIAsync,
     TagsAPIAsync,
     TestResultsAPIAsync,
+    UnitsAPIAsync,
 )
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
@@ -30,6 +31,7 @@ RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
 ReportsAPI = generate_sync_api(ReportsAPIAsync, "ReportsAPI")
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
+UnitsAPI = generate_sync_api(UnitsAPIAsync, "UnitsAPI")
 DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
 DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
 
@@ -47,4 +49,5 @@ __all__ = [
     "RunsAPI",
     "TagsAPI",
     "TestResultsAPI",
+    "UnitsAPI",
 ]
