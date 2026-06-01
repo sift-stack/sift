@@ -251,24 +251,18 @@ def _tool_sift(config: pytest.Config | None) -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class _Option:
-    """One setting, declared once across every surface it exposes.
+    """One setting and the logic to resolve it from wherever it can be set.
 
-    Declare only the surfaces the setting uses. ``pytest_addoption``, the
-    resolvers (:meth:`resolve` / :meth:`resolve_merged`), the docs renderer
-    (:func:`_render_settings_reference`), and the typo detector all read from
-    the same registry, so adding or changing a setting is one edit.
+    A setting may be read from an env var, a CLI flag, a pytest ini key, or a
+    ``[tool.sift...]`` TOML path. :meth:`resolve` walks the declared surfaces in
+    env > cli > ini > toml order. ``metadata`` is the one exception: a free-form
+    TOML table (``merge=True``) resolved by :meth:`resolve_merged`.
 
-    Two shapes:
+    One registry of these drives ``pytest_addoption``, the resolvers, the docs
+    settings-reference table, and the typo detector, so a setting is added or
+    changed in one place.
 
-    - **Scalar** (default): :meth:`resolve` walks env > cli > ini > toml > None
-      following only the surfaces declared. In practice no current option uses
-      both env and cli, so the chain isn't ambiguous.
-    - **Free-form dict** (``merge=True``): a TOML table whose keys are
-      user-defined. :meth:`resolve_merged` returns the table with non-scalar
-      values dropped, and the typo detector leaves its keys unvalidated. Used
-      for ``metadata``.
-
-    Surface fields:
+    Surface fields (declare only the ones a setting uses):
 
     - ``cli`` / ``cli_action``: CLI flag (e.g. ``"--sift-offline"``) and
       argparse action; ``cli_dest`` is derived from the flag.

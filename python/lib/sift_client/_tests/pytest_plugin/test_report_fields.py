@@ -12,6 +12,11 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Callable
 
+from google.protobuf import json_format
+from sift.metadata.v1.metadata_pb2 import MetadataValue
+
+from sift_client.util.metadata import metadata_proto_to_dict
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -26,24 +31,15 @@ def _create_report_dict(log_text: str) -> dict:
     raise AssertionError(f"no CreateTestReport line in log:\n{log_text}")
 
 
-def _metadata_pairs(report: dict) -> dict[str, object]:
-    """Flatten the proto metadata map into a ``{key: value}`` dict.
+def _metadata_pairs(report: dict) -> dict[str, str | float | bool]:
+    """Unwrap the report's JSON metadata map into a ``{key: value}`` dict.
 
-    The proto stores each value in one of ``stringValue``, ``booleanValue``,
-    or ``numberValue`` (ints and floats both land in ``numberValue`` since
-    the proto's numeric type is a double). Callers compare against the raw
-    JSON-decoded value.
+    Each entry is the JSON form of a ``MetadataValue`` proto, so parse it back
+    into the proto and reuse the canonical ``metadata_proto_to_dict`` converter
+    rather than hand-walking the value slots.
     """
-    pairs: dict[str, object] = {}
-    for entry in report.get("metadata", []):
-        key = entry.get("key", {}).get("name")
-        if key is None:
-            continue
-        for proto_slot in ("stringValue", "booleanValue", "numberValue"):
-            if proto_slot in entry:
-                pairs[key] = entry[proto_slot]
-                break
-    return pairs
+    protos = [json_format.ParseDict(entry, MetadataValue()) for entry in report.get("metadata", [])]
+    return metadata_proto_to_dict(protos)
 
 
 class TestReportFields:
@@ -248,30 +244,6 @@ class TestReportFields:
         assert pairs.get("verbose") is True
         # Auto-recorded keys still present alongside the typed entries.
         assert "pytest_command" in pairs
-
-    def test_metadata_from_toml_table(
-        self,
-        pytester: pytest.Pytester,
-        tmp_path: Path,
-        clear_sift_env: None,
-        write_plugin_conftest: Callable[[], None],
-    ) -> None:
-        """Report metadata comes from the ``[tool.sift.pytest.report.metadata]`` TOML table."""
-        log_path = tmp_path / "run.jsonl"
-        write_plugin_conftest()
-        pytester.makepyprojecttoml(
-            """
-            [tool.sift.pytest.report.metadata]
-            build_id = "v1.2.3"
-            shift    = "day"
-            """
-        )
-        pytester.makepyfile("def test_one(step): pass")
-        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
-        result.assert_outcomes(passed=1)
-        pairs = _metadata_pairs(_create_report_dict(log_path.read_text()))
-        assert pairs.get("build_id") == "v1.2.3"
-        assert pairs.get("shift") == "day"
 
     def test_loader_warns_on_bad_toml(
         self,
