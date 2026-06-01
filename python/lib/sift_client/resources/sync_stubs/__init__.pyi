@@ -58,7 +58,6 @@ if TYPE_CHECKING:
         TestStepType,
         TestStepUpdate,
     )
-    from sift_client.sift_types.unit import Unit
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
@@ -2269,88 +2268,5 @@ class TestResultsAPI:
 
         Returns:
             The updated TestStep.
-        """
-        ...
-
-class UnitsAPI:
-    """Sync counterpart to `UnitsAPIAsync`.
-
-    High-level API for interacting with units.
-    """
-
-    def __init__(self, sift_client: SiftClient):
-        """Initialize the UnitsAPI.
-
-        Args:
-            sift_client: The Sift client to use.
-        """
-        ...
-
-    def _run(self, coro): ...
-    def create(self, name: str) -> Unit:
-        """Create a new unit.
-
-        If a unit with the same name already exists, it is returned instead of creating a duplicate.
-
-        Args:
-            name: The name of the unit.
-
-        Returns:
-            The created Unit.
-        """
-        ...
-
-    def find(self, **kwargs) -> Unit | None:
-        """Find a single unit matching the given query. Takes the same arguments as `list`. If more than one unit is
-        found, raises an error.
-
-        Args:
-            **kwargs: Keyword arguments to pass to `list`.
-
-        Returns:
-            The Unit found or None.
-        """
-        ...
-
-    def find_or_create(self, names: list[str]) -> list[Unit]:
-        """Find units by name or create them if they don't exist.
-
-        Args:
-            names: List of unit names to find or create.
-
-        Returns:
-            List of Units that were found or created.
-        """
-        ...
-
-    def list_(
-        self,
-        *,
-        name: str | None = None,
-        name_contains: str | None = None,
-        name_regex: str | re.Pattern | None = None,
-        names: list[str] | None = None,
-        unit_ids: list[str] | None = None,
-        filter_query: str | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-        page_size: int | None = None,
-    ) -> list[Unit]:
-        """List units with optional filtering.
-
-        Args:
-            name: Exact name of the unit.
-            name_contains: Partial name of the unit.
-            name_regex: Regular expression string to filter units by name.
-            names: List of unit names to filter by.
-            unit_ids: List of unit IDs to filter by.
-            filter_query: Explicit CEL query to filter units.
-            order_by: How to order the retrieved units.
-            limit: How many units to retrieve. If None, retrieves all matches.
-            page_size: Number of results to fetch per request. Lower this if you hit gRPC
-                message size limits on responses. If None, uses the server default.
-
-        Returns:
-            A list of Units that matches the filter.
         """
         ...
