@@ -380,7 +380,7 @@ pub struct FlatDatasetArgs {
     #[arg(short, long)]
     pub bit_field_config: Vec<String>,
 
-    /// Path to the time column. Auto-detected from common names(time, timestamp, ts) if omitted
+    /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
     #[arg(short, long)]
     pub time_path: Option<String>,
 
@@ -406,7 +406,7 @@ pub struct ChannelPerRowArgs {
     #[arg(long)]
     pub mode: ChannelMode,
 
-    /// Path to the time column. Auto-detected from common names (time, timestamp, ts) if omitted
+    /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
     #[arg(short, long)]
     pub time_path: Option<String>,
 

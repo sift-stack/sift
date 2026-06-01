@@ -45,7 +45,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
             .iter()
             .find_map(|f| auto_detect_time_column_field(f))
             .context(
-                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, ts)",
+                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, timestamps, ts)",
             )?,
     };
     let time_path = time_field.name().clone();
@@ -105,7 +105,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
 
 pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
     match field.name().as_str() {
-        "time" | "timestamp" | "ts" => Some(field),
+        "time" | "timestamp" | "timestamps" | "ts" => Some(field),
         _ => None,
     }
 }
@@ -151,7 +151,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
             .iter()
             .find_map(|f| auto_detect_time_column_field(f))
             .context(
-                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, ts)",
+                "no time column auto-detected — pass --time-path explicitly (looked for time, timestamp, timestamps, ts)",
             )?,
     };
     let time_path = time_field.name().clone();

@@ -401,6 +401,20 @@ fn test_auto_detect_time_column_named_ts() {
 }
 
 #[test]
+fn test_auto_detect_time_column_named_timestamps() {
+    let batch = make_batch_with_time_col_named("timestamps");
+    let bytes = write_to_parquet_bytes(&batch);
+    let args = make_test_args(None, Some(TimeFormat::AbsoluteUnixSeconds));
+
+    let config = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect("failed to auto-detect time column 'timestamps'");
+
+    assert_eq!(config.time_column.expect("time column").path, "timestamps");
+    assert_eq!(config.data_columns.len(), 1);
+    assert_eq!(config.data_columns[0].path, "a");
+}
+
+#[test]
 fn test_auto_detect_ignores_partial_match_event_time() {
     let batch = make_batch_with_time_col_named("event_time");
     let bytes = write_to_parquet_bytes(&batch);
