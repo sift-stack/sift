@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
+from sift_client._internal.low_level_wrappers.units import UnitsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import Channel, ChannelUpdate
@@ -61,6 +62,7 @@ class ChannelsAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = ChannelsLowLevelClient(grpc_client=self.client.grpc_client)
+        self._units_low_level_client = UnitsLowLevelClient(grpc_client=self.client.grpc_client)
         self._data_low_level_client = None
 
     async def get(
@@ -77,6 +79,7 @@ class ChannelsAPIAsync(ResourceBase):
             The Channel.
         """
         channel = await self._low_level_client.get_channel(channel_id=channel_id)
+        await self._resolve_unit_names([channel])
         return self._apply_client_to_instance(channel)
 
     async def list_(
@@ -172,6 +175,7 @@ class ChannelsAPIAsync(ResourceBase):
             max_results=limit,
             **({"page_size": page_size} if page_size is not None else {}),
         )
+        await self._resolve_unit_names(channels)
         return self._apply_client_to_instances(channels)
 
     async def find(self, **kwargs) -> Channel | None:
@@ -209,8 +213,13 @@ class ChannelsAPIAsync(ResourceBase):
         channel_id = channel._id_or_error if isinstance(channel, Channel) else channel
         if isinstance(update, dict):
             update = ChannelUpdate.model_validate(update)
+        # Resolve the caller's unit name to a unit id for the update.
+        if update.unit:
+            unit = await self._units_low_level_client.create_unit(update.unit)
+            update = update.model_copy(update={"unit": unit.unit_id})
         update.resource_id = channel_id
         updated_channel = await self._low_level_client.update_channel(update=update)
+        await self._resolve_unit_names([updated_channel])
         return self._apply_client_to_instance(updated_channel)
 
     async def archive(self, channels: list[str | Channel]) -> None:
@@ -232,6 +241,29 @@ class ChannelsAPIAsync(ResourceBase):
         """
         channel_ids = _channel_ids_from_list(channels)
         await self._low_level_client.batch_unarchive_channels(channel_ids)
+
+    async def _resolve_unit_names(self, channels: list[Channel]) -> None:
+        """Swap each channel's unit id for its human-readable name, in place.
+
+        A channel's ``unit`` field holds a unit id; this resolves those ids to their
+        names and writes them back. Channels with no unit are left untouched, as is
+        any id with no matching unit.
+
+        Args:
+            channels: The channels to resolve. Modified in place.
+        """
+        unit_ids = list({channel.unit for channel in channels if channel.unit})
+        if not unit_ids:
+            return
+        units = await self._units_low_level_client.list_all_units(
+            query_filter=cel.in_("unit_id", unit_ids),
+        )
+        names = {unit.unit_id: unit.abbreviated_name for unit in units}
+        for channel in channels:
+            name = names.get(channel.unit)
+            if name is not None:
+                # Bypass the frozen model to swap the unit id for its name.
+                channel.__dict__["unit"] = name
 
     def _ensure_data_low_level_client(self):
         """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""

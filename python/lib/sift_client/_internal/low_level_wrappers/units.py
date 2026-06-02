@@ -91,3 +91,30 @@ class UnitsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("ListUnitsResponse", response)
 
         return list(response.units), response.next_page_token
+
+    async def list_all_units(
+        self,
+        *,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+        max_results: int | None = None,
+    ) -> list[UnitProto]:
+        """List all units with optional filtering, following pagination.
+
+        Args:
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved units.
+            page_size: The number of units to fetch per request.
+            max_results: Maximum number of results to return.
+
+        Returns:
+            A list of all matching unit protos.
+        """
+        return await self._handle_pagination(
+            self.list_units,
+            kwargs={"query_filter": query_filter},
+            page_size=page_size,
+            order_by=order_by,
+            max_results=max_results,
+        )

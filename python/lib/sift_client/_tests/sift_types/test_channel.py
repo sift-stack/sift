@@ -275,9 +275,10 @@ class TestChannelUpdate:
 
     def test_fields_map_to_correct_proto_fields(self):
         """Each ChannelUpdate field targets its matching Channel proto field and mask path."""
+        # These values are just samples; the test checks which proto field each lands in.
         update = ChannelUpdate(
             description="new description",
-            unit="volts",
+            unit="unit-id-123",
             metadata={"source": "pytest"},
             active=False,
         )
@@ -286,14 +287,12 @@ class TestChannelUpdate:
         proto, mask = update.to_proto_with_mask()
 
         assert proto.channel_id == "test_channel_id"
-        # description/unit write the display override fields, the only ones the
-        # server allows UpdateChannel to mutate.
+        # description and unit map to the display override proto fields.
         assert proto.display_description == "new description"
-        assert proto.display_unit_id == "volts"
+        assert proto.display_unit_id == "unit-id-123"
         assert {md.key.name: md.string_value for md in proto.metadata} == {"source": "pytest"}
         assert proto.active is False
-        # The server's update mask accepts "display_units" (not "display_unit_id")
-        # for the unit; see channel_service.go UpdateChannel.
+        # The mask path for unit is "display_units", not "display_unit_id".
         assert set(mask.paths) == {
             "display_description",
             "display_units",
