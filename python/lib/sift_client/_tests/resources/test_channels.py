@@ -437,7 +437,7 @@ def _mock_channel(unit: str) -> Channel:
         description="",
         unit=unit,
         asset_id="asset-1",
-        active=True,
+        is_archived=False,
         created_date=now,
         modified_date=now,
         created_by_user_id="user-1",

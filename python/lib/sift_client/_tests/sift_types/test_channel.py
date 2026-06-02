@@ -23,7 +23,7 @@ def mock_channel(mock_client):
         enum_types={},
         asset_id="test_asset_id",
         metadata={},
-        active=True,
+        is_archived=False,
         created_date=datetime.now(timezone.utc),
         modified_date=datetime.now(timezone.utc),
         created_by_user_id="user1",
@@ -264,7 +264,7 @@ class TestChannelUpdate:
             description="new description",
             unit="unit-id-123",
             metadata={"source": "pytest"},
-            active=False,
+            is_archived=True,
         )
         update.resource_id = "test_channel_id"
 
@@ -275,6 +275,7 @@ class TestChannelUpdate:
         assert proto.display_description == "new description"
         assert proto.display_unit_id == "unit-id-123"
         assert {md.key.name: md.string_value for md in proto.metadata} == {"source": "pytest"}
+        # is_archived maps to the proto's `active`, inverted.
         assert proto.active is False
         # The mask path for unit is "display_units", not "display_unit_id".
         assert set(mask.paths) == {

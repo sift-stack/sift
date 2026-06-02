@@ -205,7 +205,7 @@ class ChannelsAPIAsync(ResourceBase):
         Args:
             channel: The Channel or channel ID to update.
             update: Updates to apply to the Channel. See ChannelUpdate for the updatable fields
-                (description, unit, metadata, and active status).
+                (description, unit, metadata, and archived status).
 
         Returns:
             The updated Channel.

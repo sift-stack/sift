@@ -29,6 +29,7 @@ from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
+    from google.protobuf import field_mask_pb2
     from sift_stream_bindings import ChannelBitFieldElementPy, ChannelDataTypePy
 
     from sift_client.client import SiftClient
@@ -255,7 +256,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     enum_types: dict[str, int] = Field(default_factory=dict)
     asset_id: str
     metadata: dict[str, str | float | bool] = Field(default_factory=dict)
-    active: bool
+    is_archived: bool
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
@@ -293,7 +294,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
             asset_id=proto.asset_id,
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
-            active=proto.active,
+            # The proto carries `active`; the client exposes the inverse, `is_archived`.
+            is_archived=not proto.active,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
@@ -354,11 +356,11 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return self
 
     def archive(self) -> None:
-        """Archive the channel by setting it inactive."""
+        """Archive the channel."""
         self.client.channels.archive([self])
 
     def unarchive(self) -> None:
-        """Unarchive the channel by setting it active."""
+        """Unarchive the channel."""
         self.client.channels.unarchive([self])
 
     @property
@@ -385,7 +387,7 @@ class ChannelUpdate(ModelUpdate[ChannelProto]):
     description: str | None = None
     unit: str | None = None
     metadata: dict[str, str | float | bool] | None = None
-    active: bool | None = None
+    is_archived: bool | None = None
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "description": MappingHelper(
@@ -401,6 +403,11 @@ class ChannelUpdate(ModelUpdate[ChannelProto]):
             update_field="metadata",
             converter=metadata_dict_to_proto,
         ),
+        # The proto carries `active`; the value is inverted in to_proto_with_mask.
+        "is_archived": MappingHelper(
+            proto_attr_path="active",
+            update_field="active",
+        ),
     }
 
     def _get_proto_class(self) -> type[ChannelProto]:
@@ -410,6 +417,14 @@ class ChannelUpdate(ModelUpdate[ChannelProto]):
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.channel_id = self._resource_id
+
+    def to_proto_with_mask(self) -> tuple[ChannelProto, field_mask_pb2.FieldMask]:
+        """Convert to proto with field mask."""
+        proto, mask = super().to_proto_with_mask()
+        # `is_archived` is the inverse of the proto's `active` field.
+        if self.is_archived is not None:
+            proto.active = not self.is_archived
+        return proto, mask
 
 
 class ChannelReference(BaseModel):
