@@ -23,14 +23,14 @@ def test_default_policy_has_no_timeout():
 
 def test_timeout_is_formatted_as_duration():
     config = RetryPolicy.default(timeout_seconds=60.0).config
-    assert config["methodConfig"][0]["timeout"] == "60s"
+    assert config["methodConfig"][0].get("timeout") == "60s"
     # Retry policy is preserved alongside the timeout.
     assert "retryPolicy" in config["methodConfig"][0]
 
 
 def test_fractional_timeout_trims_trailing_zeros():
     config = RetryPolicy.default(timeout_seconds=0.5).config
-    assert config["methodConfig"][0]["timeout"] == "0.5s"
+    assert config["methodConfig"][0].get("timeout") == "0.5s"
 
 
 def test_channel_options_apply_default_timeout():
