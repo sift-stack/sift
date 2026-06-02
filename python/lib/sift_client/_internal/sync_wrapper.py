@@ -65,9 +65,7 @@ def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
             loop_running = loop.is_running()
         if not loop_running:
             coro.close()
-            raise RuntimeError(
-                "Sift client is closed; cannot make synchronous API calls."
-            )
+            raise RuntimeError("Sift client is closed; cannot make synchronous API calls.")
 
         timeout = getattr(client, "sync_call_timeout", None)
         future = asyncio.run_coroutine_threadsafe(coro, loop)
