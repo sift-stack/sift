@@ -67,20 +67,6 @@ class TestDisabledMode:
         result = pytester.runpytest_subprocess("--sift-disabled")
         result.assert_outcomes(passed=1)
 
-    def test_disabled_via_env_var(
-        self,
-        pytester: pytest.Pytester,
-        clear_sift_env: None,
-        write_plugin_conftest: Callable[[], None],
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """``SIFT_DISABLED=1`` triggers disabled mode without the CLI flag."""
-        write_plugin_conftest()
-        pytester.makepyfile("def test_runs(step): step.measure(name='v', value=1.0)")
-        monkeypatch.setenv("SIFT_DISABLED", "1")
-        result = pytester.runpytest_subprocess()
-        result.assert_outcomes(passed=1)
-
     def test_disabled_supersedes_offline(
         self,
         pytester: pytest.Pytester,

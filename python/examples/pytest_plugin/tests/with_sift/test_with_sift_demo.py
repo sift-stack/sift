@@ -121,11 +121,17 @@ def test_report_level_metadata(step, report_context) -> None:
     The same ``update({...})`` pattern works for any field on
     ``TestReportUpdate`` (``run_id``, ``serial_number``, ``part_number``,
     ``system_operator``, ``metadata``, ...). Useful for linking a session
-    to a Sift Run or tagging the report with build / operator info.
+    to a Sift Run or tagging the report with build / operator info at runtime.
+
+    Updating ``metadata`` *replaces* the whole map server-side, so spread the
+    report's current metadata first to add keys without dropping the entries
+    configured under ``[tool.sift.pytest.report.metadata]`` (or the git
+    metadata and auto-recorded ``pytest_command``).
     """
     report_context.report.update(
         {
             "metadata": {
+                **report_context.report.metadata,
                 "build_id": "v1.2.3",
                 "operator": "ci",
             }
