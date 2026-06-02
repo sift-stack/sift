@@ -1,0 +1,1632 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://sift-stack.github.io/sift/python/pr-610/guides/pytest_plugin/pass_fail_behavior/">
+      
+      
+        <link rel="prev" href="../report_structure/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../stylesheets/dark-favicon.ico">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Pass/Fail Behavior - Sift | Python Client Library</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#passfail-behavior" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+You're not viewing the latest version.
+<a href="../../../..">
+
+
+    <strong>Click here to go to latest.</strong>
+</a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Sift | Python Client Library" class="md-header__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
+      <img id='logo_dark_mode' src='../../../stylesheets/sift_logo_dark.svg' alt='logo'>
+<img id='logo_light_mode' src='../../../stylesheets/sift_logo_light.svg' alt='logo'>
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Sift | Python Client Library
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Pass/Fail Behavior
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/sift_client/" class="md-tabs__link">
+          
+  
+  
+  Sift Client API
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/sift_py/" class="md-tabs__link">
+          
+  
+  
+  Sift Py API
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../examples/" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Sift | Python Client Library" class="md-nav__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
+      <img id='logo_dark_mode' src='../../../stylesheets/sift_logo_dark.svg' alt='logo'>
+<img id='logo_light_mode' src='../../../stylesheets/sift_logo_light.svg' alt='logo'>
+    </a>
+    Sift | Python Client Library
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../reference/sift_client/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sift Client API
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../reference/sift_py/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sift Py API
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../examples/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pytest Plugin
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pytest Plugin
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration & Defaults
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../running_modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Modes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../report_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pass/Fail Behavior
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pass/Fail Behavior
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#teststatus-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TestStatus values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#normal-test-outcomes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Normal test outcomes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hard-exits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hard exits
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hard exits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#abort-propagation-through-nested-substeps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Abort propagation through nested substeps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skips
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expected-failures-xfail-xpass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Expected failures (xfail / xpass)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#influencing-outcomes-from-test-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Influencing outcomes from test code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Influencing outcomes from test code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manual-status-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual status override
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report_outcome-for-externally-computed-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        report_outcome for externally computed checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#measurements-with-bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measurements with bounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#substep-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Substep failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#propagation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Propagation rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#teststatus-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TestStatus values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#normal-test-outcomes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Normal test outcomes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hard-exits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hard exits
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hard exits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#abort-propagation-through-nested-substeps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Abort propagation through nested substeps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skips
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expected-failures-xfail-xpass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Expected failures (xfail / xpass)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#influencing-outcomes-from-test-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Influencing outcomes from test code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Influencing outcomes from test code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manual-status-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual status override
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report_outcome-for-externally-computed-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        report_outcome for externally computed checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#measurements-with-bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measurements with bounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#substep-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Substep failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#propagation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Propagation rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+
+
+
+                  
+
+
+  
+  
+
+
+<h1 id="passfail-behavior">Pass/Fail Behavior<a class="headerlink" href="#passfail-behavior" title="Permanent link">&para;</a></h1>
+<p>The pytest plugin maps every pytest outcome to a <code>TestStatus</code> on the
+corresponding Sift step. Use this page to look up what a given test will
+produce, and how that result rolls up to the parent steps and the report.</p>
+<h2 id="teststatus-values"><code>TestStatus</code> values<a class="headerlink" href="#teststatus-values" title="Permanent link">&para;</a></h2>
+<p>The statuses below come from <code>sift_client.sift_types.test_report.TestStatus</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PASSED</code></td>
+<td>The step completed and every check it owns succeeded.</td>
+</tr>
+<tr>
+<td><code>FAILED</code></td>
+<td>An assertion, a <code>pytest.fail(...)</code>, a failed <code>report_outcome</code>, or a failing measurement marked it.</td>
+</tr>
+<tr>
+<td><code>ERROR</code></td>
+<td>An unexpected exception escaped the test body or a fixture (setup or teardown).</td>
+</tr>
+<tr>
+<td><code>ABORTED</code></td>
+<td>A hard exit (<code>SystemExit</code>, observed <code>KeyboardInterrupt</code>) interrupted the test.</td>
+</tr>
+<tr>
+<td><code>SKIPPED</code></td>
+<td>The test was skipped at collection time, at runtime, or from a fixture.</td>
+</tr>
+<tr>
+<td><code>IN_PROGRESS</code></td>
+<td>Test in progress or the plugin never observed a final outcome (e.g. a session-aborting interrupt killed pytest first).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="normal-test-outcomes">Normal test outcomes<a class="headerlink" href="#normal-test-outcomes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Trigger</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Test passes</td>
+<td>function body returns cleanly</td>
+<td><code>PASSED</code></td>
+</tr>
+<tr>
+<td>Assertion failure</td>
+<td><code>assert 1 == 2</code></td>
+<td><code>FAILED</code></td>
+</tr>
+<tr>
+<td><code>pytest.fail("...")</code> from the body</td>
+<td><code>pytest.fail("intentional failure")</code></td>
+<td><code>FAILED</code></td>
+</tr>
+<tr>
+<td>Uncaught non-assertion exception</td>
+<td><code>raise ValueError("boom")</code></td>
+<td><code>ERROR</code></td>
+</tr>
+</tbody>
+</table>
+<p>An assertion failure records the concise assertion message (the exception
+line(s), no traceback frames) on <code>step.error_info.error_message</code> while still
+mapping to <code>FAILED</code>. A non-assertion exception gets its formatted traceback
+(the last 10 frames plus the first frame) recorded on
+<code>step.error_info.error_message</code>.</p>
+<h2 id="hard-exits">Hard exits<a class="headerlink" href="#hard-exits" title="Permanent link">&para;</a></h2>
+<p>Hard exits the plugin can observe map to <code>ABORTED</code>. If pytest tears the
+session down before the plugin sees the exit, the step stays at
+<code>IN_PROGRESS</code> instead of resolving.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Trigger</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SystemExit</code> from the test body</td>
+<td><code>sys.exit(1)</code></td>
+<td><code>ABORTED</code></td>
+</tr>
+<tr>
+<td><code>KeyboardInterrupt</code> the plugin observes</td>
+<td><code>raise KeyboardInterrupt</code></td>
+<td><code>ABORTED</code></td>
+</tr>
+<tr>
+<td>Session-aborting <code>KeyboardInterrupt</code></td>
+<td>Ctrl-C terminates pytest</td>
+<td><code>IN_PROGRESS</code> (session ends before the plugin's hooks fire)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="abort-propagation-through-nested-substeps">Abort propagation through nested substeps<a class="headerlink" href="#abort-propagation-through-nested-substeps" title="Permanent link">&para;</a></h3>
+<p>Every step that was open when the abort fired records
+<code>ABORTED</code>.</p>
+<div class="language-python highlight"><span class="filename">test_abort.py</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_x</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;completed_sub&quot;</span><span class="p">):</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="k">pass</span>  <span class="c1"># closes as PASSED before the abort</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;outer_sub&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outer_sub</span><span class="p">:</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="k">with</span> <span class="n">outer_sub</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;inner_sub&quot;</span><span class="p">):</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># ABORTED applied to inner_sub, outer_sub, and the test step</span>
+</span></code></pre></div>
+<p>The Sift report shows <code>completed_sub</code> as <code>PASSED</code> and the three steps
+still open at the abort (<code>inner_sub</code>, <code>outer_sub</code>, and the test step
+itself) as <code>ABORTED</code>.</p>
+<h2 id="skips">Skips<a class="headerlink" href="#skips" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Trigger</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Collection-time skip</td>
+<td><code>@pytest.mark.skip(reason=...)</code></td>
+<td><code>SKIPPED</code></td>
+</tr>
+<tr>
+<td>Conditional collection-time skip</td>
+<td><code>@pytest.mark.skipif(True, reason=...)</code></td>
+<td><code>SKIPPED</code></td>
+</tr>
+<tr>
+<td>Runtime skip from the test body</td>
+<td><code>pytest.skip("...")</code></td>
+<td><code>SKIPPED</code></td>
+</tr>
+<tr>
+<td>Skip raised inside a fixture</td>
+<td><code>@pytest.fixture</code> calls <code>pytest.skip("...")</code></td>
+<td><code>SKIPPED</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>SKIPPED</code> does not propagate as a failure. A skipped substep or test does
+not block its parent from resolving to <code>PASSED</code>.</p>
+<p>Inside a test function, you can mark just one substep as skipped without
+aborting the whole test:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_skip</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;optional_calibration&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cal</span><span class="p">:</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">precondition_met</span><span class="p">():</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>            <span class="n">cal</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">SKIPPED</span><span class="p">})</span>
+</span></code></pre></div>
+<p>A manually-resolved status is honored by the step's exit handler. No further
+bookkeeping required.</p>
+<h2 id="expected-failures-xfail-xpass">Expected failures (xfail / xpass)<a class="headerlink" href="#expected-failures-xfail-xpass" title="Permanent link">&para;</a></h2>
+<p>xfail marks declare that a test is expected to fail. The plugin follows
+the same semantics pytest does.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Trigger</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>xfail-marked test that fails</td>
+<td><code>@pytest.mark.xfail</code> + <code>assert 1 == 2</code></td>
+<td><code>PASSED</code> (the test fulfilled the xfail expectation)</td>
+</tr>
+<tr>
+<td>Strict xfail that unexpectedly passes</td>
+<td><code>@pytest.mark.xfail(strict=True)</code> + <code>assert True</code></td>
+<td><code>FAILED</code> (the mark no longer matches reality)</td>
+</tr>
+<tr>
+<td>Non-strict xfail that unexpectedly passes</td>
+<td><code>@pytest.mark.xfail()</code> + <code>assert True</code></td>
+<td><code>PASSED</code> (<code>strict=False</code> does not insist on the failure)</td>
+</tr>
+<tr>
+<td><code>xfail(raises=...)</code> with wrong exception</td>
+<td><code>@pytest.mark.xfail(raises=ValueError)</code> + <code>raise KeyError</code></td>
+<td><code>FAILED</code> (the <code>raises=</code> mismatch is a real test failure)</td>
+</tr>
+<tr>
+<td><code>xfail(run=False)</code></td>
+<td><code>@pytest.mark.xfail(run=False)</code></td>
+<td><code>SKIPPED</code> (the body never ran)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="influencing-outcomes-from-test-code">Influencing outcomes from test code<a class="headerlink" href="#influencing-outcomes-from-test-code" title="Permanent link">&para;</a></h2>
+<p>A test can also set the step's outcome directly via the helpers below.
+Substeps your test opens follow the same propagation rules as the ones
+the plugin opens for you.</p>
+<h3 id="manual-status-override">Manual status override<a class="headerlink" href="#manual-status-override" title="Permanent link">&para;</a></h3>
+<p><code>step.current_step.update({...})</code> sets the status directly. The step's
+exit handler does not overwrite it.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_manual</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">step</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">})</span>
+</span></code></pre></div>
+<h3 id="report_outcome-for-externally-computed-checks"><code>report_outcome</code> for externally computed checks<a class="headerlink" href="#report_outcome-for-externally-computed-checks" title="Permanent link">&para;</a></h3>
+<p><code>report_outcome(name, result, reason)</code> records a named check whose
+pass/fail was computed elsewhere (a subprocess, a remote system, your own
+comparison logic). A failing outcome marks the step <code>FAILED</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_external_check</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">result</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="n">run_external_validator</span><span class="p">()</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span><span class="s2">&quot;ext-validator&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="measurements-with-bounds">Measurements with bounds<a class="headerlink" href="#measurements-with-bounds" title="Permanent link">&para;</a></h3>
+<p><code>step.measure(name=, value=, bounds=)</code> records a measurement and resolves
+the step to <code>FAILED</code> if the value is out of bounds. The call returns the
+pass/fail boolean and does not raise, so multiple measurements can run
+without short-circuiting.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_battery</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">12.1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">11.5</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">13.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;current&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.42</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="substep-failures">Substep failures<a class="headerlink" href="#substep-failures" title="Permanent link">&para;</a></h3>
+<p>A failed substep propagates failure to its parent step. A manually-set
+<code>SKIPPED</code> on a substep does not.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_with_substep</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;check&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inner</span><span class="p">:</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">inner</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">99.0</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">})</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="c1"># The outer step resolves to FAILED because the substep failed.</span>
+</span></code></pre></div>
+<h2 id="propagation-rules">Propagation rules<a class="headerlink" href="#propagation-rules" title="Permanent link">&para;</a></h2>
+<p>Every non-<code>PASSED</code>/<code>SKIPPED</code> step marks its parent as failed. What the
+parent records depends on whether its own scope had an abort and whether
+a child already failed:</p>
+<ul>
+<li>A hard exit (<code>SystemExit</code> or an observed <code>KeyboardInterrupt</code>) in the
+  step's own scope records <code>ABORTED</code>. <code>ABORTED</code> propagates through every
+  step the abort passes through on its way up.</li>
+<li>A child that already recorded a non-<code>PASSED</code>/<code>SKIPPED</code> outcome marks
+  the parent as <code>FAILED</code>. This holds whether or not an exception is still
+  propagating through the parent's scope: only the originating substep
+  records <code>ERROR</code>; ancestors inherit <code>FAILED</code>. The traceback stays on
+  the originating step's <code>error_info</code>.</li>
+<li>A step records <code>ERROR</code> only when its own scope raised a non-Assertion
+  exception AND no child has failed.</li>
+</ul>
+<p><code>SKIPPED</code> does not propagate. A status set explicitly via
+<code>current_step.update</code> is kept.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright 2025 Sift Stack, Inc.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
