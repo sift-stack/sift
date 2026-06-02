@@ -355,13 +355,17 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         self._update(updated_channel)
         return self
 
-    def archive(self) -> None:
+    def archive(self) -> Channel:
         """Archive the channel."""
         self.client.channels.archive([self])
+        self._update(self.client.channels.get(channel_id=self._id_or_error))
+        return self
 
-    def unarchive(self) -> None:
+    def unarchive(self) -> Channel:
         """Unarchive the channel."""
         self.client.channels.unarchive([self])
+        self._update(self.client.channels.get(channel_id=self._id_or_error))
+        return self
 
     @property
     def asset(self) -> Asset:

@@ -9,26 +9,36 @@ from sift_client.sift_types import Channel
 from sift_client.sift_types.channel import ChannelDataType, ChannelReference, ChannelUpdate
 
 
-@pytest.fixture
-def mock_channel(mock_client):
-    """Create a mock Channel instance for testing."""
-    channel = Channel(
+def _make_channel(
+    *,
+    description: str = "test description",
+    unit: str = "m/s",
+    is_archived: bool = False,
+) -> Channel:
+    """Build a Channel for tests, overriding the fields the tests vary."""
+    return Channel(
         proto=MagicMock(),
         id_="test_channel_id",
         name="test_channel",
         data_type=ChannelDataType.DOUBLE,
-        description="test description",
-        unit="m/s",
+        description=description,
+        unit=unit,
         bit_field_elements=[],
         enum_types={},
         asset_id="test_asset_id",
         metadata={},
-        is_archived=False,
+        is_archived=is_archived,
         created_date=datetime.now(timezone.utc),
         modified_date=datetime.now(timezone.utc),
         created_by_user_id="user1",
         modified_by_user_id="user1",
     )
+
+
+@pytest.fixture
+def mock_channel(mock_client):
+    """A Channel wired to the mock client."""
+    channel = _make_channel()
     channel._apply_client_to_instance(mock_client)
     return channel
 
@@ -218,34 +228,37 @@ class TestChannel:
         )
         assert result == mock_data
 
-    def test_update_calls_client_and_updates_self(self, mock_channel, mock_client):
-        """Test that update() calls client.channels.update and calls _update."""
-        updated_channel = MagicMock()
-        mock_client.channels.update.return_value = updated_channel
+    def test_update_applies_server_response(self, mock_channel, mock_client):
+        """update() sends the update and applies the returned channel to itself."""
+        mock_client.channels.update.return_value = _make_channel(description="updated")
+        update = ChannelUpdate(description="updated")
 
-        with MagicMock() as mock_update:
-            mock_channel._update = mock_update
+        result = mock_channel.update(update)
 
-            update = ChannelUpdate(description="new description")
-            result = mock_channel.update(update)
+        mock_client.channels.update.assert_called_once_with(channel=mock_channel, update=update)
+        assert result is mock_channel
+        assert mock_channel.description == "updated"
 
-            mock_client.channels.update.assert_called_once_with(channel=mock_channel, update=update)
-            mock_update.assert_called_once_with(updated_channel)
-            assert result is mock_channel
+    def test_archive_reflects_archived_state(self, mock_channel, mock_client):
+        """archive() archives via the resource and reflects it on the channel."""
+        mock_client.channels.get.return_value = _make_channel(is_archived=True)
 
-    def test_archive_delegates_to_resource_archive(self, mock_channel, mock_client):
-        """archive() is a convenience wrapper over the resource archive for this channel."""
         result = mock_channel.archive()
 
         mock_client.channels.archive.assert_called_once_with([mock_channel])
-        assert result is None
+        assert result is mock_channel
+        assert mock_channel.is_archived is True
 
-    def test_unarchive_delegates_to_resource_unarchive(self, mock_channel, mock_client):
-        """unarchive() is a convenience wrapper over the resource unarchive for this channel."""
+    def test_unarchive_reflects_unarchived_state(self, mock_channel, mock_client):
+        """unarchive() unarchives via the resource and reflects it on the channel."""
+        mock_channel.__dict__["is_archived"] = True
+        mock_client.channels.get.return_value = _make_channel(is_archived=False)
+
         result = mock_channel.unarchive()
 
         mock_client.channels.unarchive.assert_called_once_with([mock_channel])
-        assert result is None
+        assert result is mock_channel
+        assert mock_channel.is_archived is False
 
 
 class TestChannelUpdate:
