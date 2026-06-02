@@ -1,10 +1,10 @@
 """Tests for online mode (the default).
 
 Online mode requires connectivity to Sift. The plugin pings via
-``client_has_connection`` at session start and aborts with
-``pytest.UsageError`` on failure. Missing ``SIFT_API_KEY`` /
-``SIFT_GRPC_URI`` / ``SIFT_REST_URI`` env vars are reported as a usage error
-so the failure is actionable.
+``client_has_connection`` at session start and aborts via ``pytest.exit`` on
+failure, so the message prints once before any test runs. Missing
+``SIFT_API_KEY`` / ``SIFT_GRPC_URI`` / ``SIFT_REST_URI`` env vars are reported
+as a usage error so the failure is actionable.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ class TestOnlineMode:
         pytester: pytest.Pytester,
         clear_sift_env: None,
     ) -> None:
-        """Online mode with an unreachable ping aborts the session via UsageError."""
+        """Online mode with an unreachable ping aborts the session before any test runs."""
         pytester.makeconftest(
             """
             import pytest
@@ -46,12 +46,19 @@ class TestOnlineMode:
             @pytest.mark.sift_include
             def test_should_not_run():
                 assert True
+
+            @pytest.mark.sift_include
+            def test_should_not_run_either():
+                assert True
             """
         )
         result = pytester.runpytest_subprocess()
         assert result.ret != 0
         combined = "\n".join(result.outlines + result.errlines)
-        assert "Sift ping failed" in combined, combined
+        # ``pytest.exit`` stops on the first gated test's setup: the message
+        # appears once (not once per test) and nothing runs.
+        assert combined.count("Sift ping failed") == 1, combined
+        result.assert_outcomes()
 
     def test_missing_env_vars_named_in_error(
         self,

@@ -1184,7 +1184,7 @@ def report_context(
       session end.
     * default (online): verify connectivity via ``client_has_connection``
       before constructing the context. A failed ping aborts the session
-      with ``pytest.UsageError`` and points at ``--sift-offline`` and
+      with ``pytest.exit`` and points at ``--sift-offline`` and
       ``--sift-disabled`` as escape hatches.
 
     The log-file destination is controlled by
@@ -1204,11 +1204,12 @@ def report_context(
         except Exception as exc:
             grpc_config = getattr(getattr(sift_client, "grpc_client", None), "_config", None)
             grpc_url = getattr(grpc_config, "uri", "<unknown>")
-            raise pytest.UsageError(
+            pytest.exit(
                 f"Sift ping failed against {grpc_url}: {exc}. "
                 "Pass --sift-offline to run without contacting Sift, or "
-                "--sift-disabled to skip Sift entirely."
-            ) from exc
+                "--sift-disabled to skip Sift entirely.",
+                returncode=4,
+            )
     yield from _report_context_impl(sift_client, request, pytestconfig=pytestconfig)
 
 
@@ -1413,8 +1414,8 @@ def client_has_connection(pytestconfig: pytest.Config, request: pytest.FixtureRe
     """Verify the ``SiftClient`` can reach Sift via ``/ping``.
 
     Consulted at session start by ``report_context`` in online mode. A failed
-    ping raises through ``report_context`` and aborts the session with
-    ``pytest.UsageError``. Override this fixture in your conftest to use a
+    ping aborts the session via ``pytest.exit``. Override this fixture in your
+    conftest to use a
     different reachability signal (e.g. a cached auth token) for environments
     where pinging is the wrong check. Returns ``False`` in ``--sift-disabled``
     mode without constructing a client.
