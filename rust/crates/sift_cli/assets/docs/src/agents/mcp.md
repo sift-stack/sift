@@ -27,6 +27,7 @@ not run interactively.
 | `list_assets`    | List assets, with filtering and ordering.                                     |
 | `list_runs`      | List runs, with filtering and ordering.                                       |
 | `list_channels`  | List channels for an asset.                                                   |
+| `list_reports`   | List reports, with filtering and ordering.                                    |
 | `get_data`       | Download channel data for an asset/run to a Parquet file, with optional decimation. |
 | `sql`            | Run SQL over one or more Parquet files; chain after `get_data` for analysis.  |
 | `upload_dataset` | Stream a Parquet dataset into Sift.                                           |
