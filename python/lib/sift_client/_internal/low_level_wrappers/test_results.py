@@ -1072,13 +1072,17 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map: dict[str, str],
         state: _ReplayState,
     ) -> None:
-        if state.report is None:
-            raise ValueError("UpdateTestReport found before CreateTestReport")
         request = UpdateTestReportRequest()
         json_format.Parse(json_str, request)
         request.test_report.test_report_id = self._map_id(
             id_map, request.test_report.test_report_id
         )
+        # Batch/simulate replays the whole log in order, so a missing report means
+        # the log is malformed. Incremental replay may have created the report on an
+        # earlier tick (its real ID lives in id_map), so state.report is legitimately
+        # None here -- the mapped ID is enough to issue the update.
+        if simulate and state.report is None:
+            raise ValueError("UpdateTestReport found before CreateTestReport")
         state.report = await self.update_test_report(
             request=request, simulate=simulate, existing=state.report
         )
@@ -1203,6 +1207,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         next tick.
         """
         tracking = LogTracking.load(log_path)
+        resuming = tracking.last_uploaded_line > 0
         id_map = tracking.id_map
         state = _ReplayState()
 
@@ -1221,7 +1226,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             tracking.last_uploaded_line += 1
             tracking.save(log_path)
 
-        if state.report is None:
+        # On a resume tick the CreateTestReport line was consumed on an earlier
+        # tick, so state.report is expected to be None; the report already exists
+        # on the server. Only a genuine first pass over an empty log is an error.
+        # On a resume tick the CreateTestReport line was consumed on an earlier
+        # tick, so state.report is expected to be None; the report already exists
+        # on the server. Only a genuine first pass over an empty log is an error.
+        if state.report is None and not resuming:
             raise ValueError("No CreateTestReport found in log file")
 
         return ReplayResult(

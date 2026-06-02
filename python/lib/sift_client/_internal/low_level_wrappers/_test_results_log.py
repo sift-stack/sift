@@ -143,9 +143,13 @@ class _ReplayState:
 
 @dataclass
 class ReplayResult:
-    """Result of replaying a log file."""
+    """Result of replaying a log file.
 
-    report: TestReport
+    ``report`` is None on an incremental resume tick that uploaded only steps or
+    measurements; the report itself was created on an earlier tick.
+    """
+
+    report: TestReport | None = None
     steps: list[TestStep] = field(default_factory=list)
     measurements: list[TestMeasurement] = field(default_factory=list)
 
