@@ -27,8 +27,8 @@ class TestIniConfiguration:
     ) -> None:
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _resolve_log_file
-            print("RESOLVED:", _resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import resolve_log_file
+            print("RESOLVED:", resolve_log_file(config))
             """,
         )
         pytester.makepyprojecttoml(
@@ -56,8 +56,8 @@ class TestIniConfiguration:
         write_probe_conftest(
             """
             config.option.sift_log_file = False
-            from sift_client.pytest_plugin import _resolve_log_file
-            print("RESOLVED:", _resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import resolve_log_file
+            print("RESOLVED:", resolve_log_file(config))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
@@ -73,8 +73,8 @@ class TestIniConfiguration:
         log_path = tmp_path / "sift-run.jsonl"
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _resolve_log_file
-            print("RESOLVED:", _resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import resolve_log_file
+            print("RESOLVED:", resolve_log_file(config))
             """,
         )
         pytester.makepyprojecttoml(
@@ -94,8 +94,8 @@ class TestIniConfiguration:
     ) -> None:
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _is_offline
-            print("OFFLINE:", _is_offline(config))
+            from sift_client._internal.pytest_plugin.modes import is_offline
+            print("OFFLINE:", is_offline(config))
             """,
         )
         pytester.makepyprojecttoml(
@@ -115,8 +115,8 @@ class TestIniConfiguration:
     ) -> None:
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _is_disabled
-            print("DISABLED:", _is_disabled(config))
+            from sift_client._internal.pytest_plugin.modes import is_disabled
+            print("DISABLED:", is_disabled(config))
             """,
         )
         pytester.makepyprojecttoml(
@@ -159,8 +159,8 @@ class TestIniConfiguration:
         cli_path = tmp_path / "cli-wins.jsonl"
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _resolve_log_file
-            print("RESOLVED:", _resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import resolve_log_file
+            print("RESOLVED:", resolve_log_file(config))
             """,
         )
         pytester.makepyprojecttoml(
@@ -181,8 +181,8 @@ class TestIniConfiguration:
         """The ``--sift-offline`` CLI flag flips the resolver to True."""
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _is_offline
-            print("OFFLINE:", _is_offline(config))
+            from sift_client._internal.pytest_plugin.modes import is_offline
+            print("OFFLINE:", is_offline(config))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
@@ -197,8 +197,8 @@ class TestIniConfiguration:
         """The ``--sift-disabled`` CLI flag flips the resolver to True."""
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import _is_disabled
-            print("DISABLED:", _is_disabled(config))
+            from sift_client._internal.pytest_plugin.modes import is_disabled
+            print("DISABLED:", is_disabled(config))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
@@ -232,14 +232,11 @@ class TestIniConfiguration:
     ) -> None:
         write_probe_conftest(
             """
-            from sift_client.pytest_plugin import (
-                _is_disabled,
-                _is_offline,
-                _resolve_log_file,
-            )
-            print("RESOLVED:", _resolve_log_file(config))
-            print("OFFLINE:", _is_offline(config))
-            print("DISABLED:", _is_disabled(config))
+            from sift_client._internal.pytest_plugin.modes import is_disabled, is_offline
+            from sift_client._internal.pytest_plugin.report import resolve_log_file
+            print("RESOLVED:", resolve_log_file(config))
+            print("OFFLINE:", is_offline(config))
+            print("DISABLED:", is_disabled(config))
             print("INI_GIT:", config.getini("sift_git_metadata"))
             """,
         )

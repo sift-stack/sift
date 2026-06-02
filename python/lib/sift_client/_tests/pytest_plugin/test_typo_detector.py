@@ -2,7 +2,7 @@
 
 The plugin scans ``SIFT_*`` env vars and ``[tool.sift.pytest.*]`` keys at
 session start and emits a ``SiftPytestPluginWarning`` for anything not
-declared in the central ``_OPTIONS`` registry. A typo (`SIFT_REPORT_SERIALNUM`
+declared in the central ``PLUGIN_OPTIONS`` registry. A typo (`SIFT_REPORT_SERIALNUM`
 instead of `SIFT_REPORT_SERIAL_NUMBER`) would otherwise silently no-op.
 """
 
