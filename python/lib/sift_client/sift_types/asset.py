@@ -27,6 +27,8 @@ class Asset(BaseType[AssetProto, "Asset"], FileAttachmentsMixin):
     modified_date: datetime
     modified_by_user_id: str
     tags: list[str | Tag]
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool]
     is_archived: bool
 

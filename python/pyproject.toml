@@ -45,6 +45,7 @@ dependencies = [
     "googleapis-common-protos>=1.60",
     "protoc-gen-openapiv2>=0.0.1",
     "filelock~=3.15",
+    'tomli~=2.0; python_version < "3.11"',
 ]
 
 [project.urls]
