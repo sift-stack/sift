@@ -233,35 +233,19 @@ class TestChannel:
             mock_update.assert_called_once_with(updated_channel)
             assert result is mock_channel
 
-    def test_archive_sets_active_false_via_update(self, mock_channel, mock_client):
-        """archive() delegates to update with active=False and updates in place."""
-        updated = MagicMock()
-        mock_client.channels.update.return_value = updated
+    def test_archive_delegates_to_resource_archive(self, mock_channel, mock_client):
+        """archive() is a convenience wrapper over the resource archive for this channel."""
+        result = mock_channel.archive()
 
-        with MagicMock() as mock_update:
-            mock_channel._update = mock_update
-            result = mock_channel.archive()
+        mock_client.channels.archive.assert_called_once_with([mock_channel])
+        assert result is None
 
-            mock_client.channels.update.assert_called_once_with(
-                channel=mock_channel, update={"active": False}
-            )
-            mock_update.assert_called_once_with(updated)
-            assert result is mock_channel
+    def test_unarchive_delegates_to_resource_unarchive(self, mock_channel, mock_client):
+        """unarchive() is a convenience wrapper over the resource unarchive for this channel."""
+        result = mock_channel.unarchive()
 
-    def test_unarchive_sets_active_true_via_update(self, mock_channel, mock_client):
-        """unarchive() delegates to update with active=True and updates in place."""
-        updated = MagicMock()
-        mock_client.channels.update.return_value = updated
-
-        with MagicMock() as mock_update:
-            mock_channel._update = mock_update
-            result = mock_channel.unarchive()
-
-            mock_client.channels.update.assert_called_once_with(
-                channel=mock_channel, update={"active": True}
-            )
-            mock_update.assert_called_once_with(updated)
-            assert result is mock_channel
+        mock_client.channels.unarchive.assert_called_once_with([mock_channel])
+        assert result is None
 
 
 class TestChannelUpdate:

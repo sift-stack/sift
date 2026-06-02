@@ -353,21 +353,13 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         self._update(updated_channel)
         return self
 
-    def archive(self) -> Channel:
-        """Archive the channel by setting it inactive.
+    def archive(self) -> None:
+        """Archive the channel by setting it inactive."""
+        self.client.channels.archive([self])
 
-        Returns:
-            The archived Channel.
-        """
-        return self.update({"active": False})
-
-    def unarchive(self) -> Channel:
-        """Unarchive the channel by setting it active.
-
-        Returns:
-            The unarchived Channel.
-        """
-        return self.update({"active": True})
+    def unarchive(self) -> None:
+        """Unarchive the channel by setting it active."""
+        self.client.channels.unarchive([self])
 
     @property
     def asset(self) -> Asset:
