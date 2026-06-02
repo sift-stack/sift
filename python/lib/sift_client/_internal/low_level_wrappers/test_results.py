@@ -1229,9 +1229,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # On a resume tick the CreateTestReport line was consumed on an earlier
         # tick, so state.report is expected to be None; the report already exists
         # on the server. Only a genuine first pass over an empty log is an error.
-        # On a resume tick the CreateTestReport line was consumed on an earlier
-        # tick, so state.report is expected to be None; the report already exists
-        # on the server. Only a genuine first pass over an empty log is an error.
         if state.report is None and not resuming:
             raise ValueError("No CreateTestReport found in log file")
 
