@@ -17,7 +17,7 @@ use crate::{
     cmd::{
         Context,
         import::{
-            hdf5::detect_hdf5_schema::detect_config,
+            hdf5::detect_hdf5_schema::{SkippedDataset, SUPPORTED_TYPES_BLURB, detect_config},
             preview_import_config,
             utils::{upload_gzipped_file, validate_time_format},
             wait_for_job_completion,
@@ -25,6 +25,20 @@ use crate::{
     },
     util::{api::create_grpc_channel, tty::Output},
 };
+
+fn print_skipped_block(skipped: &[SkippedDataset]) {
+    if skipped.is_empty() {
+        return;
+    }
+    let mut out = Output::new();
+    out.line(format!("{}: {{", "Skipped".green()));
+    for s in skipped {
+        out.line(format!("  {}: {}", s.path.clone().yellow(), s.reason));
+    }
+    out.line("}");
+    out.line(format!("Supported types: {SUPPORTED_TYPES_BLURB}"));
+    out.print();
+}
 
 pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     let grpc_channel =
@@ -46,9 +60,10 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
             args.time_field.as_deref(),
             args.time_name.as_deref(),
         ) {
-            Ok((_, channel_configs)) => {
+            Ok((_, channel_configs, skipped)) => {
                 let refs: Vec<&ChannelConfig> = channel_configs.iter().collect();
                 preview_import_config(&args.common.asset, run_label, None, &refs);
+                print_skipped_block(&skipped);
             }
             Err(e) => {
                 preview_import_config(&args.common.asset, run_label, None, &[]);
@@ -61,7 +76,7 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    let (data_configs, _) = detect_config(
+    let (data_configs, _, skipped) = detect_config(
         &args.common.path,
         args.schema,
         args.time_index.unwrap_or(0),
@@ -70,6 +85,16 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     )
     .context("failed to parse hdf5 file")?;
     hdf5_config.data = data_configs;
+
+    if !skipped.is_empty() {
+        Output::new()
+            .line(format!(
+                "{}: {} dataset(s) skipped — run with --preview to see details",
+                "warning".yellow(),
+                skipped.len()
+            ))
+            .eprint();
+    }
 
     let file = File::open(&args.common.path).context("failed to open hdf5 file")?;
 
