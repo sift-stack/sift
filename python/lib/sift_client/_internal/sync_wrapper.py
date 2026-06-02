@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import inspect
 import sys
 from functools import wraps
@@ -53,8 +54,31 @@ def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
         self._async_impl._is_sync = True
 
     def _run(self, coro):
-        loop = self._async_impl.client.get_asyncio_loop()
-        return asyncio.run_coroutine_threadsafe(coro, loop).result()
+        client = self._async_impl.client
+        loop = client.get_asyncio_loop()
+
+        # Fail fast if the loop has stopped (e.g. the client was closed during
+        # teardown). Scheduling onto a stopped loop would block forever because
+        # the coroutine can never run.
+        loop_running = getattr(client, "is_loop_running", None)
+        if loop_running is None:
+            loop_running = loop.is_running()
+        if not loop_running:
+            coro.close()
+            raise RuntimeError(
+                "Sift client is closed; cannot make synchronous API calls."
+            )
+
+        timeout = getattr(client, "sync_call_timeout", None)
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        try:
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError as exc:
+            future.cancel()
+            raise TimeoutError(
+                f"Sift synchronous API call exceeded its {timeout}s deadline; the server "
+                "did not respond in time and the request was cancelled."
+            ) from exc
 
     namespace = {
         "__module__": module,

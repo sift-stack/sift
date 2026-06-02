@@ -15,12 +15,18 @@ from typing import Any
 from urllib.parse import urlparse
 
 from sift_client._internal.grpc_transport.transport import (
+    DEFAULT_REQUEST_TIMEOUT_SECONDS,
     SiftChannelConfig,
     use_sift_async_channel,
 )
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# How far the blocking sync deadline sits above the per-RPC deadline. The gRPC
+# deadline should fire first and cancel the request; the sync backstop only trips
+# if that never happens.
+_SYNC_CALL_TIMEOUT_MARGIN_SECONDS = 15.0
 
 
 def _suppress_blocking_io(loop, context):
@@ -46,6 +52,7 @@ class GrpcConfig:
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
         metadata: dict[str, str] | None = None,
+        request_timeout: float | None = DEFAULT_REQUEST_TIMEOUT_SECONDS,
     ):
         """Initialize the gRPC configuration.
 
@@ -56,6 +63,8 @@ class GrpcConfig:
             cert_via_openssl: Whether to use OpenSSL for SSL/TLS.
             use_async: Whether to use async gRPC client.
             metadata: Additional metadata to include in all requests.
+            request_timeout: Default deadline in seconds applied to unary RPCs that don't set
+                their own. Defaults to 60s. Set to None to disable the default deadline.
         """
         parsed_url = urlparse(url)
         normalized_url = url
@@ -72,6 +81,7 @@ class GrpcConfig:
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
         self.metadata = metadata or {}
+        self.request_timeout = request_timeout
 
     def _to_sift_channel_config(self) -> SiftChannelConfig:
         """Convert to a SiftChannelConfig.
@@ -84,6 +94,7 @@ class GrpcConfig:
             "apikey": self.api_key,
             "use_ssl": self.use_ssl,
             "cert_via_openssl": self.cert_via_openssl,
+            "request_timeout": self.request_timeout,
         }
 
 
@@ -130,6 +141,10 @@ class GrpcClient:
         channel = future.result()
         self._channels_async[self._default_loop] = channel
         self._stubs_async_map[self._default_loop] = {}
+        # Tracks whether the default loop is accepting work. Set False the moment
+        # a close begins so a concurrent sync call sees it immediately, before the
+        # loop has actually stopped.
+        self._loop_running = True
 
     @property
     def default_loop(self) -> asyncio.AbstractEventLoop:
@@ -139,6 +154,28 @@ class GrpcClient:
             The default asyncio event loop.
         """
         return self._default_loop
+
+    @property
+    def is_loop_running(self) -> bool:
+        """Whether the default loop is accepting synchronous API work.
+
+        False once a close has begun, so callers can fail fast instead of
+        scheduling a coroutine onto a loop that will never run it.
+        """
+        return self._loop_running and self._default_loop.is_running()
+
+    @property
+    def sync_call_timeout(self) -> float | None:
+        """Deadline in seconds for a blocking sync API call, or None if disabled.
+
+        Sits above the per-RPC deadline by a margin so the gRPC deadline fires
+        first and cancels the in-flight request; this is only a backstop for the
+        case where the RPC deadline never trips.
+        """
+        request_timeout = self._config.request_timeout
+        if request_timeout is None:
+            return None
+        return request_timeout + _SYNC_CALL_TIMEOUT_MARGIN_SECONDS
 
     def get_stub(self, stub_class: type[Any]) -> Any:
         """Get an async stub bound to the current event loop.
@@ -168,6 +205,7 @@ class GrpcClient:
         if self._closed:
             return
         self._closed = True
+        self._loop_running = False
         try:
             # Only drive the loop if it's still running; submitting a coroutine
             # to a stopped loop never resolves and would hang on .result().
@@ -188,6 +226,7 @@ class GrpcClient:
         if self._closed:
             return
         self._closed = True
+        self._loop_running = False
         for ch in self._channels_async.values():
             await ch.close()
         self._default_loop.call_soon_threadsafe(self._default_loop.stop)
