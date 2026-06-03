@@ -130,7 +130,7 @@ class TestRestRequestTimeout:
             captured.update(kwargs)
             return object()
 
-        client._client._session.request = fake_request  # type: ignore[method-assign]
+        client._client._session.request = fake_request  # type: ignore[assignment]
         return captured
 
     def test_default_timeout_applied(self):
