@@ -31,6 +31,9 @@ from sift_client._internal.grpc_transport.keepalive import DEFAULT_KEEPALIVE_CON
 SiftChannel: TypeAlias = grpc.Channel
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 60.0
+"""Default per-call deadline applied to unary RPCs that don't set their own."""
+
 
 def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
     """
@@ -155,9 +158,10 @@ def _compute_channel_options(opts: SiftChannelConfig) -> list[tuple[str, Any]]:
     Initialize all [channel options](https://github.com/grpc/grpc/blob/v1.64.x/include/grpc/impl/channel_arg_names.h) here.
     """
 
+    request_timeout = opts.get("request_timeout", DEFAULT_REQUEST_TIMEOUT_SECONDS)
     options = [
         ("grpc.enable_retries", 1),
-        ("grpc.service_config", RetryPolicy.default().as_json()),
+        ("grpc.service_config", RetryPolicy.default(timeout_seconds=request_timeout).as_json()),
         # Primary cannot be overriden:
         #  https://github.com/grpc/grpc/blob/0498194240f55d7f4b12633ad01339fb690621bf/src/core/ext/filters/http/client/http_client_filter.cc#L97
         ("grpc.secondary_user_agent", _compute_user_agent()),
@@ -248,6 +252,8 @@ class SiftChannelConfig(TypedDict):
     Run `pip install sift-stack-py[openssl]` to install the dependencies required to use this option.
     This works around this issue with grpc loading SSL certificates: https://github.com/grpc/grpc/issues/29682.
     Default is False.
+    - `request_timeout`: Default deadline in seconds applied to unary RPCs that don't set their own.
+    Defaults to 60s. Set to `None` to disable the default deadline.
     """
 
     uri: str
@@ -255,3 +261,4 @@ class SiftChannelConfig(TypedDict):
     enable_keepalive: NotRequired[bool | KeepaliveConfig]
     use_ssl: NotRequired[bool]
     cert_via_openssl: NotRequired[bool]
+    request_timeout: NotRequired[float | None]

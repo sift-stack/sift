@@ -4,7 +4,13 @@ import json
 from typing import ClassVar, TypedDict
 
 from grpc import StatusCode
-from typing_extensions import Self
+from typing_extensions import NotRequired, Self
+
+
+def _format_grpc_duration(seconds: float) -> str:
+    """Format seconds as a protobuf Duration string, e.g. ``60s`` or ``0.5s``."""
+    trimmed = f"{seconds:.9f}".rstrip("0").rstrip(".")
+    return f"{trimmed}s"
 
 
 class RetryPolicy:
@@ -50,8 +56,24 @@ class RetryPolicy:
         return json.dumps(self.config)
 
     @classmethod
-    def default(cls) -> Self:
-        return cls(config=cls.DEFAULT_POLICY)
+    def default(cls, timeout_seconds: float | None = None) -> Self:
+        """Build the default policy, optionally with a per-call deadline.
+
+        When ``timeout_seconds`` is set, every method config carries a
+        ``timeout`` so the C-core fails a stalled call with ``DEADLINE_EXCEEDED``
+        instead of hanging. The deadline bounds the whole call, retries included,
+        and a per-call ``timeout=`` still overrides it.
+        """
+        if timeout_seconds is None:
+            return cls(config=cls.DEFAULT_POLICY)
+        duration = _format_grpc_duration(timeout_seconds)
+        config: RetryConfig = {
+            "methodConfig": [
+                {**method_config, "timeout": duration}
+                for method_config in cls.DEFAULT_POLICY["methodConfig"]
+            ]
+        }
+        return cls(config=config)
 
 
 class RetryConfig(TypedDict):
@@ -61,6 +83,10 @@ class RetryConfig(TypedDict):
 class MethodConfigDict(TypedDict):
     name: list[dict[str, str]]
     retryPolicy: RetryConfigDict
+    # Applies to all methods via the wildcard `name` matcher above. If a
+    # server-streaming RPC is ever added to this channel, scope this by method
+    # name so the deadline doesn't clip a long-lived stream.
+    timeout: NotRequired[str]
 
 
 class RetryConfigDict(TypedDict):
