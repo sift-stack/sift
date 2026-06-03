@@ -81,7 +81,7 @@ def log_replay_instructions(log_file: str | Path | None) -> None:
         return
     warnings.warn(
         f"Sift log file was not fully replayed: {log_file}. "
-        f"Re-run with `import-test-result-log {log_file}` to complete the upload.",
+        f"Re-run with `import-test-result-log --incremental {log_file}` to complete the upload.",
         SiftWarning,
         stacklevel=2,
     )
