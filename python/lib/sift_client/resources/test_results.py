@@ -671,7 +671,8 @@ class TestResultsAPIAsync(ResourceBase):
             A ReplayResult containing the created report, steps, and measurements.
         """
         result = await self._low_level_client.import_log_file(log_file, incremental=incremental)
-        result.report = self._apply_client_to_instance(result.report)
+        if result.report is not None:
+            result.report = self._apply_client_to_instance(result.report)
         result.steps = self._apply_client_to_instances(result.steps)
         result.measurements = self._apply_client_to_instances(result.measurements)
         return result
