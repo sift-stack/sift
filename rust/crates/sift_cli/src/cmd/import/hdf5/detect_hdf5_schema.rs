@@ -161,7 +161,7 @@ pub(super) fn weave_time_channel_rows(
             woven.push(ChannelConfig {
                 name,
                 description: "[time]".into(),
-                data_type: ChannelDataType::Int64 as i32,
+                data_type: ChannelDataType::Int64.into(),
                 ..Default::default()
             });
         }
