@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import inspect
 import sys
 from functools import wraps
@@ -67,16 +66,10 @@ def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
             coro.close()
             raise RuntimeError("Sift client is closed; cannot make synchronous API calls.")
 
-        timeout = getattr(client, "sync_call_timeout", None)
-        future = asyncio.run_coroutine_threadsafe(coro, loop)
-        try:
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError as exc:
-            future.cancel()
-            raise TimeoutError(
-                f"Sift synchronous API call exceeded its {timeout}s deadline; the server "
-                "did not respond in time and the request was cancelled."
-            ) from exc
+        # No wall-clock cap here: stalled calls are bounded at the transport layer
+        # (GrpcConfig/RestConfig request_timeout), and waiting on the whole coroutine
+        # lets methods like wait_until_complete honor their own timeout_secs.
+        return asyncio.run_coroutine_threadsafe(coro, loop).result()
 
     namespace = {
         "__module__": module,

@@ -195,11 +195,6 @@ class SiftClient(
         return self._grpc_client.is_loop_running
 
     @property
-    def sync_call_timeout(self) -> float | None:
-        """Deadline in seconds for a blocking synchronous API call, or None if disabled."""
-        return self._grpc_client.sync_call_timeout
-
-    @property
     def rest_client(self) -> RestClient:
         """The REST client used by the SiftClient for making REST API calls."""
         return self._rest_client

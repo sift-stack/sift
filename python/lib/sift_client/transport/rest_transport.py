@@ -19,6 +19,11 @@ if TYPE_CHECKING:
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Default timeout (seconds) for REST requests that don't set their own; applies to
+# connect and read. The read leg is the gap between bytes, not the whole transfer, so a
+# stalled socket fails fast while a healthy long download is not cut off.
+DEFAULT_REST_TIMEOUT: float = 60.0
+
 
 class RestConfig:
     """Configuration for REST API clients."""
@@ -30,6 +35,7 @@ class RestConfig:
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
         retry: Retry = _DEFAULT_REST_RETRY,
+        request_timeout: float | tuple[float, float] | None = DEFAULT_REST_TIMEOUT,
     ):
         """Initialize the REST configuration.
 
@@ -39,6 +45,9 @@ class RestConfig:
             use_ssl: Whether to use HTTPS.
             cert_via_openssl: Whether to use OpenSSL for SSL/TLS.
             retry: The retry configuration for requests.
+            request_timeout: Default timeout in seconds for requests that don't set their
+                own; applies to connect and read. Pass a (connect, read) tuple to split
+                them. Defaults to DEFAULT_REST_TIMEOUT; set to None to disable.
         """
         if not base_url.startswith("http"):
             # urljoin (used when executing requests) requires URL starting with http or https
@@ -48,6 +57,7 @@ class RestConfig:
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
         self.retry = retry
+        self.request_timeout = request_timeout
 
     def _to_sift_rest_config(self) -> SiftRestConfig:
         """Convert to a SiftRestConfig for backwards compatibility. Will be removed in the future.
@@ -79,6 +89,7 @@ class RestClient:
         """
         self._base_url = config.base_url
         self._config = config
+        self._request_timeout = config.request_timeout
         self._client = self._create_client()
 
     def _create_client(self) -> _RestService:
@@ -119,6 +130,10 @@ class RestClient:
         **kwargs,
     ) -> requests.Response:
         full_url = urljoin(self.base_url, endpoint)
+        # Apply the default timeout unless the caller set one, so a stalled socket
+        # fails instead of blocking forever.
+        if "timeout" not in kwargs and self._request_timeout is not None:
+            kwargs["timeout"] = self._request_timeout
         return self._client._session.request(method, full_url, headers=headers, data=data, **kwargs)
 
     def get(self, endpoint: str, headers: dict | None = None, **kwargs) -> requests.Response:

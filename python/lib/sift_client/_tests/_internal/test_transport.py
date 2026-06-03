@@ -5,7 +5,7 @@ import threading
 import pytest
 
 from sift_client.transport.grpc_transport import GrpcClient, GrpcConfig
-from sift_client.transport.rest_transport import RestConfig
+from sift_client.transport.rest_transport import DEFAULT_REST_TIMEOUT, RestClient, RestConfig
 
 
 class TestGrpcConfigUrl:
@@ -109,3 +109,44 @@ class TestRestConfigUrl:
     def test_url_keeps_http(self):
         config = RestConfig(base_url="http://rest.sift.com", api_key="api", use_ssl=False)
         assert config.base_url == "http://rest.sift.com"
+
+
+class TestRestRequestTimeout:
+    """The REST client applies a default per-request timeout so a stalled socket
+    fails fast instead of blocking the calling thread forever.
+    """
+
+    @staticmethod
+    def _client(**config_kwargs) -> RestClient:
+        return RestClient(
+            RestConfig(base_url="https://rest.sift.com", api_key="api", **config_kwargs)
+        )
+
+    @staticmethod
+    def _capture_request_kwargs(client: RestClient) -> dict:
+        captured: dict = {}
+
+        def fake_request(method, url, **kwargs):
+            captured.update(kwargs)
+            return object()
+
+        client._client._session.request = fake_request  # type: ignore[assignment]
+        return captured
+
+    def test_default_timeout_applied(self):
+        client = self._client()
+        captured = self._capture_request_kwargs(client)
+        client.get("/v1/ping")
+        assert captured["timeout"] == DEFAULT_REST_TIMEOUT
+
+    def test_per_call_timeout_overrides_default(self):
+        client = self._client()
+        captured = self._capture_request_kwargs(client)
+        client.get("/v1/ping", timeout=3.0)
+        assert captured["timeout"] == 3.0
+
+    def test_timeout_disabled_when_config_none(self):
+        client = self._client(request_timeout=None)
+        captured = self._capture_request_kwargs(client)
+        client.get("/v1/ping")
+        assert "timeout" not in captured
