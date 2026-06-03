@@ -9,18 +9,21 @@ These tests demonstrate and validate the usage of the Channels API including:
 
 import asyncio
 import uuid
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import urljoin
 
 import pytest
 import requests
+from sift.unit.v2.unit_pb2 import Unit as UnitProto
 
 from sift_client import SiftClient
 from sift_client.resources import ChannelsAPI, ChannelsAPIAsync
 from sift_client.sift_types import Channel
+from sift_client.sift_types.channel import ChannelDataType
 
-pytestmark = pytest.mark.integration
 
-
+@pytest.mark.integration
 def test_client_binding(sift_client):
     assert sift_client.channels
     assert isinstance(sift_client.channels, ChannelsAPI)
@@ -48,6 +51,7 @@ def test_channel(channels_api_sync):
     return channels[0]
 
 
+@pytest.mark.integration
 class TestChannelsAPIAsync:
     """Test suite for the async Channels API functionality."""
 
@@ -397,6 +401,7 @@ class TestChannelsAPIAsync:
     #                     assert isinstance(data, dict)
 
 
+@pytest.mark.integration
 class TestChannelsAPISync:
     """Test suite for the synchronous Channels API functionality.
 
@@ -412,3 +417,87 @@ class TestChannelsAPISync:
 
             assert retrieved_channel is not None
             assert retrieved_channel.id_ == test_channel.id_
+
+
+def _make_api() -> ChannelsAPIAsync:
+    """Build a Channels resource with both low-level clients replaced by mocks."""
+    api = ChannelsAPIAsync(MagicMock())
+    api._low_level_client = MagicMock()
+    api._units_low_level_client = MagicMock()
+    return api
+
+
+def _mock_channel(unit: str) -> Channel:
+    """Build a minimal Channel whose `unit` field holds the given value."""
+    now = datetime.now(timezone.utc)
+    return Channel(
+        id_="ch-1",
+        name="channel",
+        data_type=ChannelDataType.DOUBLE,
+        description="",
+        unit=unit,
+        asset_id="asset-1",
+        is_archived=False,
+        created_date=now,
+        modified_date=now,
+        created_by_user_id="user-1",
+        modified_by_user_id="user-1",
+    )
+
+
+class TestUpdateUnitResolution:
+    """update() resolves a unit name to an id for the write. Resolving ids back to
+    names on the returned channel is the low-level client's job (tested there).
+    """
+
+    @pytest.mark.asyncio
+    async def test_resolves_unit_name_to_id_for_write(self):
+        """update() turns the unit name into an id via create_unit before writing."""
+        api = _make_api()
+        api._units_low_level_client.create_unit = AsyncMock(
+            return_value=UnitProto(unit_id="u-1", abbreviated_name="volts")
+        )
+        captured = {}
+
+        async def fake_update_channel(update):
+            captured["update"] = update
+            return _mock_channel(unit="volts")
+
+        api._low_level_client.update_channel = AsyncMock(side_effect=fake_update_channel)
+
+        result = await api.update("ch-1", {"unit": "volts"})
+
+        api._units_low_level_client.create_unit.assert_awaited_once_with("volts")
+        # The write carries the resolved unit id, not the raw name.
+        assert captured["update"].unit == "u-1"
+        assert captured["update"].resource_id == "ch-1"
+        assert result.unit == "volts"
+
+    @pytest.mark.asyncio
+    async def test_update_without_unit_skips_create_unit(self):
+        """An update that does not change the unit never calls create_unit."""
+        api = _make_api()
+        api._units_low_level_client.create_unit = AsyncMock()
+        api._low_level_client.update_channel = AsyncMock(return_value=_mock_channel(unit="ms"))
+
+        await api.update("ch-1", {"description": "new"})
+
+        api._units_low_level_client.create_unit.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_empty_unit_string_clears_without_creating_a_unit(self):
+        """An empty unit string is passed through to clear the unit, not sent to create_unit."""
+        api = _make_api()
+        api._units_low_level_client.create_unit = AsyncMock()
+        captured = {}
+
+        async def fake_update_channel(update):
+            captured["update"] = update
+            return _mock_channel(unit="")
+
+        api._low_level_client.update_channel = AsyncMock(side_effect=fake_update_channel)
+
+        await api.update("ch-1", {"unit": ""})
+
+        api._units_low_level_client.create_unit.assert_not_awaited()
+        assert captured["update"].unit == ""

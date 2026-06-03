@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from pydantic import BaseModel, Field, model_validator
@@ -25,7 +25,8 @@ from sift.data.v2.data_pb2 import (
     Uint64Values,
 )
 
-from sift_client.sift_types._base import BaseType
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_stream_bindings import ChannelBitFieldElementPy, ChannelDataTypePy
@@ -253,6 +254,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
     enum_types: dict[str, int] = Field(default_factory=dict)
     asset_id: str
+    metadata: dict[str, str | float | bool] = Field(default_factory=dict)
+    is_archived: bool
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
@@ -273,19 +276,27 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return {enum.name: enum.key for enum in enum_types}
 
     @classmethod
-    def _from_proto(cls, proto: ChannelProto, sift_client: SiftClient | None = None) -> Channel:
+    def _from_proto(
+        cls, proto: ChannelProto, sift_client: SiftClient | None = None, *, unit: str = ""
+    ) -> Channel:
         return cls(
             proto=proto,
             id_=proto.channel_id,
             name=proto.name,
             data_type=ChannelDataType(proto.data_type),
-            description=proto.description,
-            unit=proto.unit_id,
+            # Prefer the user-set display override, falling back to the canonical
+            # description set at channel creation (display_description or description).
+            description=proto.display_description or proto.description,
+            # The resolved unit name, looked up from the proto's unit id by the caller.
+            unit=unit,
             bit_field_elements=[
                 ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
             ],
             enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
             asset_id=proto.asset_id,
+            metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
+            # The proto carries `active`; the client exposes the inverse, `is_archived`.
+            is_archived=not proto.active,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
@@ -332,6 +343,31 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             )
         return data
 
+    def update(self, update: ChannelUpdate | dict) -> Channel:
+        """Update the Channel.
+
+        Args:
+            update: Either a ChannelUpdate instance or a dictionary of fields to update.
+
+        Returns:
+            The updated Channel.
+        """
+        updated_channel = self.client.channels.update(channel=self, update=update)
+        self._update(updated_channel)
+        return self
+
+    def archive(self) -> Channel:
+        """Archive the channel."""
+        self.client.channels.archive([self])
+        self._update(self.client.channels.get(channel_id=self._id_or_error))
+        return self
+
+    def unarchive(self) -> Channel:
+        """Unarchive the channel."""
+        self.client.channels.unarchive([self])
+        self._update(self.client.channels.get(channel_id=self._id_or_error))
+        return self
+
     @property
     def asset(self) -> Asset:
         """Get the asset that this channel belongs to."""
@@ -342,6 +378,51 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     def runs(self) -> list[Run]:
         """Get all runs associated with this channel's asset."""
         return self.asset.runs
+
+
+class ChannelUpdate(ModelUpdate[ChannelProto]):
+    """Model of the Channel fields that can be updated.
+
+    A channel's canonical description and unit are set at creation and are immutable
+    afterward. Updating ``description`` or ``unit`` writes the channel's display
+    override (``display_description`` / ``display_unit_id``), which is the value the
+    Sift app shows in place of the canonical one.
+    """
+
+    description: str | None = None
+    unit: str | None = None
+    metadata: dict[str, str | float | bool] | None = None
+    is_archived: bool | None = None
+
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        "description": MappingHelper(
+            proto_attr_path="display_description",
+            update_field="display_description",
+        ),
+        "unit": MappingHelper(
+            proto_attr_path="display_unit_id",
+            update_field="display_units",
+        ),
+        "metadata": MappingHelper(
+            proto_attr_path="metadata",
+            update_field="metadata",
+            converter=metadata_dict_to_proto,
+        ),
+        # The proto carries the inverse `active`; the converter flips the value.
+        "is_archived": MappingHelper(
+            proto_attr_path="active",
+            update_field="active",
+            converter=lambda is_archived: not is_archived,
+        ),
+    }
+
+    def _get_proto_class(self) -> type[ChannelProto]:
+        return ChannelProto
+
+    def _add_resource_id_to_proto(self, proto_msg: ChannelProto):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.channel_id = self._resource_id
 
 
 class ChannelReference(BaseModel):

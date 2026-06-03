@@ -6,27 +6,39 @@ from unittest.mock import MagicMock
 import pytest
 
 from sift_client.sift_types import Channel
-from sift_client.sift_types.channel import ChannelDataType, ChannelReference
+from sift_client.sift_types.channel import ChannelDataType, ChannelReference, ChannelUpdate
 
 
-@pytest.fixture
-def mock_channel(mock_client):
-    """Create a mock Channel instance for testing."""
-    channel = Channel(
+def _make_channel(
+    *,
+    description: str = "test description",
+    unit: str = "m/s",
+    is_archived: bool = False,
+) -> Channel:
+    """Build a Channel for tests, overriding the fields the tests vary."""
+    return Channel(
         proto=MagicMock(),
         id_="test_channel_id",
         name="test_channel",
         data_type=ChannelDataType.DOUBLE,
-        description="test description",
-        unit="m/s",
+        description=description,
+        unit=unit,
         bit_field_elements=[],
         enum_types={},
         asset_id="test_asset_id",
+        metadata={},
+        is_archived=is_archived,
         created_date=datetime.now(timezone.utc),
         modified_date=datetime.now(timezone.utc),
         created_by_user_id="user1",
         modified_by_user_id="user1",
     )
+
+
+@pytest.fixture
+def mock_channel(mock_client):
+    """A Channel wired to the mock client."""
+    channel = _make_channel()
     channel._apply_client_to_instance(mock_client)
     return channel
 
@@ -215,3 +227,73 @@ class TestChannel:
             limit=None,
         )
         assert result == mock_data
+
+    def test_update_applies_server_response(self, mock_channel, mock_client):
+        """update() sends the update and applies the returned channel to itself."""
+        mock_client.channels.update.return_value = _make_channel(description="updated")
+        update = ChannelUpdate(description="updated")
+
+        result = mock_channel.update(update)
+
+        mock_client.channels.update.assert_called_once_with(channel=mock_channel, update=update)
+        assert result is mock_channel
+        assert mock_channel.description == "updated"
+
+    def test_archive_reflects_archived_state(self, mock_channel, mock_client):
+        """archive() archives via the resource and reflects it on the channel."""
+        mock_client.channels.get.return_value = _make_channel(is_archived=True)
+
+        result = mock_channel.archive()
+
+        mock_client.channels.archive.assert_called_once_with([mock_channel])
+        assert result is mock_channel
+        assert mock_channel.is_archived is True
+
+    def test_unarchive_reflects_unarchived_state(self, mock_channel, mock_client):
+        """unarchive() unarchives via the resource and reflects it on the channel."""
+        mock_channel.__dict__["is_archived"] = True
+        mock_client.channels.get.return_value = _make_channel(is_archived=False)
+
+        result = mock_channel.unarchive()
+
+        mock_client.channels.unarchive.assert_called_once_with([mock_channel])
+        assert result is mock_channel
+        assert mock_channel.is_archived is False
+
+
+class TestChannelUpdate:
+    """Channel-specific field wiring for ChannelUpdate.
+
+    The generic ModelUpdate behavior (field-mask generation, unset/None exclusion,
+    resource-id requirement, the metadata converter and MappingHelper path expansion)
+    is already covered in test_base.py and test_asset.py. These tests only assert the
+    parts unique to ChannelUpdate: which proto fields its fields map onto.
+    """
+
+    def test_fields_map_to_correct_proto_fields(self):
+        """Each ChannelUpdate field targets its matching Channel proto field and mask path."""
+        # These values are just samples; the test checks which proto field each lands in.
+        update = ChannelUpdate(
+            description="new description",
+            unit="unit-id-123",
+            metadata={"source": "pytest"},
+            is_archived=True,
+        )
+        update.resource_id = "test_channel_id"
+
+        proto, mask = update.to_proto_with_mask()
+
+        assert proto.channel_id == "test_channel_id"
+        # description and unit map to the display override proto fields.
+        assert proto.display_description == "new description"
+        assert proto.display_unit_id == "unit-id-123"
+        assert {md.key.name: md.string_value for md in proto.metadata} == {"source": "pytest"}
+        # is_archived maps to the proto's `active`, inverted.
+        assert proto.active is False
+        # The mask path for unit is "display_units", not "display_unit_id".
+        assert set(mask.paths) == {
+            "display_description",
+            "display_units",
+            "metadata",
+            "active",
+        }

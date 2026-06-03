@@ -10,12 +10,17 @@ from sift.channels.v3.channels_pb2 import (
     GetChannelResponse,
     ListChannelsRequest,
     ListChannelsResponse,
+    UpdateChannelRequest,
+    UpdateChannelResponse,
 )
+from sift.channels.v3.channels_pb2 import Channel as ChannelProto
 from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.channel import Channel
+from sift_client._internal.low_level_wrappers.units import UnitsLowLevelClient
+from sift_client.sift_types.channel import Channel, ChannelUpdate
 from sift_client.transport import WithGrpcClient
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
@@ -39,6 +44,38 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client)
+        self._units_low_level_client = UnitsLowLevelClient(grpc_client=grpc_client)
+
+    async def _build_channels(self, protos: list[ChannelProto]) -> list[Channel]:
+        """Build Channels from protos, resolving each unit id to its name.
+
+        The proto carries the unit as an id, so the ids are looked up against the Units
+        service and the Channel is built with the abbreviated name. This keeps a Channel's
+        ``unit`` field a human-readable name, never an id.
+
+        Args:
+            protos: The channel protos to build.
+
+        Returns:
+            The built Channels, with unit names resolved.
+        """
+        unit_ids = {(proto.display_unit_id or proto.unit_id) for proto in protos}
+        unit_ids.discard("")
+        names: dict[str, str] = {}
+        if unit_ids:
+            units = await self._units_low_level_client.list_all_units(
+                query_filter=cel.in_("unit_id", list(unit_ids)),
+            )
+            names = {unit.unit_id: unit.abbreviated_name for unit in units}
+        return [
+            Channel._from_proto(proto, unit=names.get(proto.display_unit_id or proto.unit_id, ""))
+            for proto in protos
+        ]
+
+    async def _build_channel(self, proto: ChannelProto) -> Channel:
+        """Build a single Channel from a proto, resolving its unit id to a name."""
+        channels = await self._build_channels([proto])
+        return channels[0]
 
     async def get_channel(self, channel_id: str) -> Channel:
         """Get a channel by channel_id.
@@ -55,8 +92,7 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = GetChannelRequest(channel_id=channel_id)
         response = await self._grpc_client.get_stub(ChannelServiceStub).GetChannel(request)
         grpc_channel = cast("GetChannelResponse", response).channel
-        channel = Channel._from_proto(grpc_channel)
-        return channel
+        return await self._build_channel(grpc_channel)
 
     async def list_channels(
         self,
@@ -91,7 +127,7 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(ChannelServiceStub).ListChannels(request)
         response = cast("ListChannelsResponse", response)
 
-        channels = [Channel._from_proto(channel) for channel in response.channels]
+        channels = await self._build_channels(list(response.channels))
         return channels, response.next_page_token
 
     async def list_all_channels(
@@ -119,6 +155,21 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             order_by=order_by,
             max_results=max_results,
         )
+
+    async def update_channel(self, update: ChannelUpdate) -> Channel:
+        """Update a channel.
+
+        Args:
+            update: The ChannelUpdate to apply.
+
+        Returns:
+            The updated Channel.
+        """
+        grpc_channel, update_mask = update.to_proto_with_mask()
+        request = UpdateChannelRequest(channel=grpc_channel, update_mask=update_mask)
+        response = await self._grpc_client.get_stub(ChannelServiceStub).UpdateChannel(request)
+        updated_grpc_channel = cast("UpdateChannelResponse", response).channel
+        return await self._build_channel(updated_grpc_channel)
 
     async def batch_archive_channels(self, channel_ids: list[str]) -> None:
         """Batch archive channels by setting active to false.

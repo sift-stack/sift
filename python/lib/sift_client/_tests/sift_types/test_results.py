@@ -372,6 +372,7 @@ class TestResultsTest:
                 bit_field_elements=[],
                 enum_types={},
                 asset_id="asset_1",
+                is_archived=False,
                 created_date=now,
                 modified_date=now,
                 created_by_user_id="user1",

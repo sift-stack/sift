@@ -23,7 +23,7 @@ if TYPE_CHECKING:
         CalculatedChannelCreate,
         CalculatedChannelUpdate,
     )
-    from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.channel import Channel, ChannelUpdate
     from sift_client.sift_types.data_import import (
         DataTypeKey,
         ImportConfig,
@@ -555,6 +555,19 @@ class ChannelsAPI:
         Args:
             channels: List of channel IDs or Channel objects to unarchive. If a Channel
                 has no id set, raises ValueError.
+        """
+        ...
+
+    def update(self, channel: str | Channel, update: ChannelUpdate | dict) -> Channel:
+        """Update a Channel.
+
+        Args:
+            channel: The Channel or channel ID to update.
+            update: Updates to apply to the Channel. See ChannelUpdate for the updatable fields
+                (description, unit, metadata, and archived status).
+
+        Returns:
+            The updated Channel.
         """
         ...
 
