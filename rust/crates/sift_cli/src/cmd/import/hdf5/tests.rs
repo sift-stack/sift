@@ -385,10 +385,8 @@ fn make_data_config(
         time_dataset: time_dataset.into(),
         time_index,
         value_dataset: value_dataset.into(),
-        value_index: 0,
-        channel_config: None,
         time_field: time_field.map(Into::into),
-        value_field: None,
+        ..Default::default()
     }
 }
 
