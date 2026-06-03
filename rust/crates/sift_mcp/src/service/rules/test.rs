@@ -1,6 +1,4 @@
-use sift_rs::rules::v1::{
-    ListRulesResponse, Rule, rule_service_server::RuleServiceServer,
-};
+use sift_rs::rules::v1::{ListRulesResponse, Rule, rule_service_server::RuleServiceServer};
 use sift_test_util::{grpc::memory_sift_channel, mock::rules::v1::MockRuleServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};

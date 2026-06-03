@@ -42,10 +42,10 @@ impl RuleService {
                 })
                 .await
                 .context("failed to query rules")?;
-            
-            let ListRulesResponse { 
-                rules, 
-                next_page_token 
+
+            let ListRulesResponse {
+                rules,
+                next_page_token,
             } = resp.into_inner();
             if rules.is_empty() {
                 break;

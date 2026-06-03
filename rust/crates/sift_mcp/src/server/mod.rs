@@ -11,7 +11,7 @@ use sift_rs::SiftChannel;
 
 use crate::service::{
     assets::AssetService, channels::ChannelService, data::DataService, ingest::IngestService,
-    reports::ReportService, runs::RunService, rules::RuleService
+    reports::ReportService, rules::RuleService, runs::RunService,
 };
 
 #[derive(Clone)]
