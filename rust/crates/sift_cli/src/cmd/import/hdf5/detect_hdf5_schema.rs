@@ -130,9 +130,44 @@ pub fn detect_config(
         Ok((data, _)) if data.is_empty() => Err(no_match_error(
             &datasets, schema, time_index, time_field, time_name,
         )),
-        Ok(other) => Ok(other),
+        Ok((data, channel_configs)) => {
+            let woven = weave_time_channel_rows(&data, &channel_configs);
+            Ok((data, woven))
+        }
         Err(e) => Err(e),
     }
+}
+
+fn time_channel_name(cfg: &Hdf5DataConfig) -> String {
+    let dataset_name = group_path_to_channel_name(&cfg.time_dataset);
+    match &cfg.time_field {
+        Some(field) if !field.is_empty() => format!("{dataset_name}.{field}"),
+        _ if cfg.time_dataset == cfg.value_dataset => {
+            format!("{dataset_name}.{}", cfg.time_index)
+        }
+        _ => dataset_name,
+    }
+}
+
+pub(super) fn weave_time_channel_rows(
+    data: &[Hdf5DataConfig],
+    channels: &[ChannelConfig],
+) -> Vec<ChannelConfig> {
+    let mut seen = std::collections::HashSet::new();
+    let mut woven = Vec::with_capacity(channels.len() + data.len());
+    for (cfg, channel) in data.iter().zip(channels.iter()) {
+        let name = time_channel_name(cfg);
+        if seen.insert(name.clone()) {
+            woven.push(ChannelConfig {
+                name,
+                description: "[time]".into(),
+                data_type: ChannelDataType::Int64.into(),
+                ..Default::default()
+            });
+        }
+        woven.push(channel.clone());
+    }
+    woven
 }
 
 fn no_match_error(

@@ -1,18 +1,18 @@
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use hdf5::types::{EnumMember, EnumType, FloatSize, IntSize, TypeDescriptor};
-use sift_rs::common::r#type::v1::ChannelDataType;
-use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
-
 use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
 use crate::cmd::import::hdf5::detect_hdf5_schema::{
     basename, enum_types_for, hdf5_to_sift_data_type, is_time_dataset_name, parent_path,
+    weave_time_channel_rows,
 };
 use crate::cmd::import::hdf5::import::build_hdf5_config;
 use crate::cmd::import::utils::group_path_to_channel_name;
+use chrono::DateTime;
+use hdf5::types::{EnumMember, EnumType, FloatSize, IntSize, TypeDescriptor};
+use sift_rs::common::r#type::v1::{ChannelConfig, ChannelDataType};
+use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
 
 fn make_args() -> ImportHdf5Args {
     ImportHdf5Args {
@@ -372,4 +372,93 @@ fn group_path_to_channel_name_no_leading_slash() {
         group_path_to_channel_name("group1/current"),
         "group1.current"
     );
+}
+
+fn make_data_config(
+    time_dataset: &str,
+    value_dataset: &str,
+    time_index: u64,
+    time_field: Option<&str>,
+) -> sift_rs::data_imports::v2::Hdf5DataConfig {
+    sift_rs::data_imports::v2::Hdf5DataConfig {
+        time_dataset: time_dataset.into(),
+        time_index,
+        value_dataset: value_dataset.into(),
+        time_field: time_field.map(Into::into),
+        ..Default::default()
+    }
+}
+
+fn make_channel(name: &str) -> ChannelConfig {
+    sift_rs::common::r#type::v1::ChannelConfig {
+        name: name.into(),
+        data_type: ChannelDataType::Double as i32,
+        ..Default::default()
+    }
+}
+
+#[test]
+fn weave_one_d_shared_time_appears_once_before_channels() {
+    let data = vec![
+        make_data_config("/group_a/time", "/group_a/voltage", 0, None),
+        make_data_config("/group_a/time", "/group_a/current", 0, None),
+        make_data_config("/group_b/timestamp", "/group_b/value", 0, None),
+    ];
+    let channels = vec![
+        make_channel("group_a.voltage"),
+        make_channel("group_a.current"),
+        make_channel("group_b.value"),
+    ];
+    let woven = weave_time_channel_rows(&data, &channels);
+    let layout: Vec<(&str, &str)> = woven
+        .iter()
+        .map(|c| (c.name.as_str(), c.description.as_str()))
+        .collect();
+    assert_eq!(
+        layout,
+        vec![
+            ("group_a.time", "[time]"),
+            ("group_a.voltage", ""),
+            ("group_a.current", ""),
+            ("group_b.timestamp", "[time]"),
+            ("group_b.value", ""),
+        ]
+    );
+}
+
+#[test]
+fn weave_compound_shows_dataset_dot_field_once_per_compound_dataset() {
+    let data = vec![
+        make_data_config("/measurements/run1", "/measurements/run1", 0, Some("ts")),
+        make_data_config("/measurements/run1", "/measurements/run1", 0, Some("ts")),
+        make_data_config(
+            "/measurements/run2",
+            "/measurements/run2",
+            0,
+            Some("timestamp"),
+        ),
+    ];
+    let channels = vec![
+        make_channel("measurements.run1.voltage"),
+        make_channel("measurements.run1.current"),
+        make_channel("measurements.run2.voltage"),
+    ];
+    let woven = weave_time_channel_rows(&data, &channels);
+    let names: Vec<&str> = woven.iter().map(|c| c.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec![
+            "measurements.run1.ts",
+            "measurements.run1.voltage",
+            "measurements.run1.current",
+            "measurements.run2.timestamp",
+            "measurements.run2.voltage",
+        ]
+    );
+}
+
+#[test]
+fn weave_empty_returns_empty() {
+    let woven = weave_time_channel_rows(&[], &[]);
+    assert!(woven.is_empty());
 }
