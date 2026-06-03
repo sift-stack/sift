@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 def _print_result(result: ReplayResult) -> None:
-    print(f"Report: {result.report.name} (id={result.report.id_})")
+    if result.report is not None:
+        print(f"Report: {result.report.name} (id={result.report.id_})")
     print(f"Steps:  {len(result.steps)}")
     for step in result.steps:
         print(f"  - {step.step_path} [{step.status}]")

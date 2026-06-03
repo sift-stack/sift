@@ -76,7 +76,9 @@ def test_worker_timeout_kills_and_warns() -> None:
     assert rc._import_proc.poll() is not None
     messages = "\n".join(str(w.message) for w in recorded)
     assert "did not exit in 0.2s" in messages
-    assert "import-test-result-log" in messages
+    # Recovery must resume from the tracking cursor, not batch-replay (which would
+    # duplicate already-uploaded entries), so the hint carries --incremental.
+    assert "import-test-result-log --incremental" in messages
 
 
 def test_worker_nonzero_exit_warns_stderr_no_raise() -> None:
@@ -96,4 +98,4 @@ def test_worker_nonzero_exit_warns_stderr_no_raise() -> None:
     messages = "\n".join(str(w.message) for w in recorded)
     assert "exited with code 2" in messages
     assert "rpc deadline exceeded" in messages
-    assert "import-test-result-log" in messages
+    assert "import-test-result-log --incremental" in messages
