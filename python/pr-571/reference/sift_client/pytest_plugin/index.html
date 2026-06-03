@@ -1698,7 +1698,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            pytest_addoption (sift_client.pytest_plugin.pytest_addoption)" href="#sift_client.pytest_plugin.pytest_addoption">pytest_addoption</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Register Sift-specific command-line options and ini keys.</p>
+                  <p>Register every CLI flag and pytest ini key declared in <code>_OPTIONS</code>.</p>
                 </div>
               </td>
             </tr>
@@ -1714,7 +1714,7 @@ You're not viewing the latest version.
               <td><code><a class="autorefs autorefs-internal" title="            pytest_configure (sift_client.pytest_plugin.pytest_configure)" href="#sift_client.pytest_plugin.pytest_configure">pytest_configure</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Register the Sift gate markers so they show up in <code>pytest --markers</code>.</p>
+                  <p>Register the Sift gate markers and warn on unknown <code>SIFT_*</code> settings.</p>
                 </div>
               </td>
             </tr>
@@ -2047,8 +2047,8 @@ in the message for debugging.</p>
 
         <p>Verify the <code>SiftClient</code> can reach Sift via <code>/ping</code>.</p>
 <p>Consulted at session start by <code>report_context</code> in online mode. A failed
-ping raises through <code>report_context</code> and aborts the session with
-<code>pytest.UsageError</code>. Override this fixture in your conftest to use a
+ping aborts the session via <code>pytest.exit</code>. Override this fixture in your
+conftest to use a
 different reachability signal (e.g. a cached auth token) for environments
 where pinging is the wrong check. Returns <code>False</code> in <code>--sift-disabled</code>
 mode without constructing a client.</p>
@@ -2071,10 +2071,9 @@ mode without constructing a client.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Register Sift-specific command-line options and ini keys.</p>
-<p>Each option can be set on the command line or under <code>[tool.pytest.ini_options]</code>
-in <code>pyproject.toml</code> (or <code>[pytest]</code> in <code>pytest.ini</code>). CLI values take
-precedence over ini values, which take precedence over the built-in default.</p>
+        <p>Register every CLI flag and pytest ini key declared in <code>_OPTIONS</code>.</p>
+<p>One loop drives both surfaces — adding a setting is one entry in the
+registry, not three edits across this function and a docs table.</p>
 
 
     </div>
@@ -2121,7 +2120,7 @@ parents in the report tree.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Register the Sift gate markers so they show up in <code>pytest --markers</code>.</p>
+        <p>Register the Sift gate markers and warn on unknown <code>SIFT_*</code> settings.</p>
 
 
     </div>
@@ -2264,7 +2263,7 @@ ReportContext (or teardown subprocess) is created.</p>
   session end.</li>
 <li>default (online): verify connectivity via <code>client_has_connection</code>
   before constructing the context. A failed ping aborts the session
-  with <code>pytest.UsageError</code> and points at <code>--sift-offline</code> and
+  with <code>pytest.exit</code> and points at <code>--sift-offline</code> and
   <code>--sift-disabled</code> as escape hatches.</li>
 </ul>
 <p>The log-file destination is controlled by

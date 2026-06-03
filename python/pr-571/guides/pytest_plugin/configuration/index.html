@@ -919,24 +919,113 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#cli-options" class="md-nav__link">
+  <a href="#settings-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CLI options
+        Settings reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pytest-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pytest behavior
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#ini-options" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#connection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ini options
+        Connection
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report content
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-start-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick-start examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#report-content-in-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report content in depth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Report content in depth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#name-vs-test_case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        name vs test_case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#templates-for-name-and-test_case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Templates for name and test_case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1172,24 +1261,113 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#cli-options" class="md-nav__link">
+  <a href="#settings-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CLI options
+        Settings reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pytest-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pytest behavior
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#ini-options" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#connection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ini options
+        Connection
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report content
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-start-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick-start examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#report-content-in-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report content in depth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Report content in depth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#name-vs-test_case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        name vs test_case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#templates-for-name-and-test_case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Templates for name and test_case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#report-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1266,59 +1444,60 @@ it and <code>pytest -p no:sift_client.pytest_plugin</code> disables it.</p>
 <p>The <code>SIFT_GRPC_URI</code> and <code>SIFT_REST_URI</code> are the gRPC and REST endpoints for your
 Sift organization. You can find these on the Sift Manage page as well as
 generate an API key.</p>
-<p>The default <code>sift_client</code> fixture reads its two URIs from environment first and
-falls back to ini keys when the env vars are unset. <code>SIFT_API_KEY</code> is
-intentionally env-only, so keep it out of source control and supply it through
-<code>pytest-dotenv</code> (see <a href="#api-key-handling">API key handling</a> below). The env var
-wins when both are set, so secrets injected into a CI environment continue to
-override values committed to <code>pyproject.toml</code>. There are no CLI flags for
+<p>The default <code>sift_client</code> fixture reads its two URIs from the environment
+first, then from the <code>sift_grpc_uri</code> / <code>sift_rest_uri</code> ini keys.
+<code>SIFT_API_KEY</code> is intentionally env-only, so keep it out of source control (see
+<a href="#api-key-handling">API key handling</a> below). There are no CLI flags for
 credentials.</p>
 <table>
 <thead>
 <tr>
-<th>Ini key</th>
-<th>Environment variable</th>
+<th>Setting</th>
+<th>Where</th>
 <th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><em>(none)</em></td>
 <td><code>SIFT_API_KEY</code></td>
-<td>Env-only. Use <code>.env</code> + <code>pytest-dotenv</code> locally; inject from your secret store in CI.</td>
+<td>env var only</td>
+<td>Inject from your secret store in CI; for local dev use a <code>.env</code> (see below). Never read from a committed file.</td>
 </tr>
 <tr>
-<td><code>sift_grpc_uri</code></td>
 <td><code>SIFT_GRPC_URI</code></td>
+<td>env &gt; <code>sift_grpc_uri</code> ini</td>
 <td>Stable per-org gRPC endpoint; safe to commit.</td>
 </tr>
 <tr>
-<td><code>sift_rest_uri</code></td>
 <td><code>SIFT_REST_URI</code></td>
+<td>env &gt; <code>sift_rest_uri</code> ini</td>
 <td>Stable per-org REST endpoint; safe to commit.</td>
 </tr>
 </tbody>
 </table>
 <h3 id="api-key-handling">API key handling<a class="headerlink" href="#api-key-handling" title="Permanent link">&para;</a></h3>
-<p><code>SIFT_API_KEY</code> is deliberately read from the process environment only. The
-recommended workflow uses the
-<a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</code></a> plugin (already a
-dependency of <code>sift-stack-py</code>), which loads variables from a <code>.env</code> file into
-<code>os.environ</code> before tests run.</p>
-<ol>
-<li>Add <code>.env</code> to <code>.gitignore</code>.</li>
+<p><code>SIFT_API_KEY</code> is read from the process environment only — the plugin never
+reads it from a committed file. How you get it into the environment is up to
+you:</p>
+<ul>
+<li><strong>CI:</strong> set <code>SIFT_API_KEY</code> directly via your provider's secret manager.</li>
 <li>
-<p>Drop your key into <code>.env</code> at the project root:</p>
-<div class="language-bash highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span>sk-...your-key...
+<p><strong>Local dev:</strong> keep the values in a <code>.env</code> (gitignored) and let
+  <a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</code></a> load them — it is
+  not bundled with <code>sift-stack-py</code>, so install it explicitly:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>pytest-dotenv
 </span></code></pre></div>
+<div class="language-bash highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span>sk-...your-key...
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">SIFT_GRPC_URI</span><span class="o">=</span>your-org.grpc.example.com
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nv">SIFT_REST_URI</span><span class="o">=</span>https://your-org.rest.example.com
+</span></code></pre></div>
+<p>Once installed, pytest-dotenv auto-loads <code>.env</code> from the rootdir before
+tests run — no <code>conftest.py</code> glue and no <code>load_dotenv()</code> call. (Point it at
+a different file with the <code>env_files</code> ini key if you prefer.)</p>
 </li>
-<li>
-<p>In CI, set <code>SIFT_API_KEY</code> directly via your provider's secret manager
-   instead of committing a <code>.env</code> file.</p>
-</li>
-</ol>
-<p><code>pytest-dotenv</code> picks the file up automatically; no <code>pytest_configure</code> glue is
-needed.</p>
+</ul>
+<p>Prefer real environment variables (shell exports, CI secrets) for anything you
+can't keep in a local file.</p>
 <div class="admonition warning">
 <p class="admonition-title">FedRAMP / shared environments</p>
 <p>Pass <code>--sift-log-file=false</code> (or set the ini key to <code>"false"</code>) to skip the
@@ -1329,11 +1508,7 @@ API instead of being deferred through a subprocess.</p>
 <p>A single <code>pytest_plugins</code> declaration in your top-level <code>conftest.py</code> is all
 that's required. The plugin ships a default <code>sift_client</code> fixture that reads
 <code>SIFT_API_KEY</code>, <code>SIFT_GRPC_URI</code>, and <code>SIFT_REST_URI</code> from the environment.</p>
-<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">load_dotenv</span><span class="p">()</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sift_client.pytest_plugin&quot;</span><span class="p">]</span>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sift_client.pytest_plugin&quot;</span><span class="p">]</span>
 </span></code></pre></div>
 <p>That's the whole setup. Every test in the session will now create a step on a
 single shared <code>TestReport</code>.</p>
@@ -1341,28 +1516,25 @@ single shared <code>TestReport</code>.</p>
 <p>To construct the client differently (custom TLS, timeouts, alternate
 credentials, etc.), override the <code>sift_client</code> fixture in your conftest. The
 plugin's default falls away in favor of your definition.</p>
-<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span><span class="p">,</span> <span class="n">SiftConnectionConfig</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">load_dotenv</span><span class="p">()</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sift_client.pytest_plugin&quot;</span><span class="p">]</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">sift_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SiftClient</span><span class="p">:</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="k">return</span> <span class="n">SiftClient</span><span class="p">(</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="n">connection_config</span><span class="o">=</span><span class="n">SiftConnectionConfig</span><span class="p">(</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>            <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_API_KEY&quot;</span><span class="p">),</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>            <span class="n">grpc_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_GRPC_URI&quot;</span><span class="p">),</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>            <span class="n">rest_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_REST_URI&quot;</span><span class="p">),</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>            <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>        <span class="p">)</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    <span class="p">)</span>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span><span class="p">,</span> <span class="n">SiftConnectionConfig</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sift_client.pytest_plugin&quot;</span><span class="p">]</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">sift_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SiftClient</span><span class="p">:</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="k">return</span> <span class="n">SiftClient</span><span class="p">(</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">connection_config</span><span class="o">=</span><span class="n">SiftConnectionConfig</span><span class="p">(</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>            <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_API_KEY&quot;</span><span class="p">),</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>            <span class="n">grpc_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_GRPC_URI&quot;</span><span class="p">),</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>            <span class="n">rest_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_REST_URI&quot;</span><span class="p">),</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>            <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="p">)</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <h2 id="plugin-provided-fixtures">Plugin provided fixtures<a class="headerlink" href="#plugin-provided-fixtures" title="Permanent link">&para;</a></h2>
 <table>
@@ -1391,7 +1563,7 @@ plugin's default falls away in favor of your definition.</p>
 <td><code>_hierarchy_parents</code></td>
 <td>internal fixture (autouse)</td>
 <td>function</td>
-<td>Opens a parent step for each <code>pytest.Package</code>, <code>pytest.Module</code>, and <code>pytest.Class</code> ancestor of the current test. Each layer is gated independently; see <a href="#ini-options">ini options</a>.</td>
+<td>Opens a parent step for each <code>pytest.Package</code>, <code>pytest.Module</code>, and <code>pytest.Class</code> ancestor of the current test. Each layer is gated independently; see <a href="#settings-reference">settings reference</a>.</td>
 </tr>
 <tr>
 <td><code>_parametrize_parents</code></td>
@@ -1407,130 +1579,334 @@ plugin's default falls away in favor of your definition.</p>
 </tr>
 </tbody>
 </table>
-<h2 id="cli-options">CLI options<a class="headerlink" href="#cli-options" title="Permanent link">&para;</a></h2>
+<h2 id="settings-reference">Settings reference<a class="headerlink" href="#settings-reference" title="Permanent link">&para;</a></h2>
+<p>Every setting the plugin reads, grouped by the three config kinds. Within a
+group, a <code>—</code> means the setting can't be set from that surface.</p>
+<p>Each kind has a home chosen for a specific workflow:</p>
+<ul>
+<li><strong>Pytest behavior</strong> lives in <code>[tool.pytest.ini_options]</code> (log/offline/disabled/git/<code>*_step</code>/autouse/parametrize). A CLI flag exists for the ones with a real ad-hoc override workflow.</li>
+<li><strong>Connection</strong> comes from the environment first, falling back to the ini keys; the API key is env-only so secrets stay out of committed files.</li>
+<li><strong>Report content</strong> takes static defaults from <code>[tool.sift.pytest.report]</code> and per-run dynamic values from <code>SIFT_REPORT_*</code> env vars (CI builds, hardware cycling, anything <code>.env</code>-driven; pytest-dotenv loads <code>.env</code> for local dev).</li>
+</ul>
+<p><strong>Precedence within a setting:</strong> env &gt; CLI flag &gt; ini key &gt; TOML &gt; built-in
+default. No setting exposes both env and CLI, so the chain isn't ambiguous in
+practice.</p>
+<p>The plugin scans <code>SIFT_*</code> env vars and <code>[tool.sift.pytest.*]</code> keys at session
+start; anything outside these tables fires a warning with a closest-match
+suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately.</p>
+<!-- BEGIN settings-reference (auto-generated from _OPTIONS in pytest_plugin.py; regenerate via test_settings_reference_docs_in_sync) -->
+<h3 id="pytest-behavior">Pytest behavior<a class="headerlink" href="#pytest-behavior" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
-<th>Flag</th>
-<th>Default</th>
-<th>Effect</th>
+<th>Setting</th>
+<th>CLI flag</th>
+<th>Ini (<code>[tool.pytest.ini_options]</code>)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>--sift-offline</code></td>
-<td>off (online)</td>
-<td>Skip the session-start ping and don't contact Sift. All create/update calls go to the JSONL log file for later replay via <code>import-test-result-log</code>. Missing <code>SIFT_*</code> env vars are tolerated; placeholders are filled.</td>
-</tr>
-<tr>
-<td><code>--sift-disabled</code></td>
-<td>off</td>
-<td>Skip Sift entirely. Nothing contacts the API and no log file is written; <code>step.measure(...)</code> still evaluates bounds and returns a real pass/fail boolean. Also honored via <code>SIFT_DISABLED=1</code>. Supersedes every other flag (disabled wins over offline).</td>
-</tr>
-<tr>
-<td><code>--sift-log-file=&lt;path\|true\|false&gt;</code></td>
-<td>temp file</td>
-<td>Where the JSONL log of create/update calls goes. With a log file set, the plugin spawns an <code>import-test-result-log --incremental</code> worker that polls the file and replays entries against Sift while the run is in flight. Pass <code>false</code> to disable the file entirely; create/update calls then go straight to the API synchronously during tests. Incompatible with <code>--sift-offline</code> since offline mode needs the log file as its sole sink.</td>
-</tr>
-<tr>
-<td><code>--no-sift-git-metadata</code></td>
-<td>git metadata on</td>
-<td>Skip capturing git repo/branch/commit on the report's metadata.</td>
-</tr>
-<tr>
-<td><code>--sift-report-url-base=&lt;origin&gt;</code></td>
-<td>derived from REST URI</td>
-<td>Web-app origin used to build the clickable report link in the terminal footer (e.g. <code>https://app.siftstack.com</code>). Set this for on-prem or custom deployments whose API host can't be mapped to a frontend automatically. Also honored via the <code>SIFT_APP_URL</code> environment variable. When unset, the link is derived from the REST URI for known Sift hosts.</td>
-</tr>
-<tr>
-<td><code>--sift-open-report</code></td>
-<td>off</td>
-<td>Open the resulting report in a browser at session end. Online mode only; a no-op when the report URL can't be resolved. Intended for local development.</td>
-</tr>
-</tbody>
-</table>
-<p>These can be passed permanently via <code>addopts</code>:</p>
-<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[pytest]</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-offline</span>
-</span></code></pre></div>
-<h2 id="ini-options">Ini options<a class="headerlink" href="#ini-options" title="Permanent link">&para;</a></h2>
-<p>Set the matching ini key directly (recommended for stable per-project
-configuration). Each CLI flag has a corresponding key under
-<code>[tool.pytest.ini_options]</code> in <code>pyproject.toml</code> or <code>[pytest]</code> in <code>pytest.ini</code>.
-CLI flags, when passed, override the ini values.</p>
-<table>
-<thead>
-<tr>
-<th>Ini key</th>
-<th>Type</th>
-<th>Equivalent CLI flag</th>
-</tr>
-</thead>
-<tbody>
-<tr>
+<td>Path to the JSONL log of create/update calls (path | true | false | none).</td>
+<td><code>--sift-log-file</code></td>
 <td><code>sift_log_file</code></td>
-<td>string (<code>true</code> / <code>false</code> / <code>none</code> / path)</td>
-<td><code>--sift-log-file=&lt;value&gt;</code></td>
 </tr>
 <tr>
+<td>Capture git repo/branch/commit on the report.</td>
+<td><code>--no-sift-git-metadata</code></td>
 <td><code>sift_git_metadata</code></td>
-<td>bool (default <code>true</code>)</td>
-<td><code>--no-sift-git-metadata</code> (sets to <code>false</code>)</td>
 </tr>
 <tr>
-<td><code>sift_offline</code></td>
-<td>bool (default <code>false</code>)</td>
+<td>Skip the session-start ping; route create/update through the JSONL log.</td>
 <td><code>--sift-offline</code></td>
+<td><code>sift_offline</code></td>
 </tr>
 <tr>
+<td>Disable Sift entirely (no API calls, no log file). Supersedes --sift-offline.</td>
+<td><code>--sift-disabled</code></td>
 <td><code>sift_disabled</code></td>
-<td>bool (default <code>false</code>)</td>
-<td><code>--sift-disabled</code> (also honors <code>SIFT_DISABLED</code> env var)</td>
 </tr>
 <tr>
-<td><code>sift_autouse</code></td>
-<td>bool (default <code>true</code>)</td>
-<td><em>(no CLI flag; controls the marker gate below)</em></td>
-</tr>
-<tr>
-<td><code>sift_package_step</code></td>
-<td>bool (default <code>true</code>)</td>
-<td><em>(ini-only)</em>. Opens a parent step for each Python package (directory with <code>__init__.py</code>) in the test path.</td>
-</tr>
-<tr>
-<td><code>sift_module_step</code></td>
-<td>bool (default <code>true</code>)</td>
-<td><em>(ini-only)</em>. Opens a parent step for each test module (file).</td>
-</tr>
-<tr>
-<td><code>sift_class_step</code></td>
-<td>bool (default <code>true</code>)</td>
-<td><em>(ini-only)</em>. Opens a parent step for each test class, including nested classes.</td>
-</tr>
-<tr>
-<td><code>sift_parametrize_nesting</code></td>
-<td>bool (default <code>true</code>)</td>
-<td><em>(ini-only)</em>. Clusters parametrized tests under shared parents (<code>test_x</code>, <code>axis=value</code>) instead of flat leaves (<code>test_x[value]</code>).</td>
-</tr>
-<tr>
-<td><code>sift_open_report</code></td>
-<td>bool (default <code>false</code>)</td>
+<td>Open the resulting report in a browser at session end (online only; no-op when the report URL can't be resolved).</td>
 <td><code>--sift-open-report</code></td>
+<td><code>sift_open_report</code></td>
+</tr>
+<tr>
+<td>Default for the Sift autouse fixtures (report_context, step, hierarchy/parametrize parents).</td>
+<td>—</td>
+<td><code>sift_autouse</code></td>
+</tr>
+<tr>
+<td>Open a parent step for each Python package in the test path.</td>
+<td>—</td>
+<td><code>sift_package_step</code></td>
+</tr>
+<tr>
+<td>Open a parent step for each test module.</td>
+<td>—</td>
+<td><code>sift_module_step</code></td>
+</tr>
+<tr>
+<td>Open per-class parent steps, including nested classes.</td>
+<td>—</td>
+<td><code>sift_class_step</code></td>
+</tr>
+<tr>
+<td>Cluster parametrized tests under shared parent steps (e.g. test_a -&gt; v=1, v=2).</td>
+<td>—</td>
+<td><code>sift_parametrize_nesting</code></td>
 </tr>
 </tbody>
 </table>
+<h3 id="connection">Connection<a class="headerlink" href="#connection" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Ini (<code>[tool.pytest.ini_options]</code>)</th>
+<th>Env var</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sift API key (secret, env-only).</td>
+<td>—</td>
+<td><code>SIFT_API_KEY</code></td>
+</tr>
+<tr>
+<td>Sift gRPC endpoint URI.</td>
+<td><code>sift_grpc_uri</code></td>
+<td><code>SIFT_GRPC_URI</code></td>
+</tr>
+<tr>
+<td>Sift REST endpoint URI.</td>
+<td><code>sift_rest_uri</code></td>
+<td><code>SIFT_REST_URI</code></td>
+</tr>
+<tr>
+<td>Sift web-app origin for the report link in the terminal footer (e.g. https://app.siftstack.com). When unset, the link is derived from the REST URI for known Sift hosts.</td>
+<td><code>sift_app_url</code></td>
+<td><code>SIFT_APP_URL</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="report-content">Report content<a class="headerlink" href="#report-content" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>TOML (<code>[tool.sift...]</code>)</th>
+<th>Env var</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Template for the report display name. Placeholders: {target}, {command}, {args}, {rootdir}, {timestamp}, {count}, {git_repo}, {git_branch}, {git_commit}.</td>
+<td><code>[tool.sift.pytest.report] name</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Template for the report's test_case field (same placeholders as report_name).</td>
+<td><code>[tool.sift.pytest.report] test_case</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Name of the test system / rig. Defaults to the host's name.</td>
+<td><code>[tool.sift.pytest.report] test_system_name</code></td>
+<td><code>SIFT_REPORT_TEST_SYSTEM_NAME</code></td>
+</tr>
+<tr>
+<td>Operator running the test. Defaults to the OS user.</td>
+<td><code>[tool.sift.pytest.report] system_operator</code></td>
+<td><code>SIFT_REPORT_SYSTEM_OPERATOR</code></td>
+</tr>
+<tr>
+<td>Serial number of the unit under test.</td>
+<td><code>[tool.sift.pytest.report] serial_number</code></td>
+<td><code>SIFT_REPORT_SERIAL_NUMBER</code></td>
+</tr>
+<tr>
+<td>Part number of the unit under test.</td>
+<td><code>[tool.sift.pytest.report] part_number</code></td>
+<td><code>SIFT_REPORT_PART_NUMBER</code></td>
+</tr>
+<tr>
+<td>Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, attach them in conftest via the report_context fixture.</td>
+<td><code>[tool.sift.pytest.report.metadata]</code> (table)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<!-- END settings-reference -->
+
+<h3 id="quick-start-examples">Quick-start examples<a class="headerlink" href="#quick-start-examples" title="Permanent link">&para;</a></h3>
 <div class="language-toml highlight"><span class="filename">pyproject.toml</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[tool.pytest.ini_options]</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">sift_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;your-org.sift.example:443&quot;</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your-org.sift.example&quot;</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">[tool.sift.pytest.report]</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;{rootdir} ({count} tests) {timestamp}&quot;</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">test_system_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;rig-7&quot;</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="k">[tool.sift.pytest.report.metadata]</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">build_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;v1.2.3&quot;</span>
 </span></code></pre></div>
-<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[pytest]</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">sift_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">false</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="na">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">your-org.sift.example:443</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="na">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://your-org.sift.example</span>
+<div class="language-bash highlight"><span class="filename">CI env (set by your runner)</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span>...<span class="w">                    </span><span class="c1"># from a secret manager</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">SIFT_REPORT_SYSTEM_OPERATOR</span><span class="o">=</span>ci-bot
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nv">SIFT_REPORT_SERIAL_NUMBER</span><span class="o">=</span><span class="nv">$UNIT_SN</span><span class="w">  </span><span class="c1"># cycles per matrix job</span>
 </span></code></pre></div>
+<div class="language-ini highlight"><span class="filename">pytest.ini (alternative — pytest-execution flags only)</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[pytest]</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="na">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="na">sift_git_metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">false</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="na">sift_grpc_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">your-org.sift.example:443</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="na">sift_rest_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://your-org.sift.example</span>
+</span></code></pre></div>
+<p>CLI flags can be made permanent via <code>addopts</code>:</p>
+<div class="language-ini highlight"><span class="filename">pytest.ini</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[pytest]</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="na">addopts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">--sift-offline</span>
+</span></code></pre></div>
+<h2 id="report-content-in-depth">Report content in depth<a class="headerlink" href="#report-content-in-depth" title="Permanent link">&para;</a></h2>
+<p>The <a href="#settings-reference">settings reference</a> above maps each report-content
+field to its <code>[tool.sift.pytest.report]</code> key and <code>SIFT_REPORT_*</code> env var. This
+section covers the two template fields and the metadata table in more detail.</p>
+<div class="language-toml highlight"><span class="filename">pyproject.toml — static project defaults</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">[tool.sift.pytest.report]</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">name</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;{rootdir} {git_branch} ({count} tests) {timestamp}&quot;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">test_case</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;{rootdir}-{git_branch}&quot;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">test_system_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;rig-7&quot;</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">system_operator</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;ci-bot&quot;</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">serial_number</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;SN-001&quot;</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">part_number</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;PN-9000&quot;</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><span class="filename">Per-run overrides — CI or hardware-bench shell</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">SIFT_REPORT_SERIAL_NUMBER</span><span class="o">=</span><span class="nv">$UNIT_SN</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nv">SIFT_REPORT_SYSTEM_OPERATOR</span><span class="o">=</span><span class="nv">$CI_ACTOR</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>pytest<span class="w"> </span>tests/
+</span></code></pre></div>
+<h3 id="name-vs-test_case"><code>name</code> vs <code>test_case</code><a class="headerlink" href="#name-vs-test_case" title="Permanent link">&para;</a></h3>
+<p>The two fields look similar but serve opposite purposes:</p>
+<ul>
+<li><strong><code>name</code></strong> is the report's <strong>per-run display label</strong> — what you see in the
+  Test Results list. It should be unique per run, which is why its default ends
+  in <code>{timestamp}</code>.</li>
+<li><strong><code>test_case</code></strong> is the <strong>cross-run grouping key</strong> — reports that share a
+  <code>test_case</code> are treated as runs of the <em>same</em> case, so Sift can track its
+  pass/fail history over time. It should be stable across runs, which is why
+  its default has <strong>no</strong> timestamp.</li>
+</ul>
+<p>By default both derive from the same <code>{target}</code> (what ran), and the timestamp
+is the only difference: <code>name</code> = <code>{target} {timestamp}</code> (distinct each run),
+<code>test_case</code> = <code>{target}</code> (identical across runs of the same target, so they
+group together). Set either explicitly to override — a static <code>test_case</code> like
+<code>"{rootdir}"</code> is common when you want every run of a project to group under one
+case regardless of which subset ran.</p>
+<h3 id="templates-for-name-and-test_case">Templates for <code>name</code> and <code>test_case</code><a class="headerlink" href="#templates-for-name-and-test_case" title="Permanent link">&para;</a></h3>
+<p><code>name</code> and <code>test_case</code> accept the same f-string-style placeholders:</p>
+<table>
+<thead>
+<tr>
+<th>Placeholder</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{target}</code></td>
+<td>What ran, derived from the collected tests (not the command line) and anchored to the project name: <code>project/tests/test_x.py::test_y</code> for a single test (the <code>[param]</code> suffix is stripped), <code>project/tests/test_x.py</code> for a single file, <code>project/tests/motor</code> for several files' common directory, or just <code>project</code> for a whole-suite run.</td>
+</tr>
+<tr>
+<td><code>{command}</code></td>
+<td>The full pytest invocation, e.g. <code>pytest tests/ -k smoke</code>.</td>
+</tr>
+<tr>
+<td><code>{args}</code></td>
+<td>The invocation arguments without the leading <code>pytest</code>.</td>
+</tr>
+<tr>
+<td><code>{rootdir}</code></td>
+<td>The pytest rootdir name (typically the project directory).</td>
+</tr>
+<tr>
+<td><code>{timestamp}</code></td>
+<td>The report start time in ISO 8601 (UTC).</td>
+</tr>
+<tr>
+<td><code>{count}</code></td>
+<td>The number of collected tests in the run.</td>
+</tr>
+<tr>
+<td><code>{git_repo}</code></td>
+<td>The <code>origin</code> remote URL, or empty when not in a git repo.</td>
+</tr>
+<tr>
+<td><code>{git_branch}</code></td>
+<td>The current branch, or empty when not in a git repo.</td>
+</tr>
+<tr>
+<td><code>{git_commit}</code></td>
+<td>The current commit (<code>git describe --always --dirty</code>), or empty when not in a git repo.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Defaults when unset.</strong> Because <code>{target}</code> is derived from the collected
+tests, the defaults reflect what actually ran and don't change with flag order
+or <code>-k</code> / <code>-m</code> filters:</p>
+<p>(<code>&lt;project&gt;</code> below is the rootdir directory name.)</p>
+<table>
+<thead>
+<tr>
+<th>Invocation</th>
+<th>default <code>name</code></th>
+<th>default <code>test_case</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pytest tests/test_motor.py::test_spin[12V]</code></td>
+<td><code>&lt;project&gt;/tests/test_motor.py::test_spin 2026-...</code></td>
+<td><code>&lt;project&gt;/tests/test_motor.py::test_spin</code></td>
+</tr>
+<tr>
+<td><code>pytest -v tests/test_motor.py</code></td>
+<td><code>&lt;project&gt;/tests/test_motor.py 2026-...</code></td>
+<td><code>&lt;project&gt;/tests/test_motor.py</code></td>
+</tr>
+<tr>
+<td><code>pytest -k motor</code> (hits <code>tests/motor/</code>)</td>
+<td><code>&lt;project&gt;/tests/motor 2026-...</code></td>
+<td><code>&lt;project&gt;/tests/motor</code></td>
+</tr>
+<tr>
+<td><code>pytest</code> (whole suite)</td>
+<td><code>&lt;project&gt; 2026-...</code></td>
+<td><code>&lt;project&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>The git placeholders are resolved independently of <code>--no-sift-git-metadata</code>
+(which only controls whether git values are stored on the report metadata) and
+render empty outside a git checkout. An unknown placeholder is reported as a
+warning and the value falls back to the default rather than failing the run.</p>
+<p>Regardless of the name, the full pytest command is always preserved on the
+report's metadata under the <code>pytest_command</code> key, so the exact invocation stays
+queryable and viewable in the report detail.</p>
+<h3 id="report-metadata">Report metadata<a class="headerlink" href="#report-metadata" title="Permanent link">&para;</a></h3>
+<p><code>[tool.sift.pytest.report.metadata]</code> is a TOML table whose typed values land
+on the report's metadata alongside the git fields and the auto-recorded
+<code>pytest_command</code>. Use it for build IDs, fixture identifiers, shift labels,
+and any key/value data not otherwise modeled.</p>
+<div class="language-toml highlight"><span class="filename">pyproject.toml — static metadata defaults</span><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[tool.sift.pytest.report.metadata]</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">build_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;v1.2.3&quot;</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">fixture</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;PSU-A&quot;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">shift</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;night&quot;</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">lane</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w">          </span><span class="c1"># ints, floats, and bools come through with their TOML type</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">verbose</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span></code></pre></div>
+<p>For per-run dynamic entries (CI build IDs, cycling serial numbers), attach them
+in your <code>conftest.py</code> through the <code>report_context</code> fixture rather than the TOML
+table.</p>
+<p>Nested tables, lists, and <code>null</code> values in
+<code>[tool.sift.pytest.report.metadata]</code> are skipped with a warning since the
+report's metadata is a flat <code>dict[str, str | float | bool]</code>.</p>
 <h2 id="controlling-which-tests-produce-reports">Controlling which tests produce reports<a class="headerlink" href="#controlling-which-tests-produce-reports" title="Permanent link">&para;</a></h2>
 <p>By default every test in the session produces a Sift step. Two markers and one
 ini key let you narrow that to a specific set of tests, which is useful when a
@@ -1562,20 +1938,20 @@ repo holds tests that you don't want included in the Sift test report.</p>
 <h3 id="bulk-applying-a-marker-to-a-directory">Bulk-applying a marker to a directory<a class="headerlink" href="#bulk-applying-a-marker-to-a-directory" title="Permanent link">&para;</a></h3>
 <p>To opt an entire directory in (or out) without editing each file, hook
 <code>pytest_collection_modifyitems</code> in the directory's <code>conftest.py</code>:</p>
-<div class="language-python highlight"><span class="filename">tests/example/conftest.py</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">_HERE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">pytest_collection_modifyitems</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>            <span class="n">item</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">_HERE</span><span class="p">)</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>            <span class="k">continue</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>        <span class="n">item</span><span class="o">.</span><span class="n">add_marker</span><span class="p">(</span><span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">sift_include</span><span class="p">)</span>
+<div class="language-python highlight"><span class="filename">tests/example/conftest.py</span><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">_HERE</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">pytest_collection_modifyitems</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>            <span class="n">item</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">_HERE</span><span class="p">)</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>            <span class="k">continue</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>        <span class="n">item</span><span class="o">.</span><span class="n">add_marker</span><span class="p">(</span><span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">sift_include</span><span class="p">)</span>
 </span></code></pre></div>
 <p>This applies <code>sift_include</code> to every test collected under <code>tests/example/</code>.
 Combine with <code>sift_autouse = false</code> in <code>pyproject.toml</code> for opting in to

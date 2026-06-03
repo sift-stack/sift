@@ -1149,21 +1149,21 @@ as rows under that step, and failures propagate up through nested substeps to
 the report itself.</p>
 <h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <p>Install the client and pytest:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>sift-stack-py<span class="w"> </span>pytest<span class="w"> </span>python-dotenv
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>sift-stack-py<span class="w"> </span>pytest
 </span></code></pre></div>
-<p>Set your connection details in a <code>.env</code> next to your tests:</p>
-<div class="language-bash highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<p>The default <code>sift_client</code> fixture reads its connection details from the
+environment:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">SIFT_API_KEY</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">SIFT_GRPC_URI</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nv">SIFT_REST_URI</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
 </span></code></pre></div>
-<p>Find these on the Sift Manage page, where you can also generate an API key.</p>
+<p>Find these on the Sift Manage page, where you can also generate an API key. Set
+them in your shell or CI secret store. For local dev, <code>pip install
+pytest-dotenv</code> and drop the same values in a <code>.env</code> next to your tests — it
+loads them automatically, no code required.</p>
 <p>Register the plugin with a single <code>pytest_plugins</code> declaration in your top-level
 <code>conftest.py</code>:</p>
-<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">load_dotenv</span><span class="p">()</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sift_client.pytest_plugin&quot;</span><span class="p">]</span>
+<div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sift_client.pytest_plugin&quot;</span><span class="p">]</span>
 </span></code></pre></div>
 <p>Write a test. The <code>step</code> fixture is <code>autouse</code>, so any test becomes a step on the
 report. Take it as an argument when you want to record a measurement:</p>

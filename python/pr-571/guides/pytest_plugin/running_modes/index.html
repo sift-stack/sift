@@ -1265,8 +1265,8 @@ measurements (<code>step.measure(...)</code>) and is omitted when there are none
 operator.</p>
 <p><strong>Online</strong> shows the report metadata, step and measurement breakdowns, and a
 clickable link. The web host is derived from the REST URI for known Sift hosts;
-for on-prem or custom deployments set <code>--sift-report-url-base</code>
-(ini: <code>sift_report_url_base</code>, env: <code>SIFT_APP_URL</code>). Add <code>--sift-open-report</code> to
+for on-prem or custom deployments set <code>sift_app_url</code>
+(ini) or the <code>SIFT_APP_URL</code> env var. Add <code>--sift-open-report</code> to
 open the report in a browser at session end.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>============================= test session starts ==============================
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>platform linux -- Python 3.11.8, pytest-8.3.2, pluggy-1.5.0
@@ -1378,16 +1378,13 @@ normally: bounds evaluate and you get a real pass/fail boolean back.</p>
 and tests can branch on provenance. Offline-mode entities also report
 <code>is_simulated == True</code>.</p>
 <p>How to turn it on, in the order most projects pick:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># In an .envrc, devcontainer, or CI job config</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">SIFT_DISABLED</span><span class="o">=</span><span class="m">1</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Per-invocation kill-switch</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>pytest<span class="w"> </span>--sift-disabled
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Per-project default (uncommon; online is usually the right default)</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># pyproject.toml:</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="c1">#   [tool.pytest.ini_options]</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1">#   sift_disabled = true</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Per-invocation kill-switch</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>pytest<span class="w"> </span>--sift-disabled
+</span></code></pre></div>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Per-project default (uncommon; online is usually the right default)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># pyproject.toml:</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">[tool.pytest.ini_options]</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">sift_disabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span></code></pre></div>
 <p>Good fit for local dev without Sift credentials. Also for library consumers who
 don't have a Sift tenant. Also useful in CI for runs that shouldn't add noise to
@@ -1395,7 +1392,7 @@ the report stream, like a PR job re-running the same suite five times in a row.<
 <h2 id="replaying-a-saved-log-file">Replaying a saved log file<a class="headerlink" href="#replaying-a-saved-log-file" title="Permanent link">&para;</a></h2>
 <p>When the worker doesn't finish cleanly the plugin will print a hint mentioning
 <code>import-test-result-log</code>. To import:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
 </span></code></pre></div>
 <p>That replays the saved JSONL log as a single batch (no <code>--incremental</code>) and
 deletes the file when it lives under the system temp dir.</p>
