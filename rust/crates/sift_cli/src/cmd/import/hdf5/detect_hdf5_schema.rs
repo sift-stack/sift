@@ -153,8 +153,8 @@ pub(super) fn weave_time_channel_rows(
     data: &[Hdf5DataConfig],
     channels: &[ChannelConfig],
 ) -> Vec<ChannelConfig> {
-    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-    let mut woven: Vec<ChannelConfig> = Vec::with_capacity(channels.len() + data.len());
+    let mut seen = std::collections::HashSet::new();
+    let mut woven = Vec::with_capacity(channels.len() + data.len());
     for (cfg, channel) in data.iter().zip(channels.iter()) {
         let name = time_channel_name(cfg);
         if seen.insert(name.clone()) {
