@@ -23,11 +23,6 @@ from sift_client._internal.grpc_transport.transport import (
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# How far the blocking sync deadline sits above the per-RPC deadline. The gRPC
-# deadline should fire first and cancel the request; the sync backstop only trips
-# if that never happens.
-_SYNC_CALL_TIMEOUT_MARGIN_SECONDS = 15.0
-
 
 def _suppress_blocking_io(loop, context):
     """Suppress benign BlockingIOError from gRPC's PollerCompletionQueue.
@@ -163,19 +158,6 @@ class GrpcClient:
         scheduling a coroutine onto a loop that will never run it.
         """
         return self._loop_running and self._default_loop.is_running()
-
-    @property
-    def sync_call_timeout(self) -> float | None:
-        """Deadline in seconds for a blocking sync API call, or None if disabled.
-
-        Sits above the per-RPC deadline by a margin so the gRPC deadline fires
-        first and cancels the in-flight request; this is only a backstop for the
-        case where the RPC deadline never trips.
-        """
-        request_timeout = self._config.request_timeout
-        if request_timeout is None:
-            return None
-        return request_timeout + _SYNC_CALL_TIMEOUT_MARGIN_SECONDS
 
     def get_stub(self, stub_class: type[Any]) -> Any:
         """Get an async stub bound to the current event loop.

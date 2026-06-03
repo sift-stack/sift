@@ -16,11 +16,10 @@ from sift_client.resources._base import ResourceBase
 class MockClient:
     """Mock client that simulates the SiftClient with an event loop."""
 
-    def __init__(self, sync_call_timeout: float | None = None):
+    def __init__(self):
         """Initialize the mock client."""
         self._default_loop = asyncio.new_event_loop()
         self._loop_running = True
-        self.sync_call_timeout = sync_call_timeout
         atexit.register(self.close_sync)
 
         def _run_default_loop():
@@ -89,12 +88,6 @@ class MockResourceAsync(ResourceBase):
         self._record_call("async_method_with_exception")
         await asyncio.sleep(0.01)
         raise ValueError("Test exception")
-
-    async def slow_async_method(self, delay: float = 1.0) -> str:
-        """Test async method that sleeps, to exercise the sync-call deadline."""
-        self._record_call("slow_async_method")
-        await asyncio.sleep(delay)
-        return "slow_result"
 
     async def async_method_with_executor(self) -> str:
         """Test async method that uses run_in_executor, like wait_and_download."""
@@ -246,11 +239,11 @@ class TestSyncWrapperEventLoopScenarios:
             loop.close()
 
 
-class TestSyncWrapperTimeoutAndShutdown:
-    """Tests for the sync-call deadline backstop and the stopped-loop guard."""
+class TestSyncWrapperShutdown:
+    """Tests for the stopped-loop fail-fast guard."""
 
-    def _make_sync_resource(self, sync_call_timeout: float | None = None):
-        mock_client = MockClient(sync_call_timeout=sync_call_timeout)
+    def _make_sync_resource(self):
+        mock_client = MockClient()
         MockResource = generate_sync_api(MockResourceAsync, "MockResource")  # noqa: N806
         return MockResource(mock_client, value="testVal")
 
@@ -260,14 +253,3 @@ class TestSyncWrapperTimeoutAndShutdown:
         resource._async_impl.client.close_sync()
         with pytest.raises(RuntimeError, match="Sift client is closed"):
             resource.async_method("arg", 1)
-
-    def test_slow_call_times_out(self):
-        """A call that outlives the sync deadline raises TimeoutError, not a hang."""
-        resource = self._make_sync_resource(sync_call_timeout=0.1)
-        with pytest.raises(TimeoutError, match="did not respond in time"):
-            resource.slow_async_method(delay=5.0)
-
-    def test_fast_call_within_timeout_succeeds(self):
-        """A call that finishes within the deadline returns normally."""
-        resource = self._make_sync_resource(sync_call_timeout=5.0)
-        assert resource.slow_async_method(delay=0.01) == "slow_result"
