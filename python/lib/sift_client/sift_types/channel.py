@@ -29,7 +29,6 @@ from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
-    from google.protobuf import field_mask_pb2
     from sift_stream_bindings import ChannelBitFieldElementPy, ChannelDataTypePy
 
     from sift_client.client import SiftClient
@@ -277,17 +276,19 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return {enum.name: enum.key for enum in enum_types}
 
     @classmethod
-    def _from_proto(cls, proto: ChannelProto, sift_client: SiftClient | None = None) -> Channel:
+    def _from_proto(
+        cls, proto: ChannelProto, sift_client: SiftClient | None = None, *, unit: str = ""
+    ) -> Channel:
         return cls(
             proto=proto,
             id_=proto.channel_id,
             name=proto.name,
             data_type=ChannelDataType(proto.data_type),
             # Prefer the user-set display override, falling back to the canonical
-            # value set at channel creation. This mirrors how the Sift app resolves
-            # these (displayDescription || description, displayUnit || unit).
+            # description set at channel creation (display_description or description).
             description=proto.display_description or proto.description,
-            unit=proto.display_unit_id or proto.unit_id,
+            # The resolved unit name, looked up from the proto's unit id by the caller.
+            unit=unit,
             bit_field_elements=[
                 ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
             ],
@@ -407,10 +408,11 @@ class ChannelUpdate(ModelUpdate[ChannelProto]):
             update_field="metadata",
             converter=metadata_dict_to_proto,
         ),
-        # The proto carries `active`; the value is inverted in to_proto_with_mask.
+        # The proto carries the inverse `active`; the converter flips the value.
         "is_archived": MappingHelper(
             proto_attr_path="active",
             update_field="active",
+            converter=lambda is_archived: not is_archived,
         ),
     }
 
@@ -421,14 +423,6 @@ class ChannelUpdate(ModelUpdate[ChannelProto]):
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.channel_id = self._resource_id
-
-    def to_proto_with_mask(self) -> tuple[ChannelProto, field_mask_pb2.FieldMask]:
-        """Convert to proto with field mask."""
-        proto, mask = super().to_proto_with_mask()
-        # `is_archived` is the inverse of the proto's `active` field.
-        if self.is_archived is not None:
-            proto.active = not self.is_archived
-        return proto, mask
 
 
 class ChannelReference(BaseModel):

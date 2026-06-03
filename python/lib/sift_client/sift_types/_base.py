@@ -150,6 +150,9 @@ class ModelCreateUpdateBase(BaseModel, ABC):
 
             if not already_setting_path_override and field_name in self._to_proto_helpers:
                 mapping_helper = self._to_proto_helpers[field_name]
+                # Convert scalars here, dict and list values convert in the branches below
+                if mapping_helper.converter is not None and not isinstance(value, (dict, list)):
+                    value = mapping_helper.converter(value)
                 # Expand the proto path to a dictionary and parse recursively
                 for layer in reversed(mapping_helper.proto_attr_path.split(".")):
                     temp = {}
@@ -207,6 +210,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                     else:
                         raise
                 paths.append(path)
+
             else:
                 try:
                     if isinstance(value, Enum):

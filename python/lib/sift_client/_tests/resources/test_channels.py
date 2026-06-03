@@ -445,93 +445,50 @@ def _mock_channel(unit: str) -> Channel:
     )
 
 
-class TestResolveUnitNames:
-    @pytest.mark.asyncio
-    async def test_replaces_unit_id_with_name_in_place(self):
-        """A channel's unit id is swapped for its abbreviated name."""
-        api = _make_api()
-        api._units_low_level_client.list_all_units = AsyncMock(
-            return_value=[UnitProto(unit_id="u1", abbreviated_name="volts")]
-        )
-        channel = _mock_channel(unit="u1")
-
-        await api._resolve_unit_names([channel])
-
-        assert channel.unit == "volts"
-
-    @pytest.mark.asyncio
-    async def test_no_lookup_when_no_channel_has_a_unit(self):
-        """Channels with no unit short-circuit before any Units call."""
-        api = _make_api()
-        api._units_low_level_client.list_all_units = AsyncMock()
-        channel = _mock_channel(unit="")
-
-        await api._resolve_unit_names([channel])
-
-        assert channel.unit == ""
-        api._units_low_level_client.list_all_units.assert_not_awaited()
-
-    @pytest.mark.asyncio
-    async def test_leaves_unit_id_untouched_when_not_found(self):
-        """An id with no matching unit is left as-is rather than blanked."""
-        api = _make_api()
-        api._units_low_level_client.list_all_units = AsyncMock(return_value=[])
-        channel = _mock_channel(unit="missing-id")
-
-        await api._resolve_unit_names([channel])
-
-        assert channel.unit == "missing-id"
-
-
 class TestUpdateUnitResolution:
+    """update() resolves a unit name to an id for the write. Resolving ids back to
+    names on the returned channel is the low-level client's job (tested there).
+    """
+
     @pytest.mark.asyncio
-    async def test_resolves_unit_string_to_id_then_back_to_name(self):
-        """update() writes the resolved id and returns the channel with the name."""
+    async def test_resolves_unit_name_to_id_for_write(self):
+        """update() turns the unit name into an id via create_unit before writing."""
         api = _make_api()
         api._units_low_level_client.create_unit = AsyncMock(
             return_value=UnitProto(unit_id="u-1", abbreviated_name="volts")
-        )
-        api._units_low_level_client.list_all_units = AsyncMock(
-            return_value=[UnitProto(unit_id="u-1", abbreviated_name="volts")]
         )
         captured = {}
 
         async def fake_update_channel(update):
             captured["update"] = update
-            return _mock_channel(unit="u-1")
+            return _mock_channel(unit="volts")
 
         api._low_level_client.update_channel = AsyncMock(side_effect=fake_update_channel)
 
         result = await api.update("ch-1", {"unit": "volts"})
 
         api._units_low_level_client.create_unit.assert_awaited_once_with("volts")
-        # The write carries the resolved unit id, not the raw string.
+        # The write carries the resolved unit id, not the raw name.
         assert captured["update"].unit == "u-1"
         assert captured["update"].resource_id == "ch-1"
-        # The returned channel exposes the human-readable name again.
         assert result.unit == "volts"
 
     @pytest.mark.asyncio
-    async def test_update_without_unit_resolves_the_existing_unit(self):
-        """An update that does not touch the unit still returns the channel's unit name."""
+    async def test_update_without_unit_skips_create_unit(self):
+        """An update that does not change the unit never calls create_unit."""
         api = _make_api()
         api._units_low_level_client.create_unit = AsyncMock()
-        api._units_low_level_client.list_all_units = AsyncMock(
-            return_value=[UnitProto(unit_id="u-9", abbreviated_name="ms")]
-        )
-        api._low_level_client.update_channel = AsyncMock(return_value=_mock_channel(unit="u-9"))
+        api._low_level_client.update_channel = AsyncMock(return_value=_mock_channel(unit="ms"))
 
-        result = await api.update("ch-1", {"description": "new"})
+        await api.update("ch-1", {"description": "new"})
 
         api._units_low_level_client.create_unit.assert_not_awaited()
-        assert result.unit == "ms"
 
     @pytest.mark.asyncio
     async def test_empty_unit_string_clears_without_creating_a_unit(self):
         """An empty unit string is passed through to clear the unit, not sent to create_unit."""
         api = _make_api()
         api._units_low_level_client.create_unit = AsyncMock()
-        api._units_low_level_client.list_all_units = AsyncMock()
         captured = {}
 
         async def fake_update_channel(update):
