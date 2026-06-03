@@ -1,9 +1,5 @@
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use hdf5::types::{EnumMember, EnumType, FloatSize, IntSize, TypeDescriptor};
-use sift_rs::common::r#type::v1::{ ChannelDataType, ChannelConfig };
-use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
 use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
@@ -13,6 +9,10 @@ use crate::cmd::import::hdf5::detect_hdf5_schema::{
 };
 use crate::cmd::import::hdf5::import::build_hdf5_config;
 use crate::cmd::import::utils::group_path_to_channel_name;
+use chrono::DateTime;
+use hdf5::types::{EnumMember, EnumType, FloatSize, IntSize, TypeDescriptor};
+use sift_rs::common::r#type::v1::{ChannelConfig, ChannelDataType};
+use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
 
 fn make_args() -> ImportHdf5Args {
     ImportHdf5Args {
