@@ -213,15 +213,14 @@ fn detect_config(path: &Path, fallback_method: TdmsFallbackMethod) -> Result<Vec
         let time_channel_name = find_time_channel(&channels);
 
         if let Some(time_name) = time_channel_name.as_ref() && let Some((_, time_channel)) = channels.iter().find(|(n, _)| n == time_name) {
-                let time_dt = tdms_to_sift_data_type(time_channel.data_type)
-                    .unwrap_or(ChannelDataType::Int64);
-                channels_vec.push(ChannelConfig {
-                    name: format!("{group}.{time_name}"),
-                    description: "[time]".into(),
-                    data_type: time_dt.into(),
-                    ..Default::default()
-                });
-            }
+            let time_dt = tdms_to_sift_data_type(time_channel.data_type)
+                .unwrap_or(ChannelDataType::Int64);
+            channels_vec.push(ChannelConfig {
+                name: format!("{group}.{time_name}"),
+                description: "[time]".into(),
+                data_type: time_dt.into(),
+                ..Default::default()
+            });
         }
 
         for (channel_name, channel) in &channels {
