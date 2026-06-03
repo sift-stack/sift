@@ -100,7 +100,8 @@ async def test_resume_applies_trailing_report_update(tmp_path):
     sent = client.update_test_report.await_args.kwargs["request"]
     assert sent.test_report.test_report_id == "real-report"
     assert sent.test_report.status == TestStatus.FAILED.value
-    assert result.report is not None and result.report.id_ == "real-report"
+    assert result.report is not None
+    assert result.report.id_ == "real-report"
 
 
 @pytest.mark.asyncio
