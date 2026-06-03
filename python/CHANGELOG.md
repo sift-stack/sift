@@ -29,6 +29,11 @@ See the [Pytest Plugin guide](https://github.com/sift-stack/sift/blob/main/pytho
 - [Report assertion message as error info](https://github.com/sift-stack/sift/pull/587)
 - [Pytest docs reorganization](https://github.com/sift-stack/sift/pull/589)
 - [Configurable report name template and preserved pytest command](https://github.com/sift-stack/sift/pull/591)
+- [Use in-process transport to improve test performance](https://github.com/sift-stack/sift/pull/590)
+- [End-of-run report summary panel and session header](https://github.com/sift-stack/sift/pull/594)
+- [Exit instead of raise on connection failure](https://github.com/sift-stack/sift/pull/606)
+- [Flexible report naming and consolidated settings registry](https://github.com/sift-stack/sift/pull/602)
+- [Fix incremental upload resume bug](https://github.com/sift-stack/sift/pull/611)
 
 ## [v0.16.2] - May 21, 2026
 
