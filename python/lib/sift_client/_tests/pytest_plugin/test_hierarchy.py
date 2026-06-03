@@ -311,10 +311,8 @@ def test_transition_between_class_chains_drains_parametrize(
 
 def test_drain_step_stack_continues_past_failing_exit() -> None:
     """Lenient mode: a misbehaving ``__exit__`` must not block the rest of the stack."""
-    from sift_client.pytest_plugin import (
-        SiftPytestStepDrainWarning,
-        _drain_step_stack,
-    )
+    from sift_client._internal.pytest_plugin.steps import drain_step_stack
+    from sift_client.pytest_plugin import SiftPytestStepDrainWarning
 
     class _Good:
         def __init__(self) -> None:
@@ -330,7 +328,7 @@ def test_drain_step_stack_continues_past_failing_exit() -> None:
     g1, g2, bad = _Good(), _Good(), _Bad()
     stack: list[tuple[str, object]] = [("g1", g1), ("bad", bad), ("g2", g2)]
     with pytest.warns(SiftPytestStepDrainWarning, match="boom"):
-        _drain_step_stack(stack)
+        drain_step_stack(stack)
     assert stack == []
     assert g1.closed
     assert g2.closed
@@ -338,10 +336,8 @@ def test_drain_step_stack_continues_past_failing_exit() -> None:
 
 def test_drain_step_stack_strict_drains_fully_then_raises() -> None:
     """Strict mode: drain every frame, then raise with the FIRST failure chained."""
-    from sift_client.pytest_plugin import (
-        SiftPytestStepDrainError,
-        _drain_step_stack,
-    )
+    from sift_client._internal.pytest_plugin.steps import drain_step_stack
+    from sift_client.pytest_plugin import SiftPytestStepDrainError
 
     class _Good:
         def __init__(self) -> None:
@@ -362,7 +358,7 @@ def test_drain_step_stack_strict_drains_fully_then_raises() -> None:
     # one collected and surfaces in __cause__.
     stack: list[tuple[str, object]] = [("g", g), ("b1", b1), ("b2", b2)]
     with pytest.raises(SiftPytestStepDrainError, match="2 step.*'b2'") as exc_info:
-        _drain_step_stack(stack, swallow_errors=False)
+        drain_step_stack(stack, swallow_errors=False)
     # Stack fully drained even though it raised.
     assert stack == []
     assert g.closed
