@@ -34,29 +34,38 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Find latest stable tag
+        id: latest_tag
+        if: inputs.version == ''
+        run: |
+          LATEST_TAG=$(git tag -l 'python/v*' | grep -E '^python/v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
+          if [[ -z "$LATEST_TAG" ]]; then
+            echo "Error: No stable python/v*.*.* tag found. Provide the 'version' input."
+            exit 1
+          fi
+          echo "tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+          echo "Found latest stable tag: $LATEST_TAG"
+
+      - name: Parse latest tag
+        id: parsed
+        if: inputs.version == ''
+        uses: ./.github/actions/python-version-info
+        with:
+          version: ${{ steps.latest_tag.outputs.tag }}
+
       - name: Resolve version and visibility
         id: resolve
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          DERIVED_VERSION: ${{ steps.parsed.outputs.major_minor }}
           HIDDEN_INPUT: ${{ inputs.hidden }}
         run: |
           if [[ -n "$INPUT_VERSION" ]]; then
             VERSION="$INPUT_VERSION"
             echo "Using provided version: $VERSION"
           else
-            LATEST_TAG=$(git tag -l 'python/v*' | grep -E '^python/v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
-            if [[ -z "$LATEST_TAG" ]]; then
-              echo "Error: No stable python/v*.*.* tag found. Provide the 'version' input."
-              exit 1
-            fi
-            FULL_VERSION="${LATEST_TAG#python/}"
-            if [[ "$FULL_VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
-              VERSION="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-              echo "Derived version from $LATEST_TAG: $VERSION"
-            else
-              echo "Error: Could not parse $LATEST_TAG"
-              exit 1
-            fi
+            VERSION="$DERIVED_VERSION"
+            echo "Using version derived from latest stable tag: $VERSION"
           fi
 
           case "$HIDDEN_INPUT" in
