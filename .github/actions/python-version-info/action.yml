@@ -1,0 +1,58 @@
+name: Python version info
+description: >-
+  Parse a Python release version (or git tag) into its components and decide
+  whether it is a pre-release. A trailing suffix on the patch version
+  (e.g. -alpha, -beta, -rc, .dev) marks the version as a pre-release.
+
+inputs:
+  version:
+    description: >-
+      Version or tag to parse, e.g. "python/v0.16.2-rc1", "v0.16.2" or "0.16.2".
+      A leading "python/" tag prefix is stripped automatically.
+    required: true
+
+outputs:
+  full_version:
+    description: 'The version with any "python/" tag prefix removed, e.g. v0.16.2-rc1.'
+    value: ${{ steps.parse.outputs.full_version }}
+  major_minor:
+    description: 'The abbreviated major.minor version, e.g. v0.16.'
+    value: ${{ steps.parse.outputs.major_minor }}
+  suffix:
+    description: 'The pre-release suffix, e.g. -rc1. Empty for stable releases.'
+    value: ${{ steps.parse.outputs.suffix }}
+  is_prerelease:
+    description: '"true" if the version has a pre-release suffix, otherwise "false".'
+    value: ${{ steps.parse.outputs.is_prerelease }}
+
+runs:
+  using: composite
+  steps:
+    - name: Parse version
+      id: parse
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        FULL_VERSION=${INPUT_VERSION#python/}
+
+        if [[ "$FULL_VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.[0-9]+(.+)?$ ]]; then
+          MAJOR=${BASH_REMATCH[1]}
+          MINOR=${BASH_REMATCH[2]}
+          SUFFIX=${BASH_REMATCH[3]}
+        else
+          echo "Error: could not parse version format: $FULL_VERSION"
+          exit 1
+        fi
+
+        if [[ -z "$SUFFIX" ]]; then
+          IS_PRERELEASE="false"
+        else
+          IS_PRERELEASE="true"
+        fi
+
+        echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+        echo "major_minor=v${MAJOR}.${MINOR}" >> "$GITHUB_OUTPUT"
+        echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+        echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+        echo "Parsed $FULL_VERSION -> major_minor=v${MAJOR}.${MINOR}, suffix='$SUFFIX', is_prerelease=$IS_PRERELEASE"
