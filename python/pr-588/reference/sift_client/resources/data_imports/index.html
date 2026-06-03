@@ -2101,7 +2101,8 @@ You're not viewing the latest version.
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">detect_config</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
 
 
   
@@ -2133,8 +2134,8 @@ config is set to the row after the metadata row.</p>
 <p>Enum type definitions and bit field elements can also be specified
 in the metadata row; they are applied server-side during import
 but are not included in the returned config.</p>
-<p>For file types with multiple layouts (e.g. Parquet), <code>data_type</code>
-must be specified explicitly.</p>
+<p>For file types with multiple supported layouts (Parquet, HDF5),
+<code>data_type</code> must be specified explicitly.</p>
 
 
 <table>
@@ -2167,13 +2168,38 @@ must be specified explicitly.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Explicit data type key. Required for formats like
-Parquet where the extension alone is ambiguous.</p>
+                <p>Explicit data type key. Required for formats with
+multiple supported layouts (Parquet, HDF5) where the file
+extension alone is ambiguous.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>time_format</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Time format override. When provided, takes
+precedence over the format returned by detection. When
+omitted, the returned config uses the detected format if
+available, falling back to
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -2243,8 +2269,9 @@ Parquet where the extension alone is ambiguous.</p>
             </td>
             <td class="doc-raises-details">
               <div class="doc-md-description">
-                <p>If the file extension is unsupported or no
-supported configuration could be detected.</p>
+                <p>If the file extension is unsupported, no supported
+configuration could be detected, or <code>data_type</code> was
+omitted for a file format that requires a variant.</p>
               </div>
             </td>
           </tr>
@@ -2398,15 +2425,16 @@ which calls this method internally.</p>
       module-attribute
    (sift_client.sift_types.data_import.ImportConfig)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -2515,14 +2543,40 @@ config before passing it here.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Explicit data type key. Required for formats like
-Parquet where the extension alone is ambiguous. Only used
-when <code>config</code> is not provided.</p>
+                <p>Explicit data type key. Required for formats with
+multiple supported layouts (Parquet, HDF5) where the file
+extension alone is ambiguous. Only used when <code>config</code> is
+not provided.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>time_format</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Time format override. When provided, takes
+precedence over the format returned by detection. When
+omitted, the returned config uses the detected format if
+available, falling back to
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. Only used when
+<code>config</code> is not provided.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>

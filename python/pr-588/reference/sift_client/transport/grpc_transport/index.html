@@ -1027,6 +1027,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.transport.grpc_transport.GrpcClient.is_loop_running" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_loop_running
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1103,6 +1114,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.transport.grpc_transport.GrpcConfig.request_timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;request_timeout
       
     </span>
   </a>
@@ -1425,6 +1447,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.transport.grpc_transport.GrpcClient.is_loop_running" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;is_loop_running
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1501,6 +1534,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.transport.grpc_transport.GrpcConfig.request_timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;request_timeout
       
     </span>
   </a>
@@ -1748,7 +1792,7 @@ It just stores the channel and the stubs, without any additional functionality.<
    (sift_client.transport.grpc_transport.GrpcClient.close)" href="#sift_client.transport.grpc_transport.GrpcClient.close">close</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Close sync and async channels and stop the default loop.</p>
+                  <p>Close sync and async channels and stop the default loop. Idempotent.</p>
                 </div>
               </td>
             </tr>
@@ -1756,7 +1800,7 @@ It just stores the channel and the stubs, without any additional functionality.<
               <td><code><a class="autorefs autorefs-internal" title="            close_sync (sift_client.transport.grpc_transport.GrpcClient.close_sync)" href="#sift_client.transport.grpc_transport.GrpcClient.close_sync">close_sync</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Close the sync channel and all async channels.</p>
+                  <p>Close the sync channel and all async channels. Idempotent.</p>
                 </div>
               </td>
             </tr>
@@ -1797,6 +1841,25 @@ It just stores the channel and the stubs, without any additional functionality.<
                   <span class="doc-attribute-annotation">
                     <b>TYPE:</b>
                       <code><span title="asyncio.AbstractEventLoop">AbstractEventLoop</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            is_loop_running
+
+
+  
+      property
+   (sift_client.transport.grpc_transport.GrpcClient.is_loop_running)" href="#sift_client.transport.grpc_transport.GrpcClient.is_loop_running">is_loop_running</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>Whether the default loop is accepting synchronous API work.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
                   </span>
               </p>
             </td>
@@ -1863,6 +1926,32 @@ It just stores the channel and the stubs, without any additional functionality.<
 
 </div>
 
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.transport.grpc_transport.GrpcClient.is_loop_running" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">is_loop_running</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.transport.grpc_transport.GrpcClient.is_loop_running" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_loop_running</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Whether the default loop is accepting synchronous API work.</p>
+<p>False once a close has begun, so callers can fail fast instead of
+scheduling a coroutine onto a loop that will never run it.</p>
+
+    </div>
+
+</div>
+
 
 
 
@@ -1883,7 +1972,7 @@ It just stores the channel and the stubs, without any additional functionality.<
 
     <div class="doc doc-contents ">
 
-        <p>Close sync and async channels and stop the default loop.</p>
+        <p>Close sync and async channels and stop the default loop. Idempotent.</p>
 
 
     </div>
@@ -1903,7 +1992,7 @@ It just stores the channel and the stubs, without any additional functionality.<
 
     <div class="doc doc-contents ">
 
-        <p>Close the sync channel and all async channels.</p>
+        <p>Close the sync channel and all async channels. Idempotent.</p>
 
 
     </div>
@@ -1954,7 +2043,9 @@ Creates a channel and stub for this loop if needed.</p>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">use_ssl</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">cert_via_openssl</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">request_timeout</span><span class="p">:</span> <span class="n"><span title="float">float</span></span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.grpc_transport.transport.DEFAULT_REQUEST_TIMEOUT_SECONDS">DEFAULT_REQUEST_TIMEOUT_SECONDS</span></span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2078,6 +2169,27 @@ Creates a channel and stub for this loop if needed.</p>
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>request_timeout</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Default deadline in seconds applied to unary RPCs that don't set
+their own. Defaults to 60s. Set to None to disable the default deadline.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="float">float</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code><span title="sift_client._internal.grpc_transport.transport.DEFAULT_REQUEST_TIMEOUT_SECONDS">DEFAULT_REQUEST_TIMEOUT_SECONDS</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -2139,6 +2251,21 @@ Creates a channel and stub for this loop if needed.</p>
   
       instance-attribute
    (sift_client.transport.grpc_transport.GrpcConfig.metadata)" href="#sift_client.transport.grpc_transport.GrpcConfig.metadata">metadata</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            request_timeout
+
+
+  
+      instance-attribute
+   (sift_client.transport.grpc_transport.GrpcConfig.request_timeout)" href="#sift_client.transport.grpc_transport.GrpcConfig.request_timeout">request_timeout</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
                 
@@ -2249,6 +2376,28 @@ Creates a channel and stub for this loop if needed.</p>
 
 <a href="#sift_client.transport.grpc_transport.GrpcConfig.metadata" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">metadata</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.grpc_transport.GrpcConfig(metadata)">metadata</span></span> <span class="ow">or</span> <span class="p">{}</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.transport.grpc_transport.GrpcConfig.request_timeout" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">request_timeout</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_client.transport.grpc_transport.GrpcConfig.request_timeout" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">request_timeout</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.grpc_transport.GrpcConfig(request_timeout)">request_timeout</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
