@@ -2,9 +2,8 @@ use std::path::PathBuf;
 
 use chrono::DateTime;
 use hdf5::types::{EnumMember, EnumType, FloatSize, IntSize, TypeDescriptor};
-use sift_rs::common::r#type::v1::ChannelDataType;
+use sift_rs::common::r#type::v1::{ ChannelDataType, ChannelConfig };
 use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
-
 use crate::cli::hdf5::Hdf5Schema;
 use crate::cli::time::TimeFormat;
 use crate::cli::{CommonImportArgs, ImportHdf5Args};
@@ -390,7 +389,7 @@ fn make_data_config(
     }
 }
 
-fn make_channel(name: &str) -> sift_rs::common::r#type::v1::ChannelConfig {
+fn make_channel(name: &str) -> ChannelConfig {
     sift_rs::common::r#type::v1::ChannelConfig {
         name: name.into(),
         data_type: ChannelDataType::Double as i32,
