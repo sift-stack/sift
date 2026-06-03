@@ -3,6 +3,35 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.17.0] - June 3, 2026
+
+### What's New
+
+#### Update, Archive, and Unarchive Channels
+Channels can now be edited from the Python client. Use `client.channels.update(channel, ChannelUpdate(...))` to change a channel's `description`, `unit`, `metadata`, or archived state, or call `update()`, `archive()`, and `unarchive()` directly on a `Channel`. Units are read and written by name, and `Channel` now exposes `metadata` and `is_archived`.
+
+```python
+channel = client.channels.update(channel, ChannelUpdate(unit="volts", metadata={"calibrated": True}))
+channel.archive()
+```
+
+#### HDF5 Schema Detection
+Data import now detects HDF5 files under three layouts, selected through the `data_type` argument with the new `DataTypeKey.HDF5_ONE_D`, `DataTypeKey.HDF5_TWO_D`, and `DataTypeKey.HDF5_COMPOUND` keys. `detect_config` and `import_from_path` also accept a new `time_format` argument; when omitted, HDF5 imports use `TimeFormat.ABSOLUTE_UNIX_NANOSECONDS`. HDF5 support remains an optional extra (`pip install sift-stack-py[hdf5]`).
+
+#### Configurable Request Timeouts
+gRPC and REST calls now accept a configurable default request timeout. Set `GrpcConfig(request_timeout=...)` for unary gRPC calls and `RestConfig(request_timeout=...)` for REST, both defaulting to 60 seconds. A per-call `timeout` overrides the default, `None` disables it, and long-running operations such as `wait_until_complete` and `wait_and_download` honor their own `timeout_secs`.
+
+### Bugfixes
+- Bound synchronous API calls so they fail fast instead of hanging the calling thread indefinitely when a request stalls or the client has already been closed. ([#613](https://github.com/sift-stack/sift/pull/613))
+- Release the underlying gRPC channels on `close()` and `close_sync()` and make teardown idempotent, eliminating a shutdown warning, stall, and double-close hang at process exit. ([#595](https://github.com/sift-stack/sift/pull/595))
+
+### Full Changelog
+- [Add update, archive, and unarchive to Channel](https://github.com/sift-stack/sift/pull/599)
+- [Add HDF5 schema detection](https://github.com/sift-stack/sift/pull/593)
+- [Add a default gRPC request deadline](https://github.com/sift-stack/sift/pull/609)
+- [Bound sync calls at the transport layer](https://github.com/sift-stack/sift/pull/613)
+- [Fix gRPC client lifecycle so channels are released promptly](https://github.com/sift-stack/sift/pull/595)
+
 ## [v0.16.2] - May 21, 2026
 
 ### Bugfixes
