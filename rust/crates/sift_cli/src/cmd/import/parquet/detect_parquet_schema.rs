@@ -1,6 +1,6 @@
 use crate::cmd::import::utils::validate_time_format;
 use anyhow::{Context, Result};
-use arrow_schema::DataType;
+use arrow_schema::{DataType, Field, TimeUnit};
 use chrono::DateTime;
 use parquet::arrow::parquet_to_arrow_schema;
 use parquet::file::metadata::ParquetMetaDataReader;
@@ -18,12 +18,20 @@ use sift_rs::{
 
 use crate::cli::channel::DataType as CliDataType;
 use crate::cli::parquet::ChannelMode;
+use crate::cli::time::TimeFormat as CliTimeFormat;
 use crate::cli::{ChannelPerRowArgs, FlatDatasetArgs};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeFormatSource {
+    Explicit,
+    InferredFromArrow,
+    Defaulted,
+}
 
 pub fn detect_flat_dataset_config<R: ChunkReader>(
     file: &R,
     args: &FlatDatasetArgs,
-) -> Result<ParquetFlatDatasetConfig> {
+) -> Result<(ParquetFlatDatasetConfig, TimeFormatSource)> {
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
 
     let arrow_schema = parquet_to_arrow_schema(
@@ -32,7 +40,24 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
     )
     .context("detecting flat dataset config arrow schema")?;
 
-    validate_time_format(args.time_format, &args.relative_start_time)
+    let time_field: &Field = match &args.time_path {
+        Some(path) => arrow_schema
+            .fields()
+            .iter()
+            .find(|f| f.name() == path)
+            .map(|f| &**f)
+            .with_context(|| format!("time column '{path}' not found in parquet schema"))?,
+        None => arrow_schema
+            .fields()
+            .iter()
+            .find_map(|f| auto_detect_time_column_field(f))
+            .with_context(auto_detect_failure_message)?,
+    };
+    let time_path = time_field.name().clone();
+
+    let (resolved_format, format_source) = resolve_time_format(args.time_format, time_field);
+
+    validate_time_format(resolved_format, &args.relative_start_time)
         .context("validating time format")?;
 
     let relative_start_time_input = match &args.relative_start_time {
@@ -45,56 +70,112 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
         None => None,
     };
 
-    let mut time_column = None;
+    let time_column = Some(ParquetTimeColumn {
+        relative_start_time: relative_start_time_input,
+        path: time_path.clone(),
+        format: TimeFormat::from(resolved_format).into(),
+    });
+
     let mut data_columns = Vec::new();
-
     for field in arrow_schema.fields() {
-        if field.name() == &args.time_path {
-            time_column = Some(ParquetTimeColumn {
-                relative_start_time: relative_start_time_input,
-                path: args.time_path.clone(),
-                format: TimeFormat::from(args.time_format).into(),
-            });
-        } else if let Some(channel_type) = arrow_type_to_channel_data_type(field.data_type()) {
-            data_columns.push(ParquetDataColumn {
-                path: field.name().to_string(),
-                channel_config: Some(ChannelConfig {
-                    name: field.name().to_string(),
-                    data_type: channel_type.into(),
-                    ..Default::default()
-                }),
-            });
-        } else {
-            anyhow::bail!("unsupported column type for '{}'", field.name());
+        if field.name() == &time_path {
+            continue;
         }
+        let Some(channel_type) = arrow_type_to_channel_data_type(field.data_type()) else {
+            anyhow::bail!("unsupported column type for '{}'", field.name());
+        };
+        data_columns.push(ParquetDataColumn {
+            path: field.name().to_string(),
+            channel_config: Some(ChannelConfig {
+                name: field.name().to_string(),
+                data_type: channel_type.into(),
+                ..Default::default()
+            }),
+        });
     }
 
-    if time_column.is_none() {
-        anyhow::bail!(
-            "time column '{}' not found in parquet schema",
-            args.time_path
-        );
-    }
+    Ok((
+        ParquetFlatDatasetConfig {
+            time_column,
+            data_columns,
+        },
+        format_source,
+    ))
+}
 
-    Ok(ParquetFlatDatasetConfig {
-        time_column,
-        data_columns,
-    })
+fn auto_detect_failure_message() -> String {
+    "could not find a time column — please pass --time-path".to_string()
+}
+
+fn resolve_time_format(
+    user: Option<CliTimeFormat>,
+    time_field: &Field,
+) -> (CliTimeFormat, TimeFormatSource) {
+    if let Some(fmt) = user {
+        return (fmt, TimeFormatSource::Explicit);
+    }
+    match infer_time_format_from_arrow(time_field.data_type()) {
+        Some(fmt) => (fmt, TimeFormatSource::InferredFromArrow),
+        None => (
+            CliTimeFormat::AbsoluteUnixNanoseconds,
+            TimeFormatSource::Defaulted,
+        ),
+    }
+}
+
+pub(super) fn auto_detect_time_column_field(field: &Field) -> Option<&Field> {
+    match field.name().to_lowercase().as_str() {
+        "time" | "timestamp" | "timestamps" | "ts" => Some(field),
+        _ => None,
+    }
+}
+
+pub(super) fn infer_time_format_from_arrow(dt: &DataType) -> Option<CliTimeFormat> {
+    match dt {
+        DataType::Timestamp(TimeUnit::Second, _) => Some(CliTimeFormat::AbsoluteUnixSeconds),
+        DataType::Timestamp(TimeUnit::Millisecond, _) => {
+            Some(CliTimeFormat::AbsoluteUnixMilliseconds)
+        }
+        DataType::Timestamp(TimeUnit::Microsecond, _) => {
+            Some(CliTimeFormat::AbsoluteUnixMicroseconds)
+        }
+        DataType::Timestamp(TimeUnit::Nanosecond, _) => {
+            Some(CliTimeFormat::AbsoluteUnixNanoseconds)
+        }
+        _ => None,
+    }
 }
 
 pub fn detect_channel_per_row_config<R: ChunkReader>(
     file: &R,
     args: &ChannelPerRowArgs,
-) -> Result<ParquetSingleChannelPerRowConfig> {
-    validate_time_format(args.time_format, &args.relative_start_time)
-        .context("validating time format")?;
-
+) -> Result<(ParquetSingleChannelPerRowConfig, TimeFormatSource)> {
     let metadata = ParquetMetaDataReader::new().parse_and_finish(file)?;
     let arrow_schema = parquet_to_arrow_schema(
         metadata.file_metadata().schema_descr(),
         metadata.file_metadata().key_value_metadata(),
     )
     .context("detecting channel-per-row arrow schema")?;
+
+    let time_field: &Field = match &args.time_path {
+        Some(path) => arrow_schema
+            .fields()
+            .iter()
+            .find(|f| f.name() == path)
+            .map(|f| &**f)
+            .with_context(|| format!("time column '{path}' not found in parquet schema"))?,
+        None => arrow_schema
+            .fields()
+            .iter()
+            .find_map(|f| auto_detect_time_column_field(f))
+            .with_context(auto_detect_failure_message)?,
+    };
+    let time_path = time_field.name().clone();
+
+    let (resolved_format, format_source) = resolve_time_format(args.time_format, time_field);
+
+    validate_time_format(resolved_format, &args.relative_start_time)
+        .context("validating time format")?;
 
     let relative_start_time = match &args.relative_start_time {
         Some(start) => {
@@ -105,21 +186,10 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
         None => None,
     };
 
-    arrow_schema
-        .fields()
-        .iter()
-        .find(|field| field.name() == &args.time_path)
-        .with_context(|| {
-            format!(
-                "time column '{}' not found in parquet schema",
-                args.time_path
-            )
-        })?;
-
     let time_column = Some(ParquetTimeColumn {
         relative_start_time,
-        path: args.time_path.clone(),
-        format: TimeFormat::from(args.time_format).into(),
+        path: time_path,
+        format: TimeFormat::from(resolved_format).into(),
     });
 
     let data_field = arrow_schema
@@ -197,11 +267,14 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
         }
     };
 
-    Ok(ParquetSingleChannelPerRowConfig {
-        time_column,
-        columns,
-        config: Some(inner_config),
-    })
+    Ok((
+        ParquetSingleChannelPerRowConfig {
+            time_column,
+            columns,
+            config: Some(inner_config),
+        },
+        format_source,
+    ))
 }
 
 pub(super) fn arrow_type_to_channel_data_type(dt: &DataType) -> Option<ChannelDataType> {

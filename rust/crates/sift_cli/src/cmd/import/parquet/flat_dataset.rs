@@ -11,12 +11,16 @@ use sift_rs::{
     },
 };
 
-use crate::cmd::import::parquet::detect_parquet_schema::detect_flat_dataset_config;
+use crate::cmd::import::parquet::detect_parquet_schema::{
+    TimeFormatSource, detect_flat_dataset_config,
+};
+use crate::cmd::import::parquet::proto_time_format_display;
 use crate::{
     cli::{FlatDatasetArgs, channel::DataType},
     cmd::{
         Context,
         import::{
+            TimePreview,
             parquet::FooterMetadata,
             preview_import_config,
             utils::{try_parse_bit_field_config, try_parse_enum_config, upload_gzipped_file},
@@ -32,13 +36,16 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     let mut file = File::open(&args.common.path).context("failed to open parquet file")?;
     let footer_md = FooterMetadata::try_from(&mut file)?;
 
-    let mut config = {
-        let flat_dataset_config =
+    let (mut config, format_source) = {
+        let (flat_dataset_config, format_source) =
             detect_flat_dataset_config(&file, &args).context("failed to detect parquet schema")?;
-        ParquetConfig {
-            config: Some(Config::FlatDataset(flat_dataset_config)),
-            ..Default::default()
-        }
+        (
+            ParquetConfig {
+                config: Some(Config::FlatDataset(flat_dataset_config)),
+                ..Default::default()
+            },
+            format_source,
+        )
     };
     update_config_with_overrides(&mut config, &args)?;
     let create_data_import_req = create_data_import_request(&args, config, footer_md)?;
@@ -55,6 +62,19 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
             .filter_map(|col| col.channel_config.as_ref())
             .collect::<Vec<&ChannelConfig>>();
 
+        let time_format_display = flatset_conf.time_column.as_ref().map(|tc| {
+            let base = proto_time_format_display(tc.format);
+            if format_source == TimeFormatSource::Defaulted {
+                format!("{base} — defaulted; pass --time-format if incorrect")
+            } else {
+                base
+            }
+        });
+        let time_preview = flatset_conf.time_column.as_ref().map(|tc| TimePreview {
+            path: tc.path.as_str(),
+            format: time_format_display.as_deref().unwrap_or("unspecified"),
+        });
+
         preview_import_config(
             &parquet_conf.asset_name,
             if parquet_conf.run_id.is_empty() {
@@ -62,6 +82,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
             } else {
                 parquet_conf.run_id.as_str()
             },
+            time_preview,
             &channel_confs,
         );
         return Ok(ExitCode::SUCCESS);

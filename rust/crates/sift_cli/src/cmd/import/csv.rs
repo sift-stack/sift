@@ -58,6 +58,7 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
             } else {
                 csv_conf.run_id.as_str()
             },
+            None,
             &channel_confs,
         );
 

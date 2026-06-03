@@ -414,13 +414,13 @@ pub struct FlatDatasetArgs {
     #[arg(short, long)]
     pub bit_field_config: Vec<String>,
 
-    /// Path to the time column
+    /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
     #[arg(short, long)]
-    pub time_path: String,
+    pub time_path: Option<String>,
 
-    /// Time format used in the file
+    /// Time format used in the file. Inferred from the time column's Arrow type if omitted
     #[arg(short = 'f', long)]
-    pub time_format: TimeFormat,
+    pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's', long)]
@@ -440,13 +440,13 @@ pub struct ChannelPerRowArgs {
     #[arg(long)]
     pub mode: ChannelMode,
 
-    /// Path to the time column
+    /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
     #[arg(short, long)]
-    pub time_path: String,
+    pub time_path: Option<String>,
 
-    /// Time format used in the time column
+    /// Time format used in the time column. Inferred from the time column's Arrow type if omitted
     #[arg(short = 'f', long)]
-    pub time_format: TimeFormat,
+    pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's', long)]

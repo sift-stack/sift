@@ -94,12 +94,31 @@ pub async fn wait_for_job_completion(
     Ok(ExitCode::SUCCESS)
 }
 
-fn preview_import_config(asset: &str, run: &str, channel_configs: &[&ChannelConfig]) {
+pub struct TimePreview<'a> {
+    pub path: &'a str,
+    pub format: &'a str,
+}
+
+fn preview_import_config(
+    asset: &str,
+    run: &str,
+    time_preview: Option<TimePreview<'_>>,
+    channel_configs: &[&ChannelConfig],
+) {
     let mut asset_run = Output::new();
     asset_run.line(format!("{}: {asset}", "Asset".green()));
 
     if !run.is_empty() {
         asset_run.line(format!("{}: {run}", "Run".green()));
+    }
+
+    if let Some(tp) = time_preview {
+        asset_run.line(format!(
+            "{}: {} ({})",
+            "Time column".green(),
+            tp.path.cyan(),
+            tp.format
+        ));
     }
     asset_run.print();
 

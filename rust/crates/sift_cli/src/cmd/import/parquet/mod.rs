@@ -11,6 +11,19 @@ pub mod flat_dataset;
 #[cfg(test)]
 mod tests;
 
+use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
+
+pub fn proto_time_format_display(value: i32) -> String {
+    ProtoTimeFormat::try_from(value)
+        .map(|f| {
+            f.as_str_name()
+                .trim_start_matches("TIME_FORMAT_")
+                .to_lowercase()
+                .replace('_', "-")
+        })
+        .unwrap_or_else(|_| "unspecified".to_string())
+}
+
 #[cfg(not(target_os = "windows"))]
 mod unix {
     use anyhow::{Result, anyhow};
