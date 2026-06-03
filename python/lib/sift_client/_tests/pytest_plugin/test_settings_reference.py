@@ -1,4 +1,4 @@
-"""Guard rail that pins the docs settings table to the ``_OPTIONS`` registry.
+"""Guard rail that pins the docs settings table to the ``PLUGIN_OPTIONS`` registry.
 
 If you add or change a setting in ``lib/sift_client/pytest_plugin.py`` without
 regenerating the Markdown table in ``docs/guides/pytest_plugin/configuration.md``,
@@ -25,15 +25,15 @@ def test_settings_reference_docs_in_sync(pytestconfig: pytest.Config) -> None:
         import pytest
 
         pytest.skip(f"{_DOCS_PATH} not present in this checkout")
-    from sift_client.pytest_plugin import _render_settings_reference
+    from sift_client._internal.pytest_plugin.options import render_settings_reference
 
-    rendered = _render_settings_reference()
+    rendered = render_settings_reference()
     content = _DOCS_PATH.read_text()
     if rendered not in content:
         import pytest
 
         pytest.fail(
-            "Settings reference is out of sync with the _OPTIONS registry. Replace the "
+            "Settings reference is out of sync with the PLUGIN_OPTIONS registry. Replace the "
             "table under '## Settings reference' in "
             "docs/guides/pytest_plugin/configuration.md with:\n\n" + rendered
         )

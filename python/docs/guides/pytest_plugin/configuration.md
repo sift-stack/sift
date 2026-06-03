@@ -141,7 +141,7 @@ The plugin scans `SIFT_*` env vars and `[tool.sift.pytest.*]` keys at session
 start; anything outside these tables fires a warning with a closest-match
 suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 
-<!-- BEGIN settings-reference (auto-generated from _OPTIONS in pytest_plugin.py; regenerate via test_settings_reference_docs_in_sync) -->
+<!-- BEGIN settings-reference (auto-generated from PLUGIN_OPTIONS in sift_client/_internal/pytest_plugin/options.py; regenerate via test_settings_reference_docs_in_sync) -->
 ### Pytest behavior
 
 | Setting | CLI flag | Ini (`[tool.pytest.ini_options]`) |

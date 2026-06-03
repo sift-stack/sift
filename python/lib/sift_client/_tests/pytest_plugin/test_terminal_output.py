@@ -13,10 +13,10 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Callable
 
 from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
-from sift_client.pytest_plugin import (
-    _measurement_segments,
-    _resolve_real_report_id,
-    _step_count_segments,
+from sift_client._internal.pytest_plugin.report import resolve_real_report_id
+from sift_client._internal.pytest_plugin.terminal import (
+    measurement_segments,
+    step_count_segments,
 )
 from sift_client.sift_types.test_report import TestStatus
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 class TestStepCountSegments:
     def test_lists_nonzero_statuses_in_order_with_color(self) -> None:
         counts = Counter({TestStatus.PASSED: 4, TestStatus.FAILED: 2, TestStatus.SKIPPED: 1})
-        assert _step_count_segments(counts) == [
+        assert step_count_segments(counts) == [
             ("4 passed", {"green": True}),
             ("2 failed", {"red": True}),
             ("1 skipped", {"yellow": True}),
@@ -37,28 +37,28 @@ class TestStepCountSegments:
 
     def test_error_and_aborted_are_red(self) -> None:
         counts = Counter({TestStatus.ERROR: 1, TestStatus.ABORTED: 1})
-        assert _step_count_segments(counts) == [
+        assert step_count_segments(counts) == [
             ("1 error", {"red": True}),
             ("1 aborted", {"red": True}),
         ]
 
     def test_empty_is_empty(self) -> None:
-        assert _step_count_segments(Counter()) == []
+        assert step_count_segments(Counter()) == []
 
 
 class TestMeasurementSegments:
     def test_passed_green_failed_red(self) -> None:
-        assert _measurement_segments(Counter({True: 2, False: 1})) == [
+        assert measurement_segments(Counter({True: 2, False: 1})) == [
             ("2 passed", {"green": True}),
             ("1 failed", {"red": True}),
         ]
 
     def test_empty_is_empty(self) -> None:
-        assert _measurement_segments(Counter()) == []
+        assert measurement_segments(Counter()) == []
 
 
 class TestResolveRealReportId:
-    """``_resolve_real_report_id`` maps the footer to the real server report id."""
+    """``resolve_real_report_id`` maps the footer to the real server report id."""
 
     def test_synchronous_online_uses_report_id_directly(self) -> None:
         # No log file, non-simulated report (``--sift-log-file=false`` path).
@@ -66,7 +66,7 @@ class TestResolveRealReportId:
             report=SimpleNamespace(id_="real-123", is_simulated=False),
             log_file=None,
         )
-        assert _resolve_real_report_id(context) == "real-123"
+        assert resolve_real_report_id(context) == "real-123"
 
     def test_incremental_resolves_via_sidecar(self, tmp_path: Path) -> None:
         log_file = tmp_path / "run.jsonl"
@@ -76,7 +76,7 @@ class TestResolveRealReportId:
             report=SimpleNamespace(id_="sim-1", is_simulated=True),
             log_file=log_file,
         )
-        assert _resolve_real_report_id(context) == "real-1"
+        assert resolve_real_report_id(context) == "real-1"
 
     def test_empty_report_id_returns_none(self) -> None:
         # An unset/empty id must not produce a ``/test-results/`` link.
@@ -84,7 +84,7 @@ class TestResolveRealReportId:
             report=SimpleNamespace(id_="", is_simulated=False),
             log_file=None,
         )
-        assert _resolve_real_report_id(context) is None
+        assert resolve_real_report_id(context) is None
 
     def test_incremental_unmapped_returns_none(self, tmp_path: Path) -> None:
         # Worker died before mapping the report: no sidecar entry.
@@ -94,7 +94,7 @@ class TestResolveRealReportId:
             report=SimpleNamespace(id_="sim-1", is_simulated=True),
             log_file=log_file,
         )
-        assert _resolve_real_report_id(context) is None
+        assert resolve_real_report_id(context) is None
 
 
 class TestHeader:
