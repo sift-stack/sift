@@ -209,7 +209,7 @@ fn detect_config(path: &Path, fallback_method: TdmsFallbackMethod) -> Result<Vec
     let mut channels_vec: Vec<ChannelConfig> = vec![];
 
     for group in file.groups() {
-        let channels: Vec<(String, &Channel)> = file.channels(&group).into_iter().collect();
+        let channels = file.channels(&group).into_iter().collect::<Vec<_>>();
         let time_channel_name = find_time_channel(&channels);
 
         if let Some(time_name) = time_channel_name.as_ref() && let Some((_, time_channel)) = channels.iter().find(|(n, _)| n == time_name) {
