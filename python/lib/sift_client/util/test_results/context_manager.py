@@ -44,6 +44,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Sentinel for ``create_step``/``new_step``'s ``parent`` argument. Distinguishes
+# "parent omitted -> use the top of the step stack" (the default, linear
+# behavior) from an explicit ``parent=None`` (create at the report root). The
+# pytest plugin passes an explicit parent to build its report tree out of
+# execution order; everyday ``new_step``/``substep`` callers omit it.
+_USE_STACK_TOP = object()
+
 
 def format_truncated_traceback(
     exc: type[BaseException] | None,
@@ -139,8 +146,18 @@ class ReportContext(AbstractContextManager):
     log_file: Path | None
     step_is_open: bool
     step_stack: list[TestStep]
-    step_number_at_depth: dict[int, int]
+    # Per-parent child counter keyed by the parent's ``step_path`` (``""`` is the
+    # root bucket). Drives parent-relative path numbering so two parents at the
+    # same depth never collide and a step's path is stable regardless of the
+    # order siblings are created in.
+    child_counts: dict[str, int]
     open_step_results: dict[str, bool]
+    # Latest child ``end_time`` seen for each parent, keyed by the parent's
+    # ``step_path``. A parent that stays open across the whole run (e.g. a
+    # hierarchy/parametrize parent the pytest plugin holds in its registry) is
+    # closed with this time, so its duration spans first-child-start to
+    # last-descendant-finish rather than wall-clock at session end.
+    parent_end_times: dict[str, datetime]
     any_failures: bool
     # Every step created in this report (including hierarchy/parametrize
     # parents), retained after close so end-of-run summaries can tally final
@@ -204,8 +221,9 @@ class ReportContext(AbstractContextManager):
         self.replay_log_file = replay_log_file
         self.step_is_open = False
         self.step_stack = []
-        self.step_number_at_depth = {}
+        self.child_counts = {}
         self.open_step_results = {}
+        self.parent_end_times = {}
         self.any_failures = False
         self.created_steps = []
         self.created_measurements = []
@@ -368,29 +386,53 @@ class ReportContext(AbstractContextManager):
         description: str | None = None,
         assertion_as_fail_not_error: bool = True,
         metadata: dict[str, str | float | bool] | None = None,
+        *,
+        parent: TestStep | None | object = _USE_STACK_TOP,
+        push: bool = True,
     ) -> NewStep:
-        """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context."""
+        """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context.
+
+        ``parent`` and ``push`` default to the linear, stack-based behavior used
+        by everyday callers. The pytest plugin passes an explicit ``parent`` with
+        ``push=False`` to open report-tree parents that persist outside the stack;
+        see :meth:`create_step`.
+        """
         return NewStep(
             self,
             name=name,
             description=description,
             assertion_as_fail_not_error=assertion_as_fail_not_error,
             metadata=metadata,
+            parent=parent,
+            push=push,
         )
 
-    def get_next_step_path(self) -> str:
-        """Get the next step path for the current depth."""
-        top_step = self.step_stack[-1] if self.step_stack else None
-        step_path = top_step.step_path if top_step else ""
-        next_step_number = self.step_number_at_depth.get(len(self.step_stack), 0) + 1
-        prefix = f"{step_path}." if step_path else ""
-        return f"{prefix}{next_step_number}"
+    def _resolve_parent(self, parent: TestStep | None | object) -> TestStep | None:
+        """Resolve a ``parent`` argument to a concrete parent step (or None for root)."""
+        if parent is _USE_STACK_TOP:
+            return self.step_stack[-1] if self.step_stack else None
+        return parent  # type: ignore[return-value]
+
+    def get_next_step_path(self, parent: TestStep | None | object = _USE_STACK_TOP) -> str:
+        """Preview the path the next step under ``parent`` would get (no side effects).
+
+        Parent-relative: a child's path is ``<parent path>.<nth child>``, or
+        ``<n>`` at the root. Defaults to the top of the step stack so existing
+        callers see the same value the next stacked ``create_step`` will assign.
+        """
+        parent_step = self._resolve_parent(parent)
+        parent_path = parent_step.step_path if parent_step else ""
+        next_number = self.child_counts.get(parent_path, 0) + 1
+        return f"{parent_path}.{next_number}" if parent_path else str(next_number)
 
     def create_step(
         self,
         name: str,
         description: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
+        *,
+        parent: TestStep | None | object = _USE_STACK_TOP,
+        push: bool = True,
     ) -> TestStep:
         """Create a new step in the report context.
 
@@ -400,12 +442,23 @@ class ReportContext(AbstractContextManager):
             metadata: [Optional] Structured key/value metadata to attach to the step. For
                 metadata shared across every step in a report, prefer the `metadata` attribute
                 of the enclosing `TestReport`.
+            parent: The parent step to nest under. ``_USE_STACK_TOP`` (the
+                default) parents to the current top of the step stack — the
+                linear behavior. An explicit ``TestStep`` parents under that step
+                regardless of stack state; explicit ``None`` creates a root step.
+            push: Whether to push the new step onto the step stack. True (the
+                default) for leaf/in-test steps so their substeps nest under
+                them. The pytest plugin passes False for hierarchy/parametrize
+                parents, which live in its own registry and would otherwise
+                trap unrelated steps beneath them.
 
         Returns:
             The created step.
         """
-        step_path = self.get_next_step_path()
-        parent_step = self.step_stack[-1] if self.step_stack else None
+        parent_step = self._resolve_parent(parent)
+        parent_path = parent_step.step_path if parent_step else ""
+        next_number = self.child_counts.get(parent_path, 0) + 1
+        step_path = f"{parent_path}.{next_number}" if parent_path else str(next_number)
 
         step = self.client.test_results.create_step(
             TestStepCreate(
@@ -424,10 +477,9 @@ class ReportContext(AbstractContextManager):
         )
 
         # Update the step tracking structures.
-        self.step_number_at_depth[len(self.step_stack)] = (
-            self.step_number_at_depth.get(len(self.step_stack), 0) + 1
-        )
-        self.step_stack.append(step)
+        self.child_counts[parent_path] = next_number
+        if push:
+            self.step_stack.append(step)
         self.open_step_results[step.step_path] = True
         # Retained for end-of-run tallies; never popped (unlike step_stack).
         self.created_steps.append(step)
@@ -473,15 +525,41 @@ class ReportContext(AbstractContextManager):
                 self.open_step_results[".".join(path_parts[:-1])] = False
         return succeeded
 
-    def exit_step(self, step: TestStep):
-        """Exit a step and update the report context."""
-        self.step_number_at_depth[len(self.step_stack)] = 0
-        stack_top = self.step_stack.pop()
-        self.open_step_results.pop(step.step_path)
+    def note_close(self, step: TestStep) -> None:
+        """Record a just-closed step's ``end_time`` against its parent.
 
-        if stack_top.id_ != step.id_:
+        Lets a long-lived parent (one closed later, out of band) adopt the finish
+        time of its latest child instead of wall-clock at its own close. Keyed by
+        the parent's ``step_path`` (the child path minus its last segment).
+        """
+        end_time = step.end_time
+        if end_time is None:
+            return
+        path_parts = step.step_path.split(".")
+        if len(path_parts) <= 1:
+            return
+        parent_path = ".".join(path_parts[:-1])
+        previous = self.parent_end_times.get(parent_path)
+        if previous is None or end_time > previous:
+            self.parent_end_times[parent_path] = end_time
+
+    def exit_step(self, step: TestStep):
+        """Exit a step and update the report context.
+
+        Stacked steps (leaves and their in-test substeps) close in strict LIFO
+        order, so a step that isn't the current top of the stack is a real
+        invariant break. Steps created with an explicit parent and ``push=False``
+        (the pytest plugin's hierarchy/parametrize parents) never sit on the
+        stack and may close in any order — clearing ``open_step_results`` is all
+        that's needed; their result was already propagated to their own parent.
+        """
+        self.open_step_results.pop(step.step_path, None)
+        if self.step_stack and self.step_stack[-1].id_ == step.id_:
+            self.step_stack.pop()
+            return
+        if any(s.id_ == step.id_ for s in self.step_stack):
             raise ValueError(
-                "The popped step was not the top of the stack. This should never happen."
+                "exit_step called out of LIFO order for a stacked step. This should never happen."
             )
 
 
@@ -496,6 +574,9 @@ class NewStep(AbstractContextManager):
     # status was already resolved upstream and ``__exit__`` should skip
     # re-classifying. Read via ``getattr`` so unset is treated as False.
     _sift_managed_externally: bool = False
+    # Set by the pytest plugin when finalizing a long-lived parent so ``__exit__``
+    # stamps its last-descendant finish time instead of wall-clock at close.
+    _sift_end_time_override: datetime | None = None
 
     def __init__(
         self,
@@ -504,6 +585,9 @@ class NewStep(AbstractContextManager):
         description: str | None = None,
         assertion_as_fail_not_error: bool = True,
         metadata: dict[str, str | float | bool] | None = None,
+        *,
+        parent: TestStep | None | object = _USE_STACK_TOP,
+        push: bool = True,
     ):
         """Initialize a new step context.
 
@@ -513,10 +597,14 @@ class NewStep(AbstractContextManager):
             description: The description of the step.
             assertion_as_fail_not_error: Mark steps with assertion errors as failed instead of error+traceback (some users want assertions to work as simple failures especially when using pytest).
             metadata: [Optional] Structured key/value metadata to attach to the step.
+            parent: Parent step to nest under; see :meth:`ReportContext.create_step`.
+            push: Whether the step joins the step stack; see :meth:`ReportContext.create_step`.
         """
         self.report_context = report_context
         self.client = report_context.client
-        self.current_step = self.report_context.create_step(name, description, metadata=metadata)
+        self.current_step = self.report_context.create_step(
+            name, description, metadata=metadata, parent=parent, push=push
+        )
         self.assertion_as_fail_not_error = assertion_as_fail_not_error
         # Per-step measurement-failure count for ``measurements_passed``.
         # Tracks only direct ``measure*`` calls on this NewStep instance;
@@ -573,6 +661,7 @@ class NewStep(AbstractContextManager):
         exc: type[Exception] | None,
         exc_value: Exception | None,
         tb: traceback.TracebackException | None,
+        end_time: datetime | None = None,
     ) -> bool:
         """Update the step based on its substeps and if there was an exception while executing the step.
 
@@ -580,6 +669,10 @@ class NewStep(AbstractContextManager):
             exc: The class of Exception that was raised.
             exc_value: The exception value.
             tb: The traceback object.
+            end_time: Explicit end_time to stamp. Defaults to now(); the pytest
+                plugin passes the last-child finish time when closing a long-lived
+                parent so its duration reflects its subtree rather than its own
+                late close.
 
         returns: The false if step failed or errored, true otherwise.
         """
@@ -637,10 +730,11 @@ class NewStep(AbstractContextManager):
         current_step.update(
             {
                 "status": status,
-                "end_time": datetime.now(timezone.utc),
+                "end_time": end_time if end_time is not None else datetime.now(timezone.utc),
                 "error_info": error_info,
             },
         )
+        self.report_context.note_close(current_step)
 
         return result
 
@@ -654,20 +748,24 @@ class NewStep(AbstractContextManager):
             if current_step is None:
                 # The step was never opened; nothing to propagate.
                 return True
+            override = getattr(self, "_sift_end_time_override", None)
             result = self.report_context.propagate_step_result(current_step, current_step.status)
             current_step.update(
                 {
                     "status": current_step.status,
-                    "end_time": datetime.now(timezone.utc),
+                    "end_time": override if override is not None else datetime.now(timezone.utc),
                     "error_info": current_step.error_info,
                 },
             )
+            self.report_context.note_close(current_step)
             self.report_context.exit_step(current_step)
             if hasattr(self, "force_result"):
                 result = self.force_result
             return result
 
-        result = self.update_step_from_result(exc, exc_value, tb)
+        result = self.update_step_from_result(
+            exc, exc_value, tb, end_time=getattr(self, "_sift_end_time_override", None)
+        )
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
         self.report_context.exit_step(self.current_step)

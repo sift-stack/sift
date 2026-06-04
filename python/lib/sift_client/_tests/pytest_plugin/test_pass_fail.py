@@ -61,6 +61,12 @@ def _run(pytester, body: str) -> None:
         "--sift-offline",
         f"--sift-log-file={log_path}",
         "--no-sift-git-metadata",
+        # Pin the inner session to definition order so ``test_sift_warmup`` runs
+        # before a marker-skipped ``test_x`` (see ``_WARMUP``). ``-p no:randomly``
+        # is a no-op when pytest-randomly isn't installed, and keeps these tests
+        # deterministic when it is.
+        "-p",
+        "no:randomly",
     )
 
 

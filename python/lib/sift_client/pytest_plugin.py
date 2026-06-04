@@ -47,12 +47,12 @@ from sift_client._internal.pytest_plugin.report import (
 from sift_client._internal.pytest_plugin.steps import (
     build_hierarchy_chain,
     build_parametrize_path,
-    drain_hierarchy_stack,
-    drain_parametrize_stack,
+    finalize_parents,
+    get_or_create_parent_chain,
     hierarchy_key,
     parametrize_path_key,
-    reconcile_hierarchy,
-    reconcile_parametrize,
+    release_finished_leaf,
+    tally_expected_parents,
 )
 from sift_client._internal.pytest_plugin.terminal import (
     maybe_open_report,
@@ -71,7 +71,6 @@ __all__ = [
     "SIFT_REPORT_ID_STASH_KEY",
     "SIFT_REPORT_URL_STASH_KEY",
     "SiftPytestPluginWarning",
-    "SiftPytestStepDrainError",
     "SiftPytestStepDrainWarning",
     "client_has_connection",
     "report_context",
@@ -90,16 +89,12 @@ class SiftPytestPluginWarning(SiftWarning):
 
 
 class SiftPytestStepDrainWarning(SiftPytestPluginWarning):
-    """A step's ``__exit__`` raised while the plugin was draining its stack.
+    """A parent step's ``__exit__`` raised while the plugin was closing it.
 
-    Surfaced at module-teardown or session-end so the drain can continue and
-    pytest test outcomes stay unaffected; the underlying exception is included
-    in the message for debugging.
+    Surfaced when a parent step is closed (early as its subtree finishes, or at
+    session end) so the close can continue and pytest test outcomes stay
+    unaffected; the underlying exception is included in the message for debugging.
     """
-
-
-class SiftPytestStepDrainError(RuntimeError):
-    """Raised when mid-session drain fails, signaling a likely upstream invariant break."""
 
 
 # ---------------------------------------------------------------------------
@@ -220,10 +215,9 @@ def report_context(
 
     The fixture is no longer autouse; it's instantiated on the first call
     to ``request.getfixturevalue("report_context")``, which today happens
-    inside the gated ``step``, ``_hierarchy_parents``, and
-    ``_parametrize_parents`` fixtures. If every test in the session is
-    excluded via the marker gate, this fixture is never resolved and no
-    ReportContext (or teardown subprocess) is created.
+    inside the gated ``step`` and ``_sift_parents`` fixtures. If every test in
+    the session is excluded via the marker gate, this fixture is never resolved
+    and no ReportContext (or teardown subprocess) is created.
 
     What gets yielded depends on the mode:
 
@@ -274,7 +268,7 @@ def report_context(
 def step(
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
-    _parametrize_parents: None,
+    _sift_parents: None,
 ) -> Generator[NewStep | None, None, None]:
     """Create an outer step for the function when the Sift gate is on.
 
@@ -294,39 +288,24 @@ def step(
 
 
 @pytest.fixture(autouse=True)
-def _hierarchy_parents(
+def _sift_parents(
     request: pytest.FixtureRequest,
     pytestconfig: pytest.Config,
 ) -> None:
-    """Open/close hierarchy parent steps (packages, modules, classes) for the current item.
+    """Resolve (get-or-create) the report-tree parent for the current item.
 
-    Gated off when the item is excluded (avoids eager ``report_context`` setup);
-    otherwise delegates to ``reconcile_hierarchy``, which diffs the item's
-    ancestor chain against the open stack and opens/closes parents to match.
+    Builds the item's hierarchy (packages / modules / classes) and parametrize
+    parents via ``get_or_create_parent_chain`` and stashes the innermost one on
+    the node as ``_sift_parent`` for the ``step`` fixture to nest the leaf under.
+    Parents are keyed by identity and reused across sibling items in any order, so
+    no reordering of test items is needed.
+
+    Gated off when the item is excluded so excluded items never eagerly create
+    ``report_context`` (preserving its lazy, first-gated-test creation).
     """
     if not gate_enabled(request.node, pytestconfig):
         return
-    reconcile_hierarchy(request, pytestconfig)
-
-
-@pytest.fixture(autouse=True)
-def _parametrize_parents(
-    request: pytest.FixtureRequest,
-    pytestconfig: pytest.Config,
-    _hierarchy_parents: None,
-) -> None:
-    """Open/close shared parametrize parent steps for the current item.
-
-    Ordered after ``_hierarchy_parents`` so parametrize parents nest inside the
-    hierarchy ones. Gated off when the item is excluded (so excluded items don't
-    eagerly request ``report_context``); otherwise delegates to
-    ``reconcile_parametrize``, which also no-ops when
-    ``sift_parametrize_nesting=false``. Parents persist until a later test's
-    chain pops them, or until ``pytest_sessionfinish`` drains the rest.
-    """
-    if not gate_enabled(request.node, pytestconfig):
-        return
-    reconcile_parametrize(request, pytestconfig)
+    request.node._sift_parent = get_or_create_parent_chain(request.node, pytestconfig, request)
 
 
 # ---------------------------------------------------------------------------
@@ -359,28 +338,32 @@ def pytest_configure(config: pytest.Config) -> None:
     warn_on_unknown_toml_keys(config)
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """Stash each item's class chain + parametrize path and cluster siblings.
+def pytest_itemcollected(item: pytest.Item) -> None:
+    """Cache each test item's hierarchy chain and parametrize path at collection.
 
-    Sorts by ``(file_path, hierarchy_chain, parametrize_path)`` so sibling
-    items under a shared parent (package, module, class, or parametrize axis)
-    stay contiguous; otherwise a free function sorting between two class
-    methods would tear down + re-open the class step, producing duplicate
-    parents in the report tree.
+    This is a per-item hook, not ``pytest_collection_modifyitems`` — the plugin
+    never touches the ``items`` list or its order, so it cannot conflict with a
+    user's (or another plugin's) collection-ordering hook. The report tree is
+    built from an identity-keyed registry (see ``get_or_create_parent_chain``),
+    so item order is irrelevant to nesting; ``pytest-randomly``,
+    ``pytest-ordering``, and pytest's own fixture-scope reordering are all
+    preserved untouched.
+
+    The stash is a cache the autouse fixtures read back; both keys have an
+    on-demand recompute fallback, so an item a later hook injects without going
+    through this hook still resolves correctly.
     """
-    for item in items:
-        item.stash[hierarchy_key] = build_hierarchy_chain(item, config)
-        item.stash[parametrize_path_key] = build_parametrize_path(item)
-    # Use ``.get(...)`` defensively: a third-party hook may inject items after
-    # our stashing loop runs, and we'd rather sort them at the tail than
-    # KeyError out of collection.
-    items.sort(
-        key=lambda i: (
-            str(i.path),
-            tuple(identity for identity, _, _, _ in i.stash.get(hierarchy_key, ())),
-            i.stash.get(parametrize_path_key, ()),
-        )
-    )
+    item.stash[hierarchy_key] = build_hierarchy_chain(item, item.config)
+    item.stash[parametrize_path_key] = build_parametrize_path(item)
+
+
+def pytest_collection_finish(session: pytest.Session) -> None:
+    """Tally each parent's descendant leaves so parents can close mid-session.
+
+    Delegates to ``tally_expected_parents``; runs after deselection so the counts
+    reflect only the selected, gated-in items. See ``release_finished_leaf``.
+    """
+    tally_expected_parents(session)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -414,18 +397,26 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         finalize_after_teardown(item, report)
 
 
-def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    """Drain any parent steps still open at session end (innermost first).
+def pytest_runtest_logfinish(nodeid: str, location: tuple[str, int | None, str]) -> None:
+    """Close report-tree parents whose subtree finished with this item.
 
-    Wrapped so a failure in the inner drain does not prevent the outer one
-    from running. With ``module_substep`` removed, this is the sole place
-    where hierarchy parents close; they persist across all tests and only
-    drain when the session ends.
+    Fires once per item (pass / fail / skip / error); delegates to
+    ``release_finished_leaf``, which decrements the item's parents' remaining-leaf
+    counts and closes any that reach zero — so containers resolve progressively
+    rather than all at session end.
     """
-    try:
-        drain_parametrize_stack()
-    finally:
-        drain_hierarchy_stack()
+    release_finished_leaf(nodeid)
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Close any report-tree parents still open at session end (innermost first).
+
+    Normally a no-op: ``report_context_impl`` finalizes the parents inside the
+    ``ReportContext`` block so their updates reach the log before the import
+    worker drains, and most parents already closed early as their subtrees
+    finished. This is the idempotent backstop for anything still open.
+    """
+    finalize_parents()
 
 
 def pytest_report_header(config: pytest.Config) -> str | None:
