@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Iterator
 from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionConfigStreamingLowLevelClient,
     IngestionLowLevelClient,
+    _build_sift_stream_instance,
 )
 from sift_client.errors import _sift_stream_bindings_import_error
 from sift_client.resources._base import ResourceBase
@@ -26,6 +27,8 @@ if TYPE_CHECKING:
         MetadataPy,
         RetryPolicyPy,
         RunFormPy,
+        RunSelectorPy,
+        SiftStreamAutoRegisterPy,
         SiftStreamMetricsSnapshotPy,
     )
 
@@ -192,6 +195,66 @@ class IngestionAPIAsync(ResourceBase):
             checkpoint_interval_seconds=checkpoint_interval_seconds,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
+        )
+
+    async def create_auto_register_streaming_client(
+        self,
+        ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
+        *,
+        run: RunCreate | dict | str | Run | None = None,
+        asset_tags: list[str] | list[Tag] | None = None,
+        asset_metadata: dict[str, str | float | bool] | None = None,
+        streaming_mode: StreamingMode = StreamingMode.LIVE_WITH_BACKUPS,
+        retry_policy: RetryPolicyPy | None = None,
+        disk_backup_policy: DiskBackupPolicyPy | None = None,
+        checkpoint_interval_seconds: int | None = None,
+        enable_tls: bool = True,
+        tracing_config: TracingConfig | None = None,
+        staged_configs: list[FlowConfig] | None = None,
+    ) -> AutoRegisterStreamingClient:
+        """Create an `AutoRegisterStreamingClient`.
+
+        Flows are registered automatically on first send — no pre-declared schema is required.
+        Pre-registering known flows via the `ingestion_config` argument is still supported:
+        those flows are placed in the local cache at build time and bypass the registration
+        step on first send, so latency is the same as `create_ingestion_config_streaming_client`.
+
+        Args:
+            ingestion_config: The ingestion config. Use `IngestionConfigCreate` with `flows=[]`
+                for a fully schema-free start, or provide flow definitions to pre-register known
+                flows and avoid any first-send latency for those flows.
+            run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
+            asset_tags: Tags to associate with the asset.
+            asset_metadata: Metadata to associate with the asset.
+            streaming_mode: Transport mode for the stream. Defaults to LIVE_WITH_BACKUPS.
+            retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
+            disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
+            checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
+            enable_tls: Whether to enable TLS for the connection.
+            tracing_config: Configuration for SiftStream tracing.
+            staged_configs: Optional flow configs to use when auto-registering flows for the first
+                time. When a staged config exists for a flow, it is used for registration instead
+                of a minimal derived config, preserving units, descriptions, and other metadata.
+                The staged config is validated against the flow's channel names and types before
+                use; a mismatch raises `RuntimeError`. Each staged config is consumed after
+                successful registration.
+
+        Returns:
+            An initialized `AutoRegisterStreamingClient`.
+        """
+        return await AutoRegisterStreamingClient._create(
+            self.client,
+            ingestion_config=ingestion_config,
+            run=run,
+            asset_tags=asset_tags,
+            asset_metadata=asset_metadata,
+            streaming_mode=streaming_mode,
+            retry_policy=retry_policy,
+            disk_backup_policy=disk_backup_policy,
+            checkpoint_interval_seconds=checkpoint_interval_seconds,
+            enable_tls=enable_tls,
+            tracing_config=tracing_config,
+            staged_configs=staged_configs,
         )
 
 
@@ -452,25 +515,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         Args:
             run: The run to attach. Can be a Run, RunCreate, dict, run ID string, or RunFormPy.
         """
-        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
-        from sift_stream_bindings import RunFormPy, RunSelectorPy
-
-        if isinstance(run, RunFormPy):
-            run_selector_py = RunSelectorPy.by_form(run)
-        elif isinstance(run, dict):
-            run_create = RunCreate.model_validate(run)
-            run_form_py = run_create._to_rust_form()
-            run_selector_py = RunSelectorPy.by_form(run_form_py)
-        elif isinstance(run, Run):
-            if run.id_ is None:
-                raise ValueError("The Run object must contain a run_id")
-            run_selector_py = RunSelectorPy.by_id(run.id_)
-        elif isinstance(run, RunCreate):
-            run_form_py = run._to_rust_form()
-            run_selector_py = RunSelectorPy.by_form(run_form_py)
-        elif isinstance(run, str):
-            run_selector_py = RunSelectorPy.by_id(run)
-
+        run_selector_py = _to_run_selector(run)
         await self._low_level_client.attach_run(run_selector_py)
 
     def detach_run(self):
@@ -512,6 +557,209 @@ class IngestionConfigStreamingClient(ResourceBase):
             A snapshot of the current stream metrics.
         """
         return self._low_level_client.get_metrics_snapshot()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.finish()
+
+
+def _to_run_selector(run: RunCreate | dict | str | Run | RunFormPy) -> RunSelectorPy:
+    """Convert a run argument to a `RunSelectorPy` for use with the Rust binding."""
+    from sift_stream_bindings import RunFormPy, RunSelectorPy
+
+    if isinstance(run, RunFormPy):
+        return RunSelectorPy.by_form(run)
+    elif isinstance(run, dict):
+        run_selector = RunSelectorPy.by_form(RunCreate.model_validate(run)._to_rust_form())
+        return run_selector
+    elif isinstance(run, Run):
+        if run.id_ is None:
+            raise ValueError("The Run object must contain a run_id")
+        return RunSelectorPy.by_id(run.id_)
+    elif isinstance(run, RunCreate):
+        return RunSelectorPy.by_form(run._to_rust_form())
+    elif isinstance(run, str):
+        return RunSelectorPy.by_id(run)
+    raise TypeError(f"Unsupported run type: {type(run)}")
+
+
+class AutoRegisterStreamingClient(ResourceBase):
+    """Streaming client that automatically registers flows on first send.
+
+    Unlike `IngestionConfigStreamingClient`, this client requires no pre-declared flow
+    schemas. On the first `send` for a given flow name, a `FlowConfig` is derived from
+    the channel values in the `Flow` and registered with Sift before sending. Subsequent
+    sends for the same flow name are cache-hits with no additional overhead.
+
+    Pre-registering known flows via the `ingestion_config` argument is still supported and
+    recommended when schemas are known upfront — those flows bypass the registration step
+    entirely, so first-send latency is identical to `IngestionConfigStreamingClient`.
+
+    Use `IngestionAPIAsync.create_auto_register_streaming_client` to create an instance.
+    Do not instantiate this class directly.
+    """
+
+    _stream: SiftStreamAutoRegisterPy
+
+    def __init__(self, sift_client: SiftClient, stream: SiftStreamAutoRegisterPy):
+        super().__init__(sift_client)
+        self._stream = stream
+
+    @classmethod
+    async def _create(
+        cls,
+        sift_client: SiftClient,
+        ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
+        *,
+        run: RunCreate | dict | str | Run | RunFormPy | None = None,
+        asset_tags: list[str] | list[Tag] | None = None,
+        asset_metadata: dict[str, str | float | bool] | None = None,
+        streaming_mode: StreamingMode = StreamingMode.LIVE_WITH_BACKUPS,
+        retry_policy: RetryPolicyPy | None = None,
+        disk_backup_policy: DiskBackupPolicyPy | None = None,
+        checkpoint_interval_seconds: int | None = None,
+        enable_tls: bool = True,
+        tracing_config: TracingConfig | None = None,
+        staged_configs: list[FlowConfig] | None = None,
+    ) -> AutoRegisterStreamingClient:
+        try:
+            from sift_stream_bindings import (
+                IngestionConfigFormPy,
+                MetadataPy,
+                MetadataValuePy,
+                RunFormPy,
+                SiftStreamAutoRegisterPy,
+            )
+        except ImportError as e:
+            _sift_stream_bindings_import_error(e)
+
+        grpc_config = sift_client.grpc_client._config
+        api_key = grpc_config.api_key
+        grpc_uri = grpc_config.uri
+
+        if isinstance(ingestion_config, IngestionConfig):
+            asset = sift_client.assets.get(asset_id=ingestion_config.asset_id)
+            ingestion_config_form = IngestionConfigFormPy(
+                asset_name=asset.name,
+                client_key=ingestion_config.client_key,
+                flows=[],
+            )
+        elif isinstance(ingestion_config, IngestionConfigCreate):
+            ingestion_config_form = ingestion_config._to_rust_form()
+        else:
+            ingestion_config_form = ingestion_config
+
+        run_form: RunFormPy | None = None
+        run_id: str | None = None
+        if isinstance(run, RunFormPy):
+            run_form = run
+        elif isinstance(run, str):
+            run_id = run
+        elif isinstance(run, dict):
+            run_form = RunCreate.model_validate(run)._to_rust_form()
+        elif isinstance(run, Run):
+            run_id = run._id_or_error
+        elif isinstance(run, RunCreate):
+            run_form = run._to_rust_form()
+
+        asset_tags_list: list[str] | None = None
+        if asset_tags is not None:
+            asset_tags_list = [tag.name if isinstance(tag, Tag) else tag for tag in asset_tags]
+
+        asset_metadata_list: list[MetadataPy] | None = None
+        if asset_metadata is not None:
+            asset_metadata_list = [
+                MetadataPy(key=key, value=MetadataValuePy(value))
+                for key, value in asset_metadata.items()
+            ]
+
+        sift_stream = await _build_sift_stream_instance(
+            api_key=api_key,
+            grpc_uri=grpc_uri,
+            ingestion_config_form=ingestion_config_form,
+            run_form=run_form,
+            run_id=run_id,
+            asset_tags=asset_tags_list,
+            asset_metadata=asset_metadata_list,
+            streaming_mode=streaming_mode,
+            retry_policy=retry_policy,
+            disk_backup_policy=disk_backup_policy,
+            checkpoint_interval_seconds=checkpoint_interval_seconds,
+            enable_tls=enable_tls,
+            tracing_config=tracing_config,
+        )
+
+        staged_configs_py = (
+            [cfg._to_rust_config() for cfg in staged_configs] if staged_configs else None
+        )
+        auto_stream = await SiftStreamAutoRegisterPy.from_stream(
+            sift_stream, staged_configs=staged_configs_py
+        )
+        instance = cls.__new__(cls)
+        instance._sift_client = sift_client
+        instance._stream = auto_stream
+        return instance
+
+    async def send(self, flow: Flow | FlowPy) -> None:
+        """Send a flow, auto-registering it with Sift if not already in the local cache.
+
+        On the first call for a given flow name, a `FlowConfig` is derived from the channel
+        values and registered before sending. Subsequent calls for the same flow name skip
+        registration entirely.
+
+        Args:
+            flow: The flow to send.
+        """
+        flow_py = flow._to_rust_form() if isinstance(flow, Flow) else flow
+        await self._stream.send(flow_py)
+
+    def get_flow_descriptor(self, flow_name: str) -> FlowDescriptorPy:
+        """Retrieve the flow descriptor for a given flow name from the local cache.
+
+        Args:
+            flow_name: The flow name to look up.
+
+        Raises:
+            RuntimeError: If the flow has not been registered yet.
+        """
+        return self._stream.get_flow_descriptor(flow_name)
+
+    async def attach_run(self, run: RunCreate | dict | str | Run | RunFormPy) -> None:
+        """Attach a run to the stream.
+
+        Data sent after this call will be associated with the specified run.
+
+        Args:
+            run: The run to attach. Can be a Run, RunCreate, dict, run ID string, or RunFormPy.
+        """
+        await self._stream.attach_run(_to_run_selector(run))
+
+    def detach_run(self) -> None:
+        """Detach the run, if any, currently associated with the stream."""
+        self._stream.detach_run()
+
+    def get_run_id(self) -> str | None:
+        """Return the ID of the attached run, or None if no run is attached."""
+        return self._stream.run()
+
+    def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy:
+        """Retrieve a snapshot of the current stream metrics.
+
+        NOTE: The returned metrics snapshot is currently an unstable feature and may change at any time.
+
+        Returns:
+            A snapshot of the current stream metrics.
+        """
+        return self._stream.get_metrics_snapshot()
+
+    async def finish(self) -> None:
+        """Drain remaining data and gracefully shut down the stream.
+
+        Must be called when ingestion is complete to ensure all data reaches Sift.
+        """
+        await self._stream.finish()
 
     async def __aenter__(self):
         return self
