@@ -81,9 +81,15 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
         .context("error creating data import for hdf5")?
         .into_inner();
 
-    let job_id = upload_gzipped_file(&ctx, &upload_url, file, "application/x-hdf5")
-        .await
-        .context("failed to upload hdf5 file")?;
+    let job_id = upload_gzipped_file(
+        &ctx,
+        &upload_url,
+        file,
+        &args.common.path,
+        "application/x-hdf5",
+    )
+    .await
+    .context("failed to upload hdf5 file")?;
 
     let location = args.common.run.as_ref().map_or_else(
         || format!("asset '{}'", args.common.asset.cyan()),

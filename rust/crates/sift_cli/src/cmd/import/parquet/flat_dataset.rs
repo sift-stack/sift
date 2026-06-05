@@ -95,9 +95,15 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
         .into_inner();
 
     file.rewind()?;
-    let job_id = upload_gzipped_file(&ctx, &upload_url, file, "application/vnd.apache.parquet")
-        .await
-        .context("failed to upload Parquet file")?;
+    let job_id = upload_gzipped_file(
+        &ctx,
+        &upload_url,
+        file,
+        &args.common.path,
+        "application/vnd.apache.parquet",
+    )
+    .await
+    .context("failed to upload Parquet file")?;
 
     let location = args.common.run.as_ref().map_or_else(
         || format!("asset '{}'", args.common.asset.cyan()),

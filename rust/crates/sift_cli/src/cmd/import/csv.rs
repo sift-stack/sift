@@ -72,7 +72,7 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
         .into_inner();
 
     csv_file.rewind()?;
-    let job_id = upload_gzipped_file(&ctx, &upload_url, csv_file, "text/csv")
+    let job_id = upload_gzipped_file(&ctx, &upload_url, csv_file, &args.path, "text/csv")
         .await
         .context("failed to upload CSV file")?;
 
