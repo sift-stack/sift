@@ -61,10 +61,8 @@ from sift_client._internal.pytest_plugin.terminal import (
 )
 from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import TestStatus
-
-if TYPE_CHECKING:
-    from sift_client.util.test_results import ReportContext
-    from sift_client.util.test_results.context_manager import NewStep
+from sift_client.util.test_results import ReportContext
+from sift_client.util.test_results.context_manager import NewStep
 
 __all__ = [
     "REPORT_CONTEXT",
@@ -77,6 +75,8 @@ __all__ = [
     "report_context",
     "sift_client",
     "step",
+    "NewStep",
+    "ReportContext",
 ]
 
 
