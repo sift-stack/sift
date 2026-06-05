@@ -1,31 +1,46 @@
 use std::{
     fs::File,
     io::{self, BufReader, Read},
+    path::Path,
 };
 
 use anyhow::{Context, Result, anyhow};
 use flate2::{Compression, write::GzEncoder};
-use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
+use reqwest::header::{CONTENT_DISPOSITION, CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelEnumType};
 
 use crate::{cli::time::TimeFormat, cmd::Context as CmdContext, util::api::create_rest_client};
 
 /// Gzip and upload a file to a pre-signed upload URL with the given content type.
-/// Reads from the file's current cursor position. Returns the job ID from the
-/// upload response.
+/// Reads from the file's current cursor position. The basename of `source_path`
+/// is forwarded as the Content-Disposition filename so the server preserves it
+/// as the download name; the server sanitizes it further. Returns the job ID
+/// from the upload response.
 pub async fn upload_gzipped_file(
     ctx: &CmdContext,
     upload_url: &str,
     file: File,
+    source_path: &Path,
     content_type: &str,
 ) -> Result<String> {
     let compressed_data = gzip_file(file)?;
     let rest_client = create_rest_client(ctx).context("failed to create rest client")?;
 
+    let file_name = source_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(|n| n.replace(['"', '\\'], "_"))
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| "upload".to_string());
+
     let res = rest_client
         .post(upload_url)
         .header(CONTENT_ENCODING, "gzip")
         .header(CONTENT_TYPE, content_type)
+        .header(
+            CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{file_name}\""),
+        )
         .body(compressed_data)
         .send()
         .await

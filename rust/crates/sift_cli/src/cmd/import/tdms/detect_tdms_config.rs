@@ -69,9 +69,15 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
         .context("error creating data import for tdms")?
         .into_inner();
 
-    let job_id = upload_gzipped_file(&ctx, &upload_url, file, "application/octet-stream")
-        .await
-        .context("failed to upload tdms file")?;
+    let job_id = upload_gzipped_file(
+        &ctx,
+        &upload_url,
+        file,
+        &args.common.path,
+        "application/octet-stream",
+    )
+    .await
+    .context("failed to upload tdms file")?;
 
     let location = args.common.run.as_ref().map_or_else(
         || format!("asset '{}'", args.common.asset.cyan()),
