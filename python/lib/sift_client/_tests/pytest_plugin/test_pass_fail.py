@@ -171,13 +171,13 @@ def test_fail_if_measurements_failed_passes_when_in_bounds(inner):
     assert capture.final_status("test_x") == TestStatus.PASSED
 
 
-def test_keyboard_interrupt_leaves_step_in_progress(inner):
+def test_keyboard_interrupt_resolves_step_to_aborted(inner):
     # Case: CALL-06
     # KeyboardInterrupt aborts the session before the call-phase makereport
-    # fires; the plugin can't observe the interrupt. The contract is that
-    # the step is left in IN_PROGRESS rather than being silently resolved
-    # to PASSED — a session-aborting interrupt should not look like a clean
-    # pass in the report.
+    # fires; the plugin can't observe the interrupt directly. Setup completed
+    # but no call outcome was seen, so the step resolves to ABORTED rather than
+    # being left IN_PROGRESS (a finalized report should not carry a step that
+    # still reads as in-progress) or coerced to PASSED.
     try:
         _run(
             inner,
@@ -190,7 +190,7 @@ def test_keyboard_interrupt_leaves_step_in_progress(inner):
         pass
     outer = capture.test_step("test_x")
     assert outer is not None
-    assert outer.statuses[-1] == TestStatus.IN_PROGRESS
+    assert outer.statuses[-1] == TestStatus.ABORTED
 
 
 def test_substep_exception_records_error_with_failed_parent(inner):

@@ -25,6 +25,8 @@ from sift_client._internal.pytest_plugin.options import (
 )
 
 if TYPE_CHECKING:
+    from typing import Callable
+
     from sift_client.util.test_results import ReportContext
     from sift_client.util.test_results.context_manager import NewStep
 
@@ -244,6 +246,35 @@ def get_or_create_parent_chain(
             rc_cache.append(request.getfixturevalue("report_context"))
         return rc_cache[0]
 
+    return _resolve_parent_chain(node, config, rc)
+
+
+def resolve_parent_chain_in_context(
+    node: pytest.Item,
+    config: pytest.Config,
+    context: ReportContext,
+) -> NewStep | None:
+    """``get_or_create_parent_chain`` for callers holding a ``ReportContext`` directly.
+
+    The collection-skip path runs from ``pytest_runtest_makereport`` (the autouse
+    fixtures never ran for a marker-skipped item), so it has no ``FixtureRequest``
+    to resolve ``report_context`` from, only the session ``ReportContext``. It
+    must still nest the skipped item's step under the same registry parents a
+    running sibling uses, so it shares the create-once logic here.
+    """
+    return _resolve_parent_chain(node, config, lambda: context)
+
+
+def _resolve_parent_chain(
+    node: pytest.Item,
+    config: pytest.Config,
+    rc: Callable[[], ReportContext],
+) -> NewStep | None:
+    """Shared body of the two parent-chain resolvers; ``rc`` supplies the context.
+
+    ``rc`` is called only when a parent actually needs creating, so a caller that
+    passes a lazy getter keeps the "no eager context setup" guarantee.
+    """
     hierarchy, parametrize = resolved_parents(node, config)
     parent_step: Any = None  # TestStep of the running innermost parent, or None (root).
     innermost: NewStep | None = None

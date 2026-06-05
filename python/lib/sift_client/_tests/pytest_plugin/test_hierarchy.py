@@ -105,6 +105,42 @@ def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_f
     assert by_name["test_b"][0]["parent_step_id"] == class_id
 
 
+def test_collection_skipped_method_nests_under_its_class(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A collection-time skipped method nests under its class parent.
+
+    ``@pytest.mark.skip`` is evaluated before the autouse fixtures run, so the
+    skipped item's step comes from the makereport hook rather than the ``step``
+    fixture. The report-tree parents live off the step stack, so that inline step
+    must still resolve and attach to the class parent rather than the report root.
+    Order is pinned so the non-skipped sibling opens the class first.
+    """
+    pytester.makepyfile(
+        test_skip_nest=dedent(
+            """
+            import pytest
+
+            class TestFoo:
+                def test_run(self):
+                    pass
+
+                @pytest.mark.skip(reason="x")
+                def test_skipped(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=1, skipped=1)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert len(by_name["TestFoo"]) == 1
+    class_id = by_name["TestFoo"][0]["id"]
+    assert by_name["test_run"][0]["parent_step_id"] == class_id
+    assert by_name["test_skipped"][0]["parent_step_id"] == class_id
+    assert by_name["test_skipped"][0]["statuses"][-1] == TestStatus.SKIPPED
+
+
 def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, log_file: Path) -> None:
     pytester.makepyfile(
         test_nested=dedent(

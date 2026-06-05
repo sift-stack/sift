@@ -52,6 +52,7 @@ from sift_client._internal.pytest_plugin.steps import (
     hierarchy_key,
     parametrize_path_key,
     release_finished_leaf,
+    resolve_parent_chain_in_context,
     tally_expected_parents,
 )
 from sift_client._internal.pytest_plugin.terminal import (
@@ -390,7 +391,14 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         and report.outcome == "skipped"
         and getattr(item, "_sift_step", None) is None
     ):
-        with REPORT_CONTEXT.new_step(name=item.name) as inline_step:
+        # Nest the inline step under the same registry parents a running sibling
+        # would use. The autouse ``_sift_parents`` fixture never ran for a
+        # marker-skipped item, and the report-tree parents live off the step
+        # stack, so without resolving the parent here the step lands at the
+        # report root instead of under its module/class.
+        parent_ns = resolve_parent_chain_in_context(item, item.config, REPORT_CONTEXT)
+        parent_step = parent_ns.current_step if parent_ns is not None else None
+        with REPORT_CONTEXT.new_step(name=item.name, parent=parent_step) as inline_step:
             inline_step.current_step.update({"status": TestStatus.SKIPPED})
 
     if report.when == "teardown":

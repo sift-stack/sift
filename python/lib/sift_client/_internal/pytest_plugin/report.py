@@ -124,7 +124,6 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
 
     status: TestStatus | None = None
     error_info: ErrorInfo | None = None
-    keep_managed = False
 
     if setup_phase is not None and setup_phase.report.outcome == "failed":
         status = TestStatus.ERROR
@@ -136,11 +135,13 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
     elif setup_phase is not None and setup_phase.report.outcome == "skipped":
         status = TestStatus.SKIPPED
     elif call_phase is None:
-        # Setup completed but the call-phase report never fired; the inner
-        # pytester session was aborted (e.g. by KeyboardInterrupt) before the
-        # plugin could observe the outcome. Leave the step at IN_PROGRESS so
-        # the report does not lie about a clean pass.
-        keep_managed = True
+        # Setup completed but the call-phase report never fired; the session was
+        # aborted (e.g. by KeyboardInterrupt) before the plugin could observe the
+        # outcome. Resolve to ABORTED rather than leaving it IN_PROGRESS, since the
+        # test was cut off and a finalized report should not carry a step that
+        # still reads as in-progress. No call ``excinfo`` exists here, so there is
+        # no traceback to attach.
+        status = TestStatus.ABORTED
     else:
         wasxfail = getattr(call_phase.report, "wasxfail", None)
         if wasxfail is not None:
@@ -179,7 +180,7 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
             elif isinstance(excinfo.value, (KeyboardInterrupt, SystemExit)):
                 # Hard exits the plugin can observe: pytest converted the
                 # raise into a call-phase report. The session-aborting variant
-                # (call_phase is None) lands earlier and stays IN_PROGRESS.
+                # (call_phase is None) lands in the branch above, also ABORTED.
                 status = TestStatus.ABORTED
                 error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
             elif xfail_marker is not None:
@@ -194,14 +195,13 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
                 status = TestStatus.ERROR
                 error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
 
-    if status is None and not keep_managed:
+    if status is None:
         return
 
-    if status is not None:
-        # BaseType is frozen; mutate via __dict__ the same way _apply_client_to_instance does.
-        current_step.__dict__["status"] = status
-        if error_info is not None:
-            current_step.__dict__["error_info"] = error_info
+    # BaseType is frozen; mutate via __dict__ the same way _apply_client_to_instance does.
+    current_step.__dict__["status"] = status
+    if error_info is not None:
+        current_step.__dict__["error_info"] = error_info
     new_step._sift_managed_externally = True
 
 
