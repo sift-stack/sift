@@ -1,3 +1,4 @@
+pub mod auto_register;
 pub mod builder;
 pub mod channel;
 pub mod config;
