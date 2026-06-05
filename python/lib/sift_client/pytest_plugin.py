@@ -14,7 +14,7 @@ lives under ``sift_client._internal.pytest_plugin``.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Generator
+from typing import Any, Generator
 
 import pytest
 
@@ -68,6 +68,8 @@ __all__ = [
     "REPORT_CONTEXT",
     "SIFT_REPORT_ID_STASH_KEY",
     "SIFT_REPORT_URL_STASH_KEY",
+    "NewStep",
+    "ReportContext",
     "SiftPytestPluginWarning",
     "SiftPytestStepDrainError",
     "SiftPytestStepDrainWarning",
@@ -75,8 +77,6 @@ __all__ = [
     "report_context",
     "sift_client",
     "step",
-    "NewStep",
-    "ReportContext",
 ]
 
 
