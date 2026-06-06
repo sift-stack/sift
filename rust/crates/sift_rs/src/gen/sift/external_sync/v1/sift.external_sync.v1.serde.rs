@@ -201,6 +201,951 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
         deserializer.deserialize_struct("sift.external_sync.v1.ExternalSync", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ExternalSyncGroupRef {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.user_group_id.is_empty() {
+            len += 1;
+        }
+        if !self.group_name.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ExternalSyncGroupRef", len)?;
+        if !self.user_group_id.is_empty() {
+            struct_ser.serialize_field("userGroupId", &self.user_group_id)?;
+        }
+        if !self.group_name.is_empty() {
+            struct_ser.serialize_field("groupName", &self.group_name)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExternalSyncGroupRef {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "user_group_id",
+            "userGroupId",
+            "group_name",
+            "groupName",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UserGroupId,
+            GroupName,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "userGroupId" | "user_group_id" => Ok(GeneratedField::UserGroupId),
+                            "groupName" | "group_name" => Ok(GeneratedField::GroupName),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExternalSyncGroupRef;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ExternalSyncGroupRef")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ExternalSyncGroupRef, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut user_group_id__ = None;
+                let mut group_name__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UserGroupId => {
+                            if user_group_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userGroupId"));
+                            }
+                            user_group_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::GroupName => {
+                            if group_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groupName"));
+                            }
+                            group_name__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ExternalSyncGroupRef {
+                    user_group_id: user_group_id__.unwrap_or_default(),
+                    group_name: group_name__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ExternalSyncGroupRef", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ExternalSyncMembershipChange {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.user_id.is_empty() {
+            len += 1;
+        }
+        if !self.user_name.is_empty() {
+            len += 1;
+        }
+        if !self.user_group_id.is_empty() {
+            len += 1;
+        }
+        if !self.group_name.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ExternalSyncMembershipChange", len)?;
+        if !self.user_id.is_empty() {
+            struct_ser.serialize_field("userId", &self.user_id)?;
+        }
+        if !self.user_name.is_empty() {
+            struct_ser.serialize_field("userName", &self.user_name)?;
+        }
+        if !self.user_group_id.is_empty() {
+            struct_ser.serialize_field("userGroupId", &self.user_group_id)?;
+        }
+        if !self.group_name.is_empty() {
+            struct_ser.serialize_field("groupName", &self.group_name)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExternalSyncMembershipChange {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "user_id",
+            "userId",
+            "user_name",
+            "userName",
+            "user_group_id",
+            "userGroupId",
+            "group_name",
+            "groupName",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UserId,
+            UserName,
+            UserGroupId,
+            GroupName,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "userId" | "user_id" => Ok(GeneratedField::UserId),
+                            "userName" | "user_name" => Ok(GeneratedField::UserName),
+                            "userGroupId" | "user_group_id" => Ok(GeneratedField::UserGroupId),
+                            "groupName" | "group_name" => Ok(GeneratedField::GroupName),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExternalSyncMembershipChange;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ExternalSyncMembershipChange")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ExternalSyncMembershipChange, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut user_id__ = None;
+                let mut user_name__ = None;
+                let mut user_group_id__ = None;
+                let mut group_name__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UserId => {
+                            if user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userId"));
+                            }
+                            user_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UserName => {
+                            if user_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userName"));
+                            }
+                            user_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UserGroupId => {
+                            if user_group_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userGroupId"));
+                            }
+                            user_group_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::GroupName => {
+                            if group_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groupName"));
+                            }
+                            group_name__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ExternalSyncMembershipChange {
+                    user_id: user_id__.unwrap_or_default(),
+                    user_name: user_name__.unwrap_or_default(),
+                    user_group_id: user_group_id__.unwrap_or_default(),
+                    group_name: group_name__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ExternalSyncMembershipChange", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ExternalSyncRun {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.external_sync_run_id.is_empty() {
+            len += 1;
+        }
+        if self.synced_at.is_some() {
+            len += 1;
+        }
+        if self.trigger_type != 0 {
+            len += 1;
+        }
+        if self.triggered_by_user_id.is_some() {
+            len += 1;
+        }
+        if self.diff.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ExternalSyncRun", len)?;
+        if !self.external_sync_run_id.is_empty() {
+            struct_ser.serialize_field("externalSyncRunId", &self.external_sync_run_id)?;
+        }
+        if let Some(v) = self.synced_at.as_ref() {
+            struct_ser.serialize_field("syncedAt", v)?;
+        }
+        if self.trigger_type != 0 {
+            let v = ExternalSyncRunTriggerType::try_from(self.trigger_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.trigger_type)))?;
+            struct_ser.serialize_field("triggerType", &v)?;
+        }
+        if let Some(v) = self.triggered_by_user_id.as_ref() {
+            struct_ser.serialize_field("triggeredByUserId", v)?;
+        }
+        if let Some(v) = self.diff.as_ref() {
+            struct_ser.serialize_field("diff", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExternalSyncRun {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "external_sync_run_id",
+            "externalSyncRunId",
+            "synced_at",
+            "syncedAt",
+            "trigger_type",
+            "triggerType",
+            "triggered_by_user_id",
+            "triggeredByUserId",
+            "diff",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ExternalSyncRunId,
+            SyncedAt,
+            TriggerType,
+            TriggeredByUserId,
+            Diff,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "externalSyncRunId" | "external_sync_run_id" => Ok(GeneratedField::ExternalSyncRunId),
+                            "syncedAt" | "synced_at" => Ok(GeneratedField::SyncedAt),
+                            "triggerType" | "trigger_type" => Ok(GeneratedField::TriggerType),
+                            "triggeredByUserId" | "triggered_by_user_id" => Ok(GeneratedField::TriggeredByUserId),
+                            "diff" => Ok(GeneratedField::Diff),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExternalSyncRun;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ExternalSyncRun")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ExternalSyncRun, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut external_sync_run_id__ = None;
+                let mut synced_at__ = None;
+                let mut trigger_type__ = None;
+                let mut triggered_by_user_id__ = None;
+                let mut diff__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ExternalSyncRunId => {
+                            if external_sync_run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("externalSyncRunId"));
+                            }
+                            external_sync_run_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::SyncedAt => {
+                            if synced_at__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("syncedAt"));
+                            }
+                            synced_at__ = map_.next_value()?;
+                        }
+                        GeneratedField::TriggerType => {
+                            if trigger_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("triggerType"));
+                            }
+                            trigger_type__ = Some(map_.next_value::<ExternalSyncRunTriggerType>()? as i32);
+                        }
+                        GeneratedField::TriggeredByUserId => {
+                            if triggered_by_user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("triggeredByUserId"));
+                            }
+                            triggered_by_user_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::Diff => {
+                            if diff__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("diff"));
+                            }
+                            diff__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(ExternalSyncRun {
+                    external_sync_run_id: external_sync_run_id__.unwrap_or_default(),
+                    synced_at: synced_at__,
+                    trigger_type: trigger_type__.unwrap_or_default(),
+                    triggered_by_user_id: triggered_by_user_id__,
+                    diff: diff__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ExternalSyncRun", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ExternalSyncRunDiff {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.users_activated.is_empty() {
+            len += 1;
+        }
+        if !self.users_deactivated.is_empty() {
+            len += 1;
+        }
+        if !self.groups_created.is_empty() {
+            len += 1;
+        }
+        if !self.groups_deleted.is_empty() {
+            len += 1;
+        }
+        if !self.users_added_to_groups.is_empty() {
+            len += 1;
+        }
+        if !self.users_removed_from_groups.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ExternalSyncRunDiff", len)?;
+        if !self.users_activated.is_empty() {
+            struct_ser.serialize_field("usersActivated", &self.users_activated)?;
+        }
+        if !self.users_deactivated.is_empty() {
+            struct_ser.serialize_field("usersDeactivated", &self.users_deactivated)?;
+        }
+        if !self.groups_created.is_empty() {
+            struct_ser.serialize_field("groupsCreated", &self.groups_created)?;
+        }
+        if !self.groups_deleted.is_empty() {
+            struct_ser.serialize_field("groupsDeleted", &self.groups_deleted)?;
+        }
+        if !self.users_added_to_groups.is_empty() {
+            struct_ser.serialize_field("usersAddedToGroups", &self.users_added_to_groups)?;
+        }
+        if !self.users_removed_from_groups.is_empty() {
+            struct_ser.serialize_field("usersRemovedFromGroups", &self.users_removed_from_groups)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExternalSyncRunDiff {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "users_activated",
+            "usersActivated",
+            "users_deactivated",
+            "usersDeactivated",
+            "groups_created",
+            "groupsCreated",
+            "groups_deleted",
+            "groupsDeleted",
+            "users_added_to_groups",
+            "usersAddedToGroups",
+            "users_removed_from_groups",
+            "usersRemovedFromGroups",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UsersActivated,
+            UsersDeactivated,
+            GroupsCreated,
+            GroupsDeleted,
+            UsersAddedToGroups,
+            UsersRemovedFromGroups,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "usersActivated" | "users_activated" => Ok(GeneratedField::UsersActivated),
+                            "usersDeactivated" | "users_deactivated" => Ok(GeneratedField::UsersDeactivated),
+                            "groupsCreated" | "groups_created" => Ok(GeneratedField::GroupsCreated),
+                            "groupsDeleted" | "groups_deleted" => Ok(GeneratedField::GroupsDeleted),
+                            "usersAddedToGroups" | "users_added_to_groups" => Ok(GeneratedField::UsersAddedToGroups),
+                            "usersRemovedFromGroups" | "users_removed_from_groups" => Ok(GeneratedField::UsersRemovedFromGroups),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExternalSyncRunDiff;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ExternalSyncRunDiff")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ExternalSyncRunDiff, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut users_activated__ = None;
+                let mut users_deactivated__ = None;
+                let mut groups_created__ = None;
+                let mut groups_deleted__ = None;
+                let mut users_added_to_groups__ = None;
+                let mut users_removed_from_groups__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UsersActivated => {
+                            if users_activated__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersActivated"));
+                            }
+                            users_activated__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UsersDeactivated => {
+                            if users_deactivated__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersDeactivated"));
+                            }
+                            users_deactivated__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::GroupsCreated => {
+                            if groups_created__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groupsCreated"));
+                            }
+                            groups_created__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::GroupsDeleted => {
+                            if groups_deleted__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groupsDeleted"));
+                            }
+                            groups_deleted__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UsersAddedToGroups => {
+                            if users_added_to_groups__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersAddedToGroups"));
+                            }
+                            users_added_to_groups__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UsersRemovedFromGroups => {
+                            if users_removed_from_groups__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersRemovedFromGroups"));
+                            }
+                            users_removed_from_groups__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ExternalSyncRunDiff {
+                    users_activated: users_activated__.unwrap_or_default(),
+                    users_deactivated: users_deactivated__.unwrap_or_default(),
+                    groups_created: groups_created__.unwrap_or_default(),
+                    groups_deleted: groups_deleted__.unwrap_or_default(),
+                    users_added_to_groups: users_added_to_groups__.unwrap_or_default(),
+                    users_removed_from_groups: users_removed_from_groups__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ExternalSyncRunDiff", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ExternalSyncRunSummary {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.external_sync_run_id.is_empty() {
+            len += 1;
+        }
+        if self.synced_at.is_some() {
+            len += 1;
+        }
+        if self.trigger_type != 0 {
+            len += 1;
+        }
+        if self.triggered_by_user_id.is_some() {
+            len += 1;
+        }
+        if self.users_activated_count != 0 {
+            len += 1;
+        }
+        if self.users_deactivated_count != 0 {
+            len += 1;
+        }
+        if self.groups_created_count != 0 {
+            len += 1;
+        }
+        if self.groups_deleted_count != 0 {
+            len += 1;
+        }
+        if self.users_added_to_groups_count != 0 {
+            len += 1;
+        }
+        if self.users_removed_from_groups_count != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ExternalSyncRunSummary", len)?;
+        if !self.external_sync_run_id.is_empty() {
+            struct_ser.serialize_field("externalSyncRunId", &self.external_sync_run_id)?;
+        }
+        if let Some(v) = self.synced_at.as_ref() {
+            struct_ser.serialize_field("syncedAt", v)?;
+        }
+        if self.trigger_type != 0 {
+            let v = ExternalSyncRunTriggerType::try_from(self.trigger_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.trigger_type)))?;
+            struct_ser.serialize_field("triggerType", &v)?;
+        }
+        if let Some(v) = self.triggered_by_user_id.as_ref() {
+            struct_ser.serialize_field("triggeredByUserId", v)?;
+        }
+        if self.users_activated_count != 0 {
+            struct_ser.serialize_field("usersActivatedCount", &self.users_activated_count)?;
+        }
+        if self.users_deactivated_count != 0 {
+            struct_ser.serialize_field("usersDeactivatedCount", &self.users_deactivated_count)?;
+        }
+        if self.groups_created_count != 0 {
+            struct_ser.serialize_field("groupsCreatedCount", &self.groups_created_count)?;
+        }
+        if self.groups_deleted_count != 0 {
+            struct_ser.serialize_field("groupsDeletedCount", &self.groups_deleted_count)?;
+        }
+        if self.users_added_to_groups_count != 0 {
+            struct_ser.serialize_field("usersAddedToGroupsCount", &self.users_added_to_groups_count)?;
+        }
+        if self.users_removed_from_groups_count != 0 {
+            struct_ser.serialize_field("usersRemovedFromGroupsCount", &self.users_removed_from_groups_count)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExternalSyncRunSummary {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "external_sync_run_id",
+            "externalSyncRunId",
+            "synced_at",
+            "syncedAt",
+            "trigger_type",
+            "triggerType",
+            "triggered_by_user_id",
+            "triggeredByUserId",
+            "users_activated_count",
+            "usersActivatedCount",
+            "users_deactivated_count",
+            "usersDeactivatedCount",
+            "groups_created_count",
+            "groupsCreatedCount",
+            "groups_deleted_count",
+            "groupsDeletedCount",
+            "users_added_to_groups_count",
+            "usersAddedToGroupsCount",
+            "users_removed_from_groups_count",
+            "usersRemovedFromGroupsCount",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ExternalSyncRunId,
+            SyncedAt,
+            TriggerType,
+            TriggeredByUserId,
+            UsersActivatedCount,
+            UsersDeactivatedCount,
+            GroupsCreatedCount,
+            GroupsDeletedCount,
+            UsersAddedToGroupsCount,
+            UsersRemovedFromGroupsCount,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "externalSyncRunId" | "external_sync_run_id" => Ok(GeneratedField::ExternalSyncRunId),
+                            "syncedAt" | "synced_at" => Ok(GeneratedField::SyncedAt),
+                            "triggerType" | "trigger_type" => Ok(GeneratedField::TriggerType),
+                            "triggeredByUserId" | "triggered_by_user_id" => Ok(GeneratedField::TriggeredByUserId),
+                            "usersActivatedCount" | "users_activated_count" => Ok(GeneratedField::UsersActivatedCount),
+                            "usersDeactivatedCount" | "users_deactivated_count" => Ok(GeneratedField::UsersDeactivatedCount),
+                            "groupsCreatedCount" | "groups_created_count" => Ok(GeneratedField::GroupsCreatedCount),
+                            "groupsDeletedCount" | "groups_deleted_count" => Ok(GeneratedField::GroupsDeletedCount),
+                            "usersAddedToGroupsCount" | "users_added_to_groups_count" => Ok(GeneratedField::UsersAddedToGroupsCount),
+                            "usersRemovedFromGroupsCount" | "users_removed_from_groups_count" => Ok(GeneratedField::UsersRemovedFromGroupsCount),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExternalSyncRunSummary;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ExternalSyncRunSummary")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ExternalSyncRunSummary, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut external_sync_run_id__ = None;
+                let mut synced_at__ = None;
+                let mut trigger_type__ = None;
+                let mut triggered_by_user_id__ = None;
+                let mut users_activated_count__ = None;
+                let mut users_deactivated_count__ = None;
+                let mut groups_created_count__ = None;
+                let mut groups_deleted_count__ = None;
+                let mut users_added_to_groups_count__ = None;
+                let mut users_removed_from_groups_count__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ExternalSyncRunId => {
+                            if external_sync_run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("externalSyncRunId"));
+                            }
+                            external_sync_run_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::SyncedAt => {
+                            if synced_at__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("syncedAt"));
+                            }
+                            synced_at__ = map_.next_value()?;
+                        }
+                        GeneratedField::TriggerType => {
+                            if trigger_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("triggerType"));
+                            }
+                            trigger_type__ = Some(map_.next_value::<ExternalSyncRunTriggerType>()? as i32);
+                        }
+                        GeneratedField::TriggeredByUserId => {
+                            if triggered_by_user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("triggeredByUserId"));
+                            }
+                            triggered_by_user_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::UsersActivatedCount => {
+                            if users_activated_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersActivatedCount"));
+                            }
+                            users_activated_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::UsersDeactivatedCount => {
+                            if users_deactivated_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersDeactivatedCount"));
+                            }
+                            users_deactivated_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::GroupsCreatedCount => {
+                            if groups_created_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groupsCreatedCount"));
+                            }
+                            groups_created_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::GroupsDeletedCount => {
+                            if groups_deleted_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groupsDeletedCount"));
+                            }
+                            groups_deleted_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::UsersAddedToGroupsCount => {
+                            if users_added_to_groups_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersAddedToGroupsCount"));
+                            }
+                            users_added_to_groups_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::UsersRemovedFromGroupsCount => {
+                            if users_removed_from_groups_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("usersRemovedFromGroupsCount"));
+                            }
+                            users_removed_from_groups_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                    }
+                }
+                Ok(ExternalSyncRunSummary {
+                    external_sync_run_id: external_sync_run_id__.unwrap_or_default(),
+                    synced_at: synced_at__,
+                    trigger_type: trigger_type__.unwrap_or_default(),
+                    triggered_by_user_id: triggered_by_user_id__,
+                    users_activated_count: users_activated_count__.unwrap_or_default(),
+                    users_deactivated_count: users_deactivated_count__.unwrap_or_default(),
+                    groups_created_count: groups_created_count__.unwrap_or_default(),
+                    groups_deleted_count: groups_deleted_count__.unwrap_or_default(),
+                    users_added_to_groups_count: users_added_to_groups_count__.unwrap_or_default(),
+                    users_removed_from_groups_count: users_removed_from_groups_count__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ExternalSyncRunSummary", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ExternalSyncRunTriggerType {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_UNSPECIFIED",
+            Self::ManualUser => "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_MANUAL_USER",
+            Self::Scheduled => "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_SCHEDULED",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExternalSyncRunTriggerType {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_UNSPECIFIED",
+            "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_MANUAL_USER",
+            "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_SCHEDULED",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExternalSyncRunTriggerType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_UNSPECIFIED" => Ok(ExternalSyncRunTriggerType::Unspecified),
+                    "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_MANUAL_USER" => Ok(ExternalSyncRunTriggerType::ManualUser),
+                    "EXTERNAL_SYNC_RUN_TRIGGER_TYPE_SCHEDULED" => Ok(ExternalSyncRunTriggerType::Scheduled),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ExternalSyncToken {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -347,6 +1292,116 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncToken {
             }
         }
         deserializer.deserialize_struct("sift.external_sync.v1.ExternalSyncToken", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ExternalSyncUserRef {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.user_id.is_empty() {
+            len += 1;
+        }
+        if !self.user_name.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ExternalSyncUserRef", len)?;
+        if !self.user_id.is_empty() {
+            struct_ser.serialize_field("userId", &self.user_id)?;
+        }
+        if !self.user_name.is_empty() {
+            struct_ser.serialize_field("userName", &self.user_name)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExternalSyncUserRef {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "user_id",
+            "userId",
+            "user_name",
+            "userName",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UserId,
+            UserName,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "userId" | "user_id" => Ok(GeneratedField::UserId),
+                            "userName" | "user_name" => Ok(GeneratedField::UserName),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExternalSyncUserRef;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ExternalSyncUserRef")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ExternalSyncUserRef, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut user_id__ = None;
+                let mut user_name__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UserId => {
+                            if user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userId"));
+                            }
+                            user_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UserName => {
+                            if user_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userName"));
+                            }
+                            user_name__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ExternalSyncUserRef {
+                    user_id: user_id__.unwrap_or_default(),
+                    user_name: user_name__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ExternalSyncUserRef", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for GenerateTokenRequest {
@@ -709,6 +1764,190 @@ impl<'de> serde::Deserialize<'de> for GetExternalSyncResponse {
         deserializer.deserialize_struct("sift.external_sync.v1.GetExternalSyncResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for GetExternalSyncRunRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.external_sync_run_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.GetExternalSyncRunRequest", len)?;
+        if !self.external_sync_run_id.is_empty() {
+            struct_ser.serialize_field("externalSyncRunId", &self.external_sync_run_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetExternalSyncRunRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "external_sync_run_id",
+            "externalSyncRunId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ExternalSyncRunId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "externalSyncRunId" | "external_sync_run_id" => Ok(GeneratedField::ExternalSyncRunId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetExternalSyncRunRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.GetExternalSyncRunRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetExternalSyncRunRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut external_sync_run_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ExternalSyncRunId => {
+                            if external_sync_run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("externalSyncRunId"));
+                            }
+                            external_sync_run_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(GetExternalSyncRunRequest {
+                    external_sync_run_id: external_sync_run_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.GetExternalSyncRunRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for GetExternalSyncRunResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.external_sync_run.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.GetExternalSyncRunResponse", len)?;
+        if let Some(v) = self.external_sync_run.as_ref() {
+            struct_ser.serialize_field("externalSyncRun", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetExternalSyncRunResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "external_sync_run",
+            "externalSyncRun",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ExternalSyncRun,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "externalSyncRun" | "external_sync_run" => Ok(GeneratedField::ExternalSyncRun),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetExternalSyncRunResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.GetExternalSyncRunResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetExternalSyncRunResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut external_sync_run__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ExternalSyncRun => {
+                            if external_sync_run__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("externalSyncRun"));
+                            }
+                            external_sync_run__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(GetExternalSyncRunResponse {
+                    external_sync_run: external_sync_run__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.GetExternalSyncRunResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for GetIsOrgExternallyProvisionedRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -870,6 +2109,263 @@ impl<'de> serde::Deserialize<'de> for GetIsOrgExternallyProvisionedResponse {
             }
         }
         deserializer.deserialize_struct("sift.external_sync.v1.GetIsOrgExternallyProvisionedResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListExternalSyncRunsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.page_size != 0 {
+            len += 1;
+        }
+        if !self.page_token.is_empty() {
+            len += 1;
+        }
+        if !self.filter.is_empty() {
+            len += 1;
+        }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ListExternalSyncRunsRequest", len)?;
+        if self.page_size != 0 {
+            struct_ser.serialize_field("pageSize", &self.page_size)?;
+        }
+        if !self.page_token.is_empty() {
+            struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if !self.filter.is_empty() {
+            struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListExternalSyncRunsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "page_size",
+            "pageSize",
+            "page_token",
+            "pageToken",
+            "filter",
+            "order_by",
+            "orderBy",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            PageSize,
+            PageToken,
+            Filter,
+            OrderBy,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
+                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "filter" => Ok(GeneratedField::Filter),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListExternalSyncRunsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ListExternalSyncRunsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListExternalSyncRunsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut page_size__ = None;
+                let mut page_token__ = None;
+                let mut filter__ = None;
+                let mut order_by__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::PageSize => {
+                            if page_size__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageSize"));
+                            }
+                            page_size__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PageToken => {
+                            if page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageToken"));
+                            }
+                            page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Filter => {
+                            if filter__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filter"));
+                            }
+                            filter__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListExternalSyncRunsRequest {
+                    page_size: page_size__.unwrap_or_default(),
+                    page_token: page_token__.unwrap_or_default(),
+                    filter: filter__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ListExternalSyncRunsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListExternalSyncRunsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.external_sync_run_summaries.is_empty() {
+            len += 1;
+        }
+        if !self.next_page_token.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ListExternalSyncRunsResponse", len)?;
+        if !self.external_sync_run_summaries.is_empty() {
+            struct_ser.serialize_field("externalSyncRunSummaries", &self.external_sync_run_summaries)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListExternalSyncRunsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "external_sync_run_summaries",
+            "externalSyncRunSummaries",
+            "next_page_token",
+            "nextPageToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ExternalSyncRunSummaries,
+            NextPageToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "externalSyncRunSummaries" | "external_sync_run_summaries" => Ok(GeneratedField::ExternalSyncRunSummaries),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListExternalSyncRunsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.external_sync.v1.ListExternalSyncRunsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListExternalSyncRunsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut external_sync_run_summaries__ = None;
+                let mut next_page_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ExternalSyncRunSummaries => {
+                            if external_sync_run_summaries__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("externalSyncRunSummaries"));
+                            }
+                            external_sync_run_summaries__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListExternalSyncRunsResponse {
+                    external_sync_run_summaries: external_sync_run_summaries__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.external_sync.v1.ListExternalSyncRunsResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ListExternalSyncTokensRequest {

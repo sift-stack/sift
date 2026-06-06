@@ -15,6 +15,7 @@ import google.protobuf.timestamp_pb2
 import sift.calculated_channels.v2.calculated_channels_pb2
 import sift.common.type.v1.channel_bit_field_element_pb2
 import sift.common.type.v1.channel_data_type_pb2
+import sift.metadata.v1.metadata_pb2
 import sys
 import typing
 
@@ -63,6 +64,7 @@ class PanelConfiguration(google.protobuf.message.Message):
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     panel_configuration_id: builtins.str
     version_id: builtins.str
     version: builtins.int
@@ -81,6 +83,8 @@ class PanelConfiguration(google.protobuf.message.Message):
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -97,9 +101,10 @@ class PanelConfiguration(google.protobuf.message.Message):
         created_by_user_id: builtins.str = ...,
         modified_by_user_id: builtins.str = ...,
         is_archived: builtins.bool = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "archived_date", b"archived_date", "chart_settings", b"chart_settings", "created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "archived_date", b"archived_date", "change_message", b"change_message", "channel_configurations", b"channel_configurations", "chart_settings", b"chart_settings", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "is_archived", b"is_archived", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "panel_configuration_id", b"panel_configuration_id", "version", b"version", "version_id", b"version_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "archived_date", b"archived_date", "change_message", b"change_message", "channel_configurations", b"channel_configurations", "chart_settings", b"chart_settings", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "panel_configuration_id", b"panel_configuration_id", "version", b"version", "version_id", b"version_id"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_chart_settings", b"_chart_settings"]) -> typing.Literal["chart_settings"] | None: ...
 
 global___PanelConfiguration = PanelConfiguration
@@ -213,7 +218,8 @@ class ListPanelConfigurationsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string
-    Available fields to filter by are 'name', 'created_date', 'modified_date', and 'is_archived'.
+    Available fields to filter by are 'name', 'created_date', 'modified_date', 'is_archived', and `metadata`.
+    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name. Folder membership is filterable via the `folders` field, e.g. `"<folder_id>" in folders` returns panel configurations in the given folder, and `size(folders) == 0` returns uncategorized panel configurations.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str
@@ -270,20 +276,24 @@ class CreatePanelConfigurationRequest(google.protobuf.message.Message):
     NAME_FIELD_NUMBER: builtins.int
     CHANNEL_CONFIGURATIONS_FIELD_NUMBER: builtins.int
     CHART_SETTINGS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     name: builtins.str
     @property
     def channel_configurations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ChannelConfigurations]: ...
     @property
     def chart_settings(self) -> google.protobuf.struct_pb2.Struct: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
         name: builtins.str = ...,
         channel_configurations: collections.abc.Iterable[global___ChannelConfigurations] | None = ...,
         chart_settings: google.protobuf.struct_pb2.Struct | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "chart_settings", b"chart_settings"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "channel_configurations", b"channel_configurations", "chart_settings", b"chart_settings", "name", b"name"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "channel_configurations", b"channel_configurations", "chart_settings", b"chart_settings", "metadata", b"metadata", "name", b"name"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_chart_settings", b"_chart_settings"]) -> typing.Literal["chart_settings"] | None: ...
 
 global___CreatePanelConfigurationRequest = CreatePanelConfigurationRequest
@@ -323,7 +333,7 @@ class UpdatePanelConfigurationRequest(google.protobuf.message.Message):
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The list of fields to be updated. The fields available to be updated are `name`, `channel_configurations`,
-        `chart_settings`, and `is_archived`.
+        `chart_settings`, `is_archived`, and `metadata`.
         """
 
     def __init__(

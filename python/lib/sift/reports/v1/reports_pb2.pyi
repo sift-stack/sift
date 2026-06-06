@@ -130,6 +130,106 @@ class Report(google.protobuf.message.Message):
 global___Report = Report
 
 @typing.final
+class ReportWithCumulativeSummary(google.protobuf.message.Message):
+    """ReportWithCumulativeSummary is a projection of `Report` that replaces the per-rule `summaries`
+    list with a single `cumulative_summary` aggregated across all rules. It is returned by
+    `ListReportsWithCumulativeSummary` to keep response sizes manageable when listing many reports.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_ID_FIELD_NUMBER: builtins.int
+    REPORT_TEMPLATE_ID_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    DESCRIPTION_FIELD_NUMBER: builtins.int
+    CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    CREATED_DATE_FIELD_NUMBER: builtins.int
+    MODIFIED_DATE_FIELD_NUMBER: builtins.int
+    CUMULATIVE_SUMMARY_FIELD_NUMBER: builtins.int
+    TAGS_FIELD_NUMBER: builtins.int
+    RERUN_FROM_REPORT_ID_FIELD_NUMBER: builtins.int
+    JOB_ID_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    report_id: builtins.str
+    """The unique identifier of the report."""
+    report_template_id: builtins.str
+    """The identifier of the report template this report was created from, if any."""
+    run_id: builtins.str
+    """The identifier of the run associated with this report."""
+    organization_id: builtins.str
+    """The organization this report belongs to."""
+    name: builtins.str
+    """The display name of the report."""
+    description: builtins.str
+    """An optional description of the report."""
+    created_by_user_id: builtins.str
+    """The identifier of the user who created the report."""
+    modified_by_user_id: builtins.str
+    """The identifier of the user who last modified the report."""
+    rerun_from_report_id: builtins.str
+    """The identifier of the report this report was rerun from, if any."""
+    job_id: builtins.str
+    """The identifier of the job that produced this report, if any."""
+    is_archived: builtins.bool
+    """Whether the report has been archived."""
+    @property
+    def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """When the report was created."""
+
+    @property
+    def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """When the report was last modified."""
+
+    @property
+    def cumulative_summary(self) -> global___ReportCumulativeRuleSummary:
+        """Aggregated rule summary across all rules on this report."""
+
+    @property
+    def tags(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTag]:
+        """Tags associated with this report."""
+
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """When the report was archived, if it has been archived."""
+
+    def __init__(
+        self,
+        *,
+        report_id: builtins.str = ...,
+        report_template_id: builtins.str = ...,
+        run_id: builtins.str = ...,
+        organization_id: builtins.str = ...,
+        name: builtins.str = ...,
+        description: builtins.str | None = ...,
+        created_by_user_id: builtins.str = ...,
+        modified_by_user_id: builtins.str = ...,
+        created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        cumulative_summary: global___ReportCumulativeRuleSummary | None = ...,
+        tags: collections.abc.Iterable[global___ReportTag] | None = ...,
+        rerun_from_report_id: builtins.str | None = ...,
+        job_id: builtins.str | None = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_archived: builtins.bool = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "tags", b"tags"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_job_id", b"_job_id"]) -> typing.Literal["job_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_rerun_from_report_id", b"_rerun_from_report_id"]) -> typing.Literal["rerun_from_report_id"] | None: ...
+
+global___ReportWithCumulativeSummary = ReportWithCumulativeSummary
+
+@typing.final
 class ReportRuleSummary(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -208,6 +308,73 @@ class ReportTag(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["tag_name", b"tag_name"]) -> None: ...
 
 global___ReportTag = ReportTag
+
+@typing.final
+class ReportCumulativeRuleSummary(google.protobuf.message.Message):
+    """Aggregated annotation and rule-status counts across all rules in a report.
+    Annotation counts (num_annotations_*) reflect the total number
+    of annotations in each state summed over every rule version in the report.
+    Rule counts (num_rules_*) reflect how many rule versions are in each
+    execution status.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NUM_ANNOTATIONS_OPEN_FIELD_NUMBER: builtins.int
+    NUM_ANNOTATIONS_FAILED_FIELD_NUMBER: builtins.int
+    NUM_ANNOTATIONS_PASSED_FIELD_NUMBER: builtins.int
+    NUM_ANNOTATIONS_TOTAL_FIELD_NUMBER: builtins.int
+    NUM_RULES_CREATED_FIELD_NUMBER: builtins.int
+    NUM_RULES_LIVE_FIELD_NUMBER: builtins.int
+    NUM_RULES_FINISHED_FIELD_NUMBER: builtins.int
+    NUM_RULES_FAILED_FIELD_NUMBER: builtins.int
+    NUM_RULES_CANCELED_FIELD_NUMBER: builtins.int
+    NUM_RULES_ERROR_FIELD_NUMBER: builtins.int
+    NUM_RULES_TOTAL_FIELD_NUMBER: builtins.int
+    NUM_OF_RULES_WITHOUT_ANNOTATIONS_FIELD_NUMBER: builtins.int
+    num_annotations_open: builtins.int
+    """Total number of open (unresolved) annotations across all rules."""
+    num_annotations_failed: builtins.int
+    """Total number of failed (flagged) annotations across all rules."""
+    num_annotations_passed: builtins.int
+    """Total number of passed (resolved) annotations across all rules."""
+    num_annotations_total: builtins.int
+    """Total number of annotations across all rules (open + failed + passed)."""
+    num_rules_created: builtins.int
+    """Number of rule versions in CREATED status."""
+    num_rules_live: builtins.int
+    """Number of rule versions currently running (LIVE status)."""
+    num_rules_finished: builtins.int
+    """Number of rule versions that finished successfully."""
+    num_rules_failed: builtins.int
+    """Number of rule versions that failed during execution."""
+    num_rules_canceled: builtins.int
+    """Number of rule versions that were canceled."""
+    num_rules_error: builtins.int
+    """Number of rule versions that encountered an error."""
+    num_rules_total: builtins.int
+    """Total number of rule versions across all statuses."""
+    num_of_rules_without_annotations: builtins.int
+    """Number of finished rule versions that produced no annotations."""
+    def __init__(
+        self,
+        *,
+        num_annotations_open: builtins.int = ...,
+        num_annotations_failed: builtins.int = ...,
+        num_annotations_passed: builtins.int = ...,
+        num_annotations_total: builtins.int = ...,
+        num_rules_created: builtins.int = ...,
+        num_rules_live: builtins.int = ...,
+        num_rules_finished: builtins.int = ...,
+        num_rules_failed: builtins.int = ...,
+        num_rules_canceled: builtins.int = ...,
+        num_rules_error: builtins.int = ...,
+        num_rules_total: builtins.int = ...,
+        num_of_rules_without_annotations: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["num_annotations_failed", b"num_annotations_failed", "num_annotations_open", b"num_annotations_open", "num_annotations_passed", b"num_annotations_passed", "num_annotations_total", b"num_annotations_total", "num_of_rules_without_annotations", b"num_of_rules_without_annotations", "num_rules_canceled", b"num_rules_canceled", "num_rules_created", b"num_rules_created", "num_rules_error", b"num_rules_error", "num_rules_failed", b"num_rules_failed", "num_rules_finished", b"num_rules_finished", "num_rules_live", b"num_rules_live", "num_rules_total", b"num_rules_total"]) -> None: ...
+
+global___ReportCumulativeRuleSummary = ReportCumulativeRuleSummary
 
 @typing.final
 class ReportRuleStatusDetails(google.protobuf.message.Message):
@@ -651,6 +818,78 @@ class ListReportsResponse(google.protobuf.message.Message):
 global___ListReportsResponse = ListReportsResponse
 
 @typing.final
+class ListReportsWithCumulativeSummaryRequest(google.protobuf.message.Message):
+    """The request for a call to `ReportService_ListReportsWithCumulativeSummary` to retrieve reports."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    """The maximum number of reports to return. The service may return fewer than this value.
+    If unspecified, at most 50 reports will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListReportsWithCumulativeSummary` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListReportsWithCumulativeSummary` must match
+    the call that provided the page token. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`, `created_date`,
+    `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
+    """
+    organization_id: builtins.str
+    """This field is only required if your user belongs to multiple organizations."""
+    order_by: builtins.str
+    """How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order_by are `name`, `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        organization_id: builtins.str = ...,
+        order_by: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListReportsWithCumulativeSummaryRequest = ListReportsWithCumulativeSummaryRequest
+
+@typing.final
+class ListReportsWithCumulativeSummaryResponse(google.protobuf.message.Message):
+    """The response of a call to `ReportService_ListReportsWithCumulativeSummaryResponse`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORTS_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def reports(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportWithCumulativeSummary]: ...
+    def __init__(
+        self,
+        *,
+        reports: collections.abc.Iterable[global___ReportWithCumulativeSummary] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "reports", b"reports"]) -> None: ...
+
+global___ListReportsWithCumulativeSummaryResponse = ListReportsWithCumulativeSummaryResponse
+
+@typing.final
 class RerunReportRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -746,3 +985,128 @@ class UpdateReportResponse(google.protobuf.message.Message):
     ) -> None: ...
 
 global___UpdateReportResponse = UpdateReportResponse
+
+@typing.final
+class ListReportRuleSummariesRequest(google.protobuf.message.Message):
+    """The request for a call to `ReportService_ListReportRuleSummaries`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_ID_FIELD_NUMBER: builtins.int
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    report_id: builtins.str
+    """The report whose rule summaries to list."""
+    page_size: builtins.int
+    """The maximum number of rule summaries to return. The service may return fewer than this value.
+    If unspecified, at most 50 rule summaries will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListReportRuleSummaries` call.
+    Provide this to retrieve the subsequent page. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `rule_id`, `rule_version_id`, `asset_id`, `status`,
+    `created_date`, and `modified_date`. Optional.
+    """
+    order_by: builtins.str
+    """How to order the retrieved rule summaries. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order by are `display_order`, `created_date`, and `modified_date`.
+    If left empty, items are ordered by `display_order` ascending.
+    """
+    def __init__(
+        self,
+        *,
+        report_id: builtins.str = ...,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        order_by: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token", "report_id", b"report_id"]) -> None: ...
+
+global___ListReportRuleSummariesRequest = ListReportRuleSummariesRequest
+
+@typing.final
+class ListReportRuleSummariesResponse(google.protobuf.message.Message):
+    """The response of a call to `ReportService_ListReportRuleSummaries`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_RULE_SUMMARIES_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def report_rule_summaries(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportRuleSummary]: ...
+    def __init__(
+        self,
+        *,
+        report_rule_summaries: collections.abc.Iterable[global___ReportRuleSummary] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "report_rule_summaries", b"report_rule_summaries"]) -> None: ...
+
+global___ListReportRuleSummariesResponse = ListReportRuleSummariesResponse
+
+@typing.final
+class ListReportMetadataValuesRequest(google.protobuf.message.Message):
+    """The request for a call to `ReportService_ListReportMetadataValues`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_ID_FIELD_NUMBER: builtins.int
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    report_id: builtins.str
+    """The report whose metadata values to list."""
+    page_size: builtins.int
+    """The maximum number of metadata values to return. The service may return fewer than this value.
+    If unspecified, at most 50 metadata values will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListReportMetadataValues` call.
+    Provide this to retrieve the subsequent page. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `key_name`, `value_string`, `value_number`, `value_boolean`,
+    `key_is_archived`, and `value_is_archived`. Optional.
+    """
+    def __init__(
+        self,
+        *,
+        report_id: builtins.str = ...,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "page_size", b"page_size", "page_token", b"page_token", "report_id", b"report_id"]) -> None: ...
+
+global___ListReportMetadataValuesRequest = ListReportMetadataValuesRequest
+
+@typing.final
+class ListReportMetadataValuesResponse(google.protobuf.message.Message):
+    """The response of a call to `ReportService_ListReportMetadataValues`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
+    def __init__(
+        self,
+        *,
+        metadata_values: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_values", b"metadata_values", "next_page_token", b"next_page_token"]) -> None: ...
+
+global___ListReportMetadataValuesResponse = ListReportMetadataValuesResponse

@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package sift.user_ssh_keys.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "User SSH Key Service"}
+};
+
+// UserSshKeyService manages a single SSH key registered for the
+// calling authenticated user. The key is used by features that need
+// to authenticate to an external Git host on the user's behalf -- for
+// example, cloning a private repository referenced by a canvas.
+//
+// Every RPC operates implicitly on the caller's own key: no RPC
+// accepts a user identifier and the service exposes no list or
+// cross-user lookup. There is at most one registered key per user;
+// re-registering or regenerating replaces the previous key.
+service UserSshKeyService {
+  // GetMySshKey returns the public key and lifecycle metadata for the
+  // caller's registered SSH key, or an empty payload when no key is
+  // registered. The private key is never returned by this RPC.
+  rpc GetMySshKey(GetMySshKeyRequest) returns (GetMySshKeyResponse) {
+    option (google.api.http) = {get: "/api/v1/me/ssh-key"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetMySshKey"
+      description: "Retrieve the calling user's registered SSH key (public key + metadata only)."
+      operation_id: "UserSshKeyService_GetMySshKey"
+    };
+  }
+
+  // GenerateSshKey replaces the caller's registered SSH key with a
+  // freshly-generated Ed25519 keypair. Only the public half is
+  // returned -- the private half is retained by Sift to authenticate
+  // to Git hosts on the caller's behalf and is never disclosed over
+  // the wire.
+  //
+  // This is the only way to register a key. The service intentionally
+  // does not accept a user-supplied private key: pasting an existing
+  // key would require transmitting it over the network in plaintext
+  // (subject to TLS termination, frame logs, etc.), and the resulting
+  // copy on Sift's side would be indistinguishable from one the user
+  // also continues to use elsewhere -- losing the property that the
+  // private half exists in exactly one place.
+  rpc GenerateSshKey(GenerateSshKeyRequest) returns (GenerateSshKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/me/ssh-key:generate"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GenerateSshKey"
+      description: "Generate a fresh Ed25519 SSH keypair for the calling user. Only the public half is returned."
+      operation_id: "UserSshKeyService_GenerateSshKey"
+    };
+  }
+
+  // DeleteMySshKey removes the caller's registered SSH key.
+  // Idempotent: succeeds when no key is registered.
+  rpc DeleteMySshKey(DeleteMySshKeyRequest) returns (DeleteMySshKeyResponse) {
+    option (google.api.http) = {delete: "/api/v1/me/ssh-key"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteMySshKey"
+      description: "Delete the calling user's registered SSH key."
+      operation_id: "UserSshKeyService_DeleteMySshKey"
+    };
+  }
+}
+
+// SshKeyMetadata is the read-only projection returned to clients.
+// It carries only the public key and lifecycle timestamps -- the
+// private key is never part of this message.
+message SshKeyMetadata {
+  string user_ssh_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
+  // Public key in OpenSSH ``ssh-<algo> AAAA... [comment]`` shape, ready
+  // to paste into a host's settings page (GitHub deploy keys, etc.).
+  // Empty when no public half is available for the registered key.
+  string public_key = 3 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp created_date = 4 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 5 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetMySshKeyRequest {}
+
+message GetMySshKeyResponse {
+  // Unset when the calling user has no key registered. Clients use
+  // its presence as the "key configured" boolean.
+  SshKeyMetadata public_key = 1 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GenerateSshKeyRequest {}
+
+message GenerateSshKeyResponse {
+  SshKeyMetadata public_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteMySshKeyRequest {}
+
+message DeleteMySshKeyResponse {}

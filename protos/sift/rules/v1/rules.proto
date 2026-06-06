@@ -702,6 +702,7 @@ message ListRulesRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
   // `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, `archived_date`, and `is_live_evaluation_enabled`.
+  // Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name. Folder membership is filterable via the `folders` field, e.g. `"<folder_id>" in folders` returns rules in the given folder, and `size(folders) == 0` returns uncategorized rules.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];

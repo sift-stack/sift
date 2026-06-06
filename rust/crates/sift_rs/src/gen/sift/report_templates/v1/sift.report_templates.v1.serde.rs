@@ -1345,6 +1345,9 @@ impl serde::Serialize for ReportTemplateRule {
         if !self.client_key.is_empty() {
             len += 1;
         }
+        if self.display_order.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.report_templates.v1.ReportTemplateRule", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -1357,6 +1360,9 @@ impl serde::Serialize for ReportTemplateRule {
         }
         if !self.client_key.is_empty() {
             struct_ser.serialize_field("clientKey", &self.client_key)?;
+        }
+        if let Some(v) = self.display_order.as_ref() {
+            struct_ser.serialize_field("displayOrder", v)?;
         }
         struct_ser.end()
     }
@@ -1376,6 +1382,8 @@ impl<'de> serde::Deserialize<'de> for ReportTemplateRule {
             "ruleVersionNumber",
             "client_key",
             "clientKey",
+            "display_order",
+            "displayOrder",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1384,6 +1392,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplateRule {
             RuleVersionId,
             RuleVersionNumber,
             ClientKey,
+            DisplayOrder,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1409,6 +1418,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplateRule {
                             "ruleVersionId" | "rule_version_id" => Ok(GeneratedField::RuleVersionId),
                             "ruleVersionNumber" | "rule_version_number" => Ok(GeneratedField::RuleVersionNumber),
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            "displayOrder" | "display_order" => Ok(GeneratedField::DisplayOrder),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1432,6 +1442,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplateRule {
                 let mut rule_version_id__ = None;
                 let mut rule_version_number__ = None;
                 let mut client_key__ = None;
+                let mut display_order__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -1460,6 +1471,14 @@ impl<'de> serde::Deserialize<'de> for ReportTemplateRule {
                             }
                             client_key__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::DisplayOrder => {
+                            if display_order__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayOrder"));
+                            }
+                            display_order__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
                     }
                 }
                 Ok(ReportTemplateRule {
@@ -1467,6 +1486,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplateRule {
                     rule_version_id: rule_version_id__.unwrap_or_default(),
                     rule_version_number: rule_version_number__.unwrap_or_default(),
                     client_key: client_key__.unwrap_or_default(),
+                    display_order: display_order__,
                 })
             }
         }

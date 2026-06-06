@@ -16,6 +16,16 @@ DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
 @typing.final
 class IngestWithConfigDataStreamRequest(google.protobuf.message.Message):
+    """INTERNAL NOTE (remove from public protos): Any updates to this proto message MUST also update the
+    `IngestWithConfigDataStreamRequestLite` and `IngestWithConfigDataStreamChannelValuesOnly` proto messages
+    in sift_internal/ingest/v1/ingest.proto.
+    For performance, only the minimal set of fields is deserialized on ingest by the
+    `IngestWithConfigDataStreamRequestLite` proto message definition; other fields that are expensive and/or
+    large and that are not required to be parsed should not be included there. Additionally, the field number
+    __MUST__ match exactly as we depend on the field numbers to correctly decode the fields despite technically
+    different message definitions.
+    """
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     INGESTION_CONFIG_ID_FIELD_NUMBER: builtins.int

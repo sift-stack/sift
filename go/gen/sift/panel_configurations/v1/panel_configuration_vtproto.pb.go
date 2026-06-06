@@ -12,7 +12,8 @@ import (
 	structpb1 "github.com/planetscale/vtprotobuf/types/known/structpb"
 	timestamppb1 "github.com/planetscale/vtprotobuf/types/known/timestamppb"
 	v2 "github.com/sift-stack/sift/go/gen/sift/calculated_channels/v2"
-	v1 "github.com/sift-stack/sift/go/gen/sift/common/type/v1"
+	v11 "github.com/sift-stack/sift/go/gen/sift/common/type/v1"
+	v1 "github.com/sift-stack/sift/go/gen/sift/metadata/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -56,6 +57,17 @@ func (m *PanelConfiguration) CloneVT() *PanelConfiguration {
 		}
 		r.ChannelConfigurations = tmpContainer
 	}
+	if rhs := m.Metadata; rhs != nil {
+		tmpContainer := make([]*v1.MetadataValue, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v1.MetadataValue }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v1.MetadataValue)
+			}
+		}
+		r.Metadata = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -82,11 +94,11 @@ func (m *ChannelConfigurations) CloneVT() *ChannelConfigurations {
 	}
 	if rhs := m.BitFieldElement; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
-			CloneVT() *v1.ChannelBitFieldElement
+			CloneVT() *v11.ChannelBitFieldElement
 		}); ok {
 			r.BitFieldElement = vtpb.CloneVT()
 		} else {
-			r.BitFieldElement = proto.Clone(rhs).(*v1.ChannelBitFieldElement)
+			r.BitFieldElement = proto.Clone(rhs).(*v11.ChannelBitFieldElement)
 		}
 	}
 	if rhs := m.Expression; rhs != nil {
@@ -223,6 +235,17 @@ func (m *CreatePanelConfigurationRequest) CloneVT() *CreatePanelConfigurationReq
 		}
 		r.ChannelConfigurations = tmpContainer
 	}
+	if rhs := m.Metadata; rhs != nil {
+		tmpContainer := make([]*v1.MetadataValue, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v1.MetadataValue }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v1.MetadataValue)
+			}
+		}
+		r.Metadata = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -345,6 +368,27 @@ func (this *PanelConfiguration) EqualVT(that *PanelConfiguration) bool {
 	if this.IsArchived != that.IsArchived {
 		return false
 	}
+	if len(this.Metadata) != len(that.Metadata) {
+		return false
+	}
+	for i, vx := range this.Metadata {
+		vy := that.Metadata[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &v1.MetadataValue{}
+			}
+			if q == nil {
+				q = &v1.MetadataValue{}
+			}
+			if equal, ok := interface{}(p).(interface{ EqualVT(*v1.MetadataValue) bool }); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto.Equal(p, q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -377,7 +421,7 @@ func (this *ChannelConfigurations) EqualVT(that *ChannelConfigurations) bool {
 		return false
 	}
 	if equal, ok := interface{}(this.BitFieldElement).(interface {
-		EqualVT(*v1.ChannelBitFieldElement) bool
+		EqualVT(*v11.ChannelBitFieldElement) bool
 	}); ok {
 		if !equal.EqualVT(that.BitFieldElement) {
 			return false
@@ -572,6 +616,27 @@ func (this *CreatePanelConfigurationRequest) EqualVT(that *CreatePanelConfigurat
 	}
 	if !(*structpb1.Struct)(this.ChartSettings).EqualVT((*structpb1.Struct)(that.ChartSettings)) {
 		return false
+	}
+	if len(this.Metadata) != len(that.Metadata) {
+		return false
+	}
+	for i, vx := range this.Metadata {
+		vy := that.Metadata[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &v1.MetadataValue{}
+			}
+			if q == nil {
+				q = &v1.MetadataValue{}
+			}
+			if equal, ok := interface{}(p).(interface{ EqualVT(*v1.MetadataValue) bool }); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto.Equal(p, q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -881,6 +946,30 @@ func (m *PanelConfiguration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x72
+		}
 	}
 	if m.IsArchived {
 		i--
@@ -1361,6 +1450,30 @@ func (m *CreatePanelConfigurationRequest) MarshalToSizedBufferVT(dAtA []byte) (i
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if m.ChartSettings != nil {
 		size, err := (*structpb1.Struct)(m.ChartSettings).MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1561,6 +1674,30 @@ func (m *PanelConfiguration) MarshalToSizedBufferVTStrict(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVTStrict([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x72
+		}
 	}
 	if m.IsArchived {
 		i--
@@ -2041,6 +2178,30 @@ func (m *CreatePanelConfigurationRequest) MarshalToSizedBufferVTStrict(dAtA []by
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVTStrict([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if m.ChartSettings != nil {
 		size, err := (*structpb1.Struct)(m.ChartSettings).MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -2270,6 +2431,18 @@ func (m *PanelConfiguration) SizeVT() (n int) {
 	if m.IsArchived {
 		n += 2
 	}
+	if len(m.Metadata) > 0 {
+		for _, e := range m.Metadata {
+			if size, ok := interface{}(e).(interface {
+				SizeVT() int
+			}); ok {
+				l = size.SizeVT()
+			} else {
+				l = proto.Size(e)
+			}
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2435,6 +2608,18 @@ func (m *CreatePanelConfigurationRequest) SizeVT() (n int) {
 	if m.ChartSettings != nil {
 		l = (*structpb1.Struct)(m.ChartSettings).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.Metadata) > 0 {
+		for _, e := range m.Metadata {
+			if size, ok := interface{}(e).(interface {
+				SizeVT() int
+			}); ok {
+				l = size.SizeVT()
+			} else {
+				l = proto.Size(e)
+			}
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2924,6 +3109,48 @@ func (m *PanelConfiguration) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v1.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -3144,7 +3371,7 @@ func (m *ChannelConfigurations) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.BitFieldElement == nil {
-				m.BitFieldElement = &v1.ChannelBitFieldElement{}
+				m.BitFieldElement = &v11.ChannelBitFieldElement{}
 			}
 			if unmarshal, ok := interface{}(m.BitFieldElement).(interface {
 				UnmarshalVT([]byte) error
@@ -3237,7 +3464,7 @@ func (m *ChannelConfigurations) UnmarshalVT(dAtA []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DataType", wireType)
 			}
-			var v v1.ChannelDataType
+			var v v11.ChannelDataType
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -3247,7 +3474,7 @@ func (m *ChannelConfigurations) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= v1.ChannelDataType(b&0x7F) << shift
+				v |= v11.ChannelDataType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3921,6 +4148,48 @@ func (m *CreatePanelConfigurationRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			if err := (*structpb1.Struct)(m.ChartSettings).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v1.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
 			}
 			iNdEx = postIndex
 		default:
@@ -4704,6 +4973,48 @@ func (m *PanelConfiguration) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v1.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVTUnsafe([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -4932,7 +5243,7 @@ func (m *ChannelConfigurations) UnmarshalVTUnsafe(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.BitFieldElement == nil {
-				m.BitFieldElement = &v1.ChannelBitFieldElement{}
+				m.BitFieldElement = &v11.ChannelBitFieldElement{}
 			}
 			if unmarshal, ok := interface{}(m.BitFieldElement).(interface {
 				UnmarshalVTUnsafe([]byte) error
@@ -5029,7 +5340,7 @@ func (m *ChannelConfigurations) UnmarshalVTUnsafe(dAtA []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DataType", wireType)
 			}
-			var v v1.ChannelDataType
+			var v v11.ChannelDataType
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -5039,7 +5350,7 @@ func (m *ChannelConfigurations) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= v1.ChannelDataType(b&0x7F) << shift
+				v |= v11.ChannelDataType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5745,6 +6056,48 @@ func (m *CreatePanelConfigurationRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			if err := (*structpb1.Struct)(m.ChartSettings).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v1.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVTUnsafe([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
 			}
 			iNdEx = postIndex
 		default:

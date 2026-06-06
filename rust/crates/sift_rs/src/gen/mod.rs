@@ -71,6 +71,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.channels.v3)
         }
     }
+    pub mod comment {
+        // @@protoc_insertion_point(attribute:sift.comment.v1)
+        pub mod v1 {
+            include!("sift/comment/v1/sift.comment.v1.rs");
+            // @@protoc_insertion_point(sift.comment.v1)
+        }
+    }
     pub mod common {
         pub mod r#type {
             // @@protoc_insertion_point(attribute:sift.common.type.v1)
@@ -123,6 +130,13 @@ pub mod sift {
         pub mod v1 {
             include!("sift/external_sync/v1/sift.external_sync.v1.rs");
             // @@protoc_insertion_point(sift.external_sync.v1)
+        }
+    }
+    pub mod folders {
+        // @@protoc_insertion_point(attribute:sift.folders.v1)
+        pub mod v1 {
+            include!("sift/folders/v1/sift.folders.v1.rs");
+            // @@protoc_insertion_point(sift.folders.v1)
         }
     }
     pub mod ingest {
@@ -287,6 +301,13 @@ pub mod sift {
         pub mod v2 {
             include!("sift/user_groups/v2/sift.user_groups.v2.rs");
             // @@protoc_insertion_point(sift.user_groups.v2)
+        }
+    }
+    pub mod user_ssh_keys {
+        // @@protoc_insertion_point(attribute:sift.user_ssh_keys.v1)
+        pub mod v1 {
+            include!("sift/user_ssh_keys/v1/sift.user_ssh_keys.v1.rs");
+            // @@protoc_insertion_point(sift.user_ssh_keys.v1)
         }
     }
     pub mod users {

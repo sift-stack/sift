@@ -1,0 +1,248 @@
+syntax = "proto3";
+
+package sift.folders.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Folder service"}
+};
+
+service FolderService {
+  rpc ListFolders(ListFoldersRequest) returns (ListFoldersResponse) {
+    option (google.api.http) = {get: "/api/v1/folders"};
+  }
+
+  rpc CreateFolder(CreateFolderRequest) returns (CreateFolderResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/folders"
+      body: "*"
+    };
+  }
+
+  rpc UpdateFolder(UpdateFolderRequest) returns (UpdateFolderResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/folders/{folder_id}"
+      body: "*"
+    };
+  }
+
+  rpc GetFolder(GetFolderRequest) returns (GetFolderResponse) {
+    option (google.api.http) = {get: "/api/v1/folders/{folder_id}"};
+  }
+
+  rpc ArchiveFolder(ArchiveFolderRequest) returns (ArchiveFolderResponse) {
+    option (google.api.http) = {post: "/api/v1/folders/{folder_id}/archive"};
+  }
+
+  rpc UnarchiveFolder(UnarchiveFolderRequest) returns (UnarchiveFolderResponse) {
+    option (google.api.http) = {post: "/api/v1/folders/{folder_id}/unarchive"};
+  }
+
+  rpc AddFolderResources(AddFolderResourcesRequest) returns (AddFolderResourcesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/folders/{folder_id}/resources"
+      body: "*"
+    };
+  }
+
+  rpc RemoveFolderResources(RemoveFolderResourcesRequest) returns (RemoveFolderResourcesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/folders/{folder_id}/resources/remove"
+      body: "*"
+    };
+  }
+
+  rpc ListFolderResources(ListFolderResourcesRequest) returns (ListFolderResourcesResponse) {
+    option (google.api.http) = {get: "/api/v1/folders/{folder_id}/resources"};
+  }
+
+  // Lists the folders that a given resource is a member of.
+  rpc ListFoldersForResource(ListFoldersForResourceRequest) returns (ListFoldersForResourceResponse) {
+    option (google.api.http) = {get: "/api/v1/folders/for-resource"};
+  }
+}
+
+message Folder {
+  string folder_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string organization_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  string created_by_user_id = 5 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string modified_by_user_id = 6 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp created_date = 7 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp modified_date = 8 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp archived_date = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+message ListFoldersRequest {
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // CEL filter. Filterable fields: `folder_id`, `name`, `description`,
+  // `created_by_user_id`, `created_date`, `modified_date`, `archived_date`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Comma-separated order spec ("FIELD_NAME[ desc],..."). Fields: `name`,
+  // `created_date`, `modified_date`. Defaults to `created_date desc`.
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Resolved from the caller's auth context when omitted.
+  string organization_id = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFoldersResponse {
+  repeated Folder folders = 1;
+  string next_page_token = 2;
+}
+
+message CreateFolderRequest {
+  // Resolved from the caller's auth context when omitted.
+  string organization_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message CreateFolderResponse {
+  Folder folder = 1;
+}
+
+message UpdateFolderRequest {
+  string folder_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = OPTIONAL];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+  // The list of fields to update. Supported paths: `name`, `description`.
+  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateFolderResponse {
+  Folder folder = 1;
+}
+
+message GetFolderRequest {
+  string folder_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFolderResponse {
+  Folder folder = 1;
+}
+
+message ArchiveFolderRequest {
+  string folder_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveFolderResponse {}
+
+message UnarchiveFolderRequest {
+  string folder_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchiveFolderResponse {}
+
+// --- Folder Resource Management ---
+
+enum FolderResourceType {
+  FOLDER_RESOURCE_TYPE_UNSPECIFIED = 0;
+  FOLDER_RESOURCE_TYPE_RULE = 1;
+  FOLDER_RESOURCE_TYPE_PANEL_CONFIGURATION = 2;
+  FOLDER_RESOURCE_TYPE_CALCULATED_CHANNEL = 3;
+}
+
+enum FolderResourceStatus {
+  FOLDER_RESOURCE_STATUS_UNSPECIFIED = 0;
+  FOLDER_RESOURCE_STATUS_SUCCESS = 1;
+  FOLDER_RESOURCE_STATUS_ALREADY_EXISTS = 2;
+  FOLDER_RESOURCE_STATUS_NOT_FOUND = 3;
+  FOLDER_RESOURCE_STATUS_ERROR = 4;
+}
+
+message FolderResourceItem {
+  string resource_id = 1 [(google.api.field_behavior) = REQUIRED];
+  FolderResourceType resource_type = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message FolderResource {
+  FolderResourceItem resource = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp created_date = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+message FolderResourceResult {
+  FolderResourceItem resource = 1;
+  FolderResourceStatus status = 2;
+  string error_message = 3;
+}
+
+message AddFolderResourcesRequest {
+  string folder_id = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated FolderResourceItem resources = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message AddFolderResourcesResponse {
+  repeated FolderResourceResult results = 1;
+}
+
+message RemoveFolderResourcesRequest {
+  string folder_id = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated FolderResourceItem resources = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RemoveFolderResourcesResponse {
+  repeated FolderResourceResult results = 1;
+}
+
+message ListFolderResourcesRequest {
+  string folder_id = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Required for now: hydrating the returned resources currently relies on
+  // per-type ListX RPCs, so callers must page one resource type at a time.
+  // Once we have a generic resource-fetch API we will relax this to optional.
+  // TODO(ENG-XXXX): make optional once the metadata-driven multi-type fetch
+  // path lands.
+  FolderResourceType resource_type = 4 [(google.api.field_behavior) = REQUIRED];
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFolderResourcesResponse {
+  repeated FolderResource resources = 1;
+  string next_page_token = 2;
+}
+
+message ListFoldersForResourceRequest {
+  string resource_id = 1 [(google.api.field_behavior) = REQUIRED];
+  FolderResourceType resource_type = 2 [(google.api.field_behavior) = REQUIRED];
+  uint32 page_size = 3 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+  string filter = 5 [(google.api.field_behavior) = OPTIONAL];
+  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFoldersForResourceResponse {
+  repeated Folder folders = 1;
+  string next_page_token = 2;
+}
