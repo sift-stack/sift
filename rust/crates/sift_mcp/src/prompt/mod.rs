@@ -91,7 +91,7 @@ impl SiftMcpServer {
              2. Confirm the target channels exist with `list_channels` scoped by `asset_id`. If no \
              channels were named, choose a sensible set and tell the user which you picked.\n\
              3. Pull data with `get_data`. Pass `run_name` so the run's start/stop bounds apply \
-             automatically; do not hand-compute timestamps. Use `channel_search.Names` with exact \
+             automatically; do not hand-compute timestamps. Use `channel_names` with exact \
              channel names. Choose `sample_ms` to suit the run length: decimate (e.g. 100-1000 ms) \
              for long runs and use 0 only when raw fidelity is required. Write to a Parquet path in a \
              working directory.\n\
@@ -140,7 +140,7 @@ impl SiftMcpServer {
              1. Resolve the source asset and run with `list_assets` and `list_runs`. Identify the \
              channels the transform needs via `list_channels` scoped by `asset_id`.\n\
              2. Extract with `get_data`, passing `run_name` so the run bounds apply. Choose \
-             `channel_search.Names` and a `sample_ms` suited to the transform.\n\
+             `channel_names` and a `sample_ms` suited to the transform.\n\
              3. Apply the transform with `sql`. CRITICAL: column 0 of any dataset uploaded to Sift \
              MUST be `timestamp_unix_nanos` (Int64, non-null). Project it first in the SELECT and never \
              rename or drop it. For aggregations that collapse rows, bucket on a time expression \
