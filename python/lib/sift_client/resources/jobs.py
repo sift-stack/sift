@@ -7,11 +7,10 @@ import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from alive_progress import alive_bar  # type: ignore[import-untyped]
-
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import download_file, extract_zip
+from sift_client._internal.util.progress import alive_bar
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.job import DataExportStatusDetails, Job, JobStatus, JobType
 from sift_client.util import cel_utils as cel

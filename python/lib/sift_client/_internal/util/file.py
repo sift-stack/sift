@@ -6,9 +6,8 @@ import warnings
 import zipfile
 from typing import TYPE_CHECKING
 
-from alive_progress import alive_bar  # type: ignore[import-untyped]
-
 import sift_client as _sift_client_module
+from sift_client._internal.util.progress import alive_bar
 from sift_client.errors import SiftWarning
 
 if TYPE_CHECKING:
