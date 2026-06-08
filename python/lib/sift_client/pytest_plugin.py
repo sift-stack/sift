@@ -14,7 +14,7 @@ lives under ``sift_client._internal.pytest_plugin``.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Generator
+from typing import Any, Generator
 
 import pytest
 
@@ -61,15 +61,15 @@ from sift_client._internal.pytest_plugin.terminal import (
 )
 from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import TestStatus
-
-if TYPE_CHECKING:
-    from sift_client.util.test_results import ReportContext
-    from sift_client.util.test_results.context_manager import NewStep
+from sift_client.util.test_results import ReportContext
+from sift_client.util.test_results.context_manager import NewStep
 
 __all__ = [
     "REPORT_CONTEXT",
     "SIFT_REPORT_ID_STASH_KEY",
     "SIFT_REPORT_URL_STASH_KEY",
+    "NewStep",
+    "ReportContext",
     "SiftPytestPluginWarning",
     "SiftPytestStepDrainError",
     "SiftPytestStepDrainWarning",

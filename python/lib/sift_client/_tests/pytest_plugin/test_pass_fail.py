@@ -137,8 +137,8 @@ def test_pytest_fail_maps_to_failed(inner):
     assert capture.final_status("test_x") == TestStatus.FAILED
 
 
-def test_fail_if_measurements_failed_fails_without_error_info(inner):
-    # An out-of-bounds measurement plus step.fail_if_measurements_failed()
+def test_pytest_fail_if_step_failed_fails_without_error_info(inner):
+    # An out-of-bounds measurement plus step.pytest_fail_if_step_failed()
     # fails the test via pytest.fail, so the step is FAILED with no assertion
     # message in error_info (the reason this helper exists over `assert`).
     _run(
@@ -146,20 +146,35 @@ def test_fail_if_measurements_failed_fails_without_error_info(inner):
         """
         def test_x(step):
             step.measure(name="b", value=99.0, bounds={"min": 0.0, "max": 2.0})
-            step.fail_if_measurements_failed()
+            step.pytest_fail_if_step_failed()
         """,
     )
     assert capture.final_status("test_x") == TestStatus.FAILED
     assert capture.final_error_message("test_x") is None
 
 
-def test_fail_if_measurements_failed_passes_when_in_bounds(inner):
+def test_pytest_fail_if_step_failed_fails_on_failed_substep(inner):
+    # A failed substep (here via report_outcome) leaves no out-of-bounds
+    # measurement on the step, but the report still marks the step FAILED.
+    # pytest_fail_if_step_failed must fail the test so the verdict matches.
+    _run(
+        inner,
+        """
+        def test_x(step):
+            step.report_outcome("check", False, "deliberately failing")
+            step.pytest_fail_if_step_failed()
+        """,
+    )
+    assert capture.final_status("test_x") == TestStatus.FAILED
+
+
+def test_pytest_fail_if_step_failed_passes_when_in_bounds(inner):
     _run(
         inner,
         """
         def test_x(step):
             step.measure(name="a", value=1.0, bounds={"min": 0.0, "max": 2.0})
-            step.fail_if_measurements_failed()
+            step.pytest_fail_if_step_failed()
         """,
     )
     assert capture.final_status("test_x") == TestStatus.PASSED
