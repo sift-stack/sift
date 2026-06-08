@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import (
     ErrorInfo,
@@ -172,6 +173,9 @@ class ReportContext(AbstractContextManager):
     # exited non-zero, so callers (e.g. the pytest plugin footer) can flag that
     # the uploaded report may be missing entries.
     replay_incomplete: bool = False
+    # When set, the path of the DEBUG audit log. The replay worker is spawned
+    # with ``--audit-log <sibling>`` so its activity is traced too.
+    audit_log: Path | None = None
     _import_proc: subprocess.Popen | None = None
     # Seconds to wait for the import worker subprocess to finish uploading
     # the JSONL backlog at session end before killing it. Tests substitute
@@ -192,6 +196,7 @@ class ReportContext(AbstractContextManager):
         include_git_metadata: bool = False,
         replay_log_file: bool = True,
         metadata: dict[str, str | float | bool] | None = None,
+        audit_log: str | Path | None = None,
     ):
         """Initialize a new report context.
 
@@ -216,9 +221,13 @@ class ReportContext(AbstractContextManager):
                 False, the log file is just a record and no worker is spawned.
                 Replay happens later via ``replay-test-result-log <path>``.
                 Has no effect when ``log_file`` is None.
+            audit_log: When set, the path of a DEBUG audit log. The replay worker
+                is spawned with ``--audit-log <sibling>`` so its activity is
+                traced to ``<path>.replay.log``.
         """
         self.client = client
         self.replay_log_file = replay_log_file
+        self.audit_log = Path(audit_log) if audit_log is not None else None
         self.step_is_open = False
         self.step_stack = []
         self.child_counts = {}
@@ -232,7 +241,7 @@ class ReportContext(AbstractContextManager):
         if log_file is True:
             tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
             self.log_file = Path(tmp.name)
-            logger.info(f"Created temporary log file: {self.log_file}")
+            log_event(logger, logging.INFO, "log_file.create", path=self.log_file, source="temp")
         elif log_file:
             self.log_file = Path(log_file)
         else:
@@ -267,7 +276,7 @@ class ReportContext(AbstractContextManager):
         with controlled returncodes / stderr to exercise the ``__exit__``
         branches without depending on the real replay binary.
         """
-        return [
+        cmd = [
             "import-test-result-log",
             "--incremental",
             str(self.log_file),
@@ -278,6 +287,11 @@ class ReportContext(AbstractContextManager):
             "--api-key",
             self.client.grpc_client._config.api_key,
         ]
+        if self.audit_log is not None:
+            from sift_client._internal.pytest_plugin.audit_log import replay_audit_path
+
+            cmd += ["--audit-log", str(replay_audit_path(self.audit_log))]
+        return cmd
 
     def _open_import_proc(self):
         """Open a subprocess to import the log file.
@@ -285,13 +299,26 @@ class ReportContext(AbstractContextManager):
         ``stderr`` is captured so a worker crash mid-session can surface its
         error at session end via ``__exit__`` rather than failing silently.
         """
-        with _quiet_fork_stderr():
-            self._import_proc = subprocess.Popen(
-                self._build_replay_command(),
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
+        # Redact the API key before logging — never log the raw argv.
+        api_key = self.client.grpc_client._config.api_key
+        safe = ["***" if a == api_key else a for a in self._build_replay_command()]
+        log_event(logger, logging.INFO, "replay.start", log=self.log_file)
+        log_event(logger, logging.DEBUG, "replay.cmd", argv=" ".join(safe))
+        try:
+            with _quiet_fork_stderr():
+                self._import_proc = subprocess.Popen(
+                    self._build_replay_command(),
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
+                )
+        except OSError as exc:
+            # e.g. the ``import-test-result-log`` entry point isn't on PATH.
+            # Surface it; the JSONL log is still on disk for a manual replay.
+            log_event(
+                logger, logging.WARNING, "replay.spawn_failed", error=repr(exc), log=self.log_file
             )
+            raise
 
     def __enter__(self):
         if self.log_file and self.replay_log_file:
@@ -330,6 +357,13 @@ class ReportContext(AbstractContextManager):
                 self._import_proc.kill()
                 self._import_proc.wait()
                 self.replay_incomplete = True
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "replay.timeout",
+                    secs=self._import_proc_timeout,
+                    log=self.log_file,
+                )
                 warnings.warn(
                     f"Sift import worker did not exit in "
                     f"{self._import_proc_timeout}s; killing it. "
@@ -344,6 +378,14 @@ class ReportContext(AbstractContextManager):
                 stderr_text = (
                     stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
                 )
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "replay.error",
+                    code=self._import_proc.returncode,
+                    log=self.log_file,
+                    stderr=stderr_text or "",
+                )
                 warnings.warn(
                     f"Sift import worker exited with code "
                     f"{self._import_proc.returncode}. stderr: {stderr_text or '<empty>'}",
@@ -351,6 +393,8 @@ class ReportContext(AbstractContextManager):
                     stacklevel=2,
                 )
                 log_replay_instructions(self.log_file)
+            else:
+                log_event(logger, logging.INFO, "replay.done")
 
         return True
 
@@ -389,6 +433,8 @@ class ReportContext(AbstractContextManager):
         *,
         parent: TestStep | None | object = _USE_STACK_TOP,
         push: bool = True,
+        origin: str = "step",
+        source_path: str | None = None,
     ) -> NewStep:
         """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context.
 
@@ -396,6 +442,10 @@ class ReportContext(AbstractContextManager):
         by everyday callers. The pytest plugin passes an explicit ``parent`` with
         ``push=False`` to open report-tree parents that persist outside the stack;
         see :meth:`create_step`.
+
+        ``origin`` (e.g. ``hierarchy``/``parametrize``/``test``/``substep``) and
+        ``source_path`` (the pytest nodeid the step was created for) are
+        audit-log labels only; they do not affect step creation.
         """
         return NewStep(
             self,
@@ -405,6 +455,8 @@ class ReportContext(AbstractContextManager):
             metadata=metadata,
             parent=parent,
             push=push,
+            origin=origin,
+            source_path=source_path,
         )
 
     def _resolve_parent(self, parent: TestStep | None | object) -> TestStep | None:
@@ -588,6 +640,8 @@ class NewStep(AbstractContextManager):
         *,
         parent: TestStep | None | object = _USE_STACK_TOP,
         push: bool = True,
+        origin: str = "step",
+        source_path: str | None = None,
     ):
         """Initialize a new step context.
 
@@ -599,6 +653,10 @@ class NewStep(AbstractContextManager):
             metadata: [Optional] Structured key/value metadata to attach to the step.
             parent: Parent step to nest under; see :meth:`ReportContext.create_step`.
             push: Whether the step joins the step stack; see :meth:`ReportContext.create_step`.
+            origin: Audit-log label for where the step came from (hierarchy,
+                parametrize, test, substep); does not affect behavior.
+            source_path: Audit-log label: the pytest nodeid this step was created
+                for; does not affect behavior.
         """
         self.report_context = report_context
         self.client = report_context.client
@@ -606,6 +664,8 @@ class NewStep(AbstractContextManager):
             name, description, metadata=metadata, parent=parent, push=push
         )
         self.assertion_as_fail_not_error = assertion_as_fail_not_error
+        self._origin = origin
+        self._source_path = source_path
         # Per-step measurement-failure count for ``measurements_passed``.
         # Tracks only direct ``measure*`` calls on this NewStep instance;
         # substep / ``report_outcome`` failures are intentionally not folded
@@ -614,6 +674,17 @@ class NewStep(AbstractContextManager):
         # Out-of-bounds measurements recorded on this step, retained so
         # ``pytest_fail_if_step_failed`` can name them in the failure message.
         self._failed_measurements: list[TestMeasurement] = []
+        parent_path = self.current_step.step_path.rpartition(".")[0] or "-"
+        log_event(
+            logger,
+            logging.DEBUG,
+            "step.open",
+            name=self.current_step.name,
+            path=source_path or "-",
+            step_path=self.current_step.step_path,
+            origin=origin,
+            parent=parent_path,
+        )
 
     def __enter__(self):
         """Enter the context manager to create a new step.
@@ -754,6 +825,30 @@ class NewStep(AbstractContextManager):
 
         return result
 
+    def _log_close(self, step: TestStep) -> None:
+        """Audit line for closing a step, with a per-step measurement summary.
+
+        Summarizes (not enumerates) the measurements recorded on this step:
+        passed/total, plus the out-of-bounds ones named so a reader sees what
+        failed. Omits the measurement field for steps with none.
+        """
+        measurements = [
+            m for m in self.report_context.created_measurements if m.test_step_id == str(step.id_)
+        ]
+        fields: dict[str, object] = {
+            "name": step.name,
+            "path": self._source_path or "-",
+            "step_path": step.step_path,
+            "origin": self._origin,
+        }
+        if measurements:
+            passed = sum(1 for m in measurements if m.passed)
+            fields["measurements"] = f"{passed}/{len(measurements)}"
+            failed = [m for m in measurements if not m.passed]
+            if failed:
+                fields["failed"] = "[" + ", ".join(str(m) for m in failed) + "]"
+        log_event(logger, logging.DEBUG, "step.close", **fields)
+
     def __exit__(self, exc, exc_value, tb):
         if getattr(self, "_sift_managed_externally", False):
             # The pytest fixture already resolved status from phase reports.
@@ -774,6 +869,7 @@ class NewStep(AbstractContextManager):
                 },
             )
             self.report_context.note_close(current_step)
+            self._log_close(current_step)
             self.report_context.exit_step(current_step)
             if hasattr(self, "force_result"):
                 result = self.force_result
@@ -784,6 +880,8 @@ class NewStep(AbstractContextManager):
         )
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
+        if self.current_step is not None:
+            self._log_close(self.current_step)
         self.report_context.exit_step(self.current_step)
 
         # Test only attribute (hence not public class variable)
@@ -970,4 +1068,6 @@ class NewStep(AbstractContextManager):
             description=description,
             assertion_as_fail_not_error=self.assertion_as_fail_not_error,
             metadata=metadata,
+            origin="substep",
+            source_path=self._source_path,
         )

@@ -13,12 +13,23 @@ lives under ``sift_client._internal.pytest_plugin``.
 
 from __future__ import annotations
 
+import logging
+import platform
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Generator
 
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client._internal.pytest_plugin.audit_log import (
+    configure_audit_logging,
+    detach_audit_handlers,
+    log_event,
+    render_report_tree,
+    replay_audit_path,
+)
 from sift_client._internal.pytest_plugin.modes import (
     gate_enabled,
     is_disabled,
@@ -33,6 +44,7 @@ from sift_client._internal.pytest_plugin.options import (
     OPEN_OPTION,
     REST_URI_OPTION,
     register_options,
+    resolved_settings,
     warn_on_unknown_env_vars,
     warn_on_unknown_toml_keys,
 )
@@ -64,6 +76,8 @@ from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
 from sift_client.util.test_results.context_manager import NewStep
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "REPORT_CONTEXT",
@@ -110,6 +124,11 @@ REPORT_CONTEXT: Any = None
 SIFT_REPORT_ID_STASH_KEY = pytest.StashKey[str]()
 SIFT_REPORT_URL_STASH_KEY = pytest.StashKey[str]()
 
+# Set in ``pytest_configure`` when ``--sift-audit-log`` is on; the resolved audit
+# file path. Read by ``report_context`` to thread the replay sibling to the
+# subprocess and by the terminal summary to surface the paths.
+SIFT_AUDIT_LOG_STASH_KEY = pytest.StashKey[Path]()
+
 
 # ---------------------------------------------------------------------------
 # Fixtures.
@@ -148,6 +167,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     }
     missing = [env for env, value in resolved.items() if not value]
     if missing and not is_offline(pytestconfig):
+        log_event(logger, logging.ERROR, "credentials", missing=",".join(missing))
         raise pytest.UsageError(
             "Sift credentials missing: "
             + ", ".join(missing)
@@ -247,19 +267,22 @@ def report_context(
         return
     sift_client = request.getfixturevalue("sift_client")
     if not is_offline(pytestconfig):
+        grpc_config = getattr(getattr(sift_client, "grpc_client", None), "_config", None)
+        grpc_url = getattr(grpc_config, "uri", "<unknown>")
+        log_event(logger, logging.INFO, "connect.ping", target=grpc_url)
         try:
             request.getfixturevalue("client_has_connection")
         except pytest.UsageError:
             raise
         except Exception as exc:
-            grpc_config = getattr(getattr(sift_client, "grpc_client", None), "_config", None)
-            grpc_url = getattr(grpc_config, "uri", "<unknown>")
+            log_event(logger, logging.ERROR, "connect.failed", target=grpc_url, error=repr(exc))
             pytest.exit(
                 f"Sift ping failed against {grpc_url}: {exc}. "
                 "Pass --sift-offline to run without contacting Sift, or "
                 "--sift-disabled to skip Sift entirely.",
                 returncode=4,
             )
+        log_event(logger, logging.INFO, "connect.ok", target=grpc_url)
     yield from _set_report_context(
         report_context_impl(sift_client, request, pytestconfig=pytestconfig)
     )
@@ -314,6 +337,43 @@ def _sift_parents(
 # ---------------------------------------------------------------------------
 
 
+def _log_settings_and_provenance(config: pytest.Config) -> None:
+    """Write the resolved-settings snapshot and the run-provenance lines.
+
+    Called from ``pytest_configure`` only when audit logging is on. Every
+    record is a no-op unless a handler is attached, so this is gated by the
+    caller rather than re-checking here.
+    """
+    from sift_client.util.test_results.context_manager import _git_metadata
+
+    for name, value, source in resolved_settings(config):
+        log_event(logger, logging.DEBUG, "settings", name=name, value=value, source=source)
+
+    args = config.invocation_params.args
+    command = "pytest " + " ".join(args) if args else "pytest"
+    log_event(
+        logger,
+        logging.INFO,
+        "env",
+        sdk=sdk_version(),
+        pytest=pytest.__version__,
+        python=platform.python_version(),
+        platform=sys.platform,
+        rootdir=config.rootpath,
+        command=command,
+    )
+    git = _git_metadata() or {}
+    if git:
+        log_event(
+            logger,
+            logging.INFO,
+            "env",
+            git_repo=git.get("git_repo", "-"),
+            git_branch=git.get("git_branch", "-"),
+            git_commit=git.get("git_commit", "-"),
+        )
+
+
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register every CLI flag and pytest ini key declared in ``PLUGIN_OPTIONS``."""
     register_options(parser)
@@ -331,6 +391,22 @@ def pytest_configure(config: pytest.Config) -> None:
         "sift_exclude: force the Sift autouse fixtures to skip this test "
         "regardless of the `sift_autouse` ini default.",
     )
+    # Audit trace (on by default): attaches DEBUG file + WARNING stdout handlers
+    # to the sift_client root logger. Returns None only when audit logging is
+    # explicitly disabled via --sift-audit-log=false. Done first so the typo
+    # warnings below are captured in the audit file.
+    audit_path = configure_audit_logging(config)
+    if audit_path is not None:
+        config.stash[SIFT_AUDIT_LOG_STASH_KEY] = audit_path
+        log_event(
+            logger,
+            logging.INFO,
+            "session",
+            mode=mode_label(config),
+            audit_log=audit_path,
+            replay_log=replay_audit_path(audit_path),
+        )
+        _log_settings_and_provenance(config)
     # Surface typos in env vars and [tool.sift...] keys at session start so a
     # silent no-op (env var that doesn't match anything, table key the loader
     # ignores) becomes visible. The registry is the source of truth for what's
@@ -354,8 +430,21 @@ def pytest_itemcollected(item: pytest.Item) -> None:
     on-demand recompute fallback, so an item a later hook injects without going
     through this hook still resolves correctly.
     """
-    item.stash[hierarchy_key] = build_hierarchy_chain(item, item.config)
-    item.stash[parametrize_path_key] = build_parametrize_path(item)
+    chain = build_hierarchy_chain(item, item.config)
+    parametrize_path = build_parametrize_path(item)
+    item.stash[hierarchy_key] = chain
+    item.stash[parametrize_path_key] = parametrize_path
+    gated = gate_enabled(item, item.config)
+    rendered_hierarchy = "/".join(name for _id, name, _doc, rendered in chain if rendered)
+    log_event(
+        logger,
+        logging.DEBUG,
+        "collection.item",
+        path=item.nodeid,
+        gated=gated,
+        hierarchy=rendered_hierarchy or "-",
+        parametrize="/".join(parametrize_path) or "-",
+    )
 
 
 def pytest_collection_finish(session: pytest.Session) -> None:
@@ -365,6 +454,14 @@ def pytest_collection_finish(session: pytest.Session) -> None:
     reflect only the selected, gated-in items. See ``release_finished_leaf``.
     """
     tally_expected_parents(session)
+    items = session.items
+    excluded_count = sum(1 for i in items if not gate_enabled(i, session.config))
+    collection_fields: dict[str, object] = {
+        "collected": len(items),
+        "will_run": len(items) - excluded_count,
+        "excluded": excluded_count,
+    }
+    log_event(logger, logging.INFO, "collection", **collection_fields)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -398,7 +495,12 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         # report root instead of under its module/class.
         parent_ns = resolve_parent_chain_in_context(item, item.config, REPORT_CONTEXT)
         parent_step = parent_ns.current_step if parent_ns is not None else None
-        with REPORT_CONTEXT.new_step(name=item.name, parent=parent_step) as inline_step:
+        with REPORT_CONTEXT.new_step(
+            name=item.name,
+            parent=parent_step,
+            origin="pytest_runtest_makereport",
+            source_path=item.nodeid,
+        ) as inline_step:
             inline_step.current_step.update({"status": TestStatus.SKIPPED})
 
     if report.when == "teardown":
@@ -448,6 +550,16 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
     """
     quiet = config.get_verbosity() < 0
 
+    # End-state validation view: the final step tree with statuses, written to
+    # the audit log (not the terminal) in every mode. created_steps are retained
+    # after the context closes, so this reflects final statuses (incl. teardown
+    # upgrades). Logged regardless of -q since it's a file artifact.
+    if SIFT_AUDIT_LOG_STASH_KEY in config.stash and REPORT_CONTEXT is not None:
+        logger.debug(
+            "%s",
+            render_report_tree(REPORT_CONTEXT.created_steps, mode=mode_label(config)),
+        )
+
     if is_disabled(config):
         if not quiet:
             write_disabled_summary(terminalreporter)
@@ -464,6 +576,7 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
     report_id, report_url = resolve_report_link(context, offline)
     if report_id:
         config.stash[SIFT_REPORT_ID_STASH_KEY] = report_id
+        log_event(logger, logging.INFO, "report", id=report_id, url=report_url or "-")
     if report_url is not None:
         config.stash[SIFT_REPORT_URL_STASH_KEY] = report_url
         if OPEN_OPTION.resolve(config):
@@ -473,3 +586,11 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
         return
 
     write_report_summary(terminalreporter, context, config, report_id, report_url, offline)
+
+
+def pytest_unconfigure(config: pytest.Config) -> None:
+    """Tear down the audit-log handlers so they don't outlive the session.
+
+    A no-op when audit logging was disabled (no handlers were attached).
+    """
+    detach_audit_handlers()

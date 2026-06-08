@@ -146,6 +146,7 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Setting | CLI flag | Ini (`[tool.pytest.ini_options]`) |
 |---|---|---|
 | Path to the JSONL log of create/update calls (path \| true \| false \| none). | `--sift-log-file` | `sift_log_file` |
+| DEBUG-level audit trace of plugin behavior (path \| true \| false). On by default to a temp file, with warnings echoed to stdout; set a path to pin the file, or false to disable. | `--sift-audit-log` | `sift_audit_log` |
 | Capture git repo/branch/commit on the report. | `--no-sift-git-metadata` | `sift_git_metadata` |
 | Skip the session-start ping; route create/update through the JSONL log. | `--sift-offline` | `sift_offline` |
 | Disable Sift entirely (no API calls, no log file). Supersedes --sift-offline. | `--sift-disabled` | `sift_disabled` |

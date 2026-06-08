@@ -48,6 +48,7 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
     log_request_to_file,
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
+from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -1214,17 +1215,44 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for request_type, response_id, json_str in iter_log_data_lines(
             log_path, start_line=tracking.last_uploaded_line
         ):
-            await self._import_entry(
-                request_type,
-                response_id,
-                json_str,
-                simulate=False,
-                id_map=id_map,
-                state=state,
-            )
+            line_number = tracking.last_uploaded_line + 1
+            try:
+                await self._import_entry(
+                    request_type,
+                    response_id,
+                    json_str,
+                    simulate=False,
+                    id_map=id_map,
+                    state=state,
+                )
+            except Exception as exc:
+                # Surface which line/entity failed before the line is retried
+                # next tick (last_uploaded_line is not advanced on failure).
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "replay.error",
+                    line=line_number,
+                    type=request_type,
+                    error=repr(exc),
+                )
+                raise
 
             tracking.last_uploaded_line += 1
             tracking.save(log_path)
+            # One line per uploaded entity: what was sent, the sim->real id
+            # mapping (creates only), and the sidecar cursor + id-map size after
+            # the save so a reader can follow exactly what reached the server.
+            log_event(
+                logger,
+                logging.DEBUG,
+                "replay.upload",
+                type=request_type,
+                line=tracking.last_uploaded_line,
+                sim_id=response_id or "-",
+                real_id=id_map.get(response_id, "-") if response_id else "-",
+                idmap=len(id_map),
+            )
 
         # On a resume tick the CreateTestReport line was consumed on an earlier
         # tick, so state.report is expected to be None; the report already exists

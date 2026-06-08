@@ -8,9 +8,11 @@ import os
 import select
 import sys
 import tempfile
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client.util.test_results.context_manager import log_replay_instructions
 
 if TYPE_CHECKING:
@@ -31,14 +33,19 @@ def _print_result(result: ReplayResult) -> None:
 
 
 def _incremental_import_loop(client: SiftClient, log_file: str) -> ReplayResult | None:
-    """Replay incrementally in a loop until stdin is closed (EOF)."""
+    """Replay incrementally in a loop until stdin is closed (EOF).
+
+    Per-entity upload detail and sidecar advances are logged inside the
+    incremental importer (``replay.upload`` / ``replay.error``); idle ticks
+    that upload nothing are silent on purpose.
+    """
     result = None
     while True:
         received_signal, _, _ = select.select([sys.stdin], [], [], 1.0)
         result = client.test_results.import_log_file(log_file, incremental=True)
         if received_signal:
             break
-    logger.info(f"Replay completed: {result}")
+    log_event(logger, logging.INFO, "replay.complete", log=log_file)
     fp = os.path.abspath(log_file)
     if fp.startswith(tempfile.gettempdir()):
         os.remove(fp)
@@ -57,7 +64,15 @@ def main() -> None:
     parser.add_argument(
         "--incremental", action="store_true", help="Import the log file incrementally."
     )
+    parser.add_argument(
+        "--audit-log", default=None, help="Path to the replay worker's DEBUG audit log."
+    )
     args = parser.parse_args()
+
+    if args.audit_log:
+        from sift_client._internal.pytest_plugin.audit_log import attach_file_handler
+
+        attach_file_handler(Path(args.audit_log))
 
     if not args.grpc_url or not args.rest_url or not args.api_key:
         raise ValueError("SIFT_GRPC_URI, SIFT_REST_URI, and SIFT_API_KEY must be set")
@@ -82,7 +97,7 @@ def main() -> None:
             if fp.startswith(tempfile.gettempdir()):
                 os.remove(fp)
     except Exception as e:
-        logger.error(e)
+        log_event(logger, logging.ERROR, "replay.failed", error=repr(e))
         log_replay_instructions(args.log_file)
         raise
 

@@ -11,11 +11,13 @@ backstop for anything still open.
 
 from __future__ import annotations
 
+import logging
 import warnings
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import pytest
 
+from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client._internal.pytest_plugin.modes import gate_enabled
 from sift_client._internal.pytest_plugin.options import (
     CLASS_STEP_OPTION,
@@ -23,6 +25,8 @@ from sift_client._internal.pytest_plugin.options import (
     PACKAGE_STEP_OPTION,
     PARAMETRIZE_NESTING_OPTION,
 )
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from typing import Callable

@@ -9,6 +9,7 @@ plugin's ``report_context`` fixture owns the module-level ``REPORT_CONTEXT``.
 
 from __future__ import annotations
 
+import logging
 import os
 import warnings
 from datetime import datetime, timezone
@@ -18,6 +19,7 @@ from typing import TYPE_CHECKING, Any, Generator
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client._internal.pytest_plugin.modes import is_offline
 from sift_client._internal.pytest_plugin.options import (
     GIT_METADATA_OPTION,
@@ -46,6 +48,8 @@ from sift_client.util.test_results.context_manager import (
 
 if TYPE_CHECKING:
     from sift_client.util.test_results.context_manager import NewStep
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_real_report_id(context: Any) -> str | None:
@@ -205,6 +209,40 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
     new_step._sift_managed_externally = True
 
 
+def describe_step_failure(new_step: NewStep) -> str:
+    """A short, human reason a step failed, for the audit log. Empty when none.
+
+    Prefers a named out-of-bounds measurement (the common test-failure cause),
+    then falls back to the first line of the step's ``error_info``.
+    """
+    failed = getattr(new_step, "_failed_measurements", [])
+    if failed:
+        extra = f" (and {len(failed) - 1} more)" if len(failed) > 1 else ""
+        return f"{failed[0]}{extra}"
+    step = new_step.current_step
+    if step is not None and step.error_info is not None and step.error_info.error_message:
+        return step.error_info.error_message.strip().splitlines()[0]
+    return ""
+
+
+def skip_or_xfail_reason(phase: Any) -> str:
+    """The skip/xfail reason text from a pytest phase, or empty when none.
+
+    xfail reasons ride on ``report.wasxfail``; plain skips store
+    ``(path, lineno, "Skipped: <reason>")`` in ``report.longrepr``.
+    """
+    if phase is None:
+        return ""
+    report = phase.report
+    wasxfail = getattr(report, "wasxfail", None)
+    if wasxfail:
+        return f"xfail: {wasxfail}"
+    longrepr = getattr(report, "longrepr", None)
+    if isinstance(longrepr, tuple) and len(longrepr) == 3:
+        return str(longrepr[2])
+    return ""
+
+
 def finalize_after_teardown(item: pytest.Item, teardown_report: pytest.TestReport) -> None:
     """Upgrade a closed step to FAILED when the teardown phase failed.
 
@@ -219,6 +257,14 @@ def finalize_after_teardown(item: pytest.Item, teardown_report: pytest.TestRepor
     if current_step is None:
         return
     if teardown_report.outcome == "failed" and current_step.status == TestStatus.PASSED:
+        log_event(
+            logger,
+            logging.WARNING,
+            "status",
+            path=item.nodeid,
+            pytest="teardown_failed",
+            sift="PASSED->FAILED",
+        )
         current_step.update({"status": TestStatus.FAILED})
         step.report_context.mark_step_failed_after_close(current_step)
 
@@ -314,6 +360,15 @@ def format_template(
     try:
         return template.format(**fields)
     except (KeyError, IndexError, ValueError) as exc:
+        log_event(
+            logger,
+            logging.WARNING,
+            "template.invalid",
+            option=option_label,
+            template=template,
+            error=repr(exc),
+            fallback=fallback,
+        )
         warnings.warn(
             f"Invalid {option_label} template {template!r} ({exc}); using fallback.",
             SiftPytestPluginWarning,
@@ -372,6 +427,9 @@ def report_context_impl(
     target = derive_target(request, args)
     command = "pytest " + " ".join(args) if args else "pytest"
     fields = build_template_fields(target, command, args, request)
+    # What each report_name / test_case ``{placeholder}`` resolved to; the
+    # resolved name/test_case themselves show on the ``report`` line.
+    log_event(logger, logging.DEBUG, "template", **fields)
     name_template = REPORT_NAME_OPTION.resolve(pytestconfig) or "{target} {timestamp}"
     name = format_template(
         name_template,
@@ -405,6 +463,12 @@ def report_context_impl(
     offline = False if disabled else is_offline(pytestconfig)
     log_file: str | Path | bool | None = False if disabled else resolve_log_file(pytestconfig)
     include_git_metadata = bool(GIT_METADATA_OPTION.resolve(pytestconfig))
+    # Local import avoids a circular import (pytest_plugin imports this module).
+    audit_log = None
+    if pytestconfig is not None:
+        from sift_client.pytest_plugin import SIFT_AUDIT_LOG_STASH_KEY
+
+        audit_log = pytestconfig.stash.get(SIFT_AUDIT_LOG_STASH_KEY, None)
     with ReportContext(
         sift_client,
         name=name,
@@ -417,7 +481,33 @@ def report_context_impl(
         include_git_metadata=include_git_metadata,
         replay_log_file=not (disabled or offline),
         metadata=report_metadata,
+        audit_log=audit_log,
     ) as context:
+        report = context.report
+        meta_kv = ",".join(f"{k}={v}" for k, v in (report.metadata or {}).items()) or "-"
+        log_event(
+            logger,
+            logging.INFO,
+            "report",
+            name=report.name,
+            test_case=report.test_case,
+            id=report.id_ or "-",
+            system=report.test_system_name or "-",
+            operator=report.system_operator or "-",
+            serial=report.serial_number or "-",
+            part=report.part_number or "-",
+            metadata=meta_kv,
+        )
+        # What actually happens with the JSONL log, not the raw setting: the
+        # effective path (temp or pinned), or "disabled", plus whether the
+        # background replay worker runs.
+        log_event(
+            logger,
+            logging.INFO,
+            "log_file",
+            path=context.log_file or "disabled",
+            replay=not (disabled or offline),
+        )
         try:
             yield context
         finally:
@@ -493,7 +583,37 @@ def step_impl(
         assertion_as_fail_not_error=False,
         parent=parent_step,
         push=True,
+        origin="step_impl",
+        source_path=node.nodeid,
     ) as new_step:
         node._sift_step = new_step
         yield new_step
         resolve_initial_status(new_step, node)
+    # One readable line per test, logged after __exit__ resolves the passing
+    # path (incl. pytest-passed-but-step-failed via a bad measurement), pairing
+    # the pytest outcome with the final Sift status and naming the cause on
+    # failure so a reader sees what went wrong.
+    call_phase = getattr(node, "_sift_phase_call", None)
+    setup_phase = getattr(node, "_sift_phase_setup", None)
+    phase = call_phase or setup_phase
+    final_step = new_step.current_step
+    status_name = final_step.status.name if final_step is not None else "IN_PROGRESS"
+    if call_phase is not None:
+        pytest_outcome = call_phase.report.outcome
+    elif setup_phase is not None:
+        pytest_outcome = setup_phase.report.outcome
+    else:
+        pytest_outcome = "not run"
+    duration = getattr(phase.report, "duration", None) if phase is not None else None
+    dur_ms = int(duration * 1000) if duration is not None else 0
+    failed = status_name in ("FAILED", "ERROR")
+    reason = describe_step_failure(new_step) if failed else skip_or_xfail_reason(phase)
+    fields: dict[str, object] = {
+        "path": node.nodeid,
+        "pytest": pytest_outcome,
+        "sift": status_name,
+        "dur": f"{dur_ms}ms",
+    }
+    if reason:
+        fields["reason"] = reason
+    log_event(logger, logging.DEBUG, "status", **fields)
