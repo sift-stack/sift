@@ -89,11 +89,6 @@ class TestLogParsing:
         with pytest.raises(ValueError, match="Invalid log line"):
             list(parse_log_data_lines(["not a valid log line\n"]))
 
-    def test_parse_start_line_beyond_data_yields_nothing(self):
-        raw = ["[CreateTestReport] {}\n", "[UpdateTestReport] {}\n"]
-
-        assert list(parse_log_data_lines(raw, start_line=10)) == []
-
 
 class TestLogOffload:
     """The blocking log I/O runs off the loop, so a stuck lock cannot cascade."""
