@@ -521,10 +521,10 @@ class NewStep(AbstractContextManager):
         # Per-step measurement-failure count for ``measurements_passed``.
         # Tracks only direct ``measure*`` calls on this NewStep instance;
         # substep / ``report_outcome`` failures are intentionally not folded
-        # in here (see ``measurements_passed`` vs ``passed``).
+        # in here. ``pytest_fail_if_step_failed`` covers the broader case.
         self._failed_measurement_count = 0
         # Out-of-bounds measurements recorded on this step, retained so
-        # ``fail_if_measurements_failed`` can name them in the failure message.
+        # ``pytest_fail_if_step_failed`` can name them in the failure message.
         self._failed_measurements: list[TestMeasurement] = []
 
     def __enter__(self):
@@ -539,34 +539,50 @@ class NewStep(AbstractContextManager):
         """True if every measurement recorded directly on this step has passed.
 
         Counts only ``step.measure``, ``step.measure_avg``, and
-        ``step.measure_all`` calls on this ``NewStep`` instance. Pair it with
-        ``fail_if_measurements_failed()`` at the end of a test to fail pytest on
-        any out-of-bounds measurement without short-circuiting on the first
-        failure (asserting on individual ``measure(...)`` return values skips
-        every measurement after the failing one).
+        ``step.measure_all`` calls on this ``NewStep`` instance; substep and
+        ``report_outcome`` failures are not folded in. For the end-of-test
+        failure that mirrors the report, use ``pytest_fail_if_step_failed()``,
+        which also covers failed substeps.
         """
         return self._failed_measurement_count == 0
 
-    def fail_if_measurements_failed(self, message: str = "measurements out of bounds") -> None:
-        """Fail the pytest test if any measurement on this step was out of bounds.
+    def pytest_fail_if_step_failed(self, message: str = "step failed") -> None:
+        """Fail the running pytest test if this step or any descendant failed.
 
-        Use instead of ``assert step.measurements_passed``: it fails via
-        ``pytest.fail`` so the step resolves to FAILED without attaching an
-        assertion message to ``error_info``. No-op when every measurement
-        passed. Call once at the end of the test so every measurement is still
-        recorded before the failure fires.
+        Covers every signal that resolves the step to FAILED in the report:
+        out-of-bounds measurements recorded directly on the step, failed
+        substeps, and ``report_outcome`` failures. Call it once at the end of a
+        test so the pytest verdict matches the report instead of passing green
+        while the report shows a failure.
 
-        The failure message names each out-of-bounds measurement with its
-        recorded value and bounds. ``message`` is used as the header line.
+        It fails via ``pytest.fail(pytrace=False)`` so the step resolves to
+        FAILED without an assertion traceback in ``error_info``. No-op when the
+        step and all of its descendants passed. Call after the work is done so
+        every measurement and substep is recorded before the failure fires.
+
+        The failure message names each out-of-bounds measurement and each
+        failed substep. ``message`` is used as the header line.
         """
-        if self.measurements_passed:
+        step = self.current_step
+        # ``open_step_results[step_path]`` is the same signal ``__exit__`` reads
+        # to resolve status: it is flipped False by a direct measurement failure
+        # (record_step_outcome) and by any failed child as it propagates upward
+        # (propagate_step_result). Default True covers a step that never opened.
+        if step is None or self.report_context.open_step_results.get(step.step_path, True):
             return
         import pytest
 
-        failed = self._failed_measurements
-        header = f"{message} ({len(failed)}):" if failed else message
-        body = [f"  - {m}" for m in failed]
-        pytest.fail("\n".join([header, *body]), pytrace=False)
+        prefix = f"{step.step_path}."
+        failed_substeps = [
+            s
+            for s in self.report_context.created_steps
+            if s.step_path.startswith(prefix)
+            and s.status not in (TestStatus.PASSED, TestStatus.SKIPPED, TestStatus.IN_PROGRESS)
+        ]
+        details = [f"  - measurement {m}" for m in self._failed_measurements]
+        details += [f"  - substep {s.step_path!r}: {s.status.name}" for s in failed_substeps]
+        header = f"{message} ({len(details)}):" if details else message
+        pytest.fail("\n".join([header, *details]), pytrace=False)
 
     def update_step_from_result(
         self,

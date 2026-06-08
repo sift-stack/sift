@@ -29,7 +29,7 @@ def test_measure_a_single_value(step):
     )
     # An out-of-bounds measurement already marks the step FAILED. Call this at
     # the end to also fail pytest, without an assertion message in error_info.
-    step.fail_if_measurements_failed()
+    step.pytest_fail_if_step_failed()
 
 
 def test_measure_strings_and_booleans(step):
@@ -354,7 +354,7 @@ def test_only_outliers_recorded(step):
     )
     # Returns False because 99.9 is out of bounds. The step is already
     # marked failed; call this only if you also want pytest to fail.
-    step.fail_if_measurements_failed()
+    step.pytest_fail_if_step_failed()
 ```
 
 !!! note "`measure_all` requires at least one bound"
