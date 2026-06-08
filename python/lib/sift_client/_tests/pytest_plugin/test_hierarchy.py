@@ -12,15 +12,34 @@ API call to that JSONL log, and the outer test parses it via
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from textwrap import dedent
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
 from sift_client._tests.pytest_plugin import _step_status_capture as capture
+from sift_client.sift_types.test_report import TestStatus
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+def _parse_ts(ts: str) -> datetime:
+    """Parse a protobuf-JSON RFC3339 timestamp across Python 3.8-3.14.
+
+    ``datetime.fromisoformat`` only accepts ``Z`` / arbitrary fractional digits
+    on 3.11+, so parse the second-precision base with ``strptime`` and apply the
+    fractional part by hand (protobuf emits 0/3/6/9 digits).
+    """
+    body = ts.rstrip("Z").split("+", 1)[0]
+    base, _, frac = body.partition(".")
+    # All Sift timestamps are UTC; tag it so comparisons stay unambiguous.
+    parsed = datetime.strptime(base, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+    if frac:
+        parsed = parsed.replace(microsecond=int(frac.ljust(6, "0")[:6]))
+    return parsed
 
 
 _INNER_CONFTEST = 'pytest_plugins = ["sift_client.pytest_plugin"]\n'
@@ -84,6 +103,42 @@ def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_f
     class_id = by_name["TestFoo"][0]["id"]
     assert by_name["test_a"][0]["parent_step_id"] == class_id
     assert by_name["test_b"][0]["parent_step_id"] == class_id
+
+
+def test_collection_skipped_method_nests_under_its_class(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A collection-time skipped method nests under its class parent.
+
+    ``@pytest.mark.skip`` is evaluated before the autouse fixtures run, so the
+    skipped item's step comes from the makereport hook rather than the ``step``
+    fixture. The report-tree parents live off the step stack, so that inline step
+    must still resolve and attach to the class parent rather than the report root.
+    Order is pinned so the non-skipped sibling opens the class first.
+    """
+    pytester.makepyfile(
+        test_skip_nest=dedent(
+            """
+            import pytest
+
+            class TestFoo:
+                def test_run(self):
+                    pass
+
+                @pytest.mark.skip(reason="x")
+                def test_skipped(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=1, skipped=1)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert len(by_name["TestFoo"]) == 1
+    class_id = by_name["TestFoo"][0]["id"]
+    assert by_name["test_run"][0]["parent_step_id"] == class_id
+    assert by_name["test_skipped"][0]["parent_step_id"] == class_id
+    assert by_name["test_skipped"][0]["statuses"][-1] == TestStatus.SKIPPED
 
 
 def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, log_file: Path) -> None:
@@ -264,7 +319,7 @@ def test_class_docstring_becomes_step_description(
     assert _ancestor_names(steps, leaf)[:3] == ["test_a", "TestFoo", "test_doc.py"]
 
 
-def test_transition_between_class_chains_drains_parametrize(
+def test_two_class_chains_keep_parametrize_isolated(
     pytester: pytest.Pytester, log_file: Path
 ) -> None:
     pytester.makepyfile(
@@ -309,62 +364,67 @@ def test_transition_between_class_chains_drains_parametrize(
 # ---------------------------------------------------------------------------
 
 
-def test_drain_step_stack_continues_past_failing_exit() -> None:
-    """Lenient mode: a misbehaving ``__exit__`` must not block the rest of the stack."""
-    from sift_client._internal.pytest_plugin.steps import drain_step_stack
+class _FakeParent:
+    """Minimal stand-in for an open ``NewStep`` parent in the plugin registries."""
+
+    def __init__(self, name: str, step_path: str, *, raises: str | None = None) -> None:
+        self.current_step = SimpleNamespace(name=name, step_path=step_path)
+        self._raises = raises
+        self.closed = False
+
+    def __exit__(self, *_: object) -> None:
+        if self._raises is not None:
+            raise RuntimeError(self._raises)
+        self.closed = True
+
+
+@pytest.fixture
+def clean_parent_registries():
+    """Save/restore the module-level parent registries and REPORT_CONTEXT.
+
+    The ``finalize_parents`` resilience test pokes the globals directly, so
+    isolate them from any real session state. Registries and ``finalize_parents``
+    live in ``_internal.pytest_plugin.steps``; ``REPORT_CONTEXT`` is the public
+    session global on ``sift_client.pytest_plugin``.
+    """
+    from sift_client import pytest_plugin
+    from sift_client._internal.pytest_plugin import steps
+
+    saved = (
+        dict(steps.hierarchy_parents),
+        dict(steps.parametrize_parents),
+        pytest_plugin.REPORT_CONTEXT,
+    )
+    steps.hierarchy_parents.clear()
+    steps.parametrize_parents.clear()
+    pytest_plugin.REPORT_CONTEXT = None  # skip the end_time override lookup
+    try:
+        yield steps
+    finally:
+        steps.hierarchy_parents.clear()
+        steps.hierarchy_parents.update(saved[0])
+        steps.parametrize_parents.clear()
+        steps.parametrize_parents.update(saved[1])
+        pytest_plugin.REPORT_CONTEXT = saved[2]
+
+
+def test_finalize_parents_continues_past_failing_exit(clean_parent_registries) -> None:
+    """Lenient mode: a misbehaving parent ``__exit__`` must not block the others."""
     from sift_client.pytest_plugin import SiftPytestStepDrainWarning
 
-    class _Good:
-        def __init__(self) -> None:
-            self.closed = False
+    steps = clean_parent_registries
+    good = _FakeParent("good", "1")
+    bad = _FakeParent("bad", "1.1", raises="boom")
+    steps.hierarchy_parents["good"] = good
+    steps.parametrize_parents[("t", "bad")] = bad
 
-        def __exit__(self, *_: object) -> None:
-            self.closed = True
-
-    class _Bad:
-        def __exit__(self, *_: object) -> None:
-            raise RuntimeError("boom")
-
-    g1, g2, bad = _Good(), _Good(), _Bad()
-    stack: list[tuple[str, object]] = [("g1", g1), ("bad", bad), ("g2", g2)]
     with pytest.warns(SiftPytestStepDrainWarning, match="boom"):
-        drain_step_stack(stack)
-    assert stack == []
-    assert g1.closed
-    assert g2.closed
+        steps.finalize_parents()
 
-
-def test_drain_step_stack_strict_drains_fully_then_raises() -> None:
-    """Strict mode: drain every frame, then raise with the FIRST failure chained."""
-    from sift_client._internal.pytest_plugin.steps import drain_step_stack
-    from sift_client.pytest_plugin import SiftPytestStepDrainError
-
-    class _Good:
-        def __init__(self) -> None:
-            self.closed = False
-
-        def __exit__(self, *_: object) -> None:
-            self.closed = True
-
-    class _Bad:
-        def __init__(self, label: str) -> None:
-            self.label = label
-
-        def __exit__(self, *_: object) -> None:
-            raise RuntimeError(f"boom-{self.label}")
-
-    g, b1, b2 = _Good(), _Bad("first"), _Bad("second")
-    # Stack drains LIFO: pop order is b2, b1, g. So b2's failure is the first
-    # one collected and surfaces in __cause__.
-    stack: list[tuple[str, object]] = [("g", g), ("b1", b1), ("b2", b2)]
-    with pytest.raises(SiftPytestStepDrainError, match="2 step.*'b2'") as exc_info:
-        drain_step_stack(stack, swallow_errors=False)
-    # Stack fully drained even though it raised.
-    assert stack == []
-    assert g.closed
-    # Original exception chained for debuggability.
-    assert isinstance(exc_info.value.__cause__, RuntimeError)
-    assert "boom-second" in str(exc_info.value.__cause__)
+    assert good.closed
+    # Registries cleared regardless of the per-parent failure.
+    assert steps.hierarchy_parents == {}
+    assert steps.parametrize_parents == {}
 
 
 def test_failing_test_in_class_does_not_orphan_class_step(
@@ -858,3 +918,452 @@ def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, log_f
     chain = _ancestor_names(steps, leaf)
     # leaf b=… → a=… → test_chain → test_chain.py (module step) → root
     assert chain == ["b='x'", "a=1", "test_chain", "test_chain.py"]
+
+
+# ---------------------------------------------------------------------------
+# Order independence
+# ---------------------------------------------------------------------------
+
+
+def test_interleaved_execution_does_not_duplicate_parents(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """Sibling methods need not run contiguously to share one class parent.
+
+    A conftest hook interleaves the two classes' methods
+    (``A::a1, B::b1, A::a2, B::b2``) — the order the removed sort used to
+    forbid, and the order pytest's own fixture-scope reordering can produce.
+    Each class must still open exactly once and every method parent to the
+    right class.
+    """
+    # Overwrite the conftest with one that registers the plugin AND reorders
+    # items so the two classes interleave. The log_file fixture's pytest.ini
+    # (offline + log path) still applies.
+    pytester.makeconftest(
+        dedent(
+            """
+            pytest_plugins = ["sift_client.pytest_plugin"]
+
+            def pytest_collection_modifyitems(config, items):
+                a = [i for i in items if "TestA::" in i.nodeid]
+                b = [i for i in items if "TestB::" in i.nodeid]
+                interleaved = []
+                for x, y in zip(a, b):
+                    interleaved.append(x)
+                    interleaved.append(y)
+                items[:] = interleaved
+            """
+        )
+    )
+    pytester.makepyfile(
+        test_inter=dedent(
+            """
+            class TestA:
+                def test_a1(self):
+                    pass
+
+                def test_a2(self):
+                    pass
+
+            class TestB:
+                def test_b1(self):
+                    pass
+
+                def test_b2(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=4)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+    # Each class opens exactly once despite the interleaved run order.
+    assert len(by_name["TestA"]) == 1
+    assert len(by_name["TestB"]) == 1
+    a_id = by_name["TestA"][0]["id"]
+    b_id = by_name["TestB"][0]["id"]
+    assert by_name["test_a1"][0]["parent_step_id"] == a_id
+    assert by_name["test_a2"][0]["parent_step_id"] == a_id
+    assert by_name["test_b1"][0]["parent_step_id"] == b_id
+    assert by_name["test_b2"][0]["parent_step_id"] == b_id
+
+
+# ---------------------------------------------------------------------------
+# Parent status resolution
+# ---------------------------------------------------------------------------
+
+
+def test_parent_status_passed_when_all_children_pass(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    pytester.makepyfile(
+        test_ok=dedent(
+            """
+            class TestFoo:
+                def test_a(self):
+                    pass
+
+                def test_b(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert by_name["TestFoo"][0]["statuses"][-1] == TestStatus.PASSED
+    assert by_name["test_ok.py"][0]["statuses"][-1] == TestStatus.PASSED
+
+
+def test_parent_status_failed_propagates_up_and_isolates_siblings(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A failing leaf marks its class and the module FAILED, but a sibling class
+    whose tests all pass stays PASSED.
+    """
+    pytester.makepyfile(
+        test_fail=dedent(
+            """
+            class TestFoo:
+                def test_a(self):
+                    raise AssertionError("boom")
+
+                def test_b(self):
+                    pass
+
+            class TestBar:
+                def test_c(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2, failed=1)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert by_name["TestFoo"][0]["statuses"][-1] == TestStatus.FAILED
+    assert by_name["test_fail.py"][0]["statuses"][-1] == TestStatus.FAILED
+    assert by_name["TestBar"][0]["statuses"][-1] == TestStatus.PASSED
+
+
+def test_parent_status_failure_propagates_through_parametrize(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """One failing parametrization fails the whole chain: parametrize parent →
+    class → module.
+    """
+    pytester.makepyfile(
+        test_pfail=dedent(
+            """
+            import pytest
+
+            class TestFoo:
+                @pytest.mark.parametrize("v", [1, 2])
+                def test_a(self, v):
+                    if v == 1:
+                        raise AssertionError("boom")
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=1, failed=1)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert by_name["test_a"][0]["statuses"][-1] == TestStatus.FAILED
+    assert by_name["TestFoo"][0]["statuses"][-1] == TestStatus.FAILED
+    assert by_name["test_pfail.py"][0]["statuses"][-1] == TestStatus.FAILED
+
+
+def test_parent_opens_in_progress_and_resolves_exactly_once(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A parent is created IN_PROGRESS and gets exactly one terminal status at
+    session end — it is never reopened, even as later siblings run under it.
+
+    This locks in the "stay in-progress until every child is done, then resolve
+    once" behavior: a parent emits a CreateTestStep (IN_PROGRESS) and a single
+    UpdateTestStep (terminal), so its status timeline is exactly two entries.
+    """
+    pytester.makepyfile(
+        test_once=dedent(
+            """
+            class TestFoo:
+                def test_a(self):
+                    pass
+
+                def test_b(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    # Created in-progress, resolved once — no intermediate churn, no reopen.
+    assert by_name["TestFoo"][0]["statuses"] == [TestStatus.IN_PROGRESS, TestStatus.PASSED]
+    assert by_name["test_once.py"][0]["statuses"] == [TestStatus.IN_PROGRESS, TestStatus.PASSED]
+
+
+# ---------------------------------------------------------------------------
+# Parent timing
+# ---------------------------------------------------------------------------
+
+
+def test_parent_timing_spans_its_children(pytester: pytest.Pytester, log_file: Path) -> None:
+    """A parent's [start, end] window covers its whole subtree: it starts no
+    later than its first child and ends exactly at its last child's finish.
+    """
+    pytester.makepyfile(
+        test_span=dedent(
+            """
+            import time
+
+            class TestFoo:
+                def test_a(self):
+                    time.sleep(0.02)
+
+                def test_b(self):
+                    time.sleep(0.02)
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    klass = by_name["TestFoo"][0]
+    module = by_name["test_span.py"][0]
+    leaves = [by_name["test_a"][0], by_name["test_b"][0]]
+    leaf_starts = [_parse_ts(leaf["start_time"]) for leaf in leaves]
+    leaf_ends = [_parse_ts(leaf["end_time"]) for leaf in leaves]
+
+    # Parent opened before (or with) its earliest child, and start precedes end.
+    assert _parse_ts(klass["start_time"]) <= min(leaf_starts)
+    assert _parse_ts(klass["start_time"]) <= _parse_ts(klass["end_time"])
+    # Parent end is exactly the latest descendant finish — not a session-end stamp.
+    assert _parse_ts(klass["end_time"]) == max(leaf_ends)
+    # The module parent spans the class and rolls the same finish up a level.
+    assert _parse_ts(module["start_time"]) <= _parse_ts(klass["start_time"])
+    assert _parse_ts(module["end_time"]) == max(leaf_ends)
+
+
+def test_parent_end_time_reflects_a_later_child_under_interleaving(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """When a parent's children run non-contiguously, its end_time tracks the
+    LAST child to finish — even one that runs after a different parent's child.
+
+    Execution order is pinned to ``a1, b1, a2`` via a conftest hook, so
+    ``TestA``'s second child (``a2``) closes after ``TestB``'s child. ``TestA``
+    must end at ``a2``'s finish, not ``a1``'s.
+    """
+    pytester.makeconftest(
+        dedent(
+            """
+            pytest_plugins = ["sift_client.pytest_plugin"]
+            import pytest
+
+            _ORDER = ["test_a1", "test_b1", "test_a2"]
+
+            @pytest.hookimpl(trylast=True)
+            def pytest_collection_modifyitems(config, items):
+                # trylast so this runs after any reordering plugin and wins.
+                items.sort(key=lambda i: _ORDER.index(i.name) if i.name in _ORDER else 99)
+            """
+        )
+    )
+    pytester.makepyfile(
+        test_il=dedent(
+            """
+            import time
+
+            class TestA:
+                def test_a1(self):
+                    pass
+
+                def test_a2(self):
+                    time.sleep(0.02)
+
+            class TestB:
+                def test_b1(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=3)
+    by_name = _by_name(capture.load_steps(log_file))
+    a_end = by_name["TestA"][0]["end_time"]
+    a1_end = by_name["test_a1"][0]["end_time"]
+    a2_end = by_name["test_a2"][0]["end_time"]
+    # TestA ends at its later child (a2), not the one that happened to run first.
+    assert a_end == a2_end
+    assert a_end != a1_end
+
+
+# ---------------------------------------------------------------------------
+# Early close — parents resolve as soon as their descendants finish
+# ---------------------------------------------------------------------------
+
+
+def _index(
+    events: list[tuple],
+    request_type: str,
+    name: str,
+    *,
+    terminal: bool = False,
+    status: TestStatus | None = None,
+) -> int:
+    """Index of the first matching log event.
+
+    ``status`` matches that exact status; ``terminal`` matches any resolved
+    (non-``IN_PROGRESS``) status.
+    """
+
+    def matches(rt: str, nm: str, st: TestStatus) -> bool:
+        if rt != request_type or nm != name:
+            return False
+        if status is not None:
+            return st == status
+        return not terminal or st != TestStatus.IN_PROGRESS
+
+    return next(i for i, (rt, nm, st) in enumerate(events) if matches(rt, nm, st))
+
+
+_INTERLEAVE_CONFTEST = """
+pytest_plugins = ["sift_client.pytest_plugin"]
+import pytest
+
+_ORDER = ["test_a1", "test_b1", "test_a2"]
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(config, items):
+    # trylast so this wins over any reordering plugin; pins A::a1, B::b1, A::a2.
+    items.sort(key=lambda i: _ORDER.index(i.name) if i.name in _ORDER else 99)
+"""
+
+
+def test_parent_closes_mid_session_not_at_end(pytester: pytest.Pytester, log_file: Path) -> None:
+    """A container resolves as soon as its last child finishes — before the next
+    container even opens — rather than all flipping at session end.
+    """
+    pytester.makepyfile(
+        test_mid=dedent(
+            """
+            class TestFoo:
+                def test_a(self):
+                    pass
+
+                def test_b(self):
+                    pass
+
+            class TestBar:
+                def test_c(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=3)
+    events = capture.log_events(log_file)
+    # TestFoo reaches a terminal status before TestBar is even created.
+    assert _index(events, "UpdateTestStep", "TestFoo", terminal=True) < _index(
+        events, "CreateTestStep", "TestBar"
+    )
+
+
+def test_failing_parent_resolves_failed_mid_session(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """Early close carries status too: a class with a failing test resolves FAILED
+    as soon as its subtree finishes, before the next class opens.
+    """
+    pytester.makepyfile(
+        test_midfail=dedent(
+            """
+            class TestFoo:
+                def test_a(self):
+                    raise AssertionError("boom")
+
+            class TestBar:
+                def test_c(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=1, failed=1)
+    events = capture.log_events(log_file)
+    foo_failed = _index(events, "UpdateTestStep", "TestFoo", status=TestStatus.FAILED)
+    assert foo_failed < _index(events, "CreateTestStep", "TestBar")
+
+
+def test_close_is_completion_driven_not_order_driven(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A single-child container closes the moment that child finishes, even though
+    a sibling container's test (collected earlier) runs afterward.
+
+    Order is pinned to ``a1, b1, a2``: ``TestB`` (only child ``b1``) must resolve
+    before ``test_a2`` runs, proving close is driven by descendant completion, not
+    by reaching some position in the item list.
+    """
+    pytester.makeconftest(_INTERLEAVE_CONFTEST)
+    pytester.makepyfile(
+        test_cd=dedent(
+            """
+            class TestA:
+                def test_a1(self):
+                    pass
+
+                def test_a2(self):
+                    pass
+
+            class TestB:
+                def test_b1(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=3)
+    events = capture.log_events(log_file)
+    # TestB resolves before test_a2 is even created.
+    assert _index(events, "UpdateTestStep", "TestB", terminal=True) < _index(
+        events, "CreateTestStep", "test_a2"
+    )
+
+
+def test_excluded_sibling_does_not_stall_parent_close(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A ``sift_exclude``-d method is not counted toward its class's descendants,
+    so the class still closes promptly once its included tests finish.
+
+    If the excluded test inflated the count, ``TestFoo`` could never reach zero
+    and would only resolve at the session-end drain — i.e. after ``TestBar`` is
+    created. Asserting it resolves *before* ``TestBar`` proves the gate filter.
+    """
+    pytester.makepyfile(
+        test_excl_close=dedent(
+            """
+            import pytest
+
+            class TestFoo:
+                @pytest.mark.sift_exclude
+                def test_a(self):
+                    pass
+
+                def test_b(self):
+                    pass
+
+            class TestBar:
+                def test_c(self):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=3)
+    events = capture.log_events(log_file)
+    assert _index(events, "UpdateTestStep", "TestFoo", terminal=True) < _index(
+        events, "CreateTestStep", "TestBar"
+    )

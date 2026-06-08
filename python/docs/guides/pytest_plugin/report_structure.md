@@ -98,6 +98,12 @@ individually opt-out via ini flags (`sift_package_step`, `sift_module_step`,
 `sift_class_step`, `sift_parametrize_nesting`). Class/module/package docstrings
 become the matching step's description.
 
+A parent step is created `IN_PROGRESS` and resolves to its final status as soon
+as the last test in its subtree finishes — independent of test execution order,
+so with incremental upload the report tree fills in progressively rather than
+all at once at the end. Its time window spans from its first test starting to its
+last test finishing.
+
 ### Linking a Run to the report
 
 `report_context` is the session-scoped fixture; mutating it in one test affects

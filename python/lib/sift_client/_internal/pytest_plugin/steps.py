@@ -1,19 +1,22 @@
-"""Parent-step stacks: the parametrize and hierarchy frames shared across items.
+"""Report-tree parent steps: an identity-keyed registry built without reordering.
 
-Holds the collection-phase stash keys and the two module-level frame stacks
-(``parametrize_stack`` / ``hierarchy_stack``), the helpers that build a chain
-for an item and drain the stacks, and the per-item reconcilers the autouse
-fixtures delegate to. Frames are shared across sibling test items and drained
-innermost-first at session end.
+Each test's package/module/class ancestors ("hierarchy" parents) and each
+``@pytest.mark.parametrize`` axis ("parametrize" parents) become parent steps the
+leaf nests under. Parents are kept in identity-keyed registries — created once and
+reused by every descendant regardless of execution order — so the plugin never
+reorders test items. A parent is closed as soon as the last leaf in its subtree
+finishes (``release_finished_leaf``), with ``finalize_parents`` as the session-end
+backstop for anything still open.
 """
 
 from __future__ import annotations
 
 import warnings
-from typing import Any, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import pytest
 
+from sift_client._internal.pytest_plugin.modes import gate_enabled
 from sift_client._internal.pytest_plugin.options import (
     CLASS_STEP_OPTION,
     MODULE_STEP_OPTION,
@@ -21,110 +24,75 @@ from sift_client._internal.pytest_plugin.options import (
     PARAMETRIZE_NESTING_OPTION,
 )
 
-STASH_MISSING = object()
+if TYPE_CHECKING:
+    from typing import Callable
 
-parametrize_path_key = pytest.StashKey[Tuple[str, ...]]()
-# Each frame: (path_key, open step). Frames are shared across sibling test items
-# and drained at session end.
-parametrize_stack: list[tuple[str, Any]] = []
+    from sift_client.util.test_results import ReportContext
+    from sift_client.util.test_results.context_manager import NewStep
 
-hierarchy_key = pytest.StashKey[Tuple[Tuple[str, str, "str | None", bool], ...]]()
-# Outer-to-inner frames for the item's collection-tree ancestors. Each chain
-# entry is ``(identity, name, doc, rendered)``:
-#   - ``identity``: a globally-unique key (``node.nodeid``) used for diff
-#     comparison. Two ancestors at the same depth with the same display name
-#     but reached via different paths (e.g., ``proj_a/utils`` and
-#     ``proj_b/utils`` in a monorepo) get distinct identities, so they never
-#     silently merge in the diff.
-#   - ``name``: the human-readable step name used when ``rendered`` opens the
-#     Sift step.
-#   - ``doc``: docstring used for the step description if rendered.
-#   - ``rendered``: True iff the corresponding ``sift_*_step`` ini flag is on.
-#     Non-rendered frames participate in the diff but do not call
-#     ``rc.new_step(...)``; they appear with ``ns=None`` in the stack.
+# --- Report-tree type aliases ---------------------------------------------
+# The plugin juggles a few small tuple/dict shapes for the parent step tree;
+# naming them keeps the signatures below readable. Defined with ``typing``
+# generics (not ``list``/``tuple``) because some are used in runtime
+# ``StashKey[...]`` subscriptions, which must stay importable on Python 3.8.
 #
-# Stack entries: ``(identity, name, open_step_or_None)``. Frames are shared
-# across sibling test items and drained at session end. Drained AFTER
-# parametrize_stack since parametrize parents nest inside hierarchy parents.
-hierarchy_stack: list[tuple[str, str, Any]] = []
+# A hierarchy parent's identity is just a ``str`` (the ancestor node's
+# ``nodeid``); a parametrize parent's identity is a ``ParametrizeKey``: the
+# test's param-stripped node id followed by its outer-to-inner axis frames
+# (e.g. ``("pkg/test_m.py::TestC::test_a", "v=1")``).
+ParametrizeKey = Tuple[str, ...]
+# Outer-to-inner display-name axis path stashed per parametrized item
+# (``(originalname, "v=1", ...)``); the leaf is its last frame.
+ParametrizePath = Tuple[str, ...]
+# One collection-tree ancestor: ``(identity, display name, docstring, rendered)``.
+# ``rendered`` is True iff that layer's ``sift_*_step`` ini flag opens a step.
+HierarchyFrame = Tuple[str, str, Optional[str], bool]
+# Outer-to-inner ancestor frames stashed per item.
+HierarchyChain = Tuple[HierarchyFrame, ...]
+# A rendered parent to open, as returned by ``resolved_parents``.
+HierarchyParent = Tuple[str, str, Optional[str]]  # (identity, name, docstring)
+ParametrizeParent = Tuple[ParametrizeKey, str]  # (registry key, frame name)
+# A gated-in leaf's parents: its rendered hierarchy identities and parametrize keys.
+LeafParents = Tuple[List[str], List[ParametrizeKey]]
+
+parametrize_path_key = pytest.StashKey[ParametrizePath]()
+
+hierarchy_key = pytest.StashKey[HierarchyChain]()
+# See ``HierarchyFrame`` above for the chain entry shape. ``identity`` is the
+# node's ``nodeid``: two ancestors at the same depth with the same display name
+# but reached via different paths (e.g., ``proj_a/utils`` and ``proj_b/utils`` in
+# a monorepo) get distinct identities, so they never silently merge. Non-rendered
+# frames open no step; the next rendered descendant attaches to the nearest
+# rendered ancestor instead.
+
+# Open report-tree parent steps, keyed by identity so they are created once and
+# reused by every descendant regardless of test execution order. The leaf step
+# for each test is created under its resolved parent (see ``report.step_impl``),
+# so no global ordering of test items is required. Parents live OUTSIDE
+# ``ReportContext.step_stack`` (created with ``push=False``) and are closed early
+# by ``release_finished_leaf``, or at session end by ``finalize_parents``.
+#
+# Hierarchy parents (packages / modules / classes) keyed by the ancestor node's
+# ``nodeid``:
+hierarchy_parents: dict[str, NewStep] = {}
+# Parametrize parents keyed by ``ParametrizeKey``, so sibling parametrizations of
+# one test share a parent while parametrizations under different
+# tests/classes/modules never collide:
+parametrize_parents: dict[ParametrizeKey, NewStep] = {}
+
+# Remaining descendant leaves per open-able parent, keyed exactly like the
+# registries above. Populated from the collected (and selected) items in
+# ``tally_expected_parents`` and decremented as each test finishes; when a count
+# reaches zero the parent's whole subtree is done and it is closed early (see
+# ``release_finished_leaf``) instead of waiting for session end.
+expected_hierarchy: dict[str, int] = {}
+expected_parametrize: dict[ParametrizeKey, int] = {}
+# Each gated-in leaf's parent identities, so ``release_finished_leaf`` — which
+# only receives a nodeid — knows which counters to decrement.
+leaf_parents: dict[str, LeafParents] = {}
 
 
-def drain_step_stack(stack: list, *, swallow_errors: bool = True) -> None:
-    """Pop and close every frame.
-
-    With ``swallow_errors=True`` (default, used at teardown / session end),
-    per-frame failures are surfaced as ``SiftPytestStepDrainWarning`` so a
-    single misbehaving ``__exit__`` can't block the rest of the stack from
-    cleaning up or cascade out of pytest's finalizer chain.
-
-    With ``swallow_errors=False`` (mid-session, when a class transition forces
-    parametrize parents to close), the stack is still fully drained but the
-    first per-frame exception is re-raised at the end as a
-    ``SiftPytestStepDrainError`` so a real upstream invariant violation
-    surfaces as a test error instead of a silenceable warning.
-    """
-    from sift_client.pytest_plugin import SiftPytestStepDrainError, SiftPytestStepDrainWarning
-
-    errors: list[tuple[str, BaseException]] = []
-    while stack:
-        entry = stack.pop()
-        # Tolerate either ``(name, ns)`` (parametrize stack) or
-        # ``(identity, name, ns)`` (hierarchy stack) entries.
-        name, ns = entry[-2], entry[-1]
-        if ns is None:
-            # Non-rendered diff-only frame (e.g. a Package frame when
-            # ``sift_package_step=false``); nothing to close.
-            continue
-        try:
-            ns.__exit__(None, None, None)
-        except Exception as exc:
-            if swallow_errors:
-                warnings.warn(
-                    f"Sift plugin: closing step {name!r} during drain raised "
-                    f"{type(exc).__name__}: {exc}",
-                    SiftPytestStepDrainWarning,
-                    stacklevel=2,
-                )
-            else:
-                errors.append((name, exc))
-    if errors:
-        first_name, first_exc = errors[0]
-        raise SiftPytestStepDrainError(
-            f"Sift plugin: {len(errors)} step(s) raised while draining mid-session; "
-            f"first failure on {first_name!r}: {type(first_exc).__name__}: {first_exc}"
-        ) from first_exc
-
-
-def drain_parametrize_stack(*, swallow_errors: bool = True) -> None:
-    drain_step_stack(parametrize_stack, swallow_errors=swallow_errors)
-
-
-def drain_hierarchy_stack(*, swallow_errors: bool = True) -> None:
-    drain_step_stack(hierarchy_stack, swallow_errors=swallow_errors)
-
-
-def close_frame(name: str, ns: Any) -> None:
-    """Close a single frame, warning on per-frame failure.
-
-    Used by the mid-session hierarchy-stack pop and the rollback paths so a
-    misbehaving ``__exit__`` neither shadows the original exception nor leaks
-    sibling frames. ``ns=None`` indicates a non-rendered diff-only frame; skip.
-    """
-    from sift_client.pytest_plugin import SiftPytestStepDrainWarning
-
-    if ns is None:
-        return
-    try:
-        ns.__exit__(None, None, None)
-    except Exception as exc:
-        warnings.warn(
-            f"Sift plugin: closing step {name!r} raised {type(exc).__name__}: {exc}",
-            SiftPytestStepDrainWarning,
-            stacklevel=2,
-        )
-
-
-def build_parametrize_path(item: pytest.Item) -> tuple[str, ...]:
+def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
     """Outer-to-inner step display names for a parametrized item.
 
     Pytest stores ``callspec.params`` with the BOTTOM decorator's axis first;
@@ -143,23 +111,21 @@ def build_parametrize_path(item: pytest.Item) -> tuple[str, ...]:
 def build_hierarchy_chain(
     item: pytest.Item | pytest.Collector,
     config: pytest.Config,
-) -> tuple[tuple[str, str, str | None, bool], ...]:
+) -> HierarchyChain:
     """Outer-to-inner ``(identity, name, docstring, rendered)`` for collection ancestors.
 
     Walks ``item.parent`` upward and ALWAYS collects every ``pytest.Package``,
-    ``pytest.Module``, and ``pytest.Class`` ancestor; they all participate in
-    the diff that keeps the report tree coherent across tests, so two
-    same-named ancestors reached via different paths (e.g., ``proj_a/utils``
-    and ``proj_b/utils`` in a monorepo where the ``proj_*`` dirs are
-    ``pytest.Dir`` nodes the walker skips) cannot silently merge.
+    ``pytest.Module``, and ``pytest.Class`` ancestor; they all carry the identity
+    that keeps the report tree coherent across tests, so two same-named ancestors
+    reached via different paths (e.g., ``proj_a/utils`` and ``proj_b/utils`` in a
+    monorepo where the ``proj_*`` dirs are ``pytest.Dir`` nodes the walker skips)
+    cannot silently merge.
 
-    The ``identity`` field is ``node.nodeid``, globally unique per collected
-    node. The diff compares on identity, not the display ``name``.
+    The ``identity`` field is ``node.nodeid``, globally unique per collected node.
 
     The ``rendered`` flag is True iff the layer's ini flag is on
     (``sift_package_step`` / ``sift_module_step`` / ``sift_class_step``).
-    Non-rendered frames participate in the diff for identity but don't open a
-    Sift step.
+    Non-rendered frames carry identity but don't open a Sift step.
 
     The ``node.obj`` access is a pytest property that imports the underlying
     Python object and can raise *any* exception (ImportError, custom
@@ -171,7 +137,7 @@ def build_hierarchy_chain(
     include_module = bool(MODULE_STEP_OPTION.resolve(config))
     include_class = bool(CLASS_STEP_OPTION.resolve(config))
 
-    chain: list[tuple[str, str, str | None, bool]] = []
+    chain: list[HierarchyFrame] = []
     # ``node.parent`` is typed as the internal ``_pytest.nodes.Node`` which
     # isn't part of pytest's public API; widen to ``Any`` for the walk.
     node: Any = item
@@ -196,115 +162,292 @@ def build_hierarchy_chain(
     return tuple(reversed(chain))
 
 
-def reconcile_hierarchy(request: pytest.FixtureRequest, config: pytest.Config) -> None:
-    """Open/close hierarchy parents so the open stack matches the item's chain.
+def resolved_parents(
+    node: pytest.Item,
+    config: pytest.Config,
+) -> tuple[list[HierarchyParent], list[ParametrizeParent]]:
+    """The rendered report-tree parents for ``node`` — the single source of truth.
 
-    Diffs the item's desired ``(package, module, class)`` chain against
-    ``hierarchy_stack`` on identity (nodeid), pops the stale tail, and pushes
-    new rendered frames. Which node types render is decided at build time by
-    ``sift_package_step`` / ``sift_module_step`` / ``sift_class_step``; when the
-    chain changes, the parametrize stack is drained first since parametrize
-    parents nest INSIDE these.
+    Shared by ``get_or_create_parent_chain`` (which opens these parents) and the
+    early-close counters in ``tally_expected_parents`` (which count them), so the
+    two can never key on different identities. Returns ``(hierarchy, parametrize)``
+    outer-to-inner:
+
+    * hierarchy: ``(identity, name, doc)`` for each rendered package/module/class
+      ancestor. ``identity`` is the node's ``nodeid`` (the registry key).
+    * parametrize: ``(registry key, frame name)`` for each parametrize axis except
+      the innermost (the leaf is the ``step`` fixture's job). Empty when
+      ``sift_parametrize_nesting`` is off or the item isn't parametrized.
+
+    Reads the per-item stash written in ``pytest_itemcollected``; recomputes for
+    items a later hook injected without going through it.
     """
-    # Fall back to computing the chain on-demand for items that bypassed
-    # ``pytest_collection_modifyitems`` (e.g., dynamically inserted by another
-    # plugin's later hook). Defaulting to ``()`` would incorrectly drain the
-    # entire open hierarchy stack for those items.
-    desired = request.node.stash.get(hierarchy_key, STASH_MISSING)
-    if desired is STASH_MISSING:
-        desired = build_hierarchy_chain(request.node, config)
-    common = 0
-    # Compare on identity (nodeid); same-named ancestors at different paths
-    # MUST stay distinct.
-    while (
-        common < len(hierarchy_stack)
-        and common < len(desired)
-        and hierarchy_stack[common][0] == desired[common][0]
-    ):
-        common += 1
-    # Any change to the hierarchy chain orphans parametrize parents from the
-    # previous test. Drain them before mutating the hierarchy stack so
-    # ReportContext's top-of-stack invariant holds. Strict mode: a per-frame
-    # ``__exit__`` failure here signals a real upstream drift between the
-    # plugin stacks and ReportContext; raise it as a test error instead of a
-    # silenceable warning.
-    if common < len(hierarchy_stack) or common < len(desired):
-        drain_parametrize_stack(swallow_errors=False)
-    # Symmetric per-frame guard for the hierarchy pop so one bad ``__exit__``
-    # doesn't leave hierarchy_stack partially drained for every subsequent test.
-    while len(hierarchy_stack) > common:
-        _identity, name, ns = hierarchy_stack.pop()
-        close_frame(name, ns)
-    if not desired[common:]:
-        return
-    # Fetch ``report_context`` lazily, but only when there's at least one
-    # rendered frame to push. Pure diff-only frames (e.g. a Package frame when
-    # ``sift_package_step=false``) just update hierarchy_stack with ns=None.
-    rc = None
-    # Roll back any partial push so a mid-loop exception doesn't leave half
-    # the chain orphaned on the stack. Per-frame guard inside the rollback so
-    # a failing ``__exit__`` doesn't shadow the original exception or leak
-    # the remaining opened frames.
-    opened: list[tuple[str, str, Any]] = []
-    try:
-        for identity, name, doc, rendered in desired[common:]:
-            if rendered:
-                if rc is None:
-                    rc = request.getfixturevalue("report_context")
-                ns = rc.new_step(name=name, description=doc, assertion_as_fail_not_error=False)
-                ns.__enter__()
-                opened.append((identity, name, ns))
-            else:
-                opened.append((identity, name, None))
-    except BaseException:
-        while opened:
-            _identity, name, ns = opened.pop()
-            close_frame(name, ns)
-        raise
-    hierarchy_stack.extend(opened)
+    if hierarchy_key in node.stash:
+        chain = node.stash[hierarchy_key]
+    else:
+        chain = build_hierarchy_chain(node, config)
+    # Non-rendered frames open no step; the next rendered descendant attaches to
+    # the nearest rendered ancestor, so they are simply dropped here.
+    hierarchy = [(identity, name, doc) for identity, name, doc, rendered in chain if rendered]
+
+    parametrize: list[ParametrizeParent] = []
+    if PARAMETRIZE_NESTING_OPTION.resolve(config):
+        if parametrize_path_key in node.stash:
+            path = node.stash[parametrize_path_key]
+        else:
+            path = build_parametrize_path(node)
+        if path:
+            # Key parametrize parents by the test's param-stripped identity plus
+            # the outer frame prefix, so sibling params share a parent but params
+            # under different tests never merge.
+            key: ParametrizeKey = (strip_param(node.nodeid),)
+            for frame in path[:-1]:
+                key = (*key, frame)
+                parametrize.append((key, frame))
+    return hierarchy, parametrize
 
 
-def reconcile_parametrize(request: pytest.FixtureRequest, config: pytest.Config) -> None:
-    """Open/close shared parametrize parents so the open stack matches the item.
+def strip_param(nodeid: str) -> str:
+    """Drop the trailing ``[param]`` from a nodeid, keeping ``file::Class::func``.
 
-    Diffs the item's desired parametrize path against ``parametrize_stack``:
-    pops the stale tail, then opens new parents (everything except the innermost
-    frame, which the ``step`` fixture creates as the leaf). Parents persist
-    across sibling items so a tree like ``test_x[a=1]`` / ``test_x[a=2]`` shares
-    one ``test_x`` container. No-op when ``sift_parametrize_nesting=false``.
+    The parametrize id is a variation of the test, not its identity — leaving it
+    in would make a re-parametrization silently shift the grouping key. Splits on
+    the last ``::`` segment and cuts at its first ``[``; class/function names
+    never contain ``[``, so nested brackets in a param value can't confuse it.
     """
-    if not PARAMETRIZE_NESTING_OPTION.resolve(config):
-        return
-    # Fall back to on-demand computation for dynamically-inserted items;
-    # see reconcile_hierarchy for the same rationale.
-    desired = request.node.stash.get(parametrize_path_key, STASH_MISSING)
-    if desired is STASH_MISSING:
-        desired = build_parametrize_path(request.node)
-    parents = desired[:-1]
-    common = 0
-    while (
-        common < len(parametrize_stack)
-        and common < len(parents)
-        and parametrize_stack[common][0] == parents[common]
-    ):
-        common += 1
-    # Per-frame guard so one bad ``__exit__`` doesn't leave parametrize_stack
-    # partially drained for every subsequent test.
-    while len(parametrize_stack) > common:
-        name, ns = parametrize_stack.pop()
-        close_frame(name, ns)
-    if not parents[common:]:
-        return
-    rc = request.getfixturevalue("report_context")
-    opened: list[tuple[str, Any]] = []
-    try:
-        for display in parents[common:]:
-            ns = rc.new_step(name=display, assertion_as_fail_not_error=False)
+    head, sep, leaf = nodeid.rpartition("::")
+    leaf = leaf.split("[", 1)[0]
+    return f"{head}{sep}{leaf}"
+
+
+def get_or_create_parent_chain(
+    node: pytest.Item,
+    config: pytest.Config,
+    request: pytest.FixtureRequest,
+) -> NewStep | None:
+    """Resolve the innermost report-tree parent for ``node``, creating any missing ancestors.
+
+    Walks the item's rendered hierarchy ancestors (outer-to-inner) and then its
+    parametrize axes (see ``resolved_parents``), get-or-creating one parent step
+    per identity in the registries. Each new parent is opened under the running
+    parent (``push=False``, so it stays off ``ReportContext.step_stack``) and
+    reused by every later descendant — no contiguity of sibling items is required,
+    so test execution order is irrelevant.
+
+    Returns the innermost parent the leaf should attach to, or ``None`` when no
+    rendered parent applies (the leaf becomes a report-root step). ``report_context``
+    is fetched lazily, only when a parent actually needs creating, so excluded
+    items never trigger eager context setup.
+    """
+    rc_cache: list[ReportContext] = []
+
+    def rc() -> ReportContext:
+        if not rc_cache:
+            rc_cache.append(request.getfixturevalue("report_context"))
+        return rc_cache[0]
+
+    return _resolve_parent_chain(node, config, rc)
+
+
+def resolve_parent_chain_in_context(
+    node: pytest.Item,
+    config: pytest.Config,
+    context: ReportContext,
+) -> NewStep | None:
+    """``get_or_create_parent_chain`` for callers holding a ``ReportContext`` directly.
+
+    The collection-skip path runs from ``pytest_runtest_makereport`` (the autouse
+    fixtures never ran for a marker-skipped item), so it has no ``FixtureRequest``
+    to resolve ``report_context`` from, only the session ``ReportContext``. It
+    must still nest the skipped item's step under the same registry parents a
+    running sibling uses, so it shares the create-once logic here.
+    """
+    return _resolve_parent_chain(node, config, lambda: context)
+
+
+def _resolve_parent_chain(
+    node: pytest.Item,
+    config: pytest.Config,
+    rc: Callable[[], ReportContext],
+) -> NewStep | None:
+    """Shared body of the two parent-chain resolvers; ``rc`` supplies the context.
+
+    ``rc`` is called only when a parent actually needs creating, so a caller that
+    passes a lazy getter keeps the "no eager context setup" guarantee.
+    """
+    hierarchy, parametrize = resolved_parents(node, config)
+    parent_step: Any = None  # TestStep of the running innermost parent, or None (root).
+    innermost: NewStep | None = None
+
+    for identity, name, doc in hierarchy:
+        ns = hierarchy_parents.get(identity)
+        if ns is None:
+            ns = rc().new_step(
+                name=name,
+                description=doc,
+                assertion_as_fail_not_error=False,
+                parent=parent_step,
+                push=False,
+            )
             ns.__enter__()
-            opened.append((display, ns))
-    except BaseException:
-        while opened:
-            name, ns = opened.pop()
-            close_frame(name, ns)
-        raise
-    parametrize_stack.extend(opened)
+            hierarchy_parents[identity] = ns
+        parent_step = ns.current_step
+        innermost = ns
+
+    for key, frame in parametrize:
+        ns = parametrize_parents.get(key)
+        if ns is None:
+            ns = rc().new_step(
+                name=frame,
+                assertion_as_fail_not_error=False,
+                parent=parent_step,
+                push=False,
+            )
+            ns.__enter__()
+            parametrize_parents[key] = ns
+        parent_step = ns.current_step
+        innermost = ns
+
+    return innermost
+
+
+def close_parent(ns: NewStep) -> None:
+    """Close one open report-tree parent, stamping its last-descendant finish time.
+
+    Shared by mid-session early close (``release_finished_leaf``) and the
+    session-end drain (``finalize_parents``). The ``end_time`` override comes from
+    ``ReportContext.parent_end_times`` so the parent's window ends at its latest
+    descendant rather than wall-clock at close. A misbehaving ``__exit__`` is
+    surfaced as a warning so it never blocks the remaining parents or cascades out
+    of pytest's finalizer chain.
+    """
+    from sift_client.pytest_plugin import REPORT_CONTEXT, SiftPytestStepDrainWarning
+
+    step = ns.current_step
+    if step is None:
+        return
+    if REPORT_CONTEXT is not None:
+        ns._sift_end_time_override = REPORT_CONTEXT.parent_end_times.get(step.step_path)
+    try:
+        ns.__exit__(None, None, None)
+    except Exception as exc:
+        warnings.warn(
+            f"Sift plugin: closing parent step {step.name!r} raised {type(exc).__name__}: {exc}",
+            SiftPytestStepDrainWarning,
+            stacklevel=2,
+        )
+
+
+def close_parents_innermost_first(parents: list[NewStep]) -> None:
+    """Close the given open parents deepest-``step_path`` first.
+
+    Innermost-first means a child parent's ``propagate_step_result`` (status) and
+    ``note_close`` (finish time) reach its parent's bookkeeping before that parent
+    resolves — so a failing/late subtree rolls up correctly whether parents close
+    mid-session or at session end.
+    """
+    parents.sort(
+        key=lambda ns: ns.current_step.step_path.count(".") if ns.current_step else -1,
+        reverse=True,
+    )
+    for ns in parents:
+        close_parent(ns)
+
+
+def finalize_parents() -> None:
+    """Close every still-open report-tree parent at session end, innermost-first.
+
+    The backstop for anything ``release_finished_leaf`` did not already close
+    early (e.g. a parent whose subtree never fully ran because the session was
+    aborted). Idempotent: the registries and counters are cleared up front, so the
+    second drain site (``pytest_sessionfinish`` after ``report_context_impl``) is
+    a no-op.
+    """
+    parents = [*parametrize_parents.values(), *hierarchy_parents.values()]
+    parametrize_parents.clear()
+    hierarchy_parents.clear()
+    expected_hierarchy.clear()
+    expected_parametrize.clear()
+    leaf_parents.clear()
+    close_parents_innermost_first(parents)
+
+
+def tally_expected_parents(session: pytest.Session) -> None:
+    """Count each open-able parent's descendant leaves, for mid-session early close.
+
+    Runs after all ``modifyitems`` and deselection (``pytest_collection_finish``),
+    so ``session.items`` is the final, selected set. Only gated-in items are
+    counted — that keeps ``sift_exclude``-d siblings (and an entirely gated-off
+    session, e.g. the dev suite's own outer run) out of the tallies, so a
+    partially-excluded class still closes when its included tests finish. The maps
+    are rebuilt every session because pytester runs inner sessions in-process,
+    sharing this module state.
+    """
+    expected_hierarchy.clear()
+    expected_parametrize.clear()
+    leaf_parents.clear()
+    for item in session.items:
+        if not gate_enabled(item, session.config):
+            continue
+        hierarchy, parametrize = resolved_parents(item, session.config)
+        h_ids = [identity for identity, _, _ in hierarchy]
+        p_keys = [key for key, _ in parametrize]
+        if not h_ids and not p_keys:
+            continue  # leaf is a report-root step; no parent to close
+        leaf_parents[item.nodeid] = (h_ids, p_keys)
+        for identity in h_ids:
+            expected_hierarchy[identity] = expected_hierarchy.get(identity, 0) + 1
+        for key in p_keys:
+            expected_parametrize[key] = expected_parametrize.get(key, 0) + 1
+
+
+def _decrement_parent_counts(
+    keys: list[Any],
+    expected: dict[Any, int],
+    registry: dict[Any, NewStep],
+    ready: list[NewStep],
+) -> None:
+    """Decrement each key's remaining-descendant count by one.
+
+    When a count reaches zero the parent's subtree is complete: drop it from both
+    the count map and the registry and queue its still-open step (if any) onto
+    ``ready`` for closing. The hierarchy and parametrize branches of
+    ``release_finished_leaf`` differ only in which (count, registry) pair they
+    pass here.
+    """
+    for key in keys:
+        remaining = expected.get(key)
+        if remaining is None:
+            continue
+        if remaining <= 1:
+            expected.pop(key, None)
+            closing = registry.pop(key, None)
+            if closing is not None:
+                ready.append(closing)
+        else:
+            expected[key] = remaining - 1
+
+
+def release_finished_leaf(nodeid: str) -> None:
+    """Decrement the finished item's parents; close any whose subtree is now done.
+
+    Called from ``pytest_runtest_logfinish``, which fires once per item for every
+    outcome (pass / fail / skip / error). When a parent's remaining-leaf count
+    reaches zero its whole subtree has finished, so it is closed now rather than
+    at session end — giving incremental uploads a progressively-resolving report
+    under any execution order. Closes innermost-first so a child parent rolls its
+    result and finish time up before its own parent resolves; several levels can
+    complete on the same leaf (e.g. the last param variant closes its parametrize
+    parent, class, and module at once). Items not in ``leaf_parents`` (gated-off,
+    or injected after collection) are ignored; anything left open is handled by
+    ``finalize_parents``.
+    """
+    entry = leaf_parents.pop(nodeid, None)
+    if entry is None:
+        return
+    h_ids, p_keys = entry
+    ready: list[NewStep] = []
+    _decrement_parent_counts(h_ids, expected_hierarchy, hierarchy_parents, ready)
+    _decrement_parent_counts(p_keys, expected_parametrize, parametrize_parents, ready)
+    if ready:
+        close_parents_innermost_first(ready)

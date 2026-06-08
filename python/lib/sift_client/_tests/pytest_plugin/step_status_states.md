@@ -6,10 +6,13 @@ Reference for the pass/fail scenarios covered by
 [`docs/guides/pytest_plugin/pass_fail_behavior.md`](../../../../docs/guides/pytest_plugin/pass_fail_behavior.md).
 
 `TestStatus` values come from `sift_client.sift_types.test_report.TestStatus`:
-`PASSED`, `FAILED`, `ERROR`, `SKIPPED`, `ABORTED`, `IN_PROGRESS`. Hard process
-exits the plugin can observe (`SystemExit`, `KeyboardInterrupt` when pytest
-delivers a call-phase report) map to `ABORTED`. A session-aborting interrupt
-that fires before the plugin sees it leaves the step in `IN_PROGRESS`.
+`PASSED`, `FAILED`, `ERROR`, `SKIPPED`, `ABORTED`, `IN_PROGRESS`. Hard exits map
+to `ABORTED`, resolved during fixture teardown: from the call-phase report when
+there is one (`SystemExit`), or, when a `KeyboardInterrupt` aborts the session
+before that report, from setup having completed with no call outcome. The status
+reaches the report only because pytest runs finalizers as it unwinds; a step
+keeps the `IN_PROGRESS` it was created with only if the process is killed before
+those finalizers run.
 
 ## Case ID scheme
 
@@ -36,7 +39,7 @@ be traced back to its row here without rereading the scenario:
 | `CALL-03` | Generic exception in call phase | `raise ValueError("boom")`           | `ERROR`                                                                                                  |
 | `CALL-04` | `pytest.fail("...")` from body  | `pytest.fail("intentional failure")` | `FAILED`                                                                                                 |
 | `CALL-05` | `SystemExit` from the test body | `sys.exit(1)`                        | `ABORTED`                                                                                                |
-| `CALL-06` | `KeyboardInterrupt` in body     | `raise KeyboardInterrupt`            | `IN_PROGRESS` — session aborts before the plugin sees the interrupt; `ABORTED` if the plugin does see it |
+| `CALL-06` | `KeyboardInterrupt` in body     | `raise KeyboardInterrupt`            | `ABORTED` — the session aborts before a call-phase report, but fixture teardown still runs, so the cut-off step resolves to `ABORTED` rather than staying `IN_PROGRESS` |
 | `CALL-07` | Substep raises non-Assertion exception | `with step.substep(...): raise ValueError("boom")` | Substep `ERROR`, test step `FAILED` (child-failed signal outranks the propagating exception) |
 
 ## Skip paths
