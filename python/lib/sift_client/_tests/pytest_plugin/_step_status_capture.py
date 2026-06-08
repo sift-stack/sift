@@ -28,6 +28,10 @@ class CapturedStep:
     parent_step_id: str | None
     statuses: list[TestStatus] = field(default_factory=list)
     error_messages: list[str] = field(default_factory=list)
+    # ``startTime`` from the create entry; ``endTime`` is the latest seen across
+    # create/update entries. Both are RFC3339 strings.
+    start_time: str | None = None
+    end_time: str | None = None
 
 
 _PROTO_STATUS_NAMES = {
@@ -68,6 +72,8 @@ def parse_log(log_path: Path) -> dict[str, CapturedStep]:
                 parent_step_id=test_step.get("parentStepId") or None,
                 statuses=[_status(test_step.get("status"))],
                 error_messages=[error_message] if error_message else [],
+                start_time=test_step.get("startTime"),
+                end_time=test_step.get("endTime"),
             )
         elif request_type == "UpdateTestStep":
             step_id = test_step.get("testStepId")
@@ -76,6 +82,8 @@ def parse_log(log_path: Path) -> dict[str, CapturedStep]:
                 steps[step_id].statuses.append(_status(new_status))
                 if error_message:
                     steps[step_id].error_messages.append(error_message)
+                if test_step.get("endTime") is not None:
+                    steps[step_id].end_time = test_step.get("endTime")
     return steps
 
 
@@ -127,6 +135,32 @@ def final_error_message(name: str) -> str | None:
     return step.error_messages[-1] if step and step.error_messages else None
 
 
+def log_events(log_path: Path) -> list[tuple[str, str, TestStatus]]:
+    """Ordered ``(request_type, step_name, status)`` tuples as they appear in the log.
+
+    Unlike ``load_steps`` (which collapses each step to its final state), this
+    preserves write order, so tests can assert *when* a step resolved relative to
+    other entries — e.g. that a container's terminal ``UpdateTestStep`` precedes a
+    later sibling's ``CreateTestStep`` (proof it closed mid-session, not at the
+    end). ``UpdateTestStep`` entries carry only an id, so the name is resolved
+    from the preceding ``CreateTestStep``.
+    """
+    if not log_path.exists():
+        return []
+    id_to_name: dict[str, str] = {}
+    events: list[tuple[str, str, TestStatus]] = []
+    for request_type, response_id, json_str in iter_log_data_lines(log_path):
+        test_step = json.loads(json_str).get("testStep", {})
+        status = _status(test_step.get("status"))
+        if request_type == "CreateTestStep" and response_id:
+            name = test_step.get("name", "")
+            id_to_name[response_id] = name
+            events.append((request_type, name, status))
+        elif request_type == "UpdateTestStep":
+            events.append((request_type, id_to_name.get(test_step.get("testStepId"), ""), status))
+    return events
+
+
 def load_steps(log_path: Path) -> list[dict]:
     """Load the offline log as a list of step records keyed by hierarchy fields.
 
@@ -144,6 +178,9 @@ def load_steps(log_path: Path) -> list[dict]:
             "name": s.name,
             "parent_step_id": s.parent_step_id,
             "step_path": s.step_path,
+            "statuses": s.statuses,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
         }
         for s in parse_log(log_path).values()
     ]

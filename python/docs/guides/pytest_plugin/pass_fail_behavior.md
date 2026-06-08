@@ -13,9 +13,9 @@ The statuses below come from `sift_client.sift_types.test_report.TestStatus`.
 | `PASSED`      | The step completed and every check it owns succeeded.                                                                  |
 | `FAILED`      | An assertion, a `pytest.fail(...)`, a failed `report_outcome`, or a failing measurement marked it.                     |
 | `ERROR`       | An unexpected exception escaped the test body or a fixture (setup or teardown).                                        |
-| `ABORTED`     | A hard exit (`SystemExit`, observed `KeyboardInterrupt`) interrupted the test.                                         |
+| `ABORTED`     | A hard exit (`SystemExit` or `KeyboardInterrupt`) cut the test off; resolved while pytest tears the session down.      |
 | `SKIPPED`     | The test was skipped at collection time, at runtime, or from a fixture.                                                |
-| `IN_PROGRESS` | Test in progress or the plugin never observed a final outcome (e.g. a session-aborting interrupt killed pytest first). |
+| `IN_PROGRESS` | A transient creation state. It survives into the report only if the process is killed so abruptly that teardown never runs. |
 
 ## Normal test outcomes
 
@@ -34,15 +34,27 @@ mapping to `FAILED`. A non-assertion exception gets its formatted traceback
 
 ## Hard exits
 
-Hard exits the plugin can observe map to `ABORTED`. If pytest tears the
-session down before the plugin sees the exit, the step stays at
-`IN_PROGRESS` instead of resolving.
+Hard exits map to `ABORTED`. The step is resolved during fixture teardown, not
+at the instant of the exit:
 
-| Scenario                                       | Trigger                   | Outcome                                                              |
-| ---------------------------------------------- | ------------------------- | -------------------------------------------------------------------- |
-| `SystemExit` from the test body                | `sys.exit(1)`             | `ABORTED`                                                            |
-| `KeyboardInterrupt` the plugin observes        | `raise KeyboardInterrupt` | `ABORTED`                                                            |
-| Session-aborting `KeyboardInterrupt`           | Ctrl-C terminates pytest  | `IN_PROGRESS` (session ends before the plugin's hooks fire)          |
+- When the exit produces a call-phase report (`sys.exit(1)`, `SystemExit`), the
+  plugin reads the status off that report.
+- When a `KeyboardInterrupt` aborts the session before any call-phase report
+  (Ctrl-C, or `raise KeyboardInterrupt` in the body), pytest still runs fixture
+  finalizers as it unwinds. The plugin sees setup completed with no call outcome
+  and resolves the cut-off step to `ABORTED` there.
+
+The status only reaches the report if those finalizers run. If the process is
+killed before they do (`SIGKILL`, the OOM killer, power loss), nothing is written
+and the step keeps the `IN_PROGRESS` it was created with. That is the only path
+that leaves a step `IN_PROGRESS` in a finalized report.
+
+| Scenario                                       | Trigger                            | Outcome                                          |
+| ---------------------------------------------- | ---------------------------------- | ------------------------------------------------ |
+| `SystemExit` from the test body                | `sys.exit(1)`                      | `ABORTED` (read from the call-phase report)      |
+| `KeyboardInterrupt` from the test body         | `raise KeyboardInterrupt`          | `ABORTED` (resolved during teardown)             |
+| Session-aborting `KeyboardInterrupt`           | Ctrl-C terminates pytest           | `ABORTED` (resolved during teardown)             |
+| Process killed before finalizers run           | `SIGKILL` / OOM / power loss       | `IN_PROGRESS` (nothing written after creation)   |
 
 ### Abort propagation through nested substeps
 
