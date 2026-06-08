@@ -118,8 +118,7 @@ def sift_client() -> SiftClient:
 |---|---|---|---|
 | `report_context` | fixture (autouse) | session | The `ReportContext` backing the run's `TestReport`. Use it to attach metadata or open ad-hoc steps. |
 | `step` | fixture (autouse) | function | A `NewStep` created for the current test function. Exposes `measure*`, `substep`, `report_outcome`, `pytest_fail_if_step_failed`, and `current_step`. |
-| `_hierarchy_parents` | internal fixture (autouse) | function | Opens a parent step for each `pytest.Package`, `pytest.Module`, and `pytest.Class` ancestor of the current test. Each layer is gated independently; see [settings reference](#settings-reference). |
-| `_parametrize_parents` | internal fixture (autouse) | function | Opens a parent step for each `@pytest.mark.parametrize` axis (and fixture parametrization), nested inside the hierarchy parents. |
+| `_sift_parents` | internal fixture (autouse) | function | Resolves the report-tree parents for the current test: a parent step for each `pytest.Package`, `pytest.Module`, and `pytest.Class` ancestor, then one per `@pytest.mark.parametrize` axis (and fixture parametrization) nested inside them. Parents are created once and reused across tests in any order, so test execution order is never changed. Each layer is gated independently; see [settings reference](#settings-reference). |
 | `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted by `report_context` at session start in online mode (the default). Override to skip the ping or use a different reachability signal. |
 
 ## Settings reference

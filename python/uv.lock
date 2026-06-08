@@ -3616,6 +3616,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-randomly"
+version = "3.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "importlib-metadata", version = "8.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "importlib-metadata", version = "8.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c9/d4/6e924a0b2855736d942703dec88dfc98b4fe0881c8fa849b6b0fbb9182fa/pytest_randomly-3.15.0.tar.gz", hash = "sha256:b908529648667ba5e54723088edd6f82252f540cc340d748d1fa985539687047", size = 21743, upload-time = "2023-08-15T18:04:59.857Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/24/d3/00e575657422055c4ea220b2f80e8cc6026ab7130372b7067444d1b0ac10/pytest_randomly-3.15.0-py3-none-any.whl", hash = "sha256:0516f4344b29f4e9cdae8bce31c4aeebf59d0b9ef05927c33354ff3859eeeca6", size = 8685, upload-time = "2023-08-15T18:04:57.913Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -4400,6 +4414,7 @@ dev = [
     { name = "pytest-benchmark" },
     { name = "pytest-dotenv" },
     { name = "pytest-mock" },
+    { name = "pytest-randomly" },
     { name = "ruff" },
     { name = "tomlkit" },
 ]
@@ -4427,6 +4442,7 @@ dev-all = [
     { name = "pytest-benchmark" },
     { name = "pytest-dotenv" },
     { name = "pytest-mock" },
+    { name = "pytest-randomly" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "ruff" },
@@ -4444,6 +4460,7 @@ development = [
     { name = "pytest-benchmark" },
     { name = "pytest-dotenv" },
     { name = "pytest-mock" },
+    { name = "pytest-randomly" },
     { name = "ruff" },
     { name = "tomlkit" },
 ]
@@ -4489,6 +4506,7 @@ docs-build = [
     { name = "pytest-benchmark" },
     { name = "pytest-dotenv" },
     { name = "pytest-mock" },
+    { name = "pytest-randomly" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "ruff" },
@@ -4628,6 +4646,10 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev-all'", specifier = "==3.14.0" },
     { name = "pytest-mock", marker = "extra == 'development'", specifier = "==3.14.0" },
     { name = "pytest-mock", marker = "extra == 'docs-build'", specifier = "==3.14.0" },
+    { name = "pytest-randomly", marker = "extra == 'dev'", specifier = "==3.15.0" },
+    { name = "pytest-randomly", marker = "extra == 'dev-all'", specifier = "==3.15.0" },
+    { name = "pytest-randomly", marker = "extra == 'development'", specifier = "==3.15.0" },
+    { name = "pytest-randomly", marker = "extra == 'docs-build'", specifier = "==3.15.0" },
     { name = "pyyaml", specifier = "~=6.0" },
     { name = "rapidyaml", specifier = "~=0.11" },
     { name = "requests", specifier = "~=2.25" },

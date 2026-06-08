@@ -32,9 +32,9 @@ from sift_client._internal.pytest_plugin.options import (
     TEST_SYSTEM_NAME_OPTION,
 )
 from sift_client._internal.pytest_plugin.steps import (
-    drain_hierarchy_stack,
-    drain_parametrize_stack,
+    finalize_parents,
     parametrize_path_key,
+    strip_param,
 )
 from sift_client.sift_types.test_report import ErrorInfo, TestStatus
 from sift_client.util.test_results import ReportContext
@@ -124,7 +124,6 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
 
     status: TestStatus | None = None
     error_info: ErrorInfo | None = None
-    keep_managed = False
 
     if setup_phase is not None and setup_phase.report.outcome == "failed":
         status = TestStatus.ERROR
@@ -136,11 +135,13 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
     elif setup_phase is not None and setup_phase.report.outcome == "skipped":
         status = TestStatus.SKIPPED
     elif call_phase is None:
-        # Setup completed but the call-phase report never fired; the inner
-        # pytester session was aborted (e.g. by KeyboardInterrupt) before the
-        # plugin could observe the outcome. Leave the step at IN_PROGRESS so
-        # the report does not lie about a clean pass.
-        keep_managed = True
+        # Setup completed but the call-phase report never fired; the session was
+        # aborted (e.g. by KeyboardInterrupt) before the plugin could observe the
+        # outcome. Resolve to ABORTED rather than leaving it IN_PROGRESS, since the
+        # test was cut off and a finalized report should not carry a step that
+        # still reads as in-progress. No call ``excinfo`` exists here, so there is
+        # no traceback to attach.
+        status = TestStatus.ABORTED
     else:
         wasxfail = getattr(call_phase.report, "wasxfail", None)
         if wasxfail is not None:
@@ -179,7 +180,7 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
             elif isinstance(excinfo.value, (KeyboardInterrupt, SystemExit)):
                 # Hard exits the plugin can observe: pytest converted the
                 # raise into a call-phase report. The session-aborting variant
-                # (call_phase is None) lands earlier and stays IN_PROGRESS.
+                # (call_phase is None) lands in the branch above, also ABORTED.
                 status = TestStatus.ABORTED
                 error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
             elif xfail_marker is not None:
@@ -194,14 +195,13 @@ def resolve_initial_status(new_step: NewStep, item: pytest.Item) -> None:
                 status = TestStatus.ERROR
                 error_info = format_truncated_traceback(excinfo.type, excinfo.value, excinfo.tb)
 
-    if status is None and not keep_managed:
+    if status is None:
         return
 
-    if status is not None:
-        # BaseType is frozen; mutate via __dict__ the same way _apply_client_to_instance does.
-        current_step.__dict__["status"] = status
-        if error_info is not None:
-            current_step.__dict__["error_info"] = error_info
+    # BaseType is frozen; mutate via __dict__ the same way _apply_client_to_instance does.
+    current_step.__dict__["status"] = status
+    if error_info is not None:
+        current_step.__dict__["error_info"] = error_info
     new_step._sift_managed_externally = True
 
 
@@ -232,19 +232,6 @@ def _relativize(path: Path, rootpath: Path) -> str:
     return "" if rel == "." else rel
 
 
-def _strip_param(nodeid: str) -> str:
-    """Drop the trailing ``[param]`` from a nodeid, keeping ``file::Class::func``.
-
-    The parametrize id is a variation of the test, not its identity; leaving it
-    in would make a re-parametrization silently shift the grouping key. Splits on
-    the last ``::`` segment and cuts at its first ``[``; class/function names
-    never contain ``[``, so nested brackets in a param value can't confuse it.
-    """
-    head, sep, leaf = nodeid.rpartition("::")
-    leaf = leaf.split("[", 1)[0]
-    return f"{head}{sep}{leaf}"
-
-
 def derive_target(request: pytest.FixtureRequest, args: tuple[str, ...]) -> str:
     """Describe what was run, from the collected items rather than the command line.
 
@@ -273,7 +260,7 @@ def derive_target(request: pytest.FixtureRequest, args: tuple[str, ...]) -> str:
     if not items:
         return root
     if len(items) == 1:
-        return _anchor(_strip_param(items[0].nodeid))
+        return _anchor(strip_param(items[0].nodeid))
     paths = {p for p in (getattr(i, "path", None) for i in items) if p is not None}
     if not paths:
         return root
@@ -434,16 +421,13 @@ def report_context_impl(
         try:
             yield context
         finally:
-            # Drain the hierarchy + parametrize stacks INSIDE the
-            # ReportContext's ``with`` block, so the final ``__exit__``
-            # update calls for those parent steps are written to the log
-            # file BEFORE the import worker drains. Without this, the
-            # worker exits with a partial backlog and the parent steps
-            # are stuck IN_PROGRESS in the Sift report.
-            try:
-                drain_parametrize_stack()
-            finally:
-                drain_hierarchy_stack()
+            # Close any report-tree parents still open INSIDE the ReportContext's
+            # ``with`` block, so their final ``__exit__`` update calls are written
+            # to the log file BEFORE the import worker drains. Without this, the
+            # worker exits with a partial backlog and the parent steps are stuck
+            # IN_PROGRESS in the Sift report. Most parents already closed early as
+            # their subtrees finished; this is the backstop for the rest.
+            finalize_parents()
 
 
 # Placeholder credentials used in --sift-offline mode when env/ini values
@@ -478,12 +462,12 @@ def step_impl(
     report_context: ReportContext, request: pytest.FixtureRequest
 ) -> Generator[NewStep, None, None]:
     node = request.node
-    # Items get a parametrize path stashed in ``pytest_collection_modifyitems``;
+    # Items get a parametrize path stashed in ``pytest_itemcollected``;
     # modules/other nodes fall back to their node name. The leaf frame
-    # (``path[-1]``) is the test-specific display name; parents are opened
-    # by ``_parametrize_parents``. When parametrize-nesting is disabled, fall
-    # back to the bracket-mangled pytest name (e.g. ``test_a[1]``) so the leaf
-    # remains uniquely identifiable.
+    # (``path[-1]``) is the test-specific display name; parents are opened by
+    # ``_sift_parents``. When parametrize-nesting is disabled, fall back to the
+    # bracket-mangled pytest name (e.g. ``test_a[1]``) so the leaf remains
+    # uniquely identifiable.
     if PARAMETRIZE_NESTING_OPTION.resolve(request.config):
         path = node.stash.get(parametrize_path_key, ())
         name = path[-1] if path else str(node.name)
@@ -498,8 +482,17 @@ def step_impl(
         existing_docstring = getattr(getattr(node, "obj", None), "__doc__", None) or None
     except Exception:
         existing_docstring = None
+    # Attach the leaf under the parent ``_sift_parents`` resolved for this item
+    # (None -> a report-root step). ``push=True`` keeps the leaf on the step stack
+    # so any in-test ``substep`` nests under it.
+    parent_ns: NewStep | None = getattr(node, "_sift_parent", None)
+    parent_step = parent_ns.current_step if parent_ns is not None else None
     with report_context.new_step(
-        name=name, description=existing_docstring, assertion_as_fail_not_error=False
+        name=name,
+        description=existing_docstring,
+        assertion_as_fail_not_error=False,
+        parent=parent_step,
+        push=True,
     ) as new_step:
         node._sift_step = new_step
         yield new_step
