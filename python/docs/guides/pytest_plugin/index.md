@@ -45,7 +45,7 @@ def test_battery_voltage(step):
         bounds={"min": 4.8, "max": 5.2},
         unit="V",
     )
-    step.fail_if_measurements_failed()
+    step.pytest_fail_if_step_failed()
 ```
 
 Run it:
@@ -59,7 +59,7 @@ A `TestReport` shows up in Sift once the session finishes.
 !!! tip "Fail at the end, not per measurement"
     `step.measure(...)` returns a pass/fail boolean and never raises, so a
     failing measurement marks the step failed without aborting the test. Take
-    every measurement first, then call `step.fail_if_measurements_failed()` once
+    every measurement first, then call `step.pytest_fail_if_step_failed()` once
     at the end, so every measurement still lands in the report even when one
     fails. It fails the test via `pytest.fail` (no assertion noise in
     `error_info`), and unlike asserting on an individual `step.measure(...)` call
