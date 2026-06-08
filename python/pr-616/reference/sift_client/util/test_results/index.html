@@ -1336,17 +1336,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.fail_if_measurements_failed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;fail_if_measurements_failed
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.NewStep.measure" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1373,6 +1362,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;measure_avg
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.NewStep.pytest_fail_if_step_failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;pytest_fail_if_step_failed
       
     </span>
   </a>
@@ -2184,17 +2184,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.fail_if_measurements_failed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;fail_if_measurements_failed
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.NewStep.measure" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2221,6 +2210,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;measure_avg
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.NewStep.pytest_fail_if_step_failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;pytest_fail_if_step_failed
       
     </span>
   </a>
@@ -2999,14 +2999,6 @@ via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manage
       </thead>
       <tbody>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            fail_if_measurements_failed (sift_client.util.test_results.NewStep.fail_if_measurements_failed)" href="#sift_client.util.test_results.NewStep.fail_if_measurements_failed">fail_if_measurements_failed</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Fail the pytest test if any measurement on this step was out of bounds.</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            measure (sift_client.util.test_results.NewStep.measure)" href="#sift_client.util.test_results.NewStep.measure">measure</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -3027,6 +3019,14 @@ via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manage
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Calculate the average of a list of values, measure the average against given bounds, and return the result.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            pytest_fail_if_step_failed (sift_client.util.test_results.NewStep.pytest_fail_if_step_failed)" href="#sift_client.util.test_results.NewStep.pytest_fail_if_step_failed">pytest_fail_if_step_failed</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Fail the running pytest test if this step or any descendant failed.</p>
                 </div>
               </td>
             </tr>
@@ -3285,11 +3285,10 @@ via the <code>pytest-dotenv</code> plugin or inject it via your CI secret manage
 
         <p>True if every measurement recorded directly on this step has passed.</p>
 <p>Counts only <code>step.measure</code>, <code>step.measure_avg</code>, and
-<code>step.measure_all</code> calls on this <code>NewStep</code> instance. Pair it with
-<code>fail_if_measurements_failed()</code> at the end of a test to fail pytest on
-any out-of-bounds measurement without short-circuiting on the first
-failure (asserting on individual <code>measure(...)</code> return values skips
-every measurement after the failing one).</p>
+<code>step.measure_all</code> calls on this <code>NewStep</code> instance; substep and
+<code>report_outcome</code> failures are not folded in. For the end-of-test
+failure that mirrors the report, use <code>pytest_fail_if_step_failed()</code>,
+which also covers failed substeps.</p>
 
     </div>
 
@@ -3319,35 +3318,6 @@ every measurement after the failing one).</p>
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sift_client.util.test_results.NewStep.fail_if_measurements_failed" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">fail_if_measurements_failed</span>
-
-
-<a href="#sift_client.util.test_results.NewStep.fail_if_measurements_failed" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">fail_if_measurements_failed</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">message</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;measurements out of bounds&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Fail the pytest test if any measurement on this step was out of bounds.</p>
-<p>Use instead of <code>assert step.measurements_passed</code>: it fails via
-<code>pytest.fail</code> so the step resolves to FAILED without attaching an
-assertion message to <code>error_info</code>. No-op when every measurement
-passed. Call once at the end of the test so every measurement is still
-recorded before the failure fires.</p>
-<p>The failure message names each out-of-bounds measurement with its
-recorded value and bounds. <code>message</code> is used as the header line.</p>
-
-
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 
@@ -3993,6 +3963,39 @@ is associated with.</p>
       </tbody>
     </table>
         <p>returns: The true if the average of the values is within the bounds, false otherwise.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.util.test_results.NewStep.pytest_fail_if_step_failed" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">pytest_fail_if_step_failed</span>
+
+
+<a href="#sift_client.util.test_results.NewStep.pytest_fail_if_step_failed" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pytest_fail_if_step_failed</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">message</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;step failed&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Fail the running pytest test if this step or any descendant failed.</p>
+<p>Covers every signal that resolves the step to FAILED in the report:
+out-of-bounds measurements recorded directly on the step, failed
+substeps, and <code>report_outcome</code> failures. Call it once at the end of a
+test so the pytest verdict matches the report instead of passing green
+while the report shows a failure.</p>
+<p>It fails via <code>pytest.fail(pytrace=False)</code> so the step resolves to
+FAILED without an assertion traceback in <code>error_info</code>. No-op when the
+step and all of its descendants passed. Call after the work is done so
+every measurement and substep is recorded before the failure fires.</p>
+<p>The failure message names each out-of-bounds measurement and each
+failed substep. <code>message</code> is used as the header line.</p>
 
 
     </div>

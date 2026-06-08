@@ -1446,7 +1446,7 @@ statuses automatically.</p>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="p">)</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="c1"># An out-of-bounds measurement already marks the step FAILED. Call this at</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="c1"># the end to also fail pytest, without an assertion message in error_info.</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">step</span><span class="o">.</span><span class="n">fail_if_measurements_failed</span><span class="p">()</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">step</span><span class="o">.</span><span class="n">pytest_fail_if_step_failed</span><span class="p">()</span>
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_measure_strings_and_booleans</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
@@ -1708,7 +1708,7 @@ is in bounds.</p>
 </span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>    <span class="p">)</span>
 </span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>    <span class="c1"># Returns False because 99.9 is out of bounds. The step is already</span>
 </span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>    <span class="c1"># marked failed; call this only if you also want pytest to fail.</span>
-</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>    <span class="n">step</span><span class="o">.</span><span class="n">fail_if_measurements_failed</span><span class="p">()</span>
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>    <span class="n">step</span><span class="o">.</span><span class="n">pytest_fail_if_step_failed</span><span class="p">()</span>
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title"><code>measure_all</code> requires at least one bound</p>

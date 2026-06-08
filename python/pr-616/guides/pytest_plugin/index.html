@@ -1174,7 +1174,7 @@ report. Take it as an argument when you want to record a measurement:</p>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">4.8</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.2</span><span class="p">},</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">,</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">step</span><span class="o">.</span><span class="n">fail_if_measurements_failed</span><span class="p">()</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">step</span><span class="o">.</span><span class="n">pytest_fail_if_step_failed</span><span class="p">()</span>
 </span></code></pre></div>
 <p>Run it:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pytest
@@ -1184,7 +1184,7 @@ report. Take it as an argument when you want to record a measurement:</p>
 <p class="admonition-title">Fail at the end, not per measurement</p>
 <p><code>step.measure(...)</code> returns a pass/fail boolean and never raises, so a
 failing measurement marks the step failed without aborting the test. Take
-every measurement first, then call <code>step.fail_if_measurements_failed()</code> once
+every measurement first, then call <code>step.pytest_fail_if_step_failed()</code> once
 at the end, so every measurement still lands in the report even when one
 fails. It fails the test via <code>pytest.fail</code> (no assertion noise in
 <code>error_info</code>), and unlike asserting on an individual <code>step.measure(...)</code> call
