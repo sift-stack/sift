@@ -39,18 +39,33 @@ Ad-hoc writers to the same path are not protected.
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
-from filelock import FileLock
+from filelock import FileLock, Timeout
 from google.protobuf import json_format
 
 if TYPE_CHECKING:
     from sift_client.sift_types.test_report import TestMeasurement, TestReport, TestStep
+
+
+# Seconds to wait for the sidecar lock before raising TimeoutError. Long enough
+# to absorb brief contention, short enough that a stale holder can't block forever.
+LOG_LOCK_TIMEOUT_SECONDS = 60.0
+
+# Dedicated pool for the blocking lock + file I/O, kept off the default executor
+# so contention here can't starve other offloaded work.
+_LOG_IO_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="sift-log-io")
+
+# Wake idle workers at interpreter exit so they don't delay shutdown. A worker
+# mid-acquire still drains, but only up to LOG_LOCK_TIMEOUT_SECONDS.
+atexit.register(_LOG_IO_EXECUTOR.shutdown, wait=False)
 
 
 def _client_version() -> str:
@@ -155,13 +170,17 @@ def log_request_to_file(
     request_type: str,
     request: Any,
     response_id: str | None = None,
+    timeout: float = LOG_LOCK_TIMEOUT_SECONDS,
 ) -> None:
     """Append a request as a JSON-encoded line to ``log_file``.
 
     Holds an exclusive :class:`filelock.FileLock` on the sidecar across the
-    append so a concurrent reader in :func:`iter_log_data_lines` can't see a
+    append so a concurrent reader in :func:`_read_log_lines` can't see a
     mid-write partial final line. See the module docstring for the full
     concurrency model.
+
+    This is synchronous and blocks on the lock; async callers should offload it
+    off the event loop (see ``_LOG_IO_EXECUTOR``).
 
     Args:
         log_file: Path to the log file.
@@ -170,6 +189,10 @@ def log_request_to_file(
         response_id: Optional ID from the simulated response, embedded in the tag
             for create operations so replay can map previously simulated IDs used
             by simulated updates.
+        timeout: Seconds to wait for the sidecar lock before raising TimeoutError.
+
+    Raises:
+        TimeoutError: If the lock is not acquired within ``timeout`` seconds.
     """
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -177,37 +200,65 @@ def log_request_to_file(
     request_dict = json_format.MessageToDict(request)
     request_json = json.dumps(request_dict, separators=(",", ":"))
     line = f"[{tag}] {request_json}\n"
-    with FileLock(str(log_path.with_name(log_path.name + ".lock"))):
-        with open(log_path, "a") as f:
-            # The inner ``with`` flushes and closes the file before the
-            # FileLock is released, so no reader sees a partial line.
-            f.write(line)
+    lock_path = log_path.with_name(log_path.name + ".lock")
+    try:
+        with FileLock(str(lock_path), timeout=timeout):
+            with open(log_path, "a") as f:
+                # The inner ``with`` flushes and closes the file before the
+                # FileLock is released, so no reader sees a partial line.
+                f.write(line)
+    except Timeout as exc:
+        raise TimeoutError(
+            f"Timed out after {timeout}s acquiring the test-results log lock at "
+            f"{lock_path}; another process or thread is holding it."
+        ) from exc
 
 
-def iter_log_data_lines(
+def _read_log_lines(
     log_path: str | Path,
+    timeout: float = LOG_LOCK_TIMEOUT_SECONDS,
+) -> list[str]:
+    """Snapshot the log file's raw lines under the sidecar lock.
+
+    Holds the exclusive :class:`filelock.FileLock` only across the ``readlines``
+    so a concurrent :func:`log_request_to_file` append can't be observed as a
+    partial final line, then releases it. Parsing happens lock-free in
+    :func:`parse_log_data_lines`.
+
+    This is synchronous and blocks on the lock; async callers should offload it
+    off the event loop (see ``_LOG_IO_EXECUTOR``).
+
+    Raises:
+        TimeoutError: If the lock is not acquired within ``timeout`` seconds.
+    """
+    log_path = Path(log_path)
+    lock_path = log_path.with_name(log_path.name + ".lock")
+    try:
+        with FileLock(str(lock_path), timeout=timeout):
+            with open(log_path) as f:
+                return f.readlines()
+    except Timeout as exc:
+        raise TimeoutError(
+            f"Timed out after {timeout}s acquiring the test-results log lock at "
+            f"{lock_path}; another process or thread is holding it."
+        ) from exc
+
+
+def parse_log_data_lines(
+    raw_lines: list[str],
     start_line: int = 0,
 ) -> Generator[tuple[str, str | None, str], None, None]:
-    """Parse data lines from a log file.
+    """Parse a snapshot of raw log lines into data-line tuples.
 
-    Yields ``(request_type, response_id, json_str)`` tuples. Each yielded item
-    corresponds to one logged API call.
+    Yields ``(request_type, response_id, json_str)`` tuples, one per logged API
+    call. Pure and lock-free: operates on the in-memory snapshot returned by
+    :func:`_read_log_lines`.
 
     ``start_line`` is the count of data lines (1-based) already uploaded; the
     iterator skips the first ``start_line`` lines and yields the rest. Pass 0
     to read all data lines.
-
-    Holds the sidecar :class:`filelock.FileLock` only while snapshotting the
-    file into memory, then releases before yielding. Lines appended by a
-    concurrent :func:`log_request_to_file` after the snapshot are not visible
-    this call -- they will be picked up on the next invocation.
     """
     line_pattern = re.compile(r"^\[(\w+)(?::([^\]]+))?\]\s*(.+)$")
-    log_path = Path(log_path)
-    with FileLock(str(log_path.with_name(log_path.name + ".lock"))):
-        with open(log_path) as f:
-            raw_lines = f.readlines()
-
     data_line_count = 0
     for raw_line in raw_lines:
         line = raw_line.strip()
@@ -220,3 +271,18 @@ def iter_log_data_lines(
         if data_line_count <= start_line:
             continue
         yield (match.group(1), match.group(2), match.group(3))
+
+
+def iter_log_data_lines(
+    log_path: str | Path,
+    start_line: int = 0,
+    timeout: float = LOG_LOCK_TIMEOUT_SECONDS,
+) -> Generator[tuple[str, str | None, str], None, None]:
+    """Read and parse data lines from a log file.
+
+    Convenience wrapper that snapshots under the lock via :func:`_read_log_lines`
+    then parses with :func:`parse_log_data_lines`. Async callers should instead
+    offload :func:`_read_log_lines` off the event loop and parse the result with
+    :func:`parse_log_data_lines` directly.
+    """
+    yield from parse_log_data_lines(_read_log_lines(log_path, timeout), start_line)
