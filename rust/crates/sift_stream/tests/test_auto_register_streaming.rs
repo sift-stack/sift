@@ -49,7 +49,7 @@ use sift_rs::runs::v2::{
     ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
 };
 use sift_stream::{
-    ChannelConfig, ChannelDataType, ChannelValue, Flow, IngestionConfigForm,
+    AutoRegisterSendError, ChannelConfig, ChannelDataType, ChannelValue, Flow, IngestionConfigForm,
     SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
 };
 use tokio::task::JoinHandle;
@@ -471,7 +471,7 @@ async fn test_auto_register_sends_flow_not_in_initial_config() {
         .await
         .expect("failed to build stream");
 
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     let n = 20u32;
     for i in 0..n {
@@ -506,7 +506,7 @@ async fn test_auto_register_flow_in_local_cache_after_first_send() {
         .await
         .expect("failed to build stream");
 
-    let auto = SiftStreamAutoRegister::new(stream);
+    let auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     // Before first send: flow is not in the local cache.
     assert!(
@@ -529,7 +529,7 @@ async fn test_auto_register_flow_in_local_cache_after_first_send() {
         .await
         .expect("failed to build stream");
 
-    let mut auto2 = SiftStreamAutoRegister::new(stream2);
+    let mut auto2 = SiftStreamAutoRegister::new(stream2, vec![]);
 
     auto2
         .send(Flow::new(
@@ -568,7 +568,7 @@ async fn test_auto_register_multiple_distinct_flows_each_registered_independentl
         .await
         .expect("failed to build stream");
 
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     for i in 0..10u32 {
         auto.send(Flow::new(
@@ -618,7 +618,7 @@ async fn test_auto_register_same_flow_registered_exactly_once() {
         .await
         .expect("failed to build stream");
 
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     let n = 100u32;
     for i in 0..n {
@@ -673,7 +673,7 @@ async fn test_auto_register_pre_registered_flow_skips_registration() {
         .expect("failed to build stream");
 
     // flow-0 is in the cache from build(); no registration call should happen.
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     let n = 30u32;
     for i in 0..n {
@@ -708,7 +708,7 @@ async fn test_auto_register_into_inner_returns_stream_with_populated_cache() {
         .await
         .expect("failed to build stream");
 
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     auto.send(Flow::new(
         "extracted-flow",
@@ -756,7 +756,7 @@ async fn test_auto_register_finish_drains_all_queued_messages() {
         .await
         .expect("failed to build stream");
 
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     let n = 50u32;
     for i in 0..n {
@@ -803,7 +803,7 @@ async fn test_auto_register_mixed_new_and_pre_registered_flows() {
         .await
         .expect("failed to build stream");
 
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     let n = 15u32;
     for i in 0..n {
@@ -830,5 +830,384 @@ async fn test_auto_register_mixed_new_and_pre_registered_flows() {
 
     assert_eq!(counts.get("flow-0"), n);
     assert_eq!(counts.get("new-sensor"), n);
+    assert!(server.await.is_ok());
+}
+
+// ============================================================
+// Ingestion config service that captures registered FlowConfigs
+// ============================================================
+
+#[derive(Clone, Default)]
+struct CapturedRegistrations(Arc<Mutex<Vec<FlowConfig>>>);
+
+impl CapturedRegistrations {
+    fn all(&self) -> Vec<FlowConfig> {
+        self.0.lock().unwrap().clone()
+    }
+}
+
+struct CapturingIngestionConfigService {
+    captured: CapturedRegistrations,
+    call_count: Arc<AtomicU32>,
+    config: Arc<Mutex<Option<IngestionConfig>>>,
+}
+
+impl CapturingIngestionConfigService {
+    fn new() -> (Self, CapturedRegistrations, Arc<AtomicU32>) {
+        let captured = CapturedRegistrations::default();
+        let call_count = Arc::new(AtomicU32::new(0));
+        (
+            Self {
+                captured: captured.clone(),
+                call_count: call_count.clone(),
+                config: Arc::new(Mutex::new(None)),
+            },
+            captured,
+            call_count,
+        )
+    }
+}
+
+#[tonic::async_trait]
+impl IngestionConfigService for CapturingIngestionConfigService {
+    async fn list_ingestion_configs(
+        &self,
+        request: Request<ListIngestionConfigsRequest>,
+    ) -> Result<Response<ListIngestionConfigsResponse>, Status> {
+        let filter = request.into_inner().filter;
+        let guard = self.config.lock().unwrap();
+        let configs = guard
+            .iter()
+            .filter(|c| filter.is_empty() || filter.contains(&c.client_key))
+            .cloned()
+            .collect();
+        Ok(Response::new(ListIngestionConfigsResponse {
+            ingestion_configs: configs,
+            next_page_token: String::new(),
+        }))
+    }
+
+    async fn create_ingestion_config(
+        &self,
+        request: Request<CreateIngestionConfigRequest>,
+    ) -> Result<Response<CreateIngestionConfigResponse>, Status> {
+        let r = request.into_inner();
+        let new_config = IngestionConfig {
+            ingestion_config_id: Uuid::new_v4().to_string(),
+            asset_id: r.asset_name,
+            client_key: r.client_key,
+        };
+        *self.config.lock().unwrap() = Some(new_config.clone());
+        Ok(Response::new(CreateIngestionConfigResponse {
+            ingestion_config: Some(new_config),
+        }))
+    }
+
+    async fn get_ingestion_config(
+        &self,
+        request: Request<GetIngestionConfigRequest>,
+    ) -> Result<Response<GetIngestionConfigResponse>, Status> {
+        let id = request.into_inner().ingestion_config_id;
+        let guard = self.config.lock().unwrap();
+        match guard.as_ref().filter(|c| c.ingestion_config_id == id) {
+            Some(c) => Ok(Response::new(GetIngestionConfigResponse {
+                ingestion_config: Some(c.clone()),
+            })),
+            None => Err(Status::not_found("ingestion config not found")),
+        }
+    }
+
+    async fn list_ingestion_config_flows(
+        &self,
+        _: Request<ListIngestionConfigFlowsRequest>,
+    ) -> Result<Response<ListIngestionConfigFlowsResponse>, Status> {
+        Ok(Response::new(ListIngestionConfigFlowsResponse {
+            flows: vec![],
+            next_page_token: String::new(),
+        }))
+    }
+
+    async fn create_ingestion_config_flows(
+        &self,
+        request: Request<CreateIngestionConfigFlowsRequest>,
+    ) -> Result<Response<CreateIngestionConfigFlowsResponse>, Status> {
+        self.call_count.fetch_add(1, Ordering::SeqCst);
+        self.captured
+            .0
+            .lock()
+            .unwrap()
+            .extend(request.into_inner().flows);
+        Ok(Response::new(CreateIngestionConfigFlowsResponse {}))
+    }
+}
+
+async fn start_server_with_capturing(
+    ingest_service: impl IngestService,
+    config_svc: CapturingIngestionConfigService,
+) -> (SiftChannel, JoinHandle<()>) {
+    let (client_io, server_io) = tokio::io::duplex(1024);
+
+    let server = tokio::spawn(async move {
+        Server::builder()
+            .add_service(IngestServiceServer::new(ingest_service))
+            .add_service(PingServiceServer::new(MinimalPingService))
+            .add_service(IngestionConfigServiceServer::new(config_svc))
+            .add_service(AssetServiceServer::new(MinimalAssetService))
+            .add_service(RunServiceServer::new(MinimalRunService))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, IoError>(server_io)))
+            .await
+            .unwrap();
+    });
+
+    let mut client_io_opt = Some(client_io);
+    let channel = Endpoint::try_from("http://[::]:50051")
+        .unwrap()
+        .connect_with_connector(service_fn(move |_: Uri| {
+            let io = client_io_opt.take();
+            async move {
+                io.map(TokioIo::new)
+                    .ok_or_else(|| std::io::Error::other("connector already used"))
+            }
+        }))
+        .await
+        .unwrap();
+
+    let sift_channel: SiftChannel = ServiceBuilder::new()
+        .layer(tonic::service::interceptor::InterceptorLayer::new(
+            AuthInterceptor {
+                apikey: "test".to_string(),
+            },
+        ))
+        .service(channel);
+
+    (sift_channel, server)
+}
+
+// ============================================================
+// Staged config tests
+// ============================================================
+
+// Verifies that when a staged FlowConfig is provided, its full channel metadata
+// (e.g. unit) is forwarded to the registration API rather than the minimal
+// auto-derived config.
+#[tokio::test]
+async fn test_staged_config_channels_are_used_for_registration() {
+    let (config_svc, registrations, call_count) = CapturingIngestionConfigService::new();
+    let (ingest_svc, _counts) = FlowCountingIngestService::new();
+    let (client, server) = start_server_with_capturing(ingest_svc, config_svc).await;
+
+    let staged = FlowConfig {
+        name: "sensor-flow".to_string(),
+        channels: vec![ChannelConfig {
+            name: "temperature".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            unit: "celsius".to_string(),
+            ..Default::default()
+        }],
+    };
+
+    let stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "staged-channels-test".to_string(),
+            flows: vec![],
+        })
+        .live_with_backups()
+        .build()
+        .await
+        .expect("failed to build stream");
+
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![staged]);
+
+    auto.send(Flow::new(
+        "sensor-flow",
+        TimeValue::default(),
+        &[ChannelValue::new("temperature", 22.5_f64)],
+    ))
+    .await
+    .expect("send failed");
+
+    auto.finish().await.expect("finish failed");
+
+    assert_eq!(call_count.load(Ordering::SeqCst), 1);
+
+    let registered = registrations.all();
+    assert_eq!(registered.len(), 1);
+    assert_eq!(registered[0].name, "sensor-flow");
+    assert_eq!(registered[0].channels.len(), 1);
+    assert_eq!(
+        registered[0].channels[0].unit, "celsius",
+        "staged config metadata should be forwarded, not overwritten by auto-derived config"
+    );
+
+    assert!(server.await.is_ok());
+}
+
+// Verifies that a channel name/type mismatch between the staged config and the
+// flow being sent returns StagedConfigMismatch without attempting registration.
+#[tokio::test]
+async fn test_staged_config_mismatch_returns_error() {
+    let (config_svc, _registrations, call_count) = CapturingIngestionConfigService::new();
+    let (ingest_svc, _counts) = FlowCountingIngestService::new();
+    let (client, server) = start_server_with_capturing(ingest_svc, config_svc).await;
+
+    let staged = FlowConfig {
+        name: "mismatch-flow".to_string(),
+        channels: vec![ChannelConfig {
+            name: "expected_channel".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
+    };
+
+    let stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "staged-mismatch-test".to_string(),
+            flows: vec![],
+        })
+        .live_with_backups()
+        .build()
+        .await
+        .expect("failed to build stream");
+
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![staged]);
+
+    let err = auto
+        .send(Flow::new(
+            "mismatch-flow",
+            TimeValue::default(),
+            &[ChannelValue::new("wrong_channel", 1.0_f64)],
+        ))
+        .await
+        .expect_err("expected StagedConfigMismatch error");
+
+    assert!(
+        matches!(err, AutoRegisterSendError::StagedConfigMismatch(_)),
+        "expected StagedConfigMismatch, got: {err:?}"
+    );
+    assert_eq!(
+        call_count.load(Ordering::SeqCst),
+        0,
+        "registration should not be attempted when staged config fails validation"
+    );
+
+    server.abort();
+}
+
+// Verifies that after a StagedConfigMismatch error the staged config is retained,
+// so a corrected send can still use it for registration.
+#[tokio::test]
+async fn test_staged_config_retained_after_mismatch() {
+    let registration_counter = Arc::new(AtomicU32::new(0));
+    let (ingest_svc, _counts) = FlowCountingIngestService::new();
+    let (client, server) =
+        start_server_with_registration_counter(ingest_svc, registration_counter.clone()).await;
+
+    let staged = FlowConfig {
+        name: "retry-flow".to_string(),
+        channels: vec![ChannelConfig {
+            name: "correct_channel".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
+    };
+
+    let stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "staged-retry-test".to_string(),
+            flows: vec![],
+        })
+        .live_with_backups()
+        .build()
+        .await
+        .expect("failed to build stream");
+
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![staged]);
+
+    // First attempt with the wrong channel — staged config is retained on error.
+    let err = auto
+        .send(Flow::new(
+            "retry-flow",
+            TimeValue::default(),
+            &[ChannelValue::new("wrong_channel", 1.0_f64)],
+        ))
+        .await
+        .expect_err("expected StagedConfigMismatch");
+    assert!(matches!(
+        err,
+        AutoRegisterSendError::StagedConfigMismatch(_)
+    ));
+
+    // Second attempt with the correct channel — staged config validates and is used.
+    auto.send(Flow::new(
+        "retry-flow",
+        TimeValue::default(),
+        &[ChannelValue::new("correct_channel", 2.0_f64)],
+    ))
+    .await
+    .expect("corrected send should succeed using retained staged config");
+
+    auto.finish().await.expect("finish failed");
+
+    assert_eq!(
+        registration_counter.load(Ordering::SeqCst),
+        1,
+        "registration should happen exactly once on the successful retry"
+    );
+    assert!(server.await.is_ok());
+}
+
+// Verifies that the staged config is removed after successful registration so
+// subsequent sends for the same flow hit the local cache and skip registration.
+#[tokio::test]
+async fn test_staged_config_consumed_after_successful_registration() {
+    let registration_counter = Arc::new(AtomicU32::new(0));
+    let (ingest_svc, counts) = FlowCountingIngestService::new();
+    let (client, server) =
+        start_server_with_registration_counter(ingest_svc, registration_counter.clone()).await;
+
+    let staged = FlowConfig {
+        name: "one-time-flow".to_string(),
+        channels: vec![ChannelConfig {
+            name: "reading".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
+    };
+
+    let stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "staged-consumed-test".to_string(),
+            flows: vec![],
+        })
+        .live_with_backups()
+        .build()
+        .await
+        .expect("failed to build stream");
+
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![staged]);
+
+    let n = 10u32;
+    for i in 0..n {
+        auto.send(Flow::new(
+            "one-time-flow",
+            TimeValue::default(),
+            &[ChannelValue::new("reading", i as f64)],
+        ))
+        .await
+        .expect("send failed");
+    }
+
+    auto.finish().await.expect("finish failed");
+
+    assert_eq!(
+        registration_counter.load(Ordering::SeqCst),
+        1,
+        "staged config should trigger registration exactly once regardless of message count"
+    );
+    assert_eq!(counts.get("one-time-flow"), n);
     assert!(server.await.is_ok());
 }

@@ -1,7 +1,7 @@
 use super::{FlowPy, SiftStreamInner, SiftStreamPy, stream_consumed_err};
 use crate::error::SiftErrorWrapper;
 use crate::metrics::SiftStreamMetricsSnapshotPy;
-use crate::stream::config::{FlowDescriptorPy, RunSelectorPy};
+use crate::stream::config::{FlowConfigPy, FlowDescriptorPy, RunSelectorPy};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
@@ -59,9 +59,23 @@ impl SiftStreamAutoRegisterPy {
     ///
     /// After this call, the original `stream` object is in a consumed state and
     /// calling any method on it will raise `RuntimeError`.
+    ///
+    /// `staged_configs` is an optional list of `FlowConfig` objects. When a staged
+    /// config exists for a flow, it is used for registration instead of a minimal
+    /// derived config, then removed after successful registration.
     #[staticmethod]
-    pub fn from_stream(py: Python, stream: &SiftStreamPy) -> PyResult<Py<PyAny>> {
+    #[pyo3(signature = (stream, staged_configs = None))]
+    pub fn from_stream(
+        py: Python,
+        stream: &SiftStreamPy,
+        staged_configs: Option<Vec<FlowConfigPy>>,
+    ) -> PyResult<Py<PyAny>> {
         let stream_inner = stream.inner.clone();
+        let staged: Vec<sift_stream::FlowConfig> = staged_configs
+            .unwrap_or_default()
+            .into_iter()
+            .map(Into::into)
+            .collect();
 
         let awaitable = future_into_py(py, async move {
             let mut guard = stream_inner.lock().await;
@@ -69,13 +83,15 @@ impl SiftStreamAutoRegisterPy {
 
             let auto_inner = match inner {
                 SiftStreamInner::LiveOnly(s) => {
-                    SiftStreamAutoRegisterInner::LiveOnly(SiftStreamAutoRegister::new(s))
+                    SiftStreamAutoRegisterInner::LiveOnly(SiftStreamAutoRegister::new(s, staged))
                 }
                 SiftStreamInner::LiveWithBackups(s) => {
-                    SiftStreamAutoRegisterInner::LiveWithBackups(SiftStreamAutoRegister::new(s))
+                    SiftStreamAutoRegisterInner::LiveWithBackups(SiftStreamAutoRegister::new(
+                        s, staged,
+                    ))
                 }
                 SiftStreamInner::FileBackup(s) => {
-                    SiftStreamAutoRegisterInner::FileBackup(SiftStreamAutoRegister::new(s))
+                    SiftStreamAutoRegisterInner::FileBackup(SiftStreamAutoRegister::new(s, staged))
                 }
             };
 

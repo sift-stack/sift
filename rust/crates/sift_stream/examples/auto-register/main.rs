@@ -65,7 +65,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .build()
         .await?;
 
-    let mut auto = SiftStreamAutoRegister::new(stream);
+    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
 
     for i in 0..NUM_SAMPLES {
         let t = i as f64;
