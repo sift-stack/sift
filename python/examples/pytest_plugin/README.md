@@ -76,7 +76,7 @@ TestReport (FAILED, since failures propagate up from leaves)
         │   (test_excluded: @sift_exclude, runs in pytest, NOT in tree)
         ├── test_measure_series                                      PASSED
         ├── test_failed_measurement_marks_sift_step_failed           FAILED  (pytest PASSED)
-        ├── test_fail_if_measurements_failed_at_end                               FAILED  (pytest FAILED)
+        ├── test_pytest_fail_if_step_failed_at_end                                FAILED  (pytest FAILED)
         ├── test_report_level_metadata                               PASSED
         └── TestClassStep
             ├── test_parametrize
@@ -98,8 +98,8 @@ The `with_sift` module shows two patterns for handling measurement results:
 `test_failed_measurement_marks_sift_step_failed` lets the test keep passing
 in pytest while the Sift step is `FAILED` (useful when measurements are
 diagnostic data you want to collect regardless of outcome); and
-`test_fail_if_measurements_failed_at_end` takes every measurement first and
-then calls `step.fail_if_measurements_failed()` once at the end, so every
+`test_pytest_fail_if_step_failed_at_end` takes every measurement first and
+then calls `step.pytest_fail_if_step_failed()` once at the end, so every
 measurement still lands in the report even when one fails. The end-of-test
 call is the recommended pattern: it fails via `pytest.fail` (no assertion
 noise in `error_info`), and unlike asserting on an individual
@@ -117,5 +117,5 @@ Toggle any of the `sift_*_step` / `sift_parametrize_nesting` flags in
 | `conftest.py` | Plugin registration via `pytest_plugins` (a single line) |
 | `pyproject.toml` | Pytest nesting/git-metadata knobs at their defaults; report `name`, `test_case`, and `metadata` under `[tool.sift.pytest.report]` |
 | `tests/pytest_only/test_pytest_only_demo.py` | Plain pytest tests with no Sift APIs. The plugin captures pass/fail automatically; covers functions, fixtures, parametrize, classes, plus one each of `AssertionError` (FAILED), `pytest.skip` (SKIPPED), and a raised `ValueError` (ERROR) |
-| `tests/with_sift/test_with_sift_demo.py` | `step.measure` (numeric/string/bool bounds, units, description, metadata, `channel_names`), `step.measure_avg` and `step.measure_all` for series, an out-of-bounds measurement (pytest PASSED, Sift step FAILED), the recommended `step.fail_if_measurements_failed()` end-of-test call that fails pytest while still recording every measurement, nested `step.substep` (with step-level `metadata=...`), `@pytest.mark.sift_exclude`, class step + class docstring → description, nested classes, stacked `@pytest.mark.parametrize`, `step.report_outcome`, and session-level metadata via `report_context.report.update({...})` |
+| `tests/with_sift/test_with_sift_demo.py` | `step.measure` (numeric/string/bool bounds, units, description, metadata, `channel_names`), `step.measure_avg` and `step.measure_all` for series, an out-of-bounds measurement (pytest PASSED, Sift step FAILED), the recommended `step.pytest_fail_if_step_failed()` end-of-test call that fails pytest while still recording every measurement, nested `step.substep` (with step-level `metadata=...`), `@pytest.mark.sift_exclude`, class step + class docstring → description, nested classes, stacked `@pytest.mark.parametrize`, `step.report_outcome`, and session-level metadata via `report_context.report.update({...})` |
 | `tests/{pytest_only,with_sift}/__init__.py` | Each Python package (directory with `__init__.py`) becomes a parent step in the report tree |

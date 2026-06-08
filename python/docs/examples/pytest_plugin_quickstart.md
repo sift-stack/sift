@@ -140,7 +140,7 @@ TestReport (FAILED, since failures propagate up from leaves)
         │   (test_excluded: @sift_exclude, runs in pytest, NOT in tree)
         ├── test_measure_series                                      PASSED
         ├── test_failed_measurement_marks_sift_step_failed           FAILED  (pytest PASSED)
-        ├── test_fail_if_measurements_failed_at_end                               FAILED  (pytest FAILED)
+        ├── test_pytest_fail_if_step_failed_at_end                                FAILED  (pytest FAILED)
         ├── test_report_level_metadata                               PASSED
         └── TestClassStep
             ├── test_parametrize
@@ -162,8 +162,8 @@ The `with_sift` module shows two patterns for handling measurement results:
 `test_failed_measurement_marks_sift_step_failed` lets the test keep passing
 in pytest while the Sift step is `FAILED` (useful when measurements are
 diagnostic data you want to collect regardless of outcome); and
-`test_fail_if_measurements_failed_at_end` takes every measurement first and
-then calls `step.fail_if_measurements_failed()` once at the end, so every
+`test_pytest_fail_if_step_failed_at_end` takes every measurement first and
+then calls `step.pytest_fail_if_step_failed()` once at the end, so every
 measurement still lands in the report even when one fails. The end-of-test
 call is the recommended pattern: it fails via `pytest.fail` (no assertion
 noise in `error_info`), and unlike asserting on an individual

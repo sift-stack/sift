@@ -40,6 +40,11 @@ def test_substeps(step) -> None:
     Metadata can be attached at the step level by passing ``metadata=...`` to
     ``substep``; the same keyword is accepted by ``report_context.new_step``
     and propagates to the resulting ``TestStep``.
+
+    A failed substep marks this step FAILED in the report without raising, so
+    the end-of-test ``step.pytest_fail_if_step_failed()`` call is needed here
+    too: it folds substep failures (not just direct measurements) into the
+    pytest outcome.
     """
     with step.substep(name="phase_1", metadata={"phase_index": 1}) as s1:
         s1.measure(name="value", value=1.0, bounds={"min": 0.0, "max": 2.0})
@@ -47,6 +52,9 @@ def test_substeps(step) -> None:
     with step.substep(name="phase_2", metadata={"phase_index": 2}) as s2:
         with s2.substep(name="phase_2a") as s2a:
             s2a.measure(name="value", value=1.0, bounds={"min": 0.0, "max": 2.0})
+
+    # Fails pytest if any substep above failed; no-op when they all passed.
+    step.pytest_fail_if_step_failed()
 
 
 def test_measure_series(step) -> None:
@@ -94,25 +102,28 @@ def test_failed_measurement_marks_sift_step_failed(step) -> None:
     )
 
 
-def test_fail_if_measurements_failed_at_end(step) -> None:
-    """Recommended pattern: take every measurement first, then call
-    ``step.fail_if_measurements_failed()`` once at the end.
+def test_pytest_fail_if_step_failed_at_end(step) -> None:
+    """Recommended pattern: do every measurement and substep first, then call
+    ``step.pytest_fail_if_step_failed()`` once at the end.
 
     Asserting on individual ``step.measure(...)`` calls raises
     ``AssertionError`` on the first failure, so any measurements after the
     failing one never run and never land in the Sift report. The end-of-test
-    call is strictly better for diagnostic completeness: every measurement is
-    recorded, including the failures, and the aggregate result is then folded
-    into the pytest outcome. It fails via ``pytest.fail`` rather than an
-    assertion, so the failed step carries no assertion noise in ``error_info``.
+    call is strictly better for diagnostic completeness: every measurement and
+    substep is recorded, including the failures, and the aggregate result is
+    then folded into the pytest outcome. It fails via ``pytest.fail`` rather
+    than an assertion, so the failed step carries no assertion noise in
+    ``error_info``.
 
-    The ``b`` measurement below is deliberately out of bounds. ``c`` still
-    runs and is recorded; only the final call fails the test.
+    It fails on any failure the report would record: out-of-bounds
+    measurements, failed substeps, and ``report_outcome`` failures. The ``b``
+    measurement below is deliberately out of bounds. ``c`` still runs and is
+    recorded; only the final call fails the test.
     """
     step.measure(name="a", value=1.0, bounds={"min": 0.0, "max": 2.0})
     step.measure(name="b", value=99.0, bounds={"min": 0.0, "max": 2.0})  # out of bounds
     step.measure(name="c", value=1.5, bounds={"min": 0.0, "max": 2.0})  # still recorded
-    step.fail_if_measurements_failed()
+    step.pytest_fail_if_step_failed()
 
 
 def test_report_level_metadata(step, report_context) -> None:
