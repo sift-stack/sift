@@ -19,6 +19,8 @@ pub struct SiftMcpServer {
     pub tool_router: ToolRouter<Self>,
     pub prompt_router: PromptRouter<Self>,
 
+    pub rest_uri: String,
+
     pub asset_service: AssetService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
@@ -38,7 +40,7 @@ pub struct SiftMcpServer {
 impl ServerHandler for SiftMcpServer {}
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel) -> Self {
+    pub fn new(channel: SiftChannel, rest_uri: String) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::list_router();
@@ -55,6 +57,7 @@ impl SiftMcpServer {
         let rule_service = RuleService::new(channel.clone());
 
         Self {
+            rest_uri,
             asset_service,
             channel_service,
             data_service,
