@@ -23,6 +23,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GetDataParams {
     asset_name: String,
@@ -511,8 +514,8 @@ impl SiftMcpServer {
                 `L2:bar`) bind a channel to a Y-axis for multi-axis plots. Role prefixes (`x:foo`, `y:foo`,
                 `color:foo` for scatter; `lat:foo`, `lon:foo`, `color:foo` for geo-map) bind a channel to a panel
                 role. Prefer names returned by `list_assets` / `list_runs` / `list_channels` over guessing.
-              - `panel_type`: optional. One of `timeseries` (default), `histogram`, `table`, `fft`, `metrics`,
-                `scatter-plot`, `geo-map`. Unknown values are rejected.
+              - `panel_type`: optional. When omitted Explore defaults to `timeseries`. Unknown values are
+                rejected with `INVALID_PARAMS`; the error message enumerates the accepted set.
               - `start_time_unix_nanos`, `end_time_unix_nanos`: optional time window. Provided as Unix nanoseconds
                 for parity with `get_data`; the tool converts to ISO 8601 UTC for the URL.
               - `explore_host`: optional override for the Sift web host (e.g. `https://app.staging.siftstack.com`).
@@ -530,7 +533,7 @@ impl SiftMcpServer {
               - The tool does not validate that the named asset/run/channel exists — Explore resolves at page
                 load. Use names you have already retrieved from `list_*` tools to avoid 404s on click.
         ",
-        annotations(title = "data_router/dynamic_url", read_only_hint = true)
+        annotations(title = "data_router/explore_url", read_only_hint = true)
     )]
     pub async fn explore_url(
         &self,
@@ -567,9 +570,6 @@ const KNOWN_PANEL_TYPES: &[&str] = &[
     "geo-map",
 ];
 
-// URL contract: https://docs.siftstack.com/documentation/integrate/open-explore-with-a-dynamic-url
-// Percent-encode everything that's not unreserved (RFC 3986) or `:`. Colon is exempt so
-// axis prefixes (L1:foo) and role prefixes (x:foo, lat:foo) round-trip without %3A.
 const VALUE_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::NON_ALPHANUMERIC
     .remove(b'-')
     .remove(b'_')
@@ -589,11 +589,6 @@ fn join_encoded(values: &[String]) -> String {
         .join(",")
 }
 
-fn nanos_to_iso8601(nanos: i64) -> String {
-    chrono::DateTime::from_timestamp_nanos(nanos)
-        .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-}
-
 fn derive_explore_host(rest_uri: &str) -> Result<String, ErrorData> {
     let swapped = rest_uri.replacen("://api.", "://app.", 1);
     if swapped == rest_uri {
@@ -603,12 +598,7 @@ fn derive_explore_host(rest_uri: &str) -> Result<String, ErrorData> {
             None,
         ));
     }
-    let after_scheme = swapped.find("://").map(|i| i + 3).unwrap_or(0);
-    let host_end = swapped[after_scheme..]
-        .find('/')
-        .map(|i| after_scheme + i)
-        .unwrap_or(swapped.len());
-    Ok(swapped[..host_end].to_string())
+    Ok(swapped.split('/').take(3).collect::<Vec<_>>().join("/"))
 }
 
 fn build_explore_url(rest_uri: &str, params: ExploreUrlParams) -> Result<String, ErrorData> {
@@ -681,11 +671,17 @@ fn build_explore_url(rest_uri: &str, params: ExploreUrlParams) -> Result<String,
     }
     if let Some(start) = start_time_unix_nanos {
         query.push_str("&startTime=");
-        query.push_str(&encode_value(&nanos_to_iso8601(start)));
+        query.push_str(&encode_value(
+            &chrono::DateTime::from_timestamp_nanos(start)
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        ));
     }
     if let Some(end) = end_time_unix_nanos {
         query.push_str("&endTime=");
-        query.push_str(&encode_value(&nanos_to_iso8601(end)));
+        query.push_str(&encode_value(
+            &chrono::DateTime::from_timestamp_nanos(end)
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        ));
     }
 
     Ok(format!("{host}/explore?{query}"))

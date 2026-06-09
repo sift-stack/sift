@@ -20,6 +20,9 @@ to combine them when working with Sift.
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
    - `upload_dataset`: stream a Parquet dataset into Sift.
+   - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
+     selection. Surface the URL inline as a clickable link so the user can
+     open the view.
 2. **`sift-cli`** — the command-line tool. Key subcommands:
    - `import`: `csv`, `parquet flat-dataset`, `tdms`, `hdf5`, `backups`.
    - `export`: `run`, `asset` (to CSV and other formats).
@@ -50,6 +53,14 @@ and stop at the first that does the job:
 4. **Python library (`sift_client`).** Use when the task needs a script:
    custom streaming, data transformation, or programmatic logic the above
    cannot express. Prefer `sift_client` over the deprecated `sift_py`.
+
+## Surfacing data to the user
+
+When the user asks to see, view, graph, plot, visualize, or open data in
+Sift, build a link with the MCP `explore_url` tool and render the URL
+inline in your response as a clickable markdown link. Do not summarize
+the link away — the URL is the deliverable. Combine with `get_data` only
+when the user also wants the data locally for SQL or further processing.
 
 ## Importing data
 
