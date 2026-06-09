@@ -49,8 +49,8 @@ use sift_rs::runs::v2::{
     ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
 };
 use sift_stream::{
-    AutoRegisterSendError, ChannelConfig, ChannelDataType, ChannelValue, Flow, IngestionConfigForm,
-    SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
+    AutoRegisterSendError, AutoRegisterStream, ChannelConfig, ChannelDataType, ChannelValue, Flow,
+    IngestionConfigForm, SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
 };
 use tokio::task::JoinHandle;
 use tokio_stream::StreamExt;

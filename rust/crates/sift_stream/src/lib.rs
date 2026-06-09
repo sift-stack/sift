@@ -571,7 +571,7 @@ pub use sift_rs::{
     ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
 pub use stream::{
-    AutoRegisterSendError, RetryPolicy, SiftStream, SiftStreamAutoRegister,
+    AutoRegisterSendError, AutoRegisterStream, RetryPolicy, SiftStream, SiftStreamAutoRegister,
     builder::{
         FileBackupBuilder, IngestionConfigForm, LiveOnlyBuilder, LiveWithBackupsBuilder, RunForm,
         SiftStreamBuilder, StreamConfigBuilder,

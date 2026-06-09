@@ -19,8 +19,8 @@
 // avoids the registration round-trip on first send entirely.
 
 use sift_stream::{
-    ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
-    IngestionConfigForm, RunForm, SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
+    AutoRegisterStream, ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow,
+    FlowConfig, IngestionConfigForm, RunForm, SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
 };
 use std::{
     env,
