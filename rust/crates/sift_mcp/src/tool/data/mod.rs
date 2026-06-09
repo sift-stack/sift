@@ -68,6 +68,17 @@ pub struct UploadDatasetParams {
     input: PathBuf,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ExploreUrlParams {
+    assets: Option<Vec<String>>,
+    runs: Option<Vec<String>>,
+    channels: Option<Vec<String>>,
+    panel_type: Option<String>,
+    start_time_unix_nanos: Option<i64>,
+    end_time_unix_nanos: Option<i64>,
+    explore_host: Option<String>,
+}
+
 impl From<MetadataEntry> for MetadataValue {
     fn from(entry: MetadataEntry) -> Self {
         let (key_type, value) = match entry.value {
@@ -480,6 +491,66 @@ impl SiftMcpServer {
         }));
         result.content = vec![Content::text(next_step)];
         Ok(result)
+    }
+
+    #[tool(
+        name = "explore_url",
+        description = "
+            Build a Sift Explore deep-link URL for the given asset/run/channel selection. Pure URL construction — no
+            API call is made. Hand the returned URL to the user verbatim, rendered inline as a clickable link, so
+            they can open the view in the Sift web app.
+
+            Output:
+              - `{ \"url\": \"<url>\", \"next_step\": \"...\" }`. `url` is the fully-formed Explore link; `next_step`
+                instructs you on how to surface it.
+
+            Parameters:
+              - `assets`: optional list of asset names or UUIDs. The Explore service resolves either form.
+              - `runs`: optional list of run names or UUIDs. Same resolution rules as `assets`.
+              - `channels`: optional list of channel names, UUIDs, or prefixed forms. Axis prefixes (`L1:foo`,
+                `L2:bar`) bind a channel to a Y-axis for multi-axis plots. Role prefixes (`x:foo`, `y:foo`,
+                `color:foo` for scatter; `lat:foo`, `lon:foo`, `color:foo` for geo-map) bind a channel to a panel
+                role. Prefer names returned by `list_assets` / `list_runs` / `list_channels` over guessing.
+              - `panel_type`: optional. One of `timeseries` (default), `histogram`, `table`, `fft`, `metrics`,
+                `scatter-plot`, `geo-map`. Unknown values are rejected.
+              - `start_time_unix_nanos`, `end_time_unix_nanos`: optional time window. Provided as Unix nanoseconds
+                for parity with `get_data`; the tool converts to ISO 8601 UTC for the URL.
+              - `explore_host`: optional override for the Sift web host (e.g. `https://app.staging.siftstack.com`).
+                When omitted the host is derived from the server's configured `rest_uri`.
+
+            Errors:
+              - `INVALID_PARAMS` if no selection or time parameter is set (the URL would be useless), if
+                `panel_type` is not in the known set, if `end_time_unix_nanos < start_time_unix_nanos`, or if the
+                Sift web host cannot be derived from `rest_uri` and `explore_host` is unset.
+
+            Guidance:
+              - Reach for this tool when the user asks to \"see\", \"view\", \"graph\", \"plot\", \"visualize\", or
+                \"open\" data in Sift. Pair it with `get_data` only when the user also wants the data locally for
+                SQL or further processing.
+              - The tool does not validate that the named asset/run/channel exists — Explore resolves at page
+                load. Use names you have already retrieved from `list_*` tools to avoid 404s on click.
+        ",
+        annotations(title = "data_router/dynamic_url", read_only_hint = true)
+    )]
+    pub async fn explore_url(
+        &self,
+        params: Parameters<ExploreUrlParams>,
+    ) -> error::McpResult {
+        let Parameters(ExploreUrlParams {
+            assets: _,
+            runs: _,
+            channels: _,
+            panel_type: _,
+            start_time_unix_nanos: _,
+            end_time_unix_nanos: _,
+            explore_host: _,
+        }) = params;
+        let _rest_uri = &self.rest_uri;
+
+        Err(ErrorData::internal_error(
+            "explore_url is not yet implemented",
+            None,
+        ))
     }
 }
 
