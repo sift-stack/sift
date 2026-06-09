@@ -60,12 +60,12 @@ pbjson-types = "^0.9"
 polars = { version = "0.53.0", features = ["sql", "lazy", "parquet"] }
 pyo3 = "0.28"
 pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
-pyo3-stub-gen = "0.10" 
+pyo3-stub-gen = "0.10"
 rand = "0.10"
 reqwest = "0.13"
 rmcp = "1.7.0"
 serde = "^1.0"
-serde_json = "^1.0" 
+serde_json = "^1.0"
 tdms = "0.3.0"
 hdf5 = { package = "hdf5-metno", version = "0.12", features = ["static"] }
 tempdir = "0.3"
@@ -91,7 +91,7 @@ sift_pbfs = { version = "0.9.1", path = "rust/crates/sift_pbfs" }
 sift_mcp = { version = "0.9.1", path = "rust/crates/sift_mcp" }
 sift_test_util = { version = "0.9.1", path = "rust/crates/sift_test_util" }
 
-sift_stream_bindings = { version = "0.3.0", path = "rust/crates/sift_stream_bindings" }
+sift_stream_bindings = { version = "0.4.0", path = "rust/crates/sift_stream_bindings" }
 
 # The profile that 'dist' will build with
 [profile.dist]
