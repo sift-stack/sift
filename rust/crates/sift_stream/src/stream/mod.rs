@@ -36,6 +36,10 @@ pub(crate) mod flow;
 /// Task-based architecture for non-blocking SiftStream operations
 pub mod tasks;
 
+/// Convenience wrapper that auto-registers flows on first send.
+pub mod auto_register;
+pub use auto_register::{AutoRegisterSendError, SiftStreamAutoRegister};
+
 /// Error types returned by [`Transport`] send methods.
 pub mod send_error;
 pub use send_error::{SendError, SiftStreamSendError, SiftStreamTrySendError, TrySendError};
