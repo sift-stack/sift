@@ -20,8 +20,10 @@ sift_stream.workspace = true
 tokio.workspace = true
 tonic.workspace = true
 anyhow.workspace = true
+chrono.workspace = true
 clap = { workspace = true, features = ["cargo"] }
 pbjson-types.workspace = true
+percent-encoding.workspace = true
 prost.workspace = true
 arrow.workspace = true
 parquet.workspace = true
