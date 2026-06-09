@@ -1,14 +1,15 @@
-"""Unit tests for the test-results log lock + offload behavior.
+"""Unit tests for the test-results log lock behavior.
 
-These cover the hang fix directly: the sidecar FileLock now has a finite
-timeout, and ``log_request_to_file`` / ``_read_log_lines`` offload the blocking
-lock + file I/O off the event loop internally, so a contended or stale lock can
-no longer freeze every synchronous API call.
+These cover the hang fix directly: the sidecar lock has a finite timeout, and
+``log_request_to_file`` / ``_read_log_lines`` wait for it cooperatively via
+``AsyncFileLock``, so a contended or stale lock can no longer freeze the event
+loop and with it every synchronous API call.
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import threading
 from unittest.mock import MagicMock
 
@@ -16,7 +17,6 @@ import pytest
 from filelock import FileLock
 from sift.test_reports.v1.test_reports_pb2 import CreateTestReportRequest
 
-from sift_client._internal.low_level_wrappers import _test_results_log as trl
 from sift_client._internal.low_level_wrappers._test_results_log import (
     LOG_LOCK_TIMEOUT_SECONDS,
     _read_log_lines,
@@ -60,7 +60,7 @@ class TestLogLockTimeout:
 
     def test_default_lock_timeout_is_finite_and_positive(self):
         # Guards against an accidental None/inf default that would reintroduce
-        # the unbounded wait.
+        # the unbounded wait (AsyncFileLock's own default is wait-forever).
         assert 0 < LOG_LOCK_TIMEOUT_SECONDS < float("inf")
 
 
@@ -95,14 +95,15 @@ class TestLogParsing:
             list(parse_log_data_lines(["not a valid log line\n"]))
 
 
-class TestLogOffload:
-    """The blocking log I/O runs off the loop, so a stuck lock cannot cascade."""
+class TestLogLoopSafety:
+    """A contended lock parks only the waiting coroutine, never the loop."""
 
     def test_import_does_not_block_event_loop_while_lock_held(self, tmp_path):
-        """A held lock parks the import in the executor, leaving the loop free.
+        """A held lock parks the import on the cooperative wait, leaving the loop free.
 
-        Without the offload the log read would run on the shared loop thread and
-        the unrelated ``ping`` coroutine below would never complete.
+        With a blocking lock acquire on the loop thread the unrelated ``ping``
+        coroutine below would never complete; with ``AsyncFileLock`` the waiter
+        sleeps between acquire attempts and the loop keeps serving other tasks.
         """
         log_file = tmp_path / "log.jsonl"
         log_file.write_text("")
@@ -125,7 +126,7 @@ class TestLogOffload:
 
             quick = asyncio.run_coroutine_threadsafe(ping(), loop)
             assert quick.result(timeout=2.0) == "pong"
-            # Still parked on the held lock in the executor, not on the loop.
+            # Still parked on the held lock's cooperative wait, not on the loop.
             assert not importing.done()
         finally:
             held.release()
@@ -137,34 +138,67 @@ class TestLogOffload:
         loop.call_soon_threadsafe(loop.stop)
         loop_thread.join(timeout=2.0)
 
-    def test_write_and_read_run_on_dedicated_executor(self, tmp_path, monkeypatch):
-        """The async wrappers run their blocking cores on the sift-log-io pool.
-
-        Guards against a refactor moving the offload back onto the loop thread
-        or the shared default pool.
-        """
-        seen: list[str] = []
-        real_write = trl._log_request_to_file_sync
-        real_read = trl._read_log_lines_sync
-
-        def spy_write(*args, **kwargs):
-            seen.append(threading.current_thread().name)
-            return real_write(*args, **kwargs)
-
-        def spy_read(*args, **kwargs):
-            seen.append(threading.current_thread().name)
-            return real_read(*args, **kwargs)
-
-        monkeypatch.setattr(trl, "_log_request_to_file_sync", spy_write)
-        monkeypatch.setattr(trl, "_read_log_lines_sync", spy_read)
-
+    def test_write_does_not_block_event_loop_while_lock_held(self, tmp_path):
+        """Same property for the writer path: a held lock cannot freeze the loop."""
         log_file = tmp_path / "log.jsonl"
 
-        async def drive():
-            await log_request_to_file(log_file, "CreateTestReport", CreateTestReportRequest())
-            await _read_log_lines(log_file)
+        loop = asyncio.new_event_loop()
+        loop_thread = threading.Thread(target=loop.run_forever, daemon=True)
+        loop_thread.start()
+
+        held = FileLock(_lock_path(log_file))
+        held.acquire()
+        try:
+            writing = asyncio.run_coroutine_threadsafe(
+                log_request_to_file(log_file, "CreateTestReport", CreateTestReportRequest()),
+                loop,
+            )
+
+            async def ping() -> str:
+                await asyncio.sleep(0)
+                return "pong"
+
+            quick = asyncio.run_coroutine_threadsafe(ping(), loop)
+            assert quick.result(timeout=2.0) == "pong"
+            # Still parked on the held lock's cooperative wait, not on the loop.
+            assert not writing.done()
+        finally:
+            held.release()
+
+        # Once the lock frees, the append completes and the line is on disk.
+        writing.result(timeout=5.0)
+        assert "[CreateTestReport]" in log_file.read_text()
+
+        loop.call_soon_threadsafe(loop.stop)
+        loop_thread.join(timeout=2.0)
+
+
+class TestLockCancelSafety:
+    """Cancelling a logging task cannot strand the sidecar lock."""
+
+    def test_cancelled_write_does_not_strand_the_lock(self, tmp_path):
+        """A cancelled append must leave the lock free for the next caller.
+
+        Pins ``run_in_executor=False`` on the ``AsyncFileLock``: with
+        executor-based acquire attempts, a cancel landing during the attempt's
+        executor round-trip leaves the flock taken with no owner to release
+        it, and every later append/read on the file times out.
+        """
+        log_file = tmp_path / "log.jsonl"
+
+        async def drive() -> None:
+            for _ in range(20):
+                task = asyncio.ensure_future(
+                    log_request_to_file(log_file, "CreateTestReport", CreateTestReportRequest())
+                )
+                await asyncio.sleep(0)
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+            # If any cancelled attempt stranded the lock, this times out.
+            await log_request_to_file(
+                log_file, "CreateTestReport", CreateTestReportRequest(), timeout=2.0
+            )
 
         asyncio.run(drive())
-
-        assert len(seen) == 2
-        assert all(name.startswith("sift-log-io") for name in seen)
+        assert "[CreateTestReport]" in log_file.read_text()
