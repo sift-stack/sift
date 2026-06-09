@@ -751,7 +751,7 @@ class TestImportLogFile:
 
         from sift_client._internal.low_level_wrappers._test_results_log import (
             LogTracking,
-            log_request_to_file,
+            _log_request_to_file_sync,
         )
 
         log_file = tmp_path / "race.jsonl"
@@ -762,7 +762,7 @@ class TestImportLogFile:
 
         def writer() -> None:
             for i in range(n_appends):
-                log_request_to_file(log_file, "CreateTestReport", request, response_id=str(i))
+                _log_request_to_file_sync(log_file, "CreateTestReport", request, response_id=str(i))
 
         def updater() -> None:
             tracking = LogTracking(last_uploaded_line=0)

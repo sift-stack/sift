@@ -39,7 +39,9 @@ Ad-hoc writers to the same path are not protected.
 
 from __future__ import annotations
 
+import asyncio
 import atexit
+import functools
 import json
 import os
 import re
@@ -165,7 +167,7 @@ class ReplayResult:
     measurements: list[TestMeasurement] = field(default_factory=list)
 
 
-def log_request_to_file(
+async def log_request_to_file(
     log_file: str | Path,
     request_type: str,
     request: Any,
@@ -179,8 +181,8 @@ def log_request_to_file(
     mid-write partial final line. See the module docstring for the full
     concurrency model.
 
-    This is synchronous and blocks on the lock; async callers should offload it
-    off the event loop (see ``_LOG_IO_EXECUTOR``).
+    The blocking lock + file I/O runs on ``_LOG_IO_EXECUTOR``, so a slow or
+    stuck lock cannot block the event loop.
 
     Args:
         log_file: Path to the log file.
@@ -194,6 +196,28 @@ def log_request_to_file(
     Raises:
         TimeoutError: If the lock is not acquired within ``timeout`` seconds.
     """
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(
+        _LOG_IO_EXECUTOR,
+        functools.partial(
+            _log_request_to_file_sync,
+            log_file,
+            request_type,
+            request,
+            response_id=response_id,
+            timeout=timeout,
+        ),
+    )
+
+
+def _log_request_to_file_sync(
+    log_file: str | Path,
+    request_type: str,
+    request: Any,
+    response_id: str | None = None,
+    timeout: float = LOG_LOCK_TIMEOUT_SECONDS,
+) -> None:
+    """Blocking core of :func:`log_request_to_file`; runs on the executor."""
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     tag = f"{request_type}:{response_id}" if response_id else request_type
@@ -214,7 +238,7 @@ def log_request_to_file(
         ) from exc
 
 
-def _read_log_lines(
+async def _read_log_lines(
     log_path: str | Path,
     timeout: float = LOG_LOCK_TIMEOUT_SECONDS,
 ) -> list[str]:
@@ -225,12 +249,24 @@ def _read_log_lines(
     partial final line, then releases it. Parsing happens lock-free in
     :func:`parse_log_data_lines`.
 
-    This is synchronous and blocks on the lock; async callers should offload it
-    off the event loop (see ``_LOG_IO_EXECUTOR``).
+    The blocking lock + file I/O runs on ``_LOG_IO_EXECUTOR``, so a slow or
+    stuck lock cannot block the event loop.
 
     Raises:
         TimeoutError: If the lock is not acquired within ``timeout`` seconds.
     """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        _LOG_IO_EXECUTOR,
+        functools.partial(_read_log_lines_sync, log_path, timeout=timeout),
+    )
+
+
+def _read_log_lines_sync(
+    log_path: str | Path,
+    timeout: float = LOG_LOCK_TIMEOUT_SECONDS,
+) -> list[str]:
+    """Blocking core of :func:`_read_log_lines`; runs on the executor."""
     log_path = Path(log_path)
     lock_path = log_path.with_name(log_path.name + ".lock")
     try:
@@ -280,9 +316,9 @@ def iter_log_data_lines(
 ) -> Generator[tuple[str, str | None, str], None, None]:
     """Read and parse data lines from a log file.
 
-    Convenience wrapper that snapshots under the lock via :func:`_read_log_lines`
-    then parses with :func:`parse_log_data_lines`. Async callers should instead
-    offload :func:`_read_log_lines` off the event loop and parse the result with
+    Synchronous convenience wrapper that snapshots under the lock then parses
+    with :func:`parse_log_data_lines`. Async callers should instead await
+    :func:`_read_log_lines` and parse the result with
     :func:`parse_log_data_lines` directly.
     """
-    yield from parse_log_data_lines(_read_log_lines(log_path, timeout), start_line)
+    yield from parse_log_data_lines(_read_log_lines_sync(log_path, timeout), start_line)

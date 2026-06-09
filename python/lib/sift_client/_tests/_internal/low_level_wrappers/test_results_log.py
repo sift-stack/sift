@@ -1,8 +1,9 @@
 """Unit tests for the test-results log lock + offload behavior.
 
 These cover the hang fix directly: the sidecar FileLock now has a finite
-timeout, and the blocking lock + file I/O is offloaded off the event loop so a
-contended or stale lock can no longer freeze every synchronous API call.
+timeout, and ``log_request_to_file`` / ``_read_log_lines`` offload the blocking
+lock + file I/O off the event loop internally, so a contended or stale lock can
+no longer freeze every synchronous API call.
 """
 
 from __future__ import annotations
@@ -15,15 +16,14 @@ import pytest
 from filelock import FileLock
 from sift.test_reports.v1.test_reports_pb2 import CreateTestReportRequest
 
+from sift_client._internal.low_level_wrappers import _test_results_log as trl
 from sift_client._internal.low_level_wrappers._test_results_log import (
-    _LOG_IO_EXECUTOR,
     LOG_LOCK_TIMEOUT_SECONDS,
     _read_log_lines,
     log_request_to_file,
     parse_log_data_lines,
 )
 from sift_client._internal.low_level_wrappers.test_results import TestResultsLowLevelClient
-from sift_client._internal.util.executor import run_sync_function
 
 
 def _lock_path(log_file) -> str:
@@ -39,8 +39,10 @@ class TestLogLockTimeout:
         held.acquire()
         try:
             with pytest.raises(TimeoutError, match="test-results log lock"):
-                log_request_to_file(
-                    log_file, "CreateTestReport", CreateTestReportRequest(), timeout=0.2
+                asyncio.run(
+                    log_request_to_file(
+                        log_file, "CreateTestReport", CreateTestReportRequest(), timeout=0.2
+                    )
                 )
         finally:
             held.release()
@@ -52,7 +54,7 @@ class TestLogLockTimeout:
         held.acquire()
         try:
             with pytest.raises(TimeoutError, match="test-results log lock"):
-                _read_log_lines(log_file, timeout=0.2)
+                asyncio.run(_read_log_lines(log_file, timeout=0.2))
         finally:
             held.release()
 
@@ -67,12 +69,15 @@ class TestLogParsing:
 
     def test_read_and_parse_round_trip(self, tmp_path):
         log_file = tmp_path / "log.jsonl"
-        log_request_to_file(
-            log_file, "CreateTestReport", CreateTestReportRequest(), response_id="r1"
-        )
-        log_request_to_file(log_file, "UpdateTestReport", CreateTestReportRequest())
 
-        parsed = list(parse_log_data_lines(_read_log_lines(log_file)))
+        async def drive() -> list:
+            await log_request_to_file(
+                log_file, "CreateTestReport", CreateTestReportRequest(), response_id="r1"
+            )
+            await log_request_to_file(log_file, "UpdateTestReport", CreateTestReportRequest())
+            return list(parse_log_data_lines(await _read_log_lines(log_file)))
+
+        parsed = asyncio.run(drive())
 
         assert [p[0] for p in parsed] == ["CreateTestReport", "UpdateTestReport"]
         assert parsed[0][1] == "r1"
@@ -132,52 +137,34 @@ class TestLogOffload:
         loop.call_soon_threadsafe(loop.stop)
         loop_thread.join(timeout=2.0)
 
-    def test_offloaded_read_uses_dedicated_executor(self, tmp_path):
-        """Log I/O runs on the dedicated pool, isolating it from the default one."""
-        log_file = tmp_path / "log.jsonl"
-        log_file.write_text("")
+    def test_write_and_read_run_on_dedicated_executor(self, tmp_path, monkeypatch):
+        """The async wrappers run their blocking cores on the sift-log-io pool.
 
-        async def driver() -> str:
-            def _worker():
-                return threading.current_thread().name
-
-            return await run_sync_function(_worker, executor=_LOG_IO_EXECUTOR)
-
-        thread_name = asyncio.run(driver())
-        assert thread_name.startswith("sift-log-io")
-
-    def test_writer_and_reader_call_sites_use_dedicated_executor(self, tmp_path, monkeypatch):
-        """Both call sites must pass executor=_LOG_IO_EXECUTOR, not the default pool.
-
-        Guards against a refactor dropping ``executor=`` at a call site, which
-        would silently fall back to the shared default pool.
+        Guards against a refactor moving the offload back onto the loop thread
+        or the shared default pool.
         """
-        from sift.test_reports.v1.test_reports_pb2 import CreateTestReportRequest
+        seen: list[str] = []
+        real_write = trl._log_request_to_file_sync
+        real_read = trl._read_log_lines_sync
 
-        from sift_client._internal.low_level_wrappers import test_results as tr
+        def spy_write(*args, **kwargs):
+            seen.append(threading.current_thread().name)
+            return real_write(*args, **kwargs)
 
-        seen: list = []
-        real = tr.run_sync_function
+        def spy_read(*args, **kwargs):
+            seen.append(threading.current_thread().name)
+            return real_read(*args, **kwargs)
 
-        async def spy(fn, *args, executor=None):
-            seen.append(executor)
-            return await real(fn, *args, executor=executor)
+        monkeypatch.setattr(trl, "_log_request_to_file_sync", spy_write)
+        monkeypatch.setattr(trl, "_read_log_lines_sync", spy_read)
 
-        monkeypatch.setattr(tr, "run_sync_function", spy)
-
-        client = TestResultsLowLevelClient(grpc_client=MagicMock())
         log_file = tmp_path / "log.jsonl"
 
         async def drive():
-            # Writer call site (log branch returns before any gRPC call).
-            await client.create_test_report(request=CreateTestReportRequest(), log_file=log_file)
-            # Reader call site (offloaded read runs before any replay API call).
-            try:
-                await client._batch_import_log_file(log_file)
-            except Exception:
-                pass
+            await log_request_to_file(log_file, "CreateTestReport", CreateTestReportRequest())
+            await _read_log_lines(log_file)
 
         asyncio.run(drive())
 
-        assert len(seen) >= 2
-        assert all(executor is tr._LOG_IO_EXECUTOR for executor in seen)
+        assert len(seen) == 2
+        assert all(name.startswith("sift-log-io") for name in seen)
