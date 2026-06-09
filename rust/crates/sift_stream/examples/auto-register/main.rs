@@ -1,21 +1,22 @@
 // Demonstrates SiftStreamAutoRegister: inline flow registration without pre-declaring schemas.
 //
-// The stream is initialized with an empty flow list. On the first send for any flow name,
-// SiftStreamAutoRegister derives a FlowConfig from the Flow's channel values and registers
-// it with Sift automatically. Subsequent sends for the same flow name are cache-hits and
-// have no extra overhead.
+// Three flows show the full registration spectrum:
 //
-// Staged configs let you attach metadata (units, descriptions) to a flow without pre-declaring
-// it in IngestionConfigForm. On first send, SiftStreamAutoRegister validates the staged config
-// against the actual channel values and uses it for registration instead of deriving a bare one.
+//   1. Pre-registered — declared in IngestionConfigForm.flows before the stream is built.
+//      Sift already knows this flow; no registration round-trip occurs at runtime.
 //
-// This pattern is well-suited for:
-//   - Rapid prototyping where the full schema is not known ahead of time.
-//   - Dynamic telemetry where flow names are determined at runtime.
-//   - Cases where channel metadata matters but you still want on-demand registration.
+//   2. Staged — not declared in IngestionConfigForm, but a FlowConfig with units and
+//      descriptions is provided to SiftStreamAutoRegister before the first send. On first
+//      send, the staged config is validated against the actual channel values and used for
+//      registration, preserving the metadata. All subsequent sends are cache-hits.
+//
+//   3. Dynamic — not declared anywhere ahead of time. On first send, SiftStreamAutoRegister
+//      derives a minimal FlowConfig directly from the channel values (names and data types
+//      only) and registers it with Sift. No metadata can be attached this way, but it
+//      requires zero setup.
 //
 // If your schema is fully known at build time, pre-registering flows via IngestionConfigForm
-// avoids the registration round-trip on first send.
+// avoids the registration round-trip on first send entirely.
 
 use sift_stream::{
     ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
@@ -54,12 +55,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let asset_name = format!("demo_asset_{suffix}");
     let run_name = format!("{asset_name}_run");
 
-    // Start with no pre-declared flows — SiftStreamAutoRegister will register them on demand.
+    // "gps-position" is pre-registered here. Sift already knows this flow when the stream
+    // is built, so SiftStreamAutoRegister will never issue a registration call for it.
     let stream = SiftStreamBuilder::new(credentials)
         .ingestion_config(IngestionConfigForm {
             asset_name: asset_name.clone(),
             client_key: format!("{asset_name}_v1"),
-            flows: vec![],
+            flows: vec![FlowConfig {
+                name: "gps-position".to_string(),
+                channels: vec![
+                    ChannelConfig {
+                        name: "latitude".to_string(),
+                        data_type: ChannelDataType::Double.into(),
+                        unit: "deg".to_string(),
+                        description: "WGS-84 latitude".to_string(),
+                        ..Default::default()
+                    },
+                    ChannelConfig {
+                        name: "longitude".to_string(),
+                        data_type: ChannelDataType::Double.into(),
+                        unit: "deg".to_string(),
+                        description: "WGS-84 longitude".to_string(),
+                        ..Default::default()
+                    },
+                ],
+            }],
         })
         .attach_run(RunForm {
             name: run_name.clone(),
@@ -70,59 +90,50 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .build()
         .await?;
 
-    // Staged configs attach metadata to flows that will be auto-registered on first send.
-    // Channel names and data types must match what you pass to Flow::new — SiftStreamAutoRegister
-    // validates the staged config before using it and returns StagedConfigMismatch on failure.
-    let staged_configs = vec![
-        FlowConfig {
-            name: "vehicle-dynamics".to_string(),
-            channels: vec![
-                ChannelConfig {
-                    name: "velocity".to_string(),
-                    data_type: ChannelDataType::Double.into(),
-                    unit: "m/s".to_string(),
-                    description: "Longitudinal vehicle speed".to_string(),
-                    ..Default::default()
-                },
-                ChannelConfig {
-                    name: "heading".to_string(),
-                    data_type: ChannelDataType::Float.into(),
-                    unit: "deg".to_string(),
-                    description: "Vehicle heading angle (0–360°, clockwise from north)".to_string(),
-                    ..Default::default()
-                },
-            ],
-        },
-        FlowConfig {
-            name: "engine-telemetry".to_string(),
-            channels: vec![
-                ChannelConfig {
-                    name: "rpm".to_string(),
-                    data_type: ChannelDataType::Float.into(),
-                    unit: "rpm".to_string(),
-                    description: "Engine crankshaft speed".to_string(),
-                    ..Default::default()
-                },
-                ChannelConfig {
-                    name: "oil-temp".to_string(),
-                    data_type: ChannelDataType::Double.into(),
-                    unit: "°C".to_string(),
-                    description: "Engine oil temperature".to_string(),
-                    ..Default::default()
-                },
-            ],
-        },
-    ];
+    // "vehicle-dynamics" is staged: not declared in IngestionConfigForm, but a FlowConfig
+    // with units and descriptions is provided here. On first send, SiftStreamAutoRegister
+    // validates the staged config against the actual channel values and uses it for
+    // registration. Channel names and data types must match or StagedConfigMismatch is returned.
+    let staged_configs = vec![FlowConfig {
+        name: "vehicle-dynamics".to_string(),
+        channels: vec![
+            ChannelConfig {
+                name: "velocity".to_string(),
+                data_type: ChannelDataType::Double.into(),
+                unit: "m/s".to_string(),
+                description: "Longitudinal vehicle speed".to_string(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: "heading".to_string(),
+                data_type: ChannelDataType::Float.into(),
+                unit: "deg".to_string(),
+                description: "Vehicle heading angle (0-360, clockwise from north)".to_string(),
+                ..Default::default()
+            },
+        ],
+    }];
 
     let mut auto = SiftStreamAutoRegister::new(stream, staged_configs);
 
     for i in 0..NUM_SAMPLES {
         let t = i as f64;
 
-        // "vehicle-dynamics" is unknown to Sift on the first iteration.
-        // The staged FlowConfig is validated against these channel values and used for
-        // registration, preserving the units and descriptions. All subsequent iterations
-        // are cache-hits with no extra overhead.
+        // Pre-registered flow — Sift already knows "gps-position", so this send goes
+        // straight through with no registration overhead on any iteration.
+        auto.send(Flow::new(
+            "gps-position",
+            TimeValue::now(),
+            &[
+                ChannelValue::new("latitude", 37.7749 + t * 0.0001_f64),
+                ChannelValue::new("longitude", -122.4194 + t * 0.0001_f64),
+            ],
+        ))
+        .await?;
+
+        // Staged flow — on the first iteration, the staged FlowConfig is validated and used
+        // to register "vehicle-dynamics" with Sift, preserving units and descriptions.
+        // All subsequent iterations are cache-hits with no extra overhead.
         auto.send(Flow::new(
             "vehicle-dynamics",
             TimeValue::now(),
@@ -133,8 +144,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ))
         .await?;
 
-        // "engine-telemetry" is a second, independent flow — also registered using its
-        // staged config on first send and cached for all subsequent sends.
+        // Dynamic flow — "engine-telemetry" has no pre-declared or staged config. On the
+        // first iteration, SiftStreamAutoRegister derives a minimal FlowConfig (channel names
+        // and data types only) and registers it. No units or descriptions can be attached
+        // this way, but it requires zero setup.
         auto.send(Flow::new(
             "engine-telemetry",
             TimeValue::now(),
@@ -150,7 +163,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     auto.finish().await?;
     tracing::info!(
-        "done — {} samples sent for 2 auto-registered flows",
+        "done — {} samples sent for 3 flows (pre-registered, staged, dynamic)",
         NUM_SAMPLES
     );
     Ok(())
