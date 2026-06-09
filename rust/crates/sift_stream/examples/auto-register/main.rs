@@ -5,16 +5,21 @@
 // it with Sift automatically. Subsequent sends for the same flow name are cache-hits and
 // have no extra overhead.
 //
+// Staged configs let you attach metadata (units, descriptions) to a flow without pre-declaring
+// it in IngestionConfigForm. On first send, SiftStreamAutoRegister validates the staged config
+// against the actual channel values and uses it for registration instead of deriving a bare one.
+//
 // This pattern is well-suited for:
 //   - Rapid prototyping where the full schema is not known ahead of time.
 //   - Dynamic telemetry where flow names are determined at runtime.
+//   - Cases where channel metadata matters but you still want on-demand registration.
 //
 // If your schema is fully known at build time, pre-registering flows via IngestionConfigForm
 // avoids the registration round-trip on first send.
 
 use sift_stream::{
-    ChannelValue, Credentials, Flow, IngestionConfigForm, RunForm, SiftStreamAutoRegister,
-    SiftStreamBuilder, TimeValue,
+    ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
+    IngestionConfigForm, RunForm, SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
 };
 use std::{
     env,
@@ -65,15 +70,59 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .build()
         .await?;
 
-    let mut auto = SiftStreamAutoRegister::new(stream, vec![]);
+    // Staged configs attach metadata to flows that will be auto-registered on first send.
+    // Channel names and data types must match what you pass to Flow::new — SiftStreamAutoRegister
+    // validates the staged config before using it and returns StagedConfigMismatch on failure.
+    let staged_configs = vec![
+        FlowConfig {
+            name: "vehicle-dynamics".to_string(),
+            channels: vec![
+                ChannelConfig {
+                    name: "velocity".to_string(),
+                    data_type: ChannelDataType::Double.into(),
+                    unit: "m/s".to_string(),
+                    description: "Longitudinal vehicle speed".to_string(),
+                    ..Default::default()
+                },
+                ChannelConfig {
+                    name: "heading".to_string(),
+                    data_type: ChannelDataType::Float.into(),
+                    unit: "deg".to_string(),
+                    description: "Vehicle heading angle (0–360°, clockwise from north)".to_string(),
+                    ..Default::default()
+                },
+            ],
+        },
+        FlowConfig {
+            name: "engine-telemetry".to_string(),
+            channels: vec![
+                ChannelConfig {
+                    name: "rpm".to_string(),
+                    data_type: ChannelDataType::Float.into(),
+                    unit: "rpm".to_string(),
+                    description: "Engine crankshaft speed".to_string(),
+                    ..Default::default()
+                },
+                ChannelConfig {
+                    name: "oil-temp".to_string(),
+                    data_type: ChannelDataType::Double.into(),
+                    unit: "°C".to_string(),
+                    description: "Engine oil temperature".to_string(),
+                    ..Default::default()
+                },
+            ],
+        },
+    ];
+
+    let mut auto = SiftStreamAutoRegister::new(stream, staged_configs);
 
     for i in 0..NUM_SAMPLES {
         let t = i as f64;
 
         // "vehicle-dynamics" is unknown to Sift on the first iteration.
-        // SiftStreamAutoRegister derives { name: "vehicle-dynamics", channels: [velocity(f64),
-        // heading(f32)] } and registers it before sending. All subsequent iterations skip
-        // registration and deliver directly.
+        // The staged FlowConfig is validated against these channel values and used for
+        // registration, preserving the units and descriptions. All subsequent iterations
+        // are cache-hits with no extra overhead.
         auto.send(Flow::new(
             "vehicle-dynamics",
             TimeValue::now(),
@@ -84,8 +133,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ))
         .await?;
 
-        // "engine-telemetry" is a second, independent flow — also auto-registered on its
-        // first send and cached for all subsequent sends.
+        // "engine-telemetry" is a second, independent flow — also registered using its
+        // staged config on first send and cached for all subsequent sends.
         auto.send(Flow::new(
             "engine-telemetry",
             TimeValue::now(),
