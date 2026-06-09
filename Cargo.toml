@@ -91,7 +91,7 @@ sift_pbfs = { version = "0.10.0", path = "rust/crates/sift_pbfs" }
 sift_mcp = { version = "0.10.0", path = "rust/crates/sift_mcp" }
 sift_test_util = { version = "0.10.0", path = "rust/crates/sift_test_util" }
 
-sift_stream_bindings = { version = "0.3.0", path = "rust/crates/sift_stream_bindings" }
+sift_stream_bindings = { version = "0.4.0", path = "rust/crates/sift_stream_bindings" }
 
 # The profile that 'dist' will build with
 [profile.dist]

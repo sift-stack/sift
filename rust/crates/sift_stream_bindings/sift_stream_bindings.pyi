@@ -31,6 +31,7 @@ __all__ = [
     "RollingFilePolicyPy",
     "RunFormPy",
     "RunSelectorPy",
+    "SiftStreamAutoRegisterPy",
     "SiftStreamBuilderPy",
     "SiftStreamMetricsSnapshotPy",
     "SiftStreamPy",
@@ -510,6 +511,69 @@ class RunSelectorPy:
     def by_id(run_id:builtins.str) -> RunSelectorPy: ...
     @staticmethod
     def by_form(form:RunFormPy) -> RunSelectorPy: ...
+
+@typing.final
+class SiftStreamAutoRegisterPy:
+    r"""
+    Python binding for [`SiftStreamAutoRegister`](sift_stream::SiftStreamAutoRegister).
+    
+    Convenience wrapper that auto-registers flows on first `send`.
+    
+    Construct via `SiftStreamAutoRegisterPy.from_stream(stream)`.
+    """
+    @staticmethod
+    def from_stream(stream:SiftStreamPy, staged_configs:typing.Optional[typing.Sequence[FlowConfigPy]]=None) -> typing.Any:
+        r"""
+        Construct from an existing `SiftStreamPy`, consuming it.
+        
+        After this call, the original `stream` object is in a consumed state and
+        calling any method on it will raise `RuntimeError`.
+        
+        `staged_configs` is an optional list of `FlowConfig` objects. When a staged
+        config exists for a flow, it is used for registration instead of a minimal
+        derived config, then removed after successful registration.
+        """
+    def send(self, flow:FlowPy) -> typing.Any:
+        r"""
+        Send a flow, auto-registering it with Sift if not already cached.
+        
+        On the first call for a given flow name, a `FlowConfig` is derived from the `Flow`
+        using each channel's name and data type. Subsequent sends for the same flow are
+        cache-hits with no overhead.
+        
+        Raises `RuntimeError` if flow registration or the underlying send fails.
+        """
+    def finish(self) -> typing.Any:
+        r"""
+        Drain remaining data and shut down the stream.
+        
+        Must be called when ingestion is complete. After this call, all other methods
+        will raise `RuntimeError`.
+        """
+    def get_flow_descriptor(self, flow_name:builtins.str) -> FlowDescriptorPy:
+        r"""
+        Retrieve the flow descriptor for a given flow name from the local cache.
+        
+        Raises `RuntimeError` if the flow has not been registered yet.
+        """
+    def attach_run(self, run_selector:RunSelectorPy) -> typing.Any:
+        r"""
+        Attach a run to the stream.
+        
+        Data sent after this call will be associated with the specified run.
+        """
+    def detach_run(self) -> None:
+        r"""
+        Detach the run, if any, currently associated with the stream.
+        """
+    def run(self) -> typing.Optional[builtins.str]:
+        r"""
+        Return the ID of the attached run, or `None` if no run is attached.
+        """
+    def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy:
+        r"""
+        Retrieve a snapshot of the current stream metrics.
+        """
 
 @typing.final
 class SiftStreamBuilderPy:
