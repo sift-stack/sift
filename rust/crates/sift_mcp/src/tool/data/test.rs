@@ -143,9 +143,7 @@ async fn handler_returns_structured_url_and_text_content() {
 
     let next_step = structured_field(result.clone(), "next_step");
     assert!(
-        next_step
-            .as_str()
-            .is_some_and(|s| s.contains(expected_url)),
+        next_step.as_str().is_some_and(|s| s.contains(expected_url)),
         "next_step should embed the URL verbatim, got {next_step}"
     );
 

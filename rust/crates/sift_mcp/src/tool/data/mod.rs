@@ -535,10 +535,7 @@ impl SiftMcpServer {
         ",
         annotations(title = "data_router/explore_url", read_only_hint = true)
     )]
-    pub async fn explore_url(
-        &self,
-        params: Parameters<ExploreUrlParams>,
-    ) -> error::McpResult {
+    pub async fn explore_url(&self, params: Parameters<ExploreUrlParams>) -> error::McpResult {
         let Parameters(params) = params;
         let url = build_explore_url(&self.rest_uri, params)?;
         let next_step = format!(
