@@ -1508,9 +1508,7 @@ def test_no_outer_param_unaffected(pytester: pytest.Pytester, log_file: Path) ->
     assert by_name["test_plain"][0]["parent_step_id"] == mod_id
 
 
-def test_outer_param_subtree_closes_mid_session(
-    pytester: pytest.Pytester, log_file: Path
-) -> None:
+def test_outer_param_subtree_closes_mid_session(pytester: pytest.Pytester, log_file: Path) -> None:
     """The outer-param step resolves as soon as all its tests finish — not at session end."""
     pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
     pytester.makepyfile(
@@ -1538,9 +1536,7 @@ def test_outer_param_subtree_closes_mid_session(
 # ---------------------------------------------------------------------------
 
 
-def test_explicit_list_ids_on_inner_parametrize(
-    pytester: pytest.Pytester, log_file: Path
-) -> None:
+def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, log_file: Path) -> None:
     """An explicit ``ids=[...]`` list labels the parametrize steps, not ``name=value``."""
     pytester.makepyfile(
         test_lid=dedent(
