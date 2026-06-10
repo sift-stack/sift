@@ -171,6 +171,23 @@ TestReport
         └── test_load_temp
 ```
 
+!!! note "A package step appears for any directory with `__init__.py`"
+    The package step comes from pytest collecting a directory with an
+    `__init__.py` as a `pytest.Package`. A directory without one is a
+    `pytest.Dir`, which the plugin skips. So a `tests/__init__.py` adds a
+    `tests` step to every report, which is often not what you want.
+
+    To drop a single unwanted package step, delete that directory's
+    `__init__.py`. This is safe when you use `--import-mode=importlib` (which
+    needs no `__init__.py`) and your tests have no package-relative imports
+    (`from . import ...`). Under the default `prepend` import mode, removing
+    `__init__.py` can cause import collisions when test files share a basename
+    across directories, so keep it there.
+
+    To drop package steps everywhere, set `sift_package_step = false`. No pytest
+    setting (`testpaths`, `rootdir`, …) removes a package step on its own — the
+    step exists if and only if the directory has an `__init__.py`.
+
 ### Test classes (and nested classes)
 
 `class TestFoo:` and `class TestOuter: class TestInner:` produce class and

@@ -56,6 +56,7 @@ from sift_client._internal.pytest_plugin.report import (
     OFFLINE_DEFAULTS,
     build_disabled_client,
     finalize_after_teardown,
+    leaf_step_name,
     report_context_impl,
     resolve_report_link,
     step_impl,
@@ -63,12 +64,14 @@ from sift_client._internal.pytest_plugin.report import (
 from sift_client._internal.pytest_plugin.steps import (
     build_hierarchy_chain,
     build_parametrize_path,
+    build_scoped_params,
     finalize_parents,
     get_or_create_parent_chain,
     hierarchy_key,
     parametrize_path_key,
     release_finished_leaf,
     resolve_parent_chain_in_context,
+    scoped_params_key,
     tally_expected_parents,
 )
 from sift_client._internal.pytest_plugin.terminal import (
@@ -471,10 +474,12 @@ def pytest_itemcollected(item: pytest.Item) -> None:
     """
     chain = build_hierarchy_chain(item, item.config)
     parametrize_path = build_parametrize_path(item)
+    scoped_params = build_scoped_params(item)
     item.stash[hierarchy_key] = chain
     item.stash[parametrize_path_key] = parametrize_path
+    item.stash[scoped_params_key] = scoped_params
     gated = gate_enabled(item, item.config)
-    rendered_hierarchy = "/".join(name for _id, name, _doc, rendered in chain if rendered)
+    rendered_hierarchy = "/".join(name for _id, name, _doc, rendered, _scope in chain if rendered)
     log_event(
         logger,
         logging.DEBUG,
@@ -535,7 +540,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         parent_ns = resolve_parent_chain_in_context(item, item.config, REPORT_CONTEXT)
         parent_step = parent_ns.current_step if parent_ns is not None else None
         with REPORT_CONTEXT.new_step(
-            name=item.name,
+            name=leaf_step_name(item, item.config),
             parent=parent_step,
             origin="pytest_runtest_makereport",
             source_path=item.nodeid,

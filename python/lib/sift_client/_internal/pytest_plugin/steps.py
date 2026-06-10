@@ -1,6 +1,8 @@
 """Report-tree parent steps: an identity-keyed registry built without reordering.
 
-Each test's package/module/class ancestors ("hierarchy" parents) and each
+Each test's package/module/class ancestors ("hierarchy" parents), its
+scope-promoted parametrized params (session/package/module/class-scoped fixtures,
+placed at their scope's level on the ladder), and each function-scoped
 ``@pytest.mark.parametrize`` axis ("parametrize" parents) become parent steps the
 leaf nests under. Parents are kept in identity-keyed registries — created once and
 reused by every descendant regardless of execution order — so the plugin never
@@ -39,28 +41,41 @@ if TYPE_CHECKING:
 # generics (not ``list``/``tuple``) because some are used in runtime
 # ``StashKey[...]`` subscriptions, which must stay importable on Python 3.8.
 #
-# A hierarchy parent's identity is just a ``str`` (the ancestor node's
-# ``nodeid``); a parametrize parent's identity is a ``ParametrizeKey``: the
-# test's param-stripped node id followed by its outer-to-inner axis frames
-# (e.g. ``("pkg/test_m.py::TestC::test_a", "v=1")``).
-ParametrizeKey = Tuple[str, ...]
+# A hierarchy parent's identity is a ``HierarchyKey``: the literal path from the
+# report root to that parent, one segment per ancestor, each tagged by kind —
+# ``("n", node_nodeid)`` for a package/module/class step, ``("p", label)`` for a
+# scope-promoted param frame (e.g. a session/module/class-scoped parametrized
+# fixture). Building identities as kind-tagged tuples (rather than a delimited
+# string) keeps them collision-free even when a param label contains ``::``.
+# A parametrize parent's identity is a ``ParametrizeKey``: the enclosing
+# ``HierarchyKey`` path, then the test's param-stripped node id, then its
+# outer-to-inner function-axis frames (e.g. ``(<path>, "…::test_a", "v=1")``).
+HierarchySegment = Tuple[str, str]  # ("n", nodeid) | ("p", label)
+HierarchyKey = Tuple[HierarchySegment, ...]
+ParametrizeKey = Tuple[Any, ...]
 # Outer-to-inner display-name axis path stashed per parametrized item
-# (``(originalname, "v=1", ...)``); the leaf is its last frame.
+# (``(originalname, "v=1", ...)``); the leaf is its last frame. Function-scoped
+# axes only — higher-scoped params are promoted into the hierarchy.
 ParametrizePath = Tuple[str, ...]
-# One collection-tree ancestor: ``(identity, display name, docstring, rendered)``.
-# ``rendered`` is True iff that layer's ``sift_*_step`` ini flag opens a step.
-HierarchyFrame = Tuple[str, str, Optional[str], bool]
+# One collection-tree ancestor: ``(identity, display name, docstring, rendered,
+# scope)``. ``rendered`` is True iff that layer's ``sift_*_step`` ini flag opens a
+# step; ``scope`` is the pytest scope the node anchors ("package"/"module"/"class").
+HierarchyFrame = Tuple[str, str, Optional[str], bool, str]
 # Outer-to-inner ancestor frames stashed per item.
 HierarchyChain = Tuple[HierarchyFrame, ...]
 # A rendered parent to open, as returned by ``resolved_parents``.
-HierarchyParent = Tuple[str, str, Optional[str]]  # (identity, name, docstring)
+HierarchyParent = Tuple[HierarchyKey, str, Optional[str]]  # (identity, name, docstring)
 ParametrizeParent = Tuple[ParametrizeKey, str]  # (registry key, frame name)
+# Scope-promoted params (anything broader than function scope) stashed per item.
+# Each entry is ``(scope, param_name, label)``; in callspec application order.
+ScopedParams = Tuple[Tuple[str, str, str], ...]
 # A gated-in leaf's parents: its rendered hierarchy identities and parametrize keys.
-LeafParents = Tuple[List[str], List[ParametrizeKey]]
+LeafParents = Tuple[List[HierarchyKey], List[ParametrizeKey]]
 
 parametrize_path_key = pytest.StashKey[ParametrizePath]()
 
 hierarchy_key = pytest.StashKey[HierarchyChain]()
+scoped_params_key = pytest.StashKey[ScopedParams]()
 # See ``HierarchyFrame`` above for the chain entry shape. ``identity`` is the
 # node's ``nodeid``: two ancestors at the same depth with the same display name
 # but reached via different paths (e.g., ``proj_a/utils`` and ``proj_b/utils`` in
@@ -75,9 +90,9 @@ hierarchy_key = pytest.StashKey[HierarchyChain]()
 # ``ReportContext.step_stack`` (created with ``push=False``) and are closed early
 # by ``release_finished_leaf``, or at session end by ``finalize_parents``.
 #
-# Hierarchy parents (packages / modules / classes) keyed by the ancestor node's
-# ``nodeid``:
-hierarchy_parents: dict[str, NewStep] = {}
+# Hierarchy parents (packages / modules / classes / scope-promoted params) keyed
+# by their ``HierarchyKey`` root-to-node path:
+hierarchy_parents: dict[HierarchyKey, NewStep] = {}
 # Parametrize parents keyed by ``ParametrizeKey``, so sibling parametrizations of
 # one test share a parent while parametrizations under different
 # tests/classes/modules never collide:
@@ -88,18 +103,159 @@ parametrize_parents: dict[ParametrizeKey, NewStep] = {}
 # ``tally_expected_parents`` and decremented as each test finishes; when a count
 # reaches zero the parent's whole subtree is done and it is closed early (see
 # ``release_finished_leaf``) instead of waiting for session end.
-expected_hierarchy: dict[str, int] = {}
+expected_hierarchy: dict[HierarchyKey, int] = {}
 expected_parametrize: dict[ParametrizeKey, int] = {}
 # Each gated-in leaf's parent identities, so ``release_finished_leaf`` — which
 # only receives a nodeid — knows which counters to decrement.
 leaf_parents: dict[str, LeafParents] = {}
 
 
+def _fixturedefs(item: pytest.Item, name: str) -> Any:
+    """The ``FixtureDef`` tuple for ``name``, or None when it is mark-based.
+
+    pytest 8 takes the node object; older versions take the nodeid string, so
+    fall back on ``TypeError`` to stay importable across the supported range.
+    """
+    try:
+        return item.session._fixturemanager.getfixturedefs(name, item)
+    except TypeError:
+        return item.session._fixturemanager.getfixturedefs(name, item.nodeid)  # type: ignore[arg-type]
+
+
+def _fixture_scope(item: pytest.Item, name: str) -> str | None:
+    """Return the scope of a fixture param, or None if it is mark-based."""
+    defs = _fixturedefs(item, name)
+    if defs:
+        return defs[-1].scope
+    return None
+
+
+def _mark_argnames(mark: pytest.Mark) -> list[str]:
+    """The argnames a ``parametrize`` mark covers (``"a,b"`` → ``["a", "b"]``)."""
+    argnames = mark.args[0]
+    if isinstance(argnames, str):
+        return [a.strip() for a in argnames.split(",")]
+    return list(argnames)
+
+
+def _param_scope(item: pytest.Item, name: str) -> str:
+    """The pytest scope governing param ``name`` on ``item``.
+
+    Prefers ``callspec._arg2scope`` — pytest's own resolution, which already
+    folds in indirect parametrize, a mark's ``scope=`` override, and the
+    fixture's declared scope. Falls back to the fixture scope, then a mark's
+    ``scope=`` kwarg, then ``"function"`` for older pytest where ``_arg2scope``
+    is absent. ``callspec.params`` order is application order, NOT scope order,
+    so callers must bucket by this rather than trust position.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is not None:
+        arg2scope = getattr(callspec, "_arg2scope", None)
+        if arg2scope is not None:
+            scope = arg2scope.get(name)
+            if scope is not None:
+                # pytest's ``Scope`` enum stringifies to the scope name.
+                return getattr(scope, "value", None) or str(scope)
+    fixture_scope = _fixture_scope(item, name)
+    if fixture_scope is not None:
+        return fixture_scope
+    for mark in item.iter_markers("parametrize"):
+        if name in _mark_argnames(mark):
+            return mark.kwargs.get("scope") or "function"
+    return "function"
+
+
+def _id_from_spec(ids: Any, index: int, value: Any) -> str | None:
+    """Resolve one axis's author-supplied ``ids`` spec to a string, or None.
+
+    A list spec is indexed by the param's position; a callable spec (an ID
+    factory) is invoked with the param value, mirroring how pytest builds the
+    node ID. A callable that raises or returns ``None`` yields None, so the
+    caller falls back to the structured ``name=value`` label. ``None`` here also
+    covers "the author supplied no ``ids``" — those auto-generated IDs are noisier
+    than ``name=value`` for non-trivial values, so we never adopt them.
+    """
+    if ids is None:
+        return None
+    if callable(ids):
+        try:
+            result = ids(value)
+        except Exception:
+            return None
+        return str(result) if result is not None else None
+    if index < len(ids):
+        return str(ids[index])
+    return None
+
+
+def _explicit_param_id(item: pytest.Item, name: str, value: Any) -> str | None:
+    """The author-supplied pytest ID for param ``name`` on ``item``, else None.
+
+    Honours an explicit ``ids=`` — list or callable factory — declared on the
+    fixture (``@pytest.fixture(params=..., ids=...)``) or on the
+    ``@pytest.mark.parametrize`` axis, matching the friendly labels pytest puts
+    in the node ID. Combined axes (``"a,b"``) are skipped: their single shared
+    ID can't be attributed to one of the two frames the report renders, so those
+    fall back to ``name=value``.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None:
+        return None
+    index = callspec.indices.get(name)
+    if index is None:
+        return None
+    # Fixture params: the ``ids`` spec lives on the active FixtureDef.
+    defs = _fixturedefs(item, name)
+    if defs:
+        resolved = _id_from_spec(getattr(defs[-1], "ids", None), index, value)
+        if resolved is not None:
+            return resolved
+    # mark.parametrize: the ``ids`` spec lives in the marker kwargs.
+    for mark in item.iter_markers("parametrize"):
+        names = _mark_argnames(mark)
+        if len(names) == 1 and names[0] == name:
+            resolved = _id_from_spec(mark.kwargs.get("ids"), index, value)
+            if resolved is not None:
+                return resolved
+    return None
+
+
+def _param_label(item: pytest.Item, name: str, value: Any) -> str:
+    """Display label for one param axis: its explicit pytest ID, else ``name=value``."""
+    return _explicit_param_id(item, name, value) or f"{name}={value!r}"
+
+
+def build_scoped_params(item: pytest.Item) -> ScopedParams:
+    """Scope-promoted params for ``item`` (anything broader than function scope).
+
+    Each entry is ``(scope, name, label)`` in ``callspec.params`` application
+    order. ``resolved_parents`` buckets these by scope and places them at their
+    scope's hierarchy level. Function-scoped axes are excluded — they stay inner,
+    handled by ``build_parametrize_path``.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None or not callspec.params:
+        return ()
+    out: list[tuple[str, str, str]] = []
+    for name, value in callspec.params.items():
+        scope = _param_scope(item, name)
+        if scope == "function":
+            continue
+        out.append((scope, name, _param_label(item, name, value)))
+    return tuple(out)
+
+
 def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
-    """Outer-to-inner step display names for a parametrized item.
+    """Outer-to-inner function-axis display names for a parametrized item.
 
     Pytest stores ``callspec.params`` with the BOTTOM decorator's axis first;
     the Sift step tree treats the TOP decorator as outermost, so we reverse.
+    Only function-scoped axes appear here — higher-scoped params are promoted
+    into the hierarchy by ``resolved_parents``. Each axis is labelled by its
+    explicit pytest ID when the author supplied one, otherwise by ``name=value``
+    (see ``_param_label``). The first frame is always ``originalname`` so the
+    leaf step (``path[-1]`` in ``report.step_impl``) is the bare function name
+    when a test has no function-scoped params of its own.
     """
     callspec = getattr(item, "callspec", None)
     if callspec is None or not callspec.params:
@@ -107,7 +263,9 @@ def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
     originalname = getattr(item, "originalname", item.name)
     frames: list[str] = [originalname]
     for name, value in reversed(callspec.params.items()):
-        frames.append(f"{name}={value!r}")
+        if _param_scope(item, name) != "function":
+            continue
+        frames.append(_param_label(item, name, value))
     return tuple(frames)
 
 
@@ -115,7 +273,7 @@ def build_hierarchy_chain(
     item: pytest.Item | pytest.Collector,
     config: pytest.Config,
 ) -> HierarchyChain:
-    """Outer-to-inner ``(identity, name, docstring, rendered)`` for collection ancestors.
+    """Outer-to-inner ``(identity, name, docstring, rendered, scope)`` for collection ancestors.
 
     Walks ``item.parent`` upward and ALWAYS collects every ``pytest.Package``,
     ``pytest.Module``, and ``pytest.Class`` ancestor; they all carry the identity
@@ -146,11 +304,11 @@ def build_hierarchy_chain(
     node: Any = item
     while node is not None:
         if isinstance(node, pytest.Class):
-            rendered = include_class
+            rendered, scope = include_class, "class"
         elif isinstance(node, pytest.Module):
-            rendered = include_module
+            rendered, scope = include_module, "module"
         elif isinstance(node, pytest.Package):
-            rendered = include_package
+            rendered, scope = include_package, "package"
         else:
             node = node.parent
             continue
@@ -160,9 +318,73 @@ def build_hierarchy_chain(
             ).strip() or None
         except Exception:
             doc = None
-        chain.append((node.nodeid, node.name, doc, rendered))
+        chain.append((node.nodeid, node.name, doc, rendered, scope))
         node = node.parent
     return tuple(reversed(chain))
+
+
+def _pick_class_index(
+    node: pytest.Item, name: str, class_idxs: list[int], chain: HierarchyChain
+) -> int | None:
+    """Which Class chain frame a class-scoped param ``name`` anchors to.
+
+    For a class-scoped fixture, the owning class is the deepest Class frame whose
+    nodeid prefixes the fixture's ``baseid`` — so a fixture defined on an outer
+    class anchors there, not under an inner nested class. Mark-based class params
+    (no fixturedef) and unmatched cases fall back to the innermost class.
+    """
+    if not class_idxs:
+        return None
+    defs = _fixturedefs(node, name)
+    baseid = getattr(defs[-1], "baseid", "") if defs else ""
+    if baseid:
+        best, best_len = None, -1
+        for i in class_idxs:
+            nid = chain[i][0]
+            if (baseid == nid or baseid.startswith(nid + "::")) and len(nid) > best_len:
+                best, best_len = i, len(nid)
+        if best is not None:
+            return best
+    return class_idxs[-1]
+
+
+def _scoped_param_anchors(
+    node: pytest.Item, scoped: ScopedParams, chain: HierarchyChain
+) -> dict[int | None, list[str]]:
+    """Map each scope-promoted param to the chain-frame index it nests at.
+
+    Returns an ``anchors`` map of chain-frame index → param labels at that frame.
+    The ``None`` key holds params with no collector node — session-scoped params
+    (emitted above the chain) and the rare fall-through when a param's scope has
+    no frame at all. Scopes are processed package→module→class (so broader nests
+    outside narrower at a shared anchor), and each scope's params are reversed
+    (top-decorator-outermost). A param whose scope has no matching frame falls
+    back to the nearest broader frame (module, else the ``None`` root bucket).
+    """
+    pkg_idx = next((i for i, f in enumerate(chain) if f[4] == "package"), None)
+    mod_idx = next((i for i, f in enumerate(chain) if f[4] == "module"), None)
+    class_idxs = [i for i, f in enumerate(chain) if f[4] == "class"]
+
+    by_scope: dict[str, list[tuple[str, str]]] = {}
+    for scope, name, label in scoped:
+        by_scope.setdefault(scope, []).append((name, label))
+
+    anchors: dict[int | None, list[str]] = {}
+
+    def place(idx: int | None, label: str) -> None:
+        anchors.setdefault(idx, []).append(label)
+
+    # Reverse within each scope so the top decorator / outermost axis nests first.
+    for _name, label in reversed(by_scope.get("session", [])):
+        place(None, label)
+    for _name, label in reversed(by_scope.get("package", [])):
+        place(pkg_idx if pkg_idx is not None else mod_idx, label)
+    for _name, label in reversed(by_scope.get("module", [])):
+        place(mod_idx, label)
+    for name, label in reversed(by_scope.get("class", [])):
+        idx = _pick_class_index(node, name, class_idxs, chain)
+        place(idx if idx is not None else mod_idx, label)
+    return anchors
 
 
 def resolved_parents(
@@ -176,35 +398,68 @@ def resolved_parents(
     two can never key on different identities. Returns ``(hierarchy, parametrize)``
     outer-to-inner:
 
-    * hierarchy: ``(identity, name, doc)`` for each rendered package/module/class
-      ancestor. ``identity`` is the node's ``nodeid`` (the registry key).
-    * parametrize: ``(registry key, frame name)`` for each parametrize axis except
-      the innermost (the leaf is the ``step`` fixture's job). Empty when
-      ``sift_parametrize_nesting`` is off or the item isn't parametrized.
+    * hierarchy: ``(identity, name, doc)`` for each rendered parent, built by
+      walking the package/module/class chain and interleaving each scope-promoted
+      param (session/package/module/class-scoped parametrized fixture, or a mark
+      with ``scope=``) at its scope's level — broader scope nests outside narrower.
+      ``identity`` is the ``HierarchyKey`` registry key (the root-to-node path).
+    * parametrize: ``(registry key, frame name)`` for each function-scoped
+      ``@pytest.mark.parametrize`` axis except the innermost (the leaf is the
+      ``step`` fixture's job). Empty when ``sift_parametrize_nesting`` is off or
+      the item has no function-scoped params.
 
     Reads the per-item stash written in ``pytest_itemcollected``; recomputes for
     items a later hook injected without going through it.
     """
-    if hierarchy_key in node.stash:
-        chain = node.stash[hierarchy_key]
-    else:
-        chain = build_hierarchy_chain(node, config)
-    # Non-rendered frames open no step; the next rendered descendant attaches to
-    # the nearest rendered ancestor, so they are simply dropped here.
-    hierarchy = [(identity, name, doc) for identity, name, doc, rendered in chain if rendered]
+    chain = (
+        node.stash[hierarchy_key]
+        if hierarchy_key in node.stash
+        else build_hierarchy_chain(node, config)
+    )
+    scoped = (
+        node.stash[scoped_params_key]
+        if scoped_params_key in node.stash
+        else build_scoped_params(node)
+    )
+
+    anchors = _scoped_param_anchors(node, scoped, chain)
+
+    # Each parent's identity is the literal root-to-node path of kind-tagged
+    # segments, so it is unique by construction even when a param label collides
+    # with a node name or contains separators. Non-rendered frames still extend
+    # the path (keeping descendant identities distinct across modules/classes) but
+    # open no step; the next rendered parent attaches to the nearest rendered
+    # ancestor via ``_resolve_parent_chain``'s carry-over.
+    hierarchy: list[HierarchyParent] = []
+    path: HierarchyKey = ()
+
+    # Root-level params (session scope, plus any with no collector frame).
+    for label in anchors.pop(None, []):
+        path = (*path, ("p", label))
+        hierarchy.append((path, label, None))
+
+    for idx, (nodeid, name, _doc, rendered, _scope) in enumerate(chain):
+        path = (*path, ("n", nodeid))
+        if rendered:
+            hierarchy.append((path, name, _doc))
+        for label in anchors.get(idx, []):
+            path = (*path, ("p", label))
+            hierarchy.append((path, label, None))
 
     parametrize: list[ParametrizeParent] = []
     if PARAMETRIZE_NESTING_OPTION.resolve(config):
-        if parametrize_path_key in node.stash:
-            path = node.stash[parametrize_path_key]
-        else:
-            path = build_parametrize_path(node)
-        if path:
-            # Key parametrize parents by the test's param-stripped identity plus
-            # the outer frame prefix, so sibling params share a parent but params
-            # under different tests never merge.
-            key: ParametrizeKey = (strip_param(node.nodeid),)
-            for frame in path[:-1]:
+        ppath = (
+            node.stash[parametrize_path_key]
+            if parametrize_path_key in node.stash
+            else build_parametrize_path(node)
+        )
+        if ppath:
+            # Key function-axis parents by the full hierarchy path plus the test's
+            # param-stripped nodeid, so sibling params share a parent but params
+            # under different tests (or scope universes) never merge.
+            base = strip_param(node.nodeid)
+            key: ParametrizeKey = (path, base)
+            for frame in ppath[:-1]:
                 key = (*key, frame)
                 parametrize.append((key, frame))
     return hierarchy, parametrize
