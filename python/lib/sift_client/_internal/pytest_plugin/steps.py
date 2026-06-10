@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import pytest
 
-from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client._internal.pytest_plugin.modes import gate_enabled
 from sift_client._internal.pytest_plugin.options import (
     CLASS_STEP_OPTION,
