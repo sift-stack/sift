@@ -24,19 +24,14 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub enum ChannelSearch {
-    Names(Vec<String>),
-    Regex(String),
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
 pub struct GetDataParams {
     asset_name: String,
     run_name: Option<String>,
     start_time_unix_nanos: Option<i64>,
     end_time_unix_nanos: Option<i64>,
     sample_ms: u32,
-    channel_search: ChannelSearch,
+    channel_names: Option<Vec<String>>,
+    channel_regex: Option<String>,
     output: PathBuf,
 }
 
@@ -120,15 +115,17 @@ impl SiftMcpServer {
                 used as the time range; `start_time_unix_nanos` and/or `end_time_unix_nanos` may narrow either side.
                 When omitted, BOTH `start_time_unix_nanos` and `end_time_unix_nanos` are required.
               - `sample_ms`: decimation interval in milliseconds. Use `0` for raw samples; larger values reduce volume.
-              - `channel_search`: one of `Names: [..]` (exact channel names) or `Regex: \"..\"` (RE2 pattern against the
-                channel name). Prefer `Names` when the set is known — it's more predictable.
+              - `channel_names`: optional array of exact channel names. Mutually exclusive with `channel_regex`;
+                exactly one of the two MUST be set. Prefer this form when the set is known — it's more predictable.
+              - `channel_regex`: optional RE2 pattern matched against the channel name. Mutually exclusive with
+                `channel_names`; exactly one of the two MUST be set.
               - `output`: filesystem path for the Parquet file. The file is opened in truncate mode; existing
                 contents are overwritten.
 
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing or there are no matching channels.
-              - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, or if
-                `channel_search.Names` is empty.
+              - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if neither
+                `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
 
             Guidance:
               - Data is buffered in memory until size/row thresholds are hit, so very large time ranges or wide
@@ -144,7 +141,8 @@ impl SiftMcpServer {
         let Parameters(GetDataParams {
             asset_name,
             run_name,
-            channel_search,
+            channel_names,
+            channel_regex,
             start_time_unix_nanos,
             end_time_unix_nanos,
             sample_ms,
@@ -196,11 +194,23 @@ impl SiftMcpServer {
             None => None,
         };
 
-        let channel_search_filter = match channel_search {
-            ChannelSearch::Names(names) => {
+        let channel_search_filter = match (channel_names, channel_regex) {
+            (Some(_), Some(_)) => {
+                return Err(ErrorData::invalid_params(
+                    "exactly one of `channel_names` or `channel_regex` must be set, not both",
+                    None,
+                ));
+            }
+            (None, None) => {
+                return Err(ErrorData::invalid_params(
+                    "one of `channel_names` or `channel_regex` must be set",
+                    None,
+                ));
+            }
+            (Some(names), None) => {
                 if names.is_empty() {
                     return Err(ErrorData::invalid_params(
-                        "channel_search.Names must contain at least one name",
+                        "`channel_names` must contain at least one name",
                         None,
                     ));
                 }
@@ -211,7 +221,7 @@ impl SiftMcpServer {
                     .join(", ");
                 format!("name in [{items}]")
             }
-            ChannelSearch::Regex(pattern) => {
+            (None, Some(pattern)) => {
                 format!("name.matches(\"{}\")", cel_escape(&pattern))
             }
         };

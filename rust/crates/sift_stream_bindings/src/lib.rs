@@ -147,6 +147,7 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<metrics::BackupMetricsSnapshotPy>()?;
     m.add_class::<stream::FlowPy>()?;
     m.add_class::<stream::SiftStreamPy>()?;
+    m.add_class::<stream::auto_register::SiftStreamAutoRegisterPy>()?;
     m.add_class::<stream::builder::SiftStreamBuilderPy>()?;
     m.add_class::<stream::builder::StreamConfigBuilderPy>()?;
     m.add_class::<stream::builder::LiveOnlyBuilderPy>()?;

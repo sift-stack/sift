@@ -66,6 +66,10 @@ harness = false
 required-features = ["unstable"]
 
 [[example]]
+name = "auto-register"
+path = "examples/auto-register/main.rs"
+
+[[example]]
 name = "backups-only"
 path = "examples/backups-only/main.rs"
 

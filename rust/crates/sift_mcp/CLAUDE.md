@@ -29,6 +29,16 @@ Use this section ordering. Skip a section only when it has no content; do not re
 - No marketing or filler ("powerful", "easy to use"). Every line should change what the agent does.
 - Cap length around 30–40 lines. Beyond that, agents start truncating mentally; trim the guidance section first.
 
+### Parameter shapes — keep them flat
+
+Tool parameters MUST be scalars, arrays of scalars, or `Option`s of either. Do not use nested enums or nested objects as the value of a parameter field.
+
+Some MCP clients JSON-stringify object-typed argument values before transport. The server then receives the value as a `Value::String` instead of `Value::Object` and `serde_json`'s `deserialize_enum` treats the entire JSON string as the variant name, surfacing as `unknown variant \`{"Names":[...]}\`, expected \`Names\` or \`Regex\``. Scalar and array params round-trip cleanly, so the failure is specific to nested-enum/object params.
+
+When a parameter has mutually-exclusive shapes (the case that used to call for an externally-tagged enum), flatten it into sibling `Option<...>` fields and validate "exactly one is set" in the handler — return `INVALID_PARAMS` if zero or both are set. `tool/data/mod.rs::get_data` (`channel_names` / `channel_regex`) is the reference pattern.
+
+If a tagged variant is genuinely unavoidable, use `#[serde(tag = "type")]` so the discriminator is a sibling scalar field rather than the parent key — that survives the stringification bug.
+
 ### Reference
 
 `tool/data/mod.rs::get_data` is the canonical example. Mirror its layout when adding a new tool.
