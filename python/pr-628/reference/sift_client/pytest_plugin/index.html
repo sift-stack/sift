@@ -1422,6 +1422,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.sift_report_metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;sift_report_metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.step" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2596,6 +2607,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;sift_client
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.sift_report_metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;sift_report_metadata
       
     </span>
   </a>
@@ -6485,6 +6507,34 @@ constructible against a real backend even though no calls are made), but
 anything still missing is filled with a placeholder. In <code>--sift-disabled</code>
 mode the credential resolution is skipped entirely and placeholders are
 always used.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.pytest_plugin.sift_report_metadata" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">sift_report_metadata</span>
+
+
+<a href="#sift_client.pytest_plugin.sift_report_metadata" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sift_report_metadata</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extra report metadata, merged on top of the <code>[tool.sift.pytest.report.metadata]</code>
+TOML table.</p>
+<p>Returns <code>{}</code> by default. Override this fixture in your conftest to add
+metadata computed at runtime (SDK/Python version, CI provider, build id),
+which the static TOML table can't express. It's resolved while the report is
+built, so it never forces a report to be created on its own: a run that
+creates no report (e.g. a unit suite with the Sift gate off) never calls it.</p>
+<p>Keys here layer over matching TOML keys; <code>pytest_command</code> is reserved and
+always wins.</p>
 
 
     </div>
