@@ -33,6 +33,8 @@ class _MetadataKeyTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper
     """number"""
     METADATA_KEY_TYPE_BOOLEAN: _MetadataKeyType.ValueType  # 3
     """boolean"""
+    METADATA_KEY_TYPE_RELATION: _MetadataKeyType.ValueType  # 4
+    """relation — references another resource by UUID (e.g. folder membership)"""
 
 class MetadataKeyType(_MetadataKeyType, metaclass=_MetadataKeyTypeEnumTypeWrapper):
     """Metadata key type."""
@@ -44,6 +46,8 @@ METADATA_KEY_TYPE_NUMBER: MetadataKeyType.ValueType  # 2
 """number"""
 METADATA_KEY_TYPE_BOOLEAN: MetadataKeyType.ValueType  # 3
 """boolean"""
+METADATA_KEY_TYPE_RELATION: MetadataKeyType.ValueType  # 4
+"""relation — references another resource by UUID (e.g. folder membership)"""
 global___MetadataKeyType = MetadataKeyType
 
 @typing.final
@@ -74,6 +78,24 @@ class MetadataKey(google.protobuf.message.Message):
 global___MetadataKey = MetadataKey
 
 @typing.final
+class MetadataRelationValue(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RESOURCE_TYPE_FIELD_NUMBER: builtins.int
+    RESOURCE_ID_FIELD_NUMBER: builtins.int
+    resource_type: builtins.str
+    resource_id: builtins.str
+    def __init__(
+        self,
+        *,
+        resource_type: builtins.str = ...,
+        resource_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["resource_id", b"resource_id", "resource_type", b"resource_type"]) -> None: ...
+
+global___MetadataRelationValue = MetadataRelationValue
+
+@typing.final
 class MetadataValue(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -81,6 +103,7 @@ class MetadataValue(google.protobuf.message.Message):
     STRING_VALUE_FIELD_NUMBER: builtins.int
     NUMBER_VALUE_FIELD_NUMBER: builtins.int
     BOOLEAN_VALUE_FIELD_NUMBER: builtins.int
+    RELATION_VALUE_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     string_value: builtins.str
@@ -91,6 +114,8 @@ class MetadataValue(google.protobuf.message.Message):
     @property
     def key(self) -> global___MetadataKey: ...
     @property
+    def relation_value(self) -> global___MetadataRelationValue: ...
+    @property
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
@@ -99,12 +124,13 @@ class MetadataValue(google.protobuf.message.Message):
         string_value: builtins.str = ...,
         number_value: builtins.float = ...,
         boolean_value: builtins.bool = ...,
+        relation_value: global___MetadataRelationValue | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "is_archived", b"is_archived", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["value", b"value"]) -> typing.Literal["string_value", "number_value", "boolean_value"] | None: ...
+    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "relation_value", b"relation_value", "string_value", b"string_value", "value", b"value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "is_archived", b"is_archived", "key", b"key", "number_value", b"number_value", "relation_value", b"relation_value", "string_value", b"string_value", "value", b"value"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["value", b"value"]) -> typing.Literal["string_value", "number_value", "boolean_value", "relation_value"] | None: ...
 
 global___MetadataValue = MetadataValue
 

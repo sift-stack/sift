@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use mockall::mock;
 use sift_rs::assets::v1::{
-    ArchiveAssetRequest, ArchiveAssetResponse, DeleteAssetRequest, DeleteAssetResponse,
-    GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse, UpdateAssetRequest,
-    UpdateAssetResponse, asset_service_server::AssetService,
+    ArchiveAssetRequest, ArchiveAssetResponse, CreateAssetRequest, CreateAssetResponse,
+    DeleteAssetRequest, DeleteAssetResponse, GetAssetRequest, GetAssetResponse, ListAssetsRequest,
+    ListAssetsResponse, UpdateAssetRequest, UpdateAssetResponse,
+    asset_service_server::AssetService,
 };
 use tonic::{Request, Response, Status};
 
@@ -17,6 +18,13 @@ mock! {
             request: Request<DeleteAssetRequest>,
         ) -> std::result::Result<
             Response<DeleteAssetResponse>,
+            Status,
+        >;
+        async fn create_asset(
+            &self,
+            request: Request<CreateAssetRequest>,
+        ) -> std::result::Result<
+            Response<CreateAssetResponse>,
             Status,
         >;
         async fn get_asset(

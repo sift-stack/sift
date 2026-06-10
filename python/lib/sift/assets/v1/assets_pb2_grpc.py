@@ -19,6 +19,11 @@ class AssetServiceStub(object):
                 request_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.DeleteAssetRequest.SerializeToString,
                 response_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.DeleteAssetResponse.FromString,
                 )
+        self.CreateAsset = channel.unary_unary(
+                '/sift.assets.v1.AssetService/CreateAsset',
+                request_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.CreateAssetRequest.SerializeToString,
+                response_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.CreateAssetResponse.FromString,
+                )
         self.GetAsset = channel.unary_unary(
                 '/sift.assets.v1.AssetService/GetAsset',
                 request_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.GetAssetRequest.SerializeToString,
@@ -47,6 +52,13 @@ class AssetServiceServicer(object):
     def DeleteAsset(self, request, context):
         """Delete will archive an asset.
         Deprecated: Use ArchiveAsset instead.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateAsset(self, request, context):
+        """Creates a new, empty asset.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -86,6 +98,11 @@ def add_AssetServiceServicer_to_server(servicer, server):
                     servicer.DeleteAsset,
                     request_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.DeleteAssetRequest.FromString,
                     response_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.DeleteAssetResponse.SerializeToString,
+            ),
+            'CreateAsset': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateAsset,
+                    request_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.CreateAssetRequest.FromString,
+                    response_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.CreateAssetResponse.SerializeToString,
             ),
             'GetAsset': grpc.unary_unary_rpc_method_handler(
                     servicer.GetAsset,
@@ -131,6 +148,23 @@ class AssetService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.assets.v1.AssetService/DeleteAsset',
             sift_dot_assets_dot_v1_dot_assets__pb2.DeleteAssetRequest.SerializeToString,
             sift_dot_assets_dot_v1_dot_assets__pb2.DeleteAssetResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CreateAsset(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.assets.v1.AssetService/CreateAsset',
+            sift_dot_assets_dot_v1_dot_assets__pb2.CreateAssetRequest.SerializeToString,
+            sift_dot_assets_dot_v1_dot_assets__pb2.CreateAssetResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

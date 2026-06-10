@@ -292,6 +292,9 @@ impl serde::Serialize for CreateReportFromRulesRequest {
                 create_report_from_rules_request::RuleIdentifiers::RuleClientKeys(v) => {
                     struct_ser.serialize_field("ruleClientKeys", v)?;
                 }
+                create_report_from_rules_request::RuleIdentifiers::RuleVersionIds(v) => {
+                    struct_ser.serialize_field("ruleVersionIds", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -312,6 +315,8 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
             "ruleIds",
             "rule_client_keys",
             "ruleClientKeys",
+            "rule_version_ids",
+            "ruleVersionIds",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -321,6 +326,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
             TagNames,
             RuleIds,
             RuleClientKeys,
+            RuleVersionIds,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -347,6 +353,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
                             "tagNames" | "tag_names" => Ok(GeneratedField::TagNames),
                             "ruleIds" | "rule_ids" => Ok(GeneratedField::RuleIds),
                             "ruleClientKeys" | "rule_client_keys" => Ok(GeneratedField::RuleClientKeys),
+                            "ruleVersionIds" | "rule_version_ids" => Ok(GeneratedField::RuleVersionIds),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -402,6 +409,13 @@ impl<'de> serde::Deserialize<'de> for CreateReportFromRulesRequest {
                                 return Err(serde::de::Error::duplicate_field("ruleClientKeys"));
                             }
                             rule_identifiers__ = map_.next_value::<::std::option::Option<_>>()?.map(create_report_from_rules_request::RuleIdentifiers::RuleClientKeys)
+;
+                        }
+                        GeneratedField::RuleVersionIds => {
+                            if rule_identifiers__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersionIds"));
+                            }
+                            rule_identifiers__ = map_.next_value::<::std::option::Option<_>>()?.map(create_report_from_rules_request::RuleIdentifiers::RuleVersionIds)
 ;
                         }
                     }
@@ -782,6 +796,98 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequestRuleIds {
         deserializer.deserialize_struct("sift.reports.v1.CreateReportRequestRuleIds", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for CreateReportRequestRuleVersionIds {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_version_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.CreateReportRequestRuleVersionIds", len)?;
+        if !self.rule_version_ids.is_empty() {
+            struct_ser.serialize_field("ruleVersionIds", &self.rule_version_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CreateReportRequestRuleVersionIds {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_version_ids",
+            "ruleVersionIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleVersionIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleVersionIds" | "rule_version_ids" => Ok(GeneratedField::RuleVersionIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CreateReportRequestRuleVersionIds;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.CreateReportRequestRuleVersionIds")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CreateReportRequestRuleVersionIds, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_version_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleVersionIds => {
+                            if rule_version_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersionIds"));
+                            }
+                            rule_version_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(CreateReportRequestRuleVersionIds {
+                    rule_version_ids: rule_version_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.CreateReportRequestRuleVersionIds", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for CreateReportResponse {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1056,6 +1162,538 @@ impl<'de> serde::Deserialize<'de> for GetReportResponse {
         deserializer.deserialize_struct("sift.reports.v1.GetReportResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ListReportMetadataValuesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.report_id.is_empty() {
+            len += 1;
+        }
+        if self.page_size != 0 {
+            len += 1;
+        }
+        if !self.page_token.is_empty() {
+            len += 1;
+        }
+        if !self.filter.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ListReportMetadataValuesRequest", len)?;
+        if !self.report_id.is_empty() {
+            struct_ser.serialize_field("reportId", &self.report_id)?;
+        }
+        if self.page_size != 0 {
+            struct_ser.serialize_field("pageSize", &self.page_size)?;
+        }
+        if !self.page_token.is_empty() {
+            struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if !self.filter.is_empty() {
+            struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListReportMetadataValuesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "report_id",
+            "reportId",
+            "page_size",
+            "pageSize",
+            "page_token",
+            "pageToken",
+            "filter",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ReportId,
+            PageSize,
+            PageToken,
+            Filter,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reportId" | "report_id" => Ok(GeneratedField::ReportId),
+                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
+                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "filter" => Ok(GeneratedField::Filter),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListReportMetadataValuesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ListReportMetadataValuesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListReportMetadataValuesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut report_id__ = None;
+                let mut page_size__ = None;
+                let mut page_token__ = None;
+                let mut filter__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ReportId => {
+                            if report_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportId"));
+                            }
+                            report_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::PageSize => {
+                            if page_size__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageSize"));
+                            }
+                            page_size__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PageToken => {
+                            if page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageToken"));
+                            }
+                            page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Filter => {
+                            if filter__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filter"));
+                            }
+                            filter__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListReportMetadataValuesRequest {
+                    report_id: report_id__.unwrap_or_default(),
+                    page_size: page_size__.unwrap_or_default(),
+                    page_token: page_token__.unwrap_or_default(),
+                    filter: filter__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ListReportMetadataValuesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListReportMetadataValuesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.metadata_values.is_empty() {
+            len += 1;
+        }
+        if !self.next_page_token.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ListReportMetadataValuesResponse", len)?;
+        if !self.metadata_values.is_empty() {
+            struct_ser.serialize_field("metadataValues", &self.metadata_values)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListReportMetadataValuesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "metadata_values",
+            "metadataValues",
+            "next_page_token",
+            "nextPageToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            MetadataValues,
+            NextPageToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "metadataValues" | "metadata_values" => Ok(GeneratedField::MetadataValues),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListReportMetadataValuesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ListReportMetadataValuesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListReportMetadataValuesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut metadata_values__ = None;
+                let mut next_page_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::MetadataValues => {
+                            if metadata_values__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadataValues"));
+                            }
+                            metadata_values__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListReportMetadataValuesResponse {
+                    metadata_values: metadata_values__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ListReportMetadataValuesResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListReportRuleSummariesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.report_id.is_empty() {
+            len += 1;
+        }
+        if self.page_size != 0 {
+            len += 1;
+        }
+        if !self.page_token.is_empty() {
+            len += 1;
+        }
+        if !self.filter.is_empty() {
+            len += 1;
+        }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ListReportRuleSummariesRequest", len)?;
+        if !self.report_id.is_empty() {
+            struct_ser.serialize_field("reportId", &self.report_id)?;
+        }
+        if self.page_size != 0 {
+            struct_ser.serialize_field("pageSize", &self.page_size)?;
+        }
+        if !self.page_token.is_empty() {
+            struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if !self.filter.is_empty() {
+            struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListReportRuleSummariesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "report_id",
+            "reportId",
+            "page_size",
+            "pageSize",
+            "page_token",
+            "pageToken",
+            "filter",
+            "order_by",
+            "orderBy",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ReportId,
+            PageSize,
+            PageToken,
+            Filter,
+            OrderBy,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reportId" | "report_id" => Ok(GeneratedField::ReportId),
+                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
+                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "filter" => Ok(GeneratedField::Filter),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListReportRuleSummariesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ListReportRuleSummariesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListReportRuleSummariesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut report_id__ = None;
+                let mut page_size__ = None;
+                let mut page_token__ = None;
+                let mut filter__ = None;
+                let mut order_by__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ReportId => {
+                            if report_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportId"));
+                            }
+                            report_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::PageSize => {
+                            if page_size__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageSize"));
+                            }
+                            page_size__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PageToken => {
+                            if page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageToken"));
+                            }
+                            page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Filter => {
+                            if filter__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filter"));
+                            }
+                            filter__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListReportRuleSummariesRequest {
+                    report_id: report_id__.unwrap_or_default(),
+                    page_size: page_size__.unwrap_or_default(),
+                    page_token: page_token__.unwrap_or_default(),
+                    filter: filter__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ListReportRuleSummariesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListReportRuleSummariesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.report_rule_summaries.is_empty() {
+            len += 1;
+        }
+        if !self.next_page_token.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ListReportRuleSummariesResponse", len)?;
+        if !self.report_rule_summaries.is_empty() {
+            struct_ser.serialize_field("reportRuleSummaries", &self.report_rule_summaries)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListReportRuleSummariesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "report_rule_summaries",
+            "reportRuleSummaries",
+            "next_page_token",
+            "nextPageToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ReportRuleSummaries,
+            NextPageToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reportRuleSummaries" | "report_rule_summaries" => Ok(GeneratedField::ReportRuleSummaries),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListReportRuleSummariesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ListReportRuleSummariesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListReportRuleSummariesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut report_rule_summaries__ = None;
+                let mut next_page_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ReportRuleSummaries => {
+                            if report_rule_summaries__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportRuleSummaries"));
+                            }
+                            report_rule_summaries__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListReportRuleSummariesResponse {
+                    report_rule_summaries: report_rule_summaries__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ListReportRuleSummariesResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ListReportsRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1328,6 +1966,280 @@ impl<'de> serde::Deserialize<'de> for ListReportsResponse {
             }
         }
         deserializer.deserialize_struct("sift.reports.v1.ListReportsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListReportsWithCumulativeSummaryRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.page_size != 0 {
+            len += 1;
+        }
+        if !self.page_token.is_empty() {
+            len += 1;
+        }
+        if !self.filter.is_empty() {
+            len += 1;
+        }
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ListReportsWithCumulativeSummaryRequest", len)?;
+        if self.page_size != 0 {
+            struct_ser.serialize_field("pageSize", &self.page_size)?;
+        }
+        if !self.page_token.is_empty() {
+            struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if !self.filter.is_empty() {
+            struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListReportsWithCumulativeSummaryRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "page_size",
+            "pageSize",
+            "page_token",
+            "pageToken",
+            "filter",
+            "organization_id",
+            "organizationId",
+            "order_by",
+            "orderBy",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            PageSize,
+            PageToken,
+            Filter,
+            OrganizationId,
+            OrderBy,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
+                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "filter" => Ok(GeneratedField::Filter),
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListReportsWithCumulativeSummaryRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ListReportsWithCumulativeSummaryRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListReportsWithCumulativeSummaryRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut page_size__ = None;
+                let mut page_token__ = None;
+                let mut filter__ = None;
+                let mut organization_id__ = None;
+                let mut order_by__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::PageSize => {
+                            if page_size__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageSize"));
+                            }
+                            page_size__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PageToken => {
+                            if page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageToken"));
+                            }
+                            page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Filter => {
+                            if filter__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filter"));
+                            }
+                            filter__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListReportsWithCumulativeSummaryRequest {
+                    page_size: page_size__.unwrap_or_default(),
+                    page_token: page_token__.unwrap_or_default(),
+                    filter: filter__.unwrap_or_default(),
+                    organization_id: organization_id__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ListReportsWithCumulativeSummaryRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListReportsWithCumulativeSummaryResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.reports.is_empty() {
+            len += 1;
+        }
+        if !self.next_page_token.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ListReportsWithCumulativeSummaryResponse", len)?;
+        if !self.reports.is_empty() {
+            struct_ser.serialize_field("reports", &self.reports)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListReportsWithCumulativeSummaryResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "reports",
+            "next_page_token",
+            "nextPageToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Reports,
+            NextPageToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reports" => Ok(GeneratedField::Reports),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListReportsWithCumulativeSummaryResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ListReportsWithCumulativeSummaryResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListReportsWithCumulativeSummaryResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut reports__ = None;
+                let mut next_page_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Reports => {
+                            if reports__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reports"));
+                            }
+                            reports__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListReportsWithCumulativeSummaryResponse {
+                    reports: reports__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ListReportsWithCumulativeSummaryResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for Report {
@@ -1703,6 +2615,320 @@ impl<'de> serde::Deserialize<'de> for Report {
             }
         }
         deserializer.deserialize_struct("sift.reports.v1.Report", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ReportCumulativeRuleSummary {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.num_annotations_open != 0 {
+            len += 1;
+        }
+        if self.num_annotations_failed != 0 {
+            len += 1;
+        }
+        if self.num_annotations_passed != 0 {
+            len += 1;
+        }
+        if self.num_annotations_total != 0 {
+            len += 1;
+        }
+        if self.num_rules_created != 0 {
+            len += 1;
+        }
+        if self.num_rules_live != 0 {
+            len += 1;
+        }
+        if self.num_rules_finished != 0 {
+            len += 1;
+        }
+        if self.num_rules_failed != 0 {
+            len += 1;
+        }
+        if self.num_rules_canceled != 0 {
+            len += 1;
+        }
+        if self.num_rules_error != 0 {
+            len += 1;
+        }
+        if self.num_rules_total != 0 {
+            len += 1;
+        }
+        if self.num_of_rules_without_annotations != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportCumulativeRuleSummary", len)?;
+        if self.num_annotations_open != 0 {
+            struct_ser.serialize_field("numAnnotationsOpen", &self.num_annotations_open)?;
+        }
+        if self.num_annotations_failed != 0 {
+            struct_ser.serialize_field("numAnnotationsFailed", &self.num_annotations_failed)?;
+        }
+        if self.num_annotations_passed != 0 {
+            struct_ser.serialize_field("numAnnotationsPassed", &self.num_annotations_passed)?;
+        }
+        if self.num_annotations_total != 0 {
+            struct_ser.serialize_field("numAnnotationsTotal", &self.num_annotations_total)?;
+        }
+        if self.num_rules_created != 0 {
+            struct_ser.serialize_field("numRulesCreated", &self.num_rules_created)?;
+        }
+        if self.num_rules_live != 0 {
+            struct_ser.serialize_field("numRulesLive", &self.num_rules_live)?;
+        }
+        if self.num_rules_finished != 0 {
+            struct_ser.serialize_field("numRulesFinished", &self.num_rules_finished)?;
+        }
+        if self.num_rules_failed != 0 {
+            struct_ser.serialize_field("numRulesFailed", &self.num_rules_failed)?;
+        }
+        if self.num_rules_canceled != 0 {
+            struct_ser.serialize_field("numRulesCanceled", &self.num_rules_canceled)?;
+        }
+        if self.num_rules_error != 0 {
+            struct_ser.serialize_field("numRulesError", &self.num_rules_error)?;
+        }
+        if self.num_rules_total != 0 {
+            struct_ser.serialize_field("numRulesTotal", &self.num_rules_total)?;
+        }
+        if self.num_of_rules_without_annotations != 0 {
+            struct_ser.serialize_field("numOfRulesWithoutAnnotations", &self.num_of_rules_without_annotations)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "num_annotations_open",
+            "numAnnotationsOpen",
+            "num_annotations_failed",
+            "numAnnotationsFailed",
+            "num_annotations_passed",
+            "numAnnotationsPassed",
+            "num_annotations_total",
+            "numAnnotationsTotal",
+            "num_rules_created",
+            "numRulesCreated",
+            "num_rules_live",
+            "numRulesLive",
+            "num_rules_finished",
+            "numRulesFinished",
+            "num_rules_failed",
+            "numRulesFailed",
+            "num_rules_canceled",
+            "numRulesCanceled",
+            "num_rules_error",
+            "numRulesError",
+            "num_rules_total",
+            "numRulesTotal",
+            "num_of_rules_without_annotations",
+            "numOfRulesWithoutAnnotations",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            NumAnnotationsOpen,
+            NumAnnotationsFailed,
+            NumAnnotationsPassed,
+            NumAnnotationsTotal,
+            NumRulesCreated,
+            NumRulesLive,
+            NumRulesFinished,
+            NumRulesFailed,
+            NumRulesCanceled,
+            NumRulesError,
+            NumRulesTotal,
+            NumOfRulesWithoutAnnotations,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "numAnnotationsOpen" | "num_annotations_open" => Ok(GeneratedField::NumAnnotationsOpen),
+                            "numAnnotationsFailed" | "num_annotations_failed" => Ok(GeneratedField::NumAnnotationsFailed),
+                            "numAnnotationsPassed" | "num_annotations_passed" => Ok(GeneratedField::NumAnnotationsPassed),
+                            "numAnnotationsTotal" | "num_annotations_total" => Ok(GeneratedField::NumAnnotationsTotal),
+                            "numRulesCreated" | "num_rules_created" => Ok(GeneratedField::NumRulesCreated),
+                            "numRulesLive" | "num_rules_live" => Ok(GeneratedField::NumRulesLive),
+                            "numRulesFinished" | "num_rules_finished" => Ok(GeneratedField::NumRulesFinished),
+                            "numRulesFailed" | "num_rules_failed" => Ok(GeneratedField::NumRulesFailed),
+                            "numRulesCanceled" | "num_rules_canceled" => Ok(GeneratedField::NumRulesCanceled),
+                            "numRulesError" | "num_rules_error" => Ok(GeneratedField::NumRulesError),
+                            "numRulesTotal" | "num_rules_total" => Ok(GeneratedField::NumRulesTotal),
+                            "numOfRulesWithoutAnnotations" | "num_of_rules_without_annotations" => Ok(GeneratedField::NumOfRulesWithoutAnnotations),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ReportCumulativeRuleSummary;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ReportCumulativeRuleSummary")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ReportCumulativeRuleSummary, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut num_annotations_open__ = None;
+                let mut num_annotations_failed__ = None;
+                let mut num_annotations_passed__ = None;
+                let mut num_annotations_total__ = None;
+                let mut num_rules_created__ = None;
+                let mut num_rules_live__ = None;
+                let mut num_rules_finished__ = None;
+                let mut num_rules_failed__ = None;
+                let mut num_rules_canceled__ = None;
+                let mut num_rules_error__ = None;
+                let mut num_rules_total__ = None;
+                let mut num_of_rules_without_annotations__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::NumAnnotationsOpen => {
+                            if num_annotations_open__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numAnnotationsOpen"));
+                            }
+                            num_annotations_open__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumAnnotationsFailed => {
+                            if num_annotations_failed__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numAnnotationsFailed"));
+                            }
+                            num_annotations_failed__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumAnnotationsPassed => {
+                            if num_annotations_passed__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numAnnotationsPassed"));
+                            }
+                            num_annotations_passed__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumAnnotationsTotal => {
+                            if num_annotations_total__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numAnnotationsTotal"));
+                            }
+                            num_annotations_total__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumRulesCreated => {
+                            if num_rules_created__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numRulesCreated"));
+                            }
+                            num_rules_created__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumRulesLive => {
+                            if num_rules_live__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numRulesLive"));
+                            }
+                            num_rules_live__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumRulesFinished => {
+                            if num_rules_finished__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numRulesFinished"));
+                            }
+                            num_rules_finished__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumRulesFailed => {
+                            if num_rules_failed__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numRulesFailed"));
+                            }
+                            num_rules_failed__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumRulesCanceled => {
+                            if num_rules_canceled__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numRulesCanceled"));
+                            }
+                            num_rules_canceled__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumRulesError => {
+                            if num_rules_error__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numRulesError"));
+                            }
+                            num_rules_error__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumRulesTotal => {
+                            if num_rules_total__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numRulesTotal"));
+                            }
+                            num_rules_total__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::NumOfRulesWithoutAnnotations => {
+                            if num_of_rules_without_annotations__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numOfRulesWithoutAnnotations"));
+                            }
+                            num_of_rules_without_annotations__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                    }
+                }
+                Ok(ReportCumulativeRuleSummary {
+                    num_annotations_open: num_annotations_open__.unwrap_or_default(),
+                    num_annotations_failed: num_annotations_failed__.unwrap_or_default(),
+                    num_annotations_passed: num_annotations_passed__.unwrap_or_default(),
+                    num_annotations_total: num_annotations_total__.unwrap_or_default(),
+                    num_rules_created: num_rules_created__.unwrap_or_default(),
+                    num_rules_live: num_rules_live__.unwrap_or_default(),
+                    num_rules_finished: num_rules_finished__.unwrap_or_default(),
+                    num_rules_failed: num_rules_failed__.unwrap_or_default(),
+                    num_rules_canceled: num_rules_canceled__.unwrap_or_default(),
+                    num_rules_error: num_rules_error__.unwrap_or_default(),
+                    num_rules_total: num_rules_total__.unwrap_or_default(),
+                    num_of_rules_without_annotations: num_of_rules_without_annotations__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ReportCumulativeRuleSummary", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ReportRuleStatus {
@@ -2615,6 +3841,9 @@ impl serde::Serialize for ReportRuleSummary {
         if self.deleted_date.is_some() {
             len += 1;
         }
+        if self.display_order != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleSummary", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -2660,6 +3889,9 @@ impl serde::Serialize for ReportRuleSummary {
         if let Some(v) = self.deleted_date.as_ref() {
             struct_ser.serialize_field("deletedDate", v)?;
         }
+        if self.display_order != 0 {
+            struct_ser.serialize_field("displayOrder", &self.display_order)?;
+        }
         struct_ser.end()
     }
 }
@@ -2697,6 +3929,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             "assetId",
             "deleted_date",
             "deletedDate",
+            "display_order",
+            "displayOrder",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2715,6 +3949,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             ModifiedDate,
             AssetId,
             DeletedDate,
+            DisplayOrder,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2750,6 +3985,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
+                            "displayOrder" | "display_order" => Ok(GeneratedField::DisplayOrder),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2783,6 +4019,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                 let mut modified_date__ = None;
                 let mut asset_id__ = None;
                 let mut deleted_date__ = None;
+                let mut display_order__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -2877,6 +4114,14 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             }
                             deleted_date__ = map_.next_value()?;
                         }
+                        GeneratedField::DisplayOrder => {
+                            if display_order__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayOrder"));
+                            }
+                            display_order__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
                     }
                 }
                 Ok(ReportRuleSummary {
@@ -2894,6 +4139,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                     modified_date: modified_date__,
                     asset_id: asset_id__.unwrap_or_default(),
                     deleted_date: deleted_date__,
+                    display_order: display_order__.unwrap_or_default(),
                 })
             }
         }
@@ -2990,6 +4236,365 @@ impl<'de> serde::Deserialize<'de> for ReportTag {
             }
         }
         deserializer.deserialize_struct("sift.reports.v1.ReportTag", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ReportWithCumulativeSummary {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.report_id.is_empty() {
+            len += 1;
+        }
+        if !self.report_template_id.is_empty() {
+            len += 1;
+        }
+        if !self.run_id.is_empty() {
+            len += 1;
+        }
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if self.description.is_some() {
+            len += 1;
+        }
+        if !self.created_by_user_id.is_empty() {
+            len += 1;
+        }
+        if !self.modified_by_user_id.is_empty() {
+            len += 1;
+        }
+        if self.created_date.is_some() {
+            len += 1;
+        }
+        if self.modified_date.is_some() {
+            len += 1;
+        }
+        if self.cumulative_summary.is_some() {
+            len += 1;
+        }
+        if !self.tags.is_empty() {
+            len += 1;
+        }
+        if self.rerun_from_report_id.is_some() {
+            len += 1;
+        }
+        if self.job_id.is_some() {
+            len += 1;
+        }
+        if self.archived_date.is_some() {
+            len += 1;
+        }
+        if self.is_archived {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportWithCumulativeSummary", len)?;
+        if !self.report_id.is_empty() {
+            struct_ser.serialize_field("reportId", &self.report_id)?;
+        }
+        if !self.report_template_id.is_empty() {
+            struct_ser.serialize_field("reportTemplateId", &self.report_template_id)?;
+        }
+        if !self.run_id.is_empty() {
+            struct_ser.serialize_field("runId", &self.run_id)?;
+        }
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if let Some(v) = self.description.as_ref() {
+            struct_ser.serialize_field("description", v)?;
+        }
+        if !self.created_by_user_id.is_empty() {
+            struct_ser.serialize_field("createdByUserId", &self.created_by_user_id)?;
+        }
+        if !self.modified_by_user_id.is_empty() {
+            struct_ser.serialize_field("modifiedByUserId", &self.modified_by_user_id)?;
+        }
+        if let Some(v) = self.created_date.as_ref() {
+            struct_ser.serialize_field("createdDate", v)?;
+        }
+        if let Some(v) = self.modified_date.as_ref() {
+            struct_ser.serialize_field("modifiedDate", v)?;
+        }
+        if let Some(v) = self.cumulative_summary.as_ref() {
+            struct_ser.serialize_field("cumulativeSummary", v)?;
+        }
+        if !self.tags.is_empty() {
+            struct_ser.serialize_field("tags", &self.tags)?;
+        }
+        if let Some(v) = self.rerun_from_report_id.as_ref() {
+            struct_ser.serialize_field("rerunFromReportId", v)?;
+        }
+        if let Some(v) = self.job_id.as_ref() {
+            struct_ser.serialize_field("jobId", v)?;
+        }
+        if let Some(v) = self.archived_date.as_ref() {
+            struct_ser.serialize_field("archivedDate", v)?;
+        }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "report_id",
+            "reportId",
+            "report_template_id",
+            "reportTemplateId",
+            "run_id",
+            "runId",
+            "organization_id",
+            "organizationId",
+            "name",
+            "description",
+            "created_by_user_id",
+            "createdByUserId",
+            "modified_by_user_id",
+            "modifiedByUserId",
+            "created_date",
+            "createdDate",
+            "modified_date",
+            "modifiedDate",
+            "cumulative_summary",
+            "cumulativeSummary",
+            "tags",
+            "rerun_from_report_id",
+            "rerunFromReportId",
+            "job_id",
+            "jobId",
+            "archived_date",
+            "archivedDate",
+            "is_archived",
+            "isArchived",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ReportId,
+            ReportTemplateId,
+            RunId,
+            OrganizationId,
+            Name,
+            Description,
+            CreatedByUserId,
+            ModifiedByUserId,
+            CreatedDate,
+            ModifiedDate,
+            CumulativeSummary,
+            Tags,
+            RerunFromReportId,
+            JobId,
+            ArchivedDate,
+            IsArchived,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reportId" | "report_id" => Ok(GeneratedField::ReportId),
+                            "reportTemplateId" | "report_template_id" => Ok(GeneratedField::ReportTemplateId),
+                            "runId" | "run_id" => Ok(GeneratedField::RunId),
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "name" => Ok(GeneratedField::Name),
+                            "description" => Ok(GeneratedField::Description),
+                            "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
+                            "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
+                            "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
+                            "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
+                            "cumulativeSummary" | "cumulative_summary" => Ok(GeneratedField::CumulativeSummary),
+                            "tags" => Ok(GeneratedField::Tags),
+                            "rerunFromReportId" | "rerun_from_report_id" => Ok(GeneratedField::RerunFromReportId),
+                            "jobId" | "job_id" => Ok(GeneratedField::JobId),
+                            "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ReportWithCumulativeSummary;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ReportWithCumulativeSummary")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ReportWithCumulativeSummary, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut report_id__ = None;
+                let mut report_template_id__ = None;
+                let mut run_id__ = None;
+                let mut organization_id__ = None;
+                let mut name__ = None;
+                let mut description__ = None;
+                let mut created_by_user_id__ = None;
+                let mut modified_by_user_id__ = None;
+                let mut created_date__ = None;
+                let mut modified_date__ = None;
+                let mut cumulative_summary__ = None;
+                let mut tags__ = None;
+                let mut rerun_from_report_id__ = None;
+                let mut job_id__ = None;
+                let mut archived_date__ = None;
+                let mut is_archived__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ReportId => {
+                            if report_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportId"));
+                            }
+                            report_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ReportTemplateId => {
+                            if report_template_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportTemplateId"));
+                            }
+                            report_template_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RunId => {
+                            if run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runId"));
+                            }
+                            run_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Description => {
+                            if description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("description"));
+                            }
+                            description__ = map_.next_value()?;
+                        }
+                        GeneratedField::CreatedByUserId => {
+                            if created_by_user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdByUserId"));
+                            }
+                            created_by_user_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ModifiedByUserId => {
+                            if modified_by_user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("modifiedByUserId"));
+                            }
+                            modified_by_user_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::CreatedDate => {
+                            if created_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdDate"));
+                            }
+                            created_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::ModifiedDate => {
+                            if modified_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("modifiedDate"));
+                            }
+                            modified_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::CumulativeSummary => {
+                            if cumulative_summary__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("cumulativeSummary"));
+                            }
+                            cumulative_summary__ = map_.next_value()?;
+                        }
+                        GeneratedField::Tags => {
+                            if tags__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tags"));
+                            }
+                            tags__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RerunFromReportId => {
+                            if rerun_from_report_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rerunFromReportId"));
+                            }
+                            rerun_from_report_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::JobId => {
+                            if job_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("jobId"));
+                            }
+                            job_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::ArchivedDate => {
+                            if archived_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("archivedDate"));
+                            }
+                            archived_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ReportWithCumulativeSummary {
+                    report_id: report_id__.unwrap_or_default(),
+                    report_template_id: report_template_id__.unwrap_or_default(),
+                    run_id: run_id__.unwrap_or_default(),
+                    organization_id: organization_id__.unwrap_or_default(),
+                    name: name__.unwrap_or_default(),
+                    description: description__,
+                    created_by_user_id: created_by_user_id__.unwrap_or_default(),
+                    modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
+                    created_date: created_date__,
+                    modified_date: modified_date__,
+                    cumulative_summary: cumulative_summary__,
+                    tags: tags__.unwrap_or_default(),
+                    rerun_from_report_id: rerun_from_report_id__,
+                    job_id: job_id__,
+                    archived_date: archived_date__,
+                    is_archived: is_archived__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ReportWithCumulativeSummary", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for RerunReportRequest {

@@ -148,6 +148,9 @@ message CalculatedChannel {
   bool is_archived = 21 [(google.api.field_behavior) = REQUIRED];
   // Calculated channels that this channel depends on.
   repeated CalculatedChannelDependency calculated_channel_dependencies = 22 [(google.api.field_behavior) = REQUIRED];
+
+  // Ids of the folders this calculated channel belongs to.
+  repeated string folder_ids = 23;
 }
 
 // A dependency on another calculated channel.

@@ -40,6 +40,7 @@ impl<T: Into<MetadataEnumValue>> From<(&str, T)> for MetadataValue {
             MetadataEnumValue::NumberValue(_) => MetadataKeyType::Number,
             MetadataEnumValue::BooleanValue(_) => MetadataKeyType::Boolean,
             MetadataEnumValue::StringValue(_) => MetadataKeyType::String,
+            MetadataEnumValue::RelationValue(_) => MetadataKeyType::Relation,
         };
 
         let key = MetadataKey {

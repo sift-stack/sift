@@ -389,7 +389,12 @@ type CreateApiKeyRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// The name for the new ApiKey. Required.
-	Name   string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// The id of the user the new key will authenticate as. Must equal the id of
+	// the calling user; creating an API key on behalf of another user is no
+	// longer supported and the service will return INVALID_ARGUMENT if the
+	// values differ. The field is retained for backwards compatibility with
+	// existing clients and may be marked deprecated in a future revision.
 	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 }
 

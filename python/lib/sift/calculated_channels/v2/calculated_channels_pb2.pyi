@@ -44,6 +44,7 @@ class CalculatedChannel(google.protobuf.message.Message):
     METADATA_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     CALCULATED_CHANNEL_DEPENDENCIES_FIELD_NUMBER: builtins.int
+    FOLDER_IDS_FIELD_NUMBER: builtins.int
     calculated_channel_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -74,6 +75,10 @@ class CalculatedChannel(google.protobuf.message.Message):
     def calculated_channel_dependencies(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CalculatedChannelDependency]:
         """Calculated channels that this channel depends on."""
 
+    @property
+    def folder_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Ids of the folders this calculated channel belongs to."""
+
     def __init__(
         self,
         *,
@@ -97,9 +102,10 @@ class CalculatedChannel(google.protobuf.message.Message):
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         is_archived: builtins.bool = ...,
         calculated_channel_dependencies: collections.abc.Iterable[global___CalculatedChannelDependency] | None = ...,
+        folder_ids: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "client_key", b"client_key", "created_date", b"created_date", "modified_date", b"modified_date", "units", b"units"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_dependencies", b"calculated_channel_dependencies", "calculated_channel_id", b"calculated_channel_id", "change_message", b"change_message", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "function_dependencies", b"function_dependencies", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "units", b"units", "user_notes", b"user_notes", "version", b"version", "version_id", b"version_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_dependencies", b"calculated_channel_dependencies", "calculated_channel_id", b"calculated_channel_id", "change_message", b"change_message", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "folder_ids", b"folder_ids", "function_dependencies", b"function_dependencies", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "units", b"units", "user_notes", b"user_notes", "version", b"version", "version_id", b"version_id"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload

@@ -1,4 +1,382 @@
 // @generated
+impl serde::Serialize for BatchConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.run_name.is_empty() {
+            len += 1;
+        }
+        if !self.run_id.is_empty() {
+            len += 1;
+        }
+        if !self.asset_name.is_empty() {
+            len += 1;
+        }
+        if self.default_csv_config.is_some() {
+            len += 1;
+        }
+        if self.default_tdms_config.is_some() {
+            len += 1;
+        }
+        if self.default_parquet_config.is_some() {
+            len += 1;
+        }
+        if self.default_hdf5_config.is_some() {
+            len += 1;
+        }
+        if !self.file_configs.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.BatchConfig", len)?;
+        if !self.run_name.is_empty() {
+            struct_ser.serialize_field("runName", &self.run_name)?;
+        }
+        if !self.run_id.is_empty() {
+            struct_ser.serialize_field("runId", &self.run_id)?;
+        }
+        if !self.asset_name.is_empty() {
+            struct_ser.serialize_field("assetName", &self.asset_name)?;
+        }
+        if let Some(v) = self.default_csv_config.as_ref() {
+            struct_ser.serialize_field("defaultCsvConfig", v)?;
+        }
+        if let Some(v) = self.default_tdms_config.as_ref() {
+            struct_ser.serialize_field("defaultTdmsConfig", v)?;
+        }
+        if let Some(v) = self.default_parquet_config.as_ref() {
+            struct_ser.serialize_field("defaultParquetConfig", v)?;
+        }
+        if let Some(v) = self.default_hdf5_config.as_ref() {
+            struct_ser.serialize_field("defaultHdf5Config", v)?;
+        }
+        if !self.file_configs.is_empty() {
+            struct_ser.serialize_field("fileConfigs", &self.file_configs)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "run_name",
+            "runName",
+            "run_id",
+            "runId",
+            "asset_name",
+            "assetName",
+            "default_csv_config",
+            "defaultCsvConfig",
+            "default_tdms_config",
+            "defaultTdmsConfig",
+            "default_parquet_config",
+            "defaultParquetConfig",
+            "default_hdf5_config",
+            "defaultHdf5Config",
+            "file_configs",
+            "fileConfigs",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RunName,
+            RunId,
+            AssetName,
+            DefaultCsvConfig,
+            DefaultTdmsConfig,
+            DefaultParquetConfig,
+            DefaultHdf5Config,
+            FileConfigs,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "runName" | "run_name" => Ok(GeneratedField::RunName),
+                            "runId" | "run_id" => Ok(GeneratedField::RunId),
+                            "assetName" | "asset_name" => Ok(GeneratedField::AssetName),
+                            "defaultCsvConfig" | "default_csv_config" => Ok(GeneratedField::DefaultCsvConfig),
+                            "defaultTdmsConfig" | "default_tdms_config" => Ok(GeneratedField::DefaultTdmsConfig),
+                            "defaultParquetConfig" | "default_parquet_config" => Ok(GeneratedField::DefaultParquetConfig),
+                            "defaultHdf5Config" | "default_hdf5_config" => Ok(GeneratedField::DefaultHdf5Config),
+                            "fileConfigs" | "file_configs" => Ok(GeneratedField::FileConfigs),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data_imports.v2.BatchConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut run_name__ = None;
+                let mut run_id__ = None;
+                let mut asset_name__ = None;
+                let mut default_csv_config__ = None;
+                let mut default_tdms_config__ = None;
+                let mut default_parquet_config__ = None;
+                let mut default_hdf5_config__ = None;
+                let mut file_configs__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RunName => {
+                            if run_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runName"));
+                            }
+                            run_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RunId => {
+                            if run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runId"));
+                            }
+                            run_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetName => {
+                            if asset_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetName"));
+                            }
+                            asset_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DefaultCsvConfig => {
+                            if default_csv_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("defaultCsvConfig"));
+                            }
+                            default_csv_config__ = map_.next_value()?;
+                        }
+                        GeneratedField::DefaultTdmsConfig => {
+                            if default_tdms_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("defaultTdmsConfig"));
+                            }
+                            default_tdms_config__ = map_.next_value()?;
+                        }
+                        GeneratedField::DefaultParquetConfig => {
+                            if default_parquet_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("defaultParquetConfig"));
+                            }
+                            default_parquet_config__ = map_.next_value()?;
+                        }
+                        GeneratedField::DefaultHdf5Config => {
+                            if default_hdf5_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("defaultHdf5Config"));
+                            }
+                            default_hdf5_config__ = map_.next_value()?;
+                        }
+                        GeneratedField::FileConfigs => {
+                            if file_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fileConfigs"));
+                            }
+                            file_configs__ = Some(
+                                map_.next_value::<std::collections::HashMap<_, _>>()?
+                            );
+                        }
+                    }
+                }
+                Ok(BatchConfig {
+                    run_name: run_name__.unwrap_or_default(),
+                    run_id: run_id__.unwrap_or_default(),
+                    asset_name: asset_name__.unwrap_or_default(),
+                    default_csv_config: default_csv_config__,
+                    default_tdms_config: default_tdms_config__,
+                    default_parquet_config: default_parquet_config__,
+                    default_hdf5_config: default_hdf5_config__,
+                    file_configs: file_configs__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data_imports.v2.BatchConfig", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchFileConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.r#type != 0 {
+            len += 1;
+        }
+        if self.config.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.BatchFileConfig", len)?;
+        if self.r#type != 0 {
+            let v = DataTypeKey::try_from(self.r#type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.r#type)))?;
+            struct_ser.serialize_field("type", &v)?;
+        }
+        if let Some(v) = self.config.as_ref() {
+            match v {
+                batch_file_config::Config::CsvConfig(v) => {
+                    struct_ser.serialize_field("csvConfig", v)?;
+                }
+                batch_file_config::Config::TdmsConfig(v) => {
+                    struct_ser.serialize_field("tdmsConfig", v)?;
+                }
+                batch_file_config::Config::ParquetConfig(v) => {
+                    struct_ser.serialize_field("parquetConfig", v)?;
+                }
+                batch_file_config::Config::Hdf5Config(v) => {
+                    struct_ser.serialize_field("hdf5Config", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchFileConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "type",
+            "csv_config",
+            "csvConfig",
+            "tdms_config",
+            "tdmsConfig",
+            "parquet_config",
+            "parquetConfig",
+            "hdf5_config",
+            "hdf5Config",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Type,
+            CsvConfig,
+            TdmsConfig,
+            ParquetConfig,
+            Hdf5Config,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "type" => Ok(GeneratedField::Type),
+                            "csvConfig" | "csv_config" => Ok(GeneratedField::CsvConfig),
+                            "tdmsConfig" | "tdms_config" => Ok(GeneratedField::TdmsConfig),
+                            "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
+                            "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchFileConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data_imports.v2.BatchFileConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchFileConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut r#type__ = None;
+                let mut config__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Type => {
+                            if r#type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("type"));
+                            }
+                            r#type__ = Some(map_.next_value::<DataTypeKey>()? as i32);
+                        }
+                        GeneratedField::CsvConfig => {
+                            if config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("csvConfig"));
+                            }
+                            config__ = map_.next_value::<::std::option::Option<_>>()?.map(batch_file_config::Config::CsvConfig)
+;
+                        }
+                        GeneratedField::TdmsConfig => {
+                            if config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tdmsConfig"));
+                            }
+                            config__ = map_.next_value::<::std::option::Option<_>>()?.map(batch_file_config::Config::TdmsConfig)
+;
+                        }
+                        GeneratedField::ParquetConfig => {
+                            if config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("parquetConfig"));
+                            }
+                            config__ = map_.next_value::<::std::option::Option<_>>()?.map(batch_file_config::Config::ParquetConfig)
+;
+                        }
+                        GeneratedField::Hdf5Config => {
+                            if config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("hdf5Config"));
+                            }
+                            config__ = map_.next_value::<::std::option::Option<_>>()?.map(batch_file_config::Config::Hdf5Config)
+;
+                        }
+                    }
+                }
+                Ok(BatchFileConfig {
+                    r#type: r#type__.unwrap_or_default(),
+                    config: config__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data_imports.v2.BatchFileConfig", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for Ch10Config {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -150,6 +528,9 @@ impl serde::Serialize for CreateDataImportFromUploadRequest {
         if self.hdf5_config.is_some() {
             len += 1;
         }
+        if self.batch_config.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CreateDataImportFromUploadRequest", len)?;
         if let Some(v) = self.csv_config.as_ref() {
             struct_ser.serialize_field("csvConfig", v)?;
@@ -165,6 +546,9 @@ impl serde::Serialize for CreateDataImportFromUploadRequest {
         }
         if let Some(v) = self.hdf5_config.as_ref() {
             struct_ser.serialize_field("hdf5Config", v)?;
+        }
+        if let Some(v) = self.batch_config.as_ref() {
+            struct_ser.serialize_field("batchConfig", v)?;
         }
         struct_ser.end()
     }
@@ -186,6 +570,8 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
             "parquetConfig",
             "hdf5_config",
             "hdf5Config",
+            "batch_config",
+            "batchConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -195,6 +581,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
             TdmsConfig,
             ParquetConfig,
             Hdf5Config,
+            BatchConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -221,6 +608,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                             "tdmsConfig" | "tdms_config" => Ok(GeneratedField::TdmsConfig),
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
+                            "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -245,6 +633,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                 let mut tdms_config__ = None;
                 let mut parquet_config__ = None;
                 let mut hdf5_config__ = None;
+                let mut batch_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CsvConfig => {
@@ -277,6 +666,12 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                             }
                             hdf5_config__ = map_.next_value()?;
                         }
+                        GeneratedField::BatchConfig => {
+                            if batch_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("batchConfig"));
+                            }
+                            batch_config__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateDataImportFromUploadRequest {
@@ -285,6 +680,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                     tdms_config: tdms_config__,
                     parquet_config: parquet_config__,
                     hdf5_config: hdf5_config__,
+                    batch_config: batch_config__,
                 })
             }
         }
@@ -427,6 +823,9 @@ impl serde::Serialize for CreateDataImportFromUrlRequest {
         if self.hdf5_config.is_some() {
             len += 1;
         }
+        if self.batch_config.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CreateDataImportFromUrlRequest", len)?;
         if !self.url.is_empty() {
             struct_ser.serialize_field("url", &self.url)?;
@@ -445,6 +844,9 @@ impl serde::Serialize for CreateDataImportFromUrlRequest {
         }
         if let Some(v) = self.hdf5_config.as_ref() {
             struct_ser.serialize_field("hdf5Config", v)?;
+        }
+        if let Some(v) = self.batch_config.as_ref() {
+            struct_ser.serialize_field("batchConfig", v)?;
         }
         struct_ser.end()
     }
@@ -467,6 +869,8 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
             "parquetConfig",
             "hdf5_config",
             "hdf5Config",
+            "batch_config",
+            "batchConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -477,6 +881,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
             TdmsConfig,
             ParquetConfig,
             Hdf5Config,
+            BatchConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -504,6 +909,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                             "tdmsConfig" | "tdms_config" => Ok(GeneratedField::TdmsConfig),
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
+                            "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -529,6 +935,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                 let mut tdms_config__ = None;
                 let mut parquet_config__ = None;
                 let mut hdf5_config__ = None;
+                let mut batch_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Url => {
@@ -567,6 +974,12 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                             }
                             hdf5_config__ = map_.next_value()?;
                         }
+                        GeneratedField::BatchConfig => {
+                            if batch_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("batchConfig"));
+                            }
+                            batch_config__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateDataImportFromUrlRequest {
@@ -576,6 +989,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                     tdms_config: tdms_config__,
                     parquet_config: parquet_config__,
                     hdf5_config: hdf5_config__,
+                    batch_config: batch_config__,
                 })
             }
         }
@@ -1055,6 +1469,9 @@ impl serde::Serialize for DataImport {
         if self.hdf5_config.is_some() {
             len += 1;
         }
+        if self.batch_config.is_some() {
+            len += 1;
+        }
         if self.run_id.is_some() {
             len += 1;
         }
@@ -1106,6 +1523,9 @@ impl serde::Serialize for DataImport {
         if let Some(v) = self.hdf5_config.as_ref() {
             struct_ser.serialize_field("hdf5Config", v)?;
         }
+        if let Some(v) = self.batch_config.as_ref() {
+            struct_ser.serialize_field("batchConfig", v)?;
+        }
         if let Some(v) = self.run_id.as_ref() {
             struct_ser.serialize_field("runId", v)?;
         }
@@ -1152,6 +1572,8 @@ impl<'de> serde::Deserialize<'de> for DataImport {
             "parquetConfig",
             "hdf5_config",
             "hdf5Config",
+            "batch_config",
+            "batchConfig",
             "run_id",
             "runId",
             "report_id",
@@ -1177,6 +1599,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
             TdmsConfig,
             ParquetConfig,
             Hdf5Config,
+            BatchConfig,
             RunId,
             ReportId,
             AssetId,
@@ -1214,6 +1637,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                             "tdmsConfig" | "tdms_config" => Ok(GeneratedField::TdmsConfig),
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
+                            "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
                             "runId" | "run_id" => Ok(GeneratedField::RunId),
                             "reportId" | "report_id" => Ok(GeneratedField::ReportId),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
@@ -1249,6 +1673,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                 let mut tdms_config__ = None;
                 let mut parquet_config__ = None;
                 let mut hdf5_config__ = None;
+                let mut batch_config__ = None;
                 let mut run_id__ = None;
                 let mut report_id__ = None;
                 let mut asset_id__ = None;
@@ -1322,6 +1747,12 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                             }
                             hdf5_config__ = map_.next_value()?;
                         }
+                        GeneratedField::BatchConfig => {
+                            if batch_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("batchConfig"));
+                            }
+                            batch_config__ = map_.next_value()?;
+                        }
                         GeneratedField::RunId => {
                             if run_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("runId"));
@@ -1366,6 +1797,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                     tdms_config: tdms_config__,
                     parquet_config: parquet_config__,
                     hdf5_config: hdf5_config__,
+                    batch_config: batch_config__,
                     run_id: run_id__,
                     report_id: report_id__,
                     asset_id: asset_id__,

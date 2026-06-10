@@ -27,6 +27,12 @@ class AssetServiceStub:
     Deprecated: Use ArchiveAsset instead.
     """
 
+    CreateAsset: grpc.UnaryUnaryMultiCallable[
+        sift.assets.v1.assets_pb2.CreateAssetRequest,
+        sift.assets.v1.assets_pb2.CreateAssetResponse,
+    ]
+    """Creates a new, empty asset."""
+
     GetAsset: grpc.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.GetAssetRequest,
         sift.assets.v1.assets_pb2.GetAssetResponse,
@@ -58,6 +64,12 @@ class AssetServiceAsyncStub:
     """Delete will archive an asset.
     Deprecated: Use ArchiveAsset instead.
     """
+
+    CreateAsset: grpc.aio.UnaryUnaryMultiCallable[
+        sift.assets.v1.assets_pb2.CreateAssetRequest,
+        sift.assets.v1.assets_pb2.CreateAssetResponse,
+    ]
+    """Creates a new, empty asset."""
 
     GetAsset: grpc.aio.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.GetAssetRequest,
@@ -92,6 +104,14 @@ class AssetServiceServicer(metaclass=abc.ABCMeta):
         """Delete will archive an asset.
         Deprecated: Use ArchiveAsset instead.
         """
+
+    @abc.abstractmethod
+    def CreateAsset(
+        self,
+        request: sift.assets.v1.assets_pb2.CreateAssetRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.assets.v1.assets_pb2.CreateAssetResponse, collections.abc.Awaitable[sift.assets.v1.assets_pb2.CreateAssetResponse]]:
+        """Creates a new, empty asset."""
 
     @abc.abstractmethod
     def GetAsset(

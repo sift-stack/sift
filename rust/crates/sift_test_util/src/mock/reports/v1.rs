@@ -2,7 +2,10 @@ use async_trait::async_trait;
 use mockall::mock;
 use sift_rs::reports::v1::{
     CancelReportRequest, CancelReportResponse, CreateReportRequest, CreateReportResponse,
-    GetReportRequest, GetReportResponse, ListReportsRequest, ListReportsResponse,
+    GetReportRequest, GetReportResponse, ListReportMetadataValuesRequest,
+    ListReportMetadataValuesResponse, ListReportRuleSummariesRequest,
+    ListReportRuleSummariesResponse, ListReportsRequest, ListReportsResponse,
+    ListReportsWithCumulativeSummaryRequest, ListReportsWithCumulativeSummaryResponse,
     RerunReportRequest, RerunReportResponse, UpdateReportRequest, UpdateReportResponse,
     report_service_server::ReportService,
 };
@@ -53,6 +56,27 @@ mock! {
             request: Request<CancelReportRequest>,
         ) -> std::result::Result<
             Response<CancelReportResponse>,
+            Status,
+        >;
+        async fn list_report_rule_summaries(
+            &self,
+            request: Request<ListReportRuleSummariesRequest>,
+        ) -> std::result::Result<
+            Response<ListReportRuleSummariesResponse>,
+            Status,
+        >;
+        async fn list_report_metadata_values(
+            &self,
+            request: Request<ListReportMetadataValuesRequest>,
+        ) -> std::result::Result<
+            Response<ListReportMetadataValuesResponse>,
+            Status,
+        >;
+        async fn list_reports_with_cumulative_summary(
+            &self,
+            request: Request<ListReportsWithCumulativeSummaryRequest>,
+        ) -> std::result::Result<
+            Response<ListReportsWithCumulativeSummaryResponse>,
             Status,
         >;
     }
