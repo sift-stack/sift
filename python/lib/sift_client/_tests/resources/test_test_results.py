@@ -744,6 +744,7 @@ class TestImportLogFile:
         that invariant: 500 writer appends run alongside a hot updater looping
         on sidecar writes, and every append must survive.
         """
+        import asyncio
         import threading
         import time
 
@@ -761,8 +762,13 @@ class TestImportLogFile:
         request = CreateTestReportRequest()
 
         def writer() -> None:
-            for i in range(n_appends):
-                log_request_to_file(log_file, "CreateTestReport", request, response_id=str(i))
+            async def append_all() -> None:
+                for i in range(n_appends):
+                    await log_request_to_file(
+                        log_file, "CreateTestReport", request, response_id=str(i)
+                    )
+
+            asyncio.run(append_all())
 
         def updater() -> None:
             tracking = LogTracking(last_uploaded_line=0)
@@ -1085,7 +1091,8 @@ class TestEndToEndLogFileRouting:
         from sift.test_reports.v1.test_reports_pb2 import UpdateTestReportRequest
 
         from sift_client._internal.low_level_wrappers._test_results_log import (
-            iter_log_data_lines,
+            _read_log_lines,
+            parse_log_data_lines,
         )
         from sift_client.util.metadata import metadata_proto_to_dict
 
@@ -1114,7 +1121,7 @@ class TestEndToEndLogFileRouting:
         # Find the UpdateTestReport line and decode it the same way replay does.
         update_entries = [
             (rt, rid, js)
-            for rt, rid, js in iter_log_data_lines(log_file)
+            for rt, rid, js in parse_log_data_lines(await _read_log_lines(log_file))
             if rt == "UpdateTestReport"
         ]
         assert len(update_entries) == 1

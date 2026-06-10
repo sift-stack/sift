@@ -4544,7 +4544,7 @@ requires-dist = [
     { name = "cffi", marker = "extra == 'docs-build'", specifier = "~=1.14" },
     { name = "cffi", marker = "extra == 'openssl'", specifier = "~=1.14" },
     { name = "eval-type-backport", specifier = "~=0.2" },
-    { name = "filelock", specifier = "~=3.13" },
+    { name = "filelock", specifier = "~=3.15" },
     { name = "googleapis-common-protos", specifier = ">=1.60" },
     { name = "griffe-pydantic", marker = "python_full_version >= '3.10' and extra == 'docs'", specifier = "==1.3.1" },
     { name = "griffe-pydantic", marker = "python_full_version >= '3.10' and extra == 'docs-build'", specifier = "==1.3.1" },
