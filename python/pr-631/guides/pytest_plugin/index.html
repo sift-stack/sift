@@ -879,6 +879,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#getting-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting support
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#try-the-runnable-demo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1109,6 +1120,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#getting-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting support
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#try-the-runnable-demo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1254,6 +1276,26 @@ mapping, measurement variants, and report metadata.</p>
 <p>Every pytest outcome (pass, assertion failure, exception, skip, xfail, hard
 exit) maps to a <code>TestStatus</code>, and failures roll up to the parent steps and the
 report. See <a href="pass_fail_behavior/">Pass/Fail Behavior</a>.</p>
+<h2 id="getting-support">Getting support<a class="headerlink" href="#getting-support" title="Permanent link">&para;</a></h2>
+<p>Every run writes a DEBUG audit trace (resolved settings, connection check, step
+open/close, replay activity) on by default, so a misbehaving run is already
+recorded and you don't have to reproduce it. The path prints in the <code>audit log</code>
+section of the end-of-run summary:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>--------------------------------- audit log ----------------------------------
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>File: /tmp/sift_test_results/ab12cd/ab12cd-audit.log
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Replay: /tmp/sift_test_results/ab12cd/ab12cd-audit.replay.log
+</span></code></pre></div>
+<p><code>File</code> is the main-process trace; <code>Replay</code> (online mode only) is the background
+upload worker's sibling file. By default both share a per-session directory with
+the JSONL log of every create/update call (<code>/tmp/sift_test_results/ab12cd/</code>
+above). When you open a support request with Sift, zip that directory and attach
+it. The contents are safe to share since the only secret, the API key, is
+redacted.</p>
+<p>Pin the trace to a known path or turn it off with <code>--sift-audit-log</code> (see
+<a href="configuration/">Configuration &amp; Defaults</a>):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pytest<span class="w"> </span>--sift-audit-log<span class="o">=</span>./sift-audit.log<span class="w">   </span><span class="c1"># pin to a known path</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>pytest<span class="w"> </span>--sift-audit-log<span class="o">=</span><span class="nb">false</span><span class="w">              </span><span class="c1"># disable</span>
+</span></code></pre></div>
 <h2 id="try-the-runnable-demo">Try the runnable demo<a class="headerlink" href="#try-the-runnable-demo" title="Permanent link">&para;</a></h2>
 <p>The <a href="../../examples/pytest_plugin_quickstart/">Pytest Plugin Quickstart</a> walks
 through a self-contained demo project that exercises every layer of the step
