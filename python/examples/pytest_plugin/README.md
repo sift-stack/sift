@@ -2,8 +2,9 @@
 
 A self-contained pytest project that exercises every feature of
 `sift_client.pytest_plugin`: package / module / class / parametrize step
-nesting, nested classes, manual substeps, `step.measure(...)` against
-numeric / string / bool bounds, gate markers, and the ini opt-outs.
+nesting, nested classes, scope-based placement of parametrized-fixture params,
+manual substeps, `step.measure(...)` against numeric / string / bool bounds,
+gate markers, and the ini opt-outs.
 
 ```
 examples/pytest_plugin/
@@ -78,18 +79,35 @@ TestReport (FAILED, since failures propagate up from leaves)
         ├── test_failed_measurement_marks_sift_step_failed           FAILED  (pytest PASSED)
         ├── test_pytest_fail_if_step_failed_at_end                                FAILED  (pytest FAILED)
         ├── test_report_level_metadata                               PASSED
-        └── TestClassStep
-            ├── test_parametrize
-            │   ├── axis_a='a1'
-            │   │   ├── axis_b='b1'                                  PASSED
-            │   │   └── axis_b='b2'                                  PASSED
-            │   └── axis_a='a2'
-            │       ├── axis_b='b1'                                  PASSED
-            │       └── axis_b='b2'                                  PASSED
-            └── TestNested
-                └── test_report_outcome
-                    └── check                                        PASSED
+        ├── TestClassStep
+        │   ├── test_parametrize
+        │   │   ├── axis_a='a1'
+        │   │   │   ├── axis_b='b1'                                  PASSED
+        │   │   │   └── axis_b='b2'                                  PASSED
+        │   │   └── axis_a='a2'
+        │   │       ├── axis_b='b1'                                  PASSED
+        │   │       └── axis_b='b2'                                  PASSED
+        │   └── TestNested
+        │       └── test_report_outcome
+        │           └── check                                        PASSED
+        └── TestScopedFixtureParam              ← class-scoped fixture param
+            ├── stable                          ← ids= label (else firmware='1.4.2')
+            │   ├── test_boots                                       PASSED
+            │   └── test_reports_version                             PASSED
+            └── beta
+                ├── test_boots                                       PASSED
+                └── test_reports_version                             PASSED
 ```
+
+`TestScopedFixtureParam` shows two things. First, **scope-based placement**:
+`firmware` is class-scoped, so its parameter lifts to wrap the class methods
+(each runs once per value) instead of nesting under an individual test the way
+the function-level `@pytest.mark.parametrize` in `TestClassStep` does. Module-
+and session-scoped fixture params lift higher still (above the module, and to
+the report root, respectively). Second, **human-readable labels**: the fixture
+declares `ids=["stable", "beta"]`, so the steps use those names instead of the
+default `firmware='1.4.2'` form. A list or a callable `ids=` factory both work,
+on `@pytest.mark.parametrize` axes as well as fixtures.
 
 The `pytest_only` module deliberately includes one failing, one skipped, and
 one erroring test so the demo shows every `TestStatus` mapping (`FAILED` for
@@ -105,7 +123,7 @@ call is the recommended pattern: it fails via `pytest.fail` (no assertion
 noise in `error_info`), and unlike asserting on an individual
 `step.measure(...)` call it does not short-circuit on the first failure and
 skip every measurement that follows. Expected
-pytest output is `16 passed, 3 failed, 1 skipped`.
+pytest output is `20 passed, 3 failed, 1 skipped`.
 
 Toggle any of the `sift_*_step` / `sift_parametrize_nesting` flags in
 `pyproject.toml` to `false` to collapse a layer.
@@ -117,5 +135,5 @@ Toggle any of the `sift_*_step` / `sift_parametrize_nesting` flags in
 | `conftest.py` | Plugin registration via `pytest_plugins` (a single line) |
 | `pyproject.toml` | Pytest nesting/git-metadata knobs at their defaults; report `name`, `test_case`, and `metadata` under `[tool.sift.pytest.report]` |
 | `tests/pytest_only/test_pytest_only_demo.py` | Plain pytest tests with no Sift APIs. The plugin captures pass/fail automatically; covers functions, fixtures, parametrize, classes, plus one each of `AssertionError` (FAILED), `pytest.skip` (SKIPPED), and a raised `ValueError` (ERROR) |
-| `tests/with_sift/test_with_sift_demo.py` | `step.measure` (numeric/string/bool bounds, units, description, metadata, `channel_names`), `step.measure_avg` and `step.measure_all` for series, an out-of-bounds measurement (pytest PASSED, Sift step FAILED), the recommended `step.pytest_fail_if_step_failed()` end-of-test call that fails pytest while still recording every measurement, nested `step.substep` (with step-level `metadata=...`), `@pytest.mark.sift_exclude`, class step + class docstring → description, nested classes, stacked `@pytest.mark.parametrize`, `step.report_outcome`, and session-level metadata via `report_context.report.update({...})` |
+| `tests/with_sift/test_with_sift_demo.py` | `step.measure` (numeric/string/bool bounds, units, description, metadata, `channel_names`), `step.measure_avg` and `step.measure_all` for series, an out-of-bounds measurement (pytest PASSED, Sift step FAILED), the recommended `step.pytest_fail_if_step_failed()` end-of-test call that fails pytest while still recording every measurement, nested `step.substep` (with step-level `metadata=...`), `@pytest.mark.sift_exclude`, class step + class docstring → description, nested classes, stacked `@pytest.mark.parametrize`, a class-scoped parametrized fixture lifted above its methods by scope and given human-readable step labels via `ids=`, `step.report_outcome`, and session-level metadata via `report_context.report.update({...})` |
 | `tests/{pytest_only,with_sift}/__init__.py` | Each Python package (directory with `__init__.py`) becomes a parent step in the report tree |

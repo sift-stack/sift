@@ -175,3 +175,45 @@ class TestClassStep:
         def test_report_outcome(self, step) -> None:
             """``step.report_outcome`` records a non-numeric pass/fail substep."""
             step.report_outcome(name="check", result=True, reason="value matched")
+
+
+@pytest.fixture(
+    scope="class",
+    params=["1.4.2", "2.0.0-rc1"],
+    ids=["stable", "beta"],
+)
+def firmware(request) -> str:
+    """A class-scoped parametrized fixture: each value re-runs the whole class.
+
+    ``ids=`` gives each value a human-readable label. The plugin uses that label
+    for the step (``stable`` / ``beta``) instead of the default ``name=value``
+    form (``firmware='1.4.2'``). A callable ``ids=`` factory works too — pytest
+    calls it with each value to build the label.
+    """
+    return request.param
+
+
+class TestScopedFixtureParam:
+    """Higher-scoped parametrized fixtures lift to their scope in the tree.
+
+    The ``firmware`` fixture is class-scoped, so pytest sets it up once per
+    value for the whole class. The plugin places its parameter at that scope:
+    just inside the class step, wrapping the methods, so each method runs once
+    per value. Contrast this with the function-level ``@pytest.mark.parametrize``
+    in ``TestClassStep.test_parametrize`` above, whose axes nest UNDER the test
+    rather than above its methods. The same rule scales the ladder: a
+    module-scoped fixture param lifts above the module's tests, a session-scoped
+    one to the report root, and a ``@pytest.mark.parametrize(..., scope=...)``
+    follows the scope it names.
+
+    The steps here are named ``stable`` / ``beta`` because ``firmware`` declares
+    ``ids=``; without it they would read ``firmware='1.4.2'`` / etc.
+    """
+
+    def test_boots(self, step, firmware: str) -> None:
+        """Runs once per firmware revision, under that revision's step."""
+        step.measure(name="boot_ok", value=True, bounds=True)
+
+    def test_reports_version(self, step, firmware: str) -> None:
+        """Also runs once per revision; both methods share each ``firmware`` step."""
+        step.measure(name="firmware_rev", value=firmware, bounds=firmware)

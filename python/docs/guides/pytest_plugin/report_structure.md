@@ -257,6 +257,32 @@ TestReport
 Set `sift_parametrize_nesting = false` in `pytest.ini` to fall back to flat leaf
 names (`test_rail[3.3]`).
 
+**Human-readable labels.** Each axis defaults to a `name=value` label. Supply
+`ids=` to name it yourself — a list, or a callable factory pytest calls with
+each value. This works on `@pytest.mark.parametrize` and on parametrized
+fixtures alike:
+
+```python
+@pytest.mark.parametrize("voltage", [3.3, 5.0], ids=["nominal", "boosted"])
+def test_rail(step, voltage): ...
+```
+
+```text title="Sift report"
+TestReport
+└── test_module.py
+    └── test_rail
+        ├── nominal
+        └── boosted
+```
+
+**Scope-based placement.** The examples above use function-scoped parametrize,
+which nests under the test. A parametrized *fixture* is placed at its own scope
+instead: a class-scoped fixture param wraps the class's methods, a module-scoped
+one wraps the module's tests, and a session-scoped one sits at the report root.
+A `@pytest.mark.parametrize(..., scope="module")` follows the scope it names.
+This keeps the tree matching how pytest actually re-runs work — broader scope
+nests outside narrower.
+
 ### Helper functions
 
 Helpers called from a test do not auto-create a step. The plugin only sees
