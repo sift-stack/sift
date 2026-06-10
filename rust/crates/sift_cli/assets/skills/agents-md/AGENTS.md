@@ -21,8 +21,8 @@ to combine them when working with Sift.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
    - `upload_dataset`: stream a Parquet dataset into Sift.
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
-     selection. Surface the URL inline as a clickable link so the user can
-     open the view.
+     selection, with an optional panel / chart pre-defined. Surface the URL 
+     inline as a clickable link so the user can open the view.
 2. **`sift-cli`** — the command-line tool. Key subcommands:
    - `import`: `csv`, `parquet flat-dataset`, `tdms`, `hdf5`, `backups`.
    - `export`: `run`, `asset` (to CSV and other formats).
