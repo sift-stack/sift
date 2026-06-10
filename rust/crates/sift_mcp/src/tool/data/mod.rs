@@ -485,7 +485,6 @@ impl SiftMcpServer {
         result.content = vec![Content::text(next_step)];
         Ok(result)
     }
-
 }
 
 fn cel_escape(s: &str) -> String {
