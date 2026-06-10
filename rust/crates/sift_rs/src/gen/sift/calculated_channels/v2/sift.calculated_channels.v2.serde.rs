@@ -249,6 +249,9 @@ impl serde::Serialize for CalculatedChannel {
         if !self.calculated_channel_dependencies.is_empty() {
             len += 1;
         }
+        if !self.folder_ids.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v2.CalculatedChannel", len)?;
         if !self.calculated_channel_id.is_empty() {
             struct_ser.serialize_field("calculatedChannelId", &self.calculated_channel_id)?;
@@ -310,6 +313,9 @@ impl serde::Serialize for CalculatedChannel {
         if !self.calculated_channel_dependencies.is_empty() {
             struct_ser.serialize_field("calculatedChannelDependencies", &self.calculated_channel_dependencies)?;
         }
+        if !self.folder_ids.is_empty() {
+            struct_ser.serialize_field("folderIds", &self.folder_ids)?;
+        }
         struct_ser.end()
     }
 }
@@ -355,6 +361,8 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
             "isArchived",
             "calculated_channel_dependencies",
             "calculatedChannelDependencies",
+            "folder_ids",
+            "folderIds",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -379,6 +387,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
             Metadata,
             IsArchived,
             CalculatedChannelDependencies,
+            FolderIds,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -420,6 +429,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "calculatedChannelDependencies" | "calculated_channel_dependencies" => Ok(GeneratedField::CalculatedChannelDependencies),
+                            "folderIds" | "folder_ids" => Ok(GeneratedField::FolderIds),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -459,6 +469,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
                 let mut calculated_channel_dependencies__ = None;
+                let mut folder_ids__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CalculatedChannelId => {
@@ -583,6 +594,12 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                             }
                             calculated_channel_dependencies__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::FolderIds => {
+                            if folder_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("folderIds"));
+                            }
+                            folder_ids__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CalculatedChannel {
@@ -606,6 +623,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannel {
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
                     calculated_channel_dependencies: calculated_channel_dependencies__.unwrap_or_default(),
+                    folder_ids: folder_ids__.unwrap_or_default(),
                 })
             }
         }

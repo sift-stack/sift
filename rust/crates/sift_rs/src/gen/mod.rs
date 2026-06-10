@@ -132,13 +132,6 @@ pub mod sift {
             // @@protoc_insertion_point(sift.external_sync.v1)
         }
     }
-    pub mod folders {
-        // @@protoc_insertion_point(attribute:sift.folders.v1)
-        pub mod v1 {
-            include!("sift/folders/v1/sift.folders.v1.rs");
-            // @@protoc_insertion_point(sift.folders.v1)
-        }
-    }
     pub mod ingest {
         // @@protoc_insertion_point(attribute:sift.ingest.v1)
         pub mod v1 {
@@ -200,6 +193,20 @@ pub mod sift {
             // @@protoc_insertion_point(sift.ping.v1)
         }
     }
+    pub mod policies {
+        // @@protoc_insertion_point(attribute:sift.policies.v1)
+        pub mod v1 {
+            include!("sift/policies/v1/sift.policies.v1.rs");
+            // @@protoc_insertion_point(sift.policies.v1)
+        }
+    }
+    pub mod principal_attributes {
+        // @@protoc_insertion_point(attribute:sift.principal_attributes.v1)
+        pub mod v1 {
+            include!("sift/principal_attributes/v1/sift.principal_attributes.v1.rs");
+            // @@protoc_insertion_point(sift.principal_attributes.v1)
+        }
+    }
     pub mod protobuf_descriptors {
         // @@protoc_insertion_point(attribute:sift.protobuf_descriptors.v2)
         pub mod v2 {
@@ -226,6 +233,13 @@ pub mod sift {
         pub mod v1 {
             include!("sift/reports/v1/sift.reports.v1.rs");
             // @@protoc_insertion_point(sift.reports.v1)
+        }
+    }
+    pub mod resource_attribute {
+        // @@protoc_insertion_point(attribute:sift.resource_attribute.v1)
+        pub mod v1 {
+            include!("sift/resource_attribute/v1/sift.resource_attribute.v1.rs");
+            // @@protoc_insertion_point(sift.resource_attribute.v1)
         }
     }
     pub mod roles {
@@ -301,13 +315,6 @@ pub mod sift {
         pub mod v2 {
             include!("sift/user_groups/v2/sift.user_groups.v2.rs");
             // @@protoc_insertion_point(sift.user_groups.v2)
-        }
-    }
-    pub mod user_ssh_keys {
-        // @@protoc_insertion_point(attribute:sift.user_ssh_keys.v1)
-        pub mod v1 {
-            include!("sift/user_ssh_keys/v1/sift.user_ssh_keys.v1.rs");
-            // @@protoc_insertion_point(sift.user_ssh_keys.v1)
         }
     }
     pub mod users {

@@ -68,6 +68,11 @@ func (m *PanelConfiguration) CloneVT() *PanelConfiguration {
 		}
 		r.Metadata = tmpContainer
 	}
+	if rhs := m.FolderIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.FolderIds = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -387,6 +392,15 @@ func (this *PanelConfiguration) EqualVT(that *PanelConfiguration) bool {
 			} else if !proto.Equal(p, q) {
 				return false
 			}
+		}
+	}
+	if len(this.FolderIds) != len(that.FolderIds) {
+		return false
+	}
+	for i, vx := range this.FolderIds {
+		vy := that.FolderIds[i]
+		if vx != vy {
+			return false
 		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -946,6 +960,15 @@ func (m *PanelConfiguration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.FolderIds) > 0 {
+		for iNdEx := len(m.FolderIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.FolderIds[iNdEx])
+			copy(dAtA[i:], m.FolderIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FolderIds[iNdEx])))
+			i--
+			dAtA[i] = 0x7a
+		}
 	}
 	if len(m.Metadata) > 0 {
 		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
@@ -1674,6 +1697,15 @@ func (m *PanelConfiguration) MarshalToSizedBufferVTStrict(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.FolderIds) > 0 {
+		for iNdEx := len(m.FolderIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.FolderIds[iNdEx])
+			copy(dAtA[i:], m.FolderIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FolderIds[iNdEx])))
+			i--
+			dAtA[i] = 0x7a
+		}
 	}
 	if len(m.Metadata) > 0 {
 		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
@@ -2443,6 +2475,12 @@ func (m *PanelConfiguration) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if len(m.FolderIds) > 0 {
+		for _, s := range m.FolderIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3150,6 +3188,38 @@ func (m *PanelConfiguration) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 			}
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FolderIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FolderIds = append(m.FolderIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -5014,6 +5084,42 @@ func (m *PanelConfiguration) UnmarshalVTUnsafe(dAtA []byte) error {
 					return err
 				}
 			}
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FolderIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.FolderIds = append(m.FolderIds, stringValue)
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

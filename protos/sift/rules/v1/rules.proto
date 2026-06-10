@@ -359,6 +359,9 @@ message Rule {
 
   // The current version of the rule. This is may be different from the rule_version.version if the rule has been updated since the rule_version was created.
   string current_version_id = 23 [(google.api.field_behavior) = REQUIRED];
+
+  // Ids of the folders this rule belongs to.
+  repeated string folder_ids = 24;
 }
 
 message RuleCondition {

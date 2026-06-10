@@ -186,6 +186,7 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
+    BATCH_CONFIG_FIELD_NUMBER: builtins.int
     url: builtins.str
     """The url to import. HTTP and S3 urls are supported.
     If you need to import non-public S3 objects, please contact Sift to set that up.
@@ -200,6 +201,8 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     def parquet_config(self) -> global___ParquetConfig: ...
     @property
     def hdf5_config(self) -> global___Hdf5Config: ...
+    @property
+    def batch_config(self) -> global___BatchConfig: ...
     def __init__(
         self,
         *,
@@ -209,9 +212,10 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
         tdms_config: global___TDMSConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
         hdf5_config: global___Hdf5Config | None = ...,
+        batch_config: global___BatchConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "url", b"url"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "url", b"url"]) -> None: ...
 
 global___CreateDataImportFromUrlRequest = CreateDataImportFromUrlRequest
 
@@ -271,6 +275,7 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
+    BATCH_CONFIG_FIELD_NUMBER: builtins.int
     @property
     def csv_config(self) -> global___CsvConfig: ...
     @property
@@ -281,6 +286,8 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     def parquet_config(self) -> global___ParquetConfig: ...
     @property
     def hdf5_config(self) -> global___Hdf5Config: ...
+    @property
+    def batch_config(self) -> global___BatchConfig: ...
     def __init__(
         self,
         *,
@@ -289,9 +296,10 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
         tdms_config: global___TDMSConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
         hdf5_config: global___Hdf5Config | None = ...,
+        batch_config: global___BatchConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> None: ...
 
 global___CreateDataImportFromUploadRequest = CreateDataImportFromUploadRequest
 
@@ -869,6 +877,122 @@ class Hdf5Config(google.protobuf.message.Message):
 global___Hdf5Config = Hdf5Config
 
 @typing.final
+class BatchConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    @typing.final
+    class FileConfigsEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        @property
+        def value(self) -> global___BatchFileConfig: ...
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: global___BatchFileConfig | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+    RUN_NAME_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    ASSET_NAME_FIELD_NUMBER: builtins.int
+    DEFAULT_CSV_CONFIG_FIELD_NUMBER: builtins.int
+    DEFAULT_TDMS_CONFIG_FIELD_NUMBER: builtins.int
+    DEFAULT_PARQUET_CONFIG_FIELD_NUMBER: builtins.int
+    DEFAULT_HDF5_CONFIG_FIELD_NUMBER: builtins.int
+    FILE_CONFIGS_FIELD_NUMBER: builtins.int
+    run_name: builtins.str
+    """Shared run for all files. Both are optional. If neither is set, data is ingested without a run.
+    Run information must be set here instead of the per file configs if a Run is desired.
+    """
+    run_id: builtins.str
+    asset_name: builtins.str
+    """Default asset name for all files.
+    The asset name must be set here instead of the per file configs.
+    """
+    @property
+    def default_csv_config(self) -> global___CsvConfig:
+        """Per file type default configs. Multiple may be set for archives mixing file formats.
+        A BatchFileConfig entry with no format config override inherits the default matching its type.
+        """
+
+    @property
+    def default_tdms_config(self) -> global___TDMSConfig: ...
+    @property
+    def default_parquet_config(self) -> global___ParquetConfig:
+        """The default_parquet_config does not need to specify footer information. The importer will automatically
+        extract footer information for the user.
+        """
+
+    @property
+    def default_hdf5_config(self) -> global___Hdf5Config: ...
+    @property
+    def file_configs(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___BatchFileConfig]:
+        """Files to import. Key is the filepath as it appears within the archive.
+        Only files listed here are imported; other archive files are ignored.
+        """
+
+    def __init__(
+        self,
+        *,
+        run_name: builtins.str = ...,
+        run_id: builtins.str = ...,
+        asset_name: builtins.str = ...,
+        default_csv_config: global___CsvConfig | None = ...,
+        default_tdms_config: global___TDMSConfig | None = ...,
+        default_parquet_config: global___ParquetConfig | None = ...,
+        default_hdf5_config: global___Hdf5Config | None = ...,
+        file_configs: collections.abc.Mapping[builtins.str, global___BatchFileConfig] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["default_csv_config", b"default_csv_config", "default_hdf5_config", b"default_hdf5_config", "default_parquet_config", b"default_parquet_config", "default_tdms_config", b"default_tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_name", b"asset_name", "default_csv_config", b"default_csv_config", "default_hdf5_config", b"default_hdf5_config", "default_parquet_config", b"default_parquet_config", "default_tdms_config", b"default_tdms_config", "file_configs", b"file_configs", "run_id", b"run_id", "run_name", b"run_name"]) -> None: ...
+
+global___BatchConfig = BatchConfig
+
+@typing.final
+class BatchFileConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TYPE_FIELD_NUMBER: builtins.int
+    CSV_CONFIG_FIELD_NUMBER: builtins.int
+    TDMS_CONFIG_FIELD_NUMBER: builtins.int
+    PARQUET_CONFIG_FIELD_NUMBER: builtins.int
+    HDF5_CONFIG_FIELD_NUMBER: builtins.int
+    type: global___DataTypeKey.ValueType
+    """Required. Specifies the format importer to use for this file."""
+    @property
+    def csv_config(self) -> global___CsvConfig: ...
+    @property
+    def tdms_config(self) -> global___TDMSConfig: ...
+    @property
+    def parquet_config(self) -> global___ParquetConfig:
+        """The parquet_config does not need to specify footer information. The importer will automatically
+        extract footer information for the user.
+        """
+
+    @property
+    def hdf5_config(self) -> global___Hdf5Config: ...
+    def __init__(
+        self,
+        *,
+        type: global___DataTypeKey.ValueType = ...,
+        csv_config: global___CsvConfig | None = ...,
+        tdms_config: global___TDMSConfig | None = ...,
+        parquet_config: global___ParquetConfig | None = ...,
+        hdf5_config: global___Hdf5Config | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["config", b"config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["config", b"config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "type", b"type"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["config", b"config"]) -> typing.Literal["csv_config", "tdms_config", "parquet_config", "hdf5_config"] | None: ...
+
+global___BatchFileConfig = BatchFileConfig
+
+@typing.final
 class DataImport(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -883,6 +1007,7 @@ class DataImport(google.protobuf.message.Message):
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
+    BATCH_CONFIG_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     REPORT_ID_FIELD_NUMBER: builtins.int
     ASSET_ID_FIELD_NUMBER: builtins.int
@@ -912,6 +1037,8 @@ class DataImport(google.protobuf.message.Message):
     @property
     def hdf5_config(self) -> global___Hdf5Config: ...
     @property
+    def batch_config(self) -> global___BatchConfig: ...
+    @property
     def data_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def data_stop_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
@@ -929,14 +1056,15 @@ class DataImport(google.protobuf.message.Message):
         tdms_config: global___TDMSConfig | None = ...,
         parquet_config: global___ParquetConfig | None = ...,
         hdf5_config: global___Hdf5Config | None = ...,
+        batch_config: global___BatchConfig | None = ...,
         run_id: builtins.str | None = ...,
         report_id: builtins.str | None = ...,
         asset_id: builtins.str | None = ...,
         data_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         data_stop_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "error_message", b"error_message", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "batch_config", b"batch_config", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "batch_config", b"batch_config", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "error_message", b"error_message", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_asset_id", b"_asset_id"]) -> typing.Literal["asset_id"] | None: ...
     @typing.overload

@@ -88,6 +88,9 @@ message PanelConfiguration {
   string modified_by_user_id = 12;
   bool is_archived = 13;
   repeated sift.metadata.v1.MetadataValue metadata = 14;
+
+  // Ids of the folders this panel configuration belongs to.
+  repeated string folder_ids = 15;
 }
 
 message ChannelConfigurations {

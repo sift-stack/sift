@@ -65,6 +65,7 @@ class PanelConfiguration(google.protobuf.message.Message):
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    FOLDER_IDS_FIELD_NUMBER: builtins.int
     panel_configuration_id: builtins.str
     version_id: builtins.str
     version: builtins.int
@@ -85,6 +86,10 @@ class PanelConfiguration(google.protobuf.message.Message):
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
+    @property
+    def folder_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Ids of the folders this panel configuration belongs to."""
+
     def __init__(
         self,
         *,
@@ -102,9 +107,10 @@ class PanelConfiguration(google.protobuf.message.Message):
         modified_by_user_id: builtins.str = ...,
         is_archived: builtins.bool = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        folder_ids: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "archived_date", b"archived_date", "chart_settings", b"chart_settings", "created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "archived_date", b"archived_date", "change_message", b"change_message", "channel_configurations", b"channel_configurations", "chart_settings", b"chart_settings", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "panel_configuration_id", b"panel_configuration_id", "version", b"version", "version_id", b"version_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_chart_settings", b"_chart_settings", "archived_date", b"archived_date", "change_message", b"change_message", "channel_configurations", b"channel_configurations", "chart_settings", b"chart_settings", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "folder_ids", b"folder_ids", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "panel_configuration_id", b"panel_configuration_id", "version", b"version", "version_id", b"version_id"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_chart_settings", b"_chart_settings"]) -> typing.Literal["chart_settings"] | None: ...
 
 global___PanelConfiguration = PanelConfiguration

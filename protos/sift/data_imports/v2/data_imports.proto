@@ -85,6 +85,7 @@ message CreateDataImportFromUrlRequest {
   TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
   ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
   Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
+  BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUrlResponse {
@@ -105,6 +106,7 @@ message CreateDataImportFromUploadRequest {
   TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
   ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
   Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
+  BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUploadResponse {
@@ -342,6 +344,46 @@ message Hdf5Config {
   optional google.protobuf.Timestamp relative_start_time = 6;
 }
 
+message BatchConfig {
+  // Shared run for all files. Both are optional. If neither is set, data is ingested without a run.
+  // Run information must be set here instead of the per file configs if a Run is desired.
+  string run_name = 1;
+  string run_id = 2;
+
+  // Default asset name for all files.
+  // The asset name must be set here instead of the per file configs.
+  string asset_name = 3;
+
+  // Per file type default configs. Multiple may be set for archives mixing file formats.
+  // A BatchFileConfig entry with no format config override inherits the default matching its type.
+  CsvConfig default_csv_config = 4;
+  TDMSConfig default_tdms_config = 5;
+  // The default_parquet_config does not need to specify footer information. The importer will automatically
+  // extract footer information for the user.
+  ParquetConfig default_parquet_config = 6;
+  Hdf5Config default_hdf5_config = 7;
+
+  // Files to import. Key is the filepath as it appears within the archive.
+  // Only files listed here are imported; other archive files are ignored.
+  map<string, BatchFileConfig> file_configs = 8;
+}
+
+message BatchFileConfig {
+  // Required. Specifies the format importer to use for this file.
+  DataTypeKey type = 1;
+
+  // Optional per-file format config override. If not set, the corresponding
+  // default_*_config from BatchConfig is used based on the type field.
+  oneof config {
+    CsvConfig csv_config = 2;
+    TDMSConfig tdms_config = 3;
+    // The parquet_config does not need to specify footer information. The importer will automatically
+    // extract footer information for the user.
+    ParquetConfig parquet_config = 4;
+    Hdf5Config hdf5_config = 5;
+  }
+}
+
 enum DataImportStatus {
   DATA_IMPORT_STATUS_UNSPECIFIED = 0 [deprecated = true];
   DATA_IMPORT_STATUS_PENDING = 1;
@@ -362,6 +404,7 @@ message DataImport {
   TDMSConfig tdms_config = 10 [(google.api.field_behavior) = OPTIONAL];
   ParquetConfig parquet_config = 16 [(google.api.field_behavior) = OPTIONAL];
   Hdf5Config hdf5_config = 17 [(google.api.field_behavior) = OPTIONAL];
+  BatchConfig batch_config = 18 [(google.api.field_behavior) = OPTIONAL];
 
   // The run id will be set if the data import ingests to a run once the run is available.
   optional string run_id = 11 [(google.api.field_behavior) = OPTIONAL];

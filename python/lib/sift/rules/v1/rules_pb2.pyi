@@ -119,6 +119,7 @@ class Rule(google.protobuf.message.Message):
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     IS_LIVE_EVALUATION_ENABLED_FIELD_NUMBER: builtins.int
     CURRENT_VERSION_ID_FIELD_NUMBER: builtins.int
+    FOLDER_IDS_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -158,6 +159,10 @@ class Rule(google.protobuf.message.Message):
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """archived_date indicates when the rule was archived"""
 
+    @property
+    def folder_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Ids of the folders this rule belongs to."""
+
     def __init__(
         self,
         *,
@@ -183,9 +188,10 @@ class Rule(google.protobuf.message.Message):
         is_archived: builtins.bool = ...,
         is_live_evaluation_enabled: builtins.bool = ...,
         current_version_id: builtins.str = ...,
+        folder_ids: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "current_version_id", b"current_version_id", "deleted_date", b"deleted_date", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "current_version_id", b"current_version_id", "deleted_date", b"deleted_date", "description", b"description", "folder_ids", b"folder_ids", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 

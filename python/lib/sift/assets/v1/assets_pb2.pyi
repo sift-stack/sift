@@ -181,6 +181,57 @@ class DeleteAssetResponse(google.protobuf.message.Message):
 global___DeleteAssetResponse = DeleteAssetResponse
 
 @typing.final
+class CreateAssetRequest(google.protobuf.message.Message):
+    """The request for a call to `AssetService_CreateAsset` to create a single new, empty asset."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NAME_FIELD_NUMBER: builtins.int
+    TAGS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
+    name: builtins.str
+    """The name of the asset to create. Must be unique within the organization. Required."""
+    @property
+    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """The names of the tags to associate with this asset. Optional."""
+
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values to associate with this asset. Optional."""
+
+    def __init__(
+        self,
+        *,
+        name: builtins.str = ...,
+        tags: collections.abc.Iterable[builtins.str] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "name", b"name", "tags", b"tags"]) -> None: ...
+
+global___CreateAssetRequest = CreateAssetRequest
+
+@typing.final
+class CreateAssetResponse(google.protobuf.message.Message):
+    """The response of a call to `AssetService_CreateAsset`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_FIELD_NUMBER: builtins.int
+    @property
+    def asset(self) -> global___Asset:
+        """The newly created asset."""
+
+    def __init__(
+        self,
+        *,
+        asset: global___Asset | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["asset", b"asset"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset", b"asset"]) -> None: ...
+
+global___CreateAssetResponse = CreateAssetResponse
+
+@typing.final
 class GetAssetRequest(google.protobuf.message.Message):
     """The request for a call to `AssetService_GetAsset` to retrieve a single existing asset by its asset_id."""
 
