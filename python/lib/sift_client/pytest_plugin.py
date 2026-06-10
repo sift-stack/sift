@@ -223,6 +223,23 @@ def client_has_connection(pytestconfig: pytest.Config, request: pytest.FixtureRe
     return True
 
 
+@pytest.fixture(scope="session")
+def sift_report_metadata() -> dict[str, str | float | bool]:
+    """Extra report metadata, merged on top of the ``[tool.sift.pytest.report.metadata]``
+    TOML table.
+
+    Returns ``{}`` by default. Override this fixture in your conftest to add
+    metadata computed at runtime (SDK/Python version, CI provider, build id),
+    which the static TOML table can't express. It's resolved while the report is
+    built, so it never forces a report to be created on its own: a run that
+    creates no report (e.g. a unit suite with the Sift gate off) never calls it.
+
+    Keys here layer over matching TOML keys; ``pytest_command`` is reserved and
+    always wins.
+    """
+    return {}
+
+
 def _set_report_context(
     contexts: Generator[ReportContext, None, None],
 ) -> Generator[ReportContext, None, None]:

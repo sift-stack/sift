@@ -116,7 +116,8 @@ def sift_client() -> SiftClient:
 
 | Name | Kind | Scope | Purpose |
 |---|---|---|---|
-| `report_context` | fixture (autouse) | session | The `ReportContext` backing the run's `TestReport`. Use it to attach metadata or open ad-hoc steps. |
+| `report_context` | fixture (autouse) | session | The `ReportContext` backing the run's `TestReport`. Use it to open ad-hoc steps. |
+| `sift_report_metadata` | fixture | session | Returns `{}` by default. Override in your conftest to add runtime report metadata; merged over the `[tool.sift.pytest.report.metadata]` table. |
 | `step` | fixture (autouse) | function | A `NewStep` created for the current test function. Exposes `measure*`, `substep`, `report_outcome`, `pytest_fail_if_step_failed`, and `current_step`. |
 | `_sift_parents` | internal fixture (autouse) | function | Resolves the report-tree parents for the current test: a parent step for each `pytest.Package`, `pytest.Module`, and `pytest.Class` ancestor, then one per `@pytest.mark.parametrize` axis (and fixture parametrization) nested inside them. Parents are created once and reused across tests in any order, so test execution order is never changed. Each layer is gated independently; see [settings reference](#settings-reference). |
 | `client_has_connection` | fixture | session | Calls `sift_client.ping.ping()`; consulted by `report_context` at session start in online mode (the default). Override to skip the ping or use a different reachability signal. |
@@ -176,7 +177,7 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Operator running the test. Defaults to the OS user. | `[tool.sift.pytest.report] system_operator` | `SIFT_REPORT_SYSTEM_OPERATOR` |
 | Serial number of the unit under test. | `[tool.sift.pytest.report] serial_number` | `SIFT_REPORT_SERIAL_NUMBER` |
 | Part number of the unit under test. | `[tool.sift.pytest.report] part_number` | `SIFT_REPORT_PART_NUMBER` |
-| Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, attach them in conftest via the report_context fixture. | `[tool.sift.pytest.report.metadata]` (table) | — |
+| Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, override the sift_report_metadata fixture in conftest. | `[tool.sift.pytest.report.metadata]` (table) | — |
 <!-- END settings-reference -->
 
 ### Quick-start examples
@@ -312,9 +313,27 @@ lane     = 2          # ints, floats, and bools come through with their TOML typ
 verbose  = true
 ```
 
-For per-run dynamic entries (CI build IDs, cycling serial numbers), attach them
-in your `conftest.py` through the `report_context` fixture rather than the TOML
-table.
+For per-run dynamic entries the static table can't express (CI build IDs, SDK or
+Python version, cycling serial numbers), override the `sift_report_metadata`
+fixture in your `conftest.py`. It returns `{}` by default; whatever you return
+merges over the TOML table:
+
+```python title="conftest.py — runtime metadata, additive to the TOML table"
+import os
+from importlib.metadata import version
+
+
+@pytest.fixture(scope="session")
+def sift_report_metadata() -> dict[str, str | float | bool]:
+    return {
+        "environment": "ci" if os.environ.get("CI") else "local",
+        "sdk_version": version("sift_stack_py"),
+    }
+```
+
+The plugin resolves this fixture only while building the report, so it never
+forces a report to be created. A run with the Sift gate off (a plain unit suite)
+never calls it.
 
 Nested tables, lists, and `null` values in
 `[tool.sift.pytest.report.metadata]` are skipped with a warning since the

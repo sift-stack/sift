@@ -448,11 +448,13 @@ def report_context_impl(
         if test_case_template
         else target
     )
-    # Metadata starts from the [tool.sift.pytest.report.metadata] TOML table, and
-    # the auto-recorded pytest_command layers in last so the user can't
-    # accidentally overwrite it.
+    # Metadata starts from the [tool.sift.pytest.report.metadata] TOML table, then
+    # the sift_report_metadata fixture layers over it (runtime values the static
+    # table can't express), and the auto-recorded pytest_command layers in last so
+    # neither can overwrite it.
     report_metadata: dict[str, str | float | bool] = {
         **METADATA_OPTION.resolve_merged(pytestconfig),
+        **request.getfixturevalue("sift_report_metadata"),
         "pytest_command": command,
     }
     # Mode → ReportContext flags:

@@ -398,7 +398,7 @@ METADATA_OPTION = Option(
     name="metadata",
     category=CAT_REPORT,
     help="Free-form report metadata, as a TOML table of scalar values. For "
-    "dynamic per-run keys, attach them in conftest via the report_context fixture.",
+    "dynamic per-run keys, override the sift_report_metadata fixture in conftest.",
     toml=("pytest", "report", "metadata"),
     merge=True,
 )

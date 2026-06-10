@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import platform
 from importlib.metadata import PackageNotFoundError, version
@@ -13,36 +15,29 @@ def pytest_configure(config: pytest.Config) -> None:
     config.option.sift_log_file = False
 
 
-@pytest.fixture(scope="session", autouse=True)
-def stamp_run_metadata(request: pytest.FixtureRequest) -> None:
+@pytest.fixture(scope="session")
+def sift_report_metadata() -> dict[str, str | float | bool]:
     """Stamp run-wide metadata on the report: where it ran plus SDK/Python versions.
 
-    ``environment`` is ``ci`` when a CI provider sets ``CI=true``, else ``local``.
-    ``sdk_version``/``python_version`` record what produced the report. Stamped
-    once per session, spreading the existing metadata first since ``update``
-    replaces the map wholesale. Skipped under ``--sift-disabled`` (unit runs) so
-    no report is created just to carry it.
+    Overrides the plugin's default (empty) fixture, so these layer over the
+    ``[tool.sift.pytest.report.metadata]`` TOML table. ``environment`` is ``ci``
+    when a CI provider sets ``CI=true``, else ``local``; ``sdk_version`` and
+    ``python_version`` record what produced the report. The plugin resolves this
+    only while building the report, so a unit run that creates no report never
+    calls it.
     """
-    if request.config.option.sift_disabled:
-        return
     try:
         sdk_version = version("sift_stack_py")
     except PackageNotFoundError:
         sdk_version = "unknown"
-    report_context = request.getfixturevalue("report_context")
-    report_context.report.update(
-        {
-            "metadata": {
-                **report_context.report.metadata,
-                "environment": "ci" if os.environ.get("CI") else "local",
-                "sdk_version": sdk_version,
-                "python_version": platform.python_version(),
-            }
-        }
-    )
+    return {
+        "environment": "ci" if os.environ.get("CI") else "local",
+        "sdk_version": sdk_version,
+        "python_version": platform.python_version(),
+    }
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: "list[pytest.Item]") -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Bulk-apply ``@pytest.mark.sift_include`` to integration tests under util/.
 
     The project-wide default in ``pyproject.toml`` is ``sift_autouse
