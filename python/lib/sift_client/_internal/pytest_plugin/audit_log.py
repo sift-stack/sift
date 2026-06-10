@@ -107,8 +107,28 @@ def explicit_audit_path(value: object) -> Path | None:
     return Path(text)
 
 
-def default_audit_path() -> Path:
-    """A unique temp file for the default-on trace (mirrors the JSONL log default)."""
+def _make_session_dir() -> Path:
+    """Create and return ``<tmpdir>/sift_test_results/<random>/``.
+
+    All per-session temp artifacts (JSONL log, tracking sidecar, audit log,
+    replay audit log) land inside this directory so they're easy to locate and
+    clean up together. The random component comes from ``tempfile.mkdtemp`` —
+    the same OS-backed source used by ``NamedTemporaryFile``.
+    """
+    parent = Path(tempfile.gettempdir()) / "sift_test_results"
+    parent.mkdir(exist_ok=True)
+    return Path(tempfile.mkdtemp(dir=parent, prefix=""))
+
+
+def default_audit_path(session_dir: Path | None = None) -> Path:
+    """A unique temp file for the default-on trace.
+
+    When ``session_dir`` is provided the audit log is placed inside it as
+    ``<session_dir.name>-audit.log`` so all session artifacts share one dir.
+    Without it a standalone temp file is created (legacy / no-session-dir path).
+    """
+    if session_dir is not None:
+        return session_dir / f"{session_dir.name}-audit.log"
     tmp = tempfile.NamedTemporaryFile(prefix="sift-audit-", suffix=".log", delete=False)
     tmp.close()
     return Path(tmp.name)
@@ -135,19 +155,25 @@ def attach_file_handler(path: Path, *, root: str = ROOT_LOGGER) -> None:
     logger.propagate = False
 
 
-def configure_audit_logging(config: pytest.Config) -> Path | None:
+def configure_audit_logging(
+    config: pytest.Config, *, session_dir: Path | None = None
+) -> Path | None:
     """Set up audit logging for the main pytest process. On by default.
 
     Returns the resolved file path (so the caller can thread the ``.replay``
     sibling to the subprocess and surface paths in the terminal summary), or
     ``None`` when audit logging is explicitly disabled.
+
+    When ``session_dir`` is provided and the audit path is at its default
+    (not explicitly set by the user), the audit log is placed inside the
+    session dir so all temp artifacts land together.
     """
     from sift_client._internal.pytest_plugin.options import AUDIT_LOG_OPTION
 
     raw = AUDIT_LOG_OPTION.resolve(config)
     if audit_disabled(raw):
         return None
-    path = explicit_audit_path(raw) or default_audit_path()
+    path = explicit_audit_path(raw) or default_audit_path(session_dir=session_dir)
     attach_file_handler(path)
     logger = logging.getLogger(ROOT_LOGGER)
     if not any(

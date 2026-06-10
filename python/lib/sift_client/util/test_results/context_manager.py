@@ -5,7 +5,6 @@ import logging
 import os
 import socket
 import subprocess
-import tempfile
 import traceback
 import warnings
 from collections import Counter
@@ -16,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from sift_client._internal.pytest_plugin.audit_log import log_event
+from sift_client._internal.pytest_plugin.audit_log import _make_session_dir, log_event
 from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import (
     ErrorInfo,
@@ -239,8 +238,8 @@ class ReportContext(AbstractContextManager):
         self.replay_incomplete = False
 
         if log_file is True:
-            tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
-            self.log_file = Path(tmp.name)
+            session_dir = _make_session_dir()
+            self.log_file = session_dir / f"{session_dir.name}.jsonl"
             log_event(logger, logging.INFO, "log_file.create", path=self.log_file, source="temp")
         elif log_file:
             self.log_file = Path(log_file)

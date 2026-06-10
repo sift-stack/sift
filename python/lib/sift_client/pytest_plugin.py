@@ -24,8 +24,11 @@ import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client._internal.pytest_plugin.audit_log import (
+    _make_session_dir,
+    audit_disabled,
     configure_audit_logging,
     detach_audit_handlers,
+    explicit_audit_path,
     log_event,
     render_report_tree,
     replay_audit_path,
@@ -40,6 +43,7 @@ from sift_client._internal.pytest_plugin.modes import (
 from sift_client._internal.pytest_plugin.options import (
     API_KEY_OPTION,
     APP_URL_OPTION,
+    AUDIT_LOG_OPTION,
     GRPC_URI_OPTION,
     OPEN_OPTION,
     REST_URI_OPTION,
@@ -81,8 +85,10 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "REPORT_CONTEXT",
+    "SIFT_AUDIT_LOG_STASH_KEY",
     "SIFT_REPORT_ID_STASH_KEY",
     "SIFT_REPORT_URL_STASH_KEY",
+    "SIFT_SESSION_DIR_STASH_KEY",
     "NewStep",
     "ReportContext",
     "SiftPytestPluginWarning",
@@ -128,6 +134,12 @@ SIFT_REPORT_URL_STASH_KEY = pytest.StashKey[str]()
 # file path. Read by ``report_context`` to thread the replay sibling to the
 # subprocess and by the terminal summary to surface the paths.
 SIFT_AUDIT_LOG_STASH_KEY = pytest.StashKey[Path]()
+
+# Set in ``pytest_configure`` when both audit log and JSONL log use their
+# default temp paths. Groups all session artifacts under one directory:
+# ``<tmpdir>/sift_test_results/<random>/``. Read by ``report_context_impl``
+# to place the JSONL log alongside the audit log.
+SIFT_SESSION_DIR_STASH_KEY = pytest.StashKey[Path]()
 
 
 # ---------------------------------------------------------------------------
@@ -391,11 +403,21 @@ def pytest_configure(config: pytest.Config) -> None:
         "sift_exclude: force the Sift autouse fixtures to skip this test "
         "regardless of the `sift_autouse` ini default.",
     )
+    # Create a session dir when audit logging is enabled and at its default path
+    # (not explicitly set by the user). This groups all temp artifacts —
+    # JSONL log, tracking sidecar, audit log, replay audit log — under one
+    # directory: ``<tmpdir>/sift_test_results/<random>/``.
+    raw_audit = AUDIT_LOG_OPTION.resolve(config)
+    session_dir: Path | None = None
+    if not audit_disabled(raw_audit) and explicit_audit_path(raw_audit) is None:
+        session_dir = _make_session_dir()
+        config.stash[SIFT_SESSION_DIR_STASH_KEY] = session_dir
+
     # Audit trace (on by default): attaches DEBUG file + WARNING stdout handlers
     # to the sift_client root logger. Returns None only when audit logging is
     # explicitly disabled via --sift-audit-log=false. Done first so the typo
     # warnings below are captured in the audit file.
-    audit_path = configure_audit_logging(config)
+    audit_path = configure_audit_logging(config, session_dir=session_dir)
     if audit_path is not None:
         config.stash[SIFT_AUDIT_LOG_STASH_KEY] = audit_path
         log_event(

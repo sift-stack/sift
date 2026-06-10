@@ -462,6 +462,15 @@ def report_context_impl(
     disabled = sift_client._simulate
     offline = False if disabled else is_offline(pytestconfig)
     log_file: str | Path | bool | None = False if disabled else resolve_log_file(pytestconfig)
+    # When the log would use a default temp file and the plugin already created
+    # a session dir, pin the JSONL inside that dir so it lands alongside the
+    # audit log rather than having ReportContext mint a separate session dir.
+    if log_file is True and pytestconfig is not None:
+        from sift_client.pytest_plugin import SIFT_SESSION_DIR_STASH_KEY
+
+        plugin_session_dir = pytestconfig.stash.get(SIFT_SESSION_DIR_STASH_KEY, None)
+        if plugin_session_dir is not None:
+            log_file = plugin_session_dir / f"{plugin_session_dir.name}.jsonl"
     include_git_metadata = bool(GIT_METADATA_OPTION.resolve(pytestconfig))
     # Local import avoids a circular import (pytest_plugin imports this module).
     audit_log = None
