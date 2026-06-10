@@ -24,7 +24,7 @@
 name = "pytest-plugin demo ({count} tests) {timestamp}"
 # Grouping key across runs (same placeholders available). Omit to default to
 # {target} (what ran).
-test_case = "pytest-plugin-demo {git_branch}"
+test_case = "pytest-plugin-demo"
 
 [tool.sift.pytest.report.metadata]
 # Free-form key/value metadata stamped on every report. Values keep their TOML
