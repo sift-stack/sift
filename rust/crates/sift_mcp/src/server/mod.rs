@@ -10,8 +10,8 @@ use rmcp::{
 use sift_rs::SiftChannel;
 
 use crate::service::{
-    assets::AssetService, channels::ChannelService, data::DataService, ingest::IngestService,
-    reports::ReportService, rules::RuleService, runs::RunService,
+    assets::AssetService, channels::ChannelService, data::DataService, explore::ExploreService,
+    ingest::IngestService, reports::ReportService, rules::RuleService, runs::RunService,
 };
 
 #[derive(Clone)]
@@ -19,11 +19,10 @@ pub struct SiftMcpServer {
     pub tool_router: ToolRouter<Self>,
     pub prompt_router: PromptRouter<Self>,
 
-    pub rest_uri: String,
-
     pub asset_service: AssetService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
+    pub explore_service: ExploreService,
     pub ingest_service: IngestService,
     pub run_service: RunService,
     pub report_service: ReportService,
@@ -52,16 +51,17 @@ impl SiftMcpServer {
         let asset_service = AssetService::new(channel.clone());
         let data_service = DataService::new(channel.clone());
         let channel_service = ChannelService::new(channel.clone());
+        let explore_service = ExploreService::new(rest_uri);
         let ingest_service = IngestService::new(channel.clone());
         let run_service = RunService::new(channel.clone());
         let report_service = ReportService::new(channel.clone());
         let rule_service = RuleService::new(channel.clone());
 
         Self {
-            rest_uri,
             asset_service,
             channel_service,
             data_service,
+            explore_service,
             ingest_service,
             run_service,
             report_service,
