@@ -3,9 +3,9 @@ use pbjson_types::Timestamp;
 use sift_connect::{SiftChannel, grpc::interceptor::AuthInterceptor};
 use sift_rs::assets::v1::asset_service_server::{AssetService, AssetServiceServer};
 use sift_rs::assets::v1::{
-    ArchiveAssetRequest, ArchiveAssetResponse, Asset, DeleteAssetRequest, DeleteAssetResponse,
-    GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse, UpdateAssetRequest,
-    UpdateAssetResponse,
+    ArchiveAssetRequest, ArchiveAssetResponse, Asset, CreateAssetRequest, CreateAssetResponse,
+    DeleteAssetRequest, DeleteAssetResponse, GetAssetRequest, GetAssetResponse, ListAssetsRequest,
+    ListAssetsResponse, UpdateAssetRequest, UpdateAssetResponse,
 };
 use sift_rs::ingest::v1::ingest_service_server::{IngestService, IngestServiceServer};
 use sift_rs::ingestion_configs::v2::ingestion_config_service_server::{
@@ -23,8 +23,10 @@ use sift_rs::runs::v2::run_service_server::{RunService, RunServiceServer};
 use sift_rs::runs::v2::{
     CreateAdhocRunRequest, CreateAdhocRunResponse, CreateAutomaticRunAssociationForAssetsRequest,
     CreateAutomaticRunAssociationForAssetsResponse, CreateRunRequest, CreateRunResponse,
-    DeleteRunRequest, DeleteRunResponse, GetRunRequest, GetRunResponse, ListRunsRequest,
-    ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
+    DeleteRunRequest, DeleteRunResponse, GetFilterFieldsRequest, GetFilterFieldsResponse,
+    GetRunRequest, GetRunResponse, ListRunsRequest, ListRunsResponse, Run, StopRunRequest,
+    StopRunResponse, UpdateRunRequest, UpdateRunResponse, ValidateRunFilterRequest,
+    ValidateRunFilterResponse,
 };
 use sift_stream::{ChannelConfig, ChannelDataType, FlowConfig};
 use std::io::Error as IoError;
@@ -234,6 +236,12 @@ impl AssetService for MockAssetService {
     ) -> Result<Response<ArchiveAssetResponse>, Status> {
         Err(Status::unimplemented("Not implemented for test"))
     }
+    async fn create_asset(
+        &self,
+        _: Request<CreateAssetRequest>,
+    ) -> Result<Response<CreateAssetResponse>, Status> {
+        Err(Status::unimplemented("Not implemented for test"))
+    }
 }
 
 pub(crate) struct MockRunService;
@@ -326,6 +334,18 @@ impl RunService for MockRunService {
         &self,
         _: Request<CreateAutomaticRunAssociationForAssetsRequest>,
     ) -> Result<Response<CreateAutomaticRunAssociationForAssetsResponse>, Status> {
+        Err(Status::unimplemented("Not implemented for test"))
+    }
+    async fn get_filter_fields(
+        &self,
+        _: Request<GetFilterFieldsRequest>,
+    ) -> Result<Response<GetFilterFieldsResponse>, Status> {
+        Err(Status::unimplemented("Not implemented for test"))
+    }
+    async fn validate_run_filter(
+        &self,
+        _: Request<ValidateRunFilterRequest>,
+    ) -> Result<Response<ValidateRunFilterResponse>, Status> {
         Err(Status::unimplemented("Not implemented for test"))
     }
 }
