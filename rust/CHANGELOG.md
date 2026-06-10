@@ -3,6 +3,31 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.10.1] - June 10, 2026
+### What's New
+
+#### `AutoRegisterStream` trait for `SiftStreamAutoRegister` (PR [#629](https://github.com/sift-stack/sift/pull/629))
+
+`SiftStreamAutoRegister` now implements the new `AutoRegisterStream` trait, which exposes the same streaming surface — `send`, `finish`, `get_flow_descriptor`, `attach_run`, `detach_run`, and `run` — through a stable async trait. This makes it straightforward to swap in a mock implementation during testing without a live connection to Sift.
+
+```rust
+#[async_trait]
+pub trait AutoRegisterStream {
+    type SendError: std::error::Error + Send + Sync + 'static;
+
+    async fn send(&mut self, flow: Flow) -> Result<(), Self::SendError>;
+    async fn finish(self) -> Result<()> where Self: Sized;
+    fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>>;
+    async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()>;
+    fn detach_run(&mut self);
+    fn run(&self) -> Option<&Run>;
+}
+```
+
+Note that `finish` carries a `where Self: Sized` bound and cannot be called through a `dyn AutoRegisterStream` object. Use generic bounds (`impl AutoRegisterStream` or `T: AutoRegisterStream`) in function signatures instead.
+
+---
+
 ## [v0.10.0] - June 9, 2026
 ### What's New
 
