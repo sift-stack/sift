@@ -38,7 +38,7 @@ pub mod tasks;
 
 /// Convenience wrapper that auto-registers flows on first send.
 pub mod auto_register;
-pub use auto_register::{AutoRegisterSendError, SiftStreamAutoRegister};
+pub use auto_register::{AutoRegisterSendError, AutoRegisterStream, SiftStreamAutoRegister};
 
 /// Error types returned by [`Transport`] send methods.
 pub mod send_error;
