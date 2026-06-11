@@ -136,6 +136,7 @@ jobs:
       #     SIFT_GRPC_URI: ${{ vars.SIFT_GRPC_URI }}
       #     SIFT_REST_URI: ${{ vars.SIFT_REST_URI }}
       #     SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
+      #     SIFT_REPORT_TEST_SYSTEM_NAME: github-actions
       #   run: |
       #     uv run --python ${{ matrix.python-version }} --no-project --with-editable '.[dev-all]' pytest -m "integration"
 
