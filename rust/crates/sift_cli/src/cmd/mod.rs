@@ -16,8 +16,6 @@ pub struct Context {
     pub grpc_uri: String,
     pub api_key: String,
     pub disable_tls: bool,
-
-    #[allow(dead_code)]
     pub rest_uri: String,
 }
 

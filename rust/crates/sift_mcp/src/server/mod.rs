@@ -10,8 +10,8 @@ use rmcp::{
 use sift_rs::SiftChannel;
 
 use crate::service::{
-    assets::AssetService, channels::ChannelService, data::DataService, ingest::IngestService,
-    reports::ReportService, rules::RuleService, runs::RunService,
+    assets::AssetService, channels::ChannelService, data::DataService, explore::ExploreService,
+    ingest::IngestService, reports::ReportService, rules::RuleService, runs::RunService,
 };
 
 #[derive(Clone)]
@@ -22,6 +22,7 @@ pub struct SiftMcpServer {
     pub asset_service: AssetService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
+    pub explore_service: ExploreService,
     pub ingest_service: IngestService,
     pub run_service: RunService,
     pub report_service: ReportService,
@@ -38,17 +39,19 @@ pub struct SiftMcpServer {
 impl ServerHandler for SiftMcpServer {}
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel) -> Self {
+    pub fn new(channel: SiftChannel, rest_uri: String) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::list_router();
         tool_router.merge(Self::data_router());
+        tool_router.merge(Self::explore_router());
 
         let prompt_router = Self::prompt_router();
 
         let asset_service = AssetService::new(channel.clone());
         let data_service = DataService::new(channel.clone());
         let channel_service = ChannelService::new(channel.clone());
+        let explore_service = ExploreService::new(rest_uri);
         let ingest_service = IngestService::new(channel.clone());
         let run_service = RunService::new(channel.clone());
         let report_service = ReportService::new(channel.clone());
@@ -58,6 +61,7 @@ impl SiftMcpServer {
             asset_service,
             channel_service,
             data_service,
+            explore_service,
             ingest_service,
             run_service,
             report_service,

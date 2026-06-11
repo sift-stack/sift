@@ -128,6 +128,10 @@ impl SiftMcpServer {
                 `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
 
             Guidance:
+              - If the user's intent is to view/plot/graph/visualize the data in a UI, call `explore_url` first
+                instead — it returns a Sift Explore deep-link and skips the download entirely. Use `get_data` only
+                when the bytes are needed locally for SQL, custom analysis, or a static artifact the user explicitly
+                asked for.
               - Data is buffered in memory until size/row thresholds are hit, so very large time ranges or wide
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
                 with disjoint `[start, end)` windows.

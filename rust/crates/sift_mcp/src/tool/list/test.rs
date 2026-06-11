@@ -37,7 +37,10 @@ async fn server_with_mocks(
             .unwrap();
     });
 
-    (SiftMcpServer::new(channel), handle)
+    (
+        SiftMcpServer::new(channel, String::from("https://api.test.local")),
+        handle,
+    )
 }
 
 fn params(filter: &str, limit: Option<u32>) -> Parameters<ListParams> {
@@ -622,7 +625,10 @@ async fn server_with_report_mock(
             .unwrap();
     });
 
-    (SiftMcpServer::new(channel), handle)
+    (
+        SiftMcpServer::new(channel, String::from("https://api.test.local")),
+        handle,
+    )
 }
 
 fn report_params(filter: &str, limit: Option<u32>) -> Parameters<ReportListParams> {

@@ -20,6 +20,9 @@ to combine them when working with Sift.
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
    - `upload_dataset`: stream a Parquet dataset into Sift.
+   - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
+     selection, with an optional panel/chart pre-defined. Surface the URL
+     inline as a clickable link so the user can open the view.
 2. **`sift-cli`** — the command-line tool. Key subcommands:
    - `import`: `csv`, `parquet flat-dataset`, `tdms`, `hdf5`, `backups`.
    - `export`: `run`, `asset` (to CSV and other formats).
@@ -50,6 +53,28 @@ and stop at the first that does the job:
 4. **Python library (`sift_client`).** Use when the task needs a script:
    custom streaming, data transformation, or programmatic logic the above
    cannot express. Prefer `sift_client` over the deprecated `sift_py`.
+
+## Local data analysis
+
+When the user wants numbers, summaries, or transformed data — anything where
+the output is text or a new dataset — pull the source data locally with
+`get_data` (writes a Parquet file) and run `sql` over it. Chain
+`get_data` → `sql` for filtering, aggregation, or feature derivation. If the
+result should land back in Sift as a new dataset, follow with
+`upload_dataset`, and confirm the target asset/run with the user first.
+
+## Visualizing in Sift Explore
+
+When the user wants to see, view, graph, plot, or open data in Sift, build
+a link with `explore_url` and render the URL inline as a clickable markdown
+link. The URL is the deliverable — do not summarize it away. Pick the
+`panel_type` that fits the request: `timeseries` (default), `histogram`,
+`table`, `fft`, `metrics`, `scatter-plot`, or `geo-map`. Prefix channels
+with `L1:` / `L2:` for multi-axis plots; with `x:` / `y:` / `color:` for
+scatter; with `lat:` / `lon:` / `color:` for geo.
+
+If the user wants both a chart and numbers, produce the `explore_url` link
+and chain `get_data` + `sql` together.
 
 ## Importing data
 
