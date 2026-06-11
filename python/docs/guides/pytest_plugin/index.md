@@ -115,6 +115,34 @@ Every pytest outcome (pass, assertion failure, exception, skip, xfail, hard
 exit) maps to a `TestStatus`, and failures roll up to the parent steps and the
 report. See [Pass/Fail Behavior](pass_fail_behavior.md).
 
+## Getting support
+
+Every run writes a DEBUG audit trace (resolved settings, connection check, step
+open/close, replay activity) on by default, so a misbehaving run is already
+recorded and you don't have to reproduce it. The path prints in the `audit log`
+section of the end-of-run summary:
+
+```text
+--------------------------------- audit log ----------------------------------
+File: /tmp/sift_test_results/ab12cd/ab12cd-audit.log
+Replay: /tmp/sift_test_results/ab12cd/ab12cd-audit.replay.log
+```
+
+`File` is the main-process trace; `Replay` (online mode only) is the background
+upload worker's sibling file. By default both share a per-session directory with
+the JSONL log of every create/update call (`/tmp/sift_test_results/ab12cd/`
+above). When you open a support request with Sift, zip that directory and attach
+it. The contents are safe to share since the only secret, the API key, is
+redacted.
+
+Pin the trace to a known path or turn it off with `--sift-audit-log` (see
+[Configuration & Defaults](configuration.md)):
+
+```bash
+pytest --sift-audit-log=./sift-audit.log   # pin to a known path
+pytest --sift-audit-log=false              # disable
+```
+
 ## Try the runnable demo
 
 The [Pytest Plugin Quickstart](../../examples/pytest_plugin_quickstart.md) walks

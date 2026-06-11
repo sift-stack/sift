@@ -49,6 +49,7 @@ Ad-hoc writers to the same path are not protected.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass, field
@@ -58,8 +59,12 @@ from typing import TYPE_CHECKING, Any, Generator
 from filelock import AsyncFileLock, Timeout
 from google.protobuf import json_format
 
+from sift_client._internal.pytest_plugin.audit_log import log_event
+
 if TYPE_CHECKING:
     from sift_client.sift_types.test_report import TestMeasurement, TestReport, TestStep
+
+logger = logging.getLogger(__name__)
 
 
 # Seconds to wait for the sidecar lock before raising TimeoutError. Long enough
@@ -274,6 +279,9 @@ def parse_log_data_lines(
             continue
         match = line_pattern.match(line)
         if not match:
+            log_event(
+                logger, logging.WARNING, "log.parse_error", line=data_line_count + 1, text=line
+            )
             raise ValueError(f"Invalid log line: {line}")
         data_line_count += 1
         if data_line_count <= start_line:

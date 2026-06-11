@@ -440,3 +440,7 @@ testpaths = [
 markers = [
     "integration: mark a test as an integration test (requires API)"
 ]
+
+[tool.sift.pytest.report]
+# Stable grouping key so integration reports query together across runs.
+test_case = "sift-client-integration"
