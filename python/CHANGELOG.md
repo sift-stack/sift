@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.17.1] - June 10, 2026
+
+### Bugfixes
+- Bound the test-results offline log lock wait to 60 seconds so a held lock no longer hangs synchronous API calls; a stuck lock now raises `TimeoutError`. Raises the minimum `filelock` version to 3.15. ([#623](https://github.com/sift-stack/sift/pull/623))
+- Skip progress bars when no console is attached (PyInstaller `--noconsole`, `pythonw.exe`, detached processes), so uploads, downloads, and job polling no longer crash. ([#622](https://github.com/sift-stack/sift/pull/622))
+
 ## [v0.17.0] - June 3, 2026
 
 ### What's New
