@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import pytest
 
+from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client._internal.pytest_plugin.modes import gate_enabled
 from sift_client._internal.pytest_plugin.options import (
     CLASS_STEP_OPTION,
@@ -28,6 +29,46 @@ from sift_client._internal.pytest_plugin.options import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Scope-aware parametrize placement and ``ids=`` label resolution read a few
+# pytest internals (the fixture manager, ``callspec``). If a pytest version
+# moves or reshapes those, we degrade to function-scoped nesting with
+# ``name=value`` labels instead of failing the user's collection — and surface
+# the loss once per session via ``_signal_introspection_degraded``. This latch
+# keeps that to a single warning; ``reset_introspection_state`` clears it at the
+# start of each session (see ``pytest_configure``).
+_introspection_degraded = False
+
+
+def reset_introspection_state() -> None:
+    """Clear the one-shot introspection-failure latch. Called at session start."""
+    global _introspection_degraded
+    _introspection_degraded = False
+
+
+def _signal_introspection_degraded(detail: str) -> None:
+    """Warn + audit-log once that parametrize scope/label introspection failed.
+
+    Fired only when reaching a pytest internal actually fails — not for the
+    ordinary "no fixturedef, it's a mark-based param" case. The report still
+    renders; scope-promoted params just fall back to function-scoped nesting.
+    """
+    global _introspection_degraded
+    if _introspection_degraded:
+        return
+    _introspection_degraded = True
+    # Local import avoids a circular import (pytest_plugin imports this module).
+    from sift_client.pytest_plugin import SiftPytestPluginWarning
+
+    warnings.warn(
+        "Sift pytest plugin could not read pytest internals for scope-aware "
+        f"parametrize placement ({detail}); parametrized fixtures will render "
+        "flat (function-scoped) with name=value labels. The rest of the report "
+        "is unaffected. This usually means an unsupported pytest version.",
+        SiftPytestPluginWarning,
+        stacklevel=2,
+    )
+    log_event(logger, logging.WARNING, "parametrize.introspection_degraded", detail=detail)
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -115,11 +156,28 @@ def _fixturedefs(item: pytest.Item, name: str) -> Any:
 
     pytest 8 takes the node object; older versions take the nodeid string, so
     fall back on ``TypeError`` to stay importable across the supported range.
+
+    A clean ``None`` means "no such fixture" (a mark-based param), which is
+    normal and not a failure. Reaching the fixture manager at all is the part
+    that depends on a pytest internal: if that attribute is gone or the call
+    raises something unexpected, degrade to ``None`` and latch the one-shot
+    warning rather than letting it escape into the user's collection.
     """
+    manager = getattr(getattr(item, "session", None), "_fixturemanager", None)
+    if manager is None:
+        _signal_introspection_degraded("fixture manager unavailable")
+        return None
     try:
-        return item.session._fixturemanager.getfixturedefs(name, item)
+        return manager.getfixturedefs(name, item)
     except TypeError:
-        return item.session._fixturemanager.getfixturedefs(name, item.nodeid)  # type: ignore[arg-type]
+        try:
+            return manager.getfixturedefs(name, item.nodeid)  # type: ignore[arg-type]
+        except Exception as exc:
+            _signal_introspection_degraded(f"getfixturedefs failed ({exc!r})")
+            return None
+    except Exception as exc:
+        _signal_introspection_degraded(f"getfixturedefs failed ({exc!r})")
+        return None
 
 
 def _fixture_scope(item: pytest.Item, name: str) -> str | None:
@@ -236,13 +294,19 @@ def build_scoped_params(item: pytest.Item) -> ScopedParams:
     callspec = getattr(item, "callspec", None)
     if callspec is None or not callspec.params:
         return ()
-    out: list[tuple[str, str, str]] = []
-    for name, value in callspec.params.items():
-        scope = _param_scope(item, name)
-        if scope == "function":
-            continue
-        out.append((scope, name, _param_label(item, name, value)))
-    return tuple(out)
+    try:
+        out: list[tuple[str, str, str]] = []
+        for name, value in callspec.params.items():
+            scope = _param_scope(item, name)
+            if scope == "function":
+                continue
+            out.append((scope, name, _param_label(item, name, value)))
+        return tuple(out)
+    except Exception as exc:
+        # Degrade to "nothing promoted": every axis stays function-scoped via
+        # build_parametrize_path, so the leaf still renders, just flat.
+        _signal_introspection_degraded(f"scoped-param resolution failed ({exc!r})")
+        return ()
 
 
 def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
@@ -262,10 +326,22 @@ def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
         return ()
     originalname = getattr(item, "originalname", item.name)
     frames: list[str] = [originalname]
-    for name, value in reversed(callspec.params.items()):
-        if _param_scope(item, name) != "function":
-            continue
-        frames.append(_param_label(item, name, value))
+    try:
+        for name, value in reversed(callspec.params.items()):
+            if _param_scope(item, name) != "function":
+                continue
+            frames.append(_param_label(item, name, value))
+    except Exception as exc:
+        # Mirror the build_scoped_params degradation: with scope resolution
+        # broken nothing is promoted, so render every axis here under the bare
+        # leaf name (the pre-scope-aware behavior) rather than dropping frames.
+        _signal_introspection_degraded(f"parametrize-path resolution failed ({exc!r})")
+        frames = [originalname]
+        try:
+            for name, value in reversed(callspec.params.items()):
+                frames.append(f"{name}={value!r}")
+        except Exception:
+            return ()
     return tuple(frames)
 
 

@@ -70,6 +70,7 @@ from sift_client._internal.pytest_plugin.steps import (
     hierarchy_key,
     parametrize_path_key,
     release_finished_leaf,
+    reset_introspection_state,
     resolve_parent_chain_in_context,
     scoped_params_key,
     tally_expected_parents,
@@ -413,6 +414,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     """Register the Sift gate markers and warn on unknown ``SIFT_*`` settings."""
+    # Clear the parametrize-introspection failure latch so the one-shot
+    # degradation warning can fire once per session, not once per process.
+    reset_introspection_state()
     config.addinivalue_line(
         "markers",
         "sift_include: force the Sift autouse fixtures to activate for this test "

@@ -12,6 +12,8 @@ API call to that JSONL log, and the outer test parses it via
 
 from __future__ import annotations
 
+import logging
+import warnings
 from datetime import datetime, timezone
 from textwrap import dedent
 from types import SimpleNamespace
@@ -19,7 +21,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from sift_client._internal.pytest_plugin import steps
 from sift_client._tests.pytest_plugin import _step_status_capture as capture
+from sift_client.pytest_plugin import SiftPytestPluginWarning
 from sift_client.sift_types.test_report import TestStatus
 
 if TYPE_CHECKING:
@@ -1970,3 +1974,124 @@ def test_collection_skipped_param_item_uses_cleaned_leaf_name(
         assert chain[:2] == ["test_skipped", "test_sk.py"]
         assert chain[2] in ("outer=10", "outer=20")
         assert leaf["statuses"][-1] == TestStatus.SKIPPED
+
+
+# ---------------------------------------------------------------------------
+# Degradation when pytest internals are unavailable
+#
+# Scope-aware placement and ``ids=`` labels read a few pytest internals. If a
+# pytest version moves them, the plugin must degrade (function-scoped nesting,
+# ``name=value`` labels) and warn once, NOT break the user's collection. See
+# ``steps._signal_introspection_degraded``.
+# ---------------------------------------------------------------------------
+
+
+def _fake_item_without_fixture_manager() -> SimpleNamespace:
+    """An item whose ``session`` has no ``_fixturemanager`` (the internal moved)."""
+    return SimpleNamespace(session=SimpleNamespace(), nodeid="t.py::test_x")
+
+
+def _raise(*_args: object, **_kwargs: object) -> None:
+    raise RuntimeError("simulated pytest internals change")
+
+
+def test_fixturedefs_degrades_when_fixture_manager_missing() -> None:
+    steps.reset_introspection_state()
+    item = _fake_item_without_fixture_manager()
+    with pytest.warns(SiftPytestPluginWarning, match="scope-aware parametrize"):
+        assert steps._fixturedefs(item, "x") is None
+    assert steps._introspection_degraded is True
+
+
+def test_fixturedefs_degrades_when_getfixturedefs_raises() -> None:
+    steps.reset_introspection_state()
+
+    class _FixtureManager:
+        def getfixturedefs(self, name: str, node: object) -> object:
+            raise RuntimeError("boom")
+
+    item = SimpleNamespace(
+        session=SimpleNamespace(_fixturemanager=_FixtureManager()),
+        nodeid="t.py::test_x",
+    )
+    with pytest.warns(SiftPytestPluginWarning):
+        assert steps._fixturedefs(item, "x") is None
+
+
+def test_build_scoped_params_degrades_to_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    steps.reset_introspection_state()
+    monkeypatch.setattr(steps, "_param_scope", _raise)
+    item = SimpleNamespace(callspec=SimpleNamespace(params={"v": 1}))
+    with pytest.warns(SiftPytestPluginWarning):
+        # Nothing promoted -> every axis stays function-scoped (rendered flat).
+        assert steps.build_scoped_params(item) == ()
+
+
+def test_build_parametrize_path_degrades_to_flat(monkeypatch: pytest.MonkeyPatch) -> None:
+    steps.reset_introspection_state()
+    monkeypatch.setattr(steps, "_param_scope", _raise)
+    item = SimpleNamespace(
+        callspec=SimpleNamespace(params={"a": 1, "b": 2}),
+        originalname="test_x",
+        name="test_x[1-2]",
+    )
+    with pytest.warns(SiftPytestPluginWarning):
+        path = steps.build_parametrize_path(item)
+    # Degraded output: the bare leaf name plus every axis as name=value.
+    assert path[0] == "test_x"
+    assert set(path[1:]) == {"a=1", "b=2"}
+
+
+def test_introspection_warning_fires_only_once() -> None:
+    steps.reset_introspection_state()
+    item = _fake_item_without_fixture_manager()
+    with pytest.warns(SiftPytestPluginWarning):
+        steps._fixturedefs(item, "x")
+    # A second failure in the same session is silent (the latch is set), so
+    # turning warnings into errors here must not trip.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert steps._fixturedefs(item, "y") is None
+
+
+def test_introspection_failure_is_audit_logged(caplog: pytest.LogCaptureFixture) -> None:
+    steps.reset_introspection_state()
+    item = _fake_item_without_fixture_manager()
+    logger_name = "sift_client._internal.pytest_plugin.steps"
+    with caplog.at_level(logging.WARNING, logger=logger_name), pytest.warns(
+        SiftPytestPluginWarning
+    ):
+        steps._fixturedefs(item, "x")
+    assert any("introspection_degraded" in r.getMessage() for r in caplog.records)
+
+
+def test_internals_failure_does_not_break_collection(
+    pytester: pytest.Pytester, log_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End-to-end: a forced internals failure degrades, it does not error the run.
+
+    ``runpytest_inprocess`` shares this process's ``steps`` module, so the outer
+    ``monkeypatch`` patches the inner run too and is restored afterward.
+    """
+    monkeypatch.setattr(steps, "_fixturedefs", _raise)
+    pytester.makepyfile(
+        test_x=dedent(
+            """
+            import pytest
+
+            @pytest.fixture(scope="module", params=[1, 2])
+            def fw(request):
+                return request.param
+
+            def test_a(step, fw):
+                step.measure(name="m", value=True, bounds=True)
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-p", "no:randomly")
+    # The user's tests still run and pass despite the forced internals failure.
+    result.assert_outcomes(passed=2)
+    # The degradation is surfaced, not silent.
+    assert "scope-aware parametrize placement" in result.stdout.str()
+    # A report was still produced; the module-scoped param simply wasn't promoted.
+    assert capture.load_steps(log_file)
