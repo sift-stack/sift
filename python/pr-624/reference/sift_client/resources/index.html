@@ -12047,6 +12047,52 @@ entirely, so first-send latency is identical to <code>IngestionConfigStreamingCl
 <p>Use <code>IngestionAPIAsync.create_auto_register_streaming_client</code> to create an instance.
 Do not instantiate this class directly.</p>
 
+        <p>Initialize an AutoRegisterStreamingClient.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>sift_client</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Authenticated Sift client used for API calls.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="../client/#sift_client.client.SiftClient">SiftClient</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>stream</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Underlying auto-register stream handle from the Rust bindings.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="sift_stream_bindings.SiftStreamAutoRegisterPy">SiftStreamAutoRegisterPy</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 
 
