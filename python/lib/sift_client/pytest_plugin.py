@@ -577,13 +577,23 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     finalize_parents()
 
 
+def _verbosity(config: pytest.Config) -> int:
+    """Global verbosity (the ``-v`` count minus ``-q``), pytest 7/8/9-compatible.
+
+    ``Config.get_verbosity()`` only exists since pytest 8.0; ``config.option.verbose``
+    is the value it returns for the global case and is present across the supported
+    pytest range, so reading it directly keeps the plugin importable on pytest 7.x.
+    """
+    return getattr(config.option, "verbose", 0)
+
+
 def pytest_report_header(config: pytest.Config) -> str | None:
     """Emit a session-start header with the SDK version and active mode.
 
     Suppressed under ``-q`` (negative verbosity), matching how pytest hides its
     own platform/plugin header.
     """
-    if config.get_verbosity() < 0:
+    if _verbosity(config) < 0:
         return None
     return f"Sift: sift-stack-py {sdk_version()} — {mode_label(config)} mode"
 
@@ -596,7 +606,7 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
     other plugins and CI steps can consume the result. The panel itself is
     rendered by ``write_report_summary``; this hook handles the side effects.
     """
-    quiet = config.get_verbosity() < 0
+    quiet = _verbosity(config) < 0
 
     # End-state validation view: the final step tree with statuses, written to
     # the audit log (not the terminal) in every mode. created_steps are retained

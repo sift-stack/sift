@@ -70,6 +70,7 @@ def _signal_introspection_degraded(detail: str) -> None:
     )
     log_event(logger, logging.WARNING, "parametrize.introspection_degraded", detail=detail)
 
+
 if TYPE_CHECKING:
     from typing import Callable
 
@@ -151,11 +152,34 @@ expected_parametrize: dict[ParametrizeKey, int] = {}
 leaf_parents: dict[str, LeafParents] = {}
 
 
+# --- Private-pytest-API surface -------------------------------------------
+# Scope-aware parametrize placement reads a few pytest internals that have no
+# public equivalent. They are confined to the helpers below and each is guarded
+# so a pytest change degrades to flat (function-scoped) rendering with a single
+# warning, never a crash. The inventory, so it stays auditable in one place:
+#
+#   * ``session._fixturemanager.getfixturedefs`` — the only genuinely private
+#     access; obtaining a parametrized fixture's ``FixtureDef``. Wrapped in
+#     ``_fixturedefs`` (degrade + warn). The attributes read off the result
+#     (``.scope``, ``.baseid``, ``.ids``) are documented-stable public API.
+#   * ``item.callspec.params`` / ``.indices`` — semi-private but de-facto stable
+#     (every parametrize-aware plugin relies on it); read under try/except.
+#   * ``mark.args``/``mark.kwargs`` and ``node.parent``/``node.obj`` — public.
+#
+# pytest's own private scope dict (``callspec._arg2scope``) is deliberately NOT
+# read; ``_param_scope`` reconstructs the same result from public data.
+# CI exercises this surface against pytest 7/8/9 (see test-pytest-compat).
 def _fixturedefs(item: pytest.Item, name: str) -> Any:
     """The ``FixtureDef`` tuple for ``name``, or None when it is mark-based.
 
-    pytest 8 takes the node object; older versions take the nodeid string, so
-    fall back on ``TypeError`` to stay importable across the supported range.
+    The signature of ``getfixturedefs`` differs by pytest version: 8.x/9.x take
+    the node object, pytest 7.x takes the nodeid string. So we try the node
+    first and retry with the nodeid on failure. The retry trigger spans both
+    error shapes the wrong-type call raises: pytest 8.x/9.x raise ``TypeError``
+    when handed a nodeid where a node is expected, while pytest 7.x raises
+    ``AttributeError`` (it calls ``nodeid.find(...)`` on what is actually a
+    node, which has no ``.find``). Catching only ``TypeError`` would leave the
+    7.x path dead and silently degrade every parametrized test on pytest 7.
 
     A clean ``None`` means "no such fixture" (a mark-based param), which is
     normal and not a failure. Reaching the fixture manager at all is the part
@@ -169,7 +193,7 @@ def _fixturedefs(item: pytest.Item, name: str) -> Any:
         return None
     try:
         return manager.getfixturedefs(name, item)
-    except TypeError:
+    except (TypeError, AttributeError):
         try:
             return manager.getfixturedefs(name, item.nodeid)  # type: ignore[arg-type]
         except Exception as exc:
@@ -199,27 +223,32 @@ def _mark_argnames(mark: pytest.Mark) -> list[str]:
 def _param_scope(item: pytest.Item, name: str) -> str:
     """The pytest scope governing param ``name`` on ``item``.
 
-    Prefers ``callspec._arg2scope`` — pytest's own resolution, which already
-    folds in indirect parametrize, a mark's ``scope=`` override, and the
-    fixture's declared scope. Falls back to the fixture scope, then a mark's
-    ``scope=`` kwarg, then ``"function"`` for older pytest where ``_arg2scope``
-    is absent. ``callspec.params`` order is application order, NOT scope order,
-    so callers must bucket by this rather than trust position.
+    Resolved from public data, mirroring pytest's own rule (see
+    ``_find_parametrized_scope`` in pytest's ``python.py``): an explicit mark
+    ``scope=`` wins, else a parametrized/indirect fixture contributes its
+    declared ``fixturedef.scope``, else a plain ``@pytest.mark.parametrize`` axis
+    is ``"function"``. We deliberately do NOT read pytest's private
+    ``callspec._arg2scope``; the only internal still consulted is obtaining the
+    fixturedef (see ``_fixturedefs``), whose ``.scope`` attribute is public.
+
+    One intentional divergence from ``_arg2scope``: a combined ``indirect`` axis
+    (``"a,b"``) whose fixtures have different scopes gets each name its own
+    scope here, where pytest collapses both to the narrowest. Per-name placement
+    is what the report wants, and ``build_scoped_params`` already buckets by it.
+    ``callspec.params`` order is application order, NOT scope order, so callers
+    must bucket by this rather than trust position.
     """
-    callspec = getattr(item, "callspec", None)
-    if callspec is not None:
-        arg2scope = getattr(callspec, "_arg2scope", None)
-        if arg2scope is not None:
-            scope = arg2scope.get(name)
-            if scope is not None:
-                # pytest's ``Scope`` enum stringifies to the scope name.
-                return getattr(scope, "value", None) or str(scope)
+    # An explicit mark ``scope=`` takes precedence (pytest's ``Scope.from_user``
+    # before the fixture-derived scope).
+    for mark in item.iter_markers("parametrize"):
+        if name in _mark_argnames(mark):
+            mark_scope = mark.kwargs.get("scope")
+            if mark_scope:
+                return mark_scope
+    # Otherwise a parametrized or indirect fixture lends its declared scope.
     fixture_scope = _fixture_scope(item, name)
     if fixture_scope is not None:
         return fixture_scope
-    for mark in item.iter_markers("parametrize"):
-        if name in _mark_argnames(mark):
-            return mark.kwargs.get("scope") or "function"
     return "function"
 
 
@@ -379,12 +408,16 @@ def build_hierarchy_chain(
     # isn't part of pytest's public API; widen to ``Any`` for the walk.
     node: Any = item
     while node is not None:
+        # Check Package before Module: on pytest 7.x ``Package`` subclasses
+        # ``Module``, so the Module branch would otherwise swallow a package node
+        # and render it (ignoring ``sift_package_step``). pytest 8's collection
+        # refactor made them unrelated, so the order is harmless there.
         if isinstance(node, pytest.Class):
             rendered, scope = include_class, "class"
-        elif isinstance(node, pytest.Module):
-            rendered, scope = include_module, "module"
         elif isinstance(node, pytest.Package):
             rendered, scope = include_package, "package"
+        elif isinstance(node, pytest.Module):
+            rendered, scope = include_module, "module"
         else:
             node = node.parent
             continue

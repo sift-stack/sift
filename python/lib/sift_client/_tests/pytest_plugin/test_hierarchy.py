@@ -17,7 +17,7 @@ import warnings
 from datetime import datetime, timezone
 from textwrap import dedent
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -1986,9 +1986,19 @@ def test_collection_skipped_param_item_uses_cleaned_leaf_name(
 # ---------------------------------------------------------------------------
 
 
-def _fake_item_without_fixture_manager() -> SimpleNamespace:
+def _fake_item(**attrs: object) -> pytest.Item:
+    """A stand-in pytest item for unit-testing the introspection helpers directly.
+
+    The helpers only touch a few attributes (``session``, ``callspec``, ``nodeid``,
+    ``originalname``, ``name``), so a ``SimpleNamespace`` suffices; cast keeps the
+    typed signatures honest without a real collected item.
+    """
+    return cast("pytest.Item", SimpleNamespace(**attrs))
+
+
+def _fake_item_without_fixture_manager() -> pytest.Item:
     """An item whose ``session`` has no ``_fixturemanager`` (the internal moved)."""
-    return SimpleNamespace(session=SimpleNamespace(), nodeid="t.py::test_x")
+    return _fake_item(session=SimpleNamespace(), nodeid="t.py::test_x")
 
 
 def _raise(*_args: object, **_kwargs: object) -> None:
@@ -2010,7 +2020,7 @@ def test_fixturedefs_degrades_when_getfixturedefs_raises() -> None:
         def getfixturedefs(self, name: str, node: object) -> object:
             raise RuntimeError("boom")
 
-    item = SimpleNamespace(
+    item = _fake_item(
         session=SimpleNamespace(_fixturemanager=_FixtureManager()),
         nodeid="t.py::test_x",
     )
@@ -2021,7 +2031,7 @@ def test_fixturedefs_degrades_when_getfixturedefs_raises() -> None:
 def test_build_scoped_params_degrades_to_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     steps.reset_introspection_state()
     monkeypatch.setattr(steps, "_param_scope", _raise)
-    item = SimpleNamespace(callspec=SimpleNamespace(params={"v": 1}))
+    item = _fake_item(callspec=SimpleNamespace(params={"v": 1}))
     with pytest.warns(SiftPytestPluginWarning):
         # Nothing promoted -> every axis stays function-scoped (rendered flat).
         assert steps.build_scoped_params(item) == ()
@@ -2030,7 +2040,7 @@ def test_build_scoped_params_degrades_to_empty(monkeypatch: pytest.MonkeyPatch) 
 def test_build_parametrize_path_degrades_to_flat(monkeypatch: pytest.MonkeyPatch) -> None:
     steps.reset_introspection_state()
     monkeypatch.setattr(steps, "_param_scope", _raise)
-    item = SimpleNamespace(
+    item = _fake_item(
         callspec=SimpleNamespace(params={"a": 1, "b": 2}),
         originalname="test_x",
         name="test_x[1-2]",
@@ -2054,15 +2064,35 @@ def test_introspection_warning_fires_only_once() -> None:
         assert steps._fixturedefs(item, "y") is None
 
 
-def test_introspection_failure_is_audit_logged(caplog: pytest.LogCaptureFixture) -> None:
+def test_introspection_failure_is_audit_logged() -> None:
+    """The degradation emits a ``parametrize.introspection_degraded`` audit line.
+
+    Captured via a handler attached directly to the plugin's logger, NOT
+    ``caplog``: audit logging sets ``sift_client.propagate = False`` (audit_log.py),
+    so root-propagation-based capture is order-dependent under randomized runs.
+    """
     steps.reset_introspection_state()
-    item = _fake_item_without_fixture_manager()
-    logger_name = "sift_client._internal.pytest_plugin.steps"
-    with caplog.at_level(logging.WARNING, logger=logger_name), pytest.warns(
-        SiftPytestPluginWarning
-    ):
-        steps._fixturedefs(item, "x")
-    assert any("introspection_degraded" in r.getMessage() for r in caplog.records)
+
+    class _Capture(logging.Handler):
+        def __init__(self) -> None:
+            super().__init__()
+            self.records: list[logging.LogRecord] = []
+
+        def emit(self, record: logging.LogRecord) -> None:
+            self.records.append(record)
+
+    plugin_logger = logging.getLogger("sift_client._internal.pytest_plugin.steps")
+    handler = _Capture()
+    plugin_logger.addHandler(handler)
+    previous_level = plugin_logger.level
+    plugin_logger.setLevel(logging.WARNING)
+    try:
+        with pytest.warns(SiftPytestPluginWarning):
+            steps._fixturedefs(_fake_item_without_fixture_manager(), "x")
+    finally:
+        plugin_logger.removeHandler(handler)
+        plugin_logger.setLevel(previous_level)
+    assert any("introspection_degraded" in r.getMessage() for r in handler.records)
 
 
 def test_internals_failure_does_not_break_collection(
@@ -2095,3 +2125,69 @@ def test_internals_failure_does_not_break_collection(
     assert "scope-aware parametrize placement" in result.stdout.str()
     # A report was still produced; the module-scoped param simply wasn't promoted.
     assert capture.load_steps(log_file)
+
+
+def test_indirect_parametrize_lifts_to_fixture_scope(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """An ``indirect=True`` axis routed through a module-scoped fixture lifts to
+    the module level. Scope comes from the fixture's public ``fixturedef.scope``,
+    resolved without pytest's private ``callspec._arg2scope``.
+    """
+    pytester.makepyfile(
+        test_ind=dedent(
+            """
+            import pytest
+
+            @pytest.fixture(scope="module")
+            def mfix(request):
+                return request.param
+
+            @pytest.mark.parametrize("mfix", ["M1", "M2"], indirect=True)
+            def test_a(step, mfix):
+                step.measure(name="m", value=True, bounds=True)
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+    mod_id = by_name["test_ind.py"][0]["id"]
+    # One param step per value, lifted to module scope (under the module step).
+    assert len(by_name["mfix='M1'"]) == 1
+    assert len(by_name["mfix='M2'"]) == 1
+    assert by_name["mfix='M1'"][0]["parent_step_id"] == mod_id
+    # The leaf nests under its param universe, not directly under the module.
+    m1_id = by_name["mfix='M1'"][0]["id"]
+    assert [s for s in by_name["test_a"] if s["parent_step_id"] == m1_id]
+
+
+def test_fixturedefs_falls_back_to_nodeid_on_pytest7_signature() -> None:
+    """On pytest 7.x ``getfixturedefs`` takes a nodeid string; passing a Node
+    hits ``nodeid.find(...)`` → ``AttributeError`` (a Node has no ``.find``).
+
+    The fallback must retry with ``item.nodeid`` and succeed, NOT degrade — so
+    scope-aware placement keeps working on pytest 7.x. (pytest 8.x/9.x take the
+    Node directly and never reach the fallback.)
+    """
+    steps.reset_introspection_state()
+    sentinel = object()
+
+    class _Pytest7FixtureManager:
+        def getfixturedefs(self, name: str, node_or_nodeid: object) -> object:
+            # pytest 7.x accepts a nodeid string; a Node argument blows up the
+            # way the real ``iterparentnodeids`` would (``node.find`` is absent).
+            if isinstance(node_or_nodeid, str):
+                return (sentinel,)
+            raise AttributeError("'Function' object has no attribute 'find'")
+
+    item = _fake_item(
+        session=SimpleNamespace(_fixturemanager=_Pytest7FixtureManager()),
+        nodeid="t.py::test_x",
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # a degradation warning would raise here
+        result = steps._fixturedefs(item, "x")
+    assert result == (sentinel,)
+    assert steps._introspection_degraded is False

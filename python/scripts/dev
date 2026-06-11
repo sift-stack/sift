@@ -28,6 +28,7 @@ Subcommands:
   test             Execute non-integration tests against the project's Python
   test-floor       Execute non-integration tests against the floor Python (3.8)
   test-ceiling     Execute non-integration tests against the ceiling Python (3.14)
+  test-pytest-compat Run the pytest-plugin test subset against pytest 7/8/9
   test-integration Execute integration tests
   test-all         Execute all tests
 
@@ -112,6 +113,26 @@ run_tests_ceiling() {
   uv run --python 3.14 --no-project --with-editable '.[dev-all]' pytest -m "not integration"
 }
 
+run_tests_pytest_compat() {
+  # Run the self-contained pytest-plugin test subset against pytest 7/8/9,
+  # mirroring the CI `test-pytest-compat` matrix. Each cell pairs a pytest line
+  # with a compatible Python and pytest-randomly pin (the subset drives inner
+  # pytester sessions and needs no other plugins). uv downloads interpreters on
+  # first run. Catches breakage from pytest internals the plugin reads.
+  set -- \
+    "3.8 ~=7.4 3.15.0" \
+    "3.9 ~=8.4 3.16.0" \
+    "3.10 ~=9.0 4.1.0"
+  for cell in "$@"; do
+    read -r py spec randomly <<< "$cell"
+    echo "=== Python $py, pytest $spec, pytest-randomly $randomly ==="
+    uv run --python "$py" --no-project --with-editable '.' \
+      --with "pytest$spec" \
+      --with "pytest-randomly==$randomly" \
+      pytest lib/sift_client/_tests/pytest_plugin -m "not integration"
+  done
+}
+
 run_tests_integration() {
   uv run pytest -m "integration"
 }
@@ -188,6 +209,9 @@ case "$1" in
         ;;
     test-ceiling)
         run_tests_ceiling
+        ;;
+    test-pytest-compat)
+        run_tests_pytest_compat
         ;;
     test-integration)
         run_tests_integration
