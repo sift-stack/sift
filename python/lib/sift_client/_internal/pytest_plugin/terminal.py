@@ -202,30 +202,40 @@ def write_report_summary(
         if log_file is not None:
             terminalreporter.write_sep("-", "to upload to Sift")
             terminalreporter.write_line(f"  >> import-test-result-log {log_file}", cyan=True)
-        return
-
-    if not report_id:
-        # Incremental upload never mapped the report (the worker died before
-        # replaying the create), so there's no real report to link.
-        sift_kv(
-            terminalreporter,
-            "Report",
-            f"not uploaded — replay with: import-test-result-log {log_file}",
-            yellow=True,
-        )
-    elif report_url is not None:
-        sift_kv(terminalreporter, "Report", report_url, cyan=True)
     else:
-        sift_kv(
-            terminalreporter,
-            "Report",
-            f"id {report_id}  (set sift_app_url for a clickable link)",
-        )
+        if not report_id:
+            # Incremental upload never mapped the report (the worker died before
+            # replaying the create), so there's no real report to link.
+            sift_kv(
+                terminalreporter,
+                "Report",
+                f"not uploaded — replay with: import-test-result-log {log_file}",
+                yellow=True,
+            )
+        elif report_url is not None:
+            sift_kv(terminalreporter, "Report", report_url, cyan=True)
+        else:
+            sift_kv(
+                terminalreporter,
+                "Report",
+                f"id {report_id}  (set sift_app_url for a clickable link)",
+            )
 
-    if report_id and getattr(context, "replay_incomplete", False) and log_file is not None:
-        sift_kv(
-            terminalreporter,
-            "",
-            f"may be incomplete — finish with: import-test-result-log {log_file}",
-            yellow=True,
-        )
+        if report_id and getattr(context, "replay_incomplete", False) and log_file is not None:
+            sift_kv(
+                terminalreporter,
+                "",
+                f"may be incomplete — finish with: import-test-result-log {log_file}",
+                yellow=True,
+            )
+
+    # Audit log: its own section after the upload/report block. The main-process
+    # trace plus, online, the replay worker's sibling file.
+    audit_log = getattr(context, "audit_log", None)
+    if audit_log is not None:
+        from sift_client._internal.pytest_plugin.audit_log import replay_audit_path
+
+        terminalreporter.write_sep("-", "audit log")
+        sift_kv(terminalreporter, "File", str(audit_log))
+        if not offline:
+            sift_kv(terminalreporter, "Replay", str(replay_audit_path(audit_log)))

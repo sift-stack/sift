@@ -11,10 +11,39 @@ from __future__ import annotations
 import textwrap
 from typing import TYPE_CHECKING, Callable
 
+from sift_client._internal.pytest_plugin.options import (
+    GRPC_URI_OPTION,
+    resolved_settings,
+)
+
 if TYPE_CHECKING:
     from pathlib import Path
 
     import pytest
+
+
+class TestResolvedSettings:
+    """The audit snapshot helpers report value + source and redact the API key."""
+
+    def test_resolve_with_source_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("SIFT_GRPC_URI", "grpc.example:443")
+        assert GRPC_URI_OPTION.resolve_with_source(None) == ("grpc.example:443", "env")
+
+    def test_unset_resolves_to_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("SIFT_GRPC_URI", raising=False)
+        assert GRPC_URI_OPTION.resolve_with_source(None) == (None, "default")
+
+    def test_resolved_settings_redacts_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("SIFT_API_KEY", "super-secret")
+        rows = {name: (value, source) for name, value, source in resolved_settings(None)}
+        assert rows["api_key"] == ("***", "env")
+
+    def test_resolved_settings_unset_api_key_is_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("SIFT_API_KEY", raising=False)
+        rows = {name: (value, source) for name, value, source in resolved_settings(None)}
+        assert rows["api_key"] == (None, "default")
 
 
 class TestIniConfiguration:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
 
 from google.protobuf import json_format
 from sift.test_reports.v1.test_reports_pb2 import (
@@ -48,6 +48,7 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
     log_request_to_file,
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
+from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -69,6 +70,20 @@ logger = logging.getLogger(__name__)
 
 
 _EntityT = TypeVar("_EntityT", TestReport, TestStep, TestMeasurement)
+
+
+class _EntryIds(NamedTuple):
+    """The entity a replayed log entry acted on, for the audit trace.
+
+    ``sim_id`` is the simulated ID recorded in the log; ``real_id`` is the
+    server-assigned ID it resolved to. For a create both come from the new
+    entity; for an update both identify the target being mutated, so the
+    ``replay.upload`` line names which step/report/measurement it touched
+    instead of leaving the columns blank.
+    """
+
+    sim_id: str | None = None
+    real_id: str | None = None
 
 
 class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -950,13 +965,17 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         """Process a single log entry, updating *state* in place.
 
         When *simulate* is True the create/update methods return simulated
         responses (no network call).  When False they issue real gRPC calls.
         *id_map* is updated so that subsequent entries can remap IDs that
         were generated during the original simulation run.
+
+        Returns the ``(sim_id, real_id)`` the entry acted on so the caller can
+        record which entity reached the server; an unhandled type yields empty
+        IDs.
         """
         handlers = {
             "CreateTestReport": self._replay_create_report,
@@ -969,8 +988,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         }
         handler = handlers.get(request_type)
         if handler is None:
-            return
-        await handler(json_str, response_id, simulate=simulate, id_map=id_map, state=state)
+            return _EntryIds()
+        return await handler(json_str, response_id, simulate=simulate, id_map=id_map, state=state)
 
     @staticmethod
     def _map_id(id_map: dict[str, str], sid: str) -> str:
@@ -985,12 +1004,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         request = CreateTestReportRequest()
         json_format.Parse(json_str, request)
         state.report = await self.create_test_report(request=request, simulate=simulate)
         if response_id:
             id_map[response_id] = state.report._id_or_error
+        return _EntryIds(response_id, state.report._id_or_error)
 
     async def _replay_create_step(
         self,
@@ -1000,7 +1020,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         request = CreateTestStepRequest()
         json_format.Parse(json_str, request)
         request.test_step.test_report_id = self._map_id(id_map, request.test_step.test_report_id)
@@ -1013,6 +1033,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             id_map[response_id] = step._id_or_error
         state.steps_by_id[step._id_or_error] = step
         state.steps_order.append(step._id_or_error)
+        return _EntryIds(response_id, step._id_or_error)
 
     async def _replay_create_measurement(
         self,
@@ -1022,7 +1043,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         request = CreateTestMeasurementRequest()
         json_format.Parse(json_str, request)
         request.test_measurement.test_step_id = self._map_id(
@@ -1033,6 +1054,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             id_map[response_id] = measurement._id_or_error
         state.measurements_by_id[measurement._id_or_error] = measurement
         state.measurements_order.append(measurement._id_or_error)
+        return _EntryIds(response_id, measurement._id_or_error)
 
     async def _replay_create_measurements(
         self,
@@ -1042,12 +1064,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         request = CreateTestMeasurementsRequest()
         json_format.Parse(json_str, request)
         for tm in request.test_measurements:
             tm.test_step_id = self._map_id(id_map, tm.test_step_id)
         original_ids = response_id.split(",") if response_id else []
+        created_ids: list[str] = []
         if simulate:
             # Batch endpoint has no simulate path; fan out to per-measurement simulate calls.
             for i, tm_proto in enumerate(request.test_measurements):
@@ -1057,11 +1080,17 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     id_map[original_ids[i]] = meas._id_or_error
                 state.measurements_by_id[meas._id_or_error] = meas
                 state.measurements_order.append(meas._id_or_error)
+                created_ids.append(meas._id_or_error)
         else:
             _, real_ids = await self.create_test_measurements(request=request)
             for i, real_id in enumerate(real_ids):
                 if i < len(original_ids):
                     id_map[original_ids[i]] = real_id
+                created_ids.append(real_id)
+        # Batch line covers many measurements; comma-join both sides so the
+        # audit row still names every entity (fields are space-free, so commas
+        # keep it one token).
+        return _EntryIds(response_id, ",".join(created_ids) or None)
 
     async def _replay_update_report(
         self,
@@ -1071,12 +1100,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         request = UpdateTestReportRequest()
         json_format.Parse(json_str, request)
-        request.test_report.test_report_id = self._map_id(
-            id_map, request.test_report.test_report_id
-        )
+        orig_report_id = request.test_report.test_report_id
+        mapped_report_id = self._map_id(id_map, orig_report_id)
+        request.test_report.test_report_id = mapped_report_id
         # Batch/simulate replays the whole log in order, so a missing report means
         # the log is malformed. Incremental replay may have created the report on an
         # earlier tick (its real ID lives in id_map), so state.report is legitimately
@@ -1086,6 +1115,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         state.report = await self.update_test_report(
             request=request, simulate=simulate, existing=state.report
         )
+        return _EntryIds(orig_report_id or None, mapped_report_id or None)
 
     async def _replay_update_step(
         self,
@@ -1095,7 +1125,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         request = UpdateTestStepRequest()
         json_format.Parse(json_str, request)
         orig_step_id = request.test_step.test_step_id
@@ -1109,6 +1139,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         if mapped_step_id in state.steps_by_id:
             state.steps_by_id[mapped_step_id] = updated_step
+        return _EntryIds(orig_step_id or None, mapped_step_id or None)
 
     async def _replay_update_measurement(
         self,
@@ -1118,7 +1149,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         simulate: bool,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> None:
+    ) -> _EntryIds:
         request = UpdateTestMeasurementRequest()
         json_format.Parse(json_str, request)
         orig_meas_id = request.test_measurement.measurement_id
@@ -1132,6 +1163,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         if mapped_meas_id in state.measurements_by_id:
             state.measurements_by_id[mapped_meas_id] = updated_meas
+        return _EntryIds(orig_meas_id or None, mapped_meas_id or None)
 
     # ------------------------------------------------------------------
     # Batch replay (default)
@@ -1214,17 +1246,45 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for request_type, response_id, json_str in iter_log_data_lines(
             log_path, start_line=tracking.last_uploaded_line
         ):
-            await self._import_entry(
-                request_type,
-                response_id,
-                json_str,
-                simulate=False,
-                id_map=id_map,
-                state=state,
-            )
+            line_number = tracking.last_uploaded_line + 1
+            try:
+                entry_ids = await self._import_entry(
+                    request_type,
+                    response_id,
+                    json_str,
+                    simulate=False,
+                    id_map=id_map,
+                    state=state,
+                )
+            except Exception as exc:
+                # Surface which line/entity failed before the line is retried
+                # next tick (last_uploaded_line is not advanced on failure).
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "replay.error",
+                    line=line_number,
+                    type=request_type,
+                    error=repr(exc),
+                )
+                raise
 
             tracking.last_uploaded_line += 1
             tracking.save(log_path)
+            # One line per uploaded entity: what was sent, the sim->real id of
+            # the entity it acted on (the new entity for a create, the target
+            # for an update), and the sidecar cursor + id-map size after the
+            # save so a reader can follow exactly what reached the server.
+            log_event(
+                logger,
+                logging.DEBUG,
+                "replay.upload",
+                type=request_type,
+                line=tracking.last_uploaded_line,
+                sim_id=entry_ids.sim_id or "-",
+                real_id=entry_ids.real_id or "-",
+                idmap=len(id_map),
+            )
 
         # On a resume tick the CreateTestReport line was consumed on an earlier
         # tick, so state.report is expected to be None; the report already exists

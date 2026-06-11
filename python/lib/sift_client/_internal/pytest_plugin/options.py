@@ -8,12 +8,17 @@ setting is added or changed in one place instead of wired up across several.
 
 from __future__ import annotations
 
+import logging
 import os
 import warnings
 from dataclasses import dataclass
 from typing import Any
 
 import pytest
+
+from sift_client._internal.pytest_plugin.audit_log import log_event
+
+logger = logging.getLogger(__name__)
 
 from sift_client._internal.pyproject_config import load_tool_sift
 
@@ -114,32 +119,41 @@ class Option:
         only returns ini values for booleans (always meaningful), non-empty
         strings, and non-empty lists.
         """
+        return self.resolve_with_source(config)[0]
+
+    def resolve_with_source(self, config: pytest.Config | None) -> tuple[Any, str]:
+        """Like :meth:`resolve`, but also reports which surface set the value.
+
+        Returns ``(value, source)`` where ``source`` is one of
+        ``env``/``cli``/``ini``/``toml``, or ``default`` when nothing set it
+        (``value`` is then ``None``). Used by the audit log's settings snapshot.
+        """
         if self.env:
             env_value = os.getenv(self.env)
             if env_value not in (None, ""):
-                return env_value
+                return env_value, "env"
         if config is None:
-            return None
+            return None, "default"
         if self.cli:
             cli_value = config.getoption(self.cli_dest, default=None)
             if cli_value is not None:
-                return cli_value
+                return cli_value, "cli"
         if self.ini:
             try:
                 ini_value = config.getini(self.ini)
             except (KeyError, ValueError):
                 ini_value = None
             if isinstance(ini_value, bool):
-                return ini_value
+                return ini_value, "ini"
             if isinstance(ini_value, str) and ini_value:
-                return ini_value
+                return ini_value, "ini"
             if isinstance(ini_value, list) and ini_value:
-                return ini_value
+                return ini_value, "ini"
         if self.toml:
             toml_value = _walk_toml(tool_sift(config), self.toml)
             if toml_value not in (None, ""):
-                return toml_value
-        return None
+                return toml_value, "toml"
+        return None, "default"
 
     def resolve_merged(self, config: pytest.Config | None) -> dict[str, str | float | bool]:
         """For ``merge=True`` dict-shape settings: the free-form TOML table.
@@ -210,6 +224,15 @@ LOG_FILE_OPTION = Option(
     help="Path to the JSONL log of create/update calls (path | true | false | none).",
     cli="--sift-log-file",
     ini="sift_log_file",
+)
+AUDIT_LOG_OPTION = Option(
+    name="audit_log",
+    category=CAT_BEHAVIOR,
+    help="DEBUG-level audit trace of plugin behavior (path | true | false). On by "
+    "default to a temp file, with warnings echoed to stdout; set a path to pin the "
+    "file, or false to disable.",
+    cli="--sift-audit-log",
+    ini="sift_audit_log",
 )
 GIT_METADATA_OPTION = Option(
     name="git_metadata",
@@ -375,13 +398,14 @@ METADATA_OPTION = Option(
     name="metadata",
     category=CAT_REPORT,
     help="Free-form report metadata, as a TOML table of scalar values. For "
-    "dynamic per-run keys, attach them in conftest via the report_context fixture.",
+    "dynamic per-run keys, override the sift_report_metadata fixture in conftest.",
     toml=("pytest", "report", "metadata"),
     merge=True,
 )
 
 PLUGIN_OPTIONS: tuple[Option, ...] = (
     LOG_FILE_OPTION,
+    AUDIT_LOG_OPTION,
     GIT_METADATA_OPTION,
     OFFLINE_OPTION,
     DISABLED_OPTION,
@@ -403,6 +427,21 @@ PLUGIN_OPTIONS: tuple[Option, ...] = (
     PART_NUMBER_OPTION,
     METADATA_OPTION,
 )
+
+
+def resolved_settings(config: pytest.Config | None) -> list[tuple[str, Any, str]]:
+    """Every option's resolved ``(name, value, source)`` for the audit snapshot.
+
+    The API key is the only secret in the registry; its value is redacted to
+    ``"***"`` so the snapshot is safe to write to the log file.
+    """
+    rows: list[tuple[str, Any, str]] = []
+    for opt in PLUGIN_OPTIONS:
+        value, source = opt.resolve_with_source(config)
+        if opt.name == "api_key" and value:
+            value = "***"
+        rows.append((opt.name, value, source))
+    return rows
 
 
 def register_options(parser: pytest.Parser) -> None:
@@ -521,6 +560,14 @@ def warn_on_unknown_env_vars() -> None:
             continue
         close = difflib.get_close_matches(name, suggestion_pool, n=1, cutoff=0.6)
         hint = f" (did you mean `{close[0]}`?)" if close else ""
+        log_event(
+            logger,
+            logging.WARNING,
+            "config.unknown",
+            kind="env",
+            name=name,
+            suggestion=close[0] if close else "-",
+        )
         warnings.warn(
             f"Unknown SIFT_* env var `{name}`{hint}; ignored.",
             SiftPytestPluginWarning,
@@ -570,6 +617,14 @@ def warn_on_unknown_toml_keys(config: pytest.Config) -> None:
             ]
             close = difflib.get_close_matches(".".join(path), same_depth, n=1, cutoff=0.6)
             hint = f" (did you mean `tool.sift.{close[0]}`?)" if close else ""
+            log_event(
+                logger,
+                logging.WARNING,
+                "config.unknown",
+                kind="toml",
+                name=full_name,
+                suggestion=f"tool.sift.{close[0]}" if close else "-",
+            )
             warnings.warn(
                 f"Unknown sift config key `{full_name}`{hint}; ignored.",
                 SiftPytestPluginWarning,
