@@ -312,9 +312,7 @@ async def _build_sift_stream_instance(
         if disk_backup_policy is not None:
             lwb_builder.disk_backup_policy = disk_backup_policy
         if checkpoint_interval_seconds is not None:
-            lwb_builder.checkpoint_interval = DurationPy(
-                secs=checkpoint_interval_seconds, nanos=0
-            )
+            lwb_builder.checkpoint_interval = DurationPy(secs=checkpoint_interval_seconds, nanos=0)
         return await lwb_builder.build()
 
 

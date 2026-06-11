@@ -604,6 +604,12 @@ class AutoRegisterStreamingClient(ResourceBase):
     _stream: SiftStreamAutoRegisterPy
 
     def __init__(self, sift_client: SiftClient, stream: SiftStreamAutoRegisterPy):
+        """Initialize an AutoRegisterStreamingClient.
+
+        Args:
+            sift_client: Authenticated Sift client used for API calls.
+            stream: Underlying auto-register stream handle from the Rust bindings.
+        """
         super().__init__(sift_client)
         self._stream = stream
 
