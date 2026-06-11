@@ -3,6 +3,74 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.10.1] - June 10, 2026
+### What's New
+
+#### `AutoRegisterStream` trait for `SiftStreamAutoRegister` (PR [#629](https://github.com/sift-stack/sift/pull/629))
+
+`SiftStreamAutoRegister` now implements the new `AutoRegisterStream` trait, which exposes the same streaming surface — `send`, `finish`, `get_flow_descriptor`, `attach_run`, `detach_run`, and `run` — through a stable async trait. This makes it straightforward to swap in a mock implementation during testing without a live connection to Sift.
+
+```rust
+#[async_trait]
+pub trait AutoRegisterStream {
+    type SendError: std::error::Error + Send + Sync + 'static;
+
+    async fn send(&mut self, flow: Flow) -> Result<(), Self::SendError>;
+    async fn finish(self) -> Result<()> where Self: Sized;
+    fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>>;
+    async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()>;
+    fn detach_run(&mut self);
+    fn run(&self) -> Option<&Run>;
+}
+```
+
+Note that `finish` carries a `where Self: Sized` bound and cannot be called through a `dyn AutoRegisterStream` object. Use generic bounds (`impl AutoRegisterStream` or `T: AutoRegisterStream`) in function signatures instead.
+
+---
+
+## [v0.10.0] - June 9, 2026
+### What's New
+
+v0.10.0 introduces `SiftStreamAutoRegister`, a wrapper around `SiftStream<IngestionConfigEncoder, T>` that handles flow registration inline.
+
+#### `SiftStreamAutoRegister` (PR [#618](https://github.com/sift-stack/sift/pull/618))
+
+`SiftStreamAutoRegister` wraps an existing `SiftStream` and registers flows with Sift on the first `send` for each new flow name. Subsequent sends for the same flow are cache hits with no extra overhead. Three registration patterns are supported:
+
+- **Pre-registered** — flows declared in `IngestionConfigForm.flows` before the stream is built are already known; no registration call is issued at runtime.
+- **Staged** — a `FlowConfig` (with units, descriptions, and other metadata) can be passed at construction time. On first send, the staged config is validated against the actual channel names and data types and, if they match, used for registration.
+- **Dynamic** — flows with no prior declaration have a minimal `FlowConfig` derived from the channel values (names and data types only) and registered automatically. No metadata can be attached this way, but it requires zero setup.
+
+`send` returns `AutoRegisterSendError<T>` in place of the underlying `SiftStreamSendError`:
+
+```rust
+pub enum AutoRegisterSendError<T> {
+    /// Flow registration with Sift failed before the send was attempted.
+    RegistrationFailed(SiftError),
+    /// The underlying stream send failed after registration succeeded.
+    StreamError(SiftStreamSendError<T>),
+    /// A staged FlowConfig was found but its channels do not match the flow.
+    StagedConfigMismatch(String),
+}
+```
+
+The wrapper exposes the same management surface as `SiftStream`: `finish`, `attach_run`, `detach_run`, `run`, `get_flow_descriptor`, and `into_inner`.
+
+See [`crates/sift_stream/examples/auto-register/main.rs`](crates/sift_stream/examples/auto-register/main.rs) for a working example covering all three registration patterns.
+
+### Bug Fixes
+
+#### MCP `get_data`: `channel_names` and `channel_regex` replace `channel_search` (PR [#620](https://github.com/sift-stack/sift/pull/620))
+
+Some MCP clients JSON-stringify object-typed parameters before transport, causing `channel_search`'s tagged-enum deserialization to fail with `unknown variant`. The parameter has been flattened into two sibling `Option` fields:
+
+- `channel_names: Option<Vec<String>>` — exact channel name list
+- `channel_regex: Option<String>` — regex pattern
+
+Exactly one must be set. Update any `get_data` calls that used `channel_search: { "Names": [...] }` to pass `channel_names: [...]` directly.
+
+---
+
 ## [v0.9.1] - May 15, 2026
 ### Bug Fixes
 

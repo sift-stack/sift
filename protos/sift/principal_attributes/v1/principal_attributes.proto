@@ -1,0 +1,749 @@
+syntax = "proto3";
+
+package sift.principal_attributes.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Principal Attribute Service"}
+};
+
+service PrincipalAttributeService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to manage ABAC principal attributes."};
+
+  // Creates a principal attribute key.
+  rpc CreatePrincipalAttributeKey(CreatePrincipalAttributeKeyRequest) returns (CreatePrincipalAttributeKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-keys"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreatePrincipalAttributeKey"
+      description: "Create a principal attribute key."
+    };
+  }
+
+  // Retrieves a principal attribute key.
+  rpc GetPrincipalAttributeKey(GetPrincipalAttributeKeyRequest) returns (GetPrincipalAttributeKeyResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-keys/{principal_attribute_key_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetPrincipalAttributeKey"
+      description: "Retrieves a principal attribute key."
+    };
+  }
+
+  // Lists principal attribute keys, respecting the provided filter.
+  rpc ListPrincipalAttributeKeys(ListPrincipalAttributeKeysRequest) returns (ListPrincipalAttributeKeysResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-keys"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListPrincipalAttributeKeys"
+      description: "Lists principal attribute keys."
+    };
+  }
+
+  // Updates an existing principal attribute key.
+  rpc UpdatePrincipalAttributeKey(UpdatePrincipalAttributeKeyRequest) returns (UpdatePrincipalAttributeKeyResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/principal-attribute-keys/{principal_attribute_key_id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdatePrincipalAttributeKey"
+      description: "Updates an existing principal attribute key."
+    };
+  }
+
+  rpc CheckPrincipalAttributeKeyArchiveImpact(CheckPrincipalAttributeKeyArchiveImpactRequest) returns (CheckPrincipalAttributeKeyArchiveImpactResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-keys/{principal_attribute_key_id}/archive-impact"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CheckPrincipalAttributeKeyArchiveImpact"
+      description: "Returns the count of active user principal-attribute values that would be archived with this key, and the count of active user-group principal-attribute value rows for this key (those rows stop contributing to evaluation once the key is archived)."
+    };
+  }
+
+  // Batch archives principal attribute keys AND all their associated principal attribute values.
+  rpc ArchivePrincipalAttributeKeys(ArchivePrincipalAttributeKeysRequest) returns (ArchivePrincipalAttributeKeysResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-keys/archive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchivePrincipalAttributeKeys"
+      description: "Archive principal attribute keys."
+    };
+  }
+
+  // Batch unarchives principal attribute keys.
+  rpc UnarchivePrincipalAttributeKeys(UnarchivePrincipalAttributeKeysRequest) returns (UnarchivePrincipalAttributeKeysResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-keys/unarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchivePrincipalAttributeKeys"
+      description: "Unarchive principal attribute keys."
+    };
+  }
+
+  // Creates a principal attribute value for multiple principals in a single operation.
+  rpc BatchCreatePrincipalAttributeValue(BatchCreatePrincipalAttributeValueRequest) returns (BatchCreatePrincipalAttributeValueResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-values/batch"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchCreatePrincipalAttributeValue"
+      description: "Creates a principal attribute value for multiple principals in a single operation."
+    };
+  }
+
+  // Retrieves a principal attribute value.
+  rpc GetPrincipalAttributeValue(GetPrincipalAttributeValueRequest) returns (GetPrincipalAttributeValueResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-values/{principal_attribute_value_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetPrincipalAttributeValue"
+      description: "Retrieves a principal attribute value."
+    };
+  }
+
+  // Lists principal attribute values for a given principal attribute key, respecting the provided filter.
+  rpc ListPrincipalAttributeKeyValues(ListPrincipalAttributeKeyValuesRequest) returns (ListPrincipalAttributeKeyValuesResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-keys/{principal_attribute_key_id}/principal-attribute-values"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListPrincipalAttributeKeyValues"
+      description: "Lists principal attribute values for a given principal attribute key."
+    };
+  }
+
+  // Lists principal attribute values, respecting the provided filter.
+  rpc ListPrincipalAttributeValues(ListPrincipalAttributeValuesRequest) returns (ListPrincipalAttributeValuesResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-values"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListPrincipalAttributeValues"
+      description: "Lists principal attribute values."
+    };
+  }
+
+  // Batch archives principal attribute values.
+  rpc ArchivePrincipalAttributeValues(ArchivePrincipalAttributeValuesRequest) returns (ArchivePrincipalAttributeValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-values/archive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchivePrincipalAttributeValues"
+      description: "Archive principal attribute values."
+    };
+  }
+
+  // Batch unarchives principal attribute values.
+  rpc UnarchivePrincipalAttributeValues(UnarchivePrincipalAttributeValuesRequest) returns (UnarchivePrincipalAttributeValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-values/unarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchivePrincipalAttributeValues"
+      description: "Unarchive principal attribute values."
+    };
+  }
+
+  // Creates a principal attribute enum value.
+  rpc CreatePrincipalAttributeEnumValue(CreatePrincipalAttributeEnumValueRequest) returns (CreatePrincipalAttributeEnumValueResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-enum-values"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreatePrincipalAttributeEnumValue"
+      description: "Create a principal attribute enum value."
+    };
+  }
+
+  // Retrieves a principal attribute enum value.
+  rpc GetPrincipalAttributeEnumValue(GetPrincipalAttributeEnumValueRequest) returns (GetPrincipalAttributeEnumValueResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-enum-values/{principal_attribute_enum_value_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetPrincipalAttributeEnumValue"
+      description: "Retrieves a principal attribute enum value."
+    };
+  }
+
+  // Lists principal attribute enum values for a given principal attribute key.
+  rpc ListPrincipalAttributeEnumValues(ListPrincipalAttributeEnumValuesRequest) returns (ListPrincipalAttributeEnumValuesResponse) {
+    option (google.api.http) = {get: "/api/v1/principal-attribute-keys/{principal_attribute_key_id}/enum-values"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListPrincipalAttributeEnumValues"
+      description: "Lists principal attribute enum values for a given principal attribute key."
+    };
+  }
+
+  // Updates an existing principal attribute enum value.
+  rpc UpdatePrincipalAttributeEnumValue(UpdatePrincipalAttributeEnumValueRequest) returns (UpdatePrincipalAttributeEnumValueResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/principal-attribute-enum-values/{principal_attribute_enum_value_id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdatePrincipalAttributeEnumValue"
+      description: "Updates an existing principal attribute enum value."
+    };
+  }
+
+  // Archives a principal attribute enum value and migrates all principal attribute values with that enum value to a replacement enum value.
+  rpc ArchivePrincipalAttributeEnumValue(ArchivePrincipalAttributeEnumValueRequest) returns (ArchivePrincipalAttributeEnumValueResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-enum-values/{archived_enum_value_id}/archive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchivePrincipalAttributeEnumValue"
+      description: "Archives a principal attribute enum value and migrates all principal attribute values with that enum value to a replacement enum value."
+    };
+  }
+
+  // Unarchives a principal attribute enum value BUT DOES NOT migrate principal attribute values with a replacement value back to the original value.
+  rpc UnarchivePrincipalAttributeEnumValue(UnarchivePrincipalAttributeEnumValueRequest) returns (UnarchivePrincipalAttributeEnumValueResponse) {
+    option (google.api.http) = {post: "/api/v1/principal-attribute-enum-values/{principal_attribute_enum_value_id}/unarchive"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchivePrincipalAttributeEnumValue"
+      description: "Unarchives a principal attribute enum value."
+    };
+  }
+
+  // Archives multiple principal attribute enum values and migrates all principal attribute values with those enum values to their respective replacement enum values.
+  rpc BatchArchivePrincipalAttributeEnumValues(BatchArchivePrincipalAttributeEnumValuesRequest) returns (BatchArchivePrincipalAttributeEnumValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-enum-values/batch-archive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchArchivePrincipalAttributeEnumValues"
+      description: "Archives multiple principal attribute enum values and migrates all principal attribute values with those enum values to their respective replacement enum values."
+    };
+  }
+
+  // Unarchives multiple principal attribute enum values BUT DOES NOT migrate principal attribute values with a replacement value back to the original value.
+  rpc BatchUnarchivePrincipalAttributeEnumValues(BatchUnarchivePrincipalAttributeEnumValuesRequest) returns (BatchUnarchivePrincipalAttributeEnumValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/principal-attribute-enum-values/batch-unarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchUnarchivePrincipalAttributeEnumValues"
+      description: "Unarchives multiple principal attribute enum values."
+    };
+  }
+}
+
+// PrincipalAttributeValueType enumerates the supported value types for a principal attribute key.
+enum PrincipalAttributeValueType {
+  PRINCIPAL_ATTRIBUTE_VALUE_TYPE_UNSPECIFIED = 0;
+  PRINCIPAL_ATTRIBUTE_VALUE_TYPE_ENUM = 1;
+  PRINCIPAL_ATTRIBUTE_VALUE_TYPE_BOOLEAN = 2;
+  PRINCIPAL_ATTRIBUTE_VALUE_TYPE_NUMBER = 3;
+  PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM = 4;
+}
+
+// PrincipalAttributePrincipalType enumerates the supported principal types for principal attribute values.
+enum PrincipalAttributePrincipalType {
+  PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED = 0;
+  PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER = 1;
+  PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP = 2;
+}
+
+message PrincipalAttributeKey {
+  string principal_attribute_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string organization_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string display_name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  PrincipalAttributeValueType type = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+  google.protobuf.Timestamp created_date = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string created_by_user_id = 7 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  google.protobuf.Timestamp modified_date = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string modified_by_user_id = 9 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  google.protobuf.Timestamp archived_date = 10 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  // Whether or not the principal attribute key is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 11 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+}
+
+// CreatePrincipalAttributeKeyRequest is used to create a new principal attribute key.
+message CreatePrincipalAttributeKeyRequest {
+  string display_name = 1 [(google.api.field_behavior) = REQUIRED];
+  string description = 2 [(google.api.field_behavior) = OPTIONAL];
+  PrincipalAttributeValueType type = 3 [(google.api.field_behavior) = REQUIRED];
+  // Optional initial enum values to create alongside the key. Only applicable for ENUM type keys.
+  repeated InitialEnumValue initial_enum_values = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Nested message for initial enum values in create requests.
+  message InitialEnumValue {
+    string display_name = 1 [(google.api.field_behavior) = REQUIRED];
+    string description = 2 [(google.api.field_behavior) = OPTIONAL];
+  }
+}
+
+// CreatePrincipalAttributeKeyResponse returns the principal attribute key from a CreatePrincipalAttributeKey call.
+message CreatePrincipalAttributeKeyResponse {
+  PrincipalAttributeKey principal_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+  // The enum values created alongside the key, if any were provided in the request.
+  repeated PrincipalAttributeEnumValue enum_values = 2;
+}
+
+// UpdatePrincipalAttributeKeyRequest is used to update an existing principal attribute key.
+message UpdatePrincipalAttributeKeyRequest {
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+  // The list of fields to be updated. The fields available to be updated are 'description'.
+  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+// UpdatePrincipalAttributeKeyResponse returns the principal attribute key from a UpdatePrincipalAttributeKey call.
+message UpdatePrincipalAttributeKeyResponse {
+  PrincipalAttributeKey principal_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CheckPrincipalAttributeKeyArchiveImpactRequest {
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CheckPrincipalAttributeKeyArchiveImpactResponse {
+  // Non-archived user principal-attribute value rows for this key that will be archived with the key
+  // (same scope as ArchivePrincipalAttributeKeys; includes multiple rows per principal for SET_OF_ENUM).
+  int64 active_user_principal_attribute_value_count = 1;
+  // Non-archived user_group_attribute_values rows for this key. They are not archived by ArchivePrincipalAttributeKeys,
+  // but stop contributing to principal.groupAttributes once the key is archived (evaluation joins active keys only).
+  int64 active_user_group_principal_attribute_value_count = 2;
+}
+
+// GetPrincipalAttributeKeyRequest is used to retrieve a principal attribute key.
+message GetPrincipalAttributeKeyRequest {
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetPrincipalAttributeKeyResponse returns a principal attribute key from a GetPrincipalAttributeKey call.
+message GetPrincipalAttributeKeyResponse {
+  PrincipalAttributeKey principal_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListPrincipalAttributeKeysRequest is used to list principal attribute keys with the provided filter.
+message ListPrincipalAttributeKeysRequest {
+  // The maximum number of principal attribute keys to return. The service may return fewer than this value.
+  // If unspecified, at most 50 principal attribute keys will be returned. The maximum value is 1000. Values
+  // above 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  // A page token, received from a previous `ListPrincipalAttributeKeys` call.
+  // Provide this to retrieve a subsequent page of principal attribute keys.
+  // When paginating, all other parameters provided to `ListPrincipalAttributeKeys` must match the previous call
+  // that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // 'principal_attribute_key_id', 'display_name', 'value_type', 'created_by_user_id', 'created_date', 'modified_by_user_id, 'modified_date'
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+  // How to order the retrieved principal attribute keys. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, 'modified_date', 'display_name', 'principal_attribute_key_id', 'value_type', 'description'
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+  string organization_id = 5 [(google.api.field_behavior) = OPTIONAL];
+  // If true, includes archived keys. Defaulta to false. Optional.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// ListPrincipalAttributeKeysResponse returns the list of principal attribute keys from a ListPrincipalAttributeKeys call.
+message ListPrincipalAttributeKeysResponse {
+  repeated PrincipalAttributeKey principal_attribute_keys = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+// ArchivePrincipalAttributeKeysRequest is used to batch archive principal attribute keys by id.
+message ArchivePrincipalAttributeKeysRequest {
+  repeated string principal_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchivePrincipalAttributeKeysResponse {}
+
+// UnarchivePrincipalAttributeKeysRequest is used to batch unarchive principal attribute keys by id.
+message UnarchivePrincipalAttributeKeysRequest {
+  repeated string principal_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchivePrincipalAttributeKeysResponse {}
+
+// Represents a possible enumerable value for ENUM type principal attribute keys.
+// Users can add new enum values as needed.
+message PrincipalAttributeEnumValue {
+  string principal_attribute_enum_value_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string principal_attribute_key_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string display_name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp created_date = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string created_by_user_id = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  google.protobuf.Timestamp modified_date = 7 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string modified_by_user_id = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  google.protobuf.Timestamp archived_date = 9 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  // Whether or not the principal attribute enum value is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 10 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+}
+
+message PrincipalAttributeEnumValueIdList {
+  repeated string ids = 1;
+}
+
+message PrincipalAttributeValue {
+  string principal_attribute_value_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string principal_attribute_key_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  // The ID of the user or user group this value is assigned to.
+  string principal_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  PrincipalAttributePrincipalType principal_type = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  string organization_id = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  oneof value {
+    string principal_attribute_enum_value_id = 6;
+    int64 number_value = 7;
+    bool boolean_value = 8;
+  }
+  string created_by_user_id = 9 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  google.protobuf.Timestamp created_date = 10 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  google.protobuf.Timestamp archived_date = 11 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  // Whether or not the principal attribute value is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 12 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  // The full principal attribute key is populated in the response.
+  PrincipalAttributeKey key = 13 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+  // Populated in responses with full enum value details.
+  PrincipalAttributeEnumValue enum_value_details = 14 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+}
+
+// BatchCreatePrincipalAttributeValueRequest is used to batch create new principal attribute values.
+message BatchCreatePrincipalAttributeValueRequest {
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated string principal_ids = 2 [(google.api.field_behavior) = REQUIRED];
+  PrincipalAttributePrincipalType principal_type = 3 [(google.api.field_behavior) = REQUIRED];
+  oneof value {
+    // For ENUM type: exactly one enum value ID.
+    string principal_attribute_enum_value_id = 4;
+    // For SET_OF_ENUM type: one or more enum value IDs representing the complete desired set.
+    // Omitted enum values that are currently active for each principal+key will be archived.
+    PrincipalAttributeEnumValueIdList principal_attribute_enum_value_ids = 5;
+    int64 number_value = 6;
+    bool boolean_value = 7;
+  }
+}
+
+// BatchCreatePrincipalAttributeValueResponse returns the principal attribute values from a BatchCreatePrincipalAttributeValue call.
+message BatchCreatePrincipalAttributeValueResponse {
+  repeated PrincipalAttributeValue principal_attribute_values = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetPrincipalAttributeValueRequest is used to retrieve a principal attribute value.
+message GetPrincipalAttributeValueRequest {
+  string principal_attribute_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+  PrincipalAttributePrincipalType principal_type = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetPrincipalAttributeValueResponse returns a principal attribute value from a GetPrincipalAttributeValue call.
+message GetPrincipalAttributeValueResponse {
+  PrincipalAttributeValue principal_attribute_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListPrincipalAttributeKeyValuesRequest is used to list principal attribute values for a given principal attribute key with the provided filter.
+message ListPrincipalAttributeKeyValuesRequest {
+  // The id of the principal attribute key to list values for.
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  PrincipalAttributePrincipalType principal_type = 2 [(google.api.field_behavior) = REQUIRED];
+  // The maximum number of principal attribute values to return. The service may return fewer than this value.
+  // If unspecified, at most 50 principal attribute values will be returned. The maximum value is 1000. Values
+  // above 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 3 [(google.api.field_behavior) = OPTIONAL];
+  // A page token, received from a previous `ListPrincipalAttributeKeyValues` call.
+  // Provide this to retrieve a subsequent page of principal attribute values.
+  // When paginating, all other parameters provided to `ListPrincipalAttributeKeyValues` must match the previous call
+  // that provided the page token. Optional.
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // 'principal_attribute_value_id', 'principal_attribute_key_id', 'principal_attribute_enum_value_id', 'number_value', 'boolean_value', 'created_date', 'created_by_user_id', 'principal_id', and 'principal_type'
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 5 [(google.api.field_behavior) = OPTIONAL];
+  // How to order the retrieved principal attribute values. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+  // If true, include archived values. Defaults to false. Optional.
+  bool include_archived = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// ListPrincipalAttributeKeyValuesResponse returns the list of principal attribute values from a ListPrincipalAttributeKeyValues call.
+message ListPrincipalAttributeKeyValuesResponse {
+  repeated PrincipalAttributeValue principal_attribute_values = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+// ListPrincipalAttributeValuesRequest is used to list principal attribute values with the provided filter.
+message ListPrincipalAttributeValuesRequest {
+  PrincipalAttributePrincipalType principal_type = 1 [(google.api.field_behavior) = REQUIRED];
+  // The maximum number of principal attribute values to return. The service may return fewer than this value.
+  // If unspecified, at most 50 principal attribute values will be returned. The maximum value is 1000. Values
+  // above 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+  // A page token, received from a previous `ListPrincipalAttributeValues` call.
+  // Provide this to retrieve a subsequent page of principal attribute values.
+  // When paginating, all other parameters provided to `ListPrincipalAttributeValues` must match the previous call
+  // that provided the page token. Optional.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // 'principal_attribute_value_id', 'principal_attribute_key_id', 'principal_attribute_enum_value_id', 'number_value', 'boolean_value', 'created_date', 'created_by_user_id', 'principal_id', and 'principal_type'.
+  // Archive state is controlled via the `include_archived` field below, not via filter.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+  // How to order the retrieved principal attribute values. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
+  // If true, include archived values. Defaults to false. Optional.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// ListPrincipalAttributeValuesResponse returns the list of principal attribute values from a ListPrincipalAttributeValues call.
+message ListPrincipalAttributeValuesResponse {
+  repeated PrincipalAttributeValue principal_attribute_values = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+// ArchivePrincipalAttributeValuesRequest is used to batch archive principal attribute values by id.
+message ArchivePrincipalAttributeValuesRequest {
+  repeated string principal_attribute_value_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  PrincipalAttributePrincipalType principal_type = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchivePrincipalAttributeValuesResponse {}
+
+// UnarchivePrincipalAttributeValuesRequest is used to batch unarchive principal attribute values by id.
+message UnarchivePrincipalAttributeValuesRequest {
+  repeated string principal_attribute_value_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  PrincipalAttributePrincipalType principal_type = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchivePrincipalAttributeValuesResponse {}
+
+// Principal Attribute Enum Value RPC messages
+message CreatePrincipalAttributeEnumValueRequest {
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 2 [(google.api.field_behavior) = REQUIRED];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message CreatePrincipalAttributeEnumValueResponse {
+  PrincipalAttributeEnumValue principal_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetPrincipalAttributeEnumValueRequest {
+  string principal_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetPrincipalAttributeEnumValueResponse {
+  PrincipalAttributeEnumValue principal_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListPrincipalAttributeEnumValuesRequest {
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of enum values to return. The service may return fewer than this value.
+  // If unspecified, at most 50 enum values will be returned. The maximum value is 100; values above
+  // 100 will be coerced to 100.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListPrincipalAttributeEnumValues` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListPrincipalAttributeEnumValues` must match
+  // the call that provided the page token.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `principal_attribute_enum_value_id`, `name`, `display_name`, `description`,
+  // `created_by_user_id`, `modified_by_user_id`, `created_date`, and `modified_date`.
+  // Archive state is controlled via the `include_archived` field below, not via filter.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved enum values. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, and `display_name`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "display_name,created_date desc"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether to include archived enum values. Defaults to false.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListPrincipalAttributeEnumValuesResponse {
+  repeated PrincipalAttributeEnumValue principal_attribute_enum_values = 1;
+  string next_page_token = 2;
+}
+
+message UpdatePrincipalAttributeEnumValueRequest {
+  string principal_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+  // The list of fields to be updated. The fields available to be updated are `description` and `archived_date`.
+  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdatePrincipalAttributeEnumValueResponse {
+  PrincipalAttributeEnumValue principal_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchivePrincipalAttributeEnumValueRequest {
+  string archived_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // When the archived_enum_value_id is archived all principal attribute values that reference it will be migrated to the replacement_enum_value_id
+  // if provided. Otherwise, user-attributes that reference it will be archived as well.
+  string replacement_enum_value_id = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ArchivePrincipalAttributeEnumValueResponse {
+  // Total number of principal attribute values migrated or archived by this operation.
+  // When a replacement enum value is provided, this represents values migrated to the new value.
+  // When no replacement is provided, this represents values that were archived.
+  int32 principal_attribute_values_migrated = 1;
+}
+
+message UnarchivePrincipalAttributeEnumValueRequest {
+  string principal_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchivePrincipalAttributeEnumValueResponse {}
+
+message BatchArchivePrincipalAttributeEnumValuesRequest {
+  message EnumValueArchival {
+    // The enum value ID to archive.
+    string archived_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+    // When the archived_enum_value_id is archived all principal attribute values that reference it will be migrated to the replacement_enum_value_id
+    // if provided. Otherwise, user-attributes that reference it will be archived as well.
+    string replacement_enum_value_id = 2 [(google.api.field_behavior) = OPTIONAL];
+  }
+
+  repeated EnumValueArchival archival_requests = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchArchivePrincipalAttributeEnumValuesResponse {
+  // Total number of principal attribute values migrated or archived across all enum value operations.
+  // This includes both values migrated to replacement values and values archived without replacement.
+  int32 total_principal_attribute_values_migrated = 1;
+}
+
+message BatchUnarchivePrincipalAttributeEnumValuesRequest {
+  repeated string principal_attribute_enum_value_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchUnarchivePrincipalAttributeEnumValuesResponse {}

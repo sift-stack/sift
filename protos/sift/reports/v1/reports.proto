@@ -80,6 +80,33 @@ service ReportService {
       description: "Canceling a report will stop the evaluation of the report and mark it as canceled. Any results that have been calculated up to the point of cancellation will be saved."
     };
   }
+
+  // List paginated rule summaries for a report.
+  rpc ListReportRuleSummaries(ListReportRuleSummariesRequest) returns (ListReportRuleSummariesResponse) {
+    option (google.api.http) = {get: "/api/v1/reports/{report_id}/rule-summaries"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListReportRuleSummaries"
+      description: "List paginated rule summaries for a specific report."
+    };
+  }
+
+  // List paginated metadata values for a report.
+  rpc ListReportMetadataValues(ListReportMetadataValuesRequest) returns (ListReportMetadataValuesResponse) {
+    option (google.api.http) = {get: "/api/v1/reports/{report_id}/metadata-values"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListReportMetadataValues"
+      description: "List paginated metadata values for a specific report."
+    };
+  }
+
+  // List reports with cumulative summary.
+  rpc ListReportsWithCumulativeSummary(ListReportsWithCumulativeSummaryRequest) returns (ListReportsWithCumulativeSummaryResponse) {
+    option (google.api.http) = {get: "/api/v1/reports:with-cumulative-summary"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListReportsWithCumulativeSummary"
+      description: "List reports with cumulative summary."
+    };
+  }
 }
 
 message Report {
@@ -104,6 +131,44 @@ message Report {
   bool is_archived = 17 [(google.api.field_behavior) = OPTIONAL];
 }
 
+// ReportWithCumulativeSummary is a projection of `Report` that replaces the per-rule `summaries`
+// list with a single `cumulative_summary` aggregated across all rules. It is returned by
+// `ListReportsWithCumulativeSummary` to keep response sizes manageable when listing many reports.
+message ReportWithCumulativeSummary {
+  // The unique identifier of the report.
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // The identifier of the report template this report was created from, if any.
+  string report_template_id = 2 [(google.api.field_behavior) = OPTIONAL];
+  // The identifier of the run associated with this report.
+  string run_id = 3 [(google.api.field_behavior) = REQUIRED];
+  // The organization this report belongs to.
+  string organization_id = 4 [(google.api.field_behavior) = REQUIRED];
+  // The display name of the report.
+  string name = 5 [(google.api.field_behavior) = REQUIRED];
+  // An optional description of the report.
+  optional string description = 6 [(google.api.field_behavior) = OPTIONAL];
+  // The identifier of the user who created the report.
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
+  // The identifier of the user who last modified the report.
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  // When the report was created.
+  google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = REQUIRED];
+  // When the report was last modified.
+  google.protobuf.Timestamp modified_date = 10 [(google.api.field_behavior) = REQUIRED];
+  // Aggregated rule summary across all rules on this report.
+  ReportCumulativeRuleSummary cumulative_summary = 11 [(google.api.field_behavior) = REQUIRED];
+  // Tags associated with this report.
+  repeated ReportTag tags = 12 [(google.api.field_behavior) = REQUIRED];
+  // The identifier of the report this report was rerun from, if any.
+  optional string rerun_from_report_id = 13 [(google.api.field_behavior) = OPTIONAL];
+  // The identifier of the job that produced this report, if any.
+  optional string job_id = 14 [(google.api.field_behavior) = OPTIONAL];
+  // When the report was archived, if it has been archived.
+  optional google.protobuf.Timestamp archived_date = 15 [(google.api.field_behavior) = OPTIONAL];
+  // Whether the report has been archived.
+  bool is_archived = 16 [(google.api.field_behavior) = OPTIONAL];
+}
+
 message ReportRuleSummary {
   string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
   string rule_client_key = 2 [(google.api.field_behavior) = OPTIONAL];
@@ -126,6 +191,38 @@ message ReportRuleSummary {
 
 message ReportTag {
   string tag_name = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Aggregated annotation and rule-status counts across all rules in a report.
+// Annotation counts (num_annotations_*) reflect the total number
+// of annotations in each state summed over every rule version in the report.
+// Rule counts (num_rules_*) reflect how many rule versions are in each
+// execution status.
+message ReportCumulativeRuleSummary {
+  // Total number of open (unresolved) annotations across all rules.
+  uint32 num_annotations_open = 1 [(google.api.field_behavior) = REQUIRED];
+  // Total number of failed (flagged) annotations across all rules.
+  uint32 num_annotations_failed = 2 [(google.api.field_behavior) = REQUIRED];
+  // Total number of passed (resolved) annotations across all rules.
+  uint32 num_annotations_passed = 3 [(google.api.field_behavior) = REQUIRED];
+  // Total number of annotations across all rules (open + failed + passed).
+  uint32 num_annotations_total = 4 [(google.api.field_behavior) = REQUIRED];
+  // Number of rule versions in CREATED status.
+  uint32 num_rules_created = 5 [(google.api.field_behavior) = REQUIRED];
+  // Number of rule versions currently running (LIVE status).
+  uint32 num_rules_live = 6 [(google.api.field_behavior) = REQUIRED];
+  // Number of rule versions that finished successfully.
+  uint32 num_rules_finished = 7 [(google.api.field_behavior) = REQUIRED];
+  // Number of rule versions that failed during execution.
+  uint32 num_rules_failed = 8 [(google.api.field_behavior) = REQUIRED];
+  // Number of rule versions that were canceled.
+  uint32 num_rules_canceled = 9 [(google.api.field_behavior) = REQUIRED];
+  // Number of rule versions that encountered an error.
+  uint32 num_rules_error = 10 [(google.api.field_behavior) = REQUIRED];
+  // Total number of rule versions across all statuses.
+  uint32 num_rules_total = 11 [(google.api.field_behavior) = REQUIRED];
+  // Number of finished rule versions that produced no annotations.
+  uint32 num_of_rules_without_annotations = 12 [(google.api.field_behavior) = REQUIRED];
 }
 
 enum ReportRuleStatus {
@@ -271,6 +368,43 @@ message ListReportsResponse {
   string next_page_token = 2;
 }
 
+// The request for a call to `ReportService_ListReportsWithCumulativeSummary` to retrieve reports.
+message ListReportsWithCumulativeSummaryRequest {
+  // The maximum number of reports to return. The service may return fewer than this value.
+  // If unspecified, at most 50 reports will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListReportsWithCumulativeSummary` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListReportsWithCumulativeSummary` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`, `created_date`,
+  // `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `name`, `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `ReportService_ListReportsWithCumulativeSummaryResponse`.
+message ListReportsWithCumulativeSummaryResponse {
+  repeated ReportWithCumulativeSummary reports = 1;
+  string next_page_token = 2;
+}
+
 message RerunReportRequest {
   string report_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
@@ -298,4 +432,61 @@ message UpdateReportRequest {
 
 message UpdateReportResponse {
   // no response fields
+}
+
+// The request for a call to `ReportService_ListReportRuleSummaries`.
+message ListReportRuleSummariesRequest {
+  // The report whose rule summaries to list.
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of rule summaries to return. The service may return fewer than this value.
+  // If unspecified, at most 50 rule summaries will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListReportRuleSummaries` call.
+  // Provide this to retrieve the subsequent page. Optional.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `rule_id`, `rule_version_id`, `asset_id`, `status`,
+  // `created_date`, and `modified_date`. Optional.
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved rule summaries. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order by are `display_order`, `created_date`, and `modified_date`.
+  // If left empty, items are ordered by `display_order` ascending.
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `ReportService_ListReportRuleSummaries`.
+message ListReportRuleSummariesResponse {
+  repeated ReportRuleSummary report_rule_summaries = 1;
+  string next_page_token = 2;
+}
+
+// The request for a call to `ReportService_ListReportMetadataValues`.
+message ListReportMetadataValuesRequest {
+  // The report whose metadata values to list.
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of metadata values to return. The service may return fewer than this value.
+  // If unspecified, at most 50 metadata values will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListReportMetadataValues` call.
+  // Provide this to retrieve the subsequent page. Optional.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `key_name`, `value_string`, `value_number`, `value_boolean`,
+  // `key_is_archived`, and `value_is_archived`. Optional.
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `ReportService_ListReportMetadataValues`.
+message ListReportMetadataValuesResponse {
+  repeated sift.metadata.v1.MetadataValue metadata_values = 1;
+  string next_page_token = 2;
 }

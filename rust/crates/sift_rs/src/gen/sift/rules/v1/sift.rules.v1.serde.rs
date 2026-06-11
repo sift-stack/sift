@@ -4928,6 +4928,9 @@ impl serde::Serialize for Rule {
         if !self.current_version_id.is_empty() {
             len += 1;
         }
+        if !self.folder_ids.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.Rule", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -4995,6 +4998,9 @@ impl serde::Serialize for Rule {
         if !self.current_version_id.is_empty() {
             struct_ser.serialize_field("currentVersionId", &self.current_version_id)?;
         }
+        if !self.folder_ids.is_empty() {
+            struct_ser.serialize_field("folderIds", &self.folder_ids)?;
+        }
         struct_ser.end()
     }
 }
@@ -5045,6 +5051,8 @@ impl<'de> serde::Deserialize<'de> for Rule {
             "isLiveEvaluationEnabled",
             "current_version_id",
             "currentVersionId",
+            "folder_ids",
+            "folderIds",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5071,6 +5079,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
             IsArchived,
             IsLiveEvaluationEnabled,
             CurrentVersionId,
+            FolderIds,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -5114,6 +5123,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "isLiveEvaluationEnabled" | "is_live_evaluation_enabled" => Ok(GeneratedField::IsLiveEvaluationEnabled),
                             "currentVersionId" | "current_version_id" => Ok(GeneratedField::CurrentVersionId),
+                            "folderIds" | "folder_ids" => Ok(GeneratedField::FolderIds),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -5155,6 +5165,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                 let mut is_archived__ = None;
                 let mut is_live_evaluation_enabled__ = None;
                 let mut current_version_id__ = None;
+                let mut folder_ids__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -5289,6 +5300,12 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             }
                             current_version_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::FolderIds => {
+                            if folder_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("folderIds"));
+                            }
+                            folder_ids__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Rule {
@@ -5314,6 +5331,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                     is_archived: is_archived__.unwrap_or_default(),
                     is_live_evaluation_enabled: is_live_evaluation_enabled__.unwrap_or_default(),
                     current_version_id: current_version_id__.unwrap_or_default(),
+                    folder_ids: folder_ids__.unwrap_or_default(),
                 })
             }
         }

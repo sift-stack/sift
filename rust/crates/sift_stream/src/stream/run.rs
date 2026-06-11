@@ -406,6 +406,26 @@ mod tests {
                 "create_automatic_run_association_for_assets not needed for these tests",
             ))
         }
+
+        async fn get_filter_fields(
+            &self,
+            _request: Request<sift_rs::runs::v2::GetFilterFieldsRequest>,
+        ) -> std::result::Result<Response<sift_rs::runs::v2::GetFilterFieldsResponse>, Status>
+        {
+            Err(Status::unimplemented(
+                "get_filter_fields not needed for these tests",
+            ))
+        }
+
+        async fn validate_run_filter(
+            &self,
+            _request: Request<sift_rs::runs::v2::ValidateRunFilterRequest>,
+        ) -> std::result::Result<Response<sift_rs::runs::v2::ValidateRunFilterResponse>, Status>
+        {
+            Err(Status::unimplemented(
+                "validate_run_filter not needed for these tests",
+            ))
+        }
     }
 
     fn parse_client_key_filter(filter: &str) -> Option<String> {

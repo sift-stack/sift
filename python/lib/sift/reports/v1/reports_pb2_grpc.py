@@ -49,6 +49,21 @@ class ReportServiceStub(object):
                 request_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.CancelReportRequest.SerializeToString,
                 response_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.CancelReportResponse.FromString,
                 )
+        self.ListReportRuleSummaries = channel.unary_unary(
+                '/sift.reports.v1.ReportService/ListReportRuleSummaries',
+                request_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportRuleSummariesRequest.SerializeToString,
+                response_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportRuleSummariesResponse.FromString,
+                )
+        self.ListReportMetadataValues = channel.unary_unary(
+                '/sift.reports.v1.ReportService/ListReportMetadataValues',
+                request_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportMetadataValuesRequest.SerializeToString,
+                response_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportMetadataValuesResponse.FromString,
+                )
+        self.ListReportsWithCumulativeSummary = channel.unary_unary(
+                '/sift.reports.v1.ReportService/ListReportsWithCumulativeSummary',
+                request_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportsWithCumulativeSummaryRequest.SerializeToString,
+                response_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportsWithCumulativeSummaryResponse.FromString,
+                )
 
 
 class ReportServiceServicer(object):
@@ -103,6 +118,27 @@ class ReportServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListReportRuleSummaries(self, request, context):
+        """List paginated rule summaries for a report.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListReportMetadataValues(self, request, context):
+        """List paginated metadata values for a report.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListReportsWithCumulativeSummary(self, request, context):
+        """List reports with cumulative summary.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ReportServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -135,6 +171,21 @@ def add_ReportServiceServicer_to_server(servicer, server):
                     servicer.CancelReport,
                     request_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.CancelReportRequest.FromString,
                     response_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.CancelReportResponse.SerializeToString,
+            ),
+            'ListReportRuleSummaries': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListReportRuleSummaries,
+                    request_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportRuleSummariesRequest.FromString,
+                    response_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportRuleSummariesResponse.SerializeToString,
+            ),
+            'ListReportMetadataValues': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListReportMetadataValues,
+                    request_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportMetadataValuesRequest.FromString,
+                    response_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportMetadataValuesResponse.SerializeToString,
+            ),
+            'ListReportsWithCumulativeSummary': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListReportsWithCumulativeSummary,
+                    request_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportsWithCumulativeSummaryRequest.FromString,
+                    response_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportsWithCumulativeSummaryResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -250,5 +301,56 @@ class ReportService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.reports.v1.ReportService/CancelReport',
             sift_dot_reports_dot_v1_dot_reports__pb2.CancelReportRequest.SerializeToString,
             sift_dot_reports_dot_v1_dot_reports__pb2.CancelReportResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListReportRuleSummaries(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.reports.v1.ReportService/ListReportRuleSummaries',
+            sift_dot_reports_dot_v1_dot_reports__pb2.ListReportRuleSummariesRequest.SerializeToString,
+            sift_dot_reports_dot_v1_dot_reports__pb2.ListReportRuleSummariesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListReportMetadataValues(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.reports.v1.ReportService/ListReportMetadataValues',
+            sift_dot_reports_dot_v1_dot_reports__pb2.ListReportMetadataValuesRequest.SerializeToString,
+            sift_dot_reports_dot_v1_dot_reports__pb2.ListReportMetadataValuesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListReportsWithCumulativeSummary(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.reports.v1.ReportService/ListReportsWithCumulativeSummary',
+            sift_dot_reports_dot_v1_dot_reports__pb2.ListReportsWithCumulativeSummaryRequest.SerializeToString,
+            sift_dot_reports_dot_v1_dot_reports__pb2.ListReportsWithCumulativeSummaryResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -6,7 +6,8 @@ use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{
-    FileBackup, Flow, LiveStreamingOnly, LiveStreamingWithBackups, SiftStreamAutoRegister,
+    AutoRegisterStream, FileBackup, Flow, LiveStreamingOnly, LiveStreamingWithBackups,
+    SiftStreamAutoRegister,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;

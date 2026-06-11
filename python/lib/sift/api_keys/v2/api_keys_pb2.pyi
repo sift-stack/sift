@@ -172,6 +172,12 @@ class CreateApiKeyRequest(google.protobuf.message.Message):
     name: builtins.str
     """The name for the new ApiKey. Required."""
     user_id: builtins.str
+    """The id of the user the new key will authenticate as. Must equal the id of
+    the calling user; creating an API key on behalf of another user is no
+    longer supported and the service will return INVALID_ARGUMENT if the
+    values differ. The field is retained for backwards compatibility with
+    existing clients and may be marked deprecated in a future revision.
+    """
     def __init__(
         self,
         *,

@@ -20,9 +20,9 @@ use pbjson_types::Timestamp;
 use sift_connect::{SiftChannel, grpc::interceptor::AuthInterceptor};
 use sift_rs::assets::v1::asset_service_server::{AssetService, AssetServiceServer};
 use sift_rs::assets::v1::{
-    ArchiveAssetRequest, ArchiveAssetResponse, Asset, DeleteAssetRequest, DeleteAssetResponse,
-    GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse, UpdateAssetRequest,
-    UpdateAssetResponse,
+    ArchiveAssetRequest, ArchiveAssetResponse, Asset, CreateAssetRequest, CreateAssetResponse,
+    DeleteAssetRequest, DeleteAssetResponse, GetAssetRequest, GetAssetResponse, ListAssetsRequest,
+    ListAssetsResponse, UpdateAssetRequest, UpdateAssetResponse,
 };
 use sift_rs::ingest::v1::{
     IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
@@ -45,12 +45,14 @@ use sift_rs::runs::v2::run_service_server::{RunService, RunServiceServer};
 use sift_rs::runs::v2::{
     CreateAdhocRunRequest, CreateAdhocRunResponse, CreateAutomaticRunAssociationForAssetsRequest,
     CreateAutomaticRunAssociationForAssetsResponse, CreateRunRequest, CreateRunResponse,
-    DeleteRunRequest, DeleteRunResponse, GetRunRequest, GetRunResponse, ListRunsRequest,
-    ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
+    DeleteRunRequest, DeleteRunResponse, GetFilterFieldsRequest, GetFilterFieldsResponse,
+    GetRunRequest, GetRunResponse, ListRunsRequest, ListRunsResponse, Run, StopRunRequest,
+    StopRunResponse, UpdateRunRequest, UpdateRunResponse, ValidateRunFilterRequest,
+    ValidateRunFilterResponse,
 };
 use sift_stream::{
-    AutoRegisterSendError, ChannelConfig, ChannelDataType, ChannelValue, Flow, IngestionConfigForm,
-    SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
+    AutoRegisterSendError, AutoRegisterStream, ChannelConfig, ChannelDataType, ChannelValue, Flow,
+    IngestionConfigForm, SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
 };
 use tokio::task::JoinHandle;
 use tokio_stream::StreamExt;
@@ -277,6 +279,12 @@ impl AssetService for MinimalAssetService {
     ) -> Result<Response<ArchiveAssetResponse>, Status> {
         Err(Status::unimplemented(""))
     }
+    async fn create_asset(
+        &self,
+        _: Request<CreateAssetRequest>,
+    ) -> Result<Response<CreateAssetResponse>, Status> {
+        Err(Status::unimplemented(""))
+    }
 }
 
 fn test_run() -> Run {
@@ -366,6 +374,18 @@ impl RunService for MinimalRunService {
         &self,
         _: Request<CreateAutomaticRunAssociationForAssetsRequest>,
     ) -> Result<Response<CreateAutomaticRunAssociationForAssetsResponse>, Status> {
+        Err(Status::unimplemented(""))
+    }
+    async fn get_filter_fields(
+        &self,
+        _: Request<GetFilterFieldsRequest>,
+    ) -> Result<Response<GetFilterFieldsResponse>, Status> {
+        Err(Status::unimplemented(""))
+    }
+    async fn validate_run_filter(
+        &self,
+        _: Request<ValidateRunFilterRequest>,
+    ) -> Result<Response<ValidateRunFilterResponse>, Status> {
         Err(Status::unimplemented(""))
     }
 }

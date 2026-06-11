@@ -43,9 +43,10 @@ from sift.test_reports.v1.test_reports_pb2_grpc import TestReportServiceStub
 from sift_client._internal.low_level_wrappers._test_results_log import (
     LogTracking,
     ReplayResult,
+    _read_log_lines,
     _ReplayState,
-    iter_log_data_lines,
     log_request_to_file,
+    parse_log_data_lines,
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.test_report import (
@@ -381,7 +382,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_report_response(request)
             if log_file is not None:
-                log_request_to_file(
+                await log_request_to_file(
                     log_file,
                     "CreateTestReport",
                     request,
@@ -504,7 +505,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         if log_file is not None or simulate:
             if log_file is not None:
-                log_request_to_file(log_file, "UpdateTestReport", request)
+                await log_request_to_file(log_file, "UpdateTestReport", request)
             return self.simulate_update_test_report_response(request, existing=existing)
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestReport(request)
@@ -554,7 +555,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_step_response(request)
             if log_file is not None:
-                log_request_to_file(
+                await log_request_to_file(
                     log_file,
                     "CreateTestStep",
                     request,
@@ -660,7 +661,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         if log_file is not None or simulate:
             if log_file is not None:
-                log_request_to_file(log_file, "UpdateTestStep", request)
+                await log_request_to_file(log_file, "UpdateTestStep", request)
             return self.simulate_update_test_step_response(request, existing=existing)
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestStep(request)
@@ -710,7 +711,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             simulated_proto = self.simulate_create_test_measurement_response(request)
             if log_file is not None:
-                log_request_to_file(
+                await log_request_to_file(
                     log_file,
                     "CreateTestMeasurement",
                     request,
@@ -751,7 +752,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if log_file is not None or simulate:
             count, measurement_ids = self.simulate_create_test_measurements_response(request)
             if log_file is not None:
-                log_request_to_file(
+                await log_request_to_file(
                     log_file,
                     "CreateTestMeasurements",
                     request,
@@ -860,7 +861,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         if log_file is not None or simulate:
             if log_file is not None:
-                log_request_to_file(log_file, "UpdateTestMeasurement", request)
+                await log_request_to_file(log_file, "UpdateTestMeasurement", request)
             return self.simulate_update_test_measurement_response(request, existing=existing)
 
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestMeasurement(
@@ -1118,7 +1119,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map: dict[str, str] = {}
         state = _ReplayState()
 
-        for request_type, response_id, json_str in iter_log_data_lines(log_path):
+        raw_lines = await _read_log_lines(log_path)
+        for request_type, response_id, json_str in parse_log_data_lines(raw_lines):
             await self._import_entry(
                 request_type,
                 response_id,
@@ -1187,8 +1189,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map = tracking.id_map
         state = _ReplayState()
 
-        for request_type, response_id, json_str in iter_log_data_lines(
-            log_path, start_line=tracking.last_uploaded_line
+        raw_lines = await _read_log_lines(log_path)
+        for request_type, response_id, json_str in parse_log_data_lines(
+            raw_lines, start_line=tracking.last_uploaded_line
         ):
             await self._import_entry(
                 request_type,

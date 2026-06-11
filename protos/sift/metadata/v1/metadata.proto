@@ -141,6 +141,8 @@ enum MetadataKeyType {
   METADATA_KEY_TYPE_NUMBER = 2;
   // boolean
   METADATA_KEY_TYPE_BOOLEAN = 3;
+  // relation — references another resource by UUID (e.g. folder membership)
+  METADATA_KEY_TYPE_RELATION = 4;
 }
 
 message MetadataKey {
@@ -151,12 +153,18 @@ message MetadataKey {
   bool is_archived = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
+message MetadataRelationValue {
+  string resource_type = 1 [(google.api.field_behavior) = REQUIRED];
+  string resource_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
 message MetadataValue {
   MetadataKey key = 1 [(google.api.field_behavior) = REQUIRED];
   oneof value {
     string string_value = 2;
     double number_value = 3;
     bool boolean_value = 4;
+    MetadataRelationValue relation_value = 7;
   }
   google.protobuf.Timestamp archived_date = 5 [(google.api.field_behavior) = OPTIONAL];
   // Whether the metadata value is archived. This is inferred from whether archived_date is set.

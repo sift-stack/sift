@@ -1965,6 +1965,7 @@ impl serde::Serialize for MetadataKeyType {
             Self::String => "METADATA_KEY_TYPE_STRING",
             Self::Number => "METADATA_KEY_TYPE_NUMBER",
             Self::Boolean => "METADATA_KEY_TYPE_BOOLEAN",
+            Self::Relation => "METADATA_KEY_TYPE_RELATION",
         };
         serializer.serialize_str(variant)
     }
@@ -1980,6 +1981,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKeyType {
             "METADATA_KEY_TYPE_STRING",
             "METADATA_KEY_TYPE_NUMBER",
             "METADATA_KEY_TYPE_BOOLEAN",
+            "METADATA_KEY_TYPE_RELATION",
         ];
 
         struct GeneratedVisitor;
@@ -2024,11 +2026,122 @@ impl<'de> serde::Deserialize<'de> for MetadataKeyType {
                     "METADATA_KEY_TYPE_STRING" => Ok(MetadataKeyType::String),
                     "METADATA_KEY_TYPE_NUMBER" => Ok(MetadataKeyType::Number),
                     "METADATA_KEY_TYPE_BOOLEAN" => Ok(MetadataKeyType::Boolean),
+                    "METADATA_KEY_TYPE_RELATION" => Ok(MetadataKeyType::Relation),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
         }
         deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for MetadataRelationValue {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.resource_type.is_empty() {
+            len += 1;
+        }
+        if !self.resource_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.metadata.v1.MetadataRelationValue", len)?;
+        if !self.resource_type.is_empty() {
+            struct_ser.serialize_field("resourceType", &self.resource_type)?;
+        }
+        if !self.resource_id.is_empty() {
+            struct_ser.serialize_field("resourceId", &self.resource_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for MetadataRelationValue {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "resource_type",
+            "resourceType",
+            "resource_id",
+            "resourceId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ResourceType,
+            ResourceId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "resourceType" | "resource_type" => Ok(GeneratedField::ResourceType),
+                            "resourceId" | "resource_id" => Ok(GeneratedField::ResourceId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = MetadataRelationValue;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.metadata.v1.MetadataRelationValue")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<MetadataRelationValue, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut resource_type__ = None;
+                let mut resource_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ResourceType => {
+                            if resource_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("resourceType"));
+                            }
+                            resource_type__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ResourceId => {
+                            if resource_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("resourceId"));
+                            }
+                            resource_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(MetadataRelationValue {
+                    resource_type: resource_type__.unwrap_or_default(),
+                    resource_id: resource_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.metadata.v1.MetadataRelationValue", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for MetadataUsage {
@@ -2199,6 +2312,9 @@ impl serde::Serialize for MetadataValue {
                 metadata_value::Value::BooleanValue(v) => {
                     struct_ser.serialize_field("booleanValue", v)?;
                 }
+                metadata_value::Value::RelationValue(v) => {
+                    struct_ser.serialize_field("relationValue", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -2222,6 +2338,8 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
             "numberValue",
             "boolean_value",
             "booleanValue",
+            "relation_value",
+            "relationValue",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2232,6 +2350,7 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
             StringValue,
             NumberValue,
             BooleanValue,
+            RelationValue,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2259,6 +2378,7 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
                             "stringValue" | "string_value" => Ok(GeneratedField::StringValue),
                             "numberValue" | "number_value" => Ok(GeneratedField::NumberValue),
                             "booleanValue" | "boolean_value" => Ok(GeneratedField::BooleanValue),
+                            "relationValue" | "relation_value" => Ok(GeneratedField::RelationValue),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2319,6 +2439,13 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
                                 return Err(serde::de::Error::duplicate_field("booleanValue"));
                             }
                             value__ = map_.next_value::<::std::option::Option<_>>()?.map(metadata_value::Value::BooleanValue);
+                        }
+                        GeneratedField::RelationValue => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("relationValue"));
+                            }
+                            value__ = map_.next_value::<::std::option::Option<_>>()?.map(metadata_value::Value::RelationValue)
+;
                         }
                     }
                 }

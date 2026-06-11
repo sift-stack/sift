@@ -33,6 +33,18 @@ service AssetService {
     };
   }
 
+  // Creates a new, empty asset.
+  rpc CreateAsset(CreateAssetRequest) returns (CreateAssetResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/assets"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateAsset"
+      description: "Creates a new, empty asset."
+    };
+  }
+
   // Retrieves an asset.
   rpc GetAsset(GetAssetRequest) returns (GetAssetResponse) {
     option (google.api.http) = {get: "/api/v1/assets/{asset_id}"};
@@ -142,6 +154,24 @@ message DeleteAssetRequest {
 // The response of a call to `AssetService_DeleteAsset`.
 // Deprecated: Use ArchiveAssetResponse instead.
 message DeleteAssetResponse {}
+
+// The request for a call to `AssetService_CreateAsset` to create a single new, empty asset.
+message CreateAssetRequest {
+  // The name of the asset to create. Must be unique within the organization. Required.
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The names of the tags to associate with this asset. Optional.
+  repeated string tags = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The metadata values to associate with this asset. Optional.
+  repeated sift.metadata.v1.MetadataValue metadata = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `AssetService_CreateAsset`.
+message CreateAssetResponse {
+  // The newly created asset.
+  Asset asset = 1;
+}
 
 // The request for a call to `AssetService_GetAsset` to retrieve a single existing asset by its asset_id.
 message GetAssetRequest {

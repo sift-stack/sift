@@ -66,6 +66,24 @@ class ReportServiceStub:
     calculated up to the point of cancellation will be saved.
     """
 
+    ListReportRuleSummaries: grpc.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.ListReportRuleSummariesRequest,
+        sift.reports.v1.reports_pb2.ListReportRuleSummariesResponse,
+    ]
+    """List paginated rule summaries for a report."""
+
+    ListReportMetadataValues: grpc.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.ListReportMetadataValuesRequest,
+        sift.reports.v1.reports_pb2.ListReportMetadataValuesResponse,
+    ]
+    """List paginated metadata values for a report."""
+
+    ListReportsWithCumulativeSummary: grpc.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.ListReportsWithCumulativeSummaryRequest,
+        sift.reports.v1.reports_pb2.ListReportsWithCumulativeSummaryResponse,
+    ]
+    """List reports with cumulative summary."""
+
 class ReportServiceAsyncStub:
     """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
     RESOURCE_TYPE_REPORT (which the policy evaluation service does not yet support). RPCs that have
@@ -113,6 +131,24 @@ class ReportServiceAsyncStub:
     """Canceling a report will stop the evaluation of the report and mark it as canceled. Any results that have been
     calculated up to the point of cancellation will be saved.
     """
+
+    ListReportRuleSummaries: grpc.aio.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.ListReportRuleSummariesRequest,
+        sift.reports.v1.reports_pb2.ListReportRuleSummariesResponse,
+    ]
+    """List paginated rule summaries for a report."""
+
+    ListReportMetadataValues: grpc.aio.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.ListReportMetadataValuesRequest,
+        sift.reports.v1.reports_pb2.ListReportMetadataValuesResponse,
+    ]
+    """List paginated metadata values for a report."""
+
+    ListReportsWithCumulativeSummary: grpc.aio.UnaryUnaryMultiCallable[
+        sift.reports.v1.reports_pb2.ListReportsWithCumulativeSummaryRequest,
+        sift.reports.v1.reports_pb2.ListReportsWithCumulativeSummaryResponse,
+    ]
+    """List reports with cumulative summary."""
 
 class ReportServiceServicer(metaclass=abc.ABCMeta):
     """Report access is gated on the parent run's view_details (RESOURCE_TYPE_RUN), not on
@@ -173,5 +209,29 @@ class ReportServiceServicer(metaclass=abc.ABCMeta):
         """Canceling a report will stop the evaluation of the report and mark it as canceled. Any results that have been
         calculated up to the point of cancellation will be saved.
         """
+
+    @abc.abstractmethod
+    def ListReportRuleSummaries(
+        self,
+        request: sift.reports.v1.reports_pb2.ListReportRuleSummariesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.reports.v1.reports_pb2.ListReportRuleSummariesResponse, collections.abc.Awaitable[sift.reports.v1.reports_pb2.ListReportRuleSummariesResponse]]:
+        """List paginated rule summaries for a report."""
+
+    @abc.abstractmethod
+    def ListReportMetadataValues(
+        self,
+        request: sift.reports.v1.reports_pb2.ListReportMetadataValuesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.reports.v1.reports_pb2.ListReportMetadataValuesResponse, collections.abc.Awaitable[sift.reports.v1.reports_pb2.ListReportMetadataValuesResponse]]:
+        """List paginated metadata values for a report."""
+
+    @abc.abstractmethod
+    def ListReportsWithCumulativeSummary(
+        self,
+        request: sift.reports.v1.reports_pb2.ListReportsWithCumulativeSummaryRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.reports.v1.reports_pb2.ListReportsWithCumulativeSummaryResponse, collections.abc.Awaitable[sift.reports.v1.reports_pb2.ListReportsWithCumulativeSummaryResponse]]:
+        """List reports with cumulative summary."""
 
 def add_ReportServiceServicer_to_server(servicer: ReportServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

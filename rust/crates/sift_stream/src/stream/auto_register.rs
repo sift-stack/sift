@@ -4,6 +4,7 @@ use crate::stream::mode::ingestion_config::{Flow, IngestionConfigEncoder};
 use crate::stream::run::RunSelector;
 use crate::stream::send_error::SiftStreamSendError;
 use crate::stream::{Encoder, MetricsSnapshot, Transport};
+use async_trait::async_trait;
 use sift_error::prelude::{Error as SiftError, Result};
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
@@ -96,6 +97,64 @@ impl<T: fmt::Debug> fmt::Display for AutoRegisterSendError<T> {
 
 impl<T: fmt::Debug> std::error::Error for AutoRegisterSendError<T> {}
 
+/// Trait for an auto-registering Sift stream.
+///
+/// Implement this trait to create mock implementations for testing without a live connection to
+/// Sift. [`SiftStreamAutoRegister`] is the production implementation.
+///
+/// `finish` carries a `where Self: Sized` bound, which means it cannot be called through a
+/// `dyn AutoRegisterStream` trait object. Use generic bounds (`impl AutoRegisterStream` or
+/// `T: AutoRegisterStream`) instead.
+#[async_trait]
+pub trait AutoRegisterStream {
+    /// Error type returned by [`send`](Self::send).
+    type SendError: std::error::Error + Send + Sync + 'static;
+
+    /// Send a flow, auto-registering it with Sift if not already in the local cache.
+    ///
+    /// On the first call for a given `flow_name`, the flow is registered before the message is
+    /// sent. Subsequent calls for the same flow skip registration entirely.
+    ///
+    /// If a staged [`FlowConfig`] was provided for this flow at construction time, it is used
+    /// for registration (preserving descriptions, units, and other metadata). The staged config
+    /// is validated against the flow's channel names and data types before use — if they do not
+    /// match, [`AutoRegisterSendError::StagedConfigMismatch`] is returned and the staged config
+    /// is retained for the next attempt. If no staged config exists, a minimal config is derived
+    /// from the flow itself.
+    ///
+    /// # Errors
+    ///
+    /// - [`AutoRegisterSendError::StagedConfigMismatch`] — a staged config was found but its
+    ///   channels do not match the provided flow. The flow was not sent.
+    /// - [`AutoRegisterSendError::RegistrationFailed`] — the Sift API call to register the
+    ///   flow failed. The flow was not sent.
+    /// - [`AutoRegisterSendError::StreamError`] — registration succeeded but the underlying
+    ///   channel send failed (encode error or channel closed).
+    async fn send(&mut self, flow: Flow) -> std::result::Result<(), Self::SendError>;
+
+    /// Drain remaining data and shut down the stream.
+    ///
+    /// Must be called when ingestion is complete to avoid data loss.
+    async fn finish(self) -> Result<()>
+    where
+        Self: Sized;
+
+    /// Get the flow descriptor for a given flow name from the local cache.
+    ///
+    /// Returns `Err` if the flow has not yet been registered (either via a prior `send` call or
+    /// during stream initialization).
+    fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>>;
+
+    /// Attach a run to the stream. Data sent after this call will be associated with the run.
+    async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()>;
+
+    /// Detach the run currently associated with the stream, if any.
+    fn detach_run(&mut self);
+
+    /// Return the attached run, if one exists.
+    fn run(&self) -> Option<&Run>;
+}
+
 /// Convenience wrapper around [`SiftStream<IngestionConfigEncoder, T>`] that auto-registers
 /// flows on first `send`.
 ///
@@ -139,91 +198,6 @@ where
         }
     }
 
-    /// Send a flow, auto-registering it with Sift if not already in the local cache.
-    ///
-    /// On the first call for a given `flow_name`, the flow is registered via
-    /// [`IngestionConfigEncoder::add_new_flows`] before the message is sent. Subsequent calls
-    /// for the same flow skip registration entirely.
-    ///
-    /// If a staged [`FlowConfig`] was provided for this flow at construction time, it is used
-    /// for registration (preserving descriptions, units, and other metadata). The staged config
-    /// is validated against the flow's channel names and data types before use — if they do not
-    /// match, [`AutoRegisterSendError::StagedConfigMismatch`] is returned and the staged config
-    /// is retained for the next attempt. If no staged config exists, a minimal config is derived
-    /// from the flow itself.
-    ///
-    /// # Errors
-    ///
-    /// - [`AutoRegisterSendError::StagedConfigMismatch`] — a staged config was found but its
-    ///   channels do not match the provided flow. The flow was not sent.
-    /// - [`AutoRegisterSendError::RegistrationFailed`] — the Sift API call to register the
-    ///   flow failed. The flow was not sent.
-    /// - [`AutoRegisterSendError::StreamError`] — registration succeeded but the underlying
-    ///   channel send failed (encode error or channel closed).
-    pub async fn send(
-        &mut self,
-        flow: Flow,
-    ) -> std::result::Result<(), AutoRegisterSendError<T::Message>> {
-        if self.inner.get_flow_descriptor(&flow.flow_name).is_err() {
-            // If there is a staged config, validate it against the flow and then
-            // register it.
-            //
-            // Otherwise, create a minimal flow config, and register that.
-            let flow_config = if let Some(staged) = self.staged_configs.get(&flow.flow_name) {
-                validate_staged_config(&flow, staged)
-                    .map_err(AutoRegisterSendError::StagedConfigMismatch)?;
-
-                std::slice::from_ref(staged)
-            } else {
-                &[flow_config_from_flow(&flow)]
-            };
-
-            // Register the new flow with Sift.
-            self.inner
-                .add_new_flows(flow_config)
-                .await
-                .map_err(AutoRegisterSendError::RegistrationFailed)?;
-
-            // After successful registration, remove the staged flow.
-            self.staged_configs.remove(&flow.flow_name);
-        }
-        self.inner
-            .send(flow)
-            .await
-            .map_err(AutoRegisterSendError::StreamError)
-    }
-
-    /// Drain remaining data and shut down the stream. Must be called when ingestion is complete.
-    pub async fn finish(self) -> Result<()> {
-        self.inner.finish().await
-    }
-
-    /// Get the flow descriptor for a given flow name from the local cache.
-    ///
-    /// Returns `Err` if the flow has not yet been registered (either via a prior `send` call or
-    /// during stream initialization).
-    pub fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
-        self.inner.get_flow_descriptor(flow_name)
-    }
-
-    /// Attach a run to the stream.
-    ///
-    /// Any data provided through [`send`](Self::send) after this call will be associated with
-    /// the run.
-    pub async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()> {
-        self.inner.attach_run(run_selector).await
-    }
-
-    /// Detach the run, if any, currently associated with the stream.
-    pub fn detach_run(&mut self) {
-        self.inner.detach_run()
-    }
-
-    /// Return the attached run, if one exists.
-    pub fn run(&self) -> Option<&Run> {
-        self.inner.run()
-    }
-
     #[cfg(feature = "metrics-unstable")]
     /// Retrieve a snapshot of the current stream metrics.
     pub fn get_metrics_snapshot(&self) -> crate::metrics::SiftStreamMetricsSnapshot {
@@ -233,6 +207,66 @@ where
     /// Consume the wrapper and return the inner [`SiftStream`].
     pub fn into_inner(self) -> SiftStream<IngestionConfigEncoder, T> {
         self.inner
+    }
+}
+
+#[async_trait]
+impl<T> AutoRegisterStream for SiftStreamAutoRegister<T>
+where
+    T: Transport<Encoder = IngestionConfigEncoder, Message = IngestWithConfigDataStreamRequest>
+        + Send,
+    IngestionConfigEncoder: Encoder<Message = T::Message> + MetricsSnapshot,
+    T::Message: Send,
+{
+    type SendError = AutoRegisterSendError<T::Message>;
+
+    async fn send(&mut self, flow: Flow) -> std::result::Result<(), Self::SendError> {
+        if self.inner.get_flow_descriptor(&flow.flow_name).is_err() {
+            // If there is a staged config, validate it against the flow and then
+            // register it. Otherwise, create a minimal flow config and register that.
+            let flow_config = if let Some(staged) = self.staged_configs.get(&flow.flow_name) {
+                validate_staged_config(&flow, staged)
+                    .map_err(AutoRegisterSendError::StagedConfigMismatch)?;
+                std::slice::from_ref(staged)
+            } else {
+                &[flow_config_from_flow(&flow)]
+            };
+
+            self.inner
+                .add_new_flows(flow_config)
+                .await
+                .map_err(AutoRegisterSendError::RegistrationFailed)?;
+
+            // Remove staged config after successful registration.
+            self.staged_configs.remove(&flow.flow_name);
+        }
+        self.inner
+            .send(flow)
+            .await
+            .map_err(AutoRegisterSendError::StreamError)
+    }
+
+    async fn finish(self) -> Result<()>
+    where
+        Self: Sized,
+    {
+        self.inner.finish().await
+    }
+
+    fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
+        self.inner.get_flow_descriptor(flow_name)
+    }
+
+    async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()> {
+        self.inner.attach_run(run_selector).await
+    }
+
+    fn detach_run(&mut self) {
+        self.inner.detach_run()
+    }
+
+    fn run(&self) -> Option<&Run> {
+        self.inner.run()
     }
 }
 
