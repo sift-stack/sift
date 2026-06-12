@@ -566,6 +566,22 @@ def test_measure_out_of_bounds_maps_to_failed(inner):
     assert capture.final_status("test_x") == TestStatus.FAILED
 
 
+def test_mixed_measurements_one_failing_maps_to_failed(inner):
+    # Case: API-03b
+    _run(
+        inner,
+        """
+        def test_x(step):
+            step.measure(name="ok", value=1.0, bounds={"min": 0.0, "max": 5.0})
+            step.measure(name="bad", value=10.0, bounds={"min": 0.0, "max": 5.0})
+            step.measure(name="ok2", value=2.0, bounds={"min": 0.0, "max": 5.0})
+        """,
+    )
+    # A single failing measurement among passing ones still fails the step: the
+    # step outcome latches to False and does not get cleared by later passes.
+    assert capture.final_status("test_x") == TestStatus.FAILED
+
+
 def test_substep_failure_propagates_to_parent(inner):
     # Case: API-04
     _run(
