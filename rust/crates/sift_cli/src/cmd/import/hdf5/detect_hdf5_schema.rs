@@ -11,7 +11,12 @@ use sift_rs::{
 
 use crate::cli::hdf5::Hdf5Schema;
 use crate::cmd::import::utils::group_path_to_channel_name;
-use crate::util::tty::Output;
+
+#[derive(Debug, Clone)]
+pub struct SkippedDataset {
+    pub path: String,
+    pub reason: String,
+}
 
 const ROOT_PATH: &str = "/";
 const TIME_NAMES: &[&str] = &["time", "timestamp", "timestamps", "ts"];
@@ -66,6 +71,15 @@ fn get_string_attr(ds: &Dataset, name: &str) -> Option<String> {
 pub const SUPPORTED_TYPES_BLURB: &str =
     "bool, int8/16/32/64, uint8/16/32/64, float32, float64, string, enum";
 
+fn describe_type(dtype: &TypeDescriptor) -> String {
+    match dtype {
+        TypeDescriptor::Compound(_) => "compound".into(),
+        TypeDescriptor::VarLenArray(_) => "variable-length array".into(),
+        TypeDescriptor::FixedArray(_, _) => "fixed-size array".into(),
+        other => format!("{other:?}"),
+    }
+}
+
 pub fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
     match ty {
         TypeDescriptor::Boolean => Some(ChannelDataType::Bool),
@@ -116,7 +130,7 @@ pub fn detect_config(
     time_index: u64,
     time_field: Option<&str>,
     time_name: Option<&str>,
-) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
+) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>, Vec<SkippedDataset>)> {
     let file = File::open(path).map_err(|e| anyhow!("failed to open hdf5 file: {e}"))?;
     let datasets = collect_datasets_recursive(&file)?;
 
@@ -127,12 +141,12 @@ pub fn detect_config(
     };
 
     match result {
-        Ok((data, _)) if data.is_empty() => Err(no_match_error(
+        Ok((data, _, _)) if data.is_empty() => Err(no_match_error(
             &datasets, schema, time_index, time_field, time_name,
         )),
-        Ok((data, channel_configs)) => {
+        Ok((data, channel_configs, skipped)) => {
             let woven = weave_time_channel_rows(&data, &channel_configs);
-            Ok((data, woven))
+            Ok((data, woven, skipped))
         }
         Err(e) => Err(e),
     }
@@ -193,7 +207,7 @@ fn no_match_error(
                 Hdf5Schema::Compound => detect_compound(datasets, time_index, time_field),
             };
             match probe {
-                Ok((data, _)) if !data.is_empty() => Some(*name),
+                Ok((data, _, _)) if !data.is_empty() => Some(*name),
                 _ => None,
             }
         })
@@ -222,7 +236,7 @@ fn no_match_error(
 fn detect_one_d(
     datasets: &[Dataset],
     time_name: Option<&str>,
-) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
+) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>, Vec<SkippedDataset>)> {
     let mut group_time: HashMap<String, String> = HashMap::new();
     for ds in datasets {
         let name = ds.name();
@@ -254,35 +268,43 @@ fn detect_one_d(
 
     let mut data_configs = Vec::new();
     let mut channel_configs = Vec::new();
+    let mut skipped: Vec<SkippedDataset> = Vec::new();
 
     for ds in datasets {
         let name = ds.name();
-        if is_time_dataset_name(&name) || ds.ndim() != 1 {
+        if is_time_dataset_name(&name) {
+            continue;
+        }
+        if ds.ndim() != 1 {
+            skipped.push(SkippedDataset {
+                path: name.clone(),
+                reason: format!("wrong rank (expected 1D, got {}D)", ds.ndim()),
+            });
             continue;
         }
         let Some(time_dataset) = nearest_time_dataset(&group_time, &name) else {
+            skipped.push(SkippedDataset {
+                path: name.clone(),
+                reason: "no time dataset nearby".into(),
+            });
             continue;
         };
 
         let dtype = match ds.dtype().and_then(|t| t.to_descriptor()) {
             Ok(d) => d,
             Err(e) => {
-                Output::new()
-                    .line(format!(
-                        "skipping {name}: cannot describe HDF5 dtype ({e}). \
-                         Supported types: {SUPPORTED_TYPES_BLURB}."
-                    ))
-                    .eprint();
+                skipped.push(SkippedDataset {
+                    path: name.clone(),
+                    reason: format!("cannot describe HDF5 dtype ({e})"),
+                });
                 continue;
             }
         };
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
-            Output::new()
-                .line(format!(
-                    "skipping {name}: unsupported HDF5 type {dtype:?}. \
-                     Supported types: {SUPPORTED_TYPES_BLURB}."
-                ))
-                .eprint();
+            skipped.push(SkippedDataset {
+                path: name.clone(),
+                reason: format!("unsupported HDF5 type ({})", describe_type(&dtype)),
+            });
             continue;
         };
 
@@ -314,7 +336,7 @@ fn detect_one_d(
         channel_configs.push(channel_config);
     }
 
-    Ok((data_configs, channel_configs))
+    Ok((data_configs, channel_configs, skipped))
 }
 
 fn nearest_time_dataset(group_time: &HashMap<String, String>, value_path: &str) -> Option<String> {
@@ -341,13 +363,18 @@ fn one_d_channel_name(value_path: &str) -> String {
 fn detect_two_d(
     datasets: &[Dataset],
     time_index: u64,
-) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
+) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>, Vec<SkippedDataset>)> {
     let mut data_configs = Vec::new();
     let mut channel_configs = Vec::new();
+    let mut skipped: Vec<SkippedDataset> = Vec::new();
 
     for ds in datasets {
         let name = ds.name();
         if ds.ndim() != 2 {
+            skipped.push(SkippedDataset {
+                path: name.clone(),
+                reason: format!("wrong rank (expected 2D, got {}D)", ds.ndim()),
+            });
             continue;
         }
         let shape = ds.shape();
@@ -358,16 +385,22 @@ fn detect_two_d(
             ));
         }
 
-        let dtype = ds
-            .dtype()
-            .map_err(|e| anyhow!("failed to read dtype for {name}: {e}"))?
-            .to_descriptor()
-            .map_err(|e| anyhow!("failed to describe dtype for {name}: {e}"))?;
+        let dtype = match ds.dtype().and_then(|t| t.to_descriptor()) {
+            Ok(d) => d,
+            Err(e) => {
+                skipped.push(SkippedDataset {
+                    path: name.clone(),
+                    reason: format!("cannot describe HDF5 dtype ({e})"),
+                });
+                continue;
+            }
+        };
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
-            return Err(anyhow!(
-                "unsupported HDF5 type for dataset {name}: {dtype:?}. \
-                 Supported types: {SUPPORTED_TYPES_BLURB}."
-            ));
+            skipped.push(SkippedDataset {
+                path: name.clone(),
+                reason: format!("unsupported HDF5 type ({})", describe_type(&dtype)),
+            });
+            continue;
         };
 
         for col in 0..n_cols {
@@ -395,25 +428,35 @@ fn detect_two_d(
         }
     }
 
-    Ok((data_configs, channel_configs))
+    Ok((data_configs, channel_configs, skipped))
 }
 
 fn detect_compound(
     datasets: &[Dataset],
     time_index: u64,
     time_field: Option<&str>,
-) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>)> {
+) -> Result<(Vec<Hdf5DataConfig>, Vec<ChannelConfig>, Vec<SkippedDataset>)> {
     let mut data_configs = Vec::new();
     let mut channel_configs = Vec::new();
+    let mut skipped: Vec<SkippedDataset> = Vec::new();
 
     for ds in datasets {
         let name = ds.name();
-        let dtype = ds
-            .dtype()
-            .map_err(|e| anyhow!("failed to read dtype for {name}: {e}"))?
-            .to_descriptor()
-            .map_err(|e| anyhow!("failed to describe dtype for {name}: {e}"))?;
+        let dtype = match ds.dtype().and_then(|t| t.to_descriptor()) {
+            Ok(d) => d,
+            Err(e) => {
+                skipped.push(SkippedDataset {
+                    path: name.clone(),
+                    reason: format!("cannot describe HDF5 dtype ({e})"),
+                });
+                continue;
+            }
+        };
         let TypeDescriptor::Compound(compound) = dtype else {
+            skipped.push(SkippedDataset {
+                path: name.clone(),
+                reason: "not a compound type".into(),
+            });
             continue;
         };
 
@@ -442,13 +485,11 @@ fn detect_compound(
                 continue;
             }
             let Some(channel_type) = hdf5_to_sift_data_type(&field.ty) else {
-                return Err(anyhow!(
-                    "unsupported HDF5 type for field {}.{}: {:?}. \
-                     Supported types: {SUPPORTED_TYPES_BLURB}.",
-                    name,
-                    field.name,
-                    field.ty
-                ));
+                skipped.push(SkippedDataset {
+                    path: format!("{name}.{}", field.name),
+                    reason: format!("unsupported HDF5 type ({})", describe_type(&field.ty)),
+                });
+                continue;
             };
             let channel_name = format!("{}.{}", group_path_to_channel_name(&name), field.name);
             let channel_config = ChannelConfig {
@@ -471,5 +512,5 @@ fn detect_compound(
         }
     }
 
-    Ok((data_configs, channel_configs))
+    Ok((data_configs, channel_configs, skipped))
 }
