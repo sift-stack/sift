@@ -5,3 +5,11 @@
   uses: peaceiris/actions-mdbook@v2
   with:
     mdbook-version: '0.4.40'
+# cargo-dist links the static MSVC CRT (/MT) by default, but hdf5-metno-src's
+# CMake build defaults to the dynamic CRT (/MD), which leaves __imp_* CRT
+# symbols unresolved at link time. hdf5-metno-src forwards this env var to
+# CMake so the vendored HDF5 matches the static CRT.
+- name: Use static MSVC CRT for vendored HDF5
+  if: runner.os == 'Windows'
+  shell: bash
+  run: echo "CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded" >> "$GITHUB_ENV"

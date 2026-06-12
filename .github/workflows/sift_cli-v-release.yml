@@ -131,6 +131,10 @@ jobs:
         uses: "peaceiris/actions-mdbook@v2"
         with:
           "mdbook-version": "0.4.40"
+      - name: "Use static MSVC CRT for vendored HDF5"
+        if: "runner.os == 'Windows'"
+        run: "echo \"CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded\" >> \"$GITHUB_ENV\""
+        shell: "bash"
       - name: Install dist
         run: ${{ matrix.install_dist.run }}
       # Get the dist-manifest
