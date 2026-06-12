@@ -49,8 +49,8 @@ Export data from Sift. See [Exporting Data](../data/exporting.md).
 
 Start the Sift MCP server. See [MCP Server](../agents/mcp.md).
 
-Gated behind the `mcp` Cargo feature (on by default). Source builds with
-`--no-default-features` omit this subcommand.
+Gated behind the `mcp` Cargo feature, which is off by default. Build or
+install with `--features mcp` to enable this subcommand.
 
 ## `ping`
 

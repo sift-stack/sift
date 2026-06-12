@@ -10,6 +10,8 @@ Use it to:
   from `sift_stream` backups.
 - **Export** asset and run data back out to CSV, Parquet, or SUN.
 - **Run the Sift MCP server**, which exposes Sift to agentic coding tools.
+  Gated behind the optional `mcp` Cargo feature — see
+  [Installation](./getting-started/installation.md#cargo-features).
 - **Install agent skills** so assistants like Claude Code know how to drive
   Sift on your behalf.
 - **Verify connectivity and credentials** against your Sift environment.

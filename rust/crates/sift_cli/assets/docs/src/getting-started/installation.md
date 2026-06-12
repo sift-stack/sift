@@ -48,14 +48,14 @@ cargo install --path crates/sift_cli
 
 `sift_cli` exposes the following Cargo features:
 
-| Feature | Default | Description                                                  |
-| ------- | ------- | ------------------------------------------------------------ |
-| `mcp`   | on      | Includes the `mcp` subcommand (the Sift MCP server). Disable with `--no-default-features` to build a CLI that omits it. |
+| Feature | Default | Description                                                                                    |
+| ------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `mcp`   | off     | Adds the `mcp` subcommand (the Sift MCP server). Enable with `--features mcp` to include it.   |
 
-To build the CLI without the MCP server:
+To install the CLI with the MCP server:
 
 ```sh
-cargo install --path crates/sift_cli --no-default-features
+cargo install --path crates/sift_cli --features mcp
 ```
 
 ## Verify the install
