@@ -4,6 +4,10 @@
 that teaches an AI coding assistant how to work with Sift: which tool to reach
 for, the order to prefer them in, and how to import or stream data.
 
+> The skills point agents at `sift-cli mcp` as a preferred tool surface, but
+> the MCP server is still in active development and is not built into default
+> releases — see [MCP Server](./mcp.md) for its current status.
+
 ```
 sift-cli install agent-skills <AGENT> [--output <PATH>] [--print]
 ```
