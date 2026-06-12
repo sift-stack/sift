@@ -1324,7 +1324,7 @@ produce, and how that result rolls up to the parent steps and the report.</p>
 </tr>
 <tr>
 <td><code>ABORTED</code></td>
-<td>A hard exit (<code>SystemExit</code>, observed <code>KeyboardInterrupt</code>) interrupted the test.</td>
+<td>A hard exit (<code>SystemExit</code> or <code>KeyboardInterrupt</code>) cut the test off; resolved while pytest tears the session down.</td>
 </tr>
 <tr>
 <td><code>SKIPPED</code></td>
@@ -1332,7 +1332,7 @@ produce, and how that result rolls up to the parent steps and the report.</p>
 </tr>
 <tr>
 <td><code>IN_PROGRESS</code></td>
-<td>Test in progress or the plugin never observed a final outcome (e.g. a session-aborting interrupt killed pytest first).</td>
+<td>A transient creation state. It survives into the report only if the process is killed so abruptly that teardown never runs.</td>
 </tr>
 </tbody>
 </table>
@@ -1374,9 +1374,20 @@ mapping to <code>FAILED</code>. A non-assertion exception gets its formatted tra
 (the last 10 frames plus the first frame) recorded on
 <code>step.error_info.error_message</code>.</p>
 <h2 id="hard-exits">Hard exits<a class="headerlink" href="#hard-exits" title="Permanent link">&para;</a></h2>
-<p>Hard exits the plugin can observe map to <code>ABORTED</code>. If pytest tears the
-session down before the plugin sees the exit, the step stays at
-<code>IN_PROGRESS</code> instead of resolving.</p>
+<p>Hard exits map to <code>ABORTED</code>. The step is resolved during fixture teardown, not
+at the instant of the exit:</p>
+<ul>
+<li>When the exit produces a call-phase report (<code>sys.exit(1)</code>, <code>SystemExit</code>), the
+  plugin reads the status off that report.</li>
+<li>When a <code>KeyboardInterrupt</code> aborts the session before any call-phase report
+  (Ctrl-C, or <code>raise KeyboardInterrupt</code> in the body), pytest still runs fixture
+  finalizers as it unwinds. The plugin sees setup completed with no call outcome
+  and resolves the cut-off step to <code>ABORTED</code> there.</li>
+</ul>
+<p>The status only reaches the report if those finalizers run. If the process is
+killed before they do (<code>SIGKILL</code>, the OOM killer, power loss), nothing is written
+and the step keeps the <code>IN_PROGRESS</code> it was created with. That is the only path
+that leaves a step <code>IN_PROGRESS</code> in a finalized report.</p>
 <table>
 <thead>
 <tr>
@@ -1389,17 +1400,22 @@ session down before the plugin sees the exit, the step stays at
 <tr>
 <td><code>SystemExit</code> from the test body</td>
 <td><code>sys.exit(1)</code></td>
-<td><code>ABORTED</code></td>
+<td><code>ABORTED</code> (read from the call-phase report)</td>
 </tr>
 <tr>
-<td><code>KeyboardInterrupt</code> the plugin observes</td>
+<td><code>KeyboardInterrupt</code> from the test body</td>
 <td><code>raise KeyboardInterrupt</code></td>
-<td><code>ABORTED</code></td>
+<td><code>ABORTED</code> (resolved during teardown)</td>
 </tr>
 <tr>
 <td>Session-aborting <code>KeyboardInterrupt</code></td>
 <td>Ctrl-C terminates pytest</td>
-<td><code>IN_PROGRESS</code> (session ends before the plugin's hooks fire)</td>
+<td><code>ABORTED</code> (resolved during teardown)</td>
+</tr>
+<tr>
+<td>Process killed before finalizers run</td>
+<td><code>SIGKILL</code> / OOM / power loss</td>
+<td><code>IN_PROGRESS</code> (nothing written after creation)</td>
 </tr>
 </tbody>
 </table>

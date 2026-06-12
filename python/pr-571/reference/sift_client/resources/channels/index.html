@@ -1028,6 +1028,17 @@ You're not viewing the latest version.
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.channels.ChannelsAPIAsync.update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1932,6 +1943,17 @@ You're not viewing the latest version.
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.channels.ChannelsAPIAsync.update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2174,6 +2196,19 @@ representation of a channel using standard Python data structures and types.</p>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Batch unarchive channels by setting active to true.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            update
+
+
+  
+      async
+   (sift_client.resources.channels.ChannelsAPIAsync.update)" href="#sift_client.resources.channels.ChannelsAPIAsync.update">update</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Update a Channel.</p>
                 </div>
               </td>
             </tr>
@@ -3347,6 +3382,131 @@ has no id set, raises ValueError.</p>
    (sift_client.sift_types.channel.Channel)" href="../../sift_types/channel/#sift_client.sift_types.channel.Channel">Channel</a>]</code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.channels.ChannelsAPIAsync.update" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">update</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#sift_client.resources.channels.ChannelsAPIAsync.update" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">channel</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="../../sift_types/channel/#sift_client.sift_types.channel.Channel">Channel</a></span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ChannelUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.ChannelUpdate)" href="../../sift_types/channel/#sift_client.sift_types.channel.ChannelUpdate">ChannelUpdate</a></span> <span class="o">|</span> <span class="n"><span title="dict">dict</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="../../sift_types/channel/#sift_client.sift_types.channel.Channel">Channel</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Update a Channel.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>channel</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The Channel or channel ID to update.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="../../sift_types/channel/#sift_client.sift_types.channel.Channel">Channel</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>update</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Updates to apply to the Channel. See ChannelUpdate for the updatable fields
+(description, unit, metadata, and archived status).</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            ChannelUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.ChannelUpdate)" href="../../sift_types/channel/#sift_client.sift_types.channel.ChannelUpdate">ChannelUpdate</a> | <span title="dict">dict</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="../../sift_types/channel/#sift_client.sift_types.channel.Channel">Channel</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The updated Channel.</p>
+              </div>
             </td>
           </tr>
       </tbody>

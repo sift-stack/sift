@@ -1086,17 +1086,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.transport.grpc_transport.GrpcClient.sync_call_timeout" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sync_call_timeout
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1570,17 +1559,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.transport.grpc_transport.GrpcClient.sync_call_timeout" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sync_call_timeout
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1987,25 +1965,6 @@ It just stores the channel and the stubs, without any additional functionality.<
               </p>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            sync_call_timeout
-
-
-  
-      property
-   (sift_client.transport.grpc_transport.GrpcClient.sync_call_timeout)" href="#sift_client.transport.grpc_transport.GrpcClient.sync_call_timeout">sync_call_timeout</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                <p>Deadline in seconds for a blocking sync API call, or None if disabled.</p>
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="float">float</span> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -2089,33 +2048,6 @@ It just stores the channel and the stubs, without any additional functionality.<
         <p>Whether the default loop is accepting synchronous API work.</p>
 <p>False once a close has begun, so callers can fail fast instead of
 scheduling a coroutine onto a loop that will never run it.</p>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.transport.grpc_transport.GrpcClient.sync_call_timeout" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">sync_call_timeout</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-property"><code>property</code></small>
-  </span>
-
-<a href="#sift_client.transport.grpc_transport.GrpcClient.sync_call_timeout" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">sync_call_timeout</span><span class="p">:</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="kc">None</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Deadline in seconds for a blocking sync API call, or None if disabled.</p>
-<p>Sits above the per-RPC deadline by a margin so the gRPC deadline fires
-first and cancels the in-flight request; this is only a backstop for the
-case where the RPC deadline never trips.</p>
 
     </div>
 
