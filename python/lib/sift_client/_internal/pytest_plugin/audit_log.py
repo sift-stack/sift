@@ -40,13 +40,38 @@ STDOUT_FORMAT = "Sift audit %(levelname)s: %(message)s"
 EVENT_WIDTH = 16
 # Tag so a re-entered pytest_configure (or both processes) doesn't double-attach.
 HANDLER_TAG = "sift_audit"
+# Field names whose values should be redacted in audit logs to avoid logging
+# sensitive data. This is a best-effort blacklist; callers should avoid passing
+# sensitive values in the first place.
+SENSITIVE_FIELD_NAMES = frozenset(
+    {
+        "password",
+        "passwd",
+        "pwd",
+        "token",
+        "secret",
+        "api_key",
+        "apikey",
+        "api-key",
+        "access_token",
+        "refresh_token",
+        "private_key",
+        "auth",
+        "credential",
+        "credentials",
+    }
+)
 
 
-def _fmt_value(value: object) -> str:
-    """Render one field value: bare when safe, quoted when it would break tokenizing."""
-    if isinstance(value, str):
-        return repr(value) if value == "" or any(c in value for c in " \t=") else value
-    return str(value)
+def _fmt_kv(key: str, value: object) -> str:
+    """Format a key-value pair for audit log output.
+
+    If ``key`` is in ``SENSITIVE_FIELD_NAMES``, the value is redacted as
+    ``[REDACTED]`` to avoid logging sensitive data.
+    """
+    if key.lower() in SENSITIVE_FIELD_NAMES:
+        value = "[REDACTED]"
+    return f"{key}={value}"
 
 
 def log_event(logger: logging.Logger, level: int, event: str, **fields: object) -> None:
@@ -55,10 +80,13 @@ def log_event(logger: logging.Logger, level: int, event: str, **fields: object) 
     Centralizes the event-token padding and value quoting so call sites read as
     ``log_event(logger, logging.DEBUG, "step.open", name=…, path=…)``. Guarded by
     ``isEnabledFor`` so nothing is formatted when audit logging is off.
+
+    Values for field names in ``SENSITIVE_FIELD_NAMES`` are redacted as
+    ``[REDACTED]`` to avoid logging sensitive data.
     """
     if not logger.isEnabledFor(level):
         return
-    body = " ".join(f"{key}={_fmt_value(value)}" for key, value in fields.items())
+    body = " ".join(_fmt_kv(key, value) for key, value in fields.items())
     logger.log(level, "%-*s %s", EVENT_WIDTH, event, body)
 
 
