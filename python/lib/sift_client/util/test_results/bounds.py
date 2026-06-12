@@ -88,7 +88,7 @@ def assign_value_to_measurement(
 
 def value_passes_bounds(
     value: float | str | bool,
-    bounds: dict[str, float] | NumericBounds | str | bool | None,
+    bounds: dict[str, float] | NumericBounds | str | bool | float | None,
 ) -> bool:
     """Evaluate a value against bounds without recording a measurement."""
     if bounds is None:
@@ -104,6 +104,10 @@ def value_passes_bounds(
             raise ValueError("Value must be a string if bounds provided is a string")
         if isinstance(value, bool):
             return str(value).lower() == str(bounds).lower()
+        return value == bounds
+    if isinstance(bounds, (int, float)):
+        # A scalar numeric bound is an exact-match expectation (e.g. 1 matches
+        # True). bool is handled above, so this only sees real ints/floats.
         return value == bounds
     # NumericBounds
     try:
@@ -121,7 +125,7 @@ def value_passes_bounds(
 def evaluate_measurement_bounds(
     measurement: TestMeasurement | TestMeasurementCreate | TestMeasurementUpdate,
     value: float | str | bool,
-    bounds: dict[str, float] | NumericBounds | str | bool | None,
+    bounds: dict[str, float] | NumericBounds | str | bool | float | None,
 ) -> bool:
     """Update a measurement with the resolved bounds type and result of evaluating the given value against those bounds.
 

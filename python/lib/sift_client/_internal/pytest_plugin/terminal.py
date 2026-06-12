@@ -96,6 +96,9 @@ def report_panel_title(report: Any, terminalreporter: Any) -> str:
     if not name:
         return base
     title = f"{base} · {name}"
+    # Guarded private read: ``_tw`` (the TerminalWriter) and its ``fullwidth``
+    # have no public accessor. Cosmetic only (title truncation), so a pytest
+    # change just falls back to 80 columns — no warning needed.
     fullwidth = getattr(getattr(terminalreporter, "_tw", None), "fullwidth", 80)
     # Reserve room for the separator characters and spaces write_sep adds.
     limit = max(len(base), fullwidth - 8)

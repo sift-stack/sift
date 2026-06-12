@@ -32,6 +32,19 @@ import pytest
 _SIFT_ENV_VARS = ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI", "SIFT_DISABLED", "SIFT_APP_URL")
 
 
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Tag every test in this suite ``plugin_compat``.
+
+    The pytest-version compat matrix (``test-pytest-compat`` in python_ci.yaml)
+    opts in with ``-m plugin_compat`` to run the plugin's behavior suite across
+    pytest 7/8/9; the matrix sets ``GRPC_ENABLE_FORK_SUPPORT=1`` so the grpc that
+    the plugin imports survives ``runpytest_subprocess``'s fork on CI Linux.
+    Applied here so new tests in this suite join the matrix automatically.
+    """
+    for item in items:
+        item.add_marker("plugin_compat")
+
+
 @pytest.fixture
 def clear_sift_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Unset all ``SIFT_*`` environment variables for the duration of the test."""

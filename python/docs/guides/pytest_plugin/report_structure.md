@@ -171,6 +171,23 @@ TestReport
         └── test_load_temp
 ```
 
+!!! note "A package step appears for any directory with `__init__.py`"
+    The package step comes from pytest collecting a directory with an
+    `__init__.py` as a `pytest.Package`. A directory without one is a
+    `pytest.Dir`, which the plugin skips. So a `tests/__init__.py` adds a
+    `tests` step to every report, which is often not what you want.
+
+    To drop a single unwanted package step, delete that directory's
+    `__init__.py`. This is safe when you use `--import-mode=importlib` (which
+    needs no `__init__.py`) and your tests have no package-relative imports
+    (`from . import ...`). Under the default `prepend` import mode, removing
+    `__init__.py` can cause import collisions when test files share a basename
+    across directories, so keep it there.
+
+    To drop package steps everywhere, set `sift_package_step = false`. No pytest
+    setting (`testpaths`, `rootdir`, …) removes a package step on its own — the
+    step exists if and only if the directory has an `__init__.py`.
+
 ### Test classes (and nested classes)
 
 `class TestFoo:` and `class TestOuter: class TestInner:` produce class and
@@ -239,6 +256,32 @@ TestReport
 
 Set `sift_parametrize_nesting = false` in `pytest.ini` to fall back to flat leaf
 names (`test_rail[3.3]`).
+
+**Human-readable labels.** Each axis defaults to a `name=value` label. Supply
+`ids=` to name it yourself — a list, or a callable factory pytest calls with
+each value. This works on `@pytest.mark.parametrize` and on parametrized
+fixtures alike:
+
+```python
+@pytest.mark.parametrize("voltage", [3.3, 5.0], ids=["nominal", "boosted"])
+def test_rail(step, voltage): ...
+```
+
+```text title="Sift report"
+TestReport
+└── test_module.py
+    └── test_rail
+        ├── nominal
+        └── boosted
+```
+
+**Scope-based placement.** The examples above use function-scoped parametrize,
+which nests under the test. A parametrized *fixture* is placed at its own scope
+instead: a class-scoped fixture param wraps the class's methods, a module-scoped
+one wraps the module's tests, and a session-scoped one sits at the report root.
+A `@pytest.mark.parametrize(..., scope="module")` follows the scope it names.
+This keeps the tree matching how pytest actually re-runs work — broader scope
+nests outside narrower.
 
 ### Helper functions
 
