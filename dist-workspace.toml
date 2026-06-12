@@ -20,3 +20,5 @@ install-updater = false
 # Extra CI steps injected into the build job before `dist build`.
 # sift_cli's build.rs invokes `mdbook build`, so mdbook must be on PATH.
 github-build-setup = "includes/build-setup.yml"
+# TODO: remove after verifying the Windows CRT fix; makes PRs build all targets
+pr-run-mode = "upload"
