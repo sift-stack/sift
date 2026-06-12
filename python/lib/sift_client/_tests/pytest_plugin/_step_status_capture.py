@@ -13,7 +13,7 @@ import json
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from sift_client._internal.low_level_wrappers._test_results_log import iter_log_data_lines
+from sift_client._internal.low_level_wrappers._test_results_log import parse_log_data_lines
 from sift_client.sift_types.test_report import TestStatus
 
 if TYPE_CHECKING:
@@ -52,6 +52,18 @@ def _status(name: str | None) -> TestStatus:
     return _PROTO_STATUS_NAMES.get(name, TestStatus.UNSPECIFIED)
 
 
+def _log_data_lines(log_path: Path):
+    """Read and parse the offline log's data lines.
+
+    The inner pytester session has fully written and closed the log by the time
+    these capture helpers run, so the lines are read directly without the
+    sidecar lock that the live append path uses.
+    """
+    with open(log_path) as f:
+        raw_lines = f.readlines()
+    return parse_log_data_lines(raw_lines)
+
+
 def parse_log(log_path: Path) -> dict[str, CapturedStep]:
     """Parse the offline log into ``{step_id: CapturedStep}``.
 
@@ -60,7 +72,7 @@ def parse_log(log_path: Path) -> dict[str, CapturedStep]:
     ``UpdateTestStep`` entry.
     """
     steps: dict[str, CapturedStep] = {}
-    for request_type, response_id, json_str in iter_log_data_lines(log_path):
+    for request_type, response_id, json_str in _log_data_lines(log_path):
         payload = json.loads(json_str)
         test_step = payload.get("testStep", {})
         error_message = test_step.get("errorInfo", {}).get("errorMessage")
@@ -149,7 +161,7 @@ def log_events(log_path: Path) -> list[tuple[str, str, TestStatus]]:
         return []
     id_to_name: dict[str, str] = {}
     events: list[tuple[str, str, TestStatus]] = []
-    for request_type, response_id, json_str in iter_log_data_lines(log_path):
+    for request_type, response_id, json_str in _log_data_lines(log_path):
         test_step = json.loads(json_str).get("testStep", {})
         status = _status(test_step.get("status"))
         if request_type == "CreateTestStep" and response_id:
