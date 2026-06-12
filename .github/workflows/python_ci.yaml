@@ -180,11 +180,16 @@ jobs:
           enable-cache: true
 
       - name: Plugin tests (Python ${{ matrix.python-version }}, pytest ${{ matrix.pytest-spec }})
+        # The plugin imports grpc, and runpytest_subprocess forks the session;
+        # fork support keeps grpc's epoll engine from aborting in the parent on
+        # CI Linux (see the suite's conftest).
+        env:
+          GRPC_ENABLE_FORK_SUPPORT: "1"
         run: |
           uv run --python ${{ matrix.python-version }} --no-project --with-editable '.' \
             --with "pytest${{ matrix.pytest-spec }}" \
             --with "pytest-randomly==${{ matrix.randomly-version }}" \
-            pytest lib/sift_client/_tests/pytest_plugin -m "not integration"
+            pytest lib/sift_client/_tests/pytest_plugin -m "plugin_compat"
 
   python-ci-status:
     if: always()

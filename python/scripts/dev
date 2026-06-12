@@ -123,13 +123,16 @@ run_tests_pytest_compat() {
     "3.8 ~=7.4 3.15.0" \
     "3.9 ~=8.4 3.16.0" \
     "3.10 ~=9.0 4.1.0"
+  # Fork support keeps the grpc the plugin imports from aborting in the parent
+  # when runpytest_subprocess forks (mirrors the CI job env).
+  export GRPC_ENABLE_FORK_SUPPORT=1
   for cell in "$@"; do
     read -r py spec randomly <<< "$cell"
     echo "=== Python $py, pytest $spec, pytest-randomly $randomly ==="
     uv run --python "$py" --no-project --with-editable '.' \
       --with "pytest$spec" \
       --with "pytest-randomly==$randomly" \
-      pytest lib/sift_client/_tests/pytest_plugin -m "not integration"
+      pytest lib/sift_client/_tests/pytest_plugin -m "plugin_compat"
   done
 }
 
