@@ -1,3 +1,6 @@
+[features]
+mcp = []
+
 [package]
 name = "sift_cli"
 version = "0.2.0-alpha.1"
