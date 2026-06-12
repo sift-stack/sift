@@ -17,7 +17,7 @@ pub struct Context {
     pub grpc_uri: String,
     pub api_key: String,
     pub disable_tls: bool,
-    #[cfg(feature = "mcp")]
+    #[allow(dead_code)]
     pub rest_uri: String,
 }
 
@@ -69,14 +69,12 @@ impl Context {
             ));
         }
 
-        #[cfg(feature = "mcp")]
         let Some(Value::String(rest_uri)) = target_profile.get("rest_uri").cloned() else {
             return Err(anyhow!(
                 "Expected value of '{}' to be a string",
                 "rest_uri".yellow()
             ));
         };
-        #[cfg(feature = "mcp")]
         if rest_uri.is_empty() {
             return Err(anyhow!(
                 "Expected value of '{}' to be present",
@@ -99,7 +97,6 @@ impl Context {
 
         Ok(Self {
             grpc_uri,
-            #[cfg(feature = "mcp")]
             rest_uri,
             api_key,
             disable_tls,

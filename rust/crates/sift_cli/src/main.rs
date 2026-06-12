@@ -42,7 +42,7 @@ where
     runtime.block_on(fut)
 }
 
-#[cfg(feature = "mcp")]
+#[allow(dead_code)]
 fn run_future_mt<F>(fut: F) -> Result<ExitCode>
 where
     F: Future<Output = Result<ExitCode>> + 'static,
