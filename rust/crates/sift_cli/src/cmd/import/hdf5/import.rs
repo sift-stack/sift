@@ -17,7 +17,7 @@ use crate::{
     cmd::{
         Context,
         import::{
-            hdf5::detect_hdf5_schema::{SkippedDataset, SUPPORTED_TYPES_BLURB, detect_config},
+            hdf5::detect_hdf5_schema::{SUPPORTED_TYPES_BLURB, SkippedDataset, detect_config},
             preview_import_config,
             utils::{upload_gzipped_file, validate_time_format},
             wait_for_job_completion,
