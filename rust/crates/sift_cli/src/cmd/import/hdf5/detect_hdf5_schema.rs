@@ -71,6 +71,15 @@ fn get_string_attr(ds: &Dataset, name: &str) -> Option<String> {
 pub const SUPPORTED_TYPES_BLURB: &str =
     "bool, int8/16/32/64, uint8/16/32/64, float32, float64, string, enum";
 
+fn describe_type(dtype: &TypeDescriptor) -> String {
+    match dtype {
+        TypeDescriptor::Compound(_) => "compound".into(),
+        TypeDescriptor::VarLenArray(_) => "variable-length array".into(),
+        TypeDescriptor::FixedArray(_, _) => "fixed-size array".into(),
+        other => format!("{other:?}"),
+    }
+}
+
 pub fn hdf5_to_sift_data_type(ty: &TypeDescriptor) -> Option<ChannelDataType> {
     match ty {
         TypeDescriptor::Boolean => Some(ChannelDataType::Bool),
@@ -294,7 +303,7 @@ fn detect_one_d(
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
             skipped.push(SkippedDataset {
                 path: name.clone(),
-                reason: format!("unsupported HDF5 type {dtype:?}"),
+                reason: format!("unsupported HDF5 type ({})", describe_type(&dtype)),
             });
             continue;
         };
@@ -376,16 +385,22 @@ fn detect_two_d(
             ));
         }
 
-        let dtype = ds
-            .dtype()
-            .map_err(|e| anyhow!("failed to read dtype for {name}: {e}"))?
-            .to_descriptor()
-            .map_err(|e| anyhow!("failed to describe dtype for {name}: {e}"))?;
+        let dtype = match ds.dtype().and_then(|t| t.to_descriptor()) {
+            Ok(d) => d,
+            Err(e) => {
+                skipped.push(SkippedDataset {
+                    path: name.clone(),
+                    reason: format!("cannot describe HDF5 dtype ({e})"),
+                });
+                continue;
+            }
+        };
         let Some(channel_type) = hdf5_to_sift_data_type(&dtype) else {
-            return Err(anyhow!(
-                "unsupported HDF5 type for dataset {name}: {dtype:?}. \
-                 Supported types: {SUPPORTED_TYPES_BLURB}."
-            ));
+            skipped.push(SkippedDataset {
+                path: name.clone(),
+                reason: format!("unsupported HDF5 type ({})", describe_type(&dtype)),
+            });
+            continue;
         };
 
         for col in 0..n_cols {
@@ -427,11 +442,16 @@ fn detect_compound(
 
     for ds in datasets {
         let name = ds.name();
-        let dtype = ds
-            .dtype()
-            .map_err(|e| anyhow!("failed to read dtype for {name}: {e}"))?
-            .to_descriptor()
-            .map_err(|e| anyhow!("failed to describe dtype for {name}: {e}"))?;
+        let dtype = match ds.dtype().and_then(|t| t.to_descriptor()) {
+            Ok(d) => d,
+            Err(e) => {
+                skipped.push(SkippedDataset {
+                    path: name.clone(),
+                    reason: format!("cannot describe HDF5 dtype ({e})"),
+                });
+                continue;
+            }
+        };
         let TypeDescriptor::Compound(compound) = dtype else {
             skipped.push(SkippedDataset {
                 path: name.clone(),
@@ -465,13 +485,11 @@ fn detect_compound(
                 continue;
             }
             let Some(channel_type) = hdf5_to_sift_data_type(&field.ty) else {
-                return Err(anyhow!(
-                    "unsupported HDF5 type for field {}.{}: {:?}. \
-                     Supported types: {SUPPORTED_TYPES_BLURB}.",
-                    name,
-                    field.name,
-                    field.ty
-                ));
+                skipped.push(SkippedDataset {
+                    path: format!("{name}.{}", field.name),
+                    reason: format!("unsupported HDF5 type ({})", describe_type(&field.ty)),
+                });
+                continue;
             };
             let channel_name = format!("{}.{}", group_path_to_channel_name(&name), field.name);
             let channel_config = ChannelConfig {
