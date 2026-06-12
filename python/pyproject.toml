@@ -438,7 +438,11 @@ testpaths = [
 ]
 
 markers = [
-    "integration: mark a test as an integration test (requires API)"
+    "integration: mark a test as an integration test (requires API)",
+    # Opt-in suite for the pytest-version compat matrix (test-pytest-compat in
+    # python_ci.yaml), auto-applied to this suite's tests by its conftest. The
+    # matrix runs `-m plugin_compat` across pytest 7/8/9.
+    "plugin_compat: sift pytest-plugin behavior test, run in the version matrix",
 ]
 
 [tool.sift.pytest.report]

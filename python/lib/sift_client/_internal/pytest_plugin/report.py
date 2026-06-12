@@ -559,21 +559,30 @@ def build_disabled_client() -> SiftClient:
     return client
 
 
+def leaf_step_name(node: pytest.Item, config: pytest.Config) -> str:
+    """The display name for a test's leaf step.
+
+    Items get a parametrize path stashed in ``pytest_itemcollected``; the leaf
+    frame (``path[-1]``) is the test-specific display name with higher-scoped
+    params promoted out (e.g. ``v=1``, or the bare function name). When
+    parametrize-nesting is disabled, fall back to the bracket-mangled pytest
+    name (e.g. ``test_a[1]``) so the leaf stays uniquely identifiable. Shared by
+    the autouse ``step`` fixture and the collection-skip path so a skipped
+    parametrized item is named the same way a run one would be.
+    """
+    if PARAMETRIZE_NESTING_OPTION.resolve(config):
+        path = node.stash.get(parametrize_path_key, ())
+        return path[-1] if path else str(node.name)
+    return str(node.name)
+
+
 def step_impl(
     report_context: ReportContext, request: pytest.FixtureRequest
 ) -> Generator[NewStep, None, None]:
     node = request.node
-    # Items get a parametrize path stashed in ``pytest_itemcollected``;
-    # modules/other nodes fall back to their node name. The leaf frame
-    # (``path[-1]``) is the test-specific display name; parents are opened by
-    # ``_sift_parents``. When parametrize-nesting is disabled, fall back to the
-    # bracket-mangled pytest name (e.g. ``test_a[1]``) so the leaf remains
-    # uniquely identifiable.
-    if PARAMETRIZE_NESTING_OPTION.resolve(request.config):
-        path = node.stash.get(parametrize_path_key, ())
-        name = path[-1] if path else str(node.name)
-    else:
-        name = str(node.name)
+    # The leaf frame is the test-specific display name; parents are opened by
+    # ``_sift_parents``.
+    name = leaf_step_name(node, request.config)
     # ``node.obj`` may not exist (e.g., ``pytest.DoctestItem``) or may raise
     # when accessed; fall back to no description in those cases rather than
     # erroring out a perfectly valid test. ``getattr``'s default only

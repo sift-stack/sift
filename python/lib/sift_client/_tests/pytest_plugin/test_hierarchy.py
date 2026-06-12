@@ -12,14 +12,18 @@ API call to that JSONL log, and the outer test parses it via
 
 from __future__ import annotations
 
+import logging
+import warnings
 from datetime import datetime, timezone
 from textwrap import dedent
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
+from sift_client._internal.pytest_plugin import steps
 from sift_client._tests.pytest_plugin import _step_status_capture as capture
+from sift_client.pytest_plugin import SiftPytestPluginWarning
 from sift_client.sift_types.test_report import TestStatus
 
 if TYPE_CHECKING:
@@ -1367,3 +1371,823 @@ def test_excluded_sibling_does_not_stall_parent_close(
     assert _index(events, "UpdateTestStep", "TestFoo", terminal=True) < _index(
         events, "CreateTestStep", "TestBar"
     )
+
+
+# ---------------------------------------------------------------------------
+# Outer-param promotion (session/package scoped fixture params)
+# ---------------------------------------------------------------------------
+
+_SESSION_FIXTURE_CONFTEST = """\
+import pytest
+pytest_plugins = ["sift_client.pytest_plugin"]
+
+@pytest.fixture(scope="session", params=[10, 20], autouse=True)
+def outer(request):
+    yield request.param
+"""
+
+
+def test_session_fixture_param_promoted_above_module(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A session-scoped autouse fixture with params must appear above the module."""
+    pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
+    pytester.makepyfile(
+        test_promo=dedent(
+            """
+            def test_a():
+                pass
+
+            def test_b():
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=4)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+
+    assert len(by_name["outer=10"]) == 1
+    assert len(by_name["outer=20"]) == 1
+    # Outer param steps are roots — no parent.
+    assert by_name["outer=10"][0]["parent_step_id"] is None
+    assert by_name["outer=20"][0]["parent_step_id"] is None
+    # Module step is nested beneath each outer param step (two distinct instances).
+    assert len(by_name["test_promo.py"]) == 2
+    outer_10_id = by_name["outer=10"][0]["id"]
+    outer_20_id = by_name["outer=20"][0]["id"]
+    mod_parent_ids = {s["parent_step_id"] for s in by_name["test_promo.py"]}
+    assert outer_10_id in mod_parent_ids
+    assert outer_20_id in mod_parent_ids
+
+
+def test_two_outer_param_variants_produce_distinct_module_steps(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """The same module must not be shared across outer-param universes."""
+    pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
+    pytester.makepyfile(
+        test_iso=dedent(
+            """
+            def test_x():
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+
+    # Two distinct module steps, one per outer-param universe.
+    assert len(by_name["test_iso.py"]) == 2
+    outer_10_id = by_name["outer=10"][0]["id"]
+    outer_20_id = by_name["outer=20"][0]["id"]
+    parent_ids = [s["parent_step_id"] for s in by_name["test_iso.py"]]
+    assert outer_10_id in parent_ids
+    assert outer_20_id in parent_ids
+    # Each leaf parents to its own module step.
+    assert len(by_name["test_x"]) == 2
+    leaf_parent_ids = {s["parent_step_id"] for s in by_name["test_x"]}
+    mod_ids = {s["id"] for s in by_name["test_iso.py"]}
+    assert leaf_parent_ids == mod_ids
+
+
+def test_inner_parametrize_still_works_inside_outer_param(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """Inner mark-parametrize nesting must still work within each outer-param universe."""
+    pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
+    pytester.makepyfile(
+        test_inner=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", [1, 2])
+            def test_inner(v):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=4)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+
+    # Two outer universes → two `test_inner` parametrize parents.
+    assert len(by_name["test_inner"]) == 2
+    # Four leaves (v=1 and v=2 each appear twice, once per outer param).
+    assert len(by_name["v=1"]) == 2
+    assert len(by_name["v=2"]) == 2
+    # Each v=… leaf parents to the test_inner in its own outer-param universe.
+    test_inner_ids = {s["id"] for s in by_name["test_inner"]}
+    for leaf in by_name["v=1"] + by_name["v=2"]:
+        assert leaf["parent_step_id"] in test_inner_ids
+
+
+def test_no_outer_param_unaffected(pytester: pytest.Pytester, log_file: Path) -> None:
+    """Tests without any session-scoped fixture params produce the normal tree."""
+    pytester.makepyfile(
+        test_plain=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", [1, 2])
+            def test_plain(v):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+
+    # Module step is a root (no outer param wrapper).
+    assert len(by_name["test_plain.py"]) == 1
+    assert by_name["test_plain.py"][0]["parent_step_id"] is None
+    assert len(by_name["test_plain"]) == 1
+    mod_id = by_name["test_plain.py"][0]["id"]
+    assert by_name["test_plain"][0]["parent_step_id"] == mod_id
+
+
+def test_outer_param_subtree_closes_mid_session(pytester: pytest.Pytester, log_file: Path) -> None:
+    """The outer-param step resolves as soon as all its tests finish — not at session end."""
+    pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
+    pytester.makepyfile(
+        test_ec=dedent(
+            """
+            def test_a():
+                pass
+
+            def test_b():
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=4)
+    events = capture.log_events(log_file)
+    # The first outer-param step must resolve before the second outer-param step is created.
+    assert _index(events, "UpdateTestStep", "outer=10", terminal=True) < _index(
+        events, "CreateTestStep", "outer=20"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Explicit-ID labels — author-supplied ids win over name=value
+# ---------------------------------------------------------------------------
+
+
+def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, log_file: Path) -> None:
+    """An explicit ``ids=[...]`` list labels the parametrize steps, not ``name=value``."""
+    pytester.makepyfile(
+        test_lid=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", [1, 2], ids=["one", "two"])
+            def test_lid(v):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    # Friendly IDs are the leaf names; the structured fallback never appears.
+    assert "one" in by_name
+    assert "two" in by_name
+    assert "v=1" not in by_name
+    assert "v=2" not in by_name
+    parent_id = by_name["test_lid"][0]["id"]
+    assert by_name["one"][0]["parent_step_id"] == parent_id
+    assert by_name["two"][0]["parent_step_id"] == parent_id
+
+
+def test_callable_id_factory_on_inner_parametrize(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A callable ``ids=`` factory is invoked per value, just as pytest does."""
+    pytester.makepyfile(
+        test_cid=dedent(
+            """
+            import pytest
+
+            def label(v):
+                return f"ch_{v}"
+
+            @pytest.mark.parametrize("v", [0, 1], ids=label)
+            def test_cid(v):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert "ch_0" in by_name
+    assert "ch_1" in by_name
+    assert "v=0" not in by_name
+
+
+def test_explicit_ids_on_session_fixture_label_outer_param(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A session fixture's explicit ``ids`` label the promoted outer-param steps."""
+    pytester.makeconftest(
+        dedent(
+            """
+            import pytest
+            pytest_plugins = ["sift_client.pytest_plugin"]
+
+            @pytest.fixture(scope="session", params=[24, 36],
+                            ids=["lo", "hi"], autouse=True)
+            def outer(request):
+                yield request.param
+            """
+        )
+    )
+    pytester.makepyfile(
+        test_oid=dedent(
+            """
+            def test_a():
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert "lo" in by_name
+    assert "hi" in by_name
+    assert "outer=24" not in by_name
+    # Both labelled steps are roots, each scoping its own module subtree.
+    assert by_name["lo"][0]["parent_step_id"] is None
+    assert by_name["hi"][0]["parent_step_id"] is None
+    assert len(by_name["test_oid.py"]) == 2
+
+
+def test_auto_generated_ids_fall_back_to_name_value(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """With no author-supplied ``ids``, steps use the structured ``name=value`` label."""
+    pytester.makepyfile(
+        test_auto=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", [1, 2])
+            def test_auto(v):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert "v=1" in by_name
+    assert "v=2" in by_name
+
+
+def test_combined_axis_ids_fall_back_to_name_value(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A combined ``"a,b"`` axis can't attribute its shared ID, so each frame uses
+    ``name=value`` rather than mislabelling both with the same combined ID.
+    """
+    pytester.makepyfile(
+        test_comb=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("a,b", [(1, 2)], ids=["combined"])
+            def test_comb(a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=1)
+    by_name = _by_name(capture.load_steps(log_file))
+    # The shared "combined" ID is not adopted for either per-arg frame.
+    assert "combined" not in by_name
+    assert "a=1" in by_name
+    assert "b=2" in by_name
+
+
+# ---------------------------------------------------------------------------
+# Scope-ladder placement — params sit at their scope's hierarchy level
+# ---------------------------------------------------------------------------
+
+
+def test_class_scoped_fixture_param_lifts_above_method(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A class-scoped parametrized fixture nests ABOVE the method; the method's own
+    function param stays inside it (the inversion fix).
+    """
+    pytester.makepyfile(
+        test_cs=dedent(
+            """
+            import pytest
+
+            @pytest.fixture(scope="class", params=["A", "B"])
+            def cfix(request):
+                return request.param
+
+            class TestFoo:
+                @pytest.mark.parametrize("v", [10, 20])
+                def test_b(self, cfix, v):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=4)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+    # cfix lifts between the class and the method.
+    assert len(by_name["cfix='A'"]) == 1
+    assert len(by_name["cfix='B'"]) == 1
+    class_id = by_name["TestFoo"][0]["id"]
+    assert by_name["cfix='A'"][0]["parent_step_id"] == class_id
+    assert by_name["cfix='B'"][0]["parent_step_id"] == class_id
+    # The method (and its function param) nest under each cfix universe.
+    leaf = by_name["v=10"][0]
+    chain = _ancestor_names(steps, leaf)
+    assert chain[:4] == ["v=10", "test_b", "cfix='A'", "TestFoo"]
+
+
+# A module-scoped parametrized fixture shared by two functions in one module.
+_MODULE_FIXTURE_SRC = dedent(
+    """
+    import pytest
+
+    @pytest.fixture(scope="module", params=["M1", "M2"])
+    def mfix(request):
+        return request.param
+
+    def test_one(mfix):
+        pass
+
+    def test_two(mfix):
+        pass
+    """
+)
+
+
+def test_module_scoped_fixture_param_lifts_above_functions(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A module-scoped parametrized fixture nests above the functions in the module,
+    and two functions sharing it group under ONE param step per value (not split).
+    """
+    pytester.makepyfile(test_ms=_MODULE_FIXTURE_SRC)
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=4)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+    mod_id = by_name["test_ms.py"][0]["id"]
+    # One mfix step per value, each under the module (shared by both functions).
+    assert len(by_name["mfix='M1'"]) == 1
+    assert len(by_name["mfix='M2'"]) == 1
+    assert by_name["mfix='M1'"][0]["parent_step_id"] == mod_id
+    m1_id = by_name["mfix='M1'"][0]["id"]
+    # Both functions' M1 leaves parent to the single shared mfix='M1' step.
+    test_one_m1 = [s for s in by_name["test_one"] if s["parent_step_id"] == m1_id]
+    test_two_m1 = [s for s in by_name["test_two"] if s["parent_step_id"] == m1_id]
+    assert len(test_one_m1) == 1
+    assert len(test_two_m1) == 1
+
+
+def test_module_scoped_param_step_early_closes_when_shared_subtree_done(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A shared module-scoped param step resolves once all its tests finish, before
+    the next param value's step opens.
+    """
+    pytester.makepyfile(test_msc=_MODULE_FIXTURE_SRC)
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=4)
+    events = capture.log_events(log_file)
+    assert _index(events, "UpdateTestStep", "mfix='M1'", terminal=True) < _index(
+        events, "CreateTestStep", "mfix='M2'"
+    )
+
+
+def test_mark_scope_class_lifts_to_class(pytester: pytest.Pytester, log_file: Path) -> None:
+    """A ``@pytest.mark.parametrize(..., scope="class")`` lifts to the class level."""
+    pytester.makepyfile(
+        test_msk=dedent(
+            """
+            import pytest
+
+            class TestFoo:
+                @pytest.mark.parametrize("cv", [1, 2], scope="class")
+                def test_a(self, cv):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    class_id = by_name["TestFoo"][0]["id"]
+    # cv lifts to sit directly under the class, above the method.
+    assert by_name["cv=1"][0]["parent_step_id"] == class_id
+    assert by_name["cv=2"][0]["parent_step_id"] == class_id
+    cv1_id = by_name["cv=1"][0]["id"]
+    assert by_name["test_a"][0]["parent_step_id"] in {cv1_id, by_name["cv=2"][0]["id"]}
+
+
+def test_mark_scope_session_lifts_to_root(pytester: pytest.Pytester, log_file: Path) -> None:
+    """A ``@pytest.mark.parametrize(..., scope="session")`` lifts above the module
+    (closes the gap where mark-scoped session params were treated as function-scoped).
+    """
+    pytester.makepyfile(
+        test_mss=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("sx", [7, 8], scope="session")
+            def test_s(sx):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    # sx steps are roots, each scoping its own module subtree.
+    assert by_name["sx=7"][0]["parent_step_id"] is None
+    assert by_name["sx=8"][0]["parent_step_id"] is None
+    assert len(by_name["test_mss.py"]) == 2
+
+
+def test_bare_class_mark_stays_under_method(pytester: pytest.Pytester, log_file: Path) -> None:
+    """A class-level mark WITHOUT ``scope=`` is function-scoped, so it stays under the
+    method — not lifted to the class.
+    """
+    pytester.makepyfile(
+        test_bcm=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("cv", [1, 2])
+            class TestFoo:
+                def test_a(self, cv):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    method_id = by_name["test_a"][0]["id"]
+    class_id = by_name["TestFoo"][0]["id"]
+    # cv parents to the method, and the method parents directly to the class.
+    assert by_name["cv=1"][0]["parent_step_id"] == method_id
+    assert by_name["cv=2"][0]["parent_step_id"] == method_id
+    assert method_id != class_id
+    assert by_name["test_a"][0]["parent_step_id"] == class_id
+
+
+def test_nested_class_fixture_anchors_to_defining_class(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A class-scoped fixture defined on the OUTER class anchors there, not under the
+    innermost nested class.
+    """
+    pytester.makepyfile(
+        test_ncf=dedent(
+            """
+            import pytest
+
+            class TestOuter:
+                @pytest.fixture(scope="class", params=["A", "B"])
+                def cfix(self, request):
+                    return request.param
+
+                class TestInner:
+                    def test_a(self, cfix):
+                        pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+    outer_id = by_name["TestOuter"][0]["id"]
+    # cfix sits directly under TestOuter (its defining class), above TestInner.
+    assert by_name["cfix='A'"][0]["parent_step_id"] == outer_id
+    leaf = by_name["test_a"][0]
+    chain = _ancestor_names(steps, leaf)
+    assert chain[:4] == ["test_a", "TestInner", "cfix='A'", "TestOuter"]
+
+
+def test_class_param_falls_through_when_class_step_disabled(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """With ``sift_class_step=false`` the class step is suppressed, but a class-scoped
+    param still renders and attaches to the module (nearest rendered ancestor).
+    """
+    _write_ini(pytester, log_file, sift_class_step="false")
+    pytester.makepyfile(
+        test_cft=dedent(
+            """
+            import pytest
+
+            @pytest.fixture(scope="class", params=["A", "B"])
+            def cfix(request):
+                return request.param
+
+            class TestFoo:
+                def test_a(self, cfix):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    by_name = _by_name(capture.load_steps(log_file))
+    assert "TestFoo" not in by_name
+    mod_id = by_name["test_cft.py"][0]["id"]
+    # The class param falls through to the module step.
+    assert by_name["cfix='A'"][0]["parent_step_id"] == mod_id
+    cfix_a_id = by_name["cfix='A'"][0]["id"]
+    assert by_name["test_a"][0]["parent_step_id"] in {
+        cfix_a_id,
+        by_name["cfix='B'"][0]["id"],
+    }
+
+
+def test_collection_skipped_param_item_uses_cleaned_leaf_name(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """A collection-skipped item under a scope-promoted param keeps the cleaned leaf
+    name (no parametrize bracket), matching how a run sibling is named, and still
+    nests under its param universe.
+
+    The skip is evaluated before the autouse ``step`` fixture runs, so the inline
+    step from the makereport hook must name itself the same way ``step_impl`` would.
+    The passing test is declared first so the report context is bootstrapped before
+    the skip fires in each outer-param universe.
+    """
+    pytester.makeconftest(
+        dedent(
+            """
+            import pytest
+            pytest_plugins = ["sift_client.pytest_plugin"]
+
+            @pytest.fixture(scope="session", params=[10, 20], autouse=True)
+            def outer(request):
+                yield request.param
+            """
+        )
+    )
+    pytester.makepyfile(
+        test_sk=dedent(
+            """
+            import pytest
+
+            def test_ok():
+                pass
+
+            @pytest.mark.skip(reason="demo skip")
+            def test_skipped():
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2, skipped=2)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+    # Cleaned leaf name (no ``[10]`` bracket), one per outer-param universe.
+    assert len(by_name["test_skipped"]) == 2
+    assert "test_skipped[10]" not in by_name
+    for leaf in by_name["test_skipped"]:
+        chain = _ancestor_names(steps, leaf)
+        assert chain[:2] == ["test_skipped", "test_sk.py"]
+        assert chain[2] in ("outer=10", "outer=20")
+        assert leaf["statuses"][-1] == TestStatus.SKIPPED
+
+
+# ---------------------------------------------------------------------------
+# Degradation when pytest internals are unavailable
+#
+# Scope-aware placement and ``ids=`` labels read a few pytest internals. If a
+# pytest version moves them, the plugin must degrade (function-scoped nesting,
+# ``name=value`` labels) and warn once, NOT break the user's collection. See
+# ``steps._signal_introspection_degraded``.
+# ---------------------------------------------------------------------------
+
+
+def _fake_item(**attrs: object) -> pytest.Item:
+    """A stand-in pytest item for unit-testing the introspection helpers directly.
+
+    The helpers only touch a few attributes (``session``, ``callspec``, ``nodeid``,
+    ``originalname``, ``name``), so a ``SimpleNamespace`` suffices; cast keeps the
+    typed signatures honest without a real collected item.
+    """
+    return cast("pytest.Item", SimpleNamespace(**attrs))
+
+
+def _fake_item_without_fixture_manager() -> pytest.Item:
+    """An item whose ``session`` has no ``_fixturemanager`` (the internal moved)."""
+    return _fake_item(session=SimpleNamespace(), nodeid="t.py::test_x")
+
+
+def _raise(*_args: object, **_kwargs: object) -> None:
+    raise RuntimeError("simulated pytest internals change")
+
+
+def test_fixturedefs_degrades_when_fixture_manager_missing() -> None:
+    steps.reset_introspection_state()
+    item = _fake_item_without_fixture_manager()
+    with pytest.warns(SiftPytestPluginWarning, match="scope-aware parametrize"):
+        assert steps._fixturedefs(item, "x") is None
+    assert steps._introspection_degraded is True
+
+
+def test_fixturedefs_degrades_when_getfixturedefs_raises() -> None:
+    steps.reset_introspection_state()
+
+    class _FixtureManager:
+        def getfixturedefs(self, name: str, node: object) -> object:
+            raise RuntimeError("boom")
+
+    item = _fake_item(
+        session=SimpleNamespace(_fixturemanager=_FixtureManager()),
+        nodeid="t.py::test_x",
+    )
+    with pytest.warns(SiftPytestPluginWarning):
+        assert steps._fixturedefs(item, "x") is None
+
+
+def test_build_scoped_params_degrades_to_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    steps.reset_introspection_state()
+    monkeypatch.setattr(steps, "_param_scope", _raise)
+    item = _fake_item(callspec=SimpleNamespace(params={"v": 1}))
+    with pytest.warns(SiftPytestPluginWarning):
+        # Nothing promoted -> every axis stays function-scoped (rendered flat).
+        assert steps.build_scoped_params(item) == ()
+
+
+def test_build_parametrize_path_degrades_to_flat(monkeypatch: pytest.MonkeyPatch) -> None:
+    steps.reset_introspection_state()
+    monkeypatch.setattr(steps, "_param_scope", _raise)
+    item = _fake_item(
+        callspec=SimpleNamespace(params={"a": 1, "b": 2}),
+        originalname="test_x",
+        name="test_x[1-2]",
+    )
+    with pytest.warns(SiftPytestPluginWarning):
+        path = steps.build_parametrize_path(item)
+    # Degraded output: the bare leaf name plus every axis as name=value.
+    assert path[0] == "test_x"
+    assert set(path[1:]) == {"a=1", "b=2"}
+
+
+def test_introspection_warning_fires_only_once() -> None:
+    steps.reset_introspection_state()
+    item = _fake_item_without_fixture_manager()
+    with pytest.warns(SiftPytestPluginWarning):
+        steps._fixturedefs(item, "x")
+    # A second failure in the same session is silent (the latch is set), so
+    # turning warnings into errors here must not trip.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert steps._fixturedefs(item, "y") is None
+
+
+def test_introspection_failure_is_audit_logged() -> None:
+    """The degradation emits a ``parametrize.introspection_degraded`` audit line.
+
+    Captured via a handler attached directly to the plugin's logger, NOT
+    ``caplog``: audit logging sets ``sift_client.propagate = False`` (audit_log.py),
+    so root-propagation-based capture is order-dependent under randomized runs.
+    """
+    steps.reset_introspection_state()
+
+    class _Capture(logging.Handler):
+        def __init__(self) -> None:
+            super().__init__()
+            self.records: list[logging.LogRecord] = []
+
+        def emit(self, record: logging.LogRecord) -> None:
+            self.records.append(record)
+
+    plugin_logger = logging.getLogger("sift_client._internal.pytest_plugin.steps")
+    handler = _Capture()
+    plugin_logger.addHandler(handler)
+    previous_level = plugin_logger.level
+    plugin_logger.setLevel(logging.WARNING)
+    try:
+        with pytest.warns(SiftPytestPluginWarning):
+            steps._fixturedefs(_fake_item_without_fixture_manager(), "x")
+    finally:
+        plugin_logger.removeHandler(handler)
+        plugin_logger.setLevel(previous_level)
+    assert any("introspection_degraded" in r.getMessage() for r in handler.records)
+
+
+def test_internals_failure_does_not_break_collection(
+    pytester: pytest.Pytester, log_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End-to-end: a forced internals failure degrades, it does not error the run.
+
+    ``runpytest_inprocess`` shares this process's ``steps`` module, so the outer
+    ``monkeypatch`` patches the inner run too and is restored afterward.
+    """
+    monkeypatch.setattr(steps, "_fixturedefs", _raise)
+    pytester.makepyfile(
+        test_x=dedent(
+            """
+            import pytest
+
+            @pytest.fixture(scope="module", params=[1, 2])
+            def fw(request):
+                return request.param
+
+            def test_a(step, fw):
+                step.measure(name="m", value=True, bounds=True)
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-p", "no:randomly")
+    # The user's tests still run and pass despite the forced internals failure.
+    result.assert_outcomes(passed=2)
+    # The degradation is surfaced, not silent.
+    assert "scope-aware parametrize placement" in result.stdout.str()
+    # A report was still produced; the module-scoped param simply wasn't promoted.
+    assert capture.load_steps(log_file)
+
+
+def test_indirect_parametrize_lifts_to_fixture_scope(
+    pytester: pytest.Pytester, log_file: Path
+) -> None:
+    """An ``indirect=True`` axis routed through a module-scoped fixture lifts to
+    the module level. Scope comes from the fixture's public ``fixturedef.scope``,
+    resolved without pytest's private ``callspec._arg2scope``.
+    """
+    pytester.makepyfile(
+        test_ind=dedent(
+            """
+            import pytest
+
+            @pytest.fixture(scope="module")
+            def mfix(request):
+                return request.param
+
+            @pytest.mark.parametrize("mfix", ["M1", "M2"], indirect=True)
+            def test_a(step, mfix):
+                step.measure(name="m", value=True, bounds=True)
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(log_file)
+    by_name = _by_name(steps)
+    mod_id = by_name["test_ind.py"][0]["id"]
+    # One param step per value, lifted to module scope (under the module step).
+    assert len(by_name["mfix='M1'"]) == 1
+    assert len(by_name["mfix='M2'"]) == 1
+    assert by_name["mfix='M1'"][0]["parent_step_id"] == mod_id
+    # The leaf nests under its param universe, not directly under the module.
+    m1_id = by_name["mfix='M1'"][0]["id"]
+    assert [s for s in by_name["test_a"] if s["parent_step_id"] == m1_id]
+
+
+def test_fixturedefs_falls_back_to_nodeid_on_pytest7_signature() -> None:
+    """On pytest 7.x ``getfixturedefs`` takes a nodeid string; passing a Node
+    hits ``nodeid.find(...)`` → ``AttributeError`` (a Node has no ``.find``).
+
+    The fallback must retry with ``item.nodeid`` and succeed, NOT degrade — so
+    scope-aware placement keeps working on pytest 7.x. (pytest 8.x/9.x take the
+    Node directly and never reach the fallback.)
+    """
+    steps.reset_introspection_state()
+    sentinel = object()
+
+    class _Pytest7FixtureManager:
+        def getfixturedefs(self, name: str, node_or_nodeid: object) -> object:
+            # pytest 7.x accepts a nodeid string; a Node argument blows up the
+            # way the real ``iterparentnodeids`` would (``node.find`` is absent).
+            if isinstance(node_or_nodeid, str):
+                return (sentinel,)
+            raise AttributeError("'Function' object has no attribute 'find'")
+
+    item = _fake_item(
+        session=SimpleNamespace(_fixturemanager=_Pytest7FixtureManager()),
+        nodeid="t.py::test_x",
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # a degradation warning would raise here
+        result = steps._fixturedefs(item, "x")
+    assert result == (sentinel,)
+    assert steps._introspection_degraded is False

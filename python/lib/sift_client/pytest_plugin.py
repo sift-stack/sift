@@ -56,6 +56,7 @@ from sift_client._internal.pytest_plugin.report import (
     OFFLINE_DEFAULTS,
     build_disabled_client,
     finalize_after_teardown,
+    leaf_step_name,
     report_context_impl,
     resolve_report_link,
     step_impl,
@@ -63,12 +64,15 @@ from sift_client._internal.pytest_plugin.report import (
 from sift_client._internal.pytest_plugin.steps import (
     build_hierarchy_chain,
     build_parametrize_path,
+    build_scoped_params,
     finalize_parents,
     get_or_create_parent_chain,
     hierarchy_key,
     parametrize_path_key,
     release_finished_leaf,
+    reset_introspection_state,
     resolve_parent_chain_in_context,
+    scoped_params_key,
     tally_expected_parents,
 )
 from sift_client._internal.pytest_plugin.terminal import (
@@ -410,6 +414,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     """Register the Sift gate markers and warn on unknown ``SIFT_*`` settings."""
+    # Clear the parametrize-introspection failure latch so the one-shot
+    # degradation warning can fire once per session, not once per process.
+    reset_introspection_state()
     config.addinivalue_line(
         "markers",
         "sift_include: force the Sift autouse fixtures to activate for this test "
@@ -471,10 +478,12 @@ def pytest_itemcollected(item: pytest.Item) -> None:
     """
     chain = build_hierarchy_chain(item, item.config)
     parametrize_path = build_parametrize_path(item)
+    scoped_params = build_scoped_params(item)
     item.stash[hierarchy_key] = chain
     item.stash[parametrize_path_key] = parametrize_path
+    item.stash[scoped_params_key] = scoped_params
     gated = gate_enabled(item, item.config)
-    rendered_hierarchy = "/".join(name for _id, name, _doc, rendered in chain if rendered)
+    rendered_hierarchy = "/".join(name for _id, name, _doc, rendered, _scope in chain if rendered)
     log_event(
         logger,
         logging.DEBUG,
@@ -535,7 +544,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         parent_ns = resolve_parent_chain_in_context(item, item.config, REPORT_CONTEXT)
         parent_step = parent_ns.current_step if parent_ns is not None else None
         with REPORT_CONTEXT.new_step(
-            name=item.name,
+            name=leaf_step_name(item, item.config),
             parent=parent_step,
             origin="pytest_runtest_makereport",
             source_path=item.nodeid,
@@ -568,13 +577,23 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     finalize_parents()
 
 
+def _verbosity(config: pytest.Config) -> int:
+    """Global verbosity (the ``-v`` count minus ``-q``), pytest 7/8/9-compatible.
+
+    ``Config.get_verbosity()`` only exists since pytest 8.0; ``config.option.verbose``
+    is the value it returns for the global case and is present across the supported
+    pytest range, so reading it directly keeps the plugin importable on pytest 7.x.
+    """
+    return getattr(config.option, "verbose", 0)
+
+
 def pytest_report_header(config: pytest.Config) -> str | None:
     """Emit a session-start header with the SDK version and active mode.
 
     Suppressed under ``-q`` (negative verbosity), matching how pytest hides its
     own platform/plugin header.
     """
-    if config.get_verbosity() < 0:
+    if _verbosity(config) < 0:
         return None
     return f"Sift: sift-stack-py {sdk_version()} — {mode_label(config)} mode"
 
@@ -587,7 +606,7 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: pyte
     other plugins and CI steps can consume the result. The panel itself is
     rendered by ``write_report_summary``; this hook handles the side effects.
     """
-    quiet = config.get_verbosity() < 0
+    quiet = _verbosity(config) < 0
 
     # End-state validation view: the final step tree with statuses, written to
     # the audit log (not the terminal) in every mode. created_steps are retained

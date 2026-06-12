@@ -153,7 +153,7 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Disable Sift entirely (no API calls, no log file). Supersedes --sift-offline. | `--sift-disabled` | `sift_disabled` |
 | Open the resulting report in a browser at session end (online only; no-op when the report URL can't be resolved). | `--sift-open-report` | `sift_open_report` |
 | Default for the Sift autouse fixtures (report_context, step, hierarchy/parametrize parents). | — | `sift_autouse` |
-| Open a parent step for each Python package in the test path. | — | `sift_package_step` |
+| Open a parent step for each Python package (a directory with an __init__.py) in the test path. To drop a single unwanted one, delete that __init__.py. | — | `sift_package_step` |
 | Open a parent step for each test module. | — | `sift_module_step` |
 | Open per-class parent steps, including nested classes. | — | `sift_class_step` |
 | Cluster parametrized tests under shared parent steps (e.g. test_a -> v=1, v=2). | — | `sift_parametrize_nesting` |

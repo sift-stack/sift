@@ -142,18 +142,34 @@ TestReport (FAILED, since failures propagate up from leaves)
         ├── test_failed_measurement_marks_sift_step_failed           FAILED  (pytest PASSED)
         ├── test_pytest_fail_if_step_failed_at_end                                FAILED  (pytest FAILED)
         ├── test_report_level_metadata                               PASSED
-        └── TestClassStep
-            ├── test_parametrize
-            │   ├── axis_a='a1'
-            │   │   ├── axis_b='b1'                                  PASSED
-            │   │   └── axis_b='b2'                                  PASSED
-            │   └── axis_a='a2'
-            │       ├── axis_b='b1'                                  PASSED
-            │       └── axis_b='b2'                                  PASSED
-            └── TestNested
-                └── test_report_outcome
-                    └── check                                        PASSED
+        ├── TestClassStep
+        │   ├── test_parametrize
+        │   │   ├── axis_a='a1'
+        │   │   │   ├── axis_b='b1'                                  PASSED
+        │   │   │   └── axis_b='b2'                                  PASSED
+        │   │   └── axis_a='a2'
+        │   │       ├── axis_b='b1'                                  PASSED
+        │   │       └── axis_b='b2'                                  PASSED
+        │   └── TestNested
+        │       └── test_report_outcome
+        │           └── check                                        PASSED
+        └── TestScopedFixtureParam              ← class-scoped fixture param
+            ├── stable                          ← ids= label (else firmware='1.4.2')
+            │   ├── test_boots                                       PASSED
+            │   └── test_reports_version                             PASSED
+            └── beta
+                ├── test_boots                                       PASSED
+                └── test_reports_version                             PASSED
 ```
+
+`TestScopedFixtureParam` shows two things. Scope-based placement: the
+class-scoped `firmware` fixture's parameter lifts to wrap the class methods
+(each runs once per value), unlike the function-level `@pytest.mark.parametrize`
+in `TestClassStep`, whose axes nest under the test. Module- and session-scoped
+fixture params lift higher still (above the module, and to the report root). And
+human-readable labels: `firmware` declares `ids=["stable", "beta"]`, so the
+steps use those names instead of the default `firmware='1.4.2'` form (a list or
+a callable `ids=` factory both work, on parametrize axes as well as fixtures).
 
 The `pytest_only` module deliberately includes one failing, one skipped, and
 one erroring test so the demo shows every `TestStatus` mapping (`FAILED` for
@@ -169,7 +185,7 @@ call is the recommended pattern: it fails via `pytest.fail` (no assertion
 noise in `error_info`), and unlike asserting on an individual
 `step.measure(...)` call it does not short-circuit on the first failure and
 skip every measurement that follows. Expected
-pytest output is `16 passed, 3 failed, 1 skipped`.
+pytest output is `20 passed, 3 failed, 1 skipped`.
 
 Flip any of the `sift_*_step` / `sift_parametrize_nesting` flags in
 `pyproject.toml` to `false` to collapse a layer.

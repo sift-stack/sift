@@ -289,7 +289,9 @@ AUTOUSE_OPTION = Option(
 PACKAGE_STEP_OPTION = Option(
     name="package_step",
     category=CAT_BEHAVIOR,
-    help="Open a parent step for each Python package in the test path.",
+    help="Open a parent step for each Python package (a directory with an "
+    "__init__.py) in the test path. To drop a single unwanted one, delete that "
+    "__init__.py.",
     ini="sift_package_step",
     ini_type="bool",
     ini_default=True,
