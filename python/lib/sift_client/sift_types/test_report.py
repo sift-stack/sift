@@ -36,6 +36,7 @@ from sift_client.sift_types._base import (
     ModelUpdate,
 )
 from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
+from sift_client.sift_types._mixins.simulated import SimulatedMixin
 from sift_client.sift_types.channel import Channel
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
@@ -153,7 +154,7 @@ class TestStepCreate(TestStepBase, ModelCreate[TestStepProto]):
         return proto
 
 
-class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
+class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin, SimulatedMixin):
     """TestStep model representing a step in a test."""
 
     test_report_id: str
@@ -166,9 +167,13 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin):
     start_time: datetime
     end_time: datetime
     error_info: ErrorInfo | None = None
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool] | None = None
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
+    # Set by the low-level wrapper when this instance came from the simulate path
+    _simulated: bool = False
 
     @classmethod
     def _from_proto(cls, proto: TestStepProto, sift_client: SiftClient | None = None) -> TestStep:
@@ -383,7 +388,7 @@ class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProt
         return proto
 
 
-class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
+class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"], SimulatedMixin):
     """TestMeasurement model representing a measurement in a test."""
 
     measurement_type: TestMeasurementType
@@ -399,11 +404,47 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
     passed: bool
     timestamp: datetime
     description: str | None = None
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool] | None = None
     channel_names: list[str] | None = None
 
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
+    # Set by the low-level wrapper when this instance came from the simulate path
+    _simulated: bool = False
+
+    def __str__(self) -> str:
+        """Human-readable form: ``[STATUS] name = value [unit] (bounds)``.
+
+        Used for failure messages, logs, and the REPL. The string omits whichever
+        parts aren't set (no unit, no bounds), and falls back to ``?`` if no
+        value type is populated. The status prefix reflects ``self.passed``.
+        """
+        status = "PASSED" if self.passed else "FAILED"
+        if self.numeric_value is not None:
+            value = f"{self.numeric_value}"
+            if self.unit:
+                value += f" {self.unit}"
+        elif self.string_value is not None:
+            value = repr(self.string_value)
+        elif self.boolean_value is not None:
+            value = str(self.boolean_value).lower()
+        else:
+            value = "?"
+        bounds = ""
+        nb = self.numeric_bounds
+        if nb is not None:
+            parts: list[str] = []
+            if nb.min is not None:
+                parts.append(f"min {nb.min}")
+            if nb.max is not None:
+                parts.append(f"max {nb.max}")
+            if parts:
+                bounds = f" ({', '.join(parts)})"
+        elif self.string_expected_value:
+            bounds = f" (expected {self.string_expected_value!r})"
+        return f"[{status}] {self.name} = {value}{bounds}"
 
     @classmethod
     def _from_proto(
@@ -599,7 +640,7 @@ class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
         )
 
 
-class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
+class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin, SimulatedMixin):
     """TestReport model representing a test report."""
 
     status: TestStatus
@@ -608,6 +649,8 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
     test_case: str
     start_time: datetime
     end_time: datetime
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool]
     serial_number: str | None = None
     part_number: str | None = None
@@ -617,6 +660,8 @@ class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
     is_archived: bool
     # Set by the resource layer when this instance was produced from a logging-mode call
     _log_file: str | Path | None = None
+    # Set by the low-level wrapper when this instance came from the simulate path
+    _simulated: bool = False
 
     @classmethod
     def _from_proto(

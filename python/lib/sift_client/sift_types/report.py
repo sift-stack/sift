@@ -108,6 +108,8 @@ class Report(BaseType[ReportProto, "Report"]):
     summaries: list[ReportRuleSummary]
     tags: list[str]
     rerun_from_report_id: str | None = None
+    # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
+    # sift_types/_mixins/metadata.py before adding keys at runtime.
     metadata: dict[str, str | float | bool]
     job_id: str
     archived_date: datetime | None = None

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.17.1"
+version = "0.17.0.dev3"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -45,6 +45,7 @@ dependencies = [
     "googleapis-common-protos>=1.60",
     "protoc-gen-openapiv2>=0.0.1",
     "filelock~=3.15",
+    'tomli~=2.0; python_version < "3.11"',
 ]
 
 [project.urls]
@@ -84,6 +85,7 @@ dev = [
     'pytest-benchmark==4.0.0',
     'pytest-dotenv==0.5.2',
     'pytest-mock==3.14.0',
+    'pytest-randomly==3.15.0',
     'pytest==8.2.2',
     'ruff~=0.12.10',
     'tomlkit~=0.13.3',
@@ -104,6 +106,7 @@ dev-all = [
     'pytest-benchmark==4.0.0',
     'pytest-dotenv==0.5.2',
     'pytest-mock==3.14.0',
+    'pytest-randomly==3.15.0',
     'pytest==8.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
@@ -119,6 +122,7 @@ development = [
     'pytest-benchmark==4.0.0',
     'pytest-dotenv==0.5.2',
     'pytest-mock==3.14.0',
+    'pytest-randomly==3.15.0',
     'pytest==8.2.2',
     'ruff~=0.12.10',
     'tomlkit~=0.13.3',
@@ -157,6 +161,7 @@ docs-build = [
     'pytest-benchmark==4.0.0',
     'pytest-dotenv==0.5.2',
     'pytest-mock==3.14.0',
+    'pytest-randomly==3.15.0',
     'pytest==8.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
@@ -205,6 +210,9 @@ development = [
     "pytest-benchmark==4.0.0",
     "pytest-mock==3.14.0",
     "pytest-dotenv==0.5.2",
+    # 3.15.0 is the last line supporting Python 3.8; pinned (rather than 4.x,
+    # which needs 3.10+) so randomization is active on the 3.8 CI test job too.
+    "pytest-randomly==3.15.0",
     "ruff~=0.12.10",
     "tomlkit~=0.13.3"
 ]
@@ -409,11 +417,34 @@ select = [
 env_files = [
     ".env"
 ]
+# `pytester` is registered globally because pytest 8+ disallows `pytest_plugins`
+# in non-top-level conftests. Only the plugin test suite uses it; activating it
+# globally is harmless since the fixture is opt-in.
+# The Sift pytest plugin is loaded so the project's own integration tests can
+# use its fixtures. Unit-test runs are flipped to `--sift-disabled` mode by
+# `lib/sift_client/_tests/conftest.py`.
+# `--import-mode=importlib` loads test files by path with unique synthetic
+# module names. The default `prepend` mode would try to import
+# `lib/sift_client/_tests/conftest.py` as `sift_client._tests.conftest`, which
+# fails because `_tests` is excluded from the wheel (see packages.find above).
+addopts = "-p pytester -p sift_client.pytest_plugin --import-mode=importlib"
+# The autouse gate defaults to off so unit tests don't use the Sift
+# fixtures. The integration subtree (lib/sift_client/_tests/util/) opts
+# back in via `pytest.mark.sift_include` applied in its conftest.
+sift_autouse = false
 testpaths = [
     "lib/sift_py",
     "lib/sift_client/_tests",
 ]
 
 markers = [
-    "integration: mark a test as an integration test (requires API)"
+    "integration: mark a test as an integration test (requires API)",
+    # Opt-in suite for the pytest-version compat matrix (test-pytest-compat in
+    # python_ci.yaml), auto-applied to this suite's tests by its conftest. The
+    # matrix runs `-m plugin_compat` across pytest 7/8/9.
+    "plugin_compat: sift pytest-plugin behavior test, run in the version matrix",
 ]
+
+[tool.sift.pytest.report]
+# Stable grouping key so integration reports query together across runs.
+test_case = "sift-client-integration"

@@ -3,6 +3,66 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+This release is a major overhaul of the pytest plugin.
+
+### What's New
+
+#### Single-import plugin
+The plugin is now `sift_client.pytest_plugin`, wired in with one line:
+
+```python
+pytest_plugins = ["sift_client.pytest_plugin"]
+```
+
+A default `sift_client` fixture reads `SIFT_*` env vars with `sift_grpc_uri` / `sift_rest_uri` ini fallback, so per-project config lives in `pyproject.toml`. `sift_include` / `sift_exclude` markers and the `sift_test_results_autouse` ini key scope which tests produce Sift reports, and autouse fixtures are gated per test so mixed unit and integration suites share one `pytest` invocation without unit tests paying a backend round-trip.
+
+#### Hierarchical report tree
+Python packages, test modules, test classes (including nested), and `@pytest.mark.parametrize` axes each open a nested parent step automatically, so the report mirrors the test layout. Parents are keyed by identity rather than held on a shared stack, so the tree is order-independent: it works with `pytest-randomly`, `pytest-ordering`, and fixture-scope reordering. Each parent closes as soon as the last test in its subtree finishes, so containers resolve progressively in incrementally uploaded reports instead of all at session end.
+
+Parametrize placement is scope-aware: function-scoped params nest under the test, while a class, module, or session-scoped parametrized fixture sits at that level, matching where pytest re-runs the work. Four ini keys gate the layers individually: `sift_package_step`, `sift_module_step`, `sift_class_step`, and `sift_parametrize_nesting` (all default `true`).
+
+#### Offline and disabled modes
+Two named connection modes replace the previous check-connection toggle:
+
+- `--sift-offline` skips the connectivity ping and routes create/update calls to a JSONL log for later replay via `import-test-result-log`, tolerating missing `SIFT_*` env vars.
+- `--sift-disabled` (also `SIFT_DISABLED=1`) contacts nothing and writes no log, but `step.measure(...)` still evaluates bounds and returns a real pass/fail result. No credentials required.
+
+`is_simulated` is exposed on `TestReport`, `TestStep`, `TestMeasurement`, and `ReportContext` so callers can branch on provenance. In online mode a failed ping now aborts the session once via `pytest.exit`, before any test body runs and with the full error untruncated.
+
+#### Pass/fail reporting
+Assertion failures record the concise assertion message on `error_info` (the step stays `FAILED` with no traceback) so the detail surfaces in the report UI. `step.pytest_fail_if_step_failed()` fails the pytest test when the step or any descendant failed, closing the gap where a failed substep or `report_outcome()` marked a step `FAILED` in the report but left pytest green. The failure message names each out-of-bounds measurement by name, value, and bounds, plus any failed substep.
+
+#### Terminal summary
+A session-start header shows the SDK version and active mode (e.g. `Sift: sift-stack-py 0.17.0, online mode`). An end-of-run Sift report panel reports status, step and measurement counts (color-coded), test case, system, log file, and a clickable report link (online) or upload command (offline). New `--sift-open-report` / `sift_open_report` opens the report in a browser at session end on interactive terminals. `--sift-report-url-base` / `sift_report_url_base` / `SIFT_APP_URL` sets the web-app origin for on-prem and custom deployments; `SiftClient.app_url` exposes the resolved origin to non-plugin consumers.
+
+#### Configurable report content
+Report fields are configurable from `[tool.sift.pytest.report]` in `pyproject.toml` (`name`, `test_case`, `test_system_name`, `system_operator`, `serial_number`, `part_number`, and a `metadata` table) or from `SIFT_REPORT_*` env vars for per-run values, with env winning over TOML. `name` and `test_case` accept placeholders including `{target}`, `{command}`, `{timestamp}`, `{count}`, `{git_repo}`, `{git_branch}`, and `{git_commit}`. When unset, `name` defaults to `{target} {timestamp}` and `test_case` to `{target}`, where `target` is derived from the collected tests so it stays stable across flag order and filters. The full invocation is always recorded under the `pytest_command` metadata key.
+
+Unknown `SIFT_*` env vars and `[tool.sift.pytest.*]` keys produce a warning with a closest-match suggestion, so typos surface immediately.
+
+#### Audit logging
+A DEBUG audit trace lets field failures be diagnosed from one file without a rerun. `--sift-audit-log` / `sift_audit_log` accepts `path | true | false` and is on by default (DEBUG trace to a temp file, warnings echoed to stdout). The trace records config typos, connection state, the resolved-settings snapshot with provenance (API key redacted), status transitions, step open/close, and the replay lifecycle. Per-session temp artifacts group under `<tmpdir>/sift_test_results/<random>/`, and the terminal summary gains an audit-log section.
+
+### Bugfixes
+- Fix incremental upload of test-result logs failing on any resume tick after the first, which left the report stuck in progress. Resume ticks now read the report ID from the tracking map instead of requiring an in-memory report, and the recovery hint points at `import-test-result-log --incremental <log>` so a manual retry resumes from the cursor rather than creating a duplicate report. ([#611](https://github.com/sift-stack/sift/pull/611))
+
+### Full Changelog
+- [pytest plugin improvements](https://github.com/sift-stack/sift/pull/567)
+- [pytest pass/fail behavior improvements](https://github.com/sift-stack/sift/pull/568)
+- [Graceful handling of a missing connection](https://github.com/sift-stack/sift/pull/569)
+- [Hierarchical pytest report tree](https://github.com/sift-stack/sift/pull/570)
+- [Report assertion message as error info](https://github.com/sift-stack/sift/pull/587)
+- [pytest summary output](https://github.com/sift-stack/sift/pull/594)
+- [Flexible report naming and consolidated options](https://github.com/sift-stack/sift/pull/602)
+- [Exit instead of raise on connection failure](https://github.com/sift-stack/sift/pull/606)
+- [Fix incremental upload bug and add unit tests](https://github.com/sift-stack/sift/pull/611)
+- [Order-independent report tree with early parent close](https://github.com/sift-stack/sift/pull/616)
+- [Broaden step failure check to cover substeps](https://github.com/sift-stack/sift/pull/619)
+- [Add audit logging to the pytest plugin](https://github.com/sift-stack/sift/pull/628)
+- [Scope-aware parametrize support in the report tree](https://github.com/sift-stack/sift/pull/631)
+
 ## [v0.17.1] - June 10, 2026
 
 ### Bugfixes

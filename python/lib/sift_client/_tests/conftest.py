@@ -78,10 +78,14 @@ def ci_pytest_tag(sift_client):
     return tag
 
 
-# Import the Sift test results fixtures the way we recommend to users.
-from sift_client.util.test_results import *  # noqa: F403
-
-
 def pytest_configure(config: pytest.Config) -> None:
-    """Enable the Sift connection-check mode for the fixtures used in this test suite since we run w/ mock client in non-integration tests."""
-    config.option.sift_test_results_check_connection = True
+    """Pick a Sift plugin mode based on whether integration tests are running.
+
+    Integration runs (``-m integration``) stay online with the default
+    log-file pipeline enabled so CI exercises the JSONL write + import
+    worker replay path that production users hit. Every other run defaults
+    to ``--sift-disabled`` so unit tests don't need credentials.
+    """
+    is_integration_run = "integration" in (config.option.markexpr or "")
+    if not is_integration_run:
+        config.option.sift_disabled = True

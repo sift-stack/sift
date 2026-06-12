@@ -24,6 +24,7 @@ class SiftConnectionConfig:
         api_key: str,
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
+        app_url: str | None = None,
     ):
         """Initialize the connection configuration.
 
@@ -33,12 +34,17 @@ class SiftConnectionConfig:
             api_key: The API key for authentication.
             use_ssl: Whether to use SSL/TLS for secure connections.
             cert_via_openssl: Whether to use OpenSSL for certificate validation.
+            app_url: The Sift web-app origin (e.g. ``https://app.siftstack.com``).
+                Set this for on-prem or custom deployments whose API host can't be
+                mapped to a frontend automatically. When unset, the web-app URL is
+                derived from ``rest_url`` for known hosts.
         """
         self.api_key = api_key
         self.grpc_url = grpc_url
         self.rest_url = rest_url
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
+        self.app_url = app_url
 
     def get_grpc_config(self):
         """Create and return a GrpcConfig with the current settings.
