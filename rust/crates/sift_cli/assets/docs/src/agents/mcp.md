@@ -5,6 +5,11 @@ server that exposes Sift to agentic coding tools such as Claude Code. The agent
 discovers assets, pulls data, runs queries, and uploads results through
 structured tools rather than shelling out to the CLI.
 
+> The `mcp` subcommand is gated behind the `mcp` Cargo feature, which is on by
+> default. Prebuilt releases include it. If you built from source with
+> `--no-default-features`, the subcommand is not available — rebuild without
+> that flag to enable it. See [Installation](../getting-started/installation.md).
+
 ```sh
 sift-cli mcp
 ```
