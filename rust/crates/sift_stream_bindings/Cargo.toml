@@ -10,6 +10,11 @@ license = { workspace = true }
 categories = { workspace = true }
 readme = "README.md"
 
+# The stub_gen bin makes cargo-dist treat this package as a distributable
+# app; it's a dev tool released via PyPI tooling, not cargo-dist.
+[package.metadata.dist]
+dist = false
+
 [lib]
 name = "sift_stream_bindings"
 crate-type = ["cdylib", "rlib"]
