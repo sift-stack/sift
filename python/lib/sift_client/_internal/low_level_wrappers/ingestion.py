@@ -236,6 +236,86 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return _hash_flows(asset_name=asset_name, flows=flows)
 
 
+async def _build_sift_stream_instance(
+    api_key: str,
+    grpc_uri: str,
+    ingestion_config_form: IngestionConfigFormPy,
+    run_form: RunFormPy | None = None,
+    run_id: str | None = None,
+    asset_tags: list[str] | None = None,
+    asset_metadata: list[MetadataPy] | None = None,
+    streaming_mode: StreamingMode = ...,  # type: ignore[assignment]
+    retry_policy: RetryPolicyPy | None = None,
+    disk_backup_policy: DiskBackupPolicyPy | None = None,
+    checkpoint_interval_seconds: int | None = None,
+    enable_tls: bool = True,
+    tracing_config: TracingConfig | None = None,
+) -> SiftStreamPy:
+    """Build a raw `SiftStreamPy` without wrapping it in a client.
+
+    Shared by both `IngestionConfigStreamingLowLevelClient` and the auto-register path.
+    """
+    # Importing here to allow sift_stream_bindings to be an optional dependency for non-ingestion users
+    # TODO(nathan): Fix bindings to fix mypy issues with tracing functions
+    from sift_stream_bindings import (  # type: ignore[attr-defined]
+        DurationPy,
+        SiftStreamBuilderPy,
+        init_tracing,  # type: ignore[attr-defined]
+        init_tracing_with_file,  # type: ignore[attr-defined]
+        is_tracing_initialized,  # type: ignore[attr-defined]
+    )
+
+    from sift_client.resources.ingestion import StreamingMode, TracingConfig
+
+    _default_max_log_files = 7
+    _default_logfile_prefix = "sift_stream_bindings.log"
+
+    if streaming_mode is ...:  # type: ignore[comparison-overlap]
+        streaming_mode = StreamingMode.LIVE_WITH_BACKUPS
+
+    if not is_tracing_initialized():
+        if tracing_config is None:
+            tracing_config = TracingConfig.with_file()
+
+        if tracing_config.log_dir is not None:
+            init_tracing_with_file(
+                tracing_config.level,
+                tracing_config.log_dir,
+                tracing_config.filename_prefix or _default_logfile_prefix,
+                tracing_config.max_log_files or _default_max_log_files,
+            )
+        else:
+            init_tracing(tracing_config.level)
+
+    sift_builder = SiftStreamBuilderPy(uri=grpc_uri, apikey=api_key)
+    sift_builder.enable_tls = enable_tls
+
+    config_builder = sift_builder.ingestion_config(ingestion_config_form)
+    config_builder.run = run_form
+    config_builder.run_id = run_id
+    config_builder.asset_tags = asset_tags
+    config_builder.metadata = asset_metadata
+
+    if streaming_mode == StreamingMode.LIVE_ONLY:
+        return await config_builder.live_only().build()
+
+    elif streaming_mode == StreamingMode.FILE_BACKUP:
+        fb_builder = config_builder.file_backup()
+        if disk_backup_policy is not None:
+            fb_builder.disk_backup_policy = disk_backup_policy
+        return await fb_builder.build()
+
+    else:  # LIVE_WITH_BACKUPS (default)
+        lwb_builder = config_builder.live_with_backups()
+        if retry_policy is not None:
+            lwb_builder.retry_policy = retry_policy
+        if disk_backup_policy is not None:
+            lwb_builder.disk_backup_policy = disk_backup_policy
+        if checkpoint_interval_seconds is not None:
+            lwb_builder.checkpoint_interval = DurationPy(secs=checkpoint_interval_seconds, nanos=0)
+        return await lwb_builder.build()
+
+
 class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     DEFAULT_MAX_LOG_FILES = 7  # Equal to 1 week of logs
     DEFAULT_LOGFILE_PREFIX = "sift_stream_bindings.log"
@@ -262,67 +342,21 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
-        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
-        # TODO(nathan): Fix bindings to fix mypy issues with tracing functions
-        from sift_stream_bindings import (  # type: ignore[attr-defined]
-            DurationPy,
-            SiftStreamBuilderPy,
-            init_tracing,  # type: ignore[attr-defined]
-            init_tracing_with_file,  # type: ignore[attr-defined]
-            is_tracing_initialized,  # type: ignore[attr-defined]
+        sift_stream_instance = await _build_sift_stream_instance(
+            api_key=api_key,
+            grpc_uri=grpc_uri,
+            ingestion_config_form=ingestion_config_form,
+            run_form=run_form,
+            run_id=run_id,
+            asset_tags=asset_tags,
+            asset_metadata=asset_metadata,
+            streaming_mode=streaming_mode,
+            retry_policy=retry_policy,
+            disk_backup_policy=disk_backup_policy,
+            checkpoint_interval_seconds=checkpoint_interval_seconds,
+            enable_tls=enable_tls,
+            tracing_config=tracing_config,
         )
-
-        from sift_client.resources.ingestion import StreamingMode, TracingConfig
-
-        if streaming_mode is ...:  # type: ignore[comparison-overlap]
-            streaming_mode = StreamingMode.LIVE_WITH_BACKUPS
-
-        if not is_tracing_initialized():
-            if tracing_config is None:
-                tracing_config = TracingConfig.with_file()
-
-            if tracing_config.log_dir is not None:
-                # Use file logging
-                init_tracing_with_file(
-                    tracing_config.level,
-                    tracing_config.log_dir,
-                    tracing_config.filename_prefix or cls.DEFAULT_LOGFILE_PREFIX,
-                    tracing_config.max_log_files or cls.DEFAULT_MAX_LOG_FILES,
-                )
-            else:
-                # Use stdout/stderr only
-                init_tracing(tracing_config.level)
-
-        sift_builder = SiftStreamBuilderPy(uri=grpc_uri, apikey=api_key)
-        sift_builder.enable_tls = enable_tls
-
-        config_builder = sift_builder.ingestion_config(ingestion_config_form)
-        config_builder.run = run_form
-        config_builder.run_id = run_id
-        config_builder.asset_tags = asset_tags
-        config_builder.metadata = asset_metadata
-
-        if streaming_mode == StreamingMode.LIVE_ONLY:
-            sift_stream_instance = await config_builder.live_only().build()
-
-        elif streaming_mode == StreamingMode.FILE_BACKUP:
-            fb_builder = config_builder.file_backup()
-            if disk_backup_policy is not None:
-                fb_builder.disk_backup_policy = disk_backup_policy
-            sift_stream_instance = await fb_builder.build()
-
-        else:  # LIVE_WITH_BACKUPS (default)
-            lwb_builder = config_builder.live_with_backups()
-            if retry_policy is not None:
-                lwb_builder.retry_policy = retry_policy
-            if disk_backup_policy is not None:
-                lwb_builder.disk_backup_policy = disk_backup_policy
-            if checkpoint_interval_seconds is not None:
-                lwb_builder.checkpoint_interval = DurationPy(
-                    secs=checkpoint_interval_seconds, nanos=0
-                )
-            sift_stream_instance = await lwb_builder.build()
-
         return cls(sift_stream_instance)
 
     async def send(self, flow: FlowPy):

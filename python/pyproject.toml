@@ -66,7 +66,7 @@ all = [
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
-    'sift-stream-bindings==0.3.0',
+    'sift-stream-bindings==0.4.1',
     'types-pyOpenSSL<24.0.0',
 ]
 build = [
@@ -107,7 +107,7 @@ dev-all = [
     'pytest==8.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
-    'sift-stream-bindings==0.3.0',
+    'sift-stream-bindings==0.4.1',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -160,7 +160,7 @@ docs-build = [
     'pytest==8.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
-    'sift-stream-bindings==0.3.0',
+    'sift-stream-bindings==0.4.1',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -183,10 +183,10 @@ rosbags = [
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
 sift-stream = [
-    'sift-stream-bindings==0.3.0',
+    'sift-stream-bindings==0.4.1',
 ]
 sift-stream-bindings = [
-    'sift-stream-bindings==0.3.0',
+    'sift-stream-bindings==0.4.1',
 ]
 tdms = [
     'npTDMS~=1.9',
@@ -224,7 +224,7 @@ docs = [
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0 ; python_full_version >= '3.8.2'"]
-sift-stream = ["sift-stream-bindings==0.3.0"]
+sift-stream = ["sift-stream-bindings==0.4.1"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
 data-review = ["pyarrow>=17.0.0"]
 
