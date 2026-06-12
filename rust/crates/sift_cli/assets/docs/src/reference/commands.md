@@ -49,6 +49,10 @@ Export data from Sift. See [Exporting Data](../data/exporting.md).
 
 Start the Sift MCP server. See [MCP Server](../agents/mcp.md).
 
+In active development and not built into default releases. Opt in only if
+you are exploring or contributing to its development by building from source
+with `--features mcp`.
+
 ## `ping`
 
 Verify credentials and connectivity. See

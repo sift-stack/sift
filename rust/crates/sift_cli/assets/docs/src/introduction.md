@@ -9,7 +9,10 @@ Use it to:
 - **Import** data into Sift from CSV, Parquet, TDMS, and HDF5 files, as well as
   from `sift_stream` backups.
 - **Export** asset and run data back out to CSV, Parquet, or SUN.
-- **Run the Sift MCP server**, which exposes Sift to agentic coding tools.
+- **Run the Sift MCP server** (in active development), which exposes Sift to
+  agentic coding tools. Not built into default releases — see
+  [MCP Server](./agents/mcp.md) for status and how to build from source if you
+  are helping develop it.
 - **Install agent skills** so assistants like Claude Code know how to drive
   Sift on your behalf.
 - **Verify connectivity and credentials** against your Sift environment.

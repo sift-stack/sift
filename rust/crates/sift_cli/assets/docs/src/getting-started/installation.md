@@ -44,6 +44,23 @@ cd sift/rust
 cargo install --path crates/sift_cli
 ```
 
+### Cargo features
+
+`sift_cli` exposes the following Cargo features:
+
+| Feature | Default | Description                                                                                                                                                                  |
+| ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mcp`   | off     | Adds the `mcp` subcommand (the Sift MCP server). The server is **in active development** — not built into default releases and not yet recommended for production use.       |
+
+If you are exploring or contributing to the MCP server, you can opt in by
+building from source with the feature enabled:
+
+```sh
+cargo install --path crates/sift_cli --features mcp
+```
+
+This is intended for development and evaluation only.
+
 ## Verify the install
 
 ```sh

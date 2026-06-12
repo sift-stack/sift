@@ -55,6 +55,7 @@ pub enum Cmd {
     Import(ImportCmd),
 
     /// Start the Sift MCP server
+    #[cfg(feature = "mcp")]
     Mcp,
 
     /// Ping the Sift API to verify credentials and connectivity

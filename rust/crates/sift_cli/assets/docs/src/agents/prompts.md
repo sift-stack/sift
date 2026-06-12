@@ -6,7 +6,9 @@ prompt expands into step-by-step instructions tailored to the arguments you
 give it, so you start a focused session without writing the workflow yourself.
 
 Prompts are served by `sift-cli mcp`, so the server must be
-[configured as a client](./mcp.md#configuring-a-client) first.
+[configured as a client](./mcp.md#configuring-a-client) first. The MCP server
+is in active development and is not built into default releases — see
+[MCP Server](./mcp.md) for current status.
 
 ## Using a prompt
 
