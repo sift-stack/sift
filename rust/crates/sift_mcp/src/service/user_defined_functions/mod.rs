@@ -176,6 +176,16 @@ impl UserDefinedFunctionService {
             .into());
         }
 
+        // The server applies a `name` change exclusively: "If name is changed then
+        // only name will be changed." Combining it with other fields would silently
+        // drop those, so reject rather than lose the caller's intent.
+        if paths.iter().any(|p| p == "name") && paths.len() > 1 {
+            return Err(Status::invalid_argument(
+                "`name` must be updated on its own; the server applies a rename exclusively and ignores other fields in the same call",
+            )
+            .into());
+        }
+
         let mut client = UserDefinedFunctionServiceClient::new(self.channel.clone());
         let resp = client
             .update_user_defined_function(UpdateUserDefinedFunctionRequest {

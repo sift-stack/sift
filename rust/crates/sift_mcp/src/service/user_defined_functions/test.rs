@@ -1,5 +1,7 @@
 use sift_rs::common::r#type::v1::{FunctionDataType, FunctionInput, UserDefinedFunction};
-use sift_rs::metadata::v1::MetadataValue;
+use sift_rs::metadata::v1::{
+    MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
+};
 use sift_rs::user_defined_functions::v1::{
     CreateUserDefinedFunctionResponse, GetUserDefinedFunctionResponse,
     ListUserDefinedFunctionsResponse, UpdateUserDefinedFunctionResponse,
@@ -432,6 +434,11 @@ async fn update_replaces_metadata_with_masked_path() {
             let mask = req.update_mask.as_ref().unwrap();
             udf.name == "keep"
                 && udf.metadata.len() == 1
+                && udf.metadata[0].key.as_ref().map(|k| k.name.as_str()) == Some("team")
+                && matches!(
+                    &udf.metadata[0].value,
+                    Some(MetadataValueInner::StringValue(s)) if s == "controls"
+                )
                 && mask.paths == vec!["metadata".to_string()]
         })
         .returning(|req| {
@@ -446,10 +453,50 @@ async fn update_replaces_metadata_with_masked_path() {
         .update_user_defined_function(
             "u1".into(),
             UserDefinedFunctionUpdate {
-                metadata: Some(vec![MetadataValue::default()]),
+                metadata: Some(vec![MetadataValue {
+                    key: Some(MetadataKey {
+                        name: "team".into(),
+                        r#type: MetadataKeyType::String as i32,
+                        ..Default::default()
+                    }),
+                    value: Some(MetadataValueInner::StringValue("controls".into())),
+                    ..Default::default()
+                }]),
                 ..Default::default()
             },
         )
         .await
         .expect("update failed");
+}
+
+#[tokio::test]
+async fn update_rejects_name_combined_with_other_fields() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    mock.expect_get_user_defined_function().returning(|_| {
+        Ok(Response::new(GetUserDefinedFunctionResponse {
+            user_defined_function: Some(UserDefinedFunction {
+                user_defined_function_id: "u1".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+    // update must never be sent when name is combined with another field.
+    mock.expect_update_user_defined_function().never();
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .update_user_defined_function(
+            "u1".into(),
+            UserDefinedFunctionUpdate {
+                name: Some("renamed".into()),
+                description: Some("also changed".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect_err("expected invalid argument");
+
+    let status = err.downcast::<Status>().expect("expected tonic Status");
+    assert_eq!(status.code(), tonic::Code::InvalidArgument);
 }

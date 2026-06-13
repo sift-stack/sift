@@ -185,7 +185,8 @@ impl SiftMcpServer {
 
             Parameters:
               - `user_defined_function_id`: id of the UDF to update (required).
-              - `name`: optional new name.
+              - `name`: optional new name. A rename is applied exclusively by the server, so `name` MUST be the
+                only field changed in the call; combining it with other fields is rejected.
               - `description`: optional new description.
               - `expression`: optional new expression body.
               - `input_identifiers` / `input_data_types` / `input_constants`: optional. To change inputs, provide ALL
@@ -195,9 +196,9 @@ impl SiftMcpServer {
                 metadata. `value` may be a string, number, or boolean — the type is inferred from the JSON literal.
 
             Errors:
-              - `INVALID_PARAMS` if no updatable field is provided, the `input_*` arrays are partially supplied or
-                differ in length, a data type is unknown, or the server rejects the change (e.g. changing inputs on a
-                UDF that has dependents).
+              - `INVALID_PARAMS` if no updatable field is provided, `name` is combined with any other field, the
+                `input_*` arrays are partially supplied or differ in length, a data type is unknown, or the server
+                rejects the change (e.g. changing inputs on a UDF that has dependents).
               - `RESOURCE_NOT_FOUND` if `user_defined_function_id` does not exist.
               - `INTERNAL_ERROR` for upstream gRPC failures.
 

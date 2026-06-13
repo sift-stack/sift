@@ -13,8 +13,11 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
+use sift_rs::metadata::v1::{MetadataKeyType, metadata_value::Value as MetadataValueInner};
+
 use super::{CreateUserDefinedFunctionParams, UpdateUserDefinedFunctionParams};
 use crate::server::SiftMcpServer;
+use crate::tool::common::{MetadataEntry, MetadataScalar};
 
 async fn server_with_udf_mock(
     mock: MockUserDefinedFunctionServiceImpl,
@@ -40,7 +43,7 @@ fn create_params() -> CreateUserDefinedFunctionParams {
     CreateUserDefinedFunctionParams {
         name: "scale".into(),
         description: None,
-        expression: "$1 * 2".into(),
+        expression: "x * 2".into(),
         input_identifiers: vec!["x".into()],
         input_data_types: vec!["numeric".into()],
         input_constants: vec![false],
@@ -83,6 +86,44 @@ async fn create_maps_inputs_and_returns_function() {
         value["user_defined_function"]["userDefinedFunctionId"],
         "u9"
     );
+}
+
+#[tokio::test]
+async fn create_passes_converted_metadata_to_request() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    mock.expect_create_user_defined_function()
+        .withf(|req| {
+            let req = req.get_ref();
+            req.metadata.len() == 1
+                && req.metadata[0].key.as_ref().map(|k| k.name.as_str()) == Some("team")
+                && req.metadata[0].key.as_ref().map(|k| k.r#type)
+                    == Some(MetadataKeyType::String as i32)
+                && matches!(
+                    &req.metadata[0].value,
+                    Some(MetadataValueInner::StringValue(s)) if s == "controls"
+                )
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateUserDefinedFunctionResponse {
+                user_defined_function: Some(UserDefinedFunction {
+                    user_defined_function_id: "u9".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (server, _h) = server_with_udf_mock(mock).await;
+
+    let mut params = create_params();
+    params.metadata = Some(vec![MetadataEntry {
+        name: "team".into(),
+        value: MetadataScalar::String("controls".into()),
+    }]);
+
+    server
+        .create_user_defined_function(Parameters(params))
+        .await
+        .expect("create failed");
 }
 
 #[tokio::test]
