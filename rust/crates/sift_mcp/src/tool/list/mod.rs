@@ -285,4 +285,58 @@ impl SiftMcpServer {
 
         Ok(CallToolResult::structured(out))
     }
+
+    #[tool(
+        name = "list_user_defined_functions",
+        description = "
+            List user-defined functions (UDFs) in Sift, optionally filtered by a CEL expression and ordered by one
+            or more fields.
+
+            Output:
+              - `{ \"user_defined_functions\": [UserDefinedFunction, ...] }`. Each item is the full Sift
+                `UserDefinedFunction` shape including `user_defined_function_id`, `name`, `description`,
+                `expression`, `function_inputs`, `function_output_type`, `version`, `metadata`, `is_archived`,
+                and timestamps.
+
+            Parameters:
+              - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
+                `user_defined_function_id`, `name`, `archived_date`, `is_archived`.
+              - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
+                `modified_date`, `name`. Default sort is `created_date desc` (newest first).
+                Example: `\"created_date desc,modified_date\"`.
+              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
+                passing a value above 1000 returns ALL matching UDFs (paginated server-side).
+
+            Errors:
+              - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - Use `is_archived == false` to exclude archived functions unless they're explicitly needed.
+              - To fetch one function's full definition, follow up with `get_user_defined_function` using its id.
+        ",
+        annotations(
+            title = "list_router/list_user_defined_functions",
+            read_only_hint = true
+        )
+    )]
+    pub async fn list_user_defined_functions(
+        &self,
+        params: Parameters<ListParams>,
+    ) -> error::McpResult {
+        let Parameters(ListParams {
+            filter,
+            order_by,
+            limit,
+        }) = params;
+
+        let out = self
+            .udf_service
+            .list_user_defined_functions(filter, order_by, limit)
+            .await
+            .map(|udfs| serde_json::json!({ "user_defined_functions": udfs }))
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
+    }
 }

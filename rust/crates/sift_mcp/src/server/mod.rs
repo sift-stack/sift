@@ -12,6 +12,7 @@ use sift_rs::SiftChannel;
 use crate::service::{
     assets::AssetService, channels::ChannelService, data::DataService, explore::ExploreService,
     ingest::IngestService, reports::ReportService, rules::RuleService, runs::RunService,
+    user_defined_functions::UserDefinedFunctionService,
 };
 
 #[derive(Clone)]
@@ -27,6 +28,7 @@ pub struct SiftMcpServer {
     pub run_service: RunService,
     pub report_service: ReportService,
     pub rule_service: RuleService,
+    pub udf_service: UserDefinedFunctionService,
 }
 
 #[tool_handler(
@@ -45,6 +47,8 @@ impl SiftMcpServer {
         let mut tool_router = Self::list_router();
         tool_router.merge(Self::data_router());
         tool_router.merge(Self::explore_router());
+        tool_router.merge(Self::get_router());
+        tool_router.merge(Self::mutate_router());
 
         let prompt_router = Self::prompt_router();
 
@@ -56,6 +60,7 @@ impl SiftMcpServer {
         let run_service = RunService::new(channel.clone());
         let report_service = ReportService::new(channel.clone());
         let rule_service = RuleService::new(channel.clone());
+        let udf_service = UserDefinedFunctionService::new(channel.clone());
 
         Self {
             asset_service,
@@ -66,6 +71,7 @@ impl SiftMcpServer {
             run_service,
             report_service,
             rule_service,
+            udf_service,
             tool_router,
             prompt_router,
         }

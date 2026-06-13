@@ -4,6 +4,7 @@ pub mod data;
 pub mod reports;
 pub mod rules;
 pub mod runs;
+pub mod user_defined_functions;
 
 /// A test demonstrating a little bit of everything of how to leverage the mock API.
 #[cfg(test)]
