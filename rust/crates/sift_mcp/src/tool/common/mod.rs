@@ -4,6 +4,9 @@ use sift_rs::metadata::v1::{
     MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
 };
 
+#[cfg(test)]
+mod test;
+
 /// A scalar metadata value. Untagged so the JSON literal type (string / number /
 /// boolean) selects the variant directly.
 #[derive(Debug, Deserialize, JsonSchema)]

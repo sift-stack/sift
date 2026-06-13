@@ -106,14 +106,15 @@ impl SiftMcpServer {
               - `name`: UDF name. Unique within the organization.
               - `description`: optional human description.
               - `expression`: the function body in Sift Expression Language, referencing the declared input
-                identifiers (e.g. `$1 * 2` or `pressure + offset`).
-              - `input_identifiers`: identifiers for each input, in order.
+                identifiers by name (e.g. with inputs `x` and `offset`: `x * 2 + offset`).
+              - `input_identifiers`: identifiers for each input, in order. These are the names the `expression`
+                references.
               - `input_data_types`: data type per input, one per identifier. Each is one of `numeric`, `string`,
                 `bool` (case-insensitive).
               - `input_constants`: whether each input is a constant, one per identifier (`true`/`false`).
               - `user_notes`: optional notes describing this creation.
               - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries; `value` may be a
-                string, number, or boolean.
+                string, number, or boolean — the type is inferred from the JSON literal.
 
             The three `input_*` arrays are parallel and MUST be the same length; element `i` of each describes one input.
 
@@ -190,7 +191,8 @@ impl SiftMcpServer {
               - `input_identifiers` / `input_data_types` / `input_constants`: optional. To change inputs, provide ALL
                 THREE arrays together; they are parallel and MUST be the same length. Providing some but not all is an
                 error. Data types are `numeric`, `string`, `bool` (case-insensitive).
-              - `metadata`: optional replacement list of `{ \"name\", \"value\" }` entries; replaces existing metadata.
+              - `metadata`: optional replacement list of `{ \"name\", \"value\" }` entries; replaces existing
+                metadata. `value` may be a string, number, or boolean — the type is inferred from the JSON literal.
 
             Errors:
               - `INVALID_PARAMS` if no updatable field is provided, the `input_*` arrays are partially supplied or

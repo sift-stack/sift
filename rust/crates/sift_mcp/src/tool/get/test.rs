@@ -96,3 +96,25 @@ async fn get_with_both_id_and_name_is_invalid() {
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }
+
+#[tokio::test]
+async fn get_missing_function_maps_to_resource_not_found() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    mock.expect_get_user_defined_function().returning(|_| {
+        Ok(Response::new(GetUserDefinedFunctionResponse {
+            user_defined_function: None,
+        }))
+    });
+
+    let (server, _h) = server_with_udf_mock(mock).await;
+
+    let err = server
+        .get_user_defined_function(Parameters(GetUserDefinedFunctionParams {
+            user_defined_function_id: Some("missing".into()),
+            name: None,
+        }))
+        .await
+        .expect_err("expected not found");
+
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+}
