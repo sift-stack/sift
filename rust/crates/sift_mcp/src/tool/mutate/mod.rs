@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
@@ -143,7 +145,9 @@ struct ChannelReferenceInput {
     calculated_channel_version_id: Option<String>,
 }
 
-/// Parse the `channel_references_json` string into proto channel references.
+/// The inline-expression reference variant (`calculated_channel`) is intentionally
+/// unsupported; only a `channel_identifier` or a `calculated_channel_version_id`
+/// target is accepted.
 fn parse_channel_references(
     json: &str,
 ) -> Result<Vec<CalculatedChannelAbstractChannelReference>, ErrorData> {
@@ -182,25 +186,41 @@ fn parse_channel_references(
         .collect()
 }
 
-/// Resolve exact asset names to ids via the asset service. Errors if any name
-/// matches no asset.
+/// Resolve exact asset names to ids via the asset service in a single query.
+/// Errors if any name matches no asset. Output ids follow `names` order.
 async fn resolve_asset_names(
     asset_service: &AssetService,
     names: &[String],
 ) -> Result<Vec<String>, ErrorData> {
-    let mut ids = Vec::with_capacity(names.len());
-    for name in names {
-        let filter = format!("name == \"{}\"", cel_escape(name));
-        let asset = asset_service
-            .list_assets(filter, None, Some(1))
-            .await
-            .map_err(from_anyhow)?
-            .into_iter()
-            .next()
-            .ok_or_else(|| ErrorData::invalid_params(format!("asset '{name}' not found"), None))?;
-        ids.push(asset.asset_id);
+    if names.is_empty() {
+        return Ok(Vec::new());
     }
-    Ok(ids)
+
+    let items = names
+        .iter()
+        .map(|n| format!("\"{}\"", cel_escape(n)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let filter = format!("name in [{items}]");
+    let assets = asset_service
+        .list_assets(filter, None, None)
+        .await
+        .map_err(from_anyhow)?;
+
+    let by_name: HashMap<&str, &str> = assets
+        .iter()
+        .map(|a| (a.name.as_str(), a.asset_id.as_str()))
+        .collect();
+
+    names
+        .iter()
+        .map(|name| {
+            by_name
+                .get(name.as_str())
+                .map(|id| id.to_string())
+                .ok_or_else(|| ErrorData::invalid_params(format!("asset '{name}' not found"), None))
+        })
+        .collect()
 }
 
 /// Build a calculated-channel asset configuration from the scope params,

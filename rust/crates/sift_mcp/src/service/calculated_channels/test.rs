@@ -5,6 +5,7 @@ use sift_rs::calculated_channels::v2::{
     calculated_channel_query_configuration::{Query, Sel},
     calculated_channel_service_server::CalculatedChannelServiceServer,
 };
+use sift_rs::metadata::v1::MetadataValue;
 use sift_test_util::{
     grpc::memory_sift_channel, mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
 };
@@ -317,4 +318,130 @@ async fn update_with_no_fields_is_invalid() {
 
     let status = err.downcast::<Status>().expect("expected tonic Status");
     assert_eq!(status.code(), tonic::Code::InvalidArgument);
+}
+
+#[tokio::test]
+async fn update_references_only_preserves_existing_expression() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_get_calculated_channel().returning(|_| {
+        Ok(Response::new(GetCalculatedChannelResponse {
+            calculated_channel: Some(channel_with_sel("c1", "$1 + $2", vec!["$1"])),
+        }))
+    });
+    mock.expect_update_calculated_channel()
+        .withf(|req| {
+            let req = req.get_ref();
+            let mask = req.update_mask.as_ref().unwrap();
+            let channel = req.calculated_channel.as_ref().unwrap();
+            let sel = match channel
+                .calculated_channel_configuration
+                .as_ref()
+                .and_then(|c| c.query_configuration.as_ref())
+                .and_then(|q| q.query.as_ref())
+            {
+                Some(Query::Sel(sel)) => sel,
+                None => return false,
+            };
+            // references replaced; the original expression carried through unchanged.
+            mask.paths == vec!["query_configuration".to_string()]
+                && sel.expression == "$1 + $2"
+                && sel.expression_channel_references.len() == 2
+        })
+        .returning(|req| {
+            Ok(Response::new(UpdateCalculatedChannelResponse {
+                calculated_channel: req.into_inner().calculated_channel,
+                inapplicable_assets: vec![],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_calculated_channel(
+            "c1".into(),
+            String::new(),
+            CalculatedChannelUpdate {
+                channel_references: Some(vec![
+                    CalculatedChannelAbstractChannelReference {
+                        channel_reference: "$1".into(),
+                        ..Default::default()
+                    },
+                    CalculatedChannelAbstractChannelReference {
+                        channel_reference: "$2".into(),
+                        ..Default::default()
+                    },
+                ]),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update failed");
+}
+
+#[tokio::test]
+async fn update_scalar_and_asset_scope_branches_set_expected_mask() {
+    use sift_rs::calculated_channels::v2::{
+        CalculatedChannelAssetConfiguration, calculated_channel_asset_configuration::AssetScope,
+    };
+
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_get_calculated_channel().returning(|_| {
+        Ok(Response::new(GetCalculatedChannelResponse {
+            calculated_channel: Some(CalculatedChannel {
+                calculated_channel_id: "c1".into(),
+                name: "old".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+    mock.expect_update_calculated_channel()
+        .withf(|req| {
+            let req = req.get_ref();
+            let channel = req.calculated_channel.as_ref().unwrap();
+            let mask = req.update_mask.as_ref().unwrap();
+            let scope_all = matches!(
+                channel
+                    .calculated_channel_configuration
+                    .as_ref()
+                    .and_then(|c| c.asset_configuration.as_ref())
+                    .and_then(|a| a.asset_scope.as_ref()),
+                Some(AssetScope::AllAssets(true))
+            );
+            channel.name == "new"
+                && channel.units.as_deref() == Some("rpm")
+                && channel.metadata.len() == 1
+                && scope_all
+                && mask.paths
+                    == vec![
+                        "name".to_string(),
+                        "units".to_string(),
+                        "metadata".to_string(),
+                        "asset_configuration".to_string(),
+                    ]
+        })
+        .returning(|req| {
+            Ok(Response::new(UpdateCalculatedChannelResponse {
+                calculated_channel: req.into_inner().calculated_channel,
+                inapplicable_assets: vec![],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_calculated_channel(
+            "c1".into(),
+            String::new(),
+            CalculatedChannelUpdate {
+                name: Some("new".into()),
+                units: Some("rpm".into()),
+                metadata: Some(vec![MetadataValue::default()]),
+                asset_configuration: Some(CalculatedChannelAssetConfiguration {
+                    asset_scope: Some(AssetScope::AllAssets(true)),
+                }),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update failed");
 }

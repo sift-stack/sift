@@ -467,7 +467,7 @@ async fn create_calculated_channel_resolves_asset_names() {
     let mut asset_mock = MockAssetServiceImpl::new();
     asset_mock
         .expect_list_assets()
-        .withf(|req| req.get_ref().filter == "name == \"engine\"")
+        .withf(|req| req.get_ref().filter == "name in [\"engine\"]")
         .returning(|_| {
             Ok(Response::new(ListAssetsResponse {
                 assets: vec![Asset {
