@@ -127,6 +127,39 @@ async fn create_passes_converted_metadata_to_request() {
 }
 
 #[tokio::test]
+async fn create_parses_data_types_case_insensitively_with_aliases() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    mock.expect_create_user_defined_function()
+        .withf(|req| {
+            let inputs = &req.get_ref().function_inputs;
+            inputs.len() == 3
+                && inputs[0].data_type == FunctionDataType::Bool as i32 // "Boolean"
+                && inputs[1].data_type == FunctionDataType::String as i32 // "STRING"
+                && inputs[2].data_type == FunctionDataType::Bool as i32 // "bool"
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateUserDefinedFunctionResponse {
+                user_defined_function: Some(UserDefinedFunction {
+                    user_defined_function_id: "u9".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (server, _h) = server_with_udf_mock(mock).await;
+
+    let mut params = create_params();
+    params.input_identifiers = vec!["a".into(), "b".into(), "c".into()];
+    params.input_data_types = vec!["Boolean".into(), "STRING".into(), "bool".into()];
+    params.input_constants = vec![false, false, false];
+
+    server
+        .create_user_defined_function(Parameters(params))
+        .await
+        .expect("create failed");
+}
+
+#[tokio::test]
 async fn create_with_mismatched_input_arrays_is_invalid() {
     let (server, _h) = server_with_udf_mock(MockUserDefinedFunctionServiceImpl::new()).await;
 
