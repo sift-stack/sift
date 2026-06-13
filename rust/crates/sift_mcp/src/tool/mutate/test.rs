@@ -696,3 +696,50 @@ async fn update_rule_with_no_fields_is_invalid() {
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }
+
+#[tokio::test]
+async fn update_rule_replaces_conditions_and_returns_rule() {
+    let mut rule_mock = MockRuleServiceImpl::new();
+    rule_mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "r1".into(),
+                name: "overtemp".into(),
+                // two existing conditions that the update must REPLACE.
+                conditions: vec![Default::default(), Default::default()],
+                ..Default::default()
+            }),
+        }))
+    });
+    rule_mock
+        .expect_update_rule()
+        // conditions_json `[{}]` parses to exactly one condition, replacing the two existing.
+        .withf(|req| req.get_ref().conditions.len() == 1)
+        .returning(|_| {
+            Ok(Response::new(sift_rs::rules::v1::UpdateRuleResponse {
+                rule_id: "r1".into(),
+            }))
+        });
+
+    let (server, _h) = server_with_rule_mocks(rule_mock, MockAssetServiceImpl::new()).await;
+
+    let resp = server
+        .update_rule(Parameters(UpdateRuleParams {
+            rule_id: Some("r1".into()),
+            client_key: None,
+            name: None,
+            description: None,
+            conditions_json: Some("[{}]".into()),
+            asset_ids: None,
+            asset_names: None,
+            tag_ids: None,
+            is_live_evaluation_enabled: None,
+            version_notes: None,
+            metadata: None,
+        }))
+        .await
+        .expect("update failed");
+
+    let value = resp.structured_content.expect("structured content");
+    assert_eq!(value["rule"]["ruleId"], "r1");
+}

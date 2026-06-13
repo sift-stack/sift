@@ -737,9 +737,14 @@ impl SiftMcpServer {
             Parameters:
               - `name`: rule name.
               - `description`: rule description.
-              - `conditions_json`: JSON array of conditions. Each element mirrors the Sift `UpdateConditionRequest`
-                shape: an `expression` (the condition logic) and an `actions` array (what fires when it matches).
-                Inspect an existing rule with `get_rule` to see the exact shape before authoring new conditions.
+              - `conditions_json`: JSON array of conditions in the write shape `UpdateConditionRequest`. Each
+                element is `{ \"expression\": {<RuleConditionExpression>}, \"actions\": [{ \"action_type\":
+                \"notification\"|\"annotation\"|\"webhook\", \"configuration\": {<RuleActionConfiguration>} }, ...] }`.
+                `expression` and each action's `configuration` are required nested objects whose fields follow the
+                Sift `RuleConditionExpression` / `RuleActionConfiguration` protos. Field keys accept snake_case or
+                camelCase; unknown keys are rejected. NOTE: this is NOT the same shape `get_rule` returns — the read
+                shape carries server-managed fields (`rule_id`, `created_date`, version ids, ...) that must be
+                dropped before reuse here.
               - Asset scope: optional `asset_ids` / `asset_names` and/or `tag_ids` the rule applies to. `asset_names`
                 are resolved to ids. Omit all to leave the rule unscoped.
               - `client_key`: optional caller-assigned identifier (immutable once set; enables later get/update by key).
@@ -842,8 +847,10 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
-              - `conditions_json` replaces the entire condition set; fetch the rule with `get_rule` first and edit
-                the returned conditions if you intend to keep some.
+              - `conditions_json` replaces the entire condition set. To keep existing conditions, omit
+                `conditions_json` entirely (they are preserved). Do not copy `get_rule` output into
+                `conditions_json` verbatim — that is the read shape and will be rejected; author the write shape
+                described in `create_rule` instead.
         ",
         annotations(
             title = "mutate_router/update_rule",

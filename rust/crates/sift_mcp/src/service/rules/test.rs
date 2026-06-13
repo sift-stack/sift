@@ -1,6 +1,8 @@
+use sift_rs::metadata::v1::MetadataValue;
 use sift_rs::rules::v1::{
-    CreateRuleResponse, GetRuleResponse, ListRulesResponse, Rule, RuleAction, RuleCondition,
-    UpdateRuleResponse, rule_service_server::RuleServiceServer,
+    ContextualChannels, CreateRuleResponse, GetRuleResponse, ListRulesResponse, Rule, RuleAction,
+    RuleAssetConfiguration, RuleCondition, RuleConditionExpression, UpdateRuleResponse,
+    rule_service_server::RuleServiceServer,
 };
 use sift_test_util::{grpc::memory_sift_channel, mock::rules::v1::MockRuleServiceImpl};
 use tokio::task::JoinHandle;
@@ -322,8 +324,15 @@ async fn update_rule_preserves_existing_conditions_when_not_provided() {
                 rule_id: "r1".into(),
                 name: "old".into(),
                 description: "keep".into(),
+                organization_id: "org1".into(),
+                client_key: "ck1".into(),
+                is_external: true,
+                is_live_evaluation_enabled: true,
+                metadata: vec![MetadataValue::default()],
+                contextual_channels: Some(ContextualChannels::default()),
                 conditions: vec![RuleCondition {
                     rule_condition_id: "rc1".into(),
+                    expression: Some(RuleConditionExpression::default()),
                     actions: vec![RuleAction {
                         rule_action_id: "ra1".into(),
                         action_type: 1,
@@ -338,11 +347,19 @@ async fn update_rule_preserves_existing_conditions_when_not_provided() {
     mock.expect_update_rule()
         .withf(|req| {
             let req = req.get_ref();
-            // name overlaid; description preserved; existing condition converted to write shape.
+            // name overlaid; all other fields preserved from the fetched rule and the
+            // existing condition (including its expression) converted to write shape.
             req.name == "renamed"
                 && req.description == "keep"
+                && req.organization_id == "org1"
+                && req.client_key.as_deref() == Some("ck1")
+                && req.is_external
+                && req.is_live_evaluation_enabled == Some(true)
+                && req.metadata.len() == 1
+                && req.contextual_channels.is_some()
                 && req.conditions.len() == 1
                 && req.conditions[0].rule_condition_id.as_deref() == Some("rc1")
+                && req.conditions[0].expression.is_some()
                 && req.conditions[0].actions.len() == 1
                 && req.conditions[0].actions[0].rule_action_id.as_deref() == Some("ra1")
                 && req.conditions[0].actions[0].action_type == 1
@@ -368,4 +385,104 @@ async fn update_rule_preserves_existing_conditions_when_not_provided() {
         .expect("update failed");
 
     assert_eq!(rule.rule_id, "r1");
+}
+
+#[tokio::test]
+async fn update_rule_overlays_asset_config_and_live_eval() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "r1".into(),
+                name: "keep".into(),
+                is_live_evaluation_enabled: true,
+                asset_configuration: Some(RuleAssetConfiguration {
+                    asset_ids: vec!["old".into()],
+                    tag_ids: vec![],
+                }),
+                ..Default::default()
+            }),
+        }))
+    });
+    mock.expect_update_rule()
+        .withf(|req| {
+            let req = req.get_ref();
+            // provided asset config overrides; provided live-eval overrides.
+            req.asset_configuration
+                .as_ref()
+                .map(|a| a.asset_ids.clone())
+                == Some(vec!["new".to_string()])
+                && req.is_live_evaluation_enabled == Some(false)
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "r1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_rule(
+            "r1".into(),
+            String::new(),
+            RuleUpdate {
+                asset_configuration: Some(RuleAssetConfiguration {
+                    asset_ids: vec!["new".into()],
+                    tag_ids: vec![],
+                }),
+                is_live_evaluation_enabled: Some(false),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update failed");
+}
+
+#[tokio::test]
+async fn update_rule_maps_empty_condition_ids_to_none() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "r1".into(),
+                name: "keep".into(),
+                // A condition/action with no server-assigned id (e.g. never persisted).
+                conditions: vec![RuleCondition {
+                    rule_condition_id: String::new(),
+                    actions: vec![RuleAction {
+                        rule_action_id: String::new(),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+        }))
+    });
+    mock.expect_update_rule()
+        .withf(|req| {
+            let c = &req.get_ref().conditions[0];
+            // empty ids must become None, not Some("").
+            c.rule_condition_id.is_none() && c.actions[0].rule_action_id.is_none()
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "r1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_rule(
+            "r1".into(),
+            String::new(),
+            RuleUpdate {
+                name: Some("renamed".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update failed");
 }
