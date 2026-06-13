@@ -520,3 +520,29 @@ async fn update_calculated_channel_without_identifier_is_invalid() {
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }
+
+#[tokio::test]
+async fn create_calculated_channel_with_unresolvable_asset_name_is_invalid() {
+    let cc_mock = MockCalculatedChannelServiceImpl::new();
+    let mut asset_mock = MockAssetServiceImpl::new();
+    // The named asset does not exist: list returns no matches.
+    asset_mock.expect_list_assets().returning(|_| {
+        Ok(Response::new(ListAssetsResponse {
+            assets: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_cc_mocks(cc_mock, asset_mock).await;
+
+    let mut params = cc_create_params();
+    params.all_assets = None;
+    params.asset_names = Some(vec!["ghost".into()]);
+
+    let err = server
+        .create_calculated_channel(Parameters(params))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
