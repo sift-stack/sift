@@ -739,7 +739,8 @@ impl SiftMcpServer {
               - `description`: rule description.
               - `conditions_json`: JSON array of conditions in the write shape `UpdateConditionRequest`. Each
                 element is `{ \"expression\": {<RuleConditionExpression>}, \"actions\": [{ \"action_type\":
-                \"notification\"|\"annotation\"|\"webhook\", \"configuration\": {<RuleActionConfiguration>} }, ...] }`.
+                \"NOTIFICATION\"|\"ANNOTATION\"|\"WEBHOOK\", \"configuration\": {<RuleActionConfiguration>} }, ...] }`.
+                `action_type` accepts those exact uppercase names or their integer index (1/2/3).
                 `expression` and each action's `configuration` are required nested objects whose fields follow the
                 Sift `RuleConditionExpression` / `RuleActionConfiguration` protos. Field keys accept snake_case or
                 camelCase; unknown keys are rejected. NOTE: this is NOT the same shape `get_rule` returns — the read

@@ -743,3 +743,40 @@ async fn update_rule_replaces_conditions_and_returns_rule() {
     let value = resp.structured_content.expect("structured content");
     assert_eq!(value["rule"]["ruleId"], "r1");
 }
+
+#[tokio::test]
+async fn create_rule_parses_documented_action_type_value() {
+    let mut rule_mock = MockRuleServiceImpl::new();
+    rule_mock
+        .expect_create_rule()
+        // The documented `"NOTIFICATION"` action_type must parse to ActionKind::Notification (1).
+        .withf(|req| {
+            let conditions = &req.get_ref().update.as_ref().unwrap().conditions;
+            conditions.len() == 1
+                && conditions[0].actions.len() == 1
+                && conditions[0].actions[0].action_type == 1
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateRuleResponse {
+                rule_id: "r9".into(),
+            }))
+        });
+    rule_mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "r9".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (server, _h) = server_with_rule_mocks(rule_mock, MockAssetServiceImpl::new()).await;
+
+    let mut params = rule_create_params();
+    params.conditions_json = "[{\"actions\":[{\"action_type\":\"NOTIFICATION\"}]}]".into();
+
+    server
+        .create_rule(Parameters(params))
+        .await
+        .expect("create failed");
+}
