@@ -1,4 +1,5 @@
 pub mod assets;
+pub mod calculated_channels;
 pub mod channels;
 pub mod data;
 pub mod reports;

@@ -13,9 +13,22 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
+use sift_rs::assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer};
+use sift_rs::calculated_channels::v2::{
+    CalculatedChannel, CreateCalculatedChannelResponse,
+    calculated_channel_asset_configuration::AssetScope,
+    calculated_channel_query_configuration::Query,
+    calculated_channel_service_server::CalculatedChannelServiceServer,
+};
 use sift_rs::metadata::v1::{MetadataKeyType, metadata_value::Value as MetadataValueInner};
+use sift_test_util::mock::{
+    assets::v1::MockAssetServiceImpl, calculated_channels::v2::MockCalculatedChannelServiceImpl,
+};
 
-use super::{CreateUserDefinedFunctionParams, UpdateUserDefinedFunctionParams};
+use super::{
+    CreateCalculatedChannelParams, CreateUserDefinedFunctionParams, UpdateCalculatedChannelParams,
+    UpdateUserDefinedFunctionParams,
+};
 use crate::server::SiftMcpServer;
 use crate::tool::common::{MetadataEntry, MetadataScalar};
 
@@ -37,6 +50,46 @@ async fn server_with_udf_mock(
         SiftMcpServer::new(channel, String::from("https://api.test.local")),
         handle,
     )
+}
+
+async fn server_with_cc_mocks(
+    cc_mock: MockCalculatedChannelServiceImpl,
+    asset_mock: MockAssetServiceImpl,
+) -> (SiftMcpServer, JoinHandle<()>) {
+    let (client, server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+
+    let handle = tokio::spawn(async move {
+        Server::builder()
+            .add_service(CalculatedChannelServiceServer::new(cc_mock))
+            .add_service(AssetServiceServer::new(asset_mock))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    (
+        SiftMcpServer::new(channel, String::from("https://api.test.local")),
+        handle,
+    )
+}
+
+fn cc_create_params() -> CreateCalculatedChannelParams {
+    CreateCalculatedChannelParams {
+        name: "derived".into(),
+        description: None,
+        units: None,
+        client_key: None,
+        user_notes: None,
+        expression: "$1 * 2".into(),
+        all_assets: Some(true),
+        asset_ids: None,
+        asset_names: None,
+        tag_ids: None,
+        channel_references_json: "[{\"channel_reference\":\"$1\",\"channel_identifier\":\"rpm\"}]"
+            .into(),
+        metadata: None,
+    }
 }
 
 fn create_params() -> CreateUserDefinedFunctionParams {
@@ -254,4 +307,216 @@ async fn update_changes_single_field() {
 
     let value = resp.structured_content.expect("structured content");
     assert_eq!(value["user_defined_function"]["name"], "new");
+}
+
+#[tokio::test]
+async fn create_calculated_channel_builds_config_and_returns_channel() {
+    let mut cc_mock = MockCalculatedChannelServiceImpl::new();
+    cc_mock
+        .expect_create_calculated_channel()
+        .withf(|req| {
+            let req = req.get_ref();
+            let config = req.calculated_channel_configuration.as_ref().unwrap();
+            let all_assets = matches!(
+                config
+                    .asset_configuration
+                    .as_ref()
+                    .and_then(|a| a.asset_scope.as_ref()),
+                Some(AssetScope::AllAssets(true))
+            );
+            let sel_ok = match config
+                .query_configuration
+                .as_ref()
+                .and_then(|q| q.query.as_ref())
+            {
+                Some(Query::Sel(sel)) => {
+                    sel.expression == "$1 * 2"
+                        && sel.expression_channel_references.len() == 1
+                        && sel.expression_channel_references[0].channel_reference == "$1"
+                        && sel.expression_channel_references[0].channel_identifier == "rpm"
+                }
+                None => false,
+            };
+            req.name == "derived" && all_assets && sel_ok
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateCalculatedChannelResponse {
+                calculated_channel: Some(CalculatedChannel {
+                    calculated_channel_id: "c9".into(),
+                    ..Default::default()
+                }),
+                inapplicable_assets: vec![],
+            }))
+        });
+
+    let (server, _h) = server_with_cc_mocks(cc_mock, MockAssetServiceImpl::new()).await;
+
+    let resp = server
+        .create_calculated_channel(Parameters(cc_create_params()))
+        .await
+        .expect("create failed");
+
+    let value = resp.structured_content.expect("structured content");
+    assert_eq!(value["calculated_channel"]["calculatedChannelId"], "c9");
+}
+
+#[tokio::test]
+async fn create_calculated_channel_without_asset_scope_is_invalid() {
+    let (server, _h) = server_with_cc_mocks(
+        MockCalculatedChannelServiceImpl::new(),
+        MockAssetServiceImpl::new(),
+    )
+    .await;
+
+    let mut params = cc_create_params();
+    params.all_assets = None;
+
+    let err = server
+        .create_calculated_channel(Parameters(params))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn create_calculated_channel_with_both_scopes_is_invalid() {
+    let (server, _h) = server_with_cc_mocks(
+        MockCalculatedChannelServiceImpl::new(),
+        MockAssetServiceImpl::new(),
+    )
+    .await;
+
+    let mut params = cc_create_params();
+    params.asset_ids = Some(vec!["a1".into()]);
+
+    let err = server
+        .create_calculated_channel(Parameters(params))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn create_calculated_channel_with_malformed_references_is_invalid() {
+    let (server, _h) = server_with_cc_mocks(
+        MockCalculatedChannelServiceImpl::new(),
+        MockAssetServiceImpl::new(),
+    )
+    .await;
+
+    let mut params = cc_create_params();
+    params.channel_references_json = "not json".into();
+
+    let err = server
+        .create_calculated_channel(Parameters(params))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn create_calculated_channel_reference_with_both_targets_is_invalid() {
+    let (server, _h) = server_with_cc_mocks(
+        MockCalculatedChannelServiceImpl::new(),
+        MockAssetServiceImpl::new(),
+    )
+    .await;
+
+    let mut params = cc_create_params();
+    params.channel_references_json =
+        "[{\"channel_reference\":\"$1\",\"channel_identifier\":\"rpm\",\"calculated_channel_version_id\":\"v1\"}]"
+            .into();
+
+    let err = server
+        .create_calculated_channel(Parameters(params))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn create_calculated_channel_resolves_asset_names() {
+    let mut cc_mock = MockCalculatedChannelServiceImpl::new();
+    cc_mock
+        .expect_create_calculated_channel()
+        .withf(|req| {
+            let config = req
+                .get_ref()
+                .calculated_channel_configuration
+                .as_ref()
+                .unwrap();
+            matches!(
+                config.asset_configuration.as_ref().and_then(|a| a.asset_scope.as_ref()),
+                Some(AssetScope::Selection(sel)) if sel.asset_ids == vec!["resolved-id".to_string()]
+            )
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateCalculatedChannelResponse {
+                calculated_channel: Some(CalculatedChannel {
+                    calculated_channel_id: "c9".into(),
+                    ..Default::default()
+                }),
+                inapplicable_assets: vec![],
+            }))
+        });
+
+    let mut asset_mock = MockAssetServiceImpl::new();
+    asset_mock
+        .expect_list_assets()
+        .withf(|req| req.get_ref().filter == "name == \"engine\"")
+        .returning(|_| {
+            Ok(Response::new(ListAssetsResponse {
+                assets: vec![Asset {
+                    asset_id: "resolved-id".into(),
+                    name: "engine".into(),
+                    ..Default::default()
+                }],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_cc_mocks(cc_mock, asset_mock).await;
+
+    let mut params = cc_create_params();
+    params.all_assets = None;
+    params.asset_names = Some(vec!["engine".into()]);
+
+    server
+        .create_calculated_channel(Parameters(params))
+        .await
+        .expect("create failed");
+}
+
+#[tokio::test]
+async fn update_calculated_channel_without_identifier_is_invalid() {
+    let (server, _h) = server_with_cc_mocks(
+        MockCalculatedChannelServiceImpl::new(),
+        MockAssetServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .update_calculated_channel(Parameters(UpdateCalculatedChannelParams {
+            calculated_channel_id: None,
+            client_key: None,
+            name: Some("x".into()),
+            description: None,
+            units: None,
+            expression: None,
+            channel_references_json: None,
+            all_assets: None,
+            asset_ids: None,
+            asset_names: None,
+            tag_ids: None,
+            metadata: None,
+            user_notes: None,
+        }))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }

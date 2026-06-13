@@ -6,13 +6,23 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
+use sift_rs::calculated_channels::v2::{
+    CalculatedChannelAbstractChannelReference, CalculatedChannelAssetConfiguration,
+    CalculatedChannelConfiguration, CalculatedChannelQueryConfiguration,
+    calculated_channel_abstract_channel_reference::CalculatedChannelReference,
+    calculated_channel_asset_configuration::{AssetScope, AssetSelection},
+    calculated_channel_query_configuration::{Query, Sel},
+};
 use sift_rs::common::r#type::v1::{FunctionDataType, FunctionInput};
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    service::user_defined_functions::UserDefinedFunctionUpdate,
-    tool::common::MetadataEntry,
+    service::{
+        assets::AssetService, calculated_channels::CalculatedChannelUpdate,
+        user_defined_functions::UserDefinedFunctionUpdate,
+    },
+    tool::common::{MetadataEntry, cel_escape},
 };
 
 #[cfg(test)]
@@ -87,6 +97,144 @@ fn parse_function_data_type(value: &str) -> Result<FunctionDataType, ErrorData> 
             ),
             None,
         )),
+    }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CreateCalculatedChannelParams {
+    name: String,
+    description: Option<String>,
+    units: Option<String>,
+    client_key: Option<String>,
+    user_notes: Option<String>,
+    expression: String,
+    all_assets: Option<bool>,
+    asset_ids: Option<Vec<String>>,
+    asset_names: Option<Vec<String>>,
+    tag_ids: Option<Vec<String>>,
+    channel_references_json: String,
+    metadata: Option<Vec<MetadataEntry>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateCalculatedChannelParams {
+    calculated_channel_id: Option<String>,
+    client_key: Option<String>,
+    name: Option<String>,
+    description: Option<String>,
+    units: Option<String>,
+    expression: Option<String>,
+    channel_references_json: Option<String>,
+    all_assets: Option<bool>,
+    asset_ids: Option<Vec<String>>,
+    asset_names: Option<Vec<String>>,
+    tag_ids: Option<Vec<String>>,
+    metadata: Option<Vec<MetadataEntry>>,
+    user_notes: Option<String>,
+}
+
+/// One entry of `channel_references_json`: the token used in the expression
+/// plus what it resolves to. `channel_identifier` and `calculated_channel_version_id`
+/// are mutually exclusive (the inline-expression reference variant is unsupported).
+#[derive(Debug, Deserialize, JsonSchema)]
+struct ChannelReferenceInput {
+    channel_reference: String,
+    channel_identifier: Option<String>,
+    calculated_channel_version_id: Option<String>,
+}
+
+/// Parse the `channel_references_json` string into proto channel references.
+fn parse_channel_references(
+    json: &str,
+) -> Result<Vec<CalculatedChannelAbstractChannelReference>, ErrorData> {
+    let inputs: Vec<ChannelReferenceInput> = serde_json::from_str(json).map_err(|e| {
+        ErrorData::invalid_params(
+            format!("`channel_references_json` is not valid JSON: {e}"),
+            None,
+        )
+    })?;
+
+    inputs
+        .into_iter()
+        .map(|input| {
+            let calculated_channel_reference =
+                match (input.channel_identifier.as_deref(), input.calculated_channel_version_id) {
+                    (Some(_), Some(_)) => {
+                        return Err(ErrorData::invalid_params(
+                            format!(
+                                "channel reference `{}` sets both `channel_identifier` and `calculated_channel_version_id`; use exactly one",
+                                input.channel_reference
+                            ),
+                            None,
+                        ));
+                    }
+                    (_, Some(version_id)) => {
+                        Some(CalculatedChannelReference::CalculatedChannelVersionId(version_id))
+                    }
+                    (_, None) => None,
+                };
+            Ok(CalculatedChannelAbstractChannelReference {
+                channel_reference: input.channel_reference,
+                channel_identifier: input.channel_identifier.unwrap_or_default(),
+                calculated_channel_reference,
+            })
+        })
+        .collect()
+}
+
+/// Resolve exact asset names to ids via the asset service. Errors if any name
+/// matches no asset.
+async fn resolve_asset_names(
+    asset_service: &AssetService,
+    names: &[String],
+) -> Result<Vec<String>, ErrorData> {
+    let mut ids = Vec::with_capacity(names.len());
+    for name in names {
+        let filter = format!("name == \"{}\"", cel_escape(name));
+        let asset = asset_service
+            .list_assets(filter, None, Some(1))
+            .await
+            .map_err(from_anyhow)?
+            .into_iter()
+            .next()
+            .ok_or_else(|| ErrorData::invalid_params(format!("asset '{name}' not found"), None))?;
+        ids.push(asset.asset_id);
+    }
+    Ok(ids)
+}
+
+/// Build a calculated-channel asset configuration from the scope params,
+/// resolving `asset_names` to ids. Returns `None` when no scope field is set
+/// (the caller decides whether that is an error).
+async fn build_asset_configuration(
+    asset_service: &AssetService,
+    all_assets: Option<bool>,
+    asset_ids: Option<Vec<String>>,
+    asset_names: Option<Vec<String>>,
+    tag_ids: Option<Vec<String>>,
+) -> Result<Option<CalculatedChannelAssetConfiguration>, ErrorData> {
+    let mut selection_ids = asset_ids.unwrap_or_default();
+    let tag_ids = tag_ids.unwrap_or_default();
+    if let Some(names) = asset_names {
+        selection_ids.extend(resolve_asset_names(asset_service, &names).await?);
+    }
+    let has_selection = !selection_ids.is_empty() || !tag_ids.is_empty();
+
+    match (all_assets, has_selection) {
+        (Some(true), true) => Err(ErrorData::invalid_params(
+            "set either `all_assets` or an asset/tag selection, not both",
+            None,
+        )),
+        (Some(true), false) => Ok(Some(CalculatedChannelAssetConfiguration {
+            asset_scope: Some(AssetScope::AllAssets(true)),
+        })),
+        (_, true) => Ok(Some(CalculatedChannelAssetConfiguration {
+            asset_scope: Some(AssetScope::Selection(AssetSelection {
+                asset_ids: selection_ids,
+                tag_ids,
+            })),
+        })),
+        (_, false) => Ok(None),
     }
 }
 
@@ -259,5 +407,238 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         Ok(CallToolResult::structured(out))
+    }
+
+    #[tool(
+        name = "create_calculated_channel",
+        description = "
+            Create a calculated channel: a derived channel defined by a Sift Expression Language expression over
+            referenced channels, scoped to one or more assets.
+
+            Output:
+              - `{ \"calculated_channel\": CalculatedChannel, \"inapplicable_assets\": [...] }`. `calculated_channel`
+                is the created channel with its server-assigned `calculated_channel_id` and `version`.
+                `inapplicable_assets` lists scoped assets the channel could not be applied to (e.g. missing
+                referenced channels); empty when it applied everywhere.
+
+            Parameters:
+              - `name`: channel name.
+              - `description`: optional description.
+              - `units`: optional unit string.
+              - `client_key`: optional caller-assigned identifier (enables later get/update by key).
+              - `user_notes`: optional notes describing this creation.
+              - `expression`: Sift Expression Language body referencing the tokens declared in
+                `channel_references_json` (e.g. `$1 + $2`).
+              - Asset scope (exactly one form required): set `all_assets` to `true` for all assets, OR provide an
+                `asset_ids` / `asset_names` and/or `tag_ids` selection. `asset_names` are resolved to ids. Setting
+                `all_assets` together with a selection is an error.
+              - `channel_references_json`: JSON array mapping each expression token to a channel. Each element is
+                `{ \"channel_reference\": \"$1\", \"channel_identifier\": \"<channel name>\" }`. Use
+                `\"calculated_channel_version_id\"` instead of `channel_identifier` to reference another calculated
+                channel version; the two are mutually exclusive.
+              - `metadata`: optional list of `{ \"name\", \"value\" }` entries; `value` may be a string, number, or
+                boolean — the type is inferred from the JSON literal.
+
+            Errors:
+              - `INVALID_PARAMS` if no asset scope (or both forms) is given, `channel_references_json` is malformed
+                or a reference sets both `channel_identifier` and `calculated_channel_version_id`, an `asset_names`
+                entry resolves to no asset, or the server rejects the expression/configuration.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - The server validates the expression and channel references; a malformed expression returns
+                `INVALID_PARAMS` with the validation message.
+        ",
+        annotations(
+            title = "mutate_router/create_calculated_channel",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_calculated_channel(
+        &self,
+        params: Parameters<CreateCalculatedChannelParams>,
+    ) -> error::McpResult {
+        let Parameters(CreateCalculatedChannelParams {
+            name,
+            description,
+            units,
+            client_key,
+            user_notes,
+            expression,
+            all_assets,
+            asset_ids,
+            asset_names,
+            tag_ids,
+            channel_references_json,
+            metadata,
+        }) = params;
+
+        let expression_channel_references = parse_channel_references(&channel_references_json)?;
+
+        let asset_configuration = build_asset_configuration(
+            &self.asset_service,
+            all_assets,
+            asset_ids,
+            asset_names,
+            tag_ids,
+        )
+        .await?
+        .ok_or_else(|| {
+            ErrorData::invalid_params(
+                "an asset scope is required: set `all_assets` or an `asset_ids`/`asset_names`/`tag_ids` selection",
+                None,
+            )
+        })?;
+
+        let configuration = CalculatedChannelConfiguration {
+            asset_configuration: Some(asset_configuration),
+            query_configuration: Some(CalculatedChannelQueryConfiguration {
+                query: Some(Query::Sel(Sel {
+                    expression,
+                    expression_channel_references,
+                })),
+            }),
+        };
+
+        let metadata = metadata
+            .unwrap_or_default()
+            .into_iter()
+            .map(Into::into)
+            .collect();
+
+        let resp = self
+            .calculated_channel_service
+            .create_calculated_channel(
+                name,
+                description.unwrap_or_default(),
+                units,
+                client_key,
+                user_notes.unwrap_or_default(),
+                configuration,
+                metadata,
+            )
+            .await
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(serde_json::json!({
+            "calculated_channel": resp.calculated_channel,
+            "inapplicable_assets": resp.inapplicable_assets,
+        })))
+    }
+
+    #[tool(
+        name = "update_calculated_channel",
+        description = "
+            Update fields of an existing calculated channel. Only the fields you provide change; omitted fields keep
+            their current values (read-modify-write).
+
+            Output:
+              - `{ \"calculated_channel\": CalculatedChannel, \"inapplicable_assets\": [...] }` for the updated
+                channel (new `version`). `inapplicable_assets` lists scoped assets the change could not apply to.
+
+            Parameters:
+              - `calculated_channel_id` / `client_key`: identify the channel to update; exactly one MUST be set.
+              - `name`: optional new name.
+              - `description`: optional new description.
+              - `units`: optional new units.
+              - `expression`: optional new expression. Changing only the expression preserves the existing channel
+                references; provide `channel_references_json` too if the referenced channels change.
+              - `channel_references_json`: optional replacement references (same shape as in
+                `create_calculated_channel`). Changing only the references preserves the existing expression.
+              - Asset scope: optionally set `all_assets` OR an `asset_ids` / `asset_names` / `tag_ids` selection to
+                replace the channel's asset scope. `asset_names` are resolved to ids. Omit all to leave scope unchanged.
+              - `metadata`: optional replacement list of `{ \"name\", \"value\" }` entries.
+              - `user_notes`: optional notes describing this change.
+
+            Errors:
+              - `INVALID_PARAMS` if neither/both id and client_key are set, no updatable field is provided,
+                `channel_references_json` is malformed, both asset-scope forms are set, an `asset_names` entry
+                resolves to no asset, or the server rejects the change.
+              - `RESOURCE_NOT_FOUND` if the channel does not exist.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+        ",
+        annotations(
+            title = "mutate_router/update_calculated_channel",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true
+        )
+    )]
+    pub async fn update_calculated_channel(
+        &self,
+        params: Parameters<UpdateCalculatedChannelParams>,
+    ) -> error::McpResult {
+        let Parameters(UpdateCalculatedChannelParams {
+            calculated_channel_id,
+            client_key,
+            name,
+            description,
+            units,
+            expression,
+            channel_references_json,
+            all_assets,
+            asset_ids,
+            asset_names,
+            tag_ids,
+            metadata,
+            user_notes,
+        }) = params;
+
+        let (id, client_key) = match (calculated_channel_id, client_key) {
+            (Some(_), Some(_)) => {
+                return Err(ErrorData::invalid_params(
+                    "exactly one of `calculated_channel_id` or `client_key` must be set, not both",
+                    None,
+                ));
+            }
+            (None, None) => {
+                return Err(ErrorData::invalid_params(
+                    "one of `calculated_channel_id` or `client_key` must be set",
+                    None,
+                ));
+            }
+            (Some(id), None) => (id, String::new()),
+            (None, Some(key)) => (String::new(), key),
+        };
+
+        let channel_references = match channel_references_json {
+            Some(json) => Some(parse_channel_references(&json)?),
+            None => None,
+        };
+
+        let asset_configuration = build_asset_configuration(
+            &self.asset_service,
+            all_assets,
+            asset_ids,
+            asset_names,
+            tag_ids,
+        )
+        .await?;
+
+        let metadata = metadata.map(|m| m.into_iter().map(Into::into).collect::<Vec<_>>());
+
+        let update = CalculatedChannelUpdate {
+            name,
+            description,
+            units,
+            expression,
+            channel_references,
+            asset_configuration,
+            metadata,
+            user_notes,
+        };
+
+        let resp = self
+            .calculated_channel_service
+            .update_calculated_channel(id, client_key, update)
+            .await
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(serde_json::json!({
+            "calculated_channel": resp.calculated_channel,
+            "inapplicable_assets": resp.inapplicable_assets,
+        })))
     }
 }

@@ -340,4 +340,58 @@ impl SiftMcpServer {
 
         Ok(CallToolResult::structured(out))
     }
+
+    #[tool(
+        name = "list_calculated_channels",
+        description = "
+            List calculated channels in Sift, optionally filtered by a CEL expression and ordered by one or more
+            fields.
+
+            Output:
+              - `{ \"calculated_channels\": [CalculatedChannel, ...] }`. Each item is the full Sift
+                `CalculatedChannel` shape including `calculated_channel_id`, `client_key`, `name`, `description`,
+                `units`, `version`, `calculated_channel_configuration` (asset configuration + query/expression),
+                `metadata`, `is_archived`, and timestamps.
+
+            Parameters:
+              - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
+                `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`, `asset_id`,
+                `asset_name`, `tag_id`, `tag_name`, `units`, `calculated_channel_version_id`, `created_date`,
+                `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, `archived_date`.
+              - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
+                `modified_date`, `name`, `description`, `units`, `archived_date`. Default sort is `created_date desc`
+                (newest first). Example: `\"created_date desc,modified_date\"`.
+              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
+                passing a value above 1000 returns ALL matching calculated channels (paginated server-side).
+
+            Errors:
+              - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - Scope with `asset_id == \"...\"` or `asset_name == \"...\"` when the target asset is known.
+              - Use `is_archived == false` to exclude archived channels unless they're explicitly needed.
+              - To fetch one channel's full definition, follow up with `get_calculated_channel` using its id or client key.
+        ",
+        annotations(title = "list_router/list_calculated_channels", read_only_hint = true)
+    )]
+    pub async fn list_calculated_channels(
+        &self,
+        params: Parameters<ListParams>,
+    ) -> error::McpResult {
+        let Parameters(ListParams {
+            filter,
+            order_by,
+            limit,
+        }) = params;
+
+        let out = self
+            .calculated_channel_service
+            .list_calculated_channels(filter, order_by, limit)
+            .await
+            .map(|channels| serde_json::json!({ "calculated_channels": channels }))
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
+    }
 }
