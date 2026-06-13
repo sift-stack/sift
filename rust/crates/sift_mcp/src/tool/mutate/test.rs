@@ -21,16 +21,58 @@ use sift_rs::calculated_channels::v2::{
     calculated_channel_service_server::CalculatedChannelServiceServer,
 };
 use sift_rs::metadata::v1::{MetadataKeyType, metadata_value::Value as MetadataValueInner};
+use sift_rs::rules::v1::{
+    CreateRuleResponse, GetRuleResponse, Rule, rule_service_server::RuleServiceServer,
+};
 use sift_test_util::mock::{
     assets::v1::MockAssetServiceImpl, calculated_channels::v2::MockCalculatedChannelServiceImpl,
+    rules::v1::MockRuleServiceImpl,
 };
 
 use super::{
-    CreateCalculatedChannelParams, CreateUserDefinedFunctionParams, UpdateCalculatedChannelParams,
-    UpdateUserDefinedFunctionParams,
+    CreateCalculatedChannelParams, CreateRuleParams, CreateUserDefinedFunctionParams,
+    UpdateCalculatedChannelParams, UpdateRuleParams, UpdateUserDefinedFunctionParams,
 };
 use crate::server::SiftMcpServer;
 use crate::tool::common::{MetadataEntry, MetadataScalar};
+
+async fn server_with_rule_mocks(
+    rule_mock: MockRuleServiceImpl,
+    asset_mock: MockAssetServiceImpl,
+) -> (SiftMcpServer, JoinHandle<()>) {
+    let (client, server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+
+    let handle = tokio::spawn(async move {
+        Server::builder()
+            .add_service(RuleServiceServer::new(rule_mock))
+            .add_service(AssetServiceServer::new(asset_mock))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    (
+        SiftMcpServer::new(channel, String::from("https://api.test.local")),
+        handle,
+    )
+}
+
+fn rule_create_params() -> CreateRuleParams {
+    CreateRuleParams {
+        name: "overtemp".into(),
+        description: "too hot".into(),
+        conditions_json: "[]".into(),
+        asset_ids: Some(vec!["a1".into()]),
+        asset_names: None,
+        tag_ids: None,
+        client_key: None,
+        is_external: None,
+        is_live_evaluation_enabled: Some(true),
+        version_notes: None,
+        metadata: None,
+    }
+}
 
 async fn server_with_udf_mock(
     mock: MockUserDefinedFunctionServiceImpl,
@@ -541,6 +583,114 @@ async fn create_calculated_channel_with_unresolvable_asset_name_is_invalid() {
 
     let err = server
         .create_calculated_channel(Parameters(params))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn create_rule_builds_request_and_returns_rule() {
+    let mut rule_mock = MockRuleServiceImpl::new();
+    rule_mock
+        .expect_create_rule()
+        .withf(|req| {
+            let update = req.get_ref().update.as_ref().unwrap();
+            update.name == "overtemp"
+                && update.description == "too hot"
+                && update.is_live_evaluation_enabled == Some(true)
+                && update
+                    .asset_configuration
+                    .as_ref()
+                    .map(|a| a.asset_ids.clone())
+                    == Some(vec!["a1".to_string()])
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateRuleResponse {
+                rule_id: "r9".into(),
+            }))
+        });
+    rule_mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "r9".into(),
+                name: "overtemp".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (server, _h) = server_with_rule_mocks(rule_mock, MockAssetServiceImpl::new()).await;
+
+    let resp = server
+        .create_rule(Parameters(rule_create_params()))
+        .await
+        .expect("create failed");
+
+    let value = resp.structured_content.expect("structured content");
+    assert_eq!(value["rule"]["ruleId"], "r9");
+}
+
+#[tokio::test]
+async fn create_rule_with_malformed_conditions_is_invalid() {
+    let (server, _h) =
+        server_with_rule_mocks(MockRuleServiceImpl::new(), MockAssetServiceImpl::new()).await;
+
+    let mut params = rule_create_params();
+    params.conditions_json = "{ not an array".into();
+
+    let err = server
+        .create_rule(Parameters(params))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn update_rule_without_identifier_is_invalid() {
+    let (server, _h) =
+        server_with_rule_mocks(MockRuleServiceImpl::new(), MockAssetServiceImpl::new()).await;
+
+    let err = server
+        .update_rule(Parameters(UpdateRuleParams {
+            rule_id: None,
+            client_key: None,
+            name: Some("x".into()),
+            description: None,
+            conditions_json: None,
+            asset_ids: None,
+            asset_names: None,
+            tag_ids: None,
+            is_live_evaluation_enabled: None,
+            version_notes: None,
+            metadata: None,
+        }))
+        .await
+        .expect_err("expected invalid params");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn update_rule_with_no_fields_is_invalid() {
+    let (server, _h) =
+        server_with_rule_mocks(MockRuleServiceImpl::new(), MockAssetServiceImpl::new()).await;
+
+    let err = server
+        .update_rule(Parameters(UpdateRuleParams {
+            rule_id: Some("r1".into()),
+            client_key: None,
+            name: None,
+            description: None,
+            conditions_json: None,
+            asset_ids: None,
+            asset_names: None,
+            tag_ids: None,
+            is_live_evaluation_enabled: None,
+            version_notes: Some("note only".into()),
+            metadata: None,
+        }))
         .await
         .expect_err("expected invalid params");
 

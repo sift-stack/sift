@@ -16,12 +16,13 @@ use sift_rs::calculated_channels::v2::{
     calculated_channel_query_configuration::{Query, Sel},
 };
 use sift_rs::common::r#type::v1::{FunctionDataType, FunctionInput};
+use sift_rs::rules::v1::{RuleAssetConfiguration, UpdateConditionRequest, UpdateRuleRequest};
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::{
-        assets::AssetService, calculated_channels::CalculatedChannelUpdate,
+        assets::AssetService, calculated_channels::CalculatedChannelUpdate, rules::RuleUpdate,
         user_defined_functions::UserDefinedFunctionUpdate,
     },
     tool::common::{MetadataEntry, cel_escape},
@@ -256,6 +257,67 @@ async fn build_asset_configuration(
         })),
         (_, false) => Ok(None),
     }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CreateRuleParams {
+    name: String,
+    description: String,
+    conditions_json: String,
+    asset_ids: Option<Vec<String>>,
+    asset_names: Option<Vec<String>>,
+    tag_ids: Option<Vec<String>>,
+    client_key: Option<String>,
+    is_external: Option<bool>,
+    is_live_evaluation_enabled: Option<bool>,
+    version_notes: Option<String>,
+    metadata: Option<Vec<MetadataEntry>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateRuleParams {
+    rule_id: Option<String>,
+    client_key: Option<String>,
+    name: Option<String>,
+    description: Option<String>,
+    conditions_json: Option<String>,
+    asset_ids: Option<Vec<String>>,
+    asset_names: Option<Vec<String>>,
+    tag_ids: Option<Vec<String>>,
+    is_live_evaluation_enabled: Option<bool>,
+    version_notes: Option<String>,
+    metadata: Option<Vec<MetadataEntry>>,
+}
+
+/// Parse the `conditions_json` string into proto rule conditions. The JSON shape
+/// mirrors the proto `UpdateConditionRequest` (each with an `expression` and
+/// `actions`).
+fn parse_rule_conditions(json: &str) -> Result<Vec<UpdateConditionRequest>, ErrorData> {
+    serde_json::from_str(json).map_err(|e| {
+        ErrorData::invalid_params(format!("`conditions_json` is not valid JSON: {e}"), None)
+    })
+}
+
+/// Build a rule asset configuration from the scope params, resolving
+/// `asset_names` to ids. Returns `None` when no scope field is set.
+async fn build_rule_asset_configuration(
+    asset_service: &AssetService,
+    asset_ids: Option<Vec<String>>,
+    asset_names: Option<Vec<String>>,
+    tag_ids: Option<Vec<String>>,
+) -> Result<Option<RuleAssetConfiguration>, ErrorData> {
+    let mut ids = asset_ids.unwrap_or_default();
+    let tag_ids = tag_ids.unwrap_or_default();
+    if let Some(names) = asset_names {
+        ids.extend(resolve_asset_names(asset_service, &names).await?);
+    }
+    if ids.is_empty() && tag_ids.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(RuleAssetConfiguration {
+        asset_ids: ids,
+        tag_ids,
+    }))
 }
 
 #[tool_router(router = mutate_router, vis = "pub(crate)")]
@@ -661,5 +723,206 @@ impl SiftMcpServer {
             "calculated_channel": resp.calculated_channel,
             "inapplicable_assets": resp.inapplicable_assets,
         })))
+    }
+
+    #[tool(
+        name = "create_rule",
+        description = "
+            Create a rule: named conditions over channels that trigger actions, scoped to assets/tags.
+
+            Output:
+              - `{ \"rule\": Rule }` for the created rule, including its server-assigned `rule_id` and
+                `current_version_id`.
+
+            Parameters:
+              - `name`: rule name.
+              - `description`: rule description.
+              - `conditions_json`: JSON array of conditions. Each element mirrors the Sift `UpdateConditionRequest`
+                shape: an `expression` (the condition logic) and an `actions` array (what fires when it matches).
+                Inspect an existing rule with `get_rule` to see the exact shape before authoring new conditions.
+              - Asset scope: optional `asset_ids` / `asset_names` and/or `tag_ids` the rule applies to. `asset_names`
+                are resolved to ids. Omit all to leave the rule unscoped.
+              - `client_key`: optional caller-assigned identifier (immutable once set; enables later get/update by key).
+              - `is_external`: optional; mark the rule as externally managed.
+              - `is_live_evaluation_enabled`: optional; when `true` the rule evaluates live data.
+              - `version_notes`: optional notes describing this version.
+              - `metadata`: optional list of `{ \"name\", \"value\" }` entries; `value` may be a string, number, or
+                boolean — the type is inferred from the JSON literal.
+
+            Errors:
+              - `INVALID_PARAMS` if `conditions_json` is malformed, an `asset_names` entry resolves to no asset, or
+                the server rejects the rule (invalid expression/actions/configuration).
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - The server validates conditions, expressions, and actions; a malformed rule returns `INVALID_PARAMS`
+                with the validation message.
+        ",
+        annotations(
+            title = "mutate_router/create_rule",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_rule(&self, params: Parameters<CreateRuleParams>) -> error::McpResult {
+        let Parameters(CreateRuleParams {
+            name,
+            description,
+            conditions_json,
+            asset_ids,
+            asset_names,
+            tag_ids,
+            client_key,
+            is_external,
+            is_live_evaluation_enabled,
+            version_notes,
+            metadata,
+        }) = params;
+
+        let conditions = parse_rule_conditions(&conditions_json)?;
+        let asset_configuration =
+            build_rule_asset_configuration(&self.asset_service, asset_ids, asset_names, tag_ids)
+                .await?;
+        let metadata = metadata
+            .unwrap_or_default()
+            .into_iter()
+            .map(Into::into)
+            .collect();
+
+        let request = UpdateRuleRequest {
+            name,
+            description,
+            conditions,
+            version_notes: version_notes.unwrap_or_default(),
+            client_key,
+            asset_configuration,
+            is_external: is_external.unwrap_or(false),
+            metadata,
+            is_live_evaluation_enabled,
+            ..Default::default()
+        };
+
+        let out = self
+            .rule_service
+            .create_rule(request)
+            .await
+            .map(|rule| serde_json::json!({ "rule": rule }))
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
+    }
+
+    #[tool(
+        name = "update_rule",
+        description = "
+            Update fields of an existing rule. Only the fields you provide change; omitted fields keep their current
+            values (read-modify-write).
+
+            Output:
+              - `{ \"rule\": Rule }` for the updated rule (new version).
+
+            Parameters:
+              - `rule_id` / `client_key`: identify the rule to update; exactly one MUST be set.
+              - `name`: optional new name.
+              - `description`: optional new description.
+              - `conditions_json`: optional replacement conditions (same shape as in `create_rule`). When omitted,
+                the rule's existing conditions are preserved. When provided, it REPLACES the full condition set.
+              - Asset scope: optional `asset_ids` / `asset_names` / `tag_ids` to replace the rule's asset scope.
+                `asset_names` are resolved to ids. Omit all to leave scope unchanged.
+              - `is_live_evaluation_enabled`: optional new value.
+              - `version_notes`: optional notes describing this version.
+              - `metadata`: optional replacement list of `{ \"name\", \"value\" }` entries.
+
+            Errors:
+              - `INVALID_PARAMS` if neither/both of `rule_id` / `client_key` are set, no updatable field is provided,
+                `conditions_json` is malformed, an `asset_names` entry resolves to no asset, or the server rejects
+                the change.
+              - `RESOURCE_NOT_FOUND` if the rule does not exist.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - `conditions_json` replaces the entire condition set; fetch the rule with `get_rule` first and edit
+                the returned conditions if you intend to keep some.
+        ",
+        annotations(
+            title = "mutate_router/update_rule",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true
+        )
+    )]
+    pub async fn update_rule(&self, params: Parameters<UpdateRuleParams>) -> error::McpResult {
+        let Parameters(UpdateRuleParams {
+            rule_id,
+            client_key,
+            name,
+            description,
+            conditions_json,
+            asset_ids,
+            asset_names,
+            tag_ids,
+            is_live_evaluation_enabled,
+            version_notes,
+            metadata,
+        }) = params;
+
+        let (id, client_key) = match (rule_id, client_key) {
+            (Some(_), Some(_)) => {
+                return Err(ErrorData::invalid_params(
+                    "exactly one of `rule_id` or `client_key` must be set, not both",
+                    None,
+                ));
+            }
+            (None, None) => {
+                return Err(ErrorData::invalid_params(
+                    "one of `rule_id` or `client_key` must be set",
+                    None,
+                ));
+            }
+            (Some(id), None) => (id, String::new()),
+            (None, Some(key)) => (String::new(), key),
+        };
+
+        let conditions = match conditions_json {
+            Some(json) => Some(parse_rule_conditions(&json)?),
+            None => None,
+        };
+        let asset_configuration =
+            build_rule_asset_configuration(&self.asset_service, asset_ids, asset_names, tag_ids)
+                .await?;
+        let metadata = metadata.map(|m| m.into_iter().map(Into::into).collect::<Vec<_>>());
+
+        if name.is_none()
+            && description.is_none()
+            && conditions.is_none()
+            && asset_configuration.is_none()
+            && metadata.is_none()
+            && is_live_evaluation_enabled.is_none()
+        {
+            return Err(ErrorData::invalid_params(
+                "no updatable fields provided; set at least one of name, description, conditions_json, asset scope, metadata, is_live_evaluation_enabled",
+                None,
+            ));
+        }
+
+        let update = RuleUpdate {
+            name,
+            description,
+            conditions,
+            asset_configuration,
+            metadata,
+            version_notes,
+            is_live_evaluation_enabled,
+        };
+
+        let out = self
+            .rule_service
+            .update_rule(id, client_key, update)
+            .await
+            .map(|rule| serde_json::json!({ "rule": rule }))
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
     }
 }

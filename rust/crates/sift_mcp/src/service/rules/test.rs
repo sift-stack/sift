@@ -1,9 +1,12 @@
-use sift_rs::rules::v1::{ListRulesResponse, Rule, rule_service_server::RuleServiceServer};
+use sift_rs::rules::v1::{
+    CreateRuleResponse, GetRuleResponse, ListRulesResponse, Rule, RuleAction, RuleCondition,
+    UpdateRuleResponse, rule_service_server::RuleServiceServer,
+};
 use sift_test_util::{grpc::memory_sift_channel, mock::rules::v1::MockRuleServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::RuleService;
+use super::{RuleService, RuleUpdate};
 use crate::service::common::PAGE_SIZE;
 
 async fn service_with_mock(mock: MockRuleServiceImpl) -> (RuleService, JoinHandle<()>) {
@@ -230,4 +233,139 @@ async fn list_rules_propagates_grpc_error() {
         .expect_err("expected error");
 
     assert!(err.to_string().contains("failed to query rules"));
+}
+
+#[tokio::test]
+async fn get_rule_by_id_returns_rule() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule()
+        .withf(|req| req.get_ref().rule_id == "r1" && req.get_ref().client_key.is_empty())
+        .returning(|_| {
+            Ok(Response::new(GetRuleResponse {
+                rule: Some(Rule {
+                    rule_id: "r1".into(),
+                    name: "overtemp".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let rule = service
+        .get_rule("r1".into(), String::new())
+        .await
+        .expect("get failed");
+
+    assert_eq!(rule.name, "overtemp");
+}
+
+#[tokio::test]
+async fn get_missing_rule_is_not_found() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule()
+        .returning(|_| Ok(Response::new(GetRuleResponse { rule: None })));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .get_rule("missing".into(), String::new())
+        .await
+        .expect_err("expected not found");
+
+    let status = err.downcast::<Status>().expect("expected tonic Status");
+    assert_eq!(status.code(), tonic::Code::NotFound);
+}
+
+#[tokio::test]
+async fn create_rule_then_fetches_full_rule() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_create_rule()
+        .withf(|req| req.get_ref().update.as_ref().unwrap().name == "overtemp")
+        .returning(|_| {
+            Ok(Response::new(CreateRuleResponse {
+                rule_id: "r9".into(),
+            }))
+        });
+    mock.expect_get_rule()
+        .withf(|req| req.get_ref().rule_id == "r9")
+        .returning(|_| {
+            Ok(Response::new(GetRuleResponse {
+                rule: Some(Rule {
+                    rule_id: "r9".into(),
+                    name: "overtemp".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let rule = service
+        .create_rule(sift_rs::rules::v1::UpdateRuleRequest {
+            name: "overtemp".into(),
+            description: "too hot".into(),
+            ..Default::default()
+        })
+        .await
+        .expect("create failed");
+
+    assert_eq!(rule.rule_id, "r9");
+}
+
+#[tokio::test]
+async fn update_rule_preserves_existing_conditions_when_not_provided() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "r1".into(),
+                name: "old".into(),
+                description: "keep".into(),
+                conditions: vec![RuleCondition {
+                    rule_condition_id: "rc1".into(),
+                    actions: vec![RuleAction {
+                        rule_action_id: "ra1".into(),
+                        action_type: 1,
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+        }))
+    });
+    mock.expect_update_rule()
+        .withf(|req| {
+            let req = req.get_ref();
+            // name overlaid; description preserved; existing condition converted to write shape.
+            req.name == "renamed"
+                && req.description == "keep"
+                && req.conditions.len() == 1
+                && req.conditions[0].rule_condition_id.as_deref() == Some("rc1")
+                && req.conditions[0].actions.len() == 1
+                && req.conditions[0].actions[0].rule_action_id.as_deref() == Some("ra1")
+                && req.conditions[0].actions[0].action_type == 1
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "r1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let rule = service
+        .update_rule(
+            "r1".into(),
+            String::new(),
+            RuleUpdate {
+                name: Some("renamed".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update failed");
+
+    assert_eq!(rule.rule_id, "r1");
 }
