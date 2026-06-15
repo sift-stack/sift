@@ -313,7 +313,8 @@ impl SiftMcpServer {
 
             Guidance:
               - Use `is_archived == false` to exclude archived functions unless they're explicitly needed.
-              - To fetch one function's full definition, follow up with `get_user_defined_function` using its id.
+              - To fetch one function's full definition, filter to it by id or exact name, e.g.
+                `user_defined_function_id == \"...\"` or `name == \"my_udf\"`.
         ",
         annotations(
             title = "list_router/list_user_defined_functions",
