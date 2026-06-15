@@ -2901,10 +2901,6 @@ async def queue_based_lazy_flow_example():
         <span class="p">],</span>
     <span class="p">)</span>
 
-    <span class="c1"># Path 3 — Dynamic: not declared at init.</span>
-    <span class="c1"># Schema derived from channel value types on first send. Units and descriptions</span>
-    <span class="c1"># are not stored; use staged_configs if that metadata matters.</span>
-
     <span class="n">ingestion_config</span> <span class="o">=</span> <span class="n">IngestionConfigCreate</span><span class="p">(</span>
         <span class="n">asset_name</span><span class="o">=</span><span class="s2">"sift_rover_1"</span><span class="p">,</span>
         <span class="n">flows</span><span class="o">=</span><span class="p">[</span><span class="n">velocity_control</span><span class="p">],</span>  <span class="c1"># pre-registered</span>
@@ -2941,8 +2937,9 @@ async def queue_based_lazy_flow_example():
                 <span class="p">)</span>
             <span class="p">)</span>
 
-            <span class="c1"># Dynamic — first call derives and registers a minimal schema from the</span>
-            <span class="c1"># channel value types; subsequent calls are cache-hits.</span>
+            <span class="c1"># Dynamic (path #3) — not declared at init. Schema derived from channel</span>
+            <span class="c1"># value types on first send; units and descriptions are not stored. Use</span>
+            <span class="c1"># staged_configs if that metadata matters.</span>
             <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
                 <span class="n">Flow</span><span class="p">(</span>
                     <span class="n">flow</span><span class="o">=</span><span class="s2">"gps_fix"</span><span class="p">,</span>
@@ -3007,10 +3004,6 @@ async def auto_register_example():
         ],
     )
 
-    # Path 3 — Dynamic: not declared at init.
-    # Schema derived from channel value types on first send. Units and descriptions
-    # are not stored; use staged_configs if that metadata matters.
-
     ingestion_config = IngestionConfigCreate(
         asset_name="sift_rover_1",
         flows=[velocity_control],  # pre-registered
@@ -3047,8 +3040,9 @@ async def auto_register_example():
                 )
             )
 
-            # Dynamic — first call derives and registers a minimal schema from the
-            # channel value types; subsequent calls are cache-hits.
+            # Dynamic (path #3) — not declared at init. Schema derived from channel
+            # value types on first send; units and descriptions are not stored. Use
+            # staged_configs if that metadata matters.
             await stream.send(
                 Flow(
                     flow="gps_fix",

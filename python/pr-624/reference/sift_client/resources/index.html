@@ -25025,6 +25025,13 @@ representation of ingestion flows using standard Python data structures and type
 Pre-registering known flows via the <code>ingestion_config</code> argument is still supported:
 those flows are placed in the local cache at build time and bypass the registration
 step on first send, so latency is the same as <code>create_ingestion_config_streaming_client</code>.</p>
+<p>Using the <code>AutoRegisterStreamingClient</code> can be useful in the following scenarios:
+    * Your ingestion config is too large to be registered or returned in a single gRPC call.
+    * Many of the flows defined for your ingestion config will not be actively streamed.</p>
+<p>In both of these scenarios, the amount of time that it can take to initialize the client
+due to the number of flows may be undesirable. The "lazy" registration, or "just in time"
+registration provided through <code>AutoRegisterStreamingClient</code> can improve this by delaying
+registration to when the flow is first provided to the client.</p>
 
 
 <table>
@@ -25274,8 +25281,7 @@ flows and avoid any first-send latency for those flows.</p>
 time. When a staged config exists for a flow, it is used for registration instead
 of a minimal derived config, preserving units, descriptions, and other metadata.
 The staged config is validated against the flow's channel names and types before
-use; a mismatch raises <code>RuntimeError</code>. Each staged config is consumed after
-successful registration.</p>
+use; a mismatch raises <code>RuntimeError</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
