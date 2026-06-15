@@ -445,7 +445,8 @@ impl SiftMcpServer {
               - `name`: channel name.
               - `description`: optional description.
               - `units`: optional unit string.
-              - `client_key`: optional caller-assigned identifier (enables later get/update by key).
+              - `client_key`: optional caller-assigned identifier (enables later lookup via `list_calculated_channels`
+                filter and update by key).
               - `user_notes`: optional notes describing this creation.
               - `expression`: Sift Expression Language body referencing the tokens declared in
                 `channel_references_json` (e.g. `$1 + $2`).

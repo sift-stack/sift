@@ -371,7 +371,8 @@ impl SiftMcpServer {
             Guidance:
               - Scope with `asset_id == \"...\"` or `asset_name == \"...\"` when the target asset is known.
               - Use `is_archived == false` to exclude archived channels unless they're explicitly needed.
-              - To fetch one channel's full definition, follow up with `get_calculated_channel` using its id or client key.
+              - To fetch one channel's full definition, filter to it by id, client key, or exact name, e.g.
+                `calculated_channel_id == \"...\"`, `client_key == \"...\"`, or `name == \"my_channel\"`.
         ",
         annotations(title = "list_router/list_calculated_channels", read_only_hint = true)
     )]
