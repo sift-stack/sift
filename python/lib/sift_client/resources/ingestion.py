@@ -219,6 +219,15 @@ class IngestionAPIAsync(ResourceBase):
         those flows are placed in the local cache at build time and bypass the registration
         step on first send, so latency is the same as `create_ingestion_config_streaming_client`.
 
+        Using the `AutoRegisterStreamingClient` can be useful in the following scenarios:
+            * Your ingestion config is too large to be registered or returned in a single gRPC call.
+            * Many of the flows defined for your ingestion config will not be actively streamed.
+
+        In both of these scenarios, the amount of time that it can take to initialize the client
+        due to the number of flows may be undesirable. The "lazy" registration, or "just in time"
+        registration provided through `AutoRegisterStreamingClient` can improve this by delaying
+        registration to when the flow is first provided to the client.
+
         Args:
             ingestion_config: The ingestion config. Use `IngestionConfigCreate` with `flows=[]`
                 for a fully schema-free start, or provide flow definitions to pre-register known
@@ -236,8 +245,7 @@ class IngestionAPIAsync(ResourceBase):
                 time. When a staged config exists for a flow, it is used for registration instead
                 of a minimal derived config, preserving units, descriptions, and other metadata.
                 The staged config is validated against the flow's channel names and types before
-                use; a mismatch raises `RuntimeError`. Each staged config is consumed after
-                successful registration.
+                use; a mismatch raises `RuntimeError`.
 
         Returns:
             An initialized `AutoRegisterStreamingClient`.
