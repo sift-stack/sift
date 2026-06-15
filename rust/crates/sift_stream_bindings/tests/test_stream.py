@@ -242,6 +242,86 @@ class TestFileBackupBuilder:
         assert mode_builder.disk_backup_policy is not None
 
 
+class TestSiftStreamAutoRegister:
+    """Test SiftStreamAutoRegisterPy structure and construction helpers."""
+
+    def test_class_is_importable(self):
+        """SiftStreamAutoRegisterPy must be exported from the bindings module."""
+        from sift_stream_bindings import SiftStreamAutoRegisterPy
+
+        assert SiftStreamAutoRegisterPy is not None
+
+    def test_from_stream_is_static_method(self):
+        """from_stream must be a callable on the class (not an instance method)."""
+        from sift_stream_bindings import SiftStreamAutoRegisterPy
+
+        assert callable(SiftStreamAutoRegisterPy.from_stream)
+
+    def test_expected_methods_present(self):
+        """SiftStreamAutoRegisterPy must expose the full streaming interface."""
+        from sift_stream_bindings import SiftStreamAutoRegisterPy
+
+        expected = [
+            "from_stream",
+            "send",
+            "finish",
+            "get_flow_descriptor",
+            "attach_run",
+            "detach_run",
+            "run",
+            "get_metrics_snapshot",
+        ]
+        members = dir(SiftStreamAutoRegisterPy)
+        for name in expected:
+            assert name in members, f"SiftStreamAutoRegisterPy is missing method '{name}'"
+
+    @pytest.mark.asyncio
+    async def test_from_stream_rejects_non_stream(self):
+        """from_stream must raise TypeError when passed a non-SiftStreamPy value."""
+        from sift_stream_bindings import SiftStreamAutoRegisterPy
+
+        with pytest.raises((TypeError, AttributeError)):
+            await SiftStreamAutoRegisterPy.from_stream("not-a-stream")
+
+    @pytest.mark.asyncio
+    async def test_from_stream_rejects_none(self):
+        """from_stream must raise TypeError when passed None."""
+        from sift_stream_bindings import SiftStreamAutoRegisterPy
+
+        with pytest.raises((TypeError, AttributeError)):
+            await SiftStreamAutoRegisterPy.from_stream(None)
+
+    def test_staged_configs_parameter_accepted(self):
+        """from_stream must accept a staged_configs keyword argument."""
+        import inspect
+
+        from sift_stream_bindings import SiftStreamAutoRegisterPy
+
+        sig = inspect.signature(SiftStreamAutoRegisterPy.from_stream)
+        assert "staged_configs" in sig.parameters, (
+            "from_stream is missing the staged_configs parameter — "
+            "was it added to the #[pymethods] impl?"
+        )
+
+    def test_staged_configs_builder_roundtrip(self):
+        """FlowConfigPy objects built for staged_configs are correctly formed."""
+        channel = ChannelConfigPy(
+            name="velocity",
+            data_type=ChannelDataTypePy.Double,
+            unit="m/s",
+            description="Forward velocity",
+            enum_types=[],
+            bit_field_elements=[],
+        )
+        flow_cfg = FlowConfigPy(name="motion", channels=[channel])
+
+        assert flow_cfg.name == "motion"
+        assert len(flow_cfg.channels) == 1
+        assert flow_cfg.channels[0].name == "velocity"
+        assert flow_cfg.channels[0].unit == "m/s"
+        assert flow_cfg.channels[0].description == "Forward velocity"
+
+
 class TestSiftStreamMetricsSnapshot:
     """Test SiftStreamMetricsSnapshotPy fields."""
 
