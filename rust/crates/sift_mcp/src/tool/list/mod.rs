@@ -266,6 +266,8 @@ impl SiftMcpServer {
                 field for narrowing rule listings.
               - Use `is_archived == false` to exclude archived rules unless they're explicitly needed.
               - Use `is_live_evaluation_enabled == true` to find only rules that run against live data.
+              - To fetch one rule's full definition, filter to it by id, client key, or exact name, e.g.
+                `rule_id == \"...\"`, `client_key == \"...\"`, or `name == \"my_rule\"`.
         ",
         annotations(title = "list_router/list_rules", read_only_hint = true)
     )]

@@ -743,12 +743,13 @@ impl SiftMcpServer {
                 `action_type` accepts those exact uppercase names or their integer index (1/2/3).
                 `expression` and each action's `configuration` are required nested objects whose fields follow the
                 Sift `RuleConditionExpression` / `RuleActionConfiguration` protos. Field keys accept snake_case or
-                camelCase; unknown keys are rejected. NOTE: this is NOT the same shape `get_rule` returns — the read
+                camelCase; unknown keys are rejected. NOTE: this is NOT the same shape `list_rules` returns — the read
                 shape carries server-managed fields (`rule_id`, `created_date`, version ids, ...) that must be
                 dropped before reuse here.
               - Asset scope: optional `asset_ids` / `asset_names` and/or `tag_ids` the rule applies to. `asset_names`
                 are resolved to ids. Omit all to leave the rule unscoped.
-              - `client_key`: optional caller-assigned identifier (immutable once set; enables later get/update by key).
+              - `client_key`: optional caller-assigned identifier (immutable once set; enables later lookup via
+                `list_rules` filter and update by key).
               - `is_external`: optional; mark the rule as externally managed.
               - `is_live_evaluation_enabled`: optional; when `true` the rule evaluates live data.
               - `version_notes`: optional notes describing this version.
@@ -849,7 +850,7 @@ impl SiftMcpServer {
 
             Guidance:
               - `conditions_json` replaces the entire condition set. To keep existing conditions, omit
-                `conditions_json` entirely (they are preserved). Do not copy `get_rule` output into
+                `conditions_json` entirely (they are preserved). Do not copy `list_rules` output into
                 `conditions_json` verbatim — that is the read shape and will be rejected; author the write shape
                 described in `create_rule` instead.
         ",
