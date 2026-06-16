@@ -15,12 +15,13 @@ use sift_rs::metadata::v1::{
 };
 
 use crate::{
-    error::{self, from_anyhow},
+    error,
     server::SiftMcpServer,
     service::{
         data::{ChannelInput, DataService, TimeRange},
         ingest::RunForm,
     },
+    tool_try,
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -162,16 +163,16 @@ impl SiftMcpServer {
         }
 
         let asset_filter = format!("name == \"{}\"", cel_escape(&asset_name));
-        let asset = self
-            .asset_service
-            .list_assets(asset_filter, None, Some(1))
-            .await
-            .map_err(from_anyhow)?
-            .into_iter()
-            .next()
-            .ok_or_else(|| {
-                ErrorData::resource_not_found(format!("asset '{asset_name}' not found"), None)
-            })?;
+        let asset = tool_try!(
+            self.asset_service
+                .list_assets(asset_filter, None, Some(1))
+                .await
+        )
+        .into_iter()
+        .next()
+        .ok_or_else(|| {
+            ErrorData::resource_not_found(format!("asset '{asset_name}' not found"), None)
+        })?;
 
         let run = match run_name.as_deref() {
             Some(name) => {
@@ -180,19 +181,19 @@ impl SiftMcpServer {
                     cel_escape(name),
                     asset.asset_id,
                 );
-                let run = self
-                    .run_service
-                    .list_runs(filter, None, Some(1))
-                    .await
-                    .map_err(from_anyhow)?
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| {
-                        ErrorData::resource_not_found(
-                            format!("run '{name}' not found for asset '{asset_name}'"),
-                            None,
-                        )
-                    })?;
+                let run = tool_try!(
+                    self.run_service
+                        .list_runs(filter, None, Some(1))
+                        .await
+                )
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    ErrorData::resource_not_found(
+                        format!("run '{name}' not found for asset '{asset_name}'"),
+                        None,
+                    )
+                })?;
                 Some(run)
             }
             None => None,
@@ -234,11 +235,11 @@ impl SiftMcpServer {
             asset.asset_id
         );
 
-        let channels = self
-            .channel_service
-            .list_channels(channel_filter, None, None)
-            .await
-            .map_err(from_anyhow)?;
+        let channels = tool_try!(
+            self.channel_service
+                .list_channels(channel_filter, None, None)
+                .await
+        );
 
         if channels.is_empty() {
             return Err(ErrorData::resource_not_found(
@@ -264,19 +265,21 @@ impl SiftMcpServer {
             },
         };
 
-        let mut file = File::options()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&output)
-            .context("failed to open output parquet file")
-            .map_err(from_anyhow)?;
+        let mut file = tool_try!(
+            File::options()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(&output)
+                .context("failed to open output parquet file")
+        );
 
-        self.data_service
-            .get_data(&channel_inputs, time_range, sample_ms, &mut file)
-            .await
-            .context("get data call failure - data_router")
-            .map_err(from_anyhow)?;
+        tool_try!(
+            self.data_service
+                .get_data(&channel_inputs, time_range, sample_ms, &mut file)
+                .await
+                .context("get data call failure - data_router")
+        );
 
         let output_str = output.to_string_lossy().into_owned();
         let next_step = format!(
@@ -349,7 +352,7 @@ impl SiftMcpServer {
         }
 
         let output_for_task = output.clone();
-        tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
+        let sql_result = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
             let mut file = File::options()
                 .create(true)
                 .write(true)
@@ -359,8 +362,8 @@ impl SiftMcpServer {
             DataService::sql(inputs, &mut file, &table_name, &query)
         })
         .await
-        .map_err(|e| ErrorData::internal_error(format!("sql task panicked: {e}"), None))?
-        .map_err(from_anyhow)?;
+        .map_err(|e| ErrorData::internal_error(format!("sql task panicked: {e}"), None))?;
+        tool_try!(sql_result);
 
         let output_str = output.to_string_lossy().into_owned();
         let next_step = format!(
@@ -450,16 +453,14 @@ impl SiftMcpServer {
             metadata: metadata.into_iter().map(MetadataValue::from).collect(),
         });
 
-        let file = File::open(&input)
-            .context("failed to open input parquet file")
-            .map_err(from_anyhow)?;
+        let file = tool_try!(File::open(&input).context("failed to open input parquet file"));
 
-        let uploaded = self
-            .ingest_service
-            .upload_dataset(asset, run, file)
-            .await
-            .context("upload dataset failure - data_router")
-            .map_err(from_anyhow)?;
+        let uploaded = tool_try!(
+            self.ingest_service
+                .upload_dataset(asset, run, file)
+                .await
+                .context("upload dataset failure - data_router")
+        );
 
         let input_str = input.to_string_lossy().into_owned();
         let run_summary = match (&uploaded.run_name, &uploaded.run_id) {

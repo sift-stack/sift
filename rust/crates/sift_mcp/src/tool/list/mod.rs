@@ -1,13 +1,12 @@
 use rmcp::{
     handler::server::wrapper::Parameters,
-    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
 use serde::Deserialize;
 
 use crate::{
-    error::{self, from_anyhow},
+    error::{self, into_tool_result},
     server::SiftMcpServer,
 };
 
@@ -68,14 +67,13 @@ impl SiftMcpServer {
             order_by,
         }) = params;
 
-        let out = self
+        let result = self
             .asset_service
             .list_assets(filter, order_by, limit)
             .await
-            .map(|assets| serde_json::json!({ "assets": assets }))
-            .map_err(from_anyhow)?;
+            .map(|assets| serde_json::json!({ "assets": assets }));
 
-        Ok(CallToolResult::structured(out))
+        into_tool_result(result)
     }
 
     #[tool(
@@ -123,14 +121,13 @@ impl SiftMcpServer {
             limit,
         }) = params;
 
-        let out = self
+        let result = self
             .run_service
             .list_runs(filter, order_by, limit)
             .await
-            .map(|runs| serde_json::json!({ "runs": runs }))
-            .map_err(from_anyhow)?;
+            .map(|runs| serde_json::json!({ "runs": runs }));
 
-        Ok(CallToolResult::structured(out))
+        into_tool_result(result)
     }
 
     #[tool(
@@ -171,14 +168,13 @@ impl SiftMcpServer {
             limit,
         }) = params;
 
-        let out = self
+        let result = self
             .channel_service
             .list_channels(filter, order_by, limit)
             .await
-            .map(|channels| serde_json::json!({ "channels": channels }))
-            .map_err(from_anyhow)?;
+            .map(|channels| serde_json::json!({ "channels": channels }));
 
-        Ok(CallToolResult::structured(out))
+        into_tool_result(result)
     }
 
     #[tool(
@@ -223,14 +219,13 @@ impl SiftMcpServer {
             organization_id,
         }) = params;
 
-        let out = self
+        let result = self
             .report_service
             .list_reports(filter, order_by, limit, organization_id)
             .await
-            .map(|reports| serde_json::json!({ "reports": reports }))
-            .map_err(from_anyhow)?;
+            .map(|reports| serde_json::json!({ "reports": reports }));
 
-        Ok(CallToolResult::structured(out))
+        into_tool_result(result)
     }
 
     #[tool(
@@ -276,13 +271,12 @@ impl SiftMcpServer {
             limit,
         }) = params;
 
-        let out = self
+        let result = self
             .rule_service
             .list_rules(filter, order_by, limit)
             .await
-            .map(|rules| serde_json::json!({ "rules": rules }))
-            .map_err(from_anyhow)?;
+            .map(|rules| serde_json::json!({ "rules": rules }));
 
-        Ok(CallToolResult::structured(out))
+        into_tool_result(result)
     }
 }
