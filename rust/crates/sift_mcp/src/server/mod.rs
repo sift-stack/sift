@@ -9,6 +9,7 @@ use rmcp::{
 };
 use sift_rs::SiftChannel;
 
+use crate::policy::RetryPolicy;
 use crate::service::{
     assets::AssetService, channels::ChannelService, data::DataService, explore::ExploreService,
     ingest::IngestService, reports::ReportService, rules::RuleService, runs::RunService,
@@ -48,14 +49,16 @@ impl SiftMcpServer {
 
         let prompt_router = Self::prompt_router();
 
-        let asset_service = AssetService::new(channel.clone());
-        let data_service = DataService::new(channel.clone());
-        let channel_service = ChannelService::new(channel.clone());
+        let retry_policy = RetryPolicy::default();
+
+        let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
+        let data_service = DataService::new(channel.clone(), retry_policy.clone());
+        let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
         let explore_service = ExploreService::new(rest_uri);
         let ingest_service = IngestService::new(channel.clone());
-        let run_service = RunService::new(channel.clone());
-        let report_service = ReportService::new(channel.clone());
-        let rule_service = RuleService::new(channel.clone());
+        let run_service = RunService::new(channel.clone(), retry_policy.clone());
+        let report_service = ReportService::new(channel.clone(), retry_policy.clone());
+        let rule_service = RuleService::new(channel.clone(), retry_policy);
 
         Self {
             asset_service,

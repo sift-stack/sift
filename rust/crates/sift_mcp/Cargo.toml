@@ -25,6 +25,7 @@ clap = { workspace = true, features = ["cargo"] }
 pbjson-types.workspace = true
 percent-encoding.workspace = true
 prost.workspace = true
+rand.workspace = true
 arrow.workspace = true
 parquet.workspace = true
 polars = { workspace = true, features = ["lazy", "parquet", "sql"] }

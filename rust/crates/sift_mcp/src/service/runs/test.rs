@@ -18,7 +18,10 @@ async fn service_with_mock(mock: MockRunServiceImpl) -> (RunService, JoinHandle<
             .unwrap();
     });
 
-    (RunService::new(channel), handle)
+    (
+        RunService::new(channel, crate::policy::RetryPolicy::default()),
+        handle,
+    )
 }
 
 #[tokio::test]

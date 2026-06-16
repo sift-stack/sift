@@ -37,6 +37,7 @@ use sift_rs::{
     runs::v2::Run,
 };
 
+use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common::{
     BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, PAGE_SIZE, TS_COLUMN_NAME,
     secs_and_subsec_nanos_to_unix_nanos, unix_nanos_to_secs_and_subsec_nanos,
@@ -51,6 +52,7 @@ const SIZE_FLUSH_THRESHOLD: usize = 64 << 20;
 #[derive(Clone)]
 pub struct DataService {
     channel: SiftChannel,
+    policy: RetryPolicy,
 }
 
 pub enum ChannelInput {
@@ -97,8 +99,8 @@ enum ChannelValue {
 }
 
 impl DataService {
-    pub fn new(channel: SiftChannel) -> Self {
-        Self { channel }
+    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+        Self { channel, policy }
     }
 
     pub fn sql<W: Write>(
@@ -253,27 +255,42 @@ impl DataService {
             })
             .collect::<Vec<_>>();
 
-        let mut data_service = DataServiceClient::new(self.channel.clone());
         let mut page_token = String::new();
         let mut columns = HashMap::<ColumnName, ChannelColumn>::new();
 
         loop {
-            let resp = data_service
-                .get_data(GetDataRequest {
-                    sample_ms,
-                    page_token,
-                    queries: queries.clone(),
-                    start_time: Some(start_time),
-                    end_time: Some(end_time),
-                    page_size: PAGE_SIZE,
-                })
-                .await
-                .context("failed to get data")?;
+            let channel = self.channel.clone();
+            let queries = queries.clone();
+            let token = page_token.clone();
+            let start_time = start_time;
+            let end_time = end_time;
+
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let queries = queries.clone();
+                let token = token.clone();
+                async move {
+                    let mut data_service = DataServiceClient::new(channel);
+                    data_service
+                        .get_data(GetDataRequest {
+                            sample_ms,
+                            page_token: token,
+                            queries,
+                            start_time: Some(start_time),
+                            end_time: Some(end_time),
+                            page_size: PAGE_SIZE,
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
+            })
+            .await
+            .context("failed to get data")?;
 
             let GetDataResponse {
                 data,
                 next_page_token,
-            } = resp.into_inner();
+            } = resp;
 
             for channel_page in data {
                 match channel_page.type_url.as_str() {

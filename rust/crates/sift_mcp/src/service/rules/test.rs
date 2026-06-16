@@ -18,7 +18,10 @@ async fn service_with_mock(mock: MockRuleServiceImpl) -> (RuleService, JoinHandl
             .unwrap();
     });
 
-    (RuleService::new(channel), handle)
+    (
+        RuleService::new(channel, crate::policy::RetryPolicy::default()),
+        handle,
+    )
 }
 
 #[tokio::test]

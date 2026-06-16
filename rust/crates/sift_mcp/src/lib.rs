@@ -7,6 +7,7 @@ mod server;
 use server::SiftMcpServer;
 
 mod error;
+mod policy;
 mod prompt;
 mod service;
 mod tool;
