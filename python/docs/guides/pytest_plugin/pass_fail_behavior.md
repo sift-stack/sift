@@ -34,32 +34,36 @@ mapping to `FAILED`. A non-assertion exception gets its formatted traceback
 
 ## Hard exits
 
-Hard exits map to `ABORTED`. The step is resolved during fixture teardown, not
-at the instant of the exit:
+A hard exit resolves the cut-off step to `ABORTED`, recorded while pytest runs
+fixture finalizers on the way out. What the containers (class, module, package)
+and the report resolve to depends on why the run stopped:
 
-- When the exit produces a call-phase report (`sys.exit(1)`, `SystemExit`), the
-  plugin reads the status off that report.
-- When a `KeyboardInterrupt` aborts the session before any call-phase report
-  (Ctrl-C, or `raise KeyboardInterrupt` in the body), pytest still runs fixture
-  finalizers as it unwinds. The plugin sees setup completed with no call outcome
-  and resolves the cut-off step to `ABORTED` there.
+- A **failure stop** rolls up `FAILED`. `pytest.exit()`, `sys.exit()` /
+  `SystemExit`, an `assert`, or an exception means the test ended the run on a
+  fault, so the exited step is `ABORTED` (or `FAILED`/`ERROR` for an
+  assert/exception) while its containers and the report read `FAILED`.
+- A **system stop** rolls up `ABORTED`. Ctrl-C / `KeyboardInterrupt`, or the
+  `abort()` helper below, means the run was cut off rather than a test failing,
+  so the exited step, its containers, and the report all read `ABORTED`.
 
-The status only reaches the report if those finalizers run. If the process is
-killed before they do (`SIGKILL`, the OOM killer, power loss), nothing is written
-and the step keeps the `IN_PROGRESS` it was created with. That is the only path
-that leaves a step `IN_PROGRESS` in a finalized report.
+`SystemExit` is read from the call-phase report; the session-stopping exits abort
+before that report fires, so the step resolves during teardown instead. If the
+process dies before finalizers run (`SIGKILL`, OOM, power loss) nothing more is
+written and the step stays `IN_PROGRESS`, the only path that leaves a step
+`IN_PROGRESS` in a finished report.
 
-| Scenario                                       | Trigger                            | Outcome                                          |
-| ---------------------------------------------- | ---------------------------------- | ------------------------------------------------ |
-| `SystemExit` from the test body                | `sys.exit(1)`                      | `ABORTED` (read from the call-phase report)      |
-| `KeyboardInterrupt` from the test body         | `raise KeyboardInterrupt`          | `ABORTED` (resolved during teardown)             |
-| Session-aborting `KeyboardInterrupt`           | Ctrl-C terminates pytest           | `ABORTED` (resolved during teardown)             |
-| Process killed before finalizers run           | `SIGKILL` / OOM / power loss       | `IN_PROGRESS` (nothing written after creation)   |
+| Trigger                          | Exited step        | Containers + report |
+| -------------------------------- | ------------------ | ------------------- |
+| `assert` / exception             | `FAILED` / `ERROR` | `FAILED`            |
+| `sys.exit()` / `SystemExit`      | `ABORTED`          | `FAILED`            |
+| `pytest.exit("...")`             | `ABORTED`          | `FAILED`            |
+| `abort("...")` (Sift)            | `ABORTED`          | `ABORTED`           |
+| Ctrl-C / `KeyboardInterrupt`     | `ABORTED`          | `ABORTED`           |
+| process killed (`SIGKILL`/OOM)   | `IN_PROGRESS`      | `IN_PROGRESS`       |
 
-### Abort propagation through nested substeps
-
-Every step that was open when the abort fired records
-`ABORTED`.
+Within a stop, `ABORTED` is recorded on each step the exit unwinds through: the
+open substeps and the test step. A substep that closed before the exit keeps its
+own status.
 
 ```python title="test_abort.py"
 import sys
@@ -67,15 +71,35 @@ import sys
 
 def test_x(step):
     with step.substep(name="completed_sub"):
-        pass  # closes as PASSED before the abort
+        pass  # closed PASSED before the abort
     with step.substep(name="outer_sub") as outer_sub:
         with outer_sub.substep(name="inner_sub"):
-            sys.exit(1)  # ABORTED applied to inner_sub, outer_sub, and the test step
+            sys.exit(1)
 ```
 
-The Sift report shows `completed_sub` as `PASSED` and the three steps
-still open at the abort (`inner_sub`, `outer_sub`, and the test step
-itself) as `ABORTED`.
+`completed_sub` stays `PASSED`; `inner_sub`, `outer_sub`, and the test step are
+`ABORTED`. The enclosing module reads `FAILED`, since `sys.exit()` is a failure
+stop.
+
+### Stopping a run as aborted
+
+`sift_client.pytest_plugin.abort(reason)` stops the session and records the
+report and the open parent steps as `ABORTED` rather than `FAILED`. Use it for a
+system-level stop where the run was cut off rather than a test failing, such as
+the device under test losing power. A real Ctrl-C does the same automatically.
+
+```python
+from sift_client.pytest_plugin import abort
+
+
+def test_flash(step):
+    if not device_responding():
+        abort("device under test is not responding")
+    ...
+```
+
+For a stop that should read as a failure, use `pytest.exit()`; for a single
+failing test, use `pytest.fail()`.
 
 ## Skips
 
@@ -180,14 +204,20 @@ Every non-`PASSED`/`SKIPPED` step marks its parent as failed. What the
 parent records depends on whether its own scope had an abort and whether
 a child already failed:
 
-- A hard exit (`SystemExit` or an observed `KeyboardInterrupt`) in the
-  step's own scope records `ABORTED`. `ABORTED` propagates through every
-  step the abort passes through on its way up.
-- A child that already recorded a non-`PASSED`/`SKIPPED` outcome marks
-  the parent as `FAILED`. This holds whether or not an exception is still
-  propagating through the parent's scope: only the originating substep
-  records `ERROR`; ancestors inherit `FAILED`. The traceback stays on
-  the originating step's `error_info`.
+- A hard exit (`SystemExit` or an observed `KeyboardInterrupt`) records
+  `ABORTED` on the step in whose scope it fired, and `ABORTED` propagates
+  through every step the exception unwinds through on its way up: the
+  open substeps and the test step. Container parents (class, module,
+  package) are closed out-of-band rather than by the unwinding exception,
+  so they are not on that path. On a failure stop (`pytest.exit()`,
+  `sys.exit`) they inherit `FAILED` like any other non-pass child; on a
+  system stop (Ctrl-C / `KeyboardInterrupt`, or `abort()`) the run is flagged
+  aborted and they resolve `ABORTED` instead. See [Hard exits](#hard-exits).
+- A child that recorded a non-`PASSED`/`SKIPPED` outcome marks the parent
+  as `FAILED`. This holds whether or not an exception is still propagating
+  through the parent's scope: only the originating step records `ERROR` (or
+  `ABORTED`); ancestors that inherit the result take `FAILED`. The
+  traceback stays on the originating step's `error_info`.
 - A step records `ERROR` only when its own scope raised a non-Assertion
   exception AND no child has failed.
 

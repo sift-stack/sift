@@ -54,14 +54,14 @@ def _base_ini_lines(log_path: Path) -> list[str]:
     return [
         "[pytest]",
         "sift_offline = true",
-        f"sift_log_file = {log_path}",
+        f"sift_output_dir = {log_path}",
         "sift_git_metadata = false",
     ]
 
 
 @pytest.fixture
-def log_file(pytester: pytest.Pytester) -> Path:
-    path = pytester.path / "sift.log"
+def out_dir(pytester: pytest.Pytester) -> Path:
+    path = pytester.path / "sift-out"
     pytester.makeconftest(_INNER_CONFTEST)
     pytester.makefile(".ini", pytest="\n".join(_base_ini_lines(path)) + "\n")
     return path
@@ -86,7 +86,7 @@ def _ancestor_names(steps: list[dict], leaf: dict) -> list[str]:
     return chain
 
 
-def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_klass=dedent(
             """
@@ -101,7 +101,7 @@ def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_f
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     assert len(by_name["TestFoo"]) == 1
     class_id = by_name["TestFoo"][0]["id"]
@@ -110,7 +110,7 @@ def test_class_methods_cluster_under_class_step(pytester: pytest.Pytester, log_f
 
 
 def test_collection_skipped_method_nests_under_its_class(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A collection-time skipped method nests under its class parent.
 
@@ -137,7 +137,7 @@ def test_collection_skipped_method_nests_under_its_class(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=1, skipped=1)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert len(by_name["TestFoo"]) == 1
     class_id = by_name["TestFoo"][0]["id"]
     assert by_name["test_run"][0]["parent_step_id"] == class_id
@@ -145,7 +145,7 @@ def test_collection_skipped_method_nests_under_its_class(
     assert by_name["test_skipped"][0]["statuses"][-1] == TestStatus.SKIPPED
 
 
-def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_nested=dedent(
             """
@@ -158,7 +158,7 @@ def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, log_file
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     assert len(by_name["TestOuter"]) == 1
     assert len(by_name["TestInner"]) == 1
@@ -171,7 +171,7 @@ def test_nested_classes_produce_nested_steps(pytester: pytest.Pytester, log_file
     ]
 
 
-def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_cp=dedent(
             """
@@ -186,7 +186,7 @@ def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, log_file
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     class_id = by_name["TestFoo"][0]["id"]
     test_a_id = by_name["test_a"][0]["id"]
@@ -195,7 +195,7 @@ def test_class_parametrize_nests_under_class(pytester: pytest.Pytester, log_file
     assert by_name["v=2"][0]["parent_step_id"] == test_a_id
 
 
-def test_two_sibling_classes_in_module(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_two_sibling_classes_in_module(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_sib=dedent(
             """
@@ -211,7 +211,7 @@ def test_two_sibling_classes_in_module(pytester: pytest.Pytester, log_file: Path
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     mod_id = by_name["test_sib.py"][0]["id"]
     assert by_name["TestA"][0]["parent_step_id"] == mod_id
@@ -221,7 +221,7 @@ def test_two_sibling_classes_in_module(pytester: pytest.Pytester, log_file: Path
     assert len(by_name["TestB"]) == 1
 
 
-def test_mixed_class_and_free_function(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_mixed_class_and_free_function(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_mix=dedent(
             """
@@ -236,7 +236,7 @@ def test_mixed_class_and_free_function(pytester: pytest.Pytester, log_file: Path
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     mod_id = by_name["test_mix.py"][0]["id"]
     # Class method parents to TestA; free function parents directly to module.
@@ -246,7 +246,7 @@ def test_mixed_class_and_free_function(pytester: pytest.Pytester, log_file: Path
 
 
 def test_class_with_all_excluded_methods_no_class_step(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     pytester.makepyfile(
         test_excl=dedent(
@@ -266,14 +266,15 @@ def test_class_with_all_excluded_methods_no_class_step(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    jsonl = capture.run_jsonl_or_none(out_dir)
+    steps = capture.load_steps(jsonl) if jsonl else []
     by_name = _by_name(steps)
     assert "TestFoo" not in by_name
     assert "test_a" not in by_name
     assert "test_b" not in by_name
 
 
-def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_clsexcl=dedent(
             """
@@ -291,14 +292,15 @@ def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, log_file: P
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    jsonl = capture.run_jsonl_or_none(out_dir)
+    steps = capture.load_steps(jsonl) if jsonl else []
     by_name = _by_name(steps)
     assert "TestFoo" not in by_name
     assert "test_a" not in by_name
 
 
 def test_class_docstring_becomes_step_description(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     pytester.makepyfile(
         test_doc=dedent(
@@ -313,7 +315,7 @@ def test_class_docstring_becomes_step_description(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # The fake records step creation but not all fields — check the class
     # step was recorded, then read the description via the FakeStep's
@@ -324,7 +326,7 @@ def test_class_docstring_becomes_step_description(
 
 
 def test_two_class_chains_keep_parametrize_isolated(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     pytester.makepyfile(
         test_trans=dedent(
@@ -345,7 +347,7 @@ def test_two_class_chains_keep_parametrize_isolated(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # Each class opens exactly once; parametrize parents under the right class.
     assert len(by_name["TestA"]) == 1
@@ -432,7 +434,7 @@ def test_finalize_parents_continues_past_failing_exit(clean_parent_registries) -
 
 
 def test_failing_test_in_class_does_not_orphan_class_step(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A failing class method must not block the class step from cleaning up.
 
@@ -458,7 +460,7 @@ def test_failing_test_in_class_does_not_orphan_class_step(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2, failed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     assert len(by_name["TestFoo"]) == 1
     assert len(by_name["TestBar"]) == 1
@@ -475,7 +477,7 @@ def test_failing_test_in_class_does_not_orphan_class_step(
 
 
 def test_failing_parametrized_method_in_class_closes_full_chain(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A failing parametrized class method must not orphan its parametrize parents."""
     pytester.makepyfile(
@@ -496,7 +498,7 @@ def test_failing_parametrized_method_in_class_closes_full_chain(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2, failed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     foo_id = by_name["TestFoo"][0]["id"]
     test_a_id = by_name["test_a"][0]["id"]
@@ -512,18 +514,18 @@ def test_failing_parametrized_method_in_class_closes_full_chain(
 # ---------------------------------------------------------------------------
 
 
-def _write_ini(pytester: pytest.Pytester, log_file: Path, **overrides: object) -> None:
+def _write_ini(pytester: pytest.Pytester, out_dir: Path, **overrides: object) -> None:
     """Write a pytest.ini with the given sift_* overrides, preserving the
-    offline/log/git-metadata defaults the ``log_file`` fixture installs.
+    offline/log/git-metadata defaults the ``out_dir`` fixture installs.
     """
-    lines = _base_ini_lines(log_file)
+    lines = _base_ini_lines(out_dir)
     for key, value in overrides.items():
         lines.append(f"{key} = {value}")
     pytester.makefile(".ini", pytest="\n".join(lines) + "\n")
 
 
-def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, log_file: Path) -> None:
-    _write_ini(pytester, log_file, sift_class_step="false")
+def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, out_dir: Path) -> None:
+    _write_ini(pytester, out_dir, sift_class_step="false")
     pytester.makepyfile(
         test_noclass=dedent(
             """
@@ -538,7 +540,8 @@ def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, log_
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    jsonl = capture.run_jsonl_or_none(out_dir)
+    steps = capture.load_steps(jsonl) if jsonl else []
     by_name = _by_name(steps)
     assert "TestFoo" not in by_name
     mod_id = by_name["test_noclass.py"][0]["id"]
@@ -547,9 +550,9 @@ def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, log_
 
 
 def test_sift_module_step_false_skips_module_step(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
-    _write_ini(pytester, log_file, sift_module_step="false")
+    _write_ini(pytester, out_dir, sift_module_step="false")
     pytester.makepyfile(
         test_nomod=dedent(
             """
@@ -561,7 +564,7 @@ def test_sift_module_step_false_skips_module_step(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     assert "test_nomod.py" not in by_name
     # TestFoo attaches to the report root (no parent recorded by the fake).
@@ -570,9 +573,9 @@ def test_sift_module_step_false_skips_module_step(
 
 
 def test_sift_parametrize_nesting_false_keeps_flat_leaves(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
-    _write_ini(pytester, log_file, sift_parametrize_nesting="false")
+    _write_ini(pytester, out_dir, sift_parametrize_nesting="false")
     pytester.makepyfile(
         test_flat=dedent(
             """
@@ -586,7 +589,7 @@ def test_sift_parametrize_nesting_false_keeps_flat_leaves(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # No parametrize parent step.
     assert "test_a" not in by_name
@@ -600,7 +603,7 @@ def test_sift_parametrize_nesting_false_keeps_flat_leaves(
 
 
 def test_sift_module_step_false_still_drains_across_modules(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """sift_module_step=false must not merge same-named classes across modules.
 
@@ -608,7 +611,7 @@ def test_sift_module_step_false_still_drains_across_modules(
     (even when it's not rendered as a step), so two modules each declaring
     ``class TestFoo`` produce two distinct ``TestFoo`` frames in the diff.
     """
-    _write_ini(pytester, log_file, sift_module_step="false")
+    _write_ini(pytester, out_dir, sift_module_step="false")
     pytester.makepyfile(
         test_a=dedent(
             """
@@ -627,7 +630,7 @@ def test_sift_module_step_false_still_drains_across_modules(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # Two distinct TestFoo class steps — one per module — not a shared frame.
     assert len(by_name["TestFoo"]) == 2
@@ -641,7 +644,7 @@ def test_sift_module_step_false_still_drains_across_modules(
 
 
 def test_package_step_default_opens_for_init_dirs(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """Default: a directory with ``__init__.py`` produces a parent package step."""
     pytester.mkpydir("pkg_a")
@@ -655,7 +658,7 @@ def test_package_step_default_opens_for_init_dirs(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     assert "pkg_a" in by_name
     pkg_id = by_name["pkg_a"][0]["id"]
@@ -664,7 +667,7 @@ def test_package_step_default_opens_for_init_dirs(
 
 
 def test_same_named_packages_in_different_dirs_do_not_merge(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """Two packages with the same display name but different paths must stay distinct.
 
@@ -699,7 +702,7 @@ def test_same_named_packages_in_different_dirs_do_not_merge(
     # name on disk don't collide during sys.path-based import.
     result = pytester.runpytest_inprocess("-v", "--import-mode=importlib")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # Two distinct ``utils`` package steps — one per project.
     assert len(by_name["utils"]) == 2
@@ -713,10 +716,10 @@ def test_same_named_packages_in_different_dirs_do_not_merge(
 
 
 def test_sift_package_step_false_skips_package_steps(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """With ``sift_package_step=false`` the directory step is suppressed."""
-    _write_ini(pytester, log_file, sift_package_step="false")
+    _write_ini(pytester, out_dir, sift_package_step="false")
     pytester.mkpydir("pkg_a")
     (pytester.path / "pkg_a" / "test_x.py").write_text(
         dedent(
@@ -728,7 +731,7 @@ def test_sift_package_step_false_skips_package_steps(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     assert "pkg_a" not in by_name
     # The module step still opens and is now the top-level frame.
@@ -736,11 +739,11 @@ def test_sift_package_step_false_skips_package_steps(
 
 
 def test_all_three_flags_false_matches_legacy_behavior(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     _write_ini(
         pytester,
-        log_file,
+        out_dir,
         sift_module_step="false",
         sift_class_step="false",
         sift_parametrize_nesting="false",
@@ -759,7 +762,7 @@ def test_all_three_flags_false_matches_legacy_behavior(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # No module, class, or parametrize parents — just bracket-mangled leaves.
     assert "test_legacy.py" not in by_name
@@ -777,7 +780,7 @@ def test_all_three_flags_false_matches_legacy_behavior(
 
 
 def test_single_parametrize_clusters_under_originalname(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     pytester.makepyfile(
         test_rail=dedent(
@@ -792,7 +795,7 @@ def test_single_parametrize_clusters_under_originalname(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # Module step + one shared `test_rail` parent + two leaves.
     assert len(by_name["test_rail.py"]) == 1
@@ -805,7 +808,7 @@ def test_single_parametrize_clusters_under_originalname(
 
 
 def test_stacked_parametrize_nests_outer_to_inner(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     pytester.makepyfile(
         test_iso=dedent(
@@ -821,7 +824,7 @@ def test_stacked_parametrize_nests_outer_to_inner(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=4)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # One `test_iso` parent, two `voltage='…'` parents, four `component='…'` leaves.
     assert len(by_name["test_iso"]) == 1
@@ -843,7 +846,7 @@ def test_stacked_parametrize_nests_outer_to_inner(
         assert leaf["parent_step_id"] in voltage_ids
 
 
-def test_fixture_parametrization_participates(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_fixture_parametrization_participates(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_widget=dedent(
             """
@@ -860,7 +863,7 @@ def test_fixture_parametrization_participates(pytester: pytest.Pytester, log_fil
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     assert len(by_name["test_widget"]) == 1
     parent_id = by_name["test_widget"][0]["id"]
@@ -869,7 +872,7 @@ def test_fixture_parametrization_participates(pytester: pytest.Pytester, log_fil
 
 
 def test_module_boundary_isolates_parametrize_stack(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     pytester.makepyfile(
         test_a=dedent(
@@ -893,7 +896,7 @@ def test_module_boundary_isolates_parametrize_stack(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=4)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # Each module step contains its own `test_one`/`test_two` parametrize subtree.
     mod_a = by_name["test_a.py"][0]
@@ -902,7 +905,7 @@ def test_module_boundary_isolates_parametrize_stack(
     assert by_name["test_two"][0]["parent_step_id"] == mod_b["id"]
 
 
-def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_chain=dedent(
             """
@@ -917,7 +920,7 @@ def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, log_f
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     leaf = next(s for s in steps if s["name"].startswith("b="))
     chain = _ancestor_names(steps, leaf)
     # leaf b=… → a=… → test_chain → test_chain.py (module step) → root
@@ -930,7 +933,7 @@ def test_leaf_parent_chain_terminates_at_report(pytester: pytest.Pytester, log_f
 
 
 def test_interleaved_execution_does_not_duplicate_parents(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """Sibling methods need not run contiguously to share one class parent.
 
@@ -941,7 +944,7 @@ def test_interleaved_execution_does_not_duplicate_parents(
     right class.
     """
     # Overwrite the conftest with one that registers the plugin AND reorders
-    # items so the two classes interleave. The log_file fixture's pytest.ini
+    # items so the two classes interleave. The out_dir fixture's pytest.ini
     # (offline + log path) still applies.
     pytester.makeconftest(
         dedent(
@@ -980,7 +983,7 @@ def test_interleaved_execution_does_not_duplicate_parents(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=4)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # Each class opens exactly once despite the interleaved run order.
     assert len(by_name["TestA"]) == 1
@@ -999,7 +1002,7 @@ def test_interleaved_execution_does_not_duplicate_parents(
 
 
 def test_parent_status_passed_when_all_children_pass(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     pytester.makepyfile(
         test_ok=dedent(
@@ -1015,13 +1018,13 @@ def test_parent_status_passed_when_all_children_pass(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert by_name["TestFoo"][0]["statuses"][-1] == TestStatus.PASSED
     assert by_name["test_ok.py"][0]["statuses"][-1] == TestStatus.PASSED
 
 
 def test_parent_status_failed_propagates_up_and_isolates_siblings(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A failing leaf marks its class and the module FAILED, but a sibling class
     whose tests all pass stays PASSED.
@@ -1044,14 +1047,14 @@ def test_parent_status_failed_propagates_up_and_isolates_siblings(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2, failed=1)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert by_name["TestFoo"][0]["statuses"][-1] == TestStatus.FAILED
     assert by_name["test_fail.py"][0]["statuses"][-1] == TestStatus.FAILED
     assert by_name["TestBar"][0]["statuses"][-1] == TestStatus.PASSED
 
 
 def test_parent_status_failure_propagates_through_parametrize(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """One failing parametrization fails the whole chain: parametrize parent →
     class → module.
@@ -1071,14 +1074,14 @@ def test_parent_status_failure_propagates_through_parametrize(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1, failed=1)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert by_name["test_a"][0]["statuses"][-1] == TestStatus.FAILED
     assert by_name["TestFoo"][0]["statuses"][-1] == TestStatus.FAILED
     assert by_name["test_pfail.py"][0]["statuses"][-1] == TestStatus.FAILED
 
 
 def test_parent_opens_in_progress_and_resolves_exactly_once(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A parent is created IN_PROGRESS and gets exactly one terminal status at
     session end — it is never reopened, even as later siblings run under it.
@@ -1101,7 +1104,7 @@ def test_parent_opens_in_progress_and_resolves_exactly_once(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     # Created in-progress, resolved once — no intermediate churn, no reopen.
     assert by_name["TestFoo"][0]["statuses"] == [TestStatus.IN_PROGRESS, TestStatus.PASSED]
     assert by_name["test_once.py"][0]["statuses"] == [TestStatus.IN_PROGRESS, TestStatus.PASSED]
@@ -1112,7 +1115,7 @@ def test_parent_opens_in_progress_and_resolves_exactly_once(
 # ---------------------------------------------------------------------------
 
 
-def test_parent_timing_spans_its_children(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_parent_timing_spans_its_children(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A parent's [start, end] window covers its whole subtree: it starts no
     later than its first child and ends exactly at its last child's finish.
     """
@@ -1132,7 +1135,7 @@ def test_parent_timing_spans_its_children(pytester: pytest.Pytester, log_file: P
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     klass = by_name["TestFoo"][0]
     module = by_name["test_span.py"][0]
     leaves = [by_name["test_a"][0], by_name["test_b"][0]]
@@ -1150,7 +1153,7 @@ def test_parent_timing_spans_its_children(pytester: pytest.Pytester, log_file: P
 
 
 def test_parent_end_time_reflects_a_later_child_under_interleaving(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """When a parent's children run non-contiguously, its end_time tracks the
     LAST child to finish — even one that runs after a different parent's child.
@@ -1194,7 +1197,7 @@ def test_parent_end_time_reflects_a_later_child_under_interleaving(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=3)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     a_end = by_name["TestA"][0]["end_time"]
     a1_end = by_name["test_a1"][0]["end_time"]
     a2_end = by_name["test_a2"][0]["end_time"]
@@ -1245,7 +1248,7 @@ def pytest_collection_modifyitems(config, items):
 """
 
 
-def test_parent_closes_mid_session_not_at_end(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_parent_closes_mid_session_not_at_end(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A container resolves as soon as its last child finishes — before the next
     container even opens — rather than all flipping at session end.
     """
@@ -1267,7 +1270,7 @@ def test_parent_closes_mid_session_not_at_end(pytester: pytest.Pytester, log_fil
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=3)
-    events = capture.log_events(log_file)
+    events = capture.log_events(capture.run_jsonl(out_dir))
     # TestFoo reaches a terminal status before TestBar is even created.
     assert _index(events, "UpdateTestStep", "TestFoo", terminal=True) < _index(
         events, "CreateTestStep", "TestBar"
@@ -1275,7 +1278,7 @@ def test_parent_closes_mid_session_not_at_end(pytester: pytest.Pytester, log_fil
 
 
 def test_failing_parent_resolves_failed_mid_session(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """Early close carries status too: a class with a failing test resolves FAILED
     as soon as its subtree finishes, before the next class opens.
@@ -1295,13 +1298,13 @@ def test_failing_parent_resolves_failed_mid_session(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=1, failed=1)
-    events = capture.log_events(log_file)
+    events = capture.log_events(capture.run_jsonl(out_dir))
     foo_failed = _index(events, "UpdateTestStep", "TestFoo", status=TestStatus.FAILED)
     assert foo_failed < _index(events, "CreateTestStep", "TestBar")
 
 
 def test_close_is_completion_driven_not_order_driven(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A single-child container closes the moment that child finishes, even though
     a sibling container's test (collected earlier) runs afterward.
@@ -1329,7 +1332,7 @@ def test_close_is_completion_driven_not_order_driven(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=3)
-    events = capture.log_events(log_file)
+    events = capture.log_events(capture.run_jsonl(out_dir))
     # TestB resolves before test_a2 is even created.
     assert _index(events, "UpdateTestStep", "TestB", terminal=True) < _index(
         events, "CreateTestStep", "test_a2"
@@ -1337,7 +1340,7 @@ def test_close_is_completion_driven_not_order_driven(
 
 
 def test_excluded_sibling_does_not_stall_parent_close(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A ``sift_exclude``-d method is not counted toward its class's descendants,
     so the class still closes promptly once its included tests finish.
@@ -1367,7 +1370,7 @@ def test_excluded_sibling_does_not_stall_parent_close(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=3)
-    events = capture.log_events(log_file)
+    events = capture.log_events(capture.run_jsonl(out_dir))
     assert _index(events, "UpdateTestStep", "TestFoo", terminal=True) < _index(
         events, "CreateTestStep", "TestBar"
     )
@@ -1388,7 +1391,7 @@ def outer(request):
 
 
 def test_session_fixture_param_promoted_above_module(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A session-scoped autouse fixture with params must appear above the module."""
     pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
@@ -1405,7 +1408,7 @@ def test_session_fixture_param_promoted_above_module(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=4)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
 
     assert len(by_name["outer=10"]) == 1
@@ -1423,7 +1426,7 @@ def test_session_fixture_param_promoted_above_module(
 
 
 def test_two_outer_param_variants_produce_distinct_module_steps(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """The same module must not be shared across outer-param universes."""
     pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
@@ -1437,7 +1440,7 @@ def test_two_outer_param_variants_produce_distinct_module_steps(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
 
     # Two distinct module steps, one per outer-param universe.
@@ -1455,7 +1458,7 @@ def test_two_outer_param_variants_produce_distinct_module_steps(
 
 
 def test_inner_parametrize_still_works_inside_outer_param(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """Inner mark-parametrize nesting must still work within each outer-param universe."""
     pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
@@ -1472,7 +1475,7 @@ def test_inner_parametrize_still_works_inside_outer_param(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=4)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
 
     # Two outer universes → two `test_inner` parametrize parents.
@@ -1486,7 +1489,7 @@ def test_inner_parametrize_still_works_inside_outer_param(
         assert leaf["parent_step_id"] in test_inner_ids
 
 
-def test_no_outer_param_unaffected(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_no_outer_param_unaffected(pytester: pytest.Pytester, out_dir: Path) -> None:
     """Tests without any session-scoped fixture params produce the normal tree."""
     pytester.makepyfile(
         test_plain=dedent(
@@ -1501,7 +1504,7 @@ def test_no_outer_param_unaffected(pytester: pytest.Pytester, log_file: Path) ->
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
 
     # Module step is a root (no outer param wrapper).
@@ -1512,7 +1515,7 @@ def test_no_outer_param_unaffected(pytester: pytest.Pytester, log_file: Path) ->
     assert by_name["test_plain"][0]["parent_step_id"] == mod_id
 
 
-def test_outer_param_subtree_closes_mid_session(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_outer_param_subtree_closes_mid_session(pytester: pytest.Pytester, out_dir: Path) -> None:
     """The outer-param step resolves as soon as all its tests finish — not at session end."""
     pytester.makeconftest(_SESSION_FIXTURE_CONFTEST)
     pytester.makepyfile(
@@ -1528,7 +1531,7 @@ def test_outer_param_subtree_closes_mid_session(pytester: pytest.Pytester, log_f
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=4)
-    events = capture.log_events(log_file)
+    events = capture.log_events(capture.run_jsonl(out_dir))
     # The first outer-param step must resolve before the second outer-param step is created.
     assert _index(events, "UpdateTestStep", "outer=10", terminal=True) < _index(
         events, "CreateTestStep", "outer=20"
@@ -1540,7 +1543,7 @@ def test_outer_param_subtree_closes_mid_session(pytester: pytest.Pytester, log_f
 # ---------------------------------------------------------------------------
 
 
-def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, out_dir: Path) -> None:
     """An explicit ``ids=[...]`` list labels the parametrize steps, not ``name=value``."""
     pytester.makepyfile(
         test_lid=dedent(
@@ -1555,7 +1558,7 @@ def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, log_f
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     # Friendly IDs are the leaf names; the structured fallback never appears.
     assert "one" in by_name
     assert "two" in by_name
@@ -1567,7 +1570,7 @@ def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, log_f
 
 
 def test_callable_id_factory_on_inner_parametrize(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A callable ``ids=`` factory is invoked per value, just as pytest does."""
     pytester.makepyfile(
@@ -1586,14 +1589,14 @@ def test_callable_id_factory_on_inner_parametrize(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert "ch_0" in by_name
     assert "ch_1" in by_name
     assert "v=0" not in by_name
 
 
 def test_explicit_ids_on_session_fixture_label_outer_param(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A session fixture's explicit ``ids`` label the promoted outer-param steps."""
     pytester.makeconftest(
@@ -1619,7 +1622,7 @@ def test_explicit_ids_on_session_fixture_label_outer_param(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert "lo" in by_name
     assert "hi" in by_name
     assert "outer=24" not in by_name
@@ -1630,7 +1633,7 @@ def test_explicit_ids_on_session_fixture_label_outer_param(
 
 
 def test_auto_generated_ids_fall_back_to_name_value(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """With no author-supplied ``ids``, steps use the structured ``name=value`` label."""
     pytester.makepyfile(
@@ -1646,13 +1649,13 @@ def test_auto_generated_ids_fall_back_to_name_value(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert "v=1" in by_name
     assert "v=2" in by_name
 
 
 def test_combined_axis_ids_fall_back_to_name_value(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A combined ``"a,b"`` axis can't attribute its shared ID, so each frame uses
     ``name=value`` rather than mislabelling both with the same combined ID.
@@ -1670,7 +1673,7 @@ def test_combined_axis_ids_fall_back_to_name_value(
     )
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     # The shared "combined" ID is not adopted for either per-arg frame.
     assert "combined" not in by_name
     assert "a=1" in by_name
@@ -1683,7 +1686,7 @@ def test_combined_axis_ids_fall_back_to_name_value(
 
 
 def test_class_scoped_fixture_param_lifts_above_method(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A class-scoped parametrized fixture nests ABOVE the method; the method's own
     function param stays inside it (the inversion fix).
@@ -1706,7 +1709,7 @@ def test_class_scoped_fixture_param_lifts_above_method(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=4)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # cfix lifts between the class and the method.
     assert len(by_name["cfix='A'"]) == 1
@@ -1739,7 +1742,7 @@ _MODULE_FIXTURE_SRC = dedent(
 
 
 def test_module_scoped_fixture_param_lifts_above_functions(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A module-scoped parametrized fixture nests above the functions in the module,
     and two functions sharing it group under ONE param step per value (not split).
@@ -1747,7 +1750,7 @@ def test_module_scoped_fixture_param_lifts_above_functions(
     pytester.makepyfile(test_ms=_MODULE_FIXTURE_SRC)
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=4)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     mod_id = by_name["test_ms.py"][0]["id"]
     # One mfix step per value, each under the module (shared by both functions).
@@ -1763,7 +1766,7 @@ def test_module_scoped_fixture_param_lifts_above_functions(
 
 
 def test_module_scoped_param_step_early_closes_when_shared_subtree_done(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A shared module-scoped param step resolves once all its tests finish, before
     the next param value's step opens.
@@ -1771,13 +1774,13 @@ def test_module_scoped_param_step_early_closes_when_shared_subtree_done(
     pytester.makepyfile(test_msc=_MODULE_FIXTURE_SRC)
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=4)
-    events = capture.log_events(log_file)
+    events = capture.log_events(capture.run_jsonl(out_dir))
     assert _index(events, "UpdateTestStep", "mfix='M1'", terminal=True) < _index(
         events, "CreateTestStep", "mfix='M2'"
     )
 
 
-def test_mark_scope_class_lifts_to_class(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_mark_scope_class_lifts_to_class(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A ``@pytest.mark.parametrize(..., scope="class")`` lifts to the class level."""
     pytester.makepyfile(
         test_msk=dedent(
@@ -1793,7 +1796,7 @@ def test_mark_scope_class_lifts_to_class(pytester: pytest.Pytester, log_file: Pa
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     class_id = by_name["TestFoo"][0]["id"]
     # cv lifts to sit directly under the class, above the method.
     assert by_name["cv=1"][0]["parent_step_id"] == class_id
@@ -1802,7 +1805,7 @@ def test_mark_scope_class_lifts_to_class(pytester: pytest.Pytester, log_file: Pa
     assert by_name["test_a"][0]["parent_step_id"] in {cv1_id, by_name["cv=2"][0]["id"]}
 
 
-def test_mark_scope_session_lifts_to_root(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_mark_scope_session_lifts_to_root(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A ``@pytest.mark.parametrize(..., scope="session")`` lifts above the module
     (closes the gap where mark-scoped session params were treated as function-scoped).
     """
@@ -1819,14 +1822,14 @@ def test_mark_scope_session_lifts_to_root(pytester: pytest.Pytester, log_file: P
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     # sx steps are roots, each scoping its own module subtree.
     assert by_name["sx=7"][0]["parent_step_id"] is None
     assert by_name["sx=8"][0]["parent_step_id"] is None
     assert len(by_name["test_mss.py"]) == 2
 
 
-def test_bare_class_mark_stays_under_method(pytester: pytest.Pytester, log_file: Path) -> None:
+def test_bare_class_mark_stays_under_method(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A class-level mark WITHOUT ``scope=`` is function-scoped, so it stays under the
     method — not lifted to the class.
     """
@@ -1844,7 +1847,7 @@ def test_bare_class_mark_stays_under_method(pytester: pytest.Pytester, log_file:
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     method_id = by_name["test_a"][0]["id"]
     class_id = by_name["TestFoo"][0]["id"]
     # cv parents to the method, and the method parents directly to the class.
@@ -1855,7 +1858,7 @@ def test_bare_class_mark_stays_under_method(pytester: pytest.Pytester, log_file:
 
 
 def test_nested_class_fixture_anchors_to_defining_class(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A class-scoped fixture defined on the OUTER class anchors there, not under the
     innermost nested class.
@@ -1878,7 +1881,7 @@ def test_nested_class_fixture_anchors_to_defining_class(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     outer_id = by_name["TestOuter"][0]["id"]
     # cfix sits directly under TestOuter (its defining class), above TestInner.
@@ -1889,12 +1892,12 @@ def test_nested_class_fixture_anchors_to_defining_class(
 
 
 def test_class_param_falls_through_when_class_step_disabled(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """With ``sift_class_step=false`` the class step is suppressed, but a class-scoped
     param still renders and attaches to the module (nearest rendered ancestor).
     """
-    _write_ini(pytester, log_file, sift_class_step="false")
+    _write_ini(pytester, out_dir, sift_class_step="false")
     pytester.makepyfile(
         test_cft=dedent(
             """
@@ -1912,7 +1915,7 @@ def test_class_param_falls_through_when_class_step_disabled(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    by_name = _by_name(capture.load_steps(log_file))
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
     assert "TestFoo" not in by_name
     mod_id = by_name["test_cft.py"][0]["id"]
     # The class param falls through to the module step.
@@ -1925,7 +1928,7 @@ def test_class_param_falls_through_when_class_step_disabled(
 
 
 def test_collection_skipped_param_item_uses_cleaned_leaf_name(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """A collection-skipped item under a scope-promoted param keeps the cleaned leaf
     name (no parametrize bracket), matching how a run sibling is named, and still
@@ -1964,7 +1967,7 @@ def test_collection_skipped_param_item_uses_cleaned_leaf_name(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2, skipped=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     # Cleaned leaf name (no ``[10]`` bracket), one per outer-param universe.
     assert len(by_name["test_skipped"]) == 2
@@ -2096,7 +2099,7 @@ def test_introspection_failure_is_audit_logged() -> None:
 
 
 def test_internals_failure_does_not_break_collection(
-    pytester: pytest.Pytester, log_file: Path, monkeypatch: pytest.MonkeyPatch
+    pytester: pytest.Pytester, out_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """End-to-end: a forced internals failure degrades, it does not error the run.
 
@@ -2124,11 +2127,11 @@ def test_internals_failure_does_not_break_collection(
     # The degradation is surfaced, not silent.
     assert "scope-aware parametrize placement" in result.stdout.str()
     # A report was still produced; the module-scoped param simply wasn't promoted.
-    assert capture.load_steps(log_file)
+    assert capture.load_steps(capture.run_jsonl(out_dir))
 
 
 def test_indirect_parametrize_lifts_to_fixture_scope(
-    pytester: pytest.Pytester, log_file: Path
+    pytester: pytest.Pytester, out_dir: Path
 ) -> None:
     """An ``indirect=True`` axis routed through a module-scoped fixture lifts to
     the module level. Scope comes from the fixture's public ``fixturedef.scope``,
@@ -2151,7 +2154,7 @@ def test_indirect_parametrize_lifts_to_fixture_scope(
     )
     result = pytester.runpytest_inprocess("-v", "-p", "no:randomly")
     result.assert_outcomes(passed=2)
-    steps = capture.load_steps(log_file)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
     by_name = _by_name(steps)
     mod_id = by_name["test_ind.py"][0]["id"]
     # One param step per value, lifted to module scope (under the module step).

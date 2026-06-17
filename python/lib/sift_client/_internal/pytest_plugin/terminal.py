@@ -152,12 +152,14 @@ def write_report_summary(
     """
     log_file = getattr(context, "log_file", None)
 
+    aborted = bool(getattr(context, "session_aborted", False))
     failed = bool(getattr(context, "any_failures", False))
-    status_word, status_markup = (
-        ("FAILED", {"red": True, "bold": True})
-        if failed
-        else ("PASSED", {"green": True, "bold": True})
-    )
+    if aborted:
+        status_word, status_markup = "ABORTED", {"red": True, "bold": True}
+    elif failed:
+        status_word, status_markup = "FAILED", {"red": True, "bold": True}
+    else:
+        status_word, status_markup = "PASSED", {"green": True, "bold": True}
     # Offline results live only in the local log until replayed, so the status
     # row calls that out instead of repeating the version (already in the header).
     status_context = (

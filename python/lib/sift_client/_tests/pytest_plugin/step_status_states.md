@@ -85,6 +85,9 @@ be traced back to its row here without rereading the scenario:
 | `API-04` | Failed measurement on a substep   | `with step.substep(...) as s: s.measure(... out-of-bounds)`               | `FAILED` — propagates from substep to parent                                                                                |
 | `API-05` | Manually-skipped substep          | `with step.substep(...) as s: s.current_step.update({"status": SKIPPED})` | Parent step `PASSED` — skip does not propagate as a failure                                                                 |
 | `API-06` | Hard exit inside a nested substep | `with step.substep(...) as s: with s.substep(...): sys.exit(1)`           | Every open step on the unwind path records `ABORTED`; a sibling substep that closed before the abort keeps its prior status |
+| `API-07` | `pytest.exit()` after a failed `report_outcome`, in a class | `step.report_outcome(..., False); pytest.exit(...)`            | Failure stop: leaf `ABORTED`; class and module roll up `FAILED`; the failed substep keeps `FAILED`                          |
+| `API-08` | Session-aborting `KeyboardInterrupt` in a class | `step.report_outcome(..., False); raise KeyboardInterrupt`               | System stop: leaf, class, and module all `ABORTED` (the run was cut off, not failed); the failed substep keeps `FAILED`     |
+| `API-09` | Sift `abort()` helper in a class | `from sift_client.pytest_plugin import abort; abort(...)`                          | System stop: leaf, class, module, and the report all `ABORTED`, even with no failing check                                  |
 
 ## Out of scope
 
@@ -93,9 +96,6 @@ Scenarios deliberately not covered by this suite:
 - **Timeout** — needs `pytest-timeout` or a manual signal harness.
 - **Signal (SIGKILL / SIGTERM)** — cannot be caught from inside the process;
   needs a subprocess-level harness.
-- **`pytest.exit("...")`** — niche; the "aborts subsequent tests" behavior
-  is hard to characterize cleanly because each `pytester` invocation is
-  its own session.
 - **`os._exit()`** — bypasses Python cleanup entirely; can't be tested
   in-process because it would kill the outer pytest run. Guaranteed
   data-loss case alongside `SystemExit` / `SIGKILL`.

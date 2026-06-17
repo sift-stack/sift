@@ -18,6 +18,7 @@ from sift_client._internal.pytest_plugin.terminal import (
     measurement_segments,
     step_count_segments,
 )
+from sift_client._tests.pytest_plugin._step_status_capture import run_jsonl
 from sift_client.sift_types.test_report import TestStatus
 
 if TYPE_CHECKING:
@@ -61,7 +62,7 @@ class TestResolveRealReportId:
     """``resolve_real_report_id`` maps the footer to the real server report id."""
 
     def test_synchronous_online_uses_report_id_directly(self) -> None:
-        # No log file, non-simulated report (``--sift-log-file=false`` path).
+        # No log file, non-simulated report (``--no-sift-log-file`` path).
         context = SimpleNamespace(
             report=SimpleNamespace(id_="real-123", is_simulated=False),
             log_file=None,
@@ -160,10 +161,11 @@ class TestOfflineFooter:
         write_plugin_conftest: Callable[[], None],
     ) -> None:
         """Offline footer points at the saved log file and the replay command."""
-        log_path = tmp_path / "run.jsonl"
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyfile("def test_runs(step): step.measure(name='v', value=1.0)")
-        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
+        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-output-dir={out_dir}")
+        log_path = run_jsonl(out_dir)
         result.assert_outcomes(passed=1)
         result.stdout.fnmatch_lines(
             [
@@ -186,10 +188,10 @@ class TestOfflineFooter:
         write_plugin_conftest: Callable[[], None],
     ) -> None:
         """``--sift-open-report`` is a no-op offline (no resolvable URL) and never errors."""
-        log_path = tmp_path / "run.jsonl"
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyfile("def test_runs(step): step.measure(name='v', value=1.0)")
         result = pytester.runpytest_subprocess(
-            "--sift-offline", f"--sift-log-file={log_path}", "--sift-open-report"
+            "--sift-offline", f"--sift-output-dir={out_dir}", "--sift-open-report"
         )
         result.assert_outcomes(passed=1)

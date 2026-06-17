@@ -55,19 +55,24 @@ _WARMUP = "def test_sift_warmup(): pass\n\n"
 
 def _run(pytester, body: str) -> None:
     pytester.makepyfile(_WARMUP + textwrap.dedent(body))
-    log_path = pytester.path / "sift.log"
-    capture.set_log(log_path)
-    pytester.runpytest_inprocess(
-        "--sift-offline",
-        f"--sift-log-file={log_path}",
-        "--no-sift-git-metadata",
-        # Pin the inner session to definition order so ``test_sift_warmup`` runs
-        # before a marker-skipped ``test_x`` (see ``_WARMUP``). ``-p no:randomly``
-        # is a no-op when pytest-randomly isn't installed, and keeps these tests
-        # deterministic when it is.
-        "-p",
-        "no:randomly",
-    )
+    out_dir = pytester.path / "sift-out"
+    # ``finally`` so the log is located even when the inner run raises
+    # KeyboardInterrupt out of the in-process session (the abort tests rely on
+    # this); the JSONL is written incrementally, so it exists by then.
+    try:
+        pytester.runpytest_inprocess(
+            "--sift-offline",
+            f"--sift-output-dir={out_dir}",
+            "--no-sift-git-metadata",
+            # Pin the inner session to definition order so ``test_sift_warmup``
+            # runs before a marker-skipped ``test_x`` (see ``_WARMUP``). ``-p
+            # no:randomly`` is a no-op when pytest-randomly isn't installed, and
+            # keeps these tests deterministic when it is.
+            "-p",
+            "no:randomly",
+        )
+    finally:
+        capture.set_log(capture.run_jsonl(out_dir))
 
 
 # ---------------------------------------------------------------------------
@@ -652,3 +657,91 @@ def test_abort_inside_substep_marks_every_open_step_aborted(inner):
     assert outer_sub.statuses[-1] == TestStatus.ABORTED
     assert inner_sub.statuses[-1] == TestStatus.ABORTED
     assert completed_sub.statuses[-1] == TestStatus.PASSED
+
+
+def test_session_abort_rolls_up_to_parents(inner):
+    # Case: API-07
+    _run(
+        inner,
+        """
+        import pytest
+        class TestFlash:
+            def test_flash(self, step):
+                step.report_outcome(name="flight check", result=False, reason="flash failed")
+                pytest.exit("flash failed; aborting session")
+        """,
+    )
+    # pytest.exit() aborts the whole session, so the leaf's fixture teardown is
+    # deferred to session unwind. The report-tree parents must resolve *after*
+    # that teardown, not before it: the leaf aborts and that result must roll up
+    # to the enclosing class and module rather than leaving them green. ABORTED
+    # stays on the leaf (the scope the exit fired in); the out-of-band container
+    # parents inherit FAILED, like any other non-pass child.
+    leaf = capture.test_step("test_flash")
+    substep = next(iter(capture.steps_by_name("flight check")), None)
+    klass = next(iter(capture.steps_by_name("TestFlash")), None)
+    assert leaf is not None
+    assert substep is not None
+    assert klass is not None
+    assert leaf.statuses[-1] == TestStatus.ABORTED
+    assert substep.statuses[-1] == TestStatus.FAILED
+    assert klass.statuses[-1] == TestStatus.FAILED
+    # The module step is the shallowest; it inherits the failure too.
+    module = min(capture._steps().values(), key=lambda s: s.step_path.count("."))
+    assert module.statuses[-1] == TestStatus.FAILED
+
+
+def test_keyboard_interrupt_rolls_up_to_parents(inner):
+    # Case: API-08
+    try:
+        _run(
+            inner,
+            """
+            class TestFlash:
+                def test_flash(self, step):
+                    step.report_outcome(name="flight check", result=False, reason="flash failed")
+                    raise KeyboardInterrupt
+            """,
+        )
+    except KeyboardInterrupt:
+        pass
+    # A real Ctrl-C is a system stop, not a failure: the plugin flags the session
+    # aborted (via pytest_keyboard_interrupt), so the leaf, the class, and the
+    # module all resolve to ABORTED. The failed substep keeps its own FAILED.
+    leaf = capture.test_step("test_flash")
+    substep = next(iter(capture.steps_by_name("flight check")), None)
+    klass = next(iter(capture.steps_by_name("TestFlash")), None)
+    assert leaf is not None
+    assert substep is not None
+    assert klass is not None
+    assert leaf.statuses[-1] == TestStatus.ABORTED
+    assert substep.statuses[-1] == TestStatus.FAILED
+    assert klass.statuses[-1] == TestStatus.ABORTED
+    module = min(capture._steps().values(), key=lambda s: s.step_path.count("."))
+    assert module.statuses[-1] == TestStatus.ABORTED
+
+
+def test_abort_helper_rolls_up_aborted(inner):
+    # Case: API-09
+    _run(
+        inner,
+        """
+        from sift_client.pytest_plugin import abort
+        class TestFlash:
+            def test_flash(self, step):
+                step.report_outcome(name="flight check", result=True)
+                abort("device under test lost power")
+        """,
+    )
+    # sift abort() is an explicit system stop: the leaf and every container, plus
+    # the report, resolve to ABORTED rather than FAILED, even though no check
+    # failed. (Contrast test_session_abort_rolls_up_to_parents, where a plain
+    # pytest.exit rolls the containers up as FAILED.)
+    leaf = capture.test_step("test_flash")
+    klass = next(iter(capture.steps_by_name("TestFlash")), None)
+    assert leaf is not None
+    assert klass is not None
+    assert leaf.statuses[-1] == TestStatus.ABORTED
+    assert klass.statuses[-1] == TestStatus.ABORTED
+    module = min(capture._steps().values(), key=lambda s: s.step_path.count("."))
+    assert module.statuses[-1] == TestStatus.ABORTED

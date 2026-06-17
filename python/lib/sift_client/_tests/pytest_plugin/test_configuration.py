@@ -49,26 +49,26 @@ class TestResolvedSettings:
 class TestIniConfiguration:
     """`addini` keys configure the plugin via pyproject.toml / pytest.ini."""
 
-    def test_ini_log_file_none(
+    def test_ini_log_file_disabled(
         self,
         pytester: pytest.Pytester,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
         write_probe_conftest(
             """
-            from sift_client._internal.pytest_plugin.report import resolve_log_file
-            print("RESOLVED:", resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import log_file_enabled
+            print("ENABLED:", log_file_enabled(config))
             """,
         )
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_log_file = "none"
+            sift_log_file = false
             """
         )
         pytester.makepyfile("def test_noop(): pass")
         result = pytester.runpytest_subprocess("-s", "--co")
-        result.stdout.fnmatch_lines(["RESOLVED: None"])
+        result.stdout.fnmatch_lines(["ENABLED: False"])
 
     def test_python_false_disables_log_file(
         self,
@@ -78,43 +78,41 @@ class TestIniConfiguration:
         """`config.option.sift_log_file = False` disables logging.
 
         Conftests use this pattern (see lib/sift_client/_tests/util/conftest.py)
-        to opt their subtree out of log-file mode. Regression test for the
-        resolver case where Python `False` was previously confused with `None`
-        and silently kept the temp-file default.
+        to opt their subtree out of log-file mode.
         """
         write_probe_conftest(
             """
             config.option.sift_log_file = False
-            from sift_client._internal.pytest_plugin.report import resolve_log_file
-            print("RESOLVED:", resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import log_file_enabled
+            print("ENABLED:", log_file_enabled(config))
             """,
         )
         pytester.makepyfile("def test_noop(): pass")
         result = pytester.runpytest_subprocess("-s", "--co")
-        result.stdout.fnmatch_lines(["RESOLVED: None"])
+        result.stdout.fnmatch_lines(["ENABLED: False"])
 
-    def test_ini_log_file_path(
+    def test_ini_output_dir(
         self,
         pytester: pytest.Pytester,
         tmp_path: Path,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
-        log_path = tmp_path / "sift-run.jsonl"
+        out_dir = tmp_path / "artifacts"
         write_probe_conftest(
             """
-            from sift_client._internal.pytest_plugin.report import resolve_log_file
-            print("RESOLVED:", resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.options import OUTPUT_DIR_OPTION
+            print("RESOLVED:", OUTPUT_DIR_OPTION.resolve(config))
             """,
         )
         pytester.makepyprojecttoml(
             f"""
             [tool.pytest.ini_options]
-            sift_log_file = "{log_path}"
+            sift_output_dir = "{out_dir}"
             """
         )
         pytester.makepyfile("def test_noop(): pass")
         result = pytester.runpytest_subprocess("-s", "--co")
-        result.stdout.fnmatch_lines([f"RESOLVED: {log_path}"])
+        result.stdout.fnmatch_lines([f"RESOLVED: {out_dir}"])
 
     def test_ini_offline_true(
         self,
@@ -181,26 +179,24 @@ class TestIniConfiguration:
     def test_cli_overrides_ini(
         self,
         pytester: pytest.Pytester,
-        tmp_path: Path,
         write_probe_conftest: Callable[[str], None],
     ) -> None:
         """A CLI flag takes precedence over the matching ini key."""
-        cli_path = tmp_path / "cli-wins.jsonl"
         write_probe_conftest(
             """
-            from sift_client._internal.pytest_plugin.report import resolve_log_file
-            print("RESOLVED:", resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import log_file_enabled
+            print("ENABLED:", log_file_enabled(config))
             """,
         )
         pytester.makepyprojecttoml(
             """
             [tool.pytest.ini_options]
-            sift_log_file = "none"
+            sift_log_file = true
             """
         )
         pytester.makepyfile("def test_noop(): pass")
-        result = pytester.runpytest_subprocess("-s", "--co", f"--sift-log-file={cli_path}")
-        result.stdout.fnmatch_lines([f"RESOLVED: {cli_path}"])
+        result = pytester.runpytest_subprocess("-s", "--co", "--no-sift-log-file")
+        result.stdout.fnmatch_lines(["ENABLED: False"])
 
     def test_cli_offline_flag(
         self,
@@ -262,8 +258,8 @@ class TestIniConfiguration:
         write_probe_conftest(
             """
             from sift_client._internal.pytest_plugin.modes import is_disabled, is_offline
-            from sift_client._internal.pytest_plugin.report import resolve_log_file
-            print("RESOLVED:", resolve_log_file(config))
+            from sift_client._internal.pytest_plugin.report import log_file_enabled
+            print("ENABLED:", log_file_enabled(config))
             print("OFFLINE:", is_offline(config))
             print("DISABLED:", is_disabled(config))
             print("INI_GIT:", config.getini("sift_git_metadata"))
@@ -273,7 +269,7 @@ class TestIniConfiguration:
         result = pytester.runpytest_subprocess("-s", "--co")
         result.stdout.fnmatch_lines(
             [
-                "RESOLVED: True",
+                "ENABLED: True",
                 "OFFLINE: False",
                 "DISABLED: False",
                 "INI_GIT: True",
