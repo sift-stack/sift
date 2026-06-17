@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#configuration-defaults" class="md-skip">
+        <a href="#configuration-and-defaults" class="md-skip">
           Skip to content
         </a>
       
@@ -1422,13 +1422,13 @@ You're not viewing the latest version.
   
 
 
-<h1 id="configuration-defaults">Configuration &amp; Defaults<a class="headerlink" href="#configuration-defaults" title="Permanent link">&para;</a></h1>
+<h1 id="configuration-and-defaults">Configuration and defaults<a class="headerlink" href="#configuration-and-defaults" title="Permanent link">&para;</a></h1>
 <p>This page is the full reference for everything the plugin exposes: fixtures, CLI
 flags, ini options, credential handling, and the markers that control which
 tests report.</p>
 <div class="admonition info">
 <p class="admonition-title">Where the plugin lives</p>
-<p>The plugin lives at <code>sift_client.pytest_plugin</code>. It is <strong>not</strong> registered as
+<p>The plugin lives at <code>sift_client.pytest_plugin</code>. It is not registered as
 a <code>pytest11</code> entry point. Projects opt in with a <code>pytest_plugins</code> declaration
 in their top-level <code>conftest.py</code>. Pytest then loads the module as a real
 plugin: the fixtures, CLI options, and <code>pytest_runtest_makereport</code> hook all
@@ -1476,14 +1476,14 @@ credentials.</p>
 </tbody>
 </table>
 <h3 id="api-key-handling">API key handling<a class="headerlink" href="#api-key-handling" title="Permanent link">&para;</a></h3>
-<p><code>SIFT_API_KEY</code> is read from the process environment only — the plugin never
+<p><code>SIFT_API_KEY</code> is read from the process environment only. The plugin never
 reads it from a committed file. How you get it into the environment is up to
 you:</p>
 <ul>
 <li><strong>CI:</strong> set <code>SIFT_API_KEY</code> directly via your provider's secret manager.</li>
 <li>
 <p><strong>Local dev:</strong> keep the values in a <code>.env</code> (gitignored) and let
-  <a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</code></a> load them — it is
+  <a href="https://pypi.org/project/pytest-dotenv/"><code>pytest-dotenv</code></a> load them. It is
   not bundled with <code>sift-stack-py</code>, so install it explicitly:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>pytest-dotenv
 </span></code></pre></div>
@@ -1492,15 +1492,15 @@ you:</p>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nv">SIFT_REST_URI</span><span class="o">=</span>https://your-org.rest.example.com
 </span></code></pre></div>
 <p>Once installed, pytest-dotenv auto-loads <code>.env</code> from the rootdir before
-tests run — no <code>conftest.py</code> glue and no <code>load_dotenv()</code> call. (Point it at
-a different file with the <code>env_files</code> ini key if you prefer.)</p>
+tests run, so there is no <code>conftest.py</code> glue and no <code>load_dotenv()</code> call.
+(Point it at a different file with the <code>env_files</code> ini key if you prefer.)</p>
 </li>
 </ul>
 <p>Prefer real environment variables (shell exports, CI secrets) for anything you
 can't keep in a local file.</p>
 <div class="admonition warning">
 <p class="admonition-title">FedRAMP / shared environments</p>
-<p>Pass <code>--sift-log-file=false</code> (or set the ini key to <code>"false"</code>) to skip the
+<p>Pass <code>--no-sift-log-file</code> (or set <code>sift_log_file = false</code>) to skip the
 temp file + worker pipeline. Create/update calls then run inline against the
 API instead of being deferred through a subprocess.</p>
 </div>
@@ -1588,7 +1588,7 @@ group, a <code>—</code> means the setting can't be set from that surface.</p>
 <li><strong>Connection</strong> comes from the environment first, falling back to the ini keys; the API key is env-only so secrets stay out of committed files.</li>
 <li><strong>Report content</strong> takes static defaults from <code>[tool.sift.pytest.report]</code> and per-run dynamic values from <code>SIFT_REPORT_*</code> env vars (CI builds, hardware cycling, anything <code>.env</code>-driven; pytest-dotenv loads <code>.env</code> for local dev).</li>
 </ul>
-<p><strong>Precedence within a setting:</strong> env &gt; CLI flag &gt; ini key &gt; TOML &gt; built-in
+<p>Precedence within a setting runs env &gt; CLI flag &gt; ini key &gt; TOML &gt; built-in
 default. No setting exposes both env and CLI, so the chain isn't ambiguous in
 practice.</p>
 <p>The plugin scans <code>SIFT_*</code> env vars and <code>[tool.sift.pytest.*]</code> keys at session
@@ -1606,13 +1606,18 @@ suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately
 </thead>
 <tbody>
 <tr>
-<td>Path to the JSONL log of create/update calls (path | true | false | none).</td>
-<td><code>--sift-log-file</code></td>
+<td>Directory for this run's artifacts (JSONL log, audit trace). Each run gets its own random subfolder. Defaults to a temp directory.</td>
+<td><code>--sift-output-dir</code></td>
+<td><code>sift_output_dir</code></td>
+</tr>
+<tr>
+<td>Write the JSONL log of create/update calls. On by default; --no-sift-log-file disables it (incompatible with --sift-offline).</td>
+<td><code>--no-sift-log-file</code></td>
 <td><code>sift_log_file</code></td>
 </tr>
 <tr>
-<td>DEBUG-level audit trace of plugin behavior (path | true | false). On by default to a temp file, with warnings echoed to stdout; set a path to pin the file, or false to disable.</td>
-<td><code>--sift-audit-log</code></td>
+<td>Write the DEBUG audit trace of plugin behavior, with warnings echoed to stdout. On by default; --no-sift-audit-log disables it.</td>
+<td><code>--no-sift-audit-log</code></td>
 <td><code>sift_audit_log</code></td>
 </tr>
 <tr>
@@ -1790,18 +1795,18 @@ section covers the two template fields and the metadata table in more detail.</p
 <h3 id="name-vs-test_case"><code>name</code> vs <code>test_case</code><a class="headerlink" href="#name-vs-test_case" title="Permanent link">&para;</a></h3>
 <p>The two fields look similar but serve opposite purposes:</p>
 <ul>
-<li><strong><code>name</code></strong> is the report's <strong>per-run display label</strong> — what you see in the
+<li><strong><code>name</code></strong> is the report's per-run display label, what you see in the
   Test Results list. It should be unique per run, which is why its default ends
   in <code>{timestamp}</code>.</li>
-<li><strong><code>test_case</code></strong> is the <strong>cross-run grouping key</strong> — reports that share a
+<li><strong><code>test_case</code></strong> is the cross-run grouping key. Reports that share a
   <code>test_case</code> are treated as runs of the <em>same</em> case, so Sift can track its
   pass/fail history over time. It should be stable across runs, which is why
-  its default has <strong>no</strong> timestamp.</li>
+  its default has no timestamp.</li>
 </ul>
 <p>By default both derive from the same <code>{target}</code> (what ran), and the timestamp
 is the only difference: <code>name</code> = <code>{target} {timestamp}</code> (distinct each run),
 <code>test_case</code> = <code>{target}</code> (identical across runs of the same target, so they
-group together). Set either explicitly to override — a static <code>test_case</code> like
+group together). Set either explicitly to override. A static <code>test_case</code> like
 <code>"{rootdir}"</code> is common when you want every run of a project to group under one
 case regardless of which subset ran.</p>
 <h3 id="templates-for-name-and-test_case">Templates for <code>name</code> and <code>test_case</code><a class="headerlink" href="#templates-for-name-and-test_case" title="Permanent link">&para;</a></h3>
@@ -1852,7 +1857,7 @@ case regardless of which subset ran.</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Defaults when unset.</strong> Because <code>{target}</code> is derived from the collected
+<p>Because <code>{target}</code> is derived from the collected
 tests, the defaults reflect what actually ran and don't change with flag order
 or <code>-k</code> / <code>-m</code> filters:</p>
 <p>(<code>&lt;project&gt;</code> below is the rootdir directory name.)</p>
@@ -1974,7 +1979,7 @@ repo holds tests that you don't want included in the Sift test report.</p>
 </span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>        <span class="n">item</span><span class="o">.</span><span class="n">add_marker</span><span class="p">(</span><span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">sift_include</span><span class="p">)</span>
 </span></code></pre></div>
 <p>This applies <code>sift_include</code> to every test collected under <code>tests/example/</code>.
-Combine with <code>sift_autouse = false</code> in <code>pyproject.toml</code> for opting in to
+Combine with <code>sift_autouse = false</code> in <code>pyproject.toml</code> to opt in to
 specific directories.</p>
 <p><code>pytest_collection_modifyitems</code> receives every item in the session, not just
 this directory's, so the <code>relative_to</code> filter is what scopes the marker.</p>

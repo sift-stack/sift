@@ -1169,8 +1169,8 @@ You're not viewing the latest version.
 The demo is a self-contained pytest project that exercises every layer of the
 plugin's step tree: packages, modules, classes (including nested), parametrize
 axes, manual substeps, and gate markers. It also includes a tests directory
-that uses no Sift APIs at all, to show how the autouse fixtures capture plain
-pytest tests for free.</p>
+that uses no Sift APIs, to show how the autouse fixtures capture plain
+pytest tests automatically.</p>
 <p>For a conceptual reference (fixtures, ini flags, status semantics), see the
 <a href="../../guides/pytest_plugin/">Pytest Plugin guide</a>.</p>
 <h2 id="project-layout">Project layout<a class="headerlink" href="#project-layout" title="Permanent link">&para;</a></h2>
@@ -1191,7 +1191,7 @@ above each test becomes its own parent step in the report tree.</p>
 <h2 id="conftestpy"><code>conftest.py</code><a class="headerlink" href="#conftestpy" title="Permanent link">&para;</a></h2>
 <p>A single <code>pytest_plugins</code> declaration loads the plugin. The default
 <code>sift_client</code> fixture reads <code>SIFT_API_KEY</code> / <code>SIFT_GRPC_URI</code> / <code>SIFT_REST_URI</code>
-from the environment — set them in your shell, your CI secret store, or a
+from the environment. Set them in your shell, your CI secret store, or a
 local <code>.env</code> (<code>pip install pytest-dotenv</code> auto-loads it).</p>
 <div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="sd">&quot;&quot;&quot;Project-level conftest for the pytest plugin demo.</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
@@ -1209,7 +1209,7 @@ local <code>.env</code> (<code>pip install pytest-dotenv</code> auto-loads it).<
 </span></code></pre></div>
 <h2 id="pyprojecttoml"><code>pyproject.toml</code><a class="headerlink" href="#pyprojecttoml" title="Permanent link">&para;</a></h2>
 <p>Pytest behavior knobs sit under <code>[tool.pytest.ini_options]</code>, each commented at
-its default — uncomment any line to opt out of a layer of the step tree. The
+its default. Uncomment any line to opt out of a layer of the step tree. The
 report's display <code>name</code>, <code>test_case</code>, and free-form <code>metadata</code> are set under
 <code>[tool.sift.pytest.report]</code>; <code>name</code> and <code>test_case</code> accept template
 placeholders.</p>
@@ -1547,9 +1547,10 @@ tree or unit-testing measurement logic.</p>
 </span></code></pre></div>
 <p>A <code>TestReport</code> shows up in Sift once the session finishes.</p>
 <h3 id="offline-record-now-replay-later">Offline (record now, replay later)<a class="headerlink" href="#offline-record-now-replay-later" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-log-file<span class="o">=</span>/tmp/sift-demo.jsonl<span class="w"> </span>-v
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># Later, from anywhere with credentials:</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>import-test-result-log<span class="w"> </span>/tmp/sift-demo.jsonl
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-output-dir<span class="o">=</span>/tmp/sift-demo<span class="w"> </span>-v
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># The summary panel prints the exact replay command and log path. Later, from</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># anywhere with credentials:</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>import-test-result-log<span class="w"> </span>/tmp/sift-demo/a1b2c3/a1b2c3.jsonl
 </span></code></pre></div>
 <h2 id="expected-report-tree">Expected report tree<a class="headerlink" href="#expected-report-tree" title="Permanent link">&para;</a></h2>
 <p>With the plugin's defaults (every layer enabled), the demo produces:</p>

@@ -1198,7 +1198,7 @@ You're not viewing the latest version.
   
 
 
-<h1 id="running-modes">Running Modes<a class="headerlink" href="#running-modes" title="Permanent link">&para;</a></h1>
+<h1 id="running-modes">Running modes<a class="headerlink" href="#running-modes" title="Permanent link">&para;</a></h1>
 <p>The plugin runs in one of three modes, picked at invocation. This page covers
 how each mode behaves, the log-file/replay pipeline, and how to replay a saved
 log against Sift.</p>
@@ -1206,8 +1206,8 @@ log against Sift.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Full run against your Sift tenant</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pytest
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Pin the log file so you can replay it later if the import worker dies</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pytest<span class="w"> </span>--sift-log-file<span class="o">=</span>./sift-results.jsonl
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Put this run&#39;s artifacts (JSONL log, audit trace) in a known directory</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pytest<span class="w"> </span>--sift-output-dir<span class="o">=</span>./sift-results
 </span></code></pre></div>
 <h2 id="the-three-modes">The three modes<a class="headerlink" href="#the-three-modes" title="Permanent link">&para;</a></h2>
 <table>
@@ -1226,7 +1226,7 @@ log against Sift.</p>
 <td>Online (default)</td>
 <td><em>(none)</em></td>
 <td>yes (pings at session start, aborts if it fails)</td>
-<td>optional write-through backup</td>
+<td>write-through backup, on by default</td>
 <td>real measurement against Sift</td>
 <td>CI with Sift credentials, local dev hitting your tenant</td>
 </tr>
@@ -1258,7 +1258,7 @@ failure/error, yellow skip, cyan link) and plain text otherwise (<code>--color=n
 captured output, CI logs).</p>
 <p>The section title carries the report name (truncated if long). The <code>Steps</code> row
 tallies every step in the report by final status, so it counts substeps and the
-package/module/class/parametrize grouping steps too — its totals are expected to
+package/module/class/parametrize grouping steps too. Its totals are expected to
 exceed pytest's own test count. The <code>Measurements</code> row tallies recorded
 measurements (<code>step.measure(...)</code>) and is omitted when there are none. The
 <code>Test case</code> and <code>System</code> rows echo the report's test case, test system, and
@@ -1270,7 +1270,7 @@ for on-prem or custom deployments set <code>sift_app_url</code>
 open the report in a browser at session end.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>============================= test session starts ==============================
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>platform linux -- Python 3.11.8, pytest-8.3.2, pluggy-1.5.0
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Sift: sift-stack-py 0.17.0 — online mode
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Sift: sift-stack-py 0.18.0 — online mode
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>collected 12 items
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>tests/test_battery.py ........                                           [ 66%]
@@ -1278,11 +1278,11 @@ open the report in a browser at session end.</p>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>================ Sift report · pytest tests/ 2026-05-27T22:44:23Z ==============
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>  Test case    pytest tests/
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>  Status       PASSED       online · sift-stack-py 0.17.0
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>  Status       PASSED       online · sift-stack-py 0.18.0
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>  Steps        14 passed
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>  Measurements 42 passed
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>  System       ci-runner-7 · cibot
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>  Log file     /tmp/sift-a1b2c3.jsonl
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>  Log file     /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>  Report       https://app.siftstack.com/test-results/0193f1a2-7c44-7e5b-9b1a-2f6c0d9e84aa
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>============================== 12 passed in 3.45s ==============================
 </span></code></pre></div>
@@ -1290,13 +1290,13 @@ open the report in a browser at session end.</p>
 flags that it may be incomplete:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>================ Sift report · pytest tests/ 2026-05-27T22:44:23Z ==============
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  Test case    pytest tests/
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  Status       FAILED       online · sift-stack-py 0.17.0
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  Status       FAILED       online · sift-stack-py 0.18.0
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  Steps        11 passed · 2 failed · 1 error
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  Measurements 40 passed · 3 failed
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  System       ci-runner-7 · cibot
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  Log file     /tmp/sift-a1b2c3.jsonl
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  Log file     /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  Report       https://app.siftstack.com/test-results/0193f1a2-7c44-7e5b-9b1a-2f6c0d9e84aa
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>               may be incomplete — finish with: import-test-result-log /tmp/sift-a1b2c3.jsonl
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>               may be incomplete — finish with: import-test-result-log /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 </span></code></pre></div>
 <p>When the web host can't be resolved and no override is set, the <code>Report</code> row
 shows the report id instead of a link.</p>
@@ -1308,9 +1308,9 @@ small rule (the log path is part of the command):</p>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  Steps        14 passed
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  Measurements 42 passed
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  System       ci-runner-7 · cibot
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  Log file     ./run.jsonl
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  Log file     /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>------------------------------ to upload to Sift -------------------------------
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  &gt;&gt; import-test-result-log ./run.jsonl
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  &gt;&gt; import-test-result-log /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 </span></code></pre></div>
 <p><strong>Disabled</strong> notes that no report was created:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>===================================== Sift =====================================
@@ -1324,14 +1324,14 @@ session with <code>pytest.UsageError</code> and points at <code>--sift-offline</
 <p>This is loud on purpose. A CI run that silently no-ops on a flaky network won't
 get noticed until somebody goes looking for the report, which is usually weeks
 later, which is usually too late.</p>
-<p>With the default <code>--sift-log-file</code> setting on, create/update calls are written
-to a JSONL log file during the run and an <code>import-test-result-log --incremental</code>
-worker replays them against Sift in the background. If the worker crashes
-mid-session (connection failure, API error) or is still draining its backlog at
-session end, the failure is logged at session end with a <code>replay-test-result-log</code>
-command for manual recovery. Test outcomes are unaffected and the local log
-file is preserved. Pass <code>--sift-log-file=false</code> to make every create/update
-synchronous against the API instead.</p>
+<p>With the JSONL log on by default, create/update calls are written to a log file
+in the run's output directory during the run, and an
+<code>import-test-result-log --incremental</code> worker replays them against Sift in the
+background. If the worker crashes mid-session (connection failure, API error) or
+is still draining its backlog at session end, the failure is logged at session
+end with a <code>replay-test-result-log</code> command for manual recovery. Test outcomes
+are unaffected and the local log file is preserved. Pass <code>--no-sift-log-file</code> to
+make every create/update synchronous against the API instead.</p>
 <h3 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h3>
 <p>Override <code>client_has_connection</code> when ping isn't the right signal, for example a
 token cache that's only warm when authenticated:</p>
@@ -1351,21 +1351,23 @@ where the writes go: every create/update lands in a JSONL log file instead of
 hitting the Sift API. The session-start ping is skipped, missing <code>SIFT_*</code> env
 vars are tolerated (placeholders are filled), and the replay worker
 (<code>import-test-result-log --incremental</code>) does not get spawned at session end.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-log-file<span class="o">=</span>./run.jsonl
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-output-dir<span class="o">=</span>./offline-runs
 </span></code></pre></div>
-<p>Once you have connectivity, replay it:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>import-test-result-log<span class="w"> </span>./run.jsonl
+<p>The summary panel prints the exact log path and the replay command. Once you
+have connectivity, replay it:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>import-test-result-log<span class="w"> </span>./offline-runs/a1b2c3/a1b2c3.jsonl
 </span></code></pre></div>
 <p>That replay creates the report, steps, and measurements against Sift. See
 <a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for cleanup and the
 incremental flag.</p>
-<p><code>--sift-log-file=none</code> is rejected when offline is set. The log file is the only
-sink in offline mode, so without it the results are gone.</p>
-<div class="admonition warning">
-<p class="admonition-title">Pin the log path</p>
-<p>Without <code>--sift-log-file=&lt;path&gt;</code>, offline mode writes to a
-<code>tempfile.NamedTemporaryFile</code> and only surfaces the path via a <code>logger.info</code>
-line. Pin a known path when you intend to replay later.</p>
+<p><code>--no-sift-log-file</code> is rejected when offline is set, since the log is the only
+sink in offline mode and without it the results are gone.</p>
+<div class="admonition note">
+<p class="admonition-title">Finding the log path</p>
+<p>Without <code>--sift-output-dir</code>, offline mode writes the log to a random
+subfolder under the system temp directory. Either way the end-of-run panel
+prints the exact path and the <code>import-test-result-log</code> command. Pass
+<code>--sift-output-dir=&lt;dir&gt;</code> to put the run's artifacts somewhere you choose.</p>
 </div>
 <h2 id="disabled-mode-sift-disabled">Disabled mode (<code>--sift-disabled</code>)<a class="headerlink" href="#disabled-mode-sift-disabled" title="Permanent link">&para;</a></h2>
 <p>The plugin stays loaded with the same fixtures and markers as the other modes.
@@ -1386,9 +1388,9 @@ and tests can branch on provenance. Offline-mode entities also report
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">[tool.pytest.ini_options]</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">sift_disabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span></code></pre></div>
-<p>Good fit for local dev without Sift credentials. Also for library consumers who
-don't have a Sift tenant. Also useful in CI for runs that shouldn't add noise to
-the report stream, like a PR job re-running the same suite five times in a row.</p>
+<p>Good fit for local dev without Sift credentials, for library consumers who don't
+have a Sift tenant, and for CI runs that shouldn't add noise to the report
+stream, like a PR job re-running the same suite five times in a row.</p>
 <h2 id="replaying-a-saved-log-file">Replaying a saved log file<a class="headerlink" href="#replaying-a-saved-log-file" title="Permanent link">&para;</a></h2>
 <p>When the worker doesn't finish cleanly the plugin will print a hint mentioning
 <code>import-test-result-log</code>. To import:</p>

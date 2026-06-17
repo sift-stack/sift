@@ -968,10 +968,10 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#abort-propagation-through-nested-substeps" class="md-nav__link">
+  <a href="#stopping-a-run-as-aborted" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Abort propagation through nested substeps
+        Stopping a run as aborted
       
     </span>
   </a>
@@ -1164,10 +1164,10 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#abort-propagation-through-nested-substeps" class="md-nav__link">
+  <a href="#stopping-a-run-as-aborted" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Abort propagation through nested substeps
+        Stopping a run as aborted
       
     </span>
   </a>
@@ -1296,7 +1296,7 @@ You're not viewing the latest version.
   
 
 
-<h1 id="passfail-behavior">Pass/Fail Behavior<a class="headerlink" href="#passfail-behavior" title="Permanent link">&para;</a></h1>
+<h1 id="passfail-behavior">Pass/fail behavior<a class="headerlink" href="#passfail-behavior" title="Permanent link">&para;</a></h1>
 <p>The pytest plugin maps every pytest outcome to a <code>TestStatus</code> on the
 corresponding Sift step. Use this page to look up what a given test will
 produce, and how that result rolls up to the parent steps and the report.</p>
@@ -1374,67 +1374,95 @@ mapping to <code>FAILED</code>. A non-assertion exception gets its formatted tra
 (the last 10 frames plus the first frame) recorded on
 <code>step.error_info.error_message</code>.</p>
 <h2 id="hard-exits">Hard exits<a class="headerlink" href="#hard-exits" title="Permanent link">&para;</a></h2>
-<p>Hard exits map to <code>ABORTED</code>. The step is resolved during fixture teardown, not
-at the instant of the exit:</p>
+<p>A hard exit resolves the cut-off step to <code>ABORTED</code>, recorded while pytest runs
+fixture finalizers on the way out. What the containers (class, module, package)
+and the report resolve to depends on why the run stopped:</p>
 <ul>
-<li>When the exit produces a call-phase report (<code>sys.exit(1)</code>, <code>SystemExit</code>), the
-  plugin reads the status off that report.</li>
-<li>When a <code>KeyboardInterrupt</code> aborts the session before any call-phase report
-  (Ctrl-C, or <code>raise KeyboardInterrupt</code> in the body), pytest still runs fixture
-  finalizers as it unwinds. The plugin sees setup completed with no call outcome
-  and resolves the cut-off step to <code>ABORTED</code> there.</li>
+<li>A <strong>failure stop</strong> rolls up <code>FAILED</code>. <code>pytest.exit()</code>, <code>sys.exit()</code> /
+  <code>SystemExit</code>, an <code>assert</code>, or an exception means the test ended the run on a
+  fault, so the exited step is <code>ABORTED</code> (or <code>FAILED</code>/<code>ERROR</code> for an
+  assert/exception) while its containers and the report read <code>FAILED</code>.</li>
+<li>A <strong>system stop</strong> rolls up <code>ABORTED</code>. Ctrl-C / <code>KeyboardInterrupt</code>, or the
+  <code>abort()</code> helper below, means the run was cut off rather than a test failing,
+  so the exited step, its containers, and the report all read <code>ABORTED</code>.</li>
 </ul>
-<p>The status only reaches the report if those finalizers run. If the process is
-killed before they do (<code>SIGKILL</code>, the OOM killer, power loss), nothing is written
-and the step keeps the <code>IN_PROGRESS</code> it was created with. That is the only path
-that leaves a step <code>IN_PROGRESS</code> in a finalized report.</p>
+<p><code>SystemExit</code> is read from the call-phase report; the session-stopping exits abort
+before that report fires, so the step resolves during teardown instead. If the
+process dies before finalizers run (<code>SIGKILL</code>, OOM, power loss) nothing more is
+written and the step stays <code>IN_PROGRESS</code>, the only path that leaves a step
+<code>IN_PROGRESS</code> in a finished report.</p>
 <table>
 <thead>
 <tr>
-<th>Scenario</th>
 <th>Trigger</th>
-<th>Outcome</th>
+<th>Exited step</th>
+<th>Containers + report</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>SystemExit</code> from the test body</td>
-<td><code>sys.exit(1)</code></td>
-<td><code>ABORTED</code> (read from the call-phase report)</td>
+<td><code>assert</code> / exception</td>
+<td><code>FAILED</code> / <code>ERROR</code></td>
+<td><code>FAILED</code></td>
 </tr>
 <tr>
-<td><code>KeyboardInterrupt</code> from the test body</td>
-<td><code>raise KeyboardInterrupt</code></td>
-<td><code>ABORTED</code> (resolved during teardown)</td>
+<td><code>sys.exit()</code> / <code>SystemExit</code></td>
+<td><code>ABORTED</code></td>
+<td><code>FAILED</code></td>
 </tr>
 <tr>
-<td>Session-aborting <code>KeyboardInterrupt</code></td>
-<td>Ctrl-C terminates pytest</td>
-<td><code>ABORTED</code> (resolved during teardown)</td>
+<td><code>pytest.exit("...")</code></td>
+<td><code>ABORTED</code></td>
+<td><code>FAILED</code></td>
 </tr>
 <tr>
-<td>Process killed before finalizers run</td>
-<td><code>SIGKILL</code> / OOM / power loss</td>
-<td><code>IN_PROGRESS</code> (nothing written after creation)</td>
+<td><code>abort("...")</code> (Sift)</td>
+<td><code>ABORTED</code></td>
+<td><code>ABORTED</code></td>
+</tr>
+<tr>
+<td>Ctrl-C / <code>KeyboardInterrupt</code></td>
+<td><code>ABORTED</code></td>
+<td><code>ABORTED</code></td>
+</tr>
+<tr>
+<td>process killed (<code>SIGKILL</code>/OOM)</td>
+<td><code>IN_PROGRESS</code></td>
+<td><code>IN_PROGRESS</code></td>
 </tr>
 </tbody>
 </table>
-<h3 id="abort-propagation-through-nested-substeps">Abort propagation through nested substeps<a class="headerlink" href="#abort-propagation-through-nested-substeps" title="Permanent link">&para;</a></h3>
-<p>Every step that was open when the abort fired records
-<code>ABORTED</code>.</p>
+<p>Within a stop, <code>ABORTED</code> is recorded on each step the exit unwinds through: the
+open substeps and the test step. A substep that closed before the exit keeps its
+own status.</p>
 <div class="language-python highlight"><span class="filename">test_abort.py</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_x</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;completed_sub&quot;</span><span class="p">):</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="k">pass</span>  <span class="c1"># closes as PASSED before the abort</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="k">pass</span>  <span class="c1"># closed PASSED before the abort</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;outer_sub&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outer_sub</span><span class="p">:</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="k">with</span> <span class="n">outer_sub</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;inner_sub&quot;</span><span class="p">):</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># ABORTED applied to inner_sub, outer_sub, and the test step</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </span></code></pre></div>
-<p>The Sift report shows <code>completed_sub</code> as <code>PASSED</code> and the three steps
-still open at the abort (<code>inner_sub</code>, <code>outer_sub</code>, and the test step
-itself) as <code>ABORTED</code>.</p>
+<p><code>completed_sub</code> stays <code>PASSED</code>; <code>inner_sub</code>, <code>outer_sub</code>, and the test step are
+<code>ABORTED</code>. The enclosing module reads <code>FAILED</code>, since <code>sys.exit()</code> is a failure
+stop.</p>
+<h3 id="stopping-a-run-as-aborted">Stopping a run as aborted<a class="headerlink" href="#stopping-a-run-as-aborted" title="Permanent link">&para;</a></h3>
+<p><code>sift_client.pytest_plugin.abort(reason)</code> stops the session and records the
+report and the open parent steps as <code>ABORTED</code> rather than <code>FAILED</code>. Use it for a
+system-level stop where the run was cut off rather than a test failing, such as
+the device under test losing power. A real Ctrl-C does the same automatically.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.pytest_plugin</span><span class="w"> </span><span class="kn">import</span> <span class="n">abort</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_flash</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">device_responding</span><span class="p">():</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">abort</span><span class="p">(</span><span class="s2">&quot;device under test is not responding&quot;</span><span class="p">)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<p>For a stop that should read as a failure, use <code>pytest.exit()</code>; for a single
+failing test, use <code>pytest.fail()</code>.</p>
 <h2 id="skips">Skips<a class="headerlink" href="#skips" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1471,16 +1499,16 @@ itself) as <code>ABORTED</code>.</p>
 not block its parent from resolving to <code>PASSED</code>.</p>
 <p>Inside a test function, you can mark just one substep as skipped without
 aborting the whole test:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_skip</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;optional_calibration&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cal</span><span class="p">:</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">precondition_met</span><span class="p">():</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>            <span class="n">cal</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">SKIPPED</span><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_runtime_skip</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;optional_calibration&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cal</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">precondition_met</span><span class="p">():</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>            <span class="n">cal</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">SKIPPED</span><span class="p">})</span>
 </span></code></pre></div>
-<p>A manually-resolved status is honored by the step's exit handler. No further
-bookkeeping required.</p>
+<p>The step's exit handler honors a manually-resolved status, so you do not need
+any further bookkeeping.</p>
 <h2 id="expected-failures-xfail-xpass">Expected failures (xfail / xpass)<a class="headerlink" href="#expected-failures-xfail-xpass" title="Permanent link">&para;</a></h2>
 <p>xfail marks declare that a test is expected to fail. The plugin follows
 the same semantics pytest does.</p>
@@ -1527,50 +1555,56 @@ the plugin opens for you.</p>
 <h3 id="manual-status-override">Manual status override<a class="headerlink" href="#manual-status-override" title="Permanent link">&para;</a></h3>
 <p><code>step.current_step.update({...})</code> sets the status directly. The step's
 exit handler does not overwrite it.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_manual</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">step</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types.test_report</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestStatus</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_manual</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">step</span><span class="o">.</span><span class="n">current_step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">})</span>
 </span></code></pre></div>
 <h3 id="report_outcome-for-externally-computed-checks"><code>report_outcome</code> for externally computed checks<a class="headerlink" href="#report_outcome-for-externally-computed-checks" title="Permanent link">&para;</a></h3>
 <p><code>report_outcome(name, result, reason)</code> records a named check whose
 pass/fail was computed elsewhere (a subprocess, a remote system, your own
 comparison logic). A failing outcome marks the step <code>FAILED</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_external_check</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">result</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="n">run_external_validator</span><span class="p">()</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span><span class="s2">&quot;ext-validator&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_external_check</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">result</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="n">run_external_validator</span><span class="p">()</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">report_outcome</span><span class="p">(</span><span class="s2">&quot;ext-validator&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="measurements-with-bounds">Measurements with bounds<a class="headerlink" href="#measurements-with-bounds" title="Permanent link">&para;</a></h3>
 <p><code>step.measure(name=, value=, bounds=)</code> records a measurement and resolves
 the step to <code>FAILED</code> if the value is out of bounds. The call returns the
 pass/fail boolean and does not raise, so multiple measurements can run
 without short-circuiting.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_battery</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">12.1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">11.5</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">13.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;current&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.42</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_battery</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">12.1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">11.5</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">13.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;current&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.42</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="substep-failures">Substep failures<a class="headerlink" href="#substep-failures" title="Permanent link">&para;</a></h3>
 <p>A failed substep propagates failure to its parent step. A manually-set
 <code>SKIPPED</code> on a substep does not.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_with_substep</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;check&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inner</span><span class="p">:</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">inner</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">99.0</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">})</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="c1"># The outer step resolves to FAILED because the substep failed.</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_with_substep</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="k">with</span> <span class="n">step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;check&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inner</span><span class="p">:</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>        <span class="n">inner</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">99.0</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">})</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="c1"># The outer step resolves to FAILED because the substep failed.</span>
 </span></code></pre></div>
 <h2 id="propagation-rules">Propagation rules<a class="headerlink" href="#propagation-rules" title="Permanent link">&para;</a></h2>
 <p>Every non-<code>PASSED</code>/<code>SKIPPED</code> step marks its parent as failed. What the
 parent records depends on whether its own scope had an abort and whether
 a child already failed:</p>
 <ul>
-<li>A hard exit (<code>SystemExit</code> or an observed <code>KeyboardInterrupt</code>) in the
-  step's own scope records <code>ABORTED</code>. <code>ABORTED</code> propagates through every
-  step the abort passes through on its way up.</li>
-<li>A child that already recorded a non-<code>PASSED</code>/<code>SKIPPED</code> outcome marks
-  the parent as <code>FAILED</code>. This holds whether or not an exception is still
-  propagating through the parent's scope: only the originating substep
-  records <code>ERROR</code>; ancestors inherit <code>FAILED</code>. The traceback stays on
-  the originating step's <code>error_info</code>.</li>
+<li>A hard exit (<code>SystemExit</code> or an observed <code>KeyboardInterrupt</code>) records
+  <code>ABORTED</code> on the step in whose scope it fired, and <code>ABORTED</code> propagates
+  through every step the exception unwinds through on its way up: the
+  open substeps and the test step. Container parents (class, module,
+  package) are closed out-of-band rather than by the unwinding exception,
+  so they are not on that path. On a failure stop (<code>pytest.exit()</code>,
+  <code>sys.exit</code>) they inherit <code>FAILED</code> like any other non-pass child; on a
+  system stop (Ctrl-C / <code>KeyboardInterrupt</code>, or <code>abort()</code>) the run is flagged
+  aborted and they resolve <code>ABORTED</code> instead. See <a href="#hard-exits">Hard exits</a>.</li>
+<li>A child that recorded a non-<code>PASSED</code>/<code>SKIPPED</code> outcome marks the parent
+  as <code>FAILED</code>. This holds whether or not an exception is still propagating
+  through the parent's scope: only the originating step records <code>ERROR</code> (or
+  <code>ABORTED</code>); ancestors that inherit the result take <code>FAILED</code>. The
+  traceback stays on the originating step's <code>error_info</code>.</li>
 <li>A step records <code>ERROR</code> only when its own scope raised a non-Assertion
   exception AND no child has failed.</li>
 </ul>

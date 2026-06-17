@@ -1401,17 +1401,6 @@ You're not viewing the latest version.
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.update_step_from_result" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update_step_from_result
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1577,6 +1566,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;report
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.ReportContext.session_aborted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;session_aborted
       
     </span>
   </a>
@@ -2260,17 +2260,6 @@ You're not viewing the latest version.
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.update_step_from_result" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update_step_from_result
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2436,6 +2425,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;report
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.ReportContext.session_aborted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;session_aborted
       
     </span>
   </a>
@@ -2671,7 +2671,7 @@ flags. The plugin also registers a default <code>sift_client</code> fixture that
 Override it by defining your own <code>sift_client</code> fixture in your conftest.</p>
 <p>Note: FedRAMP users: results are buffered to a temp file and uploaded by a
 subprocess at session end (no API calls during the run). Disable the buffer
-entirely with <code>--sift-log-file=false</code> for inline uploads.</p>
+entirely with <code>--no-sift-log-file</code> for inline uploads.</p>
 <h4 id="sift_client.util.test_results--controlling-which-tests-produce-reports">Controlling which tests produce reports<a class="headerlink" href="#sift_client.util.test_results--controlling-which-tests-produce-reports" title="Permanent link">&para;</a></h4>
 <p>The autouse fixtures fire for every test by default. To narrow that:</p>
 <ul>
@@ -2711,9 +2711,11 @@ entirely with <code>--sift-log-file=false</code> for inline uploads.</p>
   returns a real pass/fail boolean. Returned entities expose
   <code>is_simulated == True</code>. Also honored via the <code>SIFT_DISABLED</code> env
   var. Supersedes every other flag.</li>
-<li><code>--sift-log-file</code>: Path to write the JSONL log file. <code>true</code>
-  (default) auto-creates a temp file. <code>false</code> or <code>none</code> disables logging.
-  Any other value is treated as a file path.</li>
+<li><code>--sift-output-dir</code>: Directory for this run's artifacts (JSONL log, audit
+  trace). Each run gets its own random subfolder. Defaults to a temp directory.</li>
+<li><code>--no-sift-log-file</code>: Disable the JSONL log (written by default). Incompatible
+  with <code>--sift-offline</code>, which needs the log as its only sink.</li>
+<li><code>--no-sift-audit-log</code>: Disable the DEBUG audit trace (written by default).</li>
 <li><code>--no-sift-git-metadata</code>: Exclude git metadata (repo, branch,
   commit) from the test report. Included by default.</li>
 </ul>
@@ -3109,14 +3111,6 @@ for; does not affect behavior.</p>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps.</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            update_step_from_result (sift_client.util.test_results.NewStep.update_step_from_result)" href="#sift_client.util.test_results.NewStep.update_step_from_result">update_step_from_result</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Update the step based on its substeps and if there was an exception while executing the step.</p>
                 </div>
               </td>
             </tr>
@@ -4179,115 +4173,6 @@ failed substep. <code>message</code> is used as the header line.</p>
 
 </div>
 
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sift_client.util.test_results.NewStep.update_step_from_result" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">update_step_from_result</span>
-
-
-<a href="#sift_client.util.test_results.NewStep.update_step_from_result" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_step_from_result</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exc</span><span class="p">:</span> <span class="n"><span title="type">type</span></span><span class="p">[</span><span class="n"><span title="Exception">Exception</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">exc_value</span><span class="p">:</span> <span class="n"><span title="Exception">Exception</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tb</span><span class="p">:</span> <span class="n"><span title="traceback.TracebackException">TracebackException</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">end_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="bool">bool</span></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Update the step based on its substeps and if there was an exception while executing the step.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">PARAMETER</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>exc</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The class of Exception that was raised.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="type">type</span>[<span title="Exception">Exception</span>] | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>exc_value</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The exception value.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="Exception">Exception</span> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>tb</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The traceback object.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="traceback.TracebackException">TracebackException</span> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>end_time</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Explicit end_time to stamp. Defaults to now(); the pytest
-plugin passes the last-child finish time when closing a long-lived
-parent so its duration reflects its subtree rather than its own
-late close.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="datetime.datetime">datetime</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-        <p>returns: The false if step failed or errored, true otherwise.</p>
-
-
-    </div>
-
-</div>
-
 
 
   </div>
@@ -4971,6 +4856,25 @@ traced to <code>&lt;path&gt;.replay.log</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            session_aborted
+
+
+  
+      instance-attribute
+   (sift_client.util.test_results.ReportContext.session_aborted)" href="#sift_client.util.test_results.ReportContext.session_aborted">session_aborted</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            step_is_open
 
 
@@ -5384,6 +5288,28 @@ for the full semantics.</p>
 
 
 
+<h3 id="sift_client.util.test_results.ReportContext.session_aborted" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">session_aborted</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_client.util.test_results.ReportContext.session_aborted" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">session_aborted</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
 <h3 id="sift_client.util.test_results.ReportContext.step_is_open" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">step_is_open</span>
 
@@ -5564,7 +5490,7 @@ of the enclosing <code>TestReport</code>.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>The parent step to nest under. <code>_USE_STACK_TOP</code> (the
-default) parents to the current top of the step stack — the
+default) parents to the current top of the step stack, the
 linear behavior. An explicit <code>TestStep</code> parents under that step
 regardless of stack state; explicit <code>None</code> creates a root step.</p>
               </div>
@@ -5669,7 +5595,7 @@ trap unrelated steps beneath them.</p>
 order, so a step that isn't the current top of the stack is a real
 invariant break. Steps created with an explicit parent and <code>push=False</code>
 (the pytest plugin's hierarchy/parametrize parents) never sit on the
-stack and may close in any order — clearing <code>open_step_results</code> is all
+stack and may close in any order, so clearing <code>open_step_results</code> is all
 that's needed; their result was already propagated to their own parent.</p>
 
 

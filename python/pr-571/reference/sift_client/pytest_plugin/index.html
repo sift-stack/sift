@@ -937,17 +937,6 @@ You're not viewing the latest version.
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#sift_client.pytest_plugin.NewStep.update_step_from_result" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update_step_from_result
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1120,6 +1109,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.ReportContext.session_aborted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;session_aborted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.ReportContext.step_is_open" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1279,6 +1279,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.abort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;abort
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.client_has_connection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1327,6 +1338,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_itemcollected
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.pytest_keyboard_interrupt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_keyboard_interrupt
       
     </span>
   </a>
@@ -2129,17 +2151,6 @@ You're not viewing the latest version.
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#sift_client.pytest_plugin.NewStep.update_step_from_result" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update_step_from_result
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2312,6 +2323,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.ReportContext.session_aborted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;session_aborted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.ReportContext.step_is_open" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2471,6 +2493,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.abort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;abort
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.pytest_plugin.client_has_connection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2519,6 +2552,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_itemcollected
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.pytest_plugin.pytest_keyboard_interrupt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_keyboard_interrupt
       
     </span>
   </a>
@@ -2740,6 +2784,14 @@ lives under <code>sift_client._internal.pytest_plugin</code>.</p>
         </tr>
       </thead>
       <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            abort (sift_client.pytest_plugin.abort)" href="#sift_client.pytest_plugin.abort">abort</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Stop the pytest session and record the report and open parent steps as</p>
+                </div>
+              </td>
+            </tr>
             <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            client_has_connection (sift_client.pytest_plugin.client_has_connection)" href="#sift_client.pytest_plugin.client_has_connection">client_has_connection</a></code></td>
               <td class="doc-function-details">
@@ -3305,14 +3357,6 @@ for; does not affect behavior.</p>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps.</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            update_step_from_result (sift_client.pytest_plugin.NewStep.update_step_from_result)" href="#sift_client.pytest_plugin.NewStep.update_step_from_result">update_step_from_result</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Update the step based on its substeps and if there was an exception while executing the step.</p>
                 </div>
               </td>
             </tr>
@@ -4375,115 +4419,6 @@ failed substep. <code>message</code> is used as the header line.</p>
 
 </div>
 
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sift_client.pytest_plugin.NewStep.update_step_from_result" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">update_step_from_result</span>
-
-
-<a href="#sift_client.pytest_plugin.NewStep.update_step_from_result" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_step_from_result</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exc</span><span class="p">:</span> <span class="n"><span title="type">type</span></span><span class="p">[</span><span class="n"><span title="Exception">Exception</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">exc_value</span><span class="p">:</span> <span class="n"><span title="Exception">Exception</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tb</span><span class="p">:</span> <span class="n"><span title="traceback.TracebackException">TracebackException</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">end_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="bool">bool</span></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Update the step based on its substeps and if there was an exception while executing the step.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">PARAMETER</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>exc</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The class of Exception that was raised.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="type">type</span>[<span title="Exception">Exception</span>] | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>exc_value</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The exception value.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="Exception">Exception</span> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>tb</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The traceback object.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="traceback.TracebackException">TracebackException</span> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>end_time</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Explicit end_time to stamp. Defaults to now(); the pytest
-plugin passes the last-child finish time when closing a long-lived
-parent so its duration reflects its subtree rather than its own
-late close.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="datetime.datetime">datetime</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-        <p>returns: The false if step failed or errored, true otherwise.</p>
-
-
-    </div>
-
-</div>
-
 
 
   </div>
@@ -5167,6 +5102,25 @@ traced to <code>&lt;path&gt;.replay.log</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            session_aborted
+
+
+  
+      instance-attribute
+   (sift_client.pytest_plugin.ReportContext.session_aborted)" href="#sift_client.pytest_plugin.ReportContext.session_aborted">session_aborted</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            step_is_open
 
 
@@ -5580,6 +5534,28 @@ for the full semantics.</p>
 
 
 
+<h3 id="sift_client.pytest_plugin.ReportContext.session_aborted" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">session_aborted</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_client.pytest_plugin.ReportContext.session_aborted" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">session_aborted</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
 <h3 id="sift_client.pytest_plugin.ReportContext.step_is_open" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">step_is_open</span>
 
@@ -5760,7 +5736,7 @@ of the enclosing <code>TestReport</code>.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>The parent step to nest under. <code>_USE_STACK_TOP</code> (the
-default) parents to the current top of the step stack — the
+default) parents to the current top of the step stack, the
 linear behavior. An explicit <code>TestStep</code> parents under that step
 regardless of stack state; explicit <code>None</code> creates a root step.</p>
               </div>
@@ -5865,7 +5841,7 @@ trap unrelated steps beneath them.</p>
 order, so a step that isn't the current top of the stack is a real
 invariant break. Steps created with an explicit parent and <code>push=False</code>
 (the pytest plugin's hierarchy/parametrize parents) never sit on the
-stack and may close in any order — clearing <code>open_step_results</code> is all
+stack and may close in any order, so clearing <code>open_step_results</code> is all
 that's needed; their result was already propagated to their own parent.</p>
 
 
@@ -6168,6 +6144,86 @@ unaffected; the underlying exception is included in the message for debugging.</
 <div class="doc doc-object doc-function">
 
 
+<h2 id="sift_client.pytest_plugin.abort" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">abort</span>
+
+
+<a href="#sift_client.pytest_plugin.abort" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">abort</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">reason</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n">returncode</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.NoReturn">NoReturn</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Stop the pytest session and record the report and open parent steps as
+<code>ABORTED</code> rather than <code>FAILED</code>.</p>
+<p>Use this for a system-level stop where the run was cut off rather than a test
+failing, such as the device under test going away or a rig fault that makes
+the remaining tests meaningless. The step that calls it and any open substeps
+resolve to <code>ABORTED</code>, and the enclosing class, module, package, and the
+report inherit <code>ABORTED</code> too.</p>
+<p>For a stop that should read as a failure, use <code>pytest.exit</code> (the default,
+which rolls up <code>FAILED</code>); for a single failing test, use <code>pytest.fail</code>. A
+real Ctrl-C / <code>KeyboardInterrupt</code> is treated the same as <code>abort</code> without
+needing this call.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>reason</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Message shown by pytest and recorded as the stop reason.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>returncode</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Process exit code to pass through to <code>pytest.exit</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h2 id="sift_client.pytest_plugin.client_has_connection" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">client_has_connection</span>
 
@@ -6269,7 +6325,7 @@ reflect only the selected, gated-in items. See <code>release_finished_leaf</code
     <div class="doc doc-contents ">
 
         <p>Cache each test item's hierarchy chain and parametrize path at collection.</p>
-<p>This is a per-item hook, not <code>pytest_collection_modifyitems</code> — the plugin
+<p>This is a per-item hook, not <code>pytest_collection_modifyitems</code>. The plugin
 never touches the <code>items</code> list or its order, so it cannot conflict with a
 user's (or another plugin's) collection-ordering hook. The report tree is
 built from an identity-keyed registry (see <code>get_or_create_parent_chain</code>),
@@ -6279,6 +6335,33 @@ preserved untouched.</p>
 <p>The stash is a cache the autouse fixtures read back; both keys have an
 on-demand recompute fallback, so an item a later hook injects without going
 through this hook still resolves correctly.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.pytest_plugin.pytest_keyboard_interrupt" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">pytest_keyboard_interrupt</span>
+
+
+<a href="#sift_client.pytest_plugin.pytest_keyboard_interrupt" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pytest_keyboard_interrupt</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">excinfo</span><span class="p">:</span> <span class="n"><span title="pytest.ExceptionInfo">ExceptionInfo</span></span><span class="p">[</span><span class="n"><span title="BaseException">BaseException</span></span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Mark the session aborted for a real Ctrl-C / <code>KeyboardInterrupt</code>.</p>
+<p>pytest calls this for both <code>KeyboardInterrupt</code> and its own <code>Exit</code>; only a
+genuine interrupt (an operator or system stop) should roll up ABORTED. A
+<code>pytest.exit()</code> raises <code>Exit</code> and is left in the FAILED bucket; the
+<code>abort()</code> helper sets the flag itself before exiting, so it is unaffected by
+the <code>Exit</code> case here.</p>
 
 
     </div>
@@ -6325,7 +6408,7 @@ own platform/plugin header.</p>
         <p>Close report-tree parents whose subtree finished with this item.</p>
 <p>Fires once per item (pass / fail / skip / error); delegates to
 <code>release_finished_leaf</code>, which decrements the item's parents' remaining-leaf
-counts and closes any that reach zero — so containers resolve progressively
+counts and closes any that reach zero, so containers resolve progressively
 rather than all at session end.</p>
 
 
@@ -6366,9 +6449,7 @@ so it does not duplicate steps the fixture already created.</p>
 
 
 <a href="#sift_client.pytest_plugin.pytest_sessionfinish" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pytest_sessionfinish</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">session</span><span class="p">:</span> <span class="n"><span title="pytest.Session">Session</span></span><span class="p">,</span> <span class="n">exitstatus</span><span class="p">:</span> <span class="n"><span title="int">int</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pytest_sessionfinish</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n"><span title="pytest.Session">Session</span></span><span class="p">,</span> <span class="n">exitstatus</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6378,6 +6459,14 @@ so it does not duplicate steps the fixture already created.</p>
 <code>ReportContext</code> block so their updates reach the log before the import
 worker drains, and most parents already closed early as their subtrees
 finished. This is the idempotent backstop for anything still open.</p>
+<p>Runs as a hookwrapper so the drain happens <em>after</em> pytest's own
+<code>pytest_sessionfinish</code> (<code>SetupState.teardown_exact</code>), which finalizes the
+still-open leaf step and the session-scoped <code>report_context</code> fixture. On a
+session abort (<code>pytest.exit</code>) the leaf's fixture teardown is deferred to
+that point; finalizing parents before it would close them while their
+descendant is still unresolved, so the abort/failure would not roll up. The
+<code>yield</code> lets that teardown run first, leaving this call the no-op backstop
+it is meant to be.</p>
 
 
     </div>
@@ -6492,7 +6581,7 @@ and no ReportContext (or teardown subprocess) is created.</p>
 
         <p>Default <code>SiftClient</code> resolved from environment variables and ini keys.</p>
 <p>Each credential is read from its environment variable first. The URIs
-(<code>SIFT_GRPC_URI</code>, <code>SIFT_REST_URI</code>) additionally fall back to the
+(<code>SIFT_GRPC_URI</code>, <code>SIFT_REST_URI</code>) also fall back to the
 <code>sift_grpc_uri</code> / <code>sift_rest_uri</code> ini keys, since they are stable
 per-org values that are safe to commit. <code>SIFT_API_KEY</code> is intentionally
 env-only; use <code>pytest-dotenv</code> (already a project dependency) to load

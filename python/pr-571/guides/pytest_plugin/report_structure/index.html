@@ -1011,6 +1011,34 @@ You're not viewing the latest version.
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Parametrized tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#human-readable-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Human-readable labels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope-based-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope-based placement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1296,6 +1324,34 @@ You're not viewing the latest version.
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Parametrized tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#human-readable-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Human-readable labels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope-based-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope-based placement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1420,7 +1476,7 @@ You're not viewing the latest version.
   
 
 
-<h1 id="report-structure">Report Structure<a class="headerlink" href="#report-structure" title="Permanent link">&para;</a></h1>
+<h1 id="report-structure">Report structure<a class="headerlink" href="#report-structure" title="Permanent link">&para;</a></h1>
 <p>The report tree mirrors your test layout. Every Python package, test module,
 test class, and parametrize axis above a test becomes a parent step, and you can
 open arbitrary substeps inside a test. This page covers the layout-to-tree
@@ -1509,7 +1565,7 @@ individually opt-out via ini flags (<code>sift_package_step</code>, <code>sift_m
 <code>sift_class_step</code>, <code>sift_parametrize_nesting</code>). Class/module/package docstrings
 become the matching step's description.</p>
 <p>A parent step is created <code>IN_PROGRESS</code> and resolves to its final status as soon
-as the last test in its subtree finishes — independent of test execution order,
+as the last test in its subtree finishes, independent of test execution order,
 so with incremental upload the report tree fills in progressively rather than
 all at once at the end. Its time window spans from its first test starting to its
 last test finishing.</p>
@@ -1571,7 +1627,7 @@ needs no <code>__init__.py</code>) and your tests have no package-relative impor
 <code>__init__.py</code> can cause import collisions when test files share a basename
 across directories, so keep it there.</p>
 <p>To drop package steps everywhere, set <code>sift_package_step = false</code>. No pytest
-setting (<code>testpaths</code>, <code>rootdir</code>, …) removes a package step on its own — the
+setting (<code>testpaths</code>, <code>rootdir</code>, …) removes a package step on its own. The
 step exists if and only if the directory has an <code>__init__.py</code>.</p>
 </div>
 <h3 id="test-classes-and-nested-classes">Test classes (and nested classes)<a class="headerlink" href="#test-classes-and-nested-classes" title="Permanent link">&para;</a></h3>
@@ -1624,8 +1680,9 @@ order). Stacked parametrize produces nested step levels.</p>
 </span></code></pre></div>
 <p>Set <code>sift_parametrize_nesting = false</code> in <code>pytest.ini</code> to fall back to flat leaf
 names (<code>test_rail[3.3]</code>).</p>
-<p><strong>Human-readable labels.</strong> Each axis defaults to a <code>name=value</code> label. Supply
-<code>ids=</code> to name it yourself — a list, or a callable factory pytest calls with
+<h4 id="human-readable-labels">Human-readable labels<a class="headerlink" href="#human-readable-labels" title="Permanent link">&para;</a></h4>
+<p>Each axis defaults to a <code>name=value</code> label. Supply
+<code>ids=</code> to name it yourself: a list, or a callable factory pytest calls with
 each value. This works on <code>@pytest.mark.parametrize</code> and on parametrized
 fixtures alike:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">3.3</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span> <span class="n">ids</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;nominal&quot;</span><span class="p">,</span> <span class="s2">&quot;boosted&quot;</span><span class="p">])</span>
@@ -1637,12 +1694,13 @@ fixtures alike:</p>
 </span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>        ├── nominal
 </span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>        └── boosted
 </span></code></pre></div>
-<p><strong>Scope-based placement.</strong> The examples above use function-scoped parametrize,
+<h4 id="scope-based-placement">Scope-based placement<a class="headerlink" href="#scope-based-placement" title="Permanent link">&para;</a></h4>
+<p>The examples above use function-scoped parametrize,
 which nests under the test. A parametrized <em>fixture</em> is placed at its own scope
 instead: a class-scoped fixture param wraps the class's methods, a module-scoped
 one wraps the module's tests, and a session-scoped one sits at the report root.
 A <code>@pytest.mark.parametrize(..., scope="module")</code> follows the scope it names.
-This keeps the tree matching how pytest actually re-runs work — broader scope
+This keeps the tree matching how pytest re-runs work: broader scope
 nests outside narrower.</p>
 <h3 id="helper-functions">Helper functions<a class="headerlink" href="#helper-functions" title="Permanent link">&para;</a></h3>
 <p>Helpers called from a test do not auto-create a step. The plugin only sees

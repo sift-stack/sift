@@ -1164,7 +1164,7 @@ You're not viewing the latest version.
   
 
 
-<h1 id="pytest-plugin">Pytest Plugin<a class="headerlink" href="#pytest-plugin" title="Permanent link">&para;</a></h1>
+<h1 id="pytest-plugin">Pytest plugin<a class="headerlink" href="#pytest-plugin" title="Permanent link">&para;</a></h1>
 <p>The Sift Python client ships a pytest plugin that turns a pytest run into a
 <code>TestReport</code> in Sift. Each test function becomes a <code>TestStep</code>, measurements are presented
 as rows under that step, and failures propagate up through nested substeps to
@@ -1181,8 +1181,8 @@ environment:</p>
 </span></code></pre></div>
 <p>Find these on the Sift Manage page, where you can also generate an API key. Set
 them in your shell or CI secret store. For local dev, <code>pip install
-pytest-dotenv</code> and drop the same values in a <code>.env</code> next to your tests — it
-loads them automatically, no code required.</p>
+pytest-dotenv</code> and drop the same values in a <code>.env</code> next to your tests.
+pytest-dotenv loads them automatically, so you write no glue code.</p>
 <p>Register the plugin with a single <code>pytest_plugins</code> declaration in your top-level
 <code>conftest.py</code>:</p>
 <div class="language-python highlight"><span class="filename">conftest.py</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">pytest_plugins</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sift_client.pytest_plugin&quot;</span><span class="p">]</span>
@@ -1212,6 +1212,15 @@ fails. It fails the test via <code>pytest.fail</code> (no assertion noise in
 <code>error_info</code>), and unlike asserting on an individual <code>step.measure(...)</code> call
 it does not short-circuit on the first failure and skip every measurement
 after it.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Stopping the whole run early</p>
+<p><code>pytest.fail()</code> fails a single test. To stop the session,
+<code>pytest.exit("...")</code> ends it and rolls the report up as <code>FAILED</code>, while
+<code>sift_client.pytest_plugin.abort("...")</code> ends it and rolls the report up as
+<code>ABORTED</code>, for a system-level stop where the run was cut off rather than a
+test failing (a real Ctrl-C does the same). See
+<a href="pass_fail_behavior/#stopping-a-run-as-aborted">Pass/Fail Behavior</a>.</p>
 </div>
 <h2 id="sensible-defaults">Sensible defaults<a class="headerlink" href="#sensible-defaults" title="Permanent link">&para;</a></h2>
 <p>With nothing but the <code>conftest.py</code> above, you get:</p>
@@ -1291,10 +1300,10 @@ the JSONL log of every create/update call (<code>/tmp/sift_test_results/ab12cd/<
 above). When you open a support request with Sift, zip that directory and attach
 it. The contents are safe to share since the only secret, the API key, is
 redacted.</p>
-<p>Pin the trace to a known path or turn it off with <code>--sift-audit-log</code> (see
+<p>Relocate the run's artifacts or turn the trace off (see
 <a href="configuration/">Configuration &amp; Defaults</a>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pytest<span class="w"> </span>--sift-audit-log<span class="o">=</span>./sift-audit.log<span class="w">   </span><span class="c1"># pin to a known path</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>pytest<span class="w"> </span>--sift-audit-log<span class="o">=</span><span class="nb">false</span><span class="w">              </span><span class="c1"># disable</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pytest<span class="w"> </span>--sift-output-dir<span class="o">=</span>./sift-artifacts<span class="w">   </span><span class="c1"># put the log and trace in a known directory</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>pytest<span class="w"> </span>--no-sift-audit-log<span class="w">                  </span><span class="c1"># disable the audit trace</span>
 </span></code></pre></div>
 <h2 id="try-the-runnable-demo">Try the runnable demo<a class="headerlink" href="#try-the-runnable-demo" title="Permanent link">&para;</a></h2>
 <p>The <a href="../../examples/pytest_plugin_quickstart/">Pytest Plugin Quickstart</a> walks
