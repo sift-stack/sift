@@ -8,9 +8,9 @@ turn it off. The replay subprocess gets its own sibling file via
 ``replay_audit_path``.
 
 Handlers are removed at session end (``pytest_unconfigure`` ->
-``detach_audit_handlers``) so a process that runs many pytest sessions — the
-plugin's own test suite drives nested in-process sessions — doesn't accumulate
-handlers or leak one session's file into the next.
+``detach_audit_handlers``) so a process that runs many pytest sessions does not
+accumulate handlers or leak one session's file into the next. This matters
+because the plugin's own test suite drives nested in-process sessions.
 
 TODO: levels are fixed (DEBUG file / WARNING stdout) and output is plain text.
 A configurable level, JSON lines, or rotation are follow-ups gated on real need.
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 ROOT_LOGGER = "sift_client"
 # Columnar line for easy parsing: fixed-width timestamp, level, and namespace
-# columns, then the message — which every plugin call starts with a
+# columns, then the message. Every plugin call starts the message with a
 # left-justified ``EVENT_WIDTH`` event token followed by space-separated
 # key=value fields (incl. the full test ``path=``). Fields never contain spaces
 # (lists are ``/``-joined, free text is quoted), so the line tokenizes cleanly
@@ -95,7 +95,7 @@ class ColumnFormatter(logging.Formatter):
 
     Adds a ``namespace`` field (the logger name with the redundant
     ``sift_client.`` prefix trimmed) as its own aligned column, without mutating
-    ``record.name`` — other handlers (e.g. pytest's log capture) see the record
+    ``record.name``, so other handlers (e.g. pytest's log capture) see the record
     unchanged.
     """
 
@@ -201,7 +201,7 @@ def detach_audit_handlers(*, root: str = ROOT_LOGGER) -> None:
     """Remove and close the audit handlers; reset the logger level.
 
     Called from ``pytest_unconfigure`` so handlers don't outlive the session
-    that created them — important when one process runs many sessions (the
+    that created them. This matters when one process runs many sessions (the
     plugin's own test suite drives nested in-process pytester runs).
     """
     logger = logging.getLogger(root)
@@ -217,7 +217,7 @@ _TREE_WIDTH = 64
 
 
 def render_report_tree(created_steps: list[Any], *, mode: str) -> str:
-    """Render the final step tree with statuses — the end-state validation view.
+    """Render the final step tree with statuses, the end-state validation view.
 
     Reconstructs the parent/child structure from each step's dotted numeric
     ``step_path`` (``"1"`` -> ``"1.1"`` -> ``"1.1.2"``), preserving creation

@@ -40,12 +40,13 @@ pytest -v
 
 A `TestReport` shows up in Sift once the session finishes.
 
-**Offline (record now, replay later - intended for offline environments)**:
+**Offline (record now, replay later, for offline environments)**:
 
 ```bash
-pytest --sift-offline --sift-log-file=/tmp/sift-demo.jsonl -v
-# Later, from anywhere with credentials:
-import-test-result-log /tmp/sift-demo.jsonl
+pytest --sift-offline --sift-output-dir=/tmp/sift-demo -v
+# The summary panel prints the exact replay command and log path. Later, from
+# anywhere with credentials:
+import-test-result-log /tmp/sift-demo/a1b2c3/a1b2c3.jsonl
 ```
 
 ## What the report tree looks like
@@ -99,12 +100,12 @@ TestReport (FAILED, since failures propagate up from leaves)
                 └── test_reports_version                             PASSED
 ```
 
-`TestScopedFixtureParam` shows two things. First, **scope-based placement**:
+`TestScopedFixtureParam` shows two things. First, scope-based placement:
 `firmware` is class-scoped, so its parameter lifts to wrap the class methods
 (each runs once per value) instead of nesting under an individual test the way
 the function-level `@pytest.mark.parametrize` in `TestClassStep` does. Module-
 and session-scoped fixture params lift higher still (above the module, and to
-the report root, respectively). Second, **human-readable labels**: the fixture
+the report root, respectively). Second, human-readable labels: the fixture
 declares `ids=["stable", "beta"]`, so the steps use those names instead of the
 default `firmware='1.4.2'` form. A list or a callable `ids=` factory both work,
 on `@pytest.mark.parametrize` axes as well as fixtures.

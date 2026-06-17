@@ -1,4 +1,4 @@
-# Report Structure
+# Report structure
 
 The report tree mirrors your test layout. Every Python package, test module,
 test class, and parametrize axis above a test becomes a parent step, and you can
@@ -99,7 +99,7 @@ individually opt-out via ini flags (`sift_package_step`, `sift_module_step`,
 become the matching step's description.
 
 A parent step is created `IN_PROGRESS` and resolves to its final status as soon
-as the last test in its subtree finishes — independent of test execution order,
+as the last test in its subtree finishes, independent of test execution order,
 so with incremental upload the report tree fills in progressively rather than
 all at once at the end. Its time window spans from its first test starting to its
 last test finishing.
@@ -185,7 +185,7 @@ TestReport
     across directories, so keep it there.
 
     To drop package steps everywhere, set `sift_package_step = false`. No pytest
-    setting (`testpaths`, `rootdir`, …) removes a package step on its own — the
+    setting (`testpaths`, `rootdir`, …) removes a package step on its own. The
     step exists if and only if the directory has an `__init__.py`.
 
 ### Test classes (and nested classes)
@@ -257,8 +257,10 @@ TestReport
 Set `sift_parametrize_nesting = false` in `pytest.ini` to fall back to flat leaf
 names (`test_rail[3.3]`).
 
-**Human-readable labels.** Each axis defaults to a `name=value` label. Supply
-`ids=` to name it yourself — a list, or a callable factory pytest calls with
+#### Human-readable labels
+
+Each axis defaults to a `name=value` label. Supply
+`ids=` to name it yourself: a list, or a callable factory pytest calls with
 each value. This works on `@pytest.mark.parametrize` and on parametrized
 fixtures alike:
 
@@ -275,12 +277,14 @@ TestReport
         └── boosted
 ```
 
-**Scope-based placement.** The examples above use function-scoped parametrize,
+#### Scope-based placement
+
+The examples above use function-scoped parametrize,
 which nests under the test. A parametrized *fixture* is placed at its own scope
 instead: a class-scoped fixture param wraps the class's methods, a module-scoped
 one wraps the module's tests, and a session-scoped one sits at the report root.
 A `@pytest.mark.parametrize(..., scope="module")` follows the scope it names.
-This keeps the tree matching how pytest actually re-runs work — broader scope
+This keeps the tree matching how pytest re-runs work: broader scope
 nests outside narrower.
 
 ### Helper functions

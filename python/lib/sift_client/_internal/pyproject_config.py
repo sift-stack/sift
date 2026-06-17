@@ -3,7 +3,7 @@
 The pytest plugin consumes this loader to resolve report-content config (under
 ``[tool.sift.pytest.report]``) and SDK-level fallbacks (URIs under
 ``[tool.sift]``). A malformed or missing ``pyproject.toml`` returns ``{}`` so a
-bad config file never aborts the session — the plugin falls back to its
+bad config file never aborts the session. The plugin falls back to its
 built-in defaults and surfaces a single warning.
 """
 

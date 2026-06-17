@@ -1,4 +1,4 @@
-# Pass/Fail Behavior
+# Pass/fail behavior
 
 The pytest plugin maps every pytest outcome to a `TestStatus` on the
 corresponding Sift step. Use this page to look up what a given test will
@@ -126,8 +126,8 @@ def test_runtime_skip(step):
             cal.current_step.update({"status": TestStatus.SKIPPED})
 ```
 
-A manually-resolved status is honored by the step's exit handler. No further
-bookkeeping required.
+The step's exit handler honors a manually-resolved status, so you do not need
+any further bookkeeping.
 
 ## Expected failures (xfail / xpass)
 

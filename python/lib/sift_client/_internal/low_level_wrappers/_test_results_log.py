@@ -32,8 +32,8 @@ versa), which is acceptable because writes are tiny and we only have one reader.
 
 Waiting for the lock is cooperative: ``AsyncFileLock`` retries a non-blocking
 acquire and sleeps on the event loop between attempts, so a contended or stale
-lock never blocks the loop thread (the hang in ENG-12003). The acquire is also
-bounded by ``LOG_LOCK_TIMEOUT_SECONDS``, surfacing a stuck lock as
+lock never blocks the loop thread. The acquire is also
+bounded by ``LOG_LOCK_TIMEOUT_SECONDS``, so a stuck lock surfaces as
 ``TimeoutError`` instead of waiting forever. The file read/write under the lock
 runs inline on the loop; it is a tiny local-file operation, the same class of
 brief synchronous work async methods do throughout this client.

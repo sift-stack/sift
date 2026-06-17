@@ -289,7 +289,7 @@ class ReportContext(AbstractContextManager):
     def _build_replay_command(self) -> list[str]:
         """Build the argv for the import-test-result-log replay subprocess.
 
-        Factored out for testability — tests substitute commands that exit
+        Factored out for testability: tests substitute commands that exit
         with controlled returncodes / stderr to exercise the ``__exit__``
         branches without depending on the real replay binary.
         """
@@ -316,7 +316,7 @@ class ReportContext(AbstractContextManager):
         ``stderr`` is captured so a worker crash mid-session can surface its
         error at session end via ``__exit__`` rather than failing silently.
         """
-        # Redact the API key before logging — never log the raw argv.
+        # Redact the API key before logging; never log the raw argv.
         api_key = self.client.grpc_client._config.api_key
         safe = ["***" if a == api_key else a for a in self._build_replay_command()]
         log_event(logger, logging.INFO, "replay.start", log=self.log_file)
@@ -356,7 +356,7 @@ class ReportContext(AbstractContextManager):
 
         if self._import_proc is not None:
             # Three outcomes for the replay worker at session end. None of
-            # them fail the session — tests already ran and their outcome
+            # them fail the session, since tests already ran and their outcome
             # is independent of delivery. The local log file is the source
             # of recovery for both failure modes via
             # `import-test-result-log <path>`:
@@ -367,7 +367,7 @@ class ReportContext(AbstractContextManager):
             #      test suite to drain; pathological backlogs should opt
             #      into inline mode (`--no-sift-log-file`) instead.
             #   3. Exited with non-zero. Connection failures and API call
-            #      errors land here — the worker's replay loop has no retry,
+            #      errors land here. The worker's replay loop has no retry,
             #      so the first failed RPC crashes the subprocess. Surface
             #      the captured stderr with replay instructions.
             try:
@@ -514,7 +514,7 @@ class ReportContext(AbstractContextManager):
                 metadata shared across every step in a report, prefer the `metadata` attribute
                 of the enclosing `TestReport`.
             parent: The parent step to nest under. ``_USE_STACK_TOP`` (the
-                default) parents to the current top of the step stack — the
+                default) parents to the current top of the step stack, the
                 linear behavior. An explicit ``TestStep`` parents under that step
                 regardless of stack state; explicit ``None`` creates a root step.
             push: Whether to push the new step onto the step stack. True (the
@@ -663,7 +663,7 @@ class ReportContext(AbstractContextManager):
         order, so a step that isn't the current top of the stack is a real
         invariant break. Steps created with an explicit parent and ``push=False``
         (the pytest plugin's hierarchy/parametrize parents) never sit on the
-        stack and may close in any order — clearing ``open_step_results`` is all
+        stack and may close in any order, so clearing ``open_step_results`` is all
         that's needed; their result was already propagated to their own parent.
         """
         self.open_step_results.pop(step.step_path, None)

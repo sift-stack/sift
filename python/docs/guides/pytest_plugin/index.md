@@ -1,4 +1,4 @@
-# Pytest Plugin
+# Pytest plugin
 
 The Sift Python client ships a pytest plugin that turns a pytest run into a
 `TestReport` in Sift. Each test function becomes a `TestStep`, measurements are presented
@@ -24,8 +24,8 @@ SIFT_REST_URI="..."
 
 Find these on the Sift Manage page, where you can also generate an API key. Set
 them in your shell or CI secret store. For local dev, `pip install
-pytest-dotenv` and drop the same values in a `.env` next to your tests — it
-loads them automatically, no code required.
+pytest-dotenv` and drop the same values in a `.env` next to your tests.
+pytest-dotenv loads them automatically, so you write no glue code.
 
 Register the plugin with a single `pytest_plugins` declaration in your top-level
 `conftest.py`:
@@ -143,12 +143,12 @@ above). When you open a support request with Sift, zip that directory and attach
 it. The contents are safe to share since the only secret, the API key, is
 redacted.
 
-Pin the trace to a known path or turn it off with `--sift-audit-log` (see
+Relocate the run's artifacts or turn the trace off (see
 [Configuration & Defaults](configuration.md)):
 
 ```bash
-pytest --sift-audit-log=./sift-audit.log   # pin to a known path
-pytest --sift-audit-log=false              # disable
+pytest --sift-output-dir=./sift-artifacts   # put the log and trace in a known directory
+pytest --no-sift-audit-log                  # disable the audit trace
 ```
 
 ## Try the runnable demo

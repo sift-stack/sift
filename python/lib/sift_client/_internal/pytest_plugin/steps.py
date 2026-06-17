@@ -4,8 +4,8 @@ Each test's package/module/class ancestors ("hierarchy" parents), its
 scope-promoted parametrized params (session/package/module/class-scoped fixtures,
 placed at their scope's level on the ladder), and each function-scoped
 ``@pytest.mark.parametrize`` axis ("parametrize" parents) become parent steps the
-leaf nests under. Parents are kept in identity-keyed registries — created once and
-reused by every descendant regardless of execution order — so the plugin never
+leaf nests under. Parents are kept in identity-keyed registries (created once and
+reused by every descendant regardless of execution order), so the plugin never
 reorders test items. A parent is closed as soon as the last leaf in its subtree
 finishes (``release_finished_leaf``), with ``finalize_parents`` as the session-end
 backstop for anything still open.
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # Scope-aware parametrize placement and ``ids=`` label resolution read a few
 # pytest internals (the fixture manager, ``callspec``). If a pytest version
 # moves or reshapes those, we degrade to function-scoped nesting with
-# ``name=value`` labels instead of failing the user's collection — and surface
+# ``name=value`` labels instead of failing the user's collection, and surface
 # the loss once per session via ``_signal_introspection_degraded``. This latch
 # keeps that to a single warning; ``reset_introspection_state`` clears it at the
 # start of each session (see ``pytest_configure``).
@@ -49,7 +49,7 @@ def reset_introspection_state() -> None:
 def _signal_introspection_degraded(detail: str) -> None:
     """Warn + audit-log once that parametrize scope/label introspection failed.
 
-    Fired only when reaching a pytest internal actually fails — not for the
+    Fired only when reaching a pytest internal actually fails, not for the
     ordinary "no fixturedef, it's a mark-based param" case. The report still
     renders; scope-promoted params just fall back to function-scoped nesting.
     """
@@ -84,7 +84,7 @@ if TYPE_CHECKING:
 # ``StashKey[...]`` subscriptions, which must stay importable on Python 3.8.
 #
 # A hierarchy parent's identity is a ``HierarchyKey``: the literal path from the
-# report root to that parent, one segment per ancestor, each tagged by kind —
+# report root to that parent, one segment per ancestor, each tagged by kind:
 # ``("n", node_nodeid)`` for a package/module/class step, ``("p", label)`` for a
 # scope-promoted param frame (e.g. a session/module/class-scoped parametrized
 # fixture). Building identities as kind-tagged tuples (rather than a delimited
@@ -97,7 +97,7 @@ HierarchyKey = Tuple[HierarchySegment, ...]
 ParametrizeKey = Tuple[Any, ...]
 # Outer-to-inner display-name axis path stashed per parametrized item
 # (``(originalname, "v=1", ...)``); the leaf is its last frame. Function-scoped
-# axes only — higher-scoped params are promoted into the hierarchy.
+# axes only; higher-scoped params are promoted into the hierarchy.
 ParametrizePath = Tuple[str, ...]
 # One collection-tree ancestor: ``(identity, display name, docstring, rendered,
 # scope)``. ``rendered`` is True iff that layer's ``sift_*_step`` ini flag opens a
@@ -147,8 +147,8 @@ parametrize_parents: dict[ParametrizeKey, NewStep] = {}
 # ``release_finished_leaf``) instead of waiting for session end.
 expected_hierarchy: dict[HierarchyKey, int] = {}
 expected_parametrize: dict[ParametrizeKey, int] = {}
-# Each gated-in leaf's parent identities, so ``release_finished_leaf`` — which
-# only receives a nodeid — knows which counters to decrement.
+# Each gated-in leaf's parent identities, so ``release_finished_leaf`` (which
+# only receives a nodeid) knows which counters to decrement.
 leaf_parents: dict[str, LeafParents] = {}
 
 
@@ -158,13 +158,13 @@ leaf_parents: dict[str, LeafParents] = {}
 # so a pytest change degrades to flat (function-scoped) rendering with a single
 # warning, never a crash. The inventory, so it stays auditable in one place:
 #
-#   * ``session._fixturemanager.getfixturedefs`` — the only genuinely private
+#   * ``session._fixturemanager.getfixturedefs``: the only genuinely private
 #     access; obtaining a parametrized fixture's ``FixtureDef``. Wrapped in
 #     ``_fixturedefs`` (degrade + warn). The attributes read off the result
 #     (``.scope``, ``.baseid``, ``.ids``) are documented-stable public API.
-#   * ``item.callspec.params`` / ``.indices`` — semi-private but de-facto stable
+#   * ``item.callspec.params`` / ``.indices``: semi-private but de-facto stable
 #     (every parametrize-aware plugin relies on it); read under try/except.
-#   * ``mark.args``/``mark.kwargs`` and ``node.parent``/``node.obj`` — public.
+#   * ``mark.args``/``mark.kwargs`` and ``node.parent``/``node.obj`` are public.
 #
 # pytest's own private scope dict (``callspec._arg2scope``) is deliberately NOT
 # read; ``_param_scope`` reconstructs the same result from public data.
@@ -259,7 +259,7 @@ def _id_from_spec(ids: Any, index: int, value: Any) -> str | None:
     factory) is invoked with the param value, mirroring how pytest builds the
     node ID. A callable that raises or returns ``None`` yields None, so the
     caller falls back to the structured ``name=value`` label. ``None`` here also
-    covers "the author supplied no ``ids``" — those auto-generated IDs are noisier
+    covers "the author supplied no ``ids``"; those auto-generated IDs are noisier
     than ``name=value`` for non-trivial values, so we never adopt them.
     """
     if ids is None:
@@ -278,7 +278,7 @@ def _id_from_spec(ids: Any, index: int, value: Any) -> str | None:
 def _explicit_param_id(item: pytest.Item, name: str, value: Any) -> str | None:
     """The author-supplied pytest ID for param ``name`` on ``item``, else None.
 
-    Honours an explicit ``ids=`` — list or callable factory — declared on the
+    Honours an explicit ``ids=`` (list or callable factory) declared on the
     fixture (``@pytest.fixture(params=..., ids=...)``) or on the
     ``@pytest.mark.parametrize`` axis, matching the friendly labels pytest puts
     in the node ID. Combined axes (``"a,b"``) are skipped: their single shared
@@ -317,7 +317,7 @@ def build_scoped_params(item: pytest.Item) -> ScopedParams:
 
     Each entry is ``(scope, name, label)`` in ``callspec.params`` application
     order. ``resolved_parents`` buckets these by scope and places them at their
-    scope's hierarchy level. Function-scoped axes are excluded — they stay inner,
+    scope's hierarchy level. Function-scoped axes are excluded; they stay inner,
     handled by ``build_parametrize_path``.
     """
     callspec = getattr(item, "callspec", None)
@@ -343,7 +343,7 @@ def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
 
     Pytest stores ``callspec.params`` with the BOTTOM decorator's axis first;
     the Sift step tree treats the TOP decorator as outermost, so we reverse.
-    Only function-scoped axes appear here — higher-scoped params are promoted
+    Only function-scoped axes appear here; higher-scoped params are promoted
     into the hierarchy by ``resolved_parents``. Each axis is labelled by its
     explicit pytest ID when the author supplied one, otherwise by ``name=value``
     (see ``_param_label``). The first frame is always ``originalname`` so the
@@ -438,7 +438,7 @@ def _pick_class_index(
     """Which Class chain frame a class-scoped param ``name`` anchors to.
 
     For a class-scoped fixture, the owning class is the deepest Class frame whose
-    nodeid prefixes the fixture's ``baseid`` — so a fixture defined on an outer
+    nodeid prefixes the fixture's ``baseid``, so a fixture defined on an outer
     class anchors there, not under an inner nested class. Mark-based class params
     (no fixturedef) and unmatched cases fall back to the innermost class.
     """
@@ -463,7 +463,7 @@ def _scoped_param_anchors(
     """Map each scope-promoted param to the chain-frame index it nests at.
 
     Returns an ``anchors`` map of chain-frame index → param labels at that frame.
-    The ``None`` key holds params with no collector node — session-scoped params
+    The ``None`` key holds params with no collector node: session-scoped params
     (emitted above the chain) and the rare fall-through when a param's scope has
     no frame at all. Scopes are processed package→module→class (so broader nests
     outside narrower at a shared anchor), and each scope's params are reversed
@@ -500,7 +500,7 @@ def resolved_parents(
     node: pytest.Item,
     config: pytest.Config,
 ) -> tuple[list[HierarchyParent], list[ParametrizeParent]]:
-    """The rendered report-tree parents for ``node`` — the single source of truth.
+    """The rendered report-tree parents for ``node``, the single source of truth.
 
     Shared by ``get_or_create_parent_chain`` (which opens these parents) and the
     early-close counters in ``tally_expected_parents`` (which count them), so the
@@ -510,7 +510,7 @@ def resolved_parents(
     * hierarchy: ``(identity, name, doc)`` for each rendered parent, built by
       walking the package/module/class chain and interleaving each scope-promoted
       param (session/package/module/class-scoped parametrized fixture, or a mark
-      with ``scope=``) at its scope's level — broader scope nests outside narrower.
+      with ``scope=``) at its scope's level; broader scope nests outside narrower.
       ``identity`` is the ``HierarchyKey`` registry key (the root-to-node path).
     * parametrize: ``(registry key, frame name)`` for each function-scoped
       ``@pytest.mark.parametrize`` axis except the innermost (the leaf is the
@@ -577,7 +577,7 @@ def resolved_parents(
 def strip_param(nodeid: str) -> str:
     """Drop the trailing ``[param]`` from a nodeid, keeping ``file::Class::func``.
 
-    The parametrize id is a variation of the test, not its identity — leaving it
+    The parametrize id is a variation of the test, not its identity, so leaving it
     in would make a re-parametrization silently shift the grouping key. Splits on
     the last ``::`` segment and cuts at its first ``[``; class/function names
     never contain ``[``, so nested brackets in a param value can't confuse it.
@@ -598,8 +598,8 @@ def get_or_create_parent_chain(
     parametrize axes (see ``resolved_parents``), get-or-creating one parent step
     per identity in the registries. Each new parent is opened under the running
     parent (``push=False``, so it stays off ``ReportContext.step_stack``) and
-    reused by every later descendant — no contiguity of sibling items is required,
-    so test execution order is irrelevant.
+    reused by every later descendant, so no contiguity of sibling items is required
+    and test execution order is irrelevant.
 
     Returns the innermost parent the leaf should attach to, or ``None`` when no
     rendered parent applies (the leaf becomes a report-root step). ``report_context``
@@ -710,7 +710,7 @@ def close_parents_innermost_first(parents: list[NewStep]) -> None:
 
     Innermost-first means a child parent's ``propagate_step_result`` (status) and
     ``note_close`` (finish time) reach its parent's bookkeeping before that parent
-    resolves — so a failing/late subtree rolls up correctly whether parents close
+    resolves, so a failing/late subtree rolls up correctly whether parents close
     mid-session or at session end.
     """
     parents.sort(
@@ -744,7 +744,7 @@ def tally_expected_parents(session: pytest.Session) -> None:
 
     Runs after all ``modifyitems`` and deselection (``pytest_collection_finish``),
     so ``session.items`` is the final, selected set. Only gated-in items are
-    counted — that keeps ``sift_exclude``-d siblings (and an entirely gated-off
+    counted; that keeps ``sift_exclude``-d siblings (and an entirely gated-off
     session, e.g. the dev suite's own outer run) out of the tallies, so a
     partially-excluded class still closes when its included tests finish. The maps
     are rebuilt every session because pytester runs inner sessions in-process,
@@ -801,7 +801,7 @@ def release_finished_leaf(nodeid: str) -> None:
     Called from ``pytest_runtest_logfinish``, which fires once per item for every
     outcome (pass / fail / skip / error). When a parent's remaining-leaf count
     reaches zero its whole subtree has finished, so it is closed now rather than
-    at session end — giving incremental uploads a progressively-resolving report
+    at session end, which gives incremental uploads a progressively-resolving report
     under any execution order. Closes innermost-first so a child parent rolls its
     result and finish time up before its own parent resolves; several levels can
     complete on the same leaf (e.g. the last param variant closes its parametrize

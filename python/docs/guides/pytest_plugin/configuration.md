@@ -1,11 +1,11 @@
-# Configuration & Defaults
+# Configuration and defaults
 
 This page is the full reference for everything the plugin exposes: fixtures, CLI
 flags, ini options, credential handling, and the markers that control which
 tests report.
 
 !!! info "Where the plugin lives"
-    The plugin lives at `sift_client.pytest_plugin`. It is **not** registered as
+    The plugin lives at `sift_client.pytest_plugin`. It is not registered as
     a `pytest11` entry point. Projects opt in with a `pytest_plugins` declaration
     in their top-level `conftest.py`. Pytest then loads the module as a real
     plugin: the fixtures, CLI options, and `pytest_runtest_makereport` hook all
@@ -40,13 +40,13 @@ credentials.
 
 ### API key handling
 
-`SIFT_API_KEY` is read from the process environment only — the plugin never
+`SIFT_API_KEY` is read from the process environment only. The plugin never
 reads it from a committed file. How you get it into the environment is up to
 you:
 
 - **CI:** set `SIFT_API_KEY` directly via your provider's secret manager.
 - **Local dev:** keep the values in a `.env` (gitignored) and let
-  [`pytest-dotenv`](https://pypi.org/project/pytest-dotenv/) load them — it is
+  [`pytest-dotenv`](https://pypi.org/project/pytest-dotenv/) load them. It is
   not bundled with `sift-stack-py`, so install it explicitly:
 
     ```bash
@@ -60,8 +60,8 @@ you:
     ```
 
     Once installed, pytest-dotenv auto-loads `.env` from the rootdir before
-    tests run — no `conftest.py` glue and no `load_dotenv()` call. (Point it at
-    a different file with the `env_files` ini key if you prefer.)
+    tests run, so there is no `conftest.py` glue and no `load_dotenv()` call.
+    (Point it at a different file with the `env_files` ini key if you prefer.)
 
 Prefer real environment variables (shell exports, CI secrets) for anything you
 can't keep in a local file.
@@ -133,7 +133,7 @@ Each kind has a home chosen for a specific workflow:
 - **Connection** comes from the environment first, falling back to the ini keys; the API key is env-only so secrets stay out of committed files.
 - **Report content** takes static defaults from `[tool.sift.pytest.report]` and per-run dynamic values from `SIFT_REPORT_*` env vars (CI builds, hardware cycling, anything `.env`-driven; pytest-dotenv loads `.env` for local dev).
 
-**Precedence within a setting:** env > CLI flag > ini key > TOML > built-in
+Precedence within a setting runs env > CLI flag > ini key > TOML > built-in
 default. No setting exposes both env and CLI, so the chain isn't ambiguous in
 practice.
 
@@ -245,18 +245,18 @@ pytest tests/
 
 The two fields look similar but serve opposite purposes:
 
-- **`name`** is the report's **per-run display label** — what you see in the
+- **`name`** is the report's per-run display label, what you see in the
   Test Results list. It should be unique per run, which is why its default ends
   in `{timestamp}`.
-- **`test_case`** is the **cross-run grouping key** — reports that share a
+- **`test_case`** is the cross-run grouping key. Reports that share a
   `test_case` are treated as runs of the *same* case, so Sift can track its
   pass/fail history over time. It should be stable across runs, which is why
-  its default has **no** timestamp.
+  its default has no timestamp.
 
 By default both derive from the same `{target}` (what ran), and the timestamp
 is the only difference: `name` = `{target} {timestamp}` (distinct each run),
 `test_case` = `{target}` (identical across runs of the same target, so they
-group together). Set either explicitly to override — a static `test_case` like
+group together). Set either explicitly to override. A static `test_case` like
 `"{rootdir}"` is common when you want every run of a project to group under one
 case regardless of which subset ran.
 
@@ -276,7 +276,7 @@ case regardless of which subset ran.
 | `{git_branch}` | The current branch, or empty when not in a git repo. |
 | `{git_commit}` | The current commit (`git describe --always --dirty`), or empty when not in a git repo. |
 
-**Defaults when unset.** Because `{target}` is derived from the collected
+Because `{target}` is derived from the collected
 tests, the defaults reflect what actually ran and don't change with flag order
 or `-k` / `-m` filters:
 
@@ -378,7 +378,7 @@ def pytest_collection_modifyitems(config, items):
 ```
 
 This applies `sift_include` to every test collected under `tests/example/`.
-Combine with `sift_autouse = false` in `pyproject.toml` for opting in to
+Combine with `sift_autouse = false` in `pyproject.toml` to opt in to
 specific directories.
 
 `pytest_collection_modifyitems` receives every item in the session, not just

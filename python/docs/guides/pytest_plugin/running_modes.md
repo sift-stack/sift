@@ -1,4 +1,4 @@
-# Running Modes
+# Running modes
 
 The plugin runs in one of three modes, picked at invocation. This page covers
 how each mode behaves, the log-file/replay pipeline, and how to replay a saved
@@ -10,15 +10,15 @@ log against Sift.
 # Full run against your Sift tenant
 pytest
 
-# Pin the log file so you can replay it later if the import worker dies
-pytest --sift-log-file=./sift-results.jsonl
+# Put this run's artifacts (JSONL log, audit trace) in a known directory
+pytest --sift-output-dir=./sift-results
 ```
 
 ## The three modes
 
 | Mode | Flag | Network | Log file | `step.measure(...)` | When to use |
 |---|---|---|---|---|---|
-| Online (default) | _(none)_ | yes (pings at session start, aborts if it fails) | optional write-through backup | real measurement against Sift | CI with Sift credentials, local dev hitting your tenant |
+| Online (default) | _(none)_ | yes (pings at session start, aborts if it fails) | write-through backup, on by default | real measurement against Sift | CI with Sift credentials, local dev hitting your tenant |
 | Offline | `--sift-offline` | none | required (the sole sink) | real measurement queued to log | field tests, air-gapped labs, CI without network |
 | Disabled | `--sift-disabled` | none | none | bounds eval; returns a real bool | local dev or CI that doesn't have (or want) Sift |
 
@@ -35,7 +35,7 @@ captured output, CI logs).
 
 The section title carries the report name (truncated if long). The `Steps` row
 tallies every step in the report by final status, so it counts substeps and the
-package/module/class/parametrize grouping steps too — its totals are expected to
+package/module/class/parametrize grouping steps too. Its totals are expected to
 exceed pytest's own test count. The `Measurements` row tallies recorded
 measurements (`step.measure(...)`) and is omitted when there are none. The
 `Test case` and `System` rows echo the report's test case, test system, and
@@ -50,7 +50,7 @@ open the report in a browser at session end.
 ```text
 ============================= test session starts ==============================
 platform linux -- Python 3.11.8, pytest-8.3.2, pluggy-1.5.0
-Sift: sift-stack-py 0.17.0 — online mode
+Sift: sift-stack-py 0.18.0 — online mode
 collected 12 items
 
 tests/test_battery.py ........                                           [ 66%]
@@ -58,11 +58,11 @@ tests/test_thermal.py ....                                               [100%]
 
 ================ Sift report · pytest tests/ 2026-05-27T22:44:23Z ==============
   Test case    pytest tests/
-  Status       PASSED       online · sift-stack-py 0.17.0
+  Status       PASSED       online · sift-stack-py 0.18.0
   Steps        14 passed
   Measurements 42 passed
   System       ci-runner-7 · cibot
-  Log file     /tmp/sift-a1b2c3.jsonl
+  Log file     /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
   Report       https://app.siftstack.com/test-results/0193f1a2-7c44-7e5b-9b1a-2f6c0d9e84aa
 ============================== 12 passed in 3.45s ==============================
 ```
@@ -73,13 +73,13 @@ flags that it may be incomplete:
 ```text
 ================ Sift report · pytest tests/ 2026-05-27T22:44:23Z ==============
   Test case    pytest tests/
-  Status       FAILED       online · sift-stack-py 0.17.0
+  Status       FAILED       online · sift-stack-py 0.18.0
   Steps        11 passed · 2 failed · 1 error
   Measurements 40 passed · 3 failed
   System       ci-runner-7 · cibot
-  Log file     /tmp/sift-a1b2c3.jsonl
+  Log file     /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
   Report       https://app.siftstack.com/test-results/0193f1a2-7c44-7e5b-9b1a-2f6c0d9e84aa
-               may be incomplete — finish with: import-test-result-log /tmp/sift-a1b2c3.jsonl
+               may be incomplete — finish with: import-test-result-log /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 ```
 
 When the web host can't be resolved and no override is set, the `Report` row
@@ -95,9 +95,9 @@ small rule (the log path is part of the command):
   Steps        14 passed
   Measurements 42 passed
   System       ci-runner-7 · cibot
-  Log file     ./run.jsonl
+  Log file     /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 ------------------------------ to upload to Sift -------------------------------
-  >> import-test-result-log ./run.jsonl
+  >> import-test-result-log /tmp/sift_test_results/a1b2c3/a1b2c3.jsonl
 ```
 
 **Disabled** notes that no report was created:
@@ -118,14 +118,14 @@ This is loud on purpose. A CI run that silently no-ops on a flaky network won't
 get noticed until somebody goes looking for the report, which is usually weeks
 later, which is usually too late.
 
-With the default `--sift-log-file` setting on, create/update calls are written
-to a JSONL log file during the run and an `import-test-result-log --incremental`
-worker replays them against Sift in the background. If the worker crashes
-mid-session (connection failure, API error) or is still draining its backlog at
-session end, the failure is logged at session end with a `replay-test-result-log`
-command for manual recovery. Test outcomes are unaffected and the local log
-file is preserved. Pass `--sift-log-file=false` to make every create/update
-synchronous against the API instead.
+With the JSONL log on by default, create/update calls are written to a log file
+in the run's output directory during the run, and an
+`import-test-result-log --incremental` worker replays them against Sift in the
+background. If the worker crashes mid-session (connection failure, API error) or
+is still draining its backlog at session end, the failure is logged at session
+end with a `replay-test-result-log` command for manual recovery. Test outcomes
+are unaffected and the local log file is preserved. Pass `--no-sift-log-file` to
+make every create/update synchronous against the API instead.
 
 ### Overriding the connection check
 
@@ -154,26 +154,28 @@ vars are tolerated (placeholders are filled), and the replay worker
 (`import-test-result-log --incremental`) does not get spawned at session end.
 
 ```bash
-pytest --sift-offline --sift-log-file=./run.jsonl
+pytest --sift-offline --sift-output-dir=./offline-runs
 ```
 
-Once you have connectivity, replay it:
+The summary panel prints the exact log path and the replay command. Once you
+have connectivity, replay it:
 
 ```bash
-import-test-result-log ./run.jsonl
+import-test-result-log ./offline-runs/a1b2c3/a1b2c3.jsonl
 ```
 
 That replay creates the report, steps, and measurements against Sift. See
 [Replaying a saved log file](#replaying-a-saved-log-file) for cleanup and the
 incremental flag.
 
-`--sift-log-file=none` is rejected when offline is set. The log file is the only
-sink in offline mode, so without it the results are gone.
+`--no-sift-log-file` is rejected when offline is set, since the log is the only
+sink in offline mode and without it the results are gone.
 
-!!! warning "Pin the log path"
-    Without `--sift-log-file=<path>`, offline mode writes to a
-    `tempfile.NamedTemporaryFile` and only surfaces the path via a `logger.info`
-    line. Pin a known path when you intend to replay later.
+!!! note "Finding the log path"
+    Without `--sift-output-dir`, offline mode writes the log to a random
+    subfolder under the system temp directory. Either way the end-of-run panel
+    prints the exact path and the `import-test-result-log` command. Pass
+    `--sift-output-dir=<dir>` to put the run's artifacts somewhere you choose.
 
 ## Disabled mode (`--sift-disabled`)
 
@@ -202,9 +204,9 @@ pytest --sift-disabled
 sift_disabled = true
 ```
 
-Good fit for local dev without Sift credentials. Also for library consumers who
-don't have a Sift tenant. Also useful in CI for runs that shouldn't add noise to
-the report stream, like a PR job re-running the same suite five times in a row.
+Good fit for local dev without Sift credentials, for library consumers who don't
+have a Sift tenant, and for CI runs that shouldn't add noise to the report
+stream, like a PR job re-running the same suite five times in a row.
 
 ## Replaying a saved log file
 

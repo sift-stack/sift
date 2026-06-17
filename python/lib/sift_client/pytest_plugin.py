@@ -186,7 +186,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     """Default ``SiftClient`` resolved from environment variables and ini keys.
 
     Each credential is read from its environment variable first. The URIs
-    (``SIFT_GRPC_URI``, ``SIFT_REST_URI``) additionally fall back to the
+    (``SIFT_GRPC_URI``, ``SIFT_REST_URI``) also fall back to the
     ``sift_grpc_uri`` / ``sift_rest_uri`` ini keys, since they are stable
     per-org values that are safe to commit. ``SIFT_API_KEY`` is intentionally
     env-only; use ``pytest-dotenv`` (already a project dependency) to load
@@ -471,7 +471,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # Audit trace (on by default): attaches DEBUG file + WARNING stdout handlers
     # to the sift_client root logger. Returns None only when audit logging is
-    # explicitly disabled via --sift-audit-log=false. Done first so the typo
+    # explicitly disabled via --no-sift-audit-log. Done first so the typo
     # warnings below are captured in the audit file.
     audit_path = configure_audit_logging(config, session_dir=session_dir)
     if audit_path is not None:
@@ -496,7 +496,7 @@ def pytest_configure(config: pytest.Config) -> None:
 def pytest_itemcollected(item: pytest.Item) -> None:
     """Cache each test item's hierarchy chain and parametrize path at collection.
 
-    This is a per-item hook, not ``pytest_collection_modifyitems`` — the plugin
+    This is a per-item hook, not ``pytest_collection_modifyitems``. The plugin
     never touches the ``items`` list or its order, so it cannot conflict with a
     user's (or another plugin's) collection-ordering hook. The report tree is
     built from an identity-keyed registry (see ``get_or_create_parent_chain``),
@@ -592,7 +592,7 @@ def pytest_runtest_logfinish(nodeid: str, location: tuple[str, int | None, str])
 
     Fires once per item (pass / fail / skip / error); delegates to
     ``release_finished_leaf``, which decrements the item's parents' remaining-leaf
-    counts and closes any that reach zero — so containers resolve progressively
+    counts and closes any that reach zero, so containers resolve progressively
     rather than all at session end.
     """
     release_finished_leaf(nodeid)

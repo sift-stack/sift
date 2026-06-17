@@ -5,8 +5,8 @@ A walkthrough of the runnable demo at
 The demo is a self-contained pytest project that exercises every layer of the
 plugin's step tree: packages, modules, classes (including nested), parametrize
 axes, manual substeps, and gate markers. It also includes a tests directory
-that uses no Sift APIs at all, to show how the autouse fixtures capture plain
-pytest tests for free.
+that uses no Sift APIs, to show how the autouse fixtures capture plain
+pytest tests automatically.
 
 For a conceptual reference (fixtures, ini flags, status semantics), see the
 [Pytest Plugin guide](../guides/pytest_plugin/index.md).
@@ -34,7 +34,7 @@ above each test becomes its own parent step in the report tree.
 
 A single `pytest_plugins` declaration loads the plugin. The default
 `sift_client` fixture reads `SIFT_API_KEY` / `SIFT_GRPC_URI` / `SIFT_REST_URI`
-from the environment — set them in your shell, your CI secret store, or a
+from the environment. Set them in your shell, your CI secret store, or a
 local `.env` (`pip install pytest-dotenv` auto-loads it).
 
 ```python title="conftest.py"
@@ -44,7 +44,7 @@ local `.env` (`pip install pytest-dotenv` auto-loads it).
 ## `pyproject.toml`
 
 Pytest behavior knobs sit under `[tool.pytest.ini_options]`, each commented at
-its default — uncomment any line to opt out of a layer of the step tree. The
+its default. Uncomment any line to opt out of a layer of the step tree. The
 report's display `name`, `test_case`, and free-form `metadata` are set under
 `[tool.sift.pytest.report]`; `name` and `test_case` accept template
 placeholders.
@@ -107,9 +107,10 @@ A `TestReport` shows up in Sift once the session finishes.
 ### Offline (record now, replay later)
 
 ```bash
-pytest --sift-offline --sift-log-file=/tmp/sift-demo.jsonl -v
-# Later, from anywhere with credentials:
-import-test-result-log /tmp/sift-demo.jsonl
+pytest --sift-offline --sift-output-dir=/tmp/sift-demo -v
+# The summary panel prints the exact replay command and log path. Later, from
+# anywhere with credentials:
+import-test-result-log /tmp/sift-demo/a1b2c3/a1b2c3.jsonl
 ```
 
 ## Expected report tree
