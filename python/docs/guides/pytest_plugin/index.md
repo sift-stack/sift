@@ -66,6 +66,14 @@ A `TestReport` shows up in Sift once the session finishes.
     it does not short-circuit on the first failure and skip every measurement
     after it.
 
+!!! tip "Stopping the whole run early"
+    `pytest.fail()` fails a single test. To stop the session,
+    `pytest.exit("...")` ends it and rolls the report up as `FAILED`, while
+    `sift_client.pytest_plugin.abort("...")` ends it and rolls the report up as
+    `ABORTED`, for a system-level stop where the run was cut off rather than a
+    test failing (a real Ctrl-C does the same). See
+    [Pass/Fail Behavior](pass_fail_behavior.md#stopping-a-run-as-aborted).
+
 ## Sensible defaults
 
 With nothing but the `conftest.py` above, you get:
