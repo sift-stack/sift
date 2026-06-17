@@ -3,13 +3,15 @@
 Offline mode routes every create/update through the JSONL log file without
 contacting Sift. The session-start ping is skipped, the import worker is not
 spawned, and missing ``SIFT_*`` env vars are tolerated (placeholders are
-filled). Offline + ``--sift-log-file=none`` is rejected as a
+filled). Offline + ``--no-sift-log-file`` is rejected as a
 usage error since the log file is the sole sink in this mode.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
+
+from sift_client._tests.pytest_plugin._step_status_capture import run_jsonl
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,10 +45,10 @@ class TestOfflineMode:
         pytester: pytest.Pytester,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """``--sift-log-file=none`` + ``--sift-offline`` is a usage error."""
+        """``--no-sift-log-file`` + ``--sift-offline`` is a usage error."""
         write_plugin_conftest()
         pytester.makepyfile("def test_should_not_run(): pass")
-        result = pytester.runpytest_subprocess("--sift-offline", "--sift-log-file=none")
+        result = pytester.runpytest_subprocess("--sift-offline", "--no-sift-log-file")
         assert result.ret != 0
         combined = "\n".join(result.outlines + result.errlines)
         assert "incompatible with --sift-offline" in combined, combined
@@ -83,8 +85,8 @@ class TestOfflineMode:
         clear_sift_env: None,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """Offline mode populates the pinned JSONL file with create/update entries."""
-        log_path = tmp_path / "run.jsonl"
+        """Offline mode populates the JSONL file in the output dir with create/update entries."""
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyfile(
             """
@@ -94,8 +96,9 @@ class TestOfflineMode:
                 ) is True
             """
         )
-        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
+        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-output-dir={out_dir}")
         result.assert_outcomes(passed=1)
+        log_path = run_jsonl(out_dir)
         assert log_path.exists(), f"offline mode did not create {log_path}"
         content = log_path.read_text()
         assert content.strip(), "log file is empty"

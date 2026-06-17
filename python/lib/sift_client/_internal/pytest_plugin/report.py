@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 def resolve_real_report_id(context: Any) -> str | None:
     """Resolve the real server-side report id for the online footer link.
 
-    In synchronous online mode (``--sift-log-file=false``) the report is created
+    In synchronous online mode (``--no-sift-log-file``) the report is created
     directly against the API, so ``report.id_`` is already the real id. In the
     default incremental mode the report is created through the simulate path
     (a client-side UUID) and the background worker maps it to the real id on
@@ -377,41 +377,20 @@ def format_template(
         return fallback
 
 
-def resolve_log_file(pytestconfig: pytest.Config | None) -> str | Path | bool | None:
-    """Determine log_file value from CLI flag or ini key.
+def log_file_enabled(pytestconfig: pytest.Config | None) -> bool:
+    """Whether the JSONL log of create/update calls is written.
 
-    Three signal types arrive here:
-
-    * ``None``: unset; nothing was passed on the CLI and the ini key is
-      absent. Treat as the default "use a temp file."
-    * Python ``False``: an explicit disable, typically set in a conftest via
-      ``config.option.sift_log_file = False``. Return ``None`` so
-      the rest of the pipeline knows to skip logging entirely.
-    * A string (from CLI or ini): interpret ``"true"`` / ``"1"`` as the temp
-      file default, ``"false"`` / ``"none"`` as disable, anything else as a
-      file path.
-
-    Rejects ``--sift-log-file=none`` combined with ``--sift-offline`` since
-    offline mode needs the log file as its sole sink.
+    On by default; ``--no-sift-log-file`` disables it. Offline mode routes every
+    create/update call through the log as its only sink, so disabling the log
+    while offline is a usage error.
     """
-    raw = LOG_FILE_OPTION.resolve(pytestconfig)
-    disabled = raw is False or (isinstance(raw, str) and raw.lower() in ("false", "none"))
-    if disabled and is_offline(pytestconfig):
+    enabled = bool(LOG_FILE_OPTION.resolve(pytestconfig))
+    if not enabled and is_offline(pytestconfig):
         raise pytest.UsageError(
-            "--sift-log-file=none is incompatible with --sift-offline; offline "
-            "mode requires a log file. Pin one with --sift-log-file=<path>, or "
-            "drop --sift-log-file=none to use a temp file."
+            "--no-sift-log-file is incompatible with --sift-offline; offline mode "
+            "requires the JSONL log as its only sink. Drop one of the two flags."
         )
-    if raw is False:
-        return None
-    if not raw:
-        return True
-    lower = str(raw).lower()
-    if lower in ("true", "1"):
-        return True
-    if lower in ("false", "none"):
-        return None
-    return Path(raw)
+    return enabled
 
 
 def report_context_impl(
@@ -458,15 +437,16 @@ def report_context_impl(
         "pytest_command": command,
     }
     # Mode → ReportContext flags:
-    #   online (default): log_file=<temp or user path>, replay_log_file=True
-    #   --sift-offline:   log_file=<temp or user path>, replay_log_file=False
-    #   --sift-disabled:  log_file=False,               replay_log_file=False
+    #   online (default): log_file=<path in session dir>, replay_log_file=True
+    #   --sift-offline:   log_file=<path in session dir>, replay_log_file=False
+    #   --sift-disabled / --no-sift-log-file: log_file=False, replay_log_file=False
     disabled = sift_client._simulate
     offline = False if disabled else is_offline(pytestconfig)
-    log_file: str | Path | bool | None = False if disabled else resolve_log_file(pytestconfig)
-    # When the log would use a default temp file and the plugin already created
-    # a session dir, pin the JSONL inside that dir so it lands alongside the
-    # audit log rather than having ReportContext mint a separate session dir.
+    log_file: str | Path | bool = False if disabled else log_file_enabled(pytestconfig)
+    # Place the JSONL inside the run's session dir so it lands alongside the
+    # audit log. pytest_configure created the dir whenever the log is enabled; if
+    # one isn't present (e.g. ReportContext used outside pytest), log_file stays
+    # True and ReportContext mints its own dir.
     if log_file is True and pytestconfig is not None:
         from sift_client.pytest_plugin import SIFT_SESSION_DIR_STASH_KEY
 

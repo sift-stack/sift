@@ -138,6 +138,17 @@ def _git_metadata() -> dict[str, str] | None:
         return None
 
 
+def _is_session_exit(exc_value: BaseException | None) -> bool:
+    """True for pytest's session-stopping ``Exit`` (``pytest.exit`` / sift ``abort``).
+
+    Matched by type name and module so this framework-agnostic module needs no
+    pytest import. ``SystemExit`` and ``KeyboardInterrupt`` are handled by their
+    own ``isinstance`` checks at the call site.
+    """
+    cls = type(exc_value)
+    return cls.__name__ == "Exit" and cls.__module__ == "_pytest.outcomes"
+
+
 class ReportContext(AbstractContextManager):
     """Context manager for a new TestReport. See usage example in __init__.py."""
 
@@ -159,6 +170,12 @@ class ReportContext(AbstractContextManager):
     # last-descendant-finish rather than wall-clock at session end.
     parent_end_times: dict[str, datetime]
     any_failures: bool
+    # Set when the run was stopped as a system-level abort (Ctrl-C, or the
+    # pytest plugin's ``abort()`` helper) rather than a failure. Parents and the
+    # report that close out-of-band during the unwind then resolve to ABORTED
+    # instead of FAILED. A plain ``pytest.exit()`` leaves this False, so it stays
+    # in the FAILED bucket.
+    session_aborted: bool
     # Every step created in this report (including hierarchy/parametrize
     # parents), retained after close so end-of-run summaries can tally final
     # statuses. ``update`` mutates step instances in place, so these references
@@ -233,6 +250,7 @@ class ReportContext(AbstractContextManager):
         self.open_step_results = {}
         self.parent_end_times = {}
         self.any_failures = False
+        self.session_aborted = False
         self.created_steps = []
         self.created_measurements = []
         self.replay_incomplete = False
@@ -328,7 +346,9 @@ class ReportContext(AbstractContextManager):
         update = {
             "end_time": datetime.now(timezone.utc),
         }
-        if self.any_failures or exc_type:
+        if self.session_aborted:
+            update["status"] = TestStatus.ABORTED
+        elif self.any_failures or exc_type:
             update["status"] = TestStatus.FAILED
         else:
             update["status"] = TestStatus.PASSED
@@ -345,7 +365,7 @@ class ReportContext(AbstractContextManager):
             #      Healthy worker with a large backlog; kill and surface
             #      replay instructions. 30 seconds is enough for a normal
             #      test suite to drain; pathological backlogs should opt
-            #      into inline mode (`--sift-log-file=false`) instead.
+            #      into inline mode (`--no-sift-log-file`) instead.
             #   3. Exited with non-zero. Connection failures and API call
             #      errors land here — the worker's replay loop has no retry,
             #      so the first failed RPC crashes the subprocess. Surface
@@ -543,6 +563,17 @@ class ReportContext(AbstractContextManager):
         if not outcome:
             self.open_step_results[step.step_path] = False
             self.any_failures = True
+            # Diagnostic: a failure recorded on this step's OWN scope (a failing
+            # report_outcome or an out-of-bounds measure), as distinct from one
+            # inherited from a child (which shows up as a step.propagate line).
+            # Lets a reader tell why a later step.resolve marks the step failed.
+            log_event(
+                logger,
+                logging.DEBUG,
+                "step.outcome",
+                step_path=step.step_path,
+                result="fail",
+            )
 
     def record_measurement(self, measurement: TestMeasurement) -> None:
         """Retain a recorded measurement for end-of-run summaries."""
@@ -557,7 +588,21 @@ class ReportContext(AbstractContextManager):
         self.any_failures = True
         path_parts = step.step_path.split(".")
         if len(path_parts) > 1:
-            self.open_step_results[".".join(path_parts[:-1])] = False
+            parent_path = ".".join(path_parts[:-1])
+            self.open_step_results[parent_path] = False
+            # Diagnostic: a teardown-phase failure fires after the step's own
+            # __exit__ has resolved, so it never runs through
+            # propagate_step_result. Log the parent roll-up here so it is traced
+            # like every other failure that reaches a parent.
+            log_event(
+                logger,
+                logging.DEBUG,
+                "step.propagate",
+                step_path=step.step_path,
+                status=step.status.name,
+                signal="teardown_fail",
+                parent=parent_path,
+            )
 
     def propagate_step_result(self, step: TestStep, status: TestStatus) -> bool:
         """Propagate this step's final status to the parent step.
@@ -573,7 +618,24 @@ class ReportContext(AbstractContextManager):
             self.open_step_results[step.step_path] = False
             path_parts = step.step_path.split(".")
             if len(path_parts) > 1:
-                self.open_step_results[".".join(path_parts[:-1])] = False
+                parent_path = ".".join(path_parts[:-1])
+                self.open_step_results[parent_path] = False
+                # Diagnostic: record the child→parent roll-up so the parent's
+                # eventual ``cause=child_failed`` can be traced back to the step
+                # that triggered it. The parent inherits a not-pass signal only;
+                # ABORTED stays on the step in whose scope the exit fired (and the
+                # substeps the exception unwinds through), so an aborted child
+                # still rolls up to its container parent as FAILED. ``signal``
+                # records the child's own terminal kind for the trace.
+                log_event(
+                    logger,
+                    logging.DEBUG,
+                    "step.propagate",
+                    step_path=step.step_path,
+                    status=status.name,
+                    signal="abort" if status == TestStatus.ABORTED else "fail",
+                    parent=parent_path,
+                )
         return succeeded
 
     def note_close(self, step: TestStep) -> None:
@@ -742,7 +804,43 @@ class NewStep(AbstractContextManager):
         header = f"{message} ({len(details)}):" if details else message
         pytest.fail("\n".join([header, *details]), pytrace=False)
 
-    def update_step_from_result(
+    def _log_resolve(self, step: TestStep, status: TestStatus, cause: str) -> None:
+        """Emit the ``step.resolve`` audit line: how this step's status was derived.
+
+        For ``cause=child_failed`` the failure bucket is split at log time into
+        ``measurement_failed`` (a failing measure on this step), ``own_failure``
+        (a failing report_outcome / manual record_step_outcome, which are not
+        distinguishable), or ``child_failed`` (a descendant failed, with ``from=``
+        naming the direct children and their statuses). Other causes log as-is.
+        The whole thing is guarded so the child scan only runs when audit is on.
+        """
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
+        fields: dict[str, object] = {
+            "name": step.name,
+            "step_path": step.step_path,
+            "status": status.name,
+        }
+        if cause == "child_failed":
+            prefix = step.step_path + "."
+            child_depth = step.step_path.count(".") + 1
+            contributors = [
+                f"{s.step_path}:{s.status.name}"
+                for s in self.report_context.created_steps
+                if s.step_path.startswith(prefix)
+                and s.step_path.count(".") == child_depth
+                and s.status not in (TestStatus.PASSED, TestStatus.SKIPPED, TestStatus.IN_PROGRESS)
+            ]
+            if contributors:
+                fields["from"] = ",".join(contributors)
+            elif self._failed_measurement_count > 0:
+                cause = "measurement_failed"
+            else:
+                cause = "own_failure"
+        fields["cause"] = cause
+        log_event(logger, logging.DEBUG, "step.resolve", **fields)
+
+    def _update_step_from_result(
         self,
         exc: type[Exception] | None,
         exc_value: Exception | None,
@@ -779,10 +877,14 @@ class NewStep(AbstractContextManager):
                 # UI can show what was asserted.
                 self.report_context.record_step_outcome(False, current_step)
                 error_info = format_assertion_message(exc, exc_value)
-            elif isinstance(exc_value, (KeyboardInterrupt, SystemExit)):
-                # Hard exit propagating through the substep stack: record as
-                # ABORTED so every in-progress step on the way out reflects
-                # the abort rather than coercing to ERROR.
+            elif isinstance(exc_value, (KeyboardInterrupt, SystemExit)) or _is_session_exit(
+                exc_value
+            ):
+                # Hard exit propagating through the step stack: a SystemExit /
+                # KeyboardInterrupt, or pytest's session-stopping Exit
+                # (pytest.exit / sift abort). Record ABORTED so every in-progress
+                # step the exit unwinds through reflects the cut-off rather than
+                # coercing to ERROR.
                 aborted = True
                 error_info = format_truncated_traceback(exc, exc_value, tb)
             else:
@@ -792,10 +894,11 @@ class NewStep(AbstractContextManager):
         # Status is the governor: anything other than IN_PROGRESS was set
         # deliberately (manual override, plugin pre-resolution, etc.) and must
         # not be silently overwritten by side-channel signals. When the step is
-        # still IN_PROGRESS, resolve from independent state: aborts first, then
-        # a child-failed signal (parents inherit FAILED, not the originating
-        # ERROR), then the step's own captured exception, then the children-pass
-        # default. error_info is diagnostic and never drives status.
+        # still IN_PROGRESS, resolve from independent state: the step's own abort
+        # first, then a child-failed signal (parents inherit FAILED, not the
+        # originating ERROR or ABORTED), then the step's own captured exception,
+        # then the children-pass default. error_info is diagnostic and never
+        # drives status.
         status = current_step.status
         if status == TestStatus.IN_PROGRESS:
             children_passed = self.report_context.open_step_results.get(
@@ -803,12 +906,30 @@ class NewStep(AbstractContextManager):
             )
             if aborted:
                 status = TestStatus.ABORTED
+                cause = "own_abort"
+            elif self.report_context.session_aborted:
+                # The run was stopped as a system abort (Ctrl-C / sift abort).
+                # A parent closing out-of-band during the unwind inherits
+                # ABORTED rather than FAILED, so the abort reaches the
+                # containers and report. A plain pytest.exit() leaves the flag
+                # unset and falls through to FAILED below.
+                status = TestStatus.ABORTED
+                cause = "session_aborted"
             elif not children_passed:
                 status = TestStatus.FAILED
+                cause = "child_failed"
             elif errored:
                 status = TestStatus.ERROR
+                cause = "own_error"
             else:
                 status = TestStatus.PASSED
+                cause = "clean"
+        else:
+            # Status was set deliberately upstream (manual override or plugin
+            # pre-resolution) before this resolver ran.
+            cause = "preset"
+
+        self._log_resolve(current_step, status, cause)
 
         # Propagate based on the resolved status; error_info rides along as
         # pure diagnostics and does not affect propagation.
@@ -859,6 +980,10 @@ class NewStep(AbstractContextManager):
                 # The step was never opened; nothing to propagate.
                 return True
             override = getattr(self, "_sift_end_time_override", None)
+            # Status was resolved upstream (pytest phase reports / manual
+            # override); log it like the in-resolver path so every step has a
+            # traceable ``step.resolve`` line.
+            self._log_resolve(current_step, current_step.status, "external")
             result = self.report_context.propagate_step_result(current_step, current_step.status)
             current_step.update(
                 {
@@ -874,7 +999,7 @@ class NewStep(AbstractContextManager):
                 result = self.force_result
             return result
 
-        result = self.update_step_from_result(
+        result = self._update_step_from_result(
             exc, exc_value, tb, end_time=getattr(self, "_sift_end_time_override", None)
         )
 

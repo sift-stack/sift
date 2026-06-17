@@ -38,7 +38,7 @@ def _cleanup_temp_log(log_file: str) -> None:
 
     Called only when audit logging is off: without an audit trail there's no
     reason to retain the buffer, so default temp artifacts are reclaimed
-    immediately. An explicit ``--sift-log-file`` (not under the temp dir) is
+    immediately. An explicit ``--sift-output-dir`` (not under the temp dir) is
     the user's to keep and is never touched.
 
     Session-dir layout (``<tmpdir>/sift_test_results/<random>/``): the whole

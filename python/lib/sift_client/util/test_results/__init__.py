@@ -71,7 +71,7 @@ Override it by defining your own `sift_client` fixture in your conftest.
 
 Note: FedRAMP users: results are buffered to a temp file and uploaded by a
 subprocess at session end (no API calls during the run). Disable the buffer
-entirely with `--sift-log-file=false` for inline uploads.
+entirely with `--no-sift-log-file` for inline uploads.
 
 ### Controlling which tests produce reports
 
@@ -116,9 +116,11 @@ CLI options registered by the plugin:
   returns a real pass/fail boolean. Returned entities expose
   ``is_simulated == True``. Also honored via the `SIFT_DISABLED` env
   var. Supersedes every other flag.
-- `--sift-log-file`: Path to write the JSONL log file. `true`
-  (default) auto-creates a temp file. `false` or `none` disables logging.
-  Any other value is treated as a file path.
+- `--sift-output-dir`: Directory for this run's artifacts (JSONL log, audit
+  trace). Each run gets its own random subfolder. Defaults to a temp directory.
+- `--no-sift-log-file`: Disable the JSONL log (written by default). Incompatible
+  with `--sift-offline`, which needs the log as its only sink.
+- `--no-sift-audit-log`: Disable the DEBUG audit trace (written by default).
 - `--no-sift-git-metadata`: Exclude git metadata (repo, branch,
   commit) from the test report. Included by default.
 

@@ -103,6 +103,29 @@ _active_log: Path | None = None
 _cached: dict[str, CapturedStep] | None = None
 
 
+def run_jsonl(output_dir: Path) -> Path:
+    """The JSONL log for the most recent run under a ``--sift-output-dir``.
+
+    The plugin nests each run in its own random subfolder, so the log lives at
+    ``<output_dir>/<random>/<random>.jsonl``. Returns the newest match (tests
+    that re-run into the same dir get the latest).
+    """
+    path = run_jsonl_or_none(output_dir)
+    if path is None:
+        raise FileNotFoundError(f"no Sift JSONL log under {output_dir}")
+    return path
+
+
+def run_jsonl_or_none(output_dir: Path) -> Path | None:
+    """Like :func:`run_jsonl`, but ``None`` when no run wrote a log.
+
+    A fully-gated-off run (every test ``sift_exclude``-d) never creates a
+    ReportContext, so no JSONL is written; the caller treats that as no steps.
+    """
+    matches = sorted(output_dir.glob("*/*.jsonl"), key=lambda p: p.stat().st_mtime)
+    return matches[-1] if matches else None
+
+
 def set_log(path: Path) -> None:
     """Point subsequent queries at a new log file. Clears the parse cache."""
     global _active_log, _cached

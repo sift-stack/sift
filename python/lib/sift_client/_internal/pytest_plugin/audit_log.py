@@ -2,9 +2,9 @@
 
 On by default: every session attaches two handlers to the ``sift_client`` root
 logger so plugin-behavior modules AND high-value SDK call sites land in one file
-(a temp file unless ``--sift-audit-log=<path>`` pins one), with warnings also
-echoed to stdout. Pass ``--sift-audit-log=false`` (or set ``sift_audit_log =
-"false"``) to turn it off. The replay subprocess gets its own sibling file via
+(in the run's ``--sift-output-dir``, or a temp dir), with warnings also echoed
+to stdout. Pass ``--no-sift-audit-log`` (or set ``sift_audit_log = false``) to
+turn it off. The replay subprocess gets its own sibling file via
 ``replay_audit_path``.
 
 Handlers are removed at session end (``pytest_unconfigure`` ->
@@ -110,41 +110,17 @@ def replay_audit_path(main_path: Path) -> Path:
     return main_path.with_suffix(".replay" + main_path.suffix)
 
 
-def audit_disabled(value: object) -> bool:
-    """Whether audit logging is explicitly turned off.
+def _make_session_dir(base: Path | None = None) -> Path:
+    """Create and return ``<base>/<random>/`` for this run's artifacts.
 
-    Default on: only ``False`` / ``"false"`` / ``"none"`` disables. Anything
-    else — unset, ``"true"``, or a path — leaves it enabled.
+    ``base`` is the ``--sift-output-dir`` directory when set, else
+    ``<tmpdir>/sift_test_results``. Each run gets its own random subfolder (from
+    ``tempfile.mkdtemp``) so repeated or concurrent runs never collide, and all
+    of a run's artifacts (JSONL log, tracking sidecar, audit log, replay audit
+    log) land inside it together.
     """
-    if value is False:
-        return True
-    return isinstance(value, str) and value.strip().lower() in ("false", "none")
-
-
-def explicit_audit_path(value: object) -> Path | None:
-    """The file path the user pinned, or ``None`` to use a temp default.
-
-    ``"true"`` / ``"1"`` / unset all mean "enabled, no specific path", so the
-    caller falls back to :func:`default_audit_path`.
-    """
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    if text.lower() in ("", "true", "1", "false", "none"):
-        return None
-    return Path(text)
-
-
-def _make_session_dir() -> Path:
-    """Create and return ``<tmpdir>/sift_test_results/<random>/``.
-
-    All per-session temp artifacts (JSONL log, tracking sidecar, audit log,
-    replay audit log) land inside this directory so they're easy to locate and
-    clean up together. The random component comes from ``tempfile.mkdtemp`` —
-    the same OS-backed source used by ``NamedTemporaryFile``.
-    """
-    parent = Path(tempfile.gettempdir()) / "sift_test_results"
-    parent.mkdir(exist_ok=True)
+    parent = base if base is not None else Path(tempfile.gettempdir()) / "sift_test_results"
+    parent.mkdir(parents=True, exist_ok=True)
     return Path(tempfile.mkdtemp(dir=parent, prefix=""))
 
 
@@ -198,10 +174,9 @@ def configure_audit_logging(
     """
     from sift_client._internal.pytest_plugin.options import AUDIT_LOG_OPTION
 
-    raw = AUDIT_LOG_OPTION.resolve(config)
-    if audit_disabled(raw):
+    if not AUDIT_LOG_OPTION.resolve(config):
         return None
-    path = explicit_audit_path(raw) or default_audit_path(session_dir=session_dir)
+    path = default_audit_path(session_dir=session_dir)
     attach_file_handler(path)
     logger = logging.getLogger(ROOT_LOGGER)
     if not any(

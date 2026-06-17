@@ -113,20 +113,20 @@ class TestDisabledMode:
         result = pytester.runpytest_subprocess("--sift-disabled")
         result.assert_outcomes(passed=1)
 
-    def test_disabled_writes_no_log_file_even_when_path_pinned(
+    def test_disabled_writes_no_log_file(
         self,
         pytester: pytest.Pytester,
         tmp_path: Path,
         clear_sift_env: None,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """Disabled mode skips the log-file pipeline even when a path is pinned."""
-        log_path = tmp_path / "should-not-exist.jsonl"
+        """Disabled mode skips the log-file pipeline; no JSONL lands in the output dir."""
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyfile("def test_runs(step): step.measure(name='v', value=1.0)")
-        result = pytester.runpytest_subprocess("--sift-disabled", f"--sift-log-file={log_path}")
+        result = pytester.runpytest_subprocess("--sift-disabled", f"--sift-output-dir={out_dir}")
         result.assert_outcomes(passed=1)
-        assert not log_path.exists(), f"log file unexpectedly created at {log_path}"
+        assert not list(out_dir.glob("*/*.jsonl")), "disabled mode unexpectedly wrote a JSONL log"
 
     def test_disabled_skips_client_has_connection_and_sift_client(
         self,

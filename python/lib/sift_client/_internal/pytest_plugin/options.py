@@ -217,22 +217,36 @@ def _walk_toml(data: dict[str, Any], path: tuple[str, ...]) -> Any:
 #     loads .env for local dev; CI sets the same names from its secret store).
 # ---------------------------------------------------------------------------
 
-# Pytest behavior. The CLI flag survives because the per-run override is real.
+# Pytest behavior. The CLI flags survive because the per-run override is real.
+OUTPUT_DIR_OPTION = Option(
+    name="output_dir",
+    category=CAT_BEHAVIOR,
+    help="Directory for this run's artifacts (JSONL log, audit trace). Each run gets "
+    "its own random subfolder. Defaults to a temp directory.",
+    cli="--sift-output-dir",
+    ini="sift_output_dir",
+)
 LOG_FILE_OPTION = Option(
     name="log_file",
     category=CAT_BEHAVIOR,
-    help="Path to the JSONL log of create/update calls (path | true | false | none).",
-    cli="--sift-log-file",
+    help="Write the JSONL log of create/update calls. On by default; "
+    "--no-sift-log-file disables it (incompatible with --sift-offline).",
+    cli="--no-sift-log-file",
+    cli_action="store_false",
     ini="sift_log_file",
+    ini_type="bool",
+    ini_default=True,
 )
 AUDIT_LOG_OPTION = Option(
     name="audit_log",
     category=CAT_BEHAVIOR,
-    help="DEBUG-level audit trace of plugin behavior (path | true | false). On by "
-    "default to a temp file, with warnings echoed to stdout; set a path to pin the "
-    "file, or false to disable.",
-    cli="--sift-audit-log",
+    help="Write the DEBUG audit trace of plugin behavior, with warnings echoed to "
+    "stdout. On by default; --no-sift-audit-log disables it.",
+    cli="--no-sift-audit-log",
+    cli_action="store_false",
     ini="sift_audit_log",
+    ini_type="bool",
+    ini_default=True,
 )
 GIT_METADATA_OPTION = Option(
     name="git_metadata",
@@ -406,6 +420,7 @@ METADATA_OPTION = Option(
 )
 
 PLUGIN_OPTIONS: tuple[Option, ...] = (
+    OUTPUT_DIR_OPTION,
     LOG_FILE_OPTION,
     AUDIT_LOG_OPTION,
     GIT_METADATA_OPTION,

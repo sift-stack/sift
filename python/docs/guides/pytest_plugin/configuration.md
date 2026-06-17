@@ -67,7 +67,7 @@ Prefer real environment variables (shell exports, CI secrets) for anything you
 can't keep in a local file.
 
 !!! warning "FedRAMP / shared environments"
-    Pass `--sift-log-file=false` (or set the ini key to `"false"`) to skip the
+    Pass `--no-sift-log-file` (or set `sift_log_file = false`) to skip the
     temp file + worker pipeline. Create/update calls then run inline against the
     API instead of being deferred through a subprocess.
 
@@ -146,8 +146,9 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 
 | Setting | CLI flag | Ini (`[tool.pytest.ini_options]`) |
 |---|---|---|
-| Path to the JSONL log of create/update calls (path \| true \| false \| none). | `--sift-log-file` | `sift_log_file` |
-| DEBUG-level audit trace of plugin behavior (path \| true \| false). On by default to a temp file, with warnings echoed to stdout; set a path to pin the file, or false to disable. | `--sift-audit-log` | `sift_audit_log` |
+| Directory for this run's artifacts (JSONL log, audit trace). Each run gets its own random subfolder. Defaults to a temp directory. | `--sift-output-dir` | `sift_output_dir` |
+| Write the JSONL log of create/update calls. On by default; --no-sift-log-file disables it (incompatible with --sift-offline). | `--no-sift-log-file` | `sift_log_file` |
+| Write the DEBUG audit trace of plugin behavior, with warnings echoed to stdout. On by default; --no-sift-audit-log disables it. | `--no-sift-audit-log` | `sift_audit_log` |
 | Capture git repo/branch/commit on the report. | `--no-sift-git-metadata` | `sift_git_metadata` |
 | Skip the session-start ping; route create/update through the JSONL log. | `--sift-offline` | `sift_offline` |
 | Disable Sift entirely (no API calls, no log file). Supersedes --sift-offline. | `--sift-disabled` | `sift_disabled` |

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
+from sift_client._tests.pytest_plugin._step_status_capture import run_jsonl
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -34,7 +36,7 @@ class TestReportName:
         write_plugin_conftest: Callable[[], None],
     ) -> None:
         """``[tool.sift.pytest.report] name`` renders placeholders into the report name."""
-        log_path = tmp_path / "run.jsonl"
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyprojecttoml(
             """
@@ -43,7 +45,8 @@ class TestReportName:
             """
         )
         pytester.makepyfile("def test_one(step): pass")
-        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
+        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-output-dir={out_dir}")
+        log_path = run_jsonl(out_dir)
         result.assert_outcomes(passed=1)
         line = _create_report_line(log_path.read_text())
         assert '"name":"TomlReport-1"' in line, line
@@ -56,10 +59,11 @@ class TestReportName:
         write_plugin_conftest: Callable[[], None],
     ) -> None:
         """The full pytest invocation is stored on the report metadata."""
-        log_path = tmp_path / "run.jsonl"
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyfile("def test_one(step): pass")
-        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
+        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-output-dir={out_dir}")
+        log_path = run_jsonl(out_dir)
         result.assert_outcomes(passed=1)
         line = _create_report_line(log_path.read_text())
         assert '"pytest_command"' in line, line
@@ -79,7 +83,7 @@ class TestReportName:
         checkout, so ``{git_branch}`` resolves to an empty string rather than
         triggering the unknown-placeholder fallback.
         """
-        log_path = tmp_path / "run.jsonl"
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyprojecttoml(
             """
@@ -88,7 +92,8 @@ class TestReportName:
             """
         )
         pytester.makepyfile("def test_one(step): pass")
-        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
+        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-output-dir={out_dir}")
+        log_path = run_jsonl(out_dir)
         result.assert_outcomes(passed=1)
         combined = "\n".join(result.outlines + result.errlines)
         assert "Invalid sift_report_name template" not in combined, combined
@@ -103,7 +108,7 @@ class TestReportName:
         write_plugin_conftest: Callable[[], None],
     ) -> None:
         """An unknown placeholder warns and falls back without aborting the session."""
-        log_path = tmp_path / "run.jsonl"
+        out_dir = tmp_path / "sift-out"
         write_plugin_conftest()
         pytester.makepyprojecttoml(
             """
@@ -112,7 +117,8 @@ class TestReportName:
             """
         )
         pytester.makepyfile("def test_one(step): pass")
-        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-log-file={log_path}")
+        result = pytester.runpytest_subprocess("--sift-offline", f"--sift-output-dir={out_dir}")
+        log_path = run_jsonl(out_dir)
         result.assert_outcomes(passed=1)
         combined = "\n".join(result.outlines + result.errlines)
         assert "Invalid sift_report_name template" in combined, combined

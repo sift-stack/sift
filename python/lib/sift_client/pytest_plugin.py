@@ -18,17 +18,15 @@ import platform
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Generator
+from typing import Any, Generator, NoReturn
 
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client._internal.pytest_plugin.audit_log import (
     _make_session_dir,
-    audit_disabled,
     configure_audit_logging,
     detach_audit_handlers,
-    explicit_audit_path,
     log_event,
     render_report_tree,
     replay_audit_path,
@@ -45,7 +43,9 @@ from sift_client._internal.pytest_plugin.options import (
     APP_URL_OPTION,
     AUDIT_LOG_OPTION,
     GRPC_URI_OPTION,
+    LOG_FILE_OPTION,
     OPEN_OPTION,
+    OUTPUT_DIR_OPTION,
     REST_URI_OPTION,
     register_options,
     resolved_settings,
@@ -97,6 +97,7 @@ __all__ = [
     "ReportContext",
     "SiftPytestPluginWarning",
     "SiftPytestStepDrainWarning",
+    "abort",
     "client_has_connection",
     "report_context",
     "sift_client",
@@ -144,6 +145,35 @@ SIFT_AUDIT_LOG_STASH_KEY = pytest.StashKey[Path]()
 # ``<tmpdir>/sift_test_results/<random>/``. Read by ``report_context_impl``
 # to place the JSONL log alongside the audit log.
 SIFT_SESSION_DIR_STASH_KEY = pytest.StashKey[Path]()
+
+
+# ---------------------------------------------------------------------------
+# Public actions.
+# ---------------------------------------------------------------------------
+
+
+def abort(reason: str, returncode: int | None = None) -> NoReturn:
+    """Stop the pytest session and record the report and open parent steps as
+    ``ABORTED`` rather than ``FAILED``.
+
+    Use this for a system-level stop where the run was cut off rather than a test
+    failing, such as the device under test going away or a rig fault that makes
+    the remaining tests meaningless. The step that calls it and any open substeps
+    resolve to ``ABORTED``, and the enclosing class, module, package, and the
+    report inherit ``ABORTED`` too.
+
+    For a stop that should read as a failure, use ``pytest.exit`` (the default,
+    which rolls up ``FAILED``); for a single failing test, use ``pytest.fail``. A
+    real Ctrl-C / ``KeyboardInterrupt`` is treated the same as ``abort`` without
+    needing this call.
+
+    Args:
+        reason: Message shown by pytest and recorded as the stop reason.
+        returncode: Process exit code to pass through to ``pytest.exit``.
+    """
+    if REPORT_CONTEXT is not None:
+        REPORT_CONTEXT.session_aborted = True
+    pytest.exit(reason, returncode=returncode)
 
 
 # ---------------------------------------------------------------------------
@@ -427,14 +457,16 @@ def pytest_configure(config: pytest.Config) -> None:
         "sift_exclude: force the Sift autouse fixtures to skip this test "
         "regardless of the `sift_autouse` ini default.",
     )
-    # Create a session dir when audit logging is enabled and at its default path
-    # (not explicitly set by the user). This groups all temp artifacts —
-    # JSONL log, tracking sidecar, audit log, replay audit log — under one
-    # directory: ``<tmpdir>/sift_test_results/<random>/``.
-    raw_audit = AUDIT_LOG_OPTION.resolve(config)
+    # Create this run's artifact directory when either the JSONL log or the audit
+    # trace is enabled. Everything (JSONL log, tracking sidecar, audit log, replay
+    # audit log) lands inside it: ``<output-dir>/<random>/``, where the base is
+    # ``--sift-output-dir`` if set, else a temp directory. Each run gets its own
+    # random subfolder so repeated or concurrent runs never collide.
     session_dir: Path | None = None
-    if not audit_disabled(raw_audit) and explicit_audit_path(raw_audit) is None:
-        session_dir = _make_session_dir()
+    if AUDIT_LOG_OPTION.resolve(config) or LOG_FILE_OPTION.resolve(config):
+        output_dir = OUTPUT_DIR_OPTION.resolve(config)
+        base = Path(output_dir) if output_dir else None
+        session_dir = _make_session_dir(base)
         config.stash[SIFT_SESSION_DIR_STASH_KEY] = session_dir
 
     # Audit trace (on by default): attaches DEBUG file + WARNING stdout handlers
@@ -566,14 +598,38 @@ def pytest_runtest_logfinish(nodeid: str, location: tuple[str, int | None, str])
     release_finished_leaf(nodeid)
 
 
-def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+def pytest_keyboard_interrupt(excinfo: pytest.ExceptionInfo[BaseException]) -> None:
+    """Mark the session aborted for a real Ctrl-C / ``KeyboardInterrupt``.
+
+    pytest calls this for both ``KeyboardInterrupt`` and its own ``Exit``; only a
+    genuine interrupt (an operator or system stop) should roll up ABORTED. A
+    ``pytest.exit()`` raises ``Exit`` and is left in the FAILED bucket; the
+    ``abort()`` helper sets the flag itself before exiting, so it is unaffected by
+    the ``Exit`` case here.
+    """
+    if REPORT_CONTEXT is not None and excinfo.type is KeyboardInterrupt:
+        REPORT_CONTEXT.session_aborted = True
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     """Close any report-tree parents still open at session end (innermost first).
 
     Normally a no-op: ``report_context_impl`` finalizes the parents inside the
     ``ReportContext`` block so their updates reach the log before the import
     worker drains, and most parents already closed early as their subtrees
     finished. This is the idempotent backstop for anything still open.
+
+    Runs as a hookwrapper so the drain happens *after* pytest's own
+    ``pytest_sessionfinish`` (``SetupState.teardown_exact``), which finalizes the
+    still-open leaf step and the session-scoped ``report_context`` fixture. On a
+    session abort (``pytest.exit``) the leaf's fixture teardown is deferred to
+    that point; finalizing parents before it would close them while their
+    descendant is still unresolved, so the abort/failure would not roll up. The
+    ``yield`` lets that teardown run first, leaving this call the no-op backstop
+    it is meant to be.
     """
+    yield
     finalize_parents()
 
 
