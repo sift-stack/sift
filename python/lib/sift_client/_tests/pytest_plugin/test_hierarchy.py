@@ -299,9 +299,7 @@ def test_sift_exclude_on_class_propagates(pytester: pytest.Pytester, out_dir: Pa
     assert "test_a" not in by_name
 
 
-def test_class_docstring_becomes_step_description(
-    pytester: pytest.Pytester, out_dir: Path
-) -> None:
+def test_class_docstring_becomes_step_description(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_doc=dedent(
             '''
@@ -549,9 +547,7 @@ def test_sift_class_step_false_skips_class_steps(pytester: pytest.Pytester, out_
     assert by_name["test_b"][0]["parent_step_id"] == mod_id
 
 
-def test_sift_module_step_false_skips_module_step(
-    pytester: pytest.Pytester, out_dir: Path
-) -> None:
+def test_sift_module_step_false_skips_module_step(pytester: pytest.Pytester, out_dir: Path) -> None:
     _write_ini(pytester, out_dir, sift_module_step="false")
     pytester.makepyfile(
         test_nomod=dedent(
@@ -643,9 +639,7 @@ def test_sift_module_step_false_still_drains_across_modules(
     assert test_x_parent != test_y_parent
 
 
-def test_package_step_default_opens_for_init_dirs(
-    pytester: pytest.Pytester, out_dir: Path
-) -> None:
+def test_package_step_default_opens_for_init_dirs(pytester: pytest.Pytester, out_dir: Path) -> None:
     """Default: a directory with ``__init__.py`` produces a parent package step."""
     pytester.mkpydir("pkg_a")
     (pytester.path / "pkg_a" / "test_x.py").write_text(
@@ -807,9 +801,7 @@ def test_single_parametrize_clusters_under_originalname(
     assert by_name["v=5.0"][0]["parent_step_id"] == test_rail_id
 
 
-def test_stacked_parametrize_nests_outer_to_inner(
-    pytester: pytest.Pytester, out_dir: Path
-) -> None:
+def test_stacked_parametrize_nests_outer_to_inner(pytester: pytest.Pytester, out_dir: Path) -> None:
     pytester.makepyfile(
         test_iso=dedent(
             """
@@ -1569,9 +1561,7 @@ def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, out_d
     assert by_name["two"][0]["parent_step_id"] == parent_id
 
 
-def test_callable_id_factory_on_inner_parametrize(
-    pytester: pytest.Pytester, out_dir: Path
-) -> None:
+def test_callable_id_factory_on_inner_parametrize(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A callable ``ids=`` factory is invoked per value, just as pytest does."""
     pytester.makepyfile(
         test_cid=dedent(
