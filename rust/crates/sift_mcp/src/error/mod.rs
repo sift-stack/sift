@@ -8,7 +8,8 @@ pub type McpResult = Result<CallToolResult, rmcp::ErrorData>;
 
 /// gRPC codes that warrant a "stopped — do not retry in this prompt" message
 /// to the agent. Returns a machine-readable reason and the human-readable
-/// guidance.
+/// guidance. Classification follows AIP-194: only `Unavailable` is retried
+/// upstream by `with_retry`; every other code here surfaces immediately.
 fn soft_signal_guidance(code: Code) -> Option<(&'static str, &'static str)> {
     match code {
         Code::Unavailable => Some((
@@ -32,6 +33,31 @@ fn soft_signal_guidance(code: Code) -> Option<(&'static str, &'static str)> {
             "backend_error",
             "The Sift backend returned an internal error. \
              Do not retry this tool in this prompt. Surface this to the user; the issue is on the backend side.",
+        )),
+        Code::Aborted => Some((
+            "conflict",
+            "The Sift backend reported a conflict (concurrent modification or constraint violation). \
+             Do not retry this tool in this prompt. Surface this to the user so they can resolve the conflicting state.",
+        )),
+        Code::AlreadyExists => Some((
+            "already_exists",
+            "The resource already exists. \
+             Do not retry; the operation cannot succeed as-is. If the user intended to update an existing resource, surface this distinction to them.",
+        )),
+        Code::PermissionDenied => Some((
+            "permission_denied",
+            "The caller lacks permission for this operation. \
+             Do not retry; permission will not change within this prompt. Surface this to the user.",
+        )),
+        Code::Unauthenticated => Some((
+            "unauthenticated",
+            "Authentication is missing or invalid. \
+             Do not retry; the user must re-authenticate. Surface this to the user.",
+        )),
+        Code::Cancelled => Some((
+            "cancelled",
+            "The request was cancelled. \
+             Do not retry; the cancellation is intentional. Surface this to the user.",
         )),
         _ => None,
     }

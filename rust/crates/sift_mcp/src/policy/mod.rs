@@ -22,10 +22,11 @@ impl Default for RetryPolicy {
     }
 }
 
-/// Wrap a gRPC call in retry-with-backoff policy. Retries on transient codes
-/// (`Unavailable`, `ResourceExhausted`) using exponential backoff with full
-/// jitter. Returns the most recent `Status` when retries exhaust or when a
-/// non-retriable code is observed.
+/// Wrap a gRPC call in retry-with-backoff policy. Per AIP-194, only
+/// `Unavailable` is automatically retried (with exponential backoff and full
+/// jitter). All other codes — including `ResourceExhausted`, which is a
+/// server-side rate-limit signal — return immediately so the caller can surface
+/// the failure rather than amplifying load.
 pub async fn with_retry<T, F, Fut>(policy: &RetryPolicy, op: F) -> Result<T, Status>
 where
     F: Fn() -> Fut,
@@ -37,14 +38,12 @@ where
         match op().await {
             Ok(v) => return Ok(v),
             Err(s) => match s.code() {
-                Code::Unavailable | Code::ResourceExhausted => {
+                Code::Unavailable => {
                     attempt += 1;
                     if attempt >= policy.max_attempts {
                         return Err(s);
                     }
                 }
-                Code::DeadlineExceeded => return Err(s),
-                Code::Internal => return Err(s),
                 _ => return Err(s),
             },
         }

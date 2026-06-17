@@ -1,4 +1,3 @@
-use anyhow::Context as _;
 use rmcp::model::ErrorCode;
 use tonic::Status;
 
@@ -65,4 +64,47 @@ fn not_found_keeps_existing_mapping() {
 
     let data = from_anyhow(err);
     assert_eq!(data.code, ErrorCode::RESOURCE_NOT_FOUND);
+}
+
+#[test]
+fn soft_signal_for_aborted() {
+    let err = anyhow::Error::from(Status::aborted("conflict")).context("failed to update run");
+
+    let data = from_anyhow(err);
+    assert_eq!(reason_from_data(&data), "conflict");
+}
+
+#[test]
+fn soft_signal_for_already_exists() {
+    let err =
+        anyhow::Error::from(Status::already_exists("duplicate")).context("failed to create run");
+
+    let data = from_anyhow(err);
+    assert_eq!(reason_from_data(&data), "already_exists");
+}
+
+#[test]
+fn soft_signal_for_permission_denied() {
+    let err =
+        anyhow::Error::from(Status::permission_denied("nope")).context("failed to query assets");
+
+    let data = from_anyhow(err);
+    assert_eq!(reason_from_data(&data), "permission_denied");
+}
+
+#[test]
+fn soft_signal_for_unauthenticated() {
+    let err = anyhow::Error::from(Status::unauthenticated("no token")).context("failed to query");
+
+    let data = from_anyhow(err);
+    assert_eq!(reason_from_data(&data), "unauthenticated");
+}
+
+#[test]
+fn soft_signal_for_cancelled() {
+    let err = anyhow::Error::from(Status::cancelled("cancelled by server"))
+        .context("failed to get data");
+
+    let data = from_anyhow(err);
+    assert_eq!(reason_from_data(&data), "cancelled");
 }

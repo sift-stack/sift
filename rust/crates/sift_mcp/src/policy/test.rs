@@ -41,15 +41,32 @@ async fn returns_last_status_on_max_attempts() {
         let counter = counter.clone();
         async move {
             counter.fetch_add(1, Ordering::SeqCst);
-            Err(Status::resource_exhausted("nope"))
+            Err(Status::unavailable("nope"))
         }
     })
     .await;
 
     let err = result.unwrap_err();
-    assert_eq!(err.code(), Code::ResourceExhausted);
+    assert_eq!(err.code(), Code::Unavailable);
     assert_eq!(err.message(), "nope");
     assert_eq!(counter.load(Ordering::SeqCst), 3);
+}
+
+#[tokio::test]
+async fn resource_exhausted_does_not_retry() {
+    let policy = fast_policy();
+    let counter = Arc::new(AtomicU32::new(0));
+    let result: Result<(), Status> = with_retry(&policy, || {
+        let counter = counter.clone();
+        async move {
+            counter.fetch_add(1, Ordering::SeqCst);
+            Err(Status::resource_exhausted("slow down"))
+        }
+    })
+    .await;
+
+    assert_eq!(result.unwrap_err().code(), Code::ResourceExhausted);
+    assert_eq!(counter.load(Ordering::SeqCst), 1);
 }
 
 #[tokio::test]
