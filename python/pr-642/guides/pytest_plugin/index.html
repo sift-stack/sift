@@ -1213,6 +1213,15 @@ fails. It fails the test via <code>pytest.fail</code> (no assertion noise in
 it does not short-circuit on the first failure and skip every measurement
 after it.</p>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Stopping the whole run early</p>
+<p><code>pytest.fail()</code> fails a single test. To stop the session,
+<code>pytest.exit("...")</code> ends it and rolls the report up as <code>FAILED</code>, while
+<code>sift_client.pytest_plugin.abort("...")</code> ends it and rolls the report up as
+<code>ABORTED</code>, for a system-level stop where the run was cut off rather than a
+test failing (a real Ctrl-C does the same). See
+<a href="pass_fail_behavior/#stopping-a-run-as-aborted">Pass/Fail Behavior</a>.</p>
+</div>
 <h2 id="sensible-defaults">Sensible defaults<a class="headerlink" href="#sensible-defaults" title="Permanent link">&para;</a></h2>
 <p>With nothing but the <code>conftest.py</code> above, you get:</p>
 <ul>
