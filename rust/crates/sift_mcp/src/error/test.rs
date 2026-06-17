@@ -102,8 +102,8 @@ fn soft_signal_for_unauthenticated() {
 
 #[test]
 fn soft_signal_for_cancelled() {
-    let err = anyhow::Error::from(Status::cancelled("cancelled by server"))
-        .context("failed to get data");
+    let err =
+        anyhow::Error::from(Status::cancelled("cancelled by server")).context("failed to get data");
 
     let data = from_anyhow(err);
     assert_eq!(reason_from_data(&data), "cancelled");

@@ -64,18 +64,18 @@ fn soft_signal_guidance(code: Code) -> Option<(&'static str, &'static str)> {
 }
 
 pub fn from_anyhow(error: anyhow::Error) -> rmcp::ErrorData {
-    if let Some(status) = error.downcast_ref::<Status>() {
-        if let Some((reason, guidance)) = soft_signal_guidance(status.code()) {
-            return rmcp::ErrorData {
-                code: ErrorCode::INTERNAL_ERROR,
-                message: guidance.into(),
-                data: Some(serde_json::json!({
-                    "status": "stopped",
-                    "reason": reason,
-                    "guidance": guidance,
-                })),
-            };
-        }
+    if let Some(status) = error.downcast_ref::<Status>()
+        && let Some((reason, guidance)) = soft_signal_guidance(status.code())
+    {
+        return rmcp::ErrorData {
+            code: ErrorCode::INTERNAL_ERROR,
+            message: guidance.into(),
+            data: Some(serde_json::json!({
+                "status": "stopped",
+                "reason": reason,
+                "guidance": guidance,
+            })),
+        };
     }
 
     let message = format!("{error:?}");
