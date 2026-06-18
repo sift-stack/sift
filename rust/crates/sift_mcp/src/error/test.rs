@@ -17,7 +17,7 @@ fn soft_signal_for_resource_exhausted() {
         .context("failed to query assets");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "rate_limited");
+    assert_eq!(reason_from_data(&data), "RateLimited");
     assert!(data.message.contains("rate-limiting"));
 }
 
@@ -27,7 +27,7 @@ fn soft_signal_for_unavailable() {
         anyhow::Error::from(Status::unavailable("backend gone")).context("failed to query runs");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "backend_unreachable");
+    assert_eq!(reason_from_data(&data), "BackendUnreachable");
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn soft_signal_for_deadline_exceeded() {
         anyhow::Error::from(Status::deadline_exceeded("too slow")).context("failed to get data");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "query_too_expensive");
+    assert_eq!(reason_from_data(&data), "QueryTooExpensive");
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn soft_signal_for_internal() {
         anyhow::Error::from(Status::internal("backend bug")).context("failed to query channels");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "backend_error");
+    assert_eq!(reason_from_data(&data), "BackendError");
 }
 
 #[test]
@@ -71,7 +71,7 @@ fn soft_signal_for_aborted() {
     let err = anyhow::Error::from(Status::aborted("conflict")).context("failed to update run");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "conflict");
+    assert_eq!(reason_from_data(&data), "Conflict");
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn soft_signal_for_already_exists() {
         anyhow::Error::from(Status::already_exists("duplicate")).context("failed to create run");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "already_exists");
+    assert_eq!(reason_from_data(&data), "AlreadyExists");
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn soft_signal_for_permission_denied() {
         anyhow::Error::from(Status::permission_denied("nope")).context("failed to query assets");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "permission_denied");
+    assert_eq!(reason_from_data(&data), "PermissionDenied");
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn soft_signal_for_unauthenticated() {
     let err = anyhow::Error::from(Status::unauthenticated("no token")).context("failed to query");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "unauthenticated");
+    assert_eq!(reason_from_data(&data), "Unauthenticated");
 }
 
 #[test]
@@ -106,5 +106,5 @@ fn soft_signal_for_cancelled() {
         anyhow::Error::from(Status::cancelled("cancelled by server")).context("failed to get data");
 
     let data = from_anyhow(err);
-    assert_eq!(reason_from_data(&data), "cancelled");
+    assert_eq!(reason_from_data(&data), "Cancelled");
 }
