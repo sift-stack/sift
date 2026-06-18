@@ -1679,15 +1679,24 @@ class RunsAPI:
     ) -> Run:
         """Create a new run.
 
-        Note on assets: You do not need to provide asset info when creating a run.
-        If you pass a Run to future ingestion configs associated with assets, the association will happen automatically then.
-        However, if you do pass assets and set associate_new_data=True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run. This may be useful if you want to capture a time range for a specific asset or won't know about this Run when ingesting to that asset.
-        If the data has already been ingested, leave associate_new_data=False.
+        The behavior depends on the arguments:
+
+        - No assets: a standard run. Assets are associated later, automatically, when the run is
+          used in their ingestion configs, so asset info is not needed up front.
+        - assets, associate_new_data=False (default): an adhoc run over the assets' existing data
+          within the run's time period. Nothing is imported.
+        - assets, associate_new_data=True: a standard run that also captures data ingested later.
+          Data is associated when it lands in one of the assets within the run's time period,
+          even if its timestamp is in the past.
 
         Args:
-            create: The Run definition to create.
-            assets: List of assets to associate with the run. Note: if you are associating new data, you must provide assets/asset names.
-            associate_new_data: If True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run.
+            create: The run definition. For an adhoc run, set start_time and stop_time to bound
+                the window.
+            assets: Assets to associate with the run; required when associate_new_data is True.
+                Asset objects work in either mode. A bare string is read as an asset ID for an
+                adhoc run, and as an asset name when associate_new_data is True.
+            associate_new_data: If True, associate data ingested after the run is created that
+                falls within its time period. Requires assets.
 
         Returns:
             The created Run.
