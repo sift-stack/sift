@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -217,6 +218,32 @@ class TestReportsWaitUntilComplete:
 
         reports_api_async_mock_client.client.async_.jobs.get.assert_awaited_once_with(job_id=job_id)
         reports_api_async_mock_client.client.async_.jobs.wait_until_complete.assert_not_awaited()
+
+
+class TestReportsCreateFromRules:
+    """Unit tests for ReportsAPIAsync.create_from_rules argument forwarding."""
+
+    @pytest.mark.asyncio
+    async def test_forwards_time_range_to_evaluate_rules(self, reports_api_async_mock_client):
+        evaluate_rules = AsyncMock(return_value=(0, None, None))
+        reports_api_async_mock_client._rules_low_level_client.evaluate_rules = evaluate_rules
+        start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        end = datetime(2026, 1, 2, tzinfo=timezone.utc)
+
+        await reports_api_async_mock_client.create_from_rules(
+            name="report",
+            run="run-1",
+            rules=["rule-1"],
+            start_time=start,
+            end_time=end,
+        )
+
+        evaluate_rules.assert_awaited_once()
+        kwargs = evaluate_rules.await_args.kwargs
+        assert kwargs["start_time"] == start
+        assert kwargs["end_time"] == end
+        assert kwargs["run_id"] == "run-1"
+        assert kwargs["rule_ids"] == ["rule-1"]
 
 
 @pytest.mark.integration

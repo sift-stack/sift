@@ -1204,8 +1204,10 @@ class ReportsAPI:
             run: The run or run ID to associate with the report.
             organization_id: The organization ID.
             name: Optional name for the report.
-            start_time: Optional start time to evaluate rules against.
-            end_time: Optional end time to evaluate rules against.
+            start_time: Start of the time range to evaluate rules over. Ignored unless end_time
+                is also set and a run is provided.
+            end_time: End of the time range to evaluate rules over. Ignored unless start_time
+                is also set and a run is provided.
 
         Returns:
             The Job for the pending report, or None if no report was created.
@@ -1240,6 +1242,8 @@ class ReportsAPI:
         run: Run | str | None = None,
         organization_id: str | None = None,
         rules: list[Rule] | list[str],
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
     ) -> Job | None:
         """Create a new report from rules.
 
@@ -1248,6 +1252,10 @@ class ReportsAPI:
             run: The run or run ID to associate with the report.
             organization_id: The organization ID.
             rules: List of rules or rule IDs to include in the report.
+            start_time: Start of the time range to evaluate rules over. Ignored unless end_time
+                is also set and a run is provided.
+            end_time: End of the time range to evaluate rules over. Ignored unless start_time
+                is also set and a run is provided.
 
         Returns:
             The Job for the pending report, or None if no report was created.

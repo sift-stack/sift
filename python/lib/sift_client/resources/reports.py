@@ -200,6 +200,8 @@ class ReportsAPIAsync(ResourceBase):
         run: Run | str | None = None,
         organization_id: str | None = None,
         rules: list[Rule] | list[str],
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
     ) -> Job | None:
         """Create a new report from rules.
 
@@ -208,6 +210,10 @@ class ReportsAPIAsync(ResourceBase):
             run: The run or run ID to associate with the report.
             organization_id: The organization ID.
             rules: List of rules or rule IDs to include in the report.
+            start_time: Start of the time range to evaluate rules over. Ignored unless end_time
+                is also set and a run is provided.
+            end_time: End of the time range to evaluate rules over. Ignored unless start_time
+                is also set and a run is provided.
 
         Returns:
             The Job for the pending report, or None if no report was created.
@@ -215,6 +221,8 @@ class ReportsAPIAsync(ResourceBase):
         _annotation_count, _report_id, job = await self._rules_low_level_client.evaluate_rules(
             run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
+            start_time=start_time,
+            end_time=end_time,
             rule_ids=[rule._id_or_error if isinstance(rule, Rule) else rule for rule in rules]
             or [],
             report_name=name,
@@ -237,8 +245,10 @@ class ReportsAPIAsync(ResourceBase):
             run: The run or run ID to associate with the report.
             organization_id: The organization ID.
             name: Optional name for the report.
-            start_time: Optional start time to evaluate rules against.
-            end_time: Optional end time to evaluate rules against.
+            start_time: Start of the time range to evaluate rules over. Ignored unless end_time
+                is also set and a run is provided.
+            end_time: End of the time range to evaluate rules over. Ignored unless start_time
+                is also set and a run is provided.
 
         Returns:
             The Job for the pending report, or None if no report was created.
