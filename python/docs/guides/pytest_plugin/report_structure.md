@@ -104,6 +104,44 @@ so with incremental upload the report tree fills in progressively rather than
 all at once at the end. Its time window spans from its first test starting to its
 last test finishing.
 
+### Step ordering: hierarchy first, then execution
+
+The tree is structural, not chronological. Nesting follows the hierarchy:
+package, then module, then class, then parametrize axis. Each package, module,
+and class is one node, created the first time one of its tests runs and reused by
+the rest. Under a given node, sibling steps appear in execution order.
+
+This matters when you control execution order, for example with
+`pytest_collection_modifyitems`, an ordering plugin, or test shuffling. A module
+is one node, so reordering its tests to run non-contiguously does not split it.
+Tests that run later still nest under the original node, and the report is not a
+chronological log of the run. The step time windows stay accurate; only the tree
+position reflects hierarchy instead of run order.
+
+For example, promote `test_first` to run before everything else while its file's
+other tests run at the end of the session:
+
+```text title="Sift report"
+TestReport
+├── test_b.py            # created when test_first ran (first)
+│   ├── test_first
+│   ├── test_late_1      # ran last, still nested under test_b.py
+│   └── test_late_2
+└── test_a.py
+    ├── test_x
+    └── test_y
+```
+
+`test_late_1` and `test_late_2` ran after everything in `test_a.py`, but appear
+above it because they belong to `test_b.py`, created first.
+
+!!! tip "Structure your tests to match the report you want"
+    Nesting comes from your package, module, and class layout; sibling order
+    within a node comes from execution order. Group related tests in the same
+    file or class, and set step order by ordering those tests within that module
+    or class rather than across files. Reordering tests across files changes when
+    they run, not where they appear in the tree.
+
 ### Linking a Run to the report
 
 `report_context` is the session-scoped fixture; mutating it in one test affects
