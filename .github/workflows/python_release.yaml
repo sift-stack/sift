@@ -36,7 +36,7 @@ jobs:
         with:
           packages-dir: python/dist/
 
-  trigger-pyrunner-rebuild:
+  trigger-python-release-processor:
     name: Trigger Python release processor
     needs: publish-to-pypi
     runs-on: ubuntu-latest
