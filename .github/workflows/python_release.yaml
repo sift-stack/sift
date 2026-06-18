@@ -36,6 +36,38 @@ jobs:
         with:
           packages-dir: python/dist/
 
+  rebuild-pyrunner:
+    name: Rebuild pyrunner image
+    needs: publish-to-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Parse version
+        id: version
+        uses: ./.github/actions/python-version-info
+        with:
+          version: ${{ github.ref_name }}
+
+      - name: Trigger pyrunner rebuild in azimuth
+        if: steps.version.outputs.is_prerelease == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.AZIMUTH_ACTIONS_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'sift-stack',
+              repo: 'azimuth',
+              workflow_id: 'prep_deploy_images.yml',
+              ref: 'main',
+              inputs: {
+                target_image: 'pyrunner',
+                aws_region: 'us-west-2',
+                skip_tests: 'true'
+              }
+            })
+
   create-github-release:
     name: Create GitHub Release
     needs: [ build-offline-archives ]
