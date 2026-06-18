@@ -214,6 +214,22 @@ def detach_audit_handlers(*, root: str = ROOT_LOGGER) -> None:
 
 # Width the status column is right-aligned to in the rendered tree.
 _TREE_WIDTH = 64
+# Width the status column is left-justified to, so the ``[start -> end]`` window
+# starts at the same column on every line. ``IN_PROGRESS`` (11) is the longest
+# status; a never-closed step that overflows just shifts its own window.
+_STATUS_WIDTH = 11
+
+
+def _fmt_clock(dt: Any) -> str:
+    """Wall-clock ``HH:MM:SS.mmm`` (UTC) for a step time, or a dashed placeholder.
+
+    Millisecond precision is enough to read execution order off the tree; the
+    full timestamp lives in the JSONL. ``None`` (a step that never stamped a
+    time) renders as ``--:--:--.---`` so the column still aligns.
+    """
+    if dt is None:
+        return "--:--:--.---"
+    return dt.strftime("%H:%M:%S.") + f"{dt.microsecond // 1000:03d}"
 
 
 def render_report_tree(created_steps: list[Any], *, mode: str) -> str:
@@ -221,8 +237,11 @@ def render_report_tree(created_steps: list[Any], *, mode: str) -> str:
 
     Reconstructs the parent/child structure from each step's dotted numeric
     ``step_path`` (``"1"`` -> ``"1.1"`` -> ``"1.1.2"``), preserving creation
-    order, and renders an ASCII tree with a dotted leader to the final status.
-    Failed/errored steps are annotated with the first line of their
+    order, and renders an ASCII tree with a dotted leader to the final status,
+    then each node's ``[start -> end]`` execution window (UTC, ms precision).
+    Because nodes render in creation order, not chronological order, a parent's
+    window can start before a sibling that ran earlier — the times make that
+    visible. Failed/errored steps are annotated with the first line of their
     ``error_info`` when present, so a reader sees what went wrong inline.
     """
     header = f"Sift report tree ({mode} mode):"
@@ -252,7 +271,8 @@ def render_report_tree(created_steps: list[Any], *, mode: str) -> str:
             head = f"{prefix}{connector}{step.name} "
             child_prefix = prefix + ("   " if is_last else "|  ")
         leader = "." * max(3, _TREE_WIDTH - len(head))
-        line = f"{head}{leader} {status}"
+        window = f"[{_fmt_clock(getattr(step, 'start_time', None))} -> {_fmt_clock(getattr(step, 'end_time', None))}]"
+        line = f"{head}{leader} {status:<{_STATUS_WIDTH}} {window}"
         error = getattr(step, "error_info", None)
         if status in ("FAILED", "ERROR") and error is not None and error.error_message:
             line += f"   <- {error.error_message.strip().splitlines()[0]}"
