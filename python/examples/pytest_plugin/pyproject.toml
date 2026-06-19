@@ -1,0 +1,33 @@
+# Single config file for the demo. Pytest behavior lives under
+# [tool.pytest.ini_options]; Sift report content lives under
+# [tool.sift.pytest.report].
+
+[tool.pytest.ini_options]
+# Defaults give you the full step tree: every package, module, class, and
+# parametrize axis becomes a parent step. These are the available knobs and
+# their defaults — uncomment to opt out of a layer.
+#
+# sift_autouse = true              # autouse fixtures (default: true)
+# sift_package_step = true         # Python package (dir with __init__.py) parent step (default: true)
+# sift_module_step = true          # module (test file) parent step (default: true)
+# sift_class_step = true           # class parent step incl. nested (default: true)
+# sift_parametrize_nesting = true  # parametrize parent steps (default: true)
+# sift_git_metadata = true         # git repo/branch/commit included on the report (default: true)
+
+[tool.sift.pytest.report]
+# Display name for the report. Placeholders: {target} {command} {args}
+# {rootdir} {timestamp} {count} {git_repo} {git_branch} {git_commit}.
+# Omit to use the default "{target} {timestamp}". {target} reflects what ran,
+# from the collected tests, anchored to the project name: e.g.
+# project/tests/test_x.py::test_y (single test, [param] stripped),
+# project/tests/motor (several files' common dir), or project (whole suite).
+name = "pytest-plugin demo ({count} tests) {timestamp}"
+# Grouping key across runs (same placeholders available). Omit to default to
+# {target} (what ran).
+test_case = "pytest-plugin-demo"
+
+[tool.sift.pytest.report.metadata]
+# Free-form key/value metadata stamped on every report. Values keep their TOML
+# type (string, int, float, bool).
+ci_revision = 2
+test_source = 'pytest-plugin-demo'

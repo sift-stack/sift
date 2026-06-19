@@ -715,6 +715,75 @@ class TestImportLogFile:
             replayed_m = replayed_measurements_by_name[direct_m.name]
             compare_test_measurement_fields(replayed_m, direct_m)
 
+    def test_incremental_import_resumes_after_report_created(
+        self, sift_client, nostromo_run, tmp_path
+    ):
+        """Incremental replay must survive a resume after the report was created.
+
+        Regression: a resume tick rebuilds replay state from scratch, so the
+        CreateTestReport line (already uploaded on an earlier tick) is skipped and
+        the in-memory report is None. The replay must still apply the remaining
+        lines -- including the final UpdateTestReport -- rather than raising
+        "No CreateTestReport found" and leaving the report stuck IN_PROGRESS.
+        """
+        t0 = datetime.now(timezone.utc)
+        log_file = tmp_path / "incremental_resume.jsonl"
+
+        # Build a complete simulation log (no real resources created yet).
+        report = sift_client.test_results.create(
+            {
+                "status": TestStatus.IN_PROGRESS,
+                "name": "Incremental Resume Report",
+                "test_system_name": "IR System",
+                "test_case": "IR Case",
+                "start_time": t0,
+                "end_time": t0 + timedelta(seconds=30),
+                "run_id": nostromo_run.id_,
+            },
+            log_file=log_file,
+        )
+        step = sift_client.test_results.create_step(
+            TestStepCreate(
+                test_report_id=report.id_,
+                name="IR Step 1",
+                step_type=TestStepType.ACTION,
+                step_path="1",
+                status=TestStatus.IN_PROGRESS,
+                start_time=t0,
+                end_time=t0 + timedelta(seconds=10),
+            ),
+            log_file=log_file,
+        )
+        sift_client.test_results.update_step(
+            step,
+            {"status": TestStatus.FAILED},
+            log_file=log_file,
+        )
+        sift_client.test_results.update(
+            test_report=report,
+            update=TestReportUpdate(status=TestStatus.FAILED),
+            log_file=log_file,
+        )
+
+        all_lines = log_file.read_text().splitlines()
+        assert all_lines[0].startswith("[CreateTestReport:")
+
+        # First tick: only the CreateTestReport is present. This creates the real
+        # report and advances the tracking cursor past line 1.
+        log_file.write_text(all_lines[0] + "\n")
+        first = sift_client.test_results.import_log_file(log_file, incremental=True)
+        real_report_id = first.report.id_
+        assert real_report_id is not None
+
+        # Later tick: the rest of the log is now available. Resuming past the
+        # CreateTestReport line must not raise, and the final UpdateTestReport must
+        # land so the report ends FAILED rather than IN_PROGRESS.
+        log_file.write_text("\n".join(all_lines) + "\n")
+        sift_client.test_results.import_log_file(log_file, incremental=True)
+
+        refetched = sift_client.test_results.get(test_report_id=real_report_id)
+        assert refetched.status == TestStatus.FAILED
+
     @pytest.mark.asyncio
     async def test_malformed_log_line_skipped(self, tmp_path):
         """Malformed lines raise a ValueError during iteration."""

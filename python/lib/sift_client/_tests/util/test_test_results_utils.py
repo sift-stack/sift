@@ -385,6 +385,46 @@ class TestContextManager:
         if not initial_any_failures:
             report_context.any_failures = False
 
+    def test_measurements_passed_property(self, report_context, step):
+        """``step.measurements_passed`` counts only direct ``measure*`` calls
+        on this step, and stays True when only a substep or ``report_outcome``
+        records a failure.
+        """
+        current_step_path = step.current_step.step_path
+        initial_open_step_result = report_context.open_step_results.get(current_step_path, True)
+        initial_any_failures = report_context.any_failures
+
+        # No measurements yet, vacuously True.
+        assert step.measurements_passed is True
+
+        # In-bounds measurement keeps it True.
+        step.measure(name="ok", value=1.0, bounds={"min": 0.0, "max": 2.0})
+        assert step.measurements_passed is True
+
+        # A failing report_outcome doesn't flip measurements_passed because
+        # it isn't a direct measure() call on this step.
+        step.report_outcome("substep-fail", False, "deliberately failing")
+        assert step.measurements_passed is True
+
+        # Out-of-bounds measurement flips ``measurements_passed`` False.
+        step.measure(name="bad", value=99.0, bounds={"min": 0.0, "max": 2.0})
+        assert step.measurements_passed is False
+
+        # measure_avg / measure_all go through ``measure`` internally and
+        # also increment the counter on out-of-bounds values.
+        step.measure_avg(
+            name="bad_avg",
+            values=[50.0, 60.0, 70.0],  # mean 60 is well outside [0, 2]
+            bounds={"min": 0.0, "max": 2.0},
+        )
+        assert step.measurements_passed is False
+
+        # Restore state.
+        if initial_open_step_result:
+            report_context.open_step_results[current_step_path] = True
+        if not initial_any_failures:
+            report_context.any_failures = False
+
     def test_bad_assert(self, report_context, step):
         # Capture current state of report context's failures so we can keep things passed at a high level if the test's induced failures happen as expected.
         current_step_path = step.current_step.step_path
@@ -423,7 +463,11 @@ class TestContextManager:
         assert parent_step.status == TestStatus.FAILED
         assert substep.status == TestStatus.FAILED
         assert nested_substep.status == TestStatus.FAILED
-        assert nested_substep.error_info is None
+        # The assertion-as-fail path records the concise assertion message (no
+        # traceback frames) on error_info while keeping the FAILED status.
+        assert nested_substep.error_info is not None
+        assert "AssertionError" in nested_substep.error_info.error_message
+        assert "Traceback (most recent call last)" not in nested_substep.error_info.error_message
         assert nested_substep_2.status == TestStatus.ERROR
         assert "AssertionError" in nested_substep_2.error_info.error_message
         assert sibling_substep.status == TestStatus.PASSED

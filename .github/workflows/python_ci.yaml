@@ -136,21 +136,74 @@ jobs:
       #     SIFT_GRPC_URI: ${{ vars.SIFT_GRPC_URI }}
       #     SIFT_REST_URI: ${{ vars.SIFT_REST_URI }}
       #     SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
+      #     SIFT_REPORT_TEST_SYSTEM_NAME: github-actions
       #   run: |
       #     uv run --python ${{ matrix.python-version }} --no-project --with-editable '.[dev-all]' pytest -m "integration"
 
+  # Run the pytest-plugin test subset against pytest 7/8/9 to catch breakage
+  # from pytest internals the plugin reads (see the private-surface inventory in
+  # steps.py). The subset is self-contained (drives inner pytester sessions, no
+  # third-party-plugin imports), so each cell installs only the project + a
+  # target pytest + pytest-randomly — sidestepping the pinned plugin stack and
+  # the locked pytest==8.2.2 (we don't pull the dev extra). The full suite still
+  # runs on the locked pytest in `test-python`. pytest uses `~=` bounded to the
+  # major so new minors/patches are picked up automatically (early break
+  # detection); pytest-randomly is pinned per cell to its Python-floor-compatible
+  # release (it is kept so the suite runs under randomized order). Keep this
+  # subset free of third-party-plugin imports or the lean install breaks.
+  test-pytest-compat:
+    needs: [changes]
+    if: |
+      always() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.python == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    strategy:
+      fail-fast: false
+      matrix:
+        # pytest line <-> compatible Python <-> compatible pytest-randomly pin
+        include:
+          - { python-version: "3.8",  pytest-spec: "~=7.4", randomly-version: "3.15.0" }
+          - { python-version: "3.9",  pytest-spec: "~=8.4", randomly-version: "3.16.0" }
+          - { python-version: "3.10", pytest-spec: "~=9.0", randomly-version: "4.1.0" }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Plugin tests (Python ${{ matrix.python-version }}, pytest ${{ matrix.pytest-spec }})
+        # The plugin imports grpc, and runpytest_subprocess forks the session;
+        # fork support keeps grpc's epoll engine from aborting in the parent on
+        # CI Linux (see the suite's conftest).
+        env:
+          GRPC_ENABLE_FORK_SUPPORT: "1"
+        run: |
+          uv run --python ${{ matrix.python-version }} --no-project --with-editable '.' \
+            --with "pytest${{ matrix.pytest-spec }}" \
+            --with "pytest-randomly==${{ matrix.randomly-version }}" \
+            pytest lib/sift_client/_tests/pytest_plugin -m "plugin_compat"
+
   python-ci-status:
     if: always()
-    needs: [changes, static-checks, test-python]
+    needs: [changes, static-checks, test-python, test-pytest-compat]
     runs-on: ubuntu-latest
     steps:
       - name: Check result
         run: |
           static="${{ needs.static-checks.result }}"
           tests="${{ needs.test-python.result }}"
-          if [[ ("$static" == "success" || "$static" == "skipped") && ("$tests" == "success" || "$tests" == "skipped") ]]; then
-            echo "python-ci passed (static-checks: $static, test-python: $tests)"
+          compat="${{ needs.test-pytest-compat.result }}"
+          if [[ ("$static" == "success" || "$static" == "skipped") && ("$tests" == "success" || "$tests" == "skipped") && ("$compat" == "success" || "$compat" == "skipped") ]]; then
+            echo "python-ci passed (static-checks: $static, test-python: $tests, test-pytest-compat: $compat)"
           else
-            echo "python-ci failed (static-checks: $static, test-python: $tests)"
+            echo "python-ci failed (static-checks: $static, test-python: $tests, test-pytest-compat: $compat)"
             exit 1
           fi
