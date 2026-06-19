@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.18.0] - [Unreleased]
+## [v0.18.0] - June 19, 2026
 
 This release is a major overhaul of the pytest plugin. One import enables it, with a hierarchical report tree, offline and disabled run modes, pass/fail and abort handling that rolls up correctly, a terminal report summary, project-level configuration, and an audit log for diagnosing field failures.
 
