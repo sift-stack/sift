@@ -13,8 +13,6 @@ pub type McpResult = Result<CallToolResult, rmcp::ErrorData>;
 ///
 /// `Debug` yields the machine-readable reason (the variant name).
 /// `Display` yields the human-readable guidance.
-/// `Unclassified` is the catch-all for codes that aren't soft-signals and
-/// should pass through to the generic error path in `from_anyhow`.
 #[derive(Debug)]
 enum AgentSignal {
     BackendUnreachable,
@@ -26,12 +24,13 @@ enum AgentSignal {
     PermissionDenied,
     Unauthenticated,
     Cancelled,
-    Unclassified,
 }
 
-impl From<Code> for AgentSignal {
-    fn from(code: Code) -> Self {
-        match code {
+impl TryFrom<Code> for AgentSignal {
+    type Error = Code;
+
+    fn try_from(code: Code) -> Result<Self, Code> {
+        Ok(match code {
             Code::Unavailable => Self::BackendUnreachable,
             Code::ResourceExhausted => Self::RateLimited,
             Code::DeadlineExceeded => Self::QueryTooExpensive,
@@ -41,8 +40,8 @@ impl From<Code> for AgentSignal {
             Code::PermissionDenied => Self::PermissionDenied,
             Code::Unauthenticated => Self::Unauthenticated,
             Code::Cancelled => Self::Cancelled,
-            _ => Self::Unclassified,
-        }
+            other => return Err(other),
+        })
     }
 }
 
@@ -96,27 +95,25 @@ impl Display for AgentSignal {
                 "The request was cancelled. \
                  Do not retry; the cancellation is intentional. Surface this to the user."
             ),
-            Self::Unclassified => write!(f, "Unclassified gRPC error."),
         }
     }
 }
 
 pub fn from_anyhow(error: anyhow::Error) -> rmcp::ErrorData {
-    if let Some(status) = error.downcast_ref::<Status>() {
-        let signal = AgentSignal::from(status.code());
-        if !matches!(signal, AgentSignal::Unclassified) {
-            let reason = format!("{signal:?}");
-            let guidance = signal.to_string();
-            return rmcp::ErrorData {
-                code: ErrorCode::INTERNAL_ERROR,
-                message: guidance.clone().into(),
-                data: Some(serde_json::json!({
-                    "status": "stopped",
-                    "reason": reason,
-                    "guidance": guidance,
-                })),
-            };
-        }
+    if let Some(status) = error.downcast_ref::<Status>()
+        && let Ok(signal) = AgentSignal::try_from(status.code())
+    {
+        let reason = format!("{signal:?}");
+        let guidance = signal.to_string();
+        return rmcp::ErrorData {
+            code: ErrorCode::INTERNAL_ERROR,
+            message: guidance.clone().into(),
+            data: Some(serde_json::json!({
+                "status": "stopped",
+                "reason": reason,
+                "guidance": guidance,
+            })),
+        };
     }
 
     let message = format!("{error:?}");
