@@ -3843,7 +3843,7 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_py.rule.config.RuleActionKind.ANNOTATION" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ANNOTATION</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.ANNOTATION">ANNOTATION</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ANNOTATION</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind">ActionKind</span></span><span class="o">.</span><span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.ANNOTATION">ANNOTATION</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3866,7 +3866,7 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_py.rule.config.RuleActionKind.NOTIFICATION" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NOTIFICATION</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.NOTIFICATION">NOTIFICATION</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NOTIFICATION</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind">ActionKind</span></span><span class="o">.</span><span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.NOTIFICATION">NOTIFICATION</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4504,9 +4504,11 @@ a specific action will take place as specified by the <code>kind</code> attribut
   </span>
 
 <a href="#sift_py.rule.config.RuleConfig.expression" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">expression</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="n"><span title="sift_py.rule.config.RuleConfig(self).__class__.interpolate_sub_expressions">interpolate_sub_expressions</span></span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift_py.rule.config.RuleConfig(expression)">expression</span></span><span class="p">,</span> <span class="n"><span title="sift_py.rule.config.RuleConfig(sub_expressions)">sub_expressions</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">expression</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift_py.rule.config.RuleConfig(self)">self</span></span><span class="o">.</span><span class="n"><span title="sift_py.rule.config.RuleConfig(self).__class__">__class__</span></span><span class="o">.</span><span class="n"><span title="sift_py.rule.config.RuleConfig(self).__class__.interpolate_sub_expressions">interpolate_sub_expressions</span></span><span class="p">(</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n"><span title="sift_py.rule.config.RuleConfig(expression)">expression</span></span><span class="p">,</span> <span class="n"><span title="sift_py.rule.config.RuleConfig(sub_expressions)">sub_expressions</span></span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">

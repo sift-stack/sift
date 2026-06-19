@@ -1329,7 +1329,7 @@ in the run's output directory during the run, and an
 <code>import-test-result-log --incremental</code> worker replays them against Sift in the
 background. If the worker crashes mid-session (connection failure, API error) or
 is still draining its backlog at session end, the failure is logged at session
-end with a <code>replay-test-result-log</code> command for manual recovery. Test outcomes
+end with an <code>import-test-result-log</code> command for manual recovery. Test outcomes
 are unaffected and the local log file is preserved. Pass <code>--no-sift-log-file</code> to
 make every create/update synchronous against the API instead.</p>
 <h3 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h3>
