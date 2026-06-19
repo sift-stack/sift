@@ -123,7 +123,7 @@ in the run's output directory during the run, and an
 `import-test-result-log --incremental` worker replays them against Sift in the
 background. If the worker crashes mid-session (connection failure, API error) or
 is still draining its backlog at session end, the failure is logged at session
-end with a `replay-test-result-log` command for manual recovery. Test outcomes
+end with an `import-test-result-log` command for manual recovery. Test outcomes
 are unaffected and the local log file is preserved. Pass `--no-sift-log-file` to
 make every create/update synchronous against the API instead.
 

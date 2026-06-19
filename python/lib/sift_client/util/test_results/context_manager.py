@@ -235,7 +235,7 @@ class ReportContext(AbstractContextManager):
                 spawn ``import-test-result-log --incremental`` to push log
                 entries to Sift in the background during the session. When
                 False, the log file is just a record and no worker is spawned.
-                Replay happens later via ``replay-test-result-log <path>``.
+                Replay happens later via ``import-test-result-log <path>``.
                 Has no effect when ``log_file`` is None.
             audit_log: When set, the path of a DEBUG audit log. The replay worker
                 is spawned with ``--audit-log <sibling>`` so its activity is
