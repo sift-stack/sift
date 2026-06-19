@@ -262,8 +262,6 @@ impl DataService {
             let channel = self.channel.clone();
             let queries = queries.clone();
             let token = page_token.clone();
-            let start_time = start_time;
-            let end_time = end_time;
 
             let resp = with_retry(&self.policy, move || {
                 let channel = channel.clone();
