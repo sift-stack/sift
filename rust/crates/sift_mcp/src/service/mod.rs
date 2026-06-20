@@ -3,6 +3,7 @@ pub mod channels;
 pub mod data;
 pub mod explore;
 pub mod ingest;
+pub mod ping;
 pub mod reports;
 pub mod rules;
 pub mod runs;

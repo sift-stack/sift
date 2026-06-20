@@ -4,6 +4,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::AssetService;
+use crate::policy::RetryPolicy;
 use crate::service::common::PAGE_SIZE;
 
 async fn service_with_mock(mock: MockAssetServiceImpl) -> (AssetService, JoinHandle<()>) {
@@ -18,7 +19,7 @@ async fn service_with_mock(mock: MockAssetServiceImpl) -> (AssetService, JoinHan
             .unwrap();
     });
 
-    (AssetService::new(channel), handle)
+    (AssetService::new(channel, RetryPolicy::default()), handle)
 }
 
 #[tokio::test]

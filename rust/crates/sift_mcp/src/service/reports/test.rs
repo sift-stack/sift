@@ -20,7 +20,10 @@ async fn service_with_mock(mock: MockReportServiceImpl) -> (ReportService, JoinH
             .unwrap();
     });
 
-    (ReportService::new(channel), handle)
+    (
+        ReportService::new(channel, crate::policy::RetryPolicy::default()),
+        handle,
+    )
 }
 
 #[tokio::test]

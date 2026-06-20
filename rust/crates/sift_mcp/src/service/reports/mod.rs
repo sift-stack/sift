@@ -1,3 +1,4 @@
+use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result};
 use sift_rs::{
@@ -13,11 +14,12 @@ mod test;
 #[derive(Clone)]
 pub struct ReportService {
     channel: SiftChannel,
+    policy: RetryPolicy,
 }
 
 impl ReportService {
-    pub fn new(channel: SiftChannel) -> Self {
-        Self { channel }
+    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+        Self { channel, policy }
     }
 
     pub async fn list_reports(
@@ -29,26 +31,46 @@ impl ReportService {
     ) -> Result<Vec<Report>> {
         let (page_size, record_limit) = common::paging(limit);
 
-        let mut client = ReportServiceClient::new(self.channel.clone());
         let mut page_token = String::new();
         let mut results = Vec::new();
 
+        let order_by = order_by.unwrap_or_default();
+        let organization_id = organization_id.unwrap_or_default();
+
         loop {
-            let resp = client
-                .list_reports(ListReportsRequest {
-                    filter: filter.clone(),
-                    page_size,
-                    page_token,
-                    order_by: order_by.clone().unwrap_or_default(),
-                    organization_id: organization_id.clone().unwrap_or_default(),
-                })
-                .await
-                .context("failed to query reports")?;
+            let channel = self.channel.clone();
+            let filter = filter.clone();
+            let order_by = order_by.clone();
+            let organization_id = organization_id.clone();
+            let token = page_token.clone();
+
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let filter = filter.clone();
+                let order_by = order_by.clone();
+                let organization_id = organization_id.clone();
+                let token = token.clone();
+                async move {
+                    let mut client = ReportServiceClient::new(channel);
+                    client
+                        .list_reports(ListReportsRequest {
+                            filter,
+                            page_size,
+                            page_token: token,
+                            order_by,
+                            organization_id,
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
+            })
+            .await
+            .context("failed to query reports")?;
 
             let ListReportsResponse {
                 reports,
                 next_page_token,
-            } = resp.into_inner();
+            } = resp;
             if reports.is_empty() {
                 break;
             }

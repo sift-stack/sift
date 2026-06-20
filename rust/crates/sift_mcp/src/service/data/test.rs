@@ -34,7 +34,10 @@ async fn service_with_mock(mock: MockDataServiceImpl) -> (DataService, JoinHandl
             .unwrap();
     });
 
-    (DataService::new(channel), handle)
+    (
+        DataService::new(channel, crate::policy::RetryPolicy::default()),
+        handle,
+    )
 }
 
 fn raw_channel(channel_id: &str) -> ChannelInput {

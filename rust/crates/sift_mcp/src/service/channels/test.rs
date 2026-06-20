@@ -20,7 +20,10 @@ async fn service_with_mock(mock: MockChannelServiceImpl) -> (ChannelService, Joi
             .unwrap();
     });
 
-    (ChannelService::new(channel), handle)
+    (
+        ChannelService::new(channel, crate::policy::RetryPolicy::default()),
+        handle,
+    )
 }
 
 #[tokio::test]

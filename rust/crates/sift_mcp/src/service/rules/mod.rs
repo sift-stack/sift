@@ -1,3 +1,4 @@
+use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result};
 use sift_rs::{
@@ -13,11 +14,12 @@ mod test;
 #[derive(Clone)]
 pub struct RuleService {
     channel: SiftChannel,
+    policy: RetryPolicy,
 }
 
 impl RuleService {
-    pub fn new(channel: SiftChannel) -> Self {
-        Self { channel }
+    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+        Self { channel, policy }
     }
 
     pub async fn list_rules(
@@ -28,25 +30,42 @@ impl RuleService {
     ) -> Result<Vec<Rule>> {
         let (page_size, record_limit) = common::paging(limit);
 
-        let mut client = RuleServiceClient::new(self.channel.clone());
         let mut page_token = String::new();
         let mut results = Vec::new();
 
+        let order_by = order_by.unwrap_or_default();
+
         loop {
-            let resp = client
-                .list_rules(ListRulesRequest {
-                    filter: filter.clone(),
-                    page_size,
-                    page_token,
-                    order_by: order_by.clone().unwrap_or_default(),
-                })
-                .await
-                .context("failed to query rules")?;
+            let channel = self.channel.clone();
+            let filter = filter.clone();
+            let order_by = order_by.clone();
+            let token = page_token.clone();
+
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let filter = filter.clone();
+                let order_by = order_by.clone();
+                let token = token.clone();
+                async move {
+                    let mut client = RuleServiceClient::new(channel);
+                    client
+                        .list_rules(ListRulesRequest {
+                            filter,
+                            page_size,
+                            page_token: token,
+                            order_by,
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
+            })
+            .await
+            .context("failed to query rules")?;
 
             let ListRulesResponse {
                 rules,
                 next_page_token,
-            } = resp.into_inner();
+            } = resp;
             if rules.is_empty() {
                 break;
             }
