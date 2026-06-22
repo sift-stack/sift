@@ -164,7 +164,22 @@ from sift_client.sift_types.job import (
     RuleEvaluationDetails,
     RuleEvaluationStatusDetails,
 )
+from sift_client.sift_types.principal_attribute import (
+    PrincipalAttributeEnumValue,
+    PrincipalAttributeKey,
+    PrincipalAttributeValue,
+    PrincipalAttributeValueType,
+    PrincipalType,
+)
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
+from sift_client.sift_types.resource_attribute import (
+    ResourceAttribute,
+    ResourceAttributeEntity,
+    ResourceAttributeEntityType,
+    ResourceAttributeEnumValue,
+    ResourceAttributeKey,
+    ResourceAttributeKeyType,
+)
 from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
@@ -230,10 +245,21 @@ __all__ = [
     "JobStatus",
     "JobStatusDetails",
     "JobType",
+    "PrincipalAttributeEnumValue",
+    "PrincipalAttributeKey",
+    "PrincipalAttributeValue",
+    "PrincipalAttributeValueType",
+    "PrincipalType",
     "Report",
     "ReportRuleStatus",
     "ReportRuleSummary",
     "ReportUpdate",
+    "ResourceAttribute",
+    "ResourceAttributeEntity",
+    "ResourceAttributeEntityType",
+    "ResourceAttributeEnumValue",
+    "ResourceAttributeKey",
+    "ResourceAttributeKeyType",
     "Rule",
     "RuleAction",
     "RuleActionType",

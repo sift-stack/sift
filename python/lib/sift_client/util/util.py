@@ -13,7 +13,9 @@ if TYPE_CHECKING:
         IngestionAPIAsync,
         JobsAPIAsync,
         PingAPIAsync,
+        PrincipalAttributesAPIAsync,
         ReportsAPIAsync,
+        ResourceAttributesAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
         TagsAPIAsync,
@@ -53,6 +55,12 @@ class AsyncAPIs(NamedTuple):
 
     rules: RulesAPIAsync
     """Instance of the Rules API for making asynchronous requests."""
+
+    resource_attributes: ResourceAttributesAPIAsync
+    """Instance of the Resource Attributes API for making asynchronous requests."""
+
+    principal_attributes: PrincipalAttributesAPIAsync
+    """Instance of the Principal Attributes API for making asynchronous requests."""
 
     tags: TagsAPIAsync
     """Instance of the Tags API for making asynchronous requests."""

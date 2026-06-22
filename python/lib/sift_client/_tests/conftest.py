@@ -45,6 +45,8 @@ def mock_client():
     client.channels = MagicMock()
     client.calculated_channels = MagicMock()
     client.rules = MagicMock()
+    client.resource_attributes = MagicMock()
+    client.principal_attributes = MagicMock()
     client.tags = MagicMock()
     client.test_results = MagicMock()
     client.file_attachments = MagicMock()

@@ -3,6 +3,36 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### What's New
+
+#### Resource and principal attributes (ABAC)
+
+Added a public API for attribute based access control (ABAC) attributes. `client.resource_attributes` manages attribute keys assigned to entities (assets, channels, runs), and `client.principal_attributes` manages attribute keys assigned to principals (users and user groups). Both are available synchronously and asynchronously via `client.async_`.
+
+An attribute key is the entry point. Create or fetch a key, define its enum values, then assign a value to a set of entities:
+
+```python
+from sift_client.sift_types import ResourceAttributeKeyType
+
+key = client.resource_attributes.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
+licenses = key.get_or_create_enum_values(["LICENSE_A", "LICENSE_B"])
+key.assign_to(channels, value=licenses)
+```
+
+Principal attributes accept user IDs or email addresses, resolving emails to user IDs automatically:
+
+```python
+from sift_client.sift_types import PrincipalAttributeValueType
+
+key = client.principal_attributes.get_or_create_key("licenses", PrincipalAttributeValueType.SET_OF_ENUM)
+licenses = key.get_or_create_enum_values(["LICENSE_A"])
+key.assign_to(["user@example.com"], value=licenses)
+```
+
+Keys, enum values, and assignments each support create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target.
+
 ## [v0.18.0] - June 19, 2026
 
 This release is a major overhaul of the pytest plugin. One import enables it, with a hierarchical report tree, offline and disabled run modes, pass/fail and abort handling that rolls up correctly, a terminal report summary, project-level configuration, and an audit log for diagnosing field failures.

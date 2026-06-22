@@ -6,8 +6,14 @@ from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelCl
 from sift_client._internal.low_level_wrappers.ingestion import IngestionLowLevelClient
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
 from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
+from sift_client._internal.low_level_wrappers.principal_attributes import (
+    PrincipalAttributesLowLevelClient,
+)
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
+from sift_client._internal.low_level_wrappers.resource_attributes import (
+    ResourceAttributesLowLevelClient,
+)
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
@@ -22,8 +28,10 @@ __all__ = [
     "IngestionLowLevelClient",
     "JobsLowLevelClient",
     "PingLowLevelClient",
+    "PrincipalAttributesLowLevelClient",
     "RemoteFilesLowLevelClient",
     "ReportsLowLevelClient",
+    "ResourceAttributesLowLevelClient",
     "RulesLowLevelClient",
     "RunsLowLevelClient",
     "TagsLowLevelClient",

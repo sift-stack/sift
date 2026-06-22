@@ -12,7 +12,9 @@ from sift_client.resources import (
     FileAttachmentsAPIAsync,
     JobsAPIAsync,
     PingAPIAsync,
+    PrincipalAttributesAPIAsync,
     ReportsAPIAsync,
+    ResourceAttributesAPIAsync,
     RulesAPIAsync,
     RunsAPIAsync,
     TagsAPIAsync,
@@ -28,6 +30,8 @@ JobsAPI = generate_sync_api(JobsAPIAsync, "JobsAPI")
 RulesAPI = generate_sync_api(RulesAPIAsync, "RulesAPI")
 RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
 ReportsAPI = generate_sync_api(ReportsAPIAsync, "ReportsAPI")
+ResourceAttributesAPI = generate_sync_api(ResourceAttributesAPIAsync, "ResourceAttributesAPI")
+PrincipalAttributesAPI = generate_sync_api(PrincipalAttributesAPIAsync, "PrincipalAttributesAPI")
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
 DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
@@ -42,7 +46,9 @@ __all__ = [
     "FileAttachmentsAPI",
     "JobsAPI",
     "PingAPI",
+    "PrincipalAttributesAPI",
     "ReportsAPI",
+    "ResourceAttributesAPI",
     "RulesAPI",
     "RunsAPI",
     "TagsAPI",
