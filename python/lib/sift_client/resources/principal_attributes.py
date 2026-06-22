@@ -34,7 +34,9 @@ def _enum_value_id(value: PrincipalAttributeEnumValue | str) -> str:
 
 
 def _assignment_id(assignment: PrincipalAttributeValue | str) -> str:
-    return assignment._id_or_error if isinstance(assignment, PrincipalAttributeValue) else assignment
+    return (
+        assignment._id_or_error if isinstance(assignment, PrincipalAttributeValue) else assignment
+    )
 
 
 def _chunks(items: list[Any], size: int):
