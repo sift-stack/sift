@@ -30,10 +30,13 @@ to combine them when working with Sift.
 
 1. **Sift MCP server** — started by `sift-cli mcp`. The preferred surface for
    agents. Exposes structured, authenticated tools:
-   - `list_assets`, `list_runs`, `list_channels`, `list_reports`, `list_rules`: discover what exists.
+   - `list_assets`, `list_runs`, `list_channels`, `list_reports`, `list_rules`,
+     `list_rule_versions`: discover what exists.
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
    - `upload_dataset`: stream a Parquet dataset into Sift.
+   - `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`: manage rules
+     (writes — confirm the change with the user first).
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
      selection, with an optional panel/chart pre-defined. Surface the URL
      inline as a clickable link so the user can open the view.
