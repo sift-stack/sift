@@ -40,7 +40,21 @@ if TYPE_CHECKING:
         JobStatus,
         JobType,
     )
+    from sift_client.sift_types.principal_attribute import (
+        PrincipalAttributeEnumValue,
+        PrincipalAttributeKey,
+        PrincipalAttributeValue,
+        PrincipalAttributeValueType,
+        PrincipalType,
+    )
     from sift_client.sift_types.report import Report, ReportUpdate
+    from sift_client.sift_types.resource_attribute import (
+        ResourceAttribute,
+        ResourceAttributeEntity,
+        ResourceAttributeEnumValue,
+        ResourceAttributeKey,
+        ResourceAttributeKeyType,
+    )
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate, RuleVersion
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
     from sift_client.sift_types.tag import Tag, TagUpdate
@@ -1161,6 +1175,248 @@ class PingAPI:
         """
         ...
 
+class PrincipalAttributesAPI:
+    """Sync counterpart to `PrincipalAttributesAPIAsync`.
+
+    High-level API for principal attributes (ABAC).
+
+    Principal attributes assign attribute keys to principals (users or user groups). The
+    attribute key is the entry point: enum values and assignments are managed through
+    methods on a key, or through the corresponding methods here.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive_enum_value(
+        self,
+        enum_value: str | PrincipalAttributeEnumValue,
+        *,
+        replacement: str | PrincipalAttributeEnumValue | None = None,
+    ) -> int:
+        """Archive an enum value, migrating existing assignments to a replacement.
+
+        Returns the number of assignments migrated.
+        """
+        ...
+
+    def archive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+        """Archive a key. Cascades to its enum values and assignments."""
+        ...
+
+    def archive_values(
+        self,
+        values: list[str | PrincipalAttributeValue],
+        *,
+        principal_type: PrincipalType = PrincipalType.USER,
+    ) -> None:
+        """Batch archive assignments."""
+        ...
+
+    def assign(
+        self,
+        key: PrincipalAttributeKey,
+        principals: list[str],
+        *,
+        value: Any,
+        principal_type: PrincipalType = PrincipalType.USER,
+    ) -> list[PrincipalAttributeValue]:
+        """Assign a value to principals for a key.
+
+        Args:
+            key: The key to assign. Its ``value_type`` determines how ``value`` is interpreted.
+            principals: Principal IDs. For ``USER`` principals, an entry containing ``@`` is
+                treated as an email and resolved to a user ID.
+            value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
+                full set on each principal; for ``ENUM``, a single enum value; for ``BOOLEAN``,
+                a bool; for ``NUMBER``, an int.
+            principal_type: The kind of principal being assigned to. Defaults to ``USER``.
+
+        Returns:
+            The created assignments.
+        """
+        ...
+
+    def check_key_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
+        """Return the number of active assignments archiving this key would affect.
+
+        Counts both user and user-group assignments.
+        """
+        ...
+
+    def create_enum_value(
+        self, key: str | PrincipalAttributeKey, display_name: str, *, description: str = ""
+    ) -> PrincipalAttributeEnumValue:
+        """Create a single enum value for a key."""
+        ...
+
+    def create_key(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Create a principal attribute key."""
+        ...
+
+    def find_key(self, **kwargs) -> PrincipalAttributeKey | None:
+        """Find a single key matching the query. Raises if more than one matches."""
+        ...
+
+    def get_key(self, *, principal_attribute_key_id: str) -> PrincipalAttributeKey:
+        """Get a principal attribute key by ID."""
+        ...
+
+    def get_or_create_enum_values(
+        self, key: str | PrincipalAttributeKey, names: list[str]
+    ) -> list[PrincipalAttributeEnumValue]:
+        """Get enum values for a key by name, creating any that don't exist.
+
+        Returns the values in the same order as ``names``.
+        """
+        ...
+
+    def get_or_create_key(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
+        Note:
+            Display names are not guaranteed unique. If multiple keys share the display
+            name, the first active match is returned.
+        """
+        ...
+
+    def get_value(
+        self,
+        *,
+        principal_attribute_value_id: str,
+        principal_type: PrincipalType = PrincipalType.USER,
+    ) -> PrincipalAttributeValue:
+        """Get a single assignment by ID."""
+        ...
+
+    def list_enum_values(
+        self,
+        key: str | PrincipalAttributeKey,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeEnumValue]:
+        """List the enum values defined for a key."""
+        ...
+
+    def list_keys(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        value_type: PrincipalAttributeValueType | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeKey]:
+        """List principal attribute keys with optional filtering.
+
+        Args:
+            name: Exact display name of the key.
+            names: Display names to filter by.
+            name_contains: Substring match on the display name.
+            name_regex: Regex match on the display name.
+            value_type: Filter to keys of this value type.
+            include_archived: If True, include archived keys.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of keys to return.
+            page_size: Results to fetch per request.
+        """
+        ...
+
+    def list_values(
+        self,
+        *,
+        key: str | PrincipalAttributeKey | None = None,
+        principal: str | None = None,
+        principal_type: PrincipalType = PrincipalType.USER,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeValue]:
+        """List principal attribute assignments.
+
+        Args:
+            key: Filter to assignments of this key.
+            principal: Filter to assignments for this principal (user ID, or email for users).
+            principal_type: The kind of principal to list assignments for. Defaults to ``USER``.
+            include_archived: If True, include archived assignments.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of assignments to return.
+            page_size: Results to fetch per request.
+        """
+        ...
+
+    def resolve_user_id(self, email: str) -> str:
+        """Resolve a user's email (its user name) to a user ID.
+
+        Raises:
+            ValueError: If no user with that email is found.
+        """
+        ...
+
+    def resolve_user_ids(self, emails: list[str]) -> dict[str, str]:
+        """Resolve user emails (their user names) to user IDs.
+
+        Returns a mapping of email to user ID for the emails that were found. Emails with
+        no matching user are omitted.
+        """
+        ...
+
+    def unarchive_enum_value(
+        self, enum_value: str | PrincipalAttributeEnumValue
+    ) -> PrincipalAttributeEnumValue:
+        """Unarchive an enum value."""
+        ...
+
+    def unarchive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+        """Unarchive a key. Does not restore its cascaded enum values or assignments."""
+        ...
+
+    def unarchive_values(
+        self,
+        values: list[str | PrincipalAttributeValue],
+        *,
+        principal_type: PrincipalType = PrincipalType.USER,
+    ) -> None:
+        """Batch unarchive assignments."""
+        ...
+
+    def update_key(
+        self,
+        key: str | PrincipalAttributeKey,
+        *,
+        display_name: str | None = None,
+        description: str | None = None,
+    ) -> PrincipalAttributeKey:
+        """Update a key's display name or description."""
+        ...
+
 class ReportsAPI:
     """Sync counterpart to `ReportsAPIAsync`.
 
@@ -1417,6 +1673,221 @@ class ReportsAPI:
             ValueError: If both or neither report and job are provided, or if
                 job is not a rule evaluation job.
         """
+        ...
+
+class ResourceAttributesAPI:
+    """Sync counterpart to `ResourceAttributesAPIAsync`.
+
+    High-level API for resource attributes (ABAC).
+
+    Resource attributes assign attribute keys to Sift entities (assets, channels, runs).
+    The attribute key is the entry point: enum values and assignments are managed through
+    methods on a key, or through the corresponding methods here.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
+        """Batch archive assignments."""
+        ...
+
+    def archive_enum_value(
+        self,
+        enum_value: str | ResourceAttributeEnumValue,
+        *,
+        replacement: str | ResourceAttributeEnumValue | None = None,
+    ) -> int:
+        """Archive an enum value, migrating existing assignments to a replacement.
+
+        Returns the number of assignments migrated.
+        """
+        ...
+
+    def archive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
+        """Archive a key. Cascades to its enum values and assignments."""
+        ...
+
+    def assign(
+        self,
+        key: ResourceAttributeKey,
+        entities: list[ResourceAttributeEntity | Asset | Channel | Run],
+        *,
+        value: Any,
+    ) -> list[ResourceAttribute]:
+        """Assign a value to entities for a key.
+
+        Args:
+            key: The key to assign. Its ``key_type`` determines how ``value`` is interpreted.
+            entities: Entities to assign to (ResourceAttributeEntity, Asset, Channel, or Run).
+            value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
+                full set on each entity; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
+                bool; for ``NUMBER``, an int.
+
+        Returns:
+            The created assignments.
+        """
+        ...
+
+    def check_key_archive_impact(self, key: str | ResourceAttributeKey) -> int:
+        """Return the number of active assignments archiving this key would affect."""
+        ...
+
+    def create_enum_value(
+        self, key: str | ResourceAttributeKey, display_name: str, *, description: str = ""
+    ) -> ResourceAttributeEnumValue:
+        """Create a single enum value for a key."""
+        ...
+
+    def create_key(
+        self, display_name: str, key_type: ResourceAttributeKeyType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Create a resource attribute key.
+
+        Args:
+            display_name: The human-readable name of the key.
+            key_type: The value type of the key.
+            description: Optional description.
+
+        Returns:
+            The created key.
+        """
+        ...
+
+    def find_key(self, **kwargs) -> ResourceAttributeKey | None:
+        """Find a single key matching the query. Raises if more than one matches."""
+        ...
+
+    def get_assignment(self, *, resource_attribute_id: str) -> ResourceAttribute:
+        """Get a single assignment by ID."""
+        ...
+
+    def get_key(self, *, resource_attribute_key_id: str) -> ResourceAttributeKey:
+        """Get a resource attribute key by ID."""
+        ...
+
+    def get_or_create_enum_values(
+        self, key: str | ResourceAttributeKey, names: list[str]
+    ) -> list[ResourceAttributeEnumValue]:
+        """Get enum values for a key by name, creating any that don't exist.
+
+        Returns the values in the same order as ``names``.
+        """
+        ...
+
+    def get_or_create_key(
+        self, display_name: str, key_type: ResourceAttributeKeyType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
+        Note:
+            Display names are not guaranteed unique. If multiple keys share the display
+            name, the first active match is returned.
+        """
+        ...
+
+    def list_assignments(
+        self,
+        *,
+        key: str | ResourceAttributeKey | None = None,
+        entity: ResourceAttributeEntity | Asset | Channel | Run | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ResourceAttribute]:
+        """List resource attribute assignments.
+
+        Args:
+            key: Filter to assignments of this key.
+            entity: Filter to assignments on this entity. When set, other filters are ignored.
+            include_archived: If True, include archived assignments.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of assignments to return.
+            page_size: Results to fetch per request.
+        """
+        ...
+
+    def list_enum_values(
+        self,
+        key: str | ResourceAttributeKey,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ResourceAttributeEnumValue]:
+        """List the enum values defined for a key."""
+        ...
+
+    def list_keys(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        key_type: ResourceAttributeKeyType | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ResourceAttributeKey]:
+        """List resource attribute keys with optional filtering.
+
+        Args:
+            name: Exact display name of the key.
+            names: Display names to filter by.
+            name_contains: Substring match on the display name.
+            name_regex: Regex match on the display name.
+            key_type: Filter to keys of this value type.
+            include_archived: If True, include archived keys.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of keys to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching keys.
+        """
+        ...
+
+    def unarchive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
+        """Batch unarchive assignments."""
+        ...
+
+    def unarchive_enum_value(
+        self, enum_value: str | ResourceAttributeEnumValue
+    ) -> ResourceAttributeEnumValue:
+        """Unarchive an enum value."""
+        ...
+
+    def unarchive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
+        """Unarchive a key. Does not restore its cascaded enum values or assignments."""
+        ...
+
+    def update_key(
+        self,
+        key: str | ResourceAttributeKey,
+        *,
+        display_name: str | None = None,
+        description: str | None = None,
+    ) -> ResourceAttributeKey:
+        """Update a key's display name or description."""
         ...
 
 class RulesAPI:

@@ -7,7 +7,17 @@ import pathlib
 import sys
 import warnings
 from collections import OrderedDict
-from typing import Callable
+from enum import Enum
+from typing import Any, Callable
+
+
+def _format_default(value: Any) -> str:
+    """Render a parameter default for a stub. Enum members use their qualified name
+    (``Cls.MEMBER``) since ``repr`` produces invalid syntax (e.g. ``<Cls.MEMBER: 1>``)."""
+    if isinstance(value, Enum):
+        return f"{type(value).__name__}.{value.name}"
+    return repr(value)
+
 
 # Import registry of decorated classes
 from sift_client._internal.sync_wrapper import SyncAPIRegistration, _registered
@@ -216,7 +226,7 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
 
         default = ""
         if param.default is not inspect._empty:
-            default = f" = {param.default!r}"
+            default = f" = {_format_default(param.default)}"
 
         # Handle different parameter kinds
         if param.kind == inspect.Parameter.VAR_POSITIONAL:
