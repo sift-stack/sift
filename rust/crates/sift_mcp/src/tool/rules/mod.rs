@@ -12,6 +12,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::rules::RuleUpdate,
+    tool::common::ListParams,
 };
 
 #[cfg(test)]
@@ -20,6 +21,13 @@ mod test;
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct RuleDefinitionParams {
     rule_json: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RuleVersionListParams {
+    rule_id: String,
+    filter: Option<String>,
+    limit: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -42,6 +50,107 @@ pub struct RuleArchiveParams {
 
 #[tool_router(router = rules_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "list_rules",
+        description = "
+            List rules in Sift, optionally filtered by a CEL expression and ordered by one or more fields.
+
+            Output:
+              - `{ \"rules\": [Rule, ...] }`. Each item is the full Sift `Rule` shape including `rule_id`,
+                `client_key`, `name`, `description`, `is_enabled`, `is_external`, `is_archived`,
+                `archived_date`, `is_live_evaluation_enabled`, `organization_id`, `conditions`, `rule_version`,
+                `current_version_id`, `asset_configuration` (asset_ids + tag_ids), `contextual_channels`,
+                `metadata`, and timestamps.
+
+            Parameters:
+              - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
+                `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
+                `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`,
+                `deleted_date`, `is_archived`, `archived_date`, `is_live_evaluation_enabled`.
+                Reference metadata entries as `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+              - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields:
+                `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
+                Example: `\"created_date desc,modified_date\"`.
+              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
+                passing a value above 1000 returns ALL matching rules (paginated server-side).
+
+            Errors:
+              - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - Scope with `asset_id == \"...\"` when the rule's target asset is known — it's the most selective
+                field for narrowing rule listings.
+              - Use `is_archived == false` to exclude archived rules unless they're explicitly needed.
+              - Use `is_live_evaluation_enabled == true` to find only rules that run against live data.
+        ",
+        annotations(title = "rules_router/list_rules", read_only_hint = true)
+    )]
+    pub async fn list_rules(&self, params: Parameters<ListParams>) -> error::McpResult {
+        let Parameters(ListParams {
+            filter,
+            order_by,
+            limit,
+        }) = params;
+
+        let out = self
+            .rule_service
+            .list_rules(filter, order_by, limit)
+            .await
+            .map(|rules| serde_json::json!({ "rules": rules }))
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
+    }
+
+    #[tool(
+        name = "list_rule_versions",
+        description = "
+            List the version history of a single Sift rule, newest entries returned by the server, optionally
+            filtered by a CEL expression.
+
+            Output:
+              - `{ \"rule_versions\": [RuleVersion, ...] }`. Each item includes `rule_id`, `rule_version_id`,
+                `version`, `created_date`, `created_by_user_id`, `version_notes`, and `generated_change_message`.
+
+            Parameters:
+              - `rule_id`: required. The rule whose versions to list.
+              - `filter`: optional CEL expression. Filterable fields: `rule_version_id`, `user_notes`, and
+                `change_message`. Omit or pass an empty string to list all versions.
+              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
+                passing a value above 1000 returns ALL versions (paginated server-side).
+
+            Errors:
+              - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - Use this to review how a rule changed over time, or to find a specific `rule_version_id` before
+                inspecting or referencing that version. Resolve the `rule_id` with `list_rules` first if you only
+                have the rule name.
+        ",
+        annotations(title = "rules_router/list_rule_versions", read_only_hint = true)
+    )]
+    pub async fn list_rule_versions(
+        &self,
+        params: Parameters<RuleVersionListParams>,
+    ) -> error::McpResult {
+        let Parameters(RuleVersionListParams {
+            rule_id,
+            filter,
+            limit,
+        }) = params;
+
+        let out = self
+            .rule_service
+            .list_rule_versions(rule_id, filter.unwrap_or_default(), limit)
+            .await
+            .map(|rule_versions| serde_json::json!({ "rule_versions": rule_versions }))
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
+    }
+
     #[tool(
         name = "create_rule",
         description = "

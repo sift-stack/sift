@@ -11,11 +11,17 @@ The crate has two layers. Keep them separate.
 - **`service/<name>/`** is the business logic. It is the only place that talks to the `sift_rs`
   gRPC clients. It owns pagination, retries, and serialization, and returns `anyhow::Result<T>`
   of plain domain types. Services are unit-tested with mocks.
-- **`tool/<group>/`** is the transport layer. Keep it thin. A tool validates its flat input
+- **`tool/<domain>/`** is the transport layer. Keep it thin. A tool validates its flat input
   parameters, calls one or more services, shapes the result into JSON, attaches `next_step`
   guidance for the calling agent, maps errors with `from_anyhow`, and returns `error::McpResult`.
   "Thin" means the tool holds no business logic of its own, not that it calls a single service.
   For tasks that span several services, see "Orchestrating multiple services" under Step 4.
+
+Tools are grouped by **domain**, not by action: one module per Sift resource (`tool/assets/`,
+`tool/runs/`, `tool/rules/`, …), mirroring `service/<domain>/`. A resource's tools — `list_*`,
+`create_*`, `update_*`, `archive_*` — all live in that one module and register through one
+`<domain>_router`. Do not create cross-action routers like a shared `list_router`. Params shared
+across domains (e.g. the `filter`/`order_by`/`limit` `ListParams`) live in `tool/common/`.
 
 Where things live:
 
@@ -24,7 +30,8 @@ Where things live:
 | `src/service/<name>/mod.rs` | Service logic; one module per Sift resource/domain. |
 | `src/service/<name>/test.rs` | Service unit tests (required). |
 | `src/service/common/mod.rs` | Shared helpers: `paging`, timestamp conversion, `ColumnName`. |
-| `src/tool/<group>/mod.rs` | Tool handlers, grouped into one `#[tool_router]` block. |
+| `src/tool/<domain>/mod.rs` | Tool handlers for one resource, in one `#[tool_router]` block. |
+| `src/tool/common/mod.rs` | Params/helpers shared across domains (e.g. `ListParams`). |
 | `src/server/mod.rs` | `SiftMcpServer` struct; service construction and router merging. |
 | `src/error/mod.rs` | gRPC-to-MCP error mapping and agent guidance (`from_anyhow`). |
 | `src/policy/mod.rs` | `RetryPolicy` and `with_retry`. |
@@ -180,29 +187,32 @@ In `src/server/mod.rs`:
 1. Add the service field to `SiftMcpServer`.
 2. Construct it in `new()` with `channel.clone()` and `retry_policy.clone()` (the last
    constructed service can take `retry_policy` by move).
-3. Merge the tool router: `tool_router.merge(Self::<group>_router());`.
+3. Merge the tool router: `tool_router.merge(Self::<domain>_router());`.
 
 The existing `new()` shows all three insertion points:
 
 ```rust
-let mut tool_router = Self::list_router();
+let mut tool_router = Self::assets_router();
+tool_router.merge(Self::runs_router());
+tool_router.merge(Self::channels_router());
+tool_router.merge(Self::reports_router());
 tool_router.merge(Self::data_router());
-tool_router.merge(Self::explore_router());
-tool_router.merge(Self::ping_router());
-// merge your new router here
+// merge your new domain router here
 
 let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
 // construct your new service here
 ```
 
-If the tool belongs in an existing group (a new `list_*` tool belongs in `list_router`), add it
-to that module instead of creating a new router.
+If the resource already has a tool module (e.g. adding `update_asset` alongside `list_assets`),
+add the tool to that module's existing `<domain>_router` instead of creating a new one. Only
+create a new module/router when introducing a new resource.
 
 ---
 
 ## Step 4 — Write the tool
 
-Create or extend `src/tool/<group>/mod.rs`. Declare new modules in `src/tool/mod.rs`.
+Create or extend `src/tool/<domain>/mod.rs` (the module for that resource). Declare new modules
+in `src/tool/mod.rs`.
 
 Parameter struct — flat fields only:
 
@@ -235,7 +245,7 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
 - Validate before calling the service. Return `ErrorData::invalid_params(...)` or
   `ErrorData::resource_not_found(...)` for bad input. `get_data` shows multi-field validation.
 - Always return `CallToolResult::structured(json!({ ... }))`.
-- Annotate: `annotations(title = "<group>_router/<tool>", read_only_hint = <bool>)`.
+- Annotate: `annotations(title = "<domain>_router/<tool>", read_only_hint = <bool>)`.
 - **`next_step`.** When the tool writes a file, opens a follow-on workflow, or performs a write,
   set both the structured `next_step` field and `result.content = vec![Content::text(next_step)]`
   so the calling agent sees it. `get_data` and `explore_url` are the reference patterns. Write
@@ -433,9 +443,10 @@ When in doubt, check whether the `Update<Resource>Request` has an `update_mask` 
 
 ## Step 5 — Source `list_*` tools from protos
 
-Tools in `tool/list/` (`list_assets`, `list_runs`, `list_channels`, etc.) are thin wrappers over
-`sift_rs::<service>::<version>::List<Resource>Request`. Their parameters and per-parameter
-semantics MUST be derived from the proto comments on that message, not invented.
+The `list_*` tools (`list_assets` in `tool/assets/`, `list_runs` in `tool/runs/`, `list_rules` in
+`tool/rules/`, etc.) are thin wrappers over `sift_rs::<service>::<version>::List<Resource>Request`.
+Their parameters and per-parameter semantics MUST be derived from the proto comments on that
+message, not invented.
 
 When you add or update a list tool:
 

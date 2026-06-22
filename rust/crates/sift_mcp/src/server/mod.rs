@@ -45,7 +45,10 @@ impl SiftMcpServer {
     pub fn new(channel: SiftChannel, rest_uri: String) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
-        let mut tool_router = Self::list_router();
+        let mut tool_router = Self::assets_router();
+        tool_router.merge(Self::runs_router());
+        tool_router.merge(Self::channels_router());
+        tool_router.merge(Self::reports_router());
         tool_router.merge(Self::data_router());
         tool_router.merge(Self::explore_router());
         tool_router.merge(Self::ping_router());
