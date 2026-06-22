@@ -329,6 +329,12 @@ lives:
   tool, write a `MigrateService` method that composes the read and the write rather than wiring
   several clients together inside the handler.
 
+A tool whose task spans resources and belongs to no single one gets its own module named for the
+action, not shoehorned into a resource module: put the tool in `tool/<action>/` (e.g.
+`tool/migrate/` with a `migrate_router`) and its composite logic in `service/<action>/` (e.g.
+`service/migrate/`). This keeps the domain modules (`tool/assets/`, `tool/rules/`, …) reserved
+for single-resource tools and mirrors the tool/service layout for the cross-cutting case.
+
 Cross-service rules:
 
 - **Validate before you write.** Resolve and check every input a later step depends on (source
