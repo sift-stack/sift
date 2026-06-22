@@ -66,13 +66,13 @@ class TestPrincipalAttributeValue:
             boolean_value=True,
             is_archived=True,
         )
-        mock_client.principal_attributes.get_value.return_value = (
+        mock_client.principal_attributes.get_assignment.return_value = (
             PrincipalAttributeValue._from_proto(archived_proto)
         )
 
         result = value.archive()
 
-        mock_client.principal_attributes.archive_values.assert_called_once_with(
+        mock_client.principal_attributes.archive_assignments.assert_called_once_with(
             [value], principal_type=PrincipalType.USER
         )
         assert result is value

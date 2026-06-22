@@ -98,7 +98,7 @@ class TestAssign:
             )
 
 
-class TestListValuesRouting:
+class TestListAssignmentsRouting:
     @pytest.mark.asyncio
     async def test_uses_key_values_rpc_when_key_given(self):
         api = _api()
@@ -107,7 +107,7 @@ class TestListValuesRouting:
             side_effect=AssertionError("should use key values")
         )
 
-        await api.list_values(key=_key())
+        await api.list_assignments(key=_key())
 
         api._low_level_client.list_all_key_values.assert_awaited_once()
 
@@ -116,6 +116,6 @@ class TestListValuesRouting:
         api = _api()
         api._low_level_client.list_all_values = AsyncMock(return_value=[])
 
-        await api.list_values()
+        await api.list_assignments()
 
         api._low_level_client.list_all_values.assert_awaited_once()

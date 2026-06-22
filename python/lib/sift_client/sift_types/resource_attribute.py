@@ -219,7 +219,7 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
         """Archive this assignment."""
         self.client.resource_attributes.archive_assignments([self])
         self._update(
-            self.client.resource_attributes.get_assignment(resource_attribute_id=self._id_or_error)
+            self.client.resource_attributes.get_assignment(assignment_id=self._id_or_error)
         )
         return self
 
@@ -227,7 +227,7 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
         """Unarchive this assignment."""
         self.client.resource_attributes.unarchive_assignments([self])
         self._update(
-            self.client.resource_attributes.get_assignment(resource_attribute_id=self._id_or_error)
+            self.client.resource_attributes.get_assignment(assignment_id=self._id_or_error)
         )
         return self
 

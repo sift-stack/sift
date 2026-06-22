@@ -76,9 +76,9 @@ class ResourceAttributesAPIAsync(ResourceBase):
 
     # ───────── Keys ─────────
 
-    async def get_key(self, *, resource_attribute_key_id: str) -> ResourceAttributeKey:
+    async def get_key(self, *, key_id: str) -> ResourceAttributeKey:
         """Get a resource attribute key by ID."""
-        key = await self._low_level_client.get_key(resource_attribute_key_id)
+        key = await self._low_level_client.get_key(key_id)
         return self._apply_client_to_instance(key)
 
     async def list_keys(
@@ -196,13 +196,13 @@ class ResourceAttributesAPIAsync(ResourceBase):
         """Archive a key. Cascades to its enum values and assignments."""
         key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
         await self._low_level_client.archive_key(key_id)
-        return await self.get_key(resource_attribute_key_id=key_id)
+        return await self.get_key(key_id=key_id)
 
     async def unarchive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
         key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
         await self._low_level_client.unarchive_key(key_id)
-        return await self.get_key(resource_attribute_key_id=key_id)
+        return await self.get_key(key_id=key_id)
 
     async def check_key_archive_impact(self, key: str | ResourceAttributeKey) -> int:
         """Return the number of active assignments archiving this key would affect."""
@@ -334,9 +334,9 @@ class ResourceAttributesAPIAsync(ResourceBase):
             created.extend(attrs)
         return self._apply_client_to_instances(created)
 
-    async def get_assignment(self, *, resource_attribute_id: str) -> ResourceAttribute:
+    async def get_assignment(self, *, assignment_id: str) -> ResourceAttribute:
         """Get a single assignment by ID."""
-        attr = await self._low_level_client.get_resource_attribute(resource_attribute_id)
+        attr = await self._low_level_client.get_resource_attribute(assignment_id)
         return self._apply_client_to_instance(attr)
 
     async def list_assignments(

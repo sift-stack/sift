@@ -178,22 +178,24 @@ class PrincipalAttributeValue(BaseType[pa_pb.PrincipalAttributeValue, "Principal
 
     def archive(self) -> PrincipalAttributeValue:
         """Archive this assignment."""
-        self.client.principal_attributes.archive_values([self], principal_type=self.principal_type)
+        self.client.principal_attributes.archive_assignments(
+            [self], principal_type=self.principal_type
+        )
         self._update(
-            self.client.principal_attributes.get_value(
-                principal_attribute_value_id=self._id_or_error, principal_type=self.principal_type
+            self.client.principal_attributes.get_assignment(
+                assignment_id=self._id_or_error, principal_type=self.principal_type
             )
         )
         return self
 
     def unarchive(self) -> PrincipalAttributeValue:
         """Unarchive this assignment."""
-        self.client.principal_attributes.unarchive_values(
+        self.client.principal_attributes.unarchive_assignments(
             [self], principal_type=self.principal_type
         )
         self._update(
-            self.client.principal_attributes.get_value(
-                principal_attribute_value_id=self._id_or_error, principal_type=self.principal_type
+            self.client.principal_attributes.get_assignment(
+                assignment_id=self._id_or_error, principal_type=self.principal_type
             )
         )
         return self
@@ -278,11 +280,11 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
             self, principals, value=value, principal_type=principal_type
         )
 
-    def list_values(
+    def list_assignments(
         self, *, principal_type: PrincipalType = PrincipalType.USER, include_archived: bool = False
     ) -> list[PrincipalAttributeValue]:
         """List all assignments of this key for the given principal type."""
-        return self.client.principal_attributes.list_values(
+        return self.client.principal_attributes.list_assignments(
             key=self, principal_type=principal_type, include_archived=include_archived
         )
 

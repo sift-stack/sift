@@ -33,8 +33,8 @@ def _enum_value_id(value: PrincipalAttributeEnumValue | str) -> str:
     return value._id_or_error if isinstance(value, PrincipalAttributeEnumValue) else value
 
 
-def _value_id(value: PrincipalAttributeValue | str) -> str:
-    return value._id_or_error if isinstance(value, PrincipalAttributeValue) else value
+def _assignment_id(assignment: PrincipalAttributeValue | str) -> str:
+    return assignment._id_or_error if isinstance(assignment, PrincipalAttributeValue) else assignment
 
 
 def _chunks(items: list[Any], size: int):
@@ -63,9 +63,9 @@ class PrincipalAttributesAPIAsync(ResourceBase):
 
     # ───────── Keys ─────────
 
-    async def get_key(self, *, principal_attribute_key_id: str) -> PrincipalAttributeKey:
+    async def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
         """Get a principal attribute key by ID."""
-        key = await self._low_level_client.get_key(principal_attribute_key_id)
+        key = await self._low_level_client.get_key(key_id)
         return self._apply_client_to_instance(key)
 
     async def list_keys(
@@ -171,13 +171,13 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         """Archive a key. Cascades to its enum values and assignments."""
         key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
         await self._low_level_client.archive_key(key_id)
-        return await self.get_key(principal_attribute_key_id=key_id)
+        return await self.get_key(key_id=key_id)
 
     async def unarchive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
         key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
         await self._low_level_client.unarchive_key(key_id)
-        return await self.get_key(principal_attribute_key_id=key_id)
+        return await self.get_key(key_id=key_id)
 
     async def check_key_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
         """Return the number of active assignments archiving this key would affect.
@@ -318,19 +318,19 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             created.extend(values)
         return self._apply_client_to_instances(created)
 
-    async def get_value(
+    async def get_assignment(
         self,
         *,
-        principal_attribute_value_id: str,
+        assignment_id: str,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> PrincipalAttributeValue:
         """Get a single assignment by ID."""
         value = await self._low_level_client.get_value(
-            principal_attribute_value_id, principal_type=principal_type.value
+            assignment_id, principal_type=principal_type.value
         )
         return self._apply_client_to_instance(value)
 
-    async def list_values(
+    async def list_assignments(
         self,
         *,
         key: str | PrincipalAttributeKey | None = None,
@@ -386,25 +386,25 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             )
         return self._apply_client_to_instances(values)
 
-    async def archive_values(
+    async def archive_assignments(
         self,
-        values: list[str | PrincipalAttributeValue],
+        assignments: list[str | PrincipalAttributeValue],
         *,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> None:
         """Batch archive assignments."""
-        ids = [_value_id(v) for v in values]
+        ids = [_assignment_id(a) for a in assignments]
         for batch in _chunks(ids, ASSIGN_BATCH_SIZE):
             await self._low_level_client.archive_values(batch, principal_type=principal_type.value)
 
-    async def unarchive_values(
+    async def unarchive_assignments(
         self,
-        values: list[str | PrincipalAttributeValue],
+        assignments: list[str | PrincipalAttributeValue],
         *,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> None:
         """Batch unarchive assignments."""
-        ids = [_value_id(v) for v in values]
+        ids = [_assignment_id(a) for a in assignments]
         for batch in _chunks(ids, ASSIGN_BATCH_SIZE):
             await self._low_level_client.unarchive_values(
                 batch, principal_type=principal_type.value

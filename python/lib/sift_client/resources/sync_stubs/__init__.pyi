@@ -1194,6 +1194,15 @@ class PrincipalAttributesAPI:
         ...
 
     def _run(self, coro): ...
+    def archive_assignments(
+        self,
+        assignments: list[str | PrincipalAttributeValue],
+        *,
+        principal_type: PrincipalType = PrincipalType.USER,
+    ) -> None:
+        """Batch archive assignments."""
+        ...
+
     def archive_enum_value(
         self,
         enum_value: str | PrincipalAttributeEnumValue,
@@ -1208,15 +1217,6 @@ class PrincipalAttributesAPI:
 
     def archive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Archive a key. Cascades to its enum values and assignments."""
-        ...
-
-    def archive_values(
-        self,
-        values: list[str | PrincipalAttributeValue],
-        *,
-        principal_type: PrincipalType = PrincipalType.USER,
-    ) -> None:
-        """Batch archive assignments."""
         ...
 
     def assign(
@@ -1266,7 +1266,13 @@ class PrincipalAttributesAPI:
         """Find a single key matching the query. Raises if more than one matches."""
         ...
 
-    def get_key(self, *, principal_attribute_key_id: str) -> PrincipalAttributeKey:
+    def get_assignment(
+        self, *, assignment_id: str, principal_type: PrincipalType = PrincipalType.USER
+    ) -> PrincipalAttributeValue:
+        """Get a single assignment by ID."""
+        ...
+
+    def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
         """Get a principal attribute key by ID."""
         ...
 
@@ -1290,13 +1296,30 @@ class PrincipalAttributesAPI:
         """
         ...
 
-    def get_value(
+    def list_assignments(
         self,
         *,
-        principal_attribute_value_id: str,
+        key: str | PrincipalAttributeKey | None = None,
+        principal: str | None = None,
         principal_type: PrincipalType = PrincipalType.USER,
-    ) -> PrincipalAttributeValue:
-        """Get a single assignment by ID."""
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeValue]:
+        """List principal attribute assignments.
+
+        Args:
+            key: Filter to assignments of this key.
+            principal: Filter to assignments for this principal (user ID, or email for users).
+            principal_type: The kind of principal to list assignments for. Defaults to ``USER``.
+            include_archived: If True, include archived assignments.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of assignments to return.
+            page_size: Results to fetch per request.
+        """
         ...
 
     def list_enum_values(
@@ -1346,32 +1369,6 @@ class PrincipalAttributesAPI:
         """
         ...
 
-    def list_values(
-        self,
-        *,
-        key: str | PrincipalAttributeKey | None = None,
-        principal: str | None = None,
-        principal_type: PrincipalType = PrincipalType.USER,
-        include_archived: bool = False,
-        filter_query: str | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-        page_size: int | None = None,
-    ) -> list[PrincipalAttributeValue]:
-        """List principal attribute assignments.
-
-        Args:
-            key: Filter to assignments of this key.
-            principal: Filter to assignments for this principal (user ID, or email for users).
-            principal_type: The kind of principal to list assignments for. Defaults to ``USER``.
-            include_archived: If True, include archived assignments.
-            filter_query: Explicit CEL query.
-            order_by: Field and direction to order by.
-            limit: Maximum number of assignments to return.
-            page_size: Results to fetch per request.
-        """
-        ...
-
     def resolve_user_id(self, email: str) -> str:
         """Resolve a user's email (its user name) to a user ID.
 
@@ -1388,6 +1385,15 @@ class PrincipalAttributesAPI:
         """
         ...
 
+    def unarchive_assignments(
+        self,
+        assignments: list[str | PrincipalAttributeValue],
+        *,
+        principal_type: PrincipalType = PrincipalType.USER,
+    ) -> None:
+        """Batch unarchive assignments."""
+        ...
+
     def unarchive_enum_value(
         self, enum_value: str | PrincipalAttributeEnumValue
     ) -> PrincipalAttributeEnumValue:
@@ -1396,15 +1402,6 @@ class PrincipalAttributesAPI:
 
     def unarchive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
-        ...
-
-    def unarchive_values(
-        self,
-        values: list[str | PrincipalAttributeValue],
-        *,
-        principal_type: PrincipalType = PrincipalType.USER,
-    ) -> None:
-        """Batch unarchive assignments."""
         ...
 
     def update_key(
@@ -1764,11 +1761,11 @@ class ResourceAttributesAPI:
         """Find a single key matching the query. Raises if more than one matches."""
         ...
 
-    def get_assignment(self, *, resource_attribute_id: str) -> ResourceAttribute:
+    def get_assignment(self, *, assignment_id: str) -> ResourceAttribute:
         """Get a single assignment by ID."""
         ...
 
-    def get_key(self, *, resource_attribute_key_id: str) -> ResourceAttributeKey:
+    def get_key(self, *, key_id: str) -> ResourceAttributeKey:
         """Get a resource attribute key by ID."""
         ...
 
