@@ -29,6 +29,13 @@ pub struct ReportListParams {
     organization_id: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RuleVersionListParams {
+    rule_id: String,
+    filter: Option<String>,
+    limit: Option<u32>,
+}
+
 #[tool_router(router = list_router, vis = "pub(crate)")]
 impl SiftMcpServer {
     #[tool(
@@ -281,6 +288,54 @@ impl SiftMcpServer {
             .list_rules(filter, order_by, limit)
             .await
             .map(|rules| serde_json::json!({ "rules": rules }))
+            .map_err(from_anyhow)?;
+
+        Ok(CallToolResult::structured(out))
+    }
+
+    #[tool(
+        name = "list_rule_versions",
+        description = "
+            List the version history of a single Sift rule, newest entries returned by the server, optionally
+            filtered by a CEL expression.
+
+            Output:
+              - `{ \"rule_versions\": [RuleVersion, ...] }`. Each item includes `rule_id`, `rule_version_id`,
+                `version`, `created_date`, `created_by_user_id`, `version_notes`, and `generated_change_message`.
+
+            Parameters:
+              - `rule_id`: required. The rule whose versions to list.
+              - `filter`: optional CEL expression. Filterable fields: `rule_version_id`, `user_notes`, and
+                `change_message`. Omit or pass an empty string to list all versions.
+              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
+                passing a value above 1000 returns ALL versions (paginated server-side).
+
+            Errors:
+              - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - Use this to review how a rule changed over time, or to find a specific `rule_version_id` before
+                inspecting or referencing that version. Resolve the `rule_id` with `list_rules` first if you only
+                have the rule name.
+        ",
+        annotations(title = "list_router/list_rule_versions", read_only_hint = true)
+    )]
+    pub async fn list_rule_versions(
+        &self,
+        params: Parameters<RuleVersionListParams>,
+    ) -> error::McpResult {
+        let Parameters(RuleVersionListParams {
+            rule_id,
+            filter,
+            limit,
+        }) = params;
+
+        let out = self
+            .rule_service
+            .list_rule_versions(rule_id, filter.unwrap_or_default(), limit)
+            .await
+            .map(|rule_versions| serde_json::json!({ "rule_versions": rule_versions }))
             .map_err(from_anyhow)?;
 
         Ok(CallToolResult::structured(out))

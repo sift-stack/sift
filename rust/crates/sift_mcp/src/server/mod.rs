@@ -49,6 +49,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::data_router());
         tool_router.merge(Self::explore_router());
         tool_router.merge(Self::ping_router());
+        tool_router.merge(Self::rules_router());
 
         let prompt_router = Self::prompt_router();
 
