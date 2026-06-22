@@ -333,6 +333,102 @@ Cross-service rules:
   deliberately does not wrap the stream in `with_retry`. Do not bolt naive retries onto a
   half-consumed stream; surface the failure instead.
 
+### Update tools — field masks
+
+Most update RPCs follow the Google AIP pattern: the request carries the resource plus a
+`google.protobuf.FieldMask` naming which fields to write. `runs/v2 UpdateRun` is the model. Its
+`UpdateRunRequest` is:
+
+```rust
+pub struct UpdateRunRequest {
+    pub run: Option<Run>,                          // carries run_id (required) + new values
+    pub update_mask: Option<pbjson_types::FieldMask>,  // paths: Vec<String>
+}
+```
+
+Rules for these tools:
+
+- **The updatable fields come from the proto, not invention.** The `Update<Resource>Request`
+  doc comment lists exactly which fields may be updated and any per-field caveats. This is the
+  write-side analog of sourcing filterable fields from `List<Resource>Request` (Step 5). For
+  `UpdateRunRequest` the set is `name`, `description`, `start_time`, `stop_time`, `is_pinned`,
+  `client_key`, `tags`, `is_archived`, `metadata`. Re-read the comment when the proto changes.
+- **Mask semantics.** Only fields named in `update_mask.paths` are written. A field set on the
+  resource but absent from the mask is ignored; a field named in the mask but left at its default
+  on the resource is cleared. Path strings are the snake_case proto field names.
+- **Keep parameters flat; build the mask in the service.** Do not expose a nested `Run` object or
+  a raw `paths` array as tool parameters (they hit the stringification bug, and a raw mask pushes
+  proto knowledge onto the caller). Expose the id as a required scalar plus one `Option<T>` per
+  updatable field. The service sets each provided field on the resource and appends its path to
+  the mask, so the mask always matches what was sent. This logic is business logic, so it lives
+  in the service where it can be unit-tested.
+- **Validate that at least one field is set.** Return `INVALID_PARAMS` from the handler when no
+  updatable field was provided (mirrors `get_data`'s up-front checks). An empty mask is a no-op
+  and almost always a caller mistake.
+- **Surface per-field caveats in the description.** `UpdateRunRequest` notes that `client_key`
+  can be set only once and that `start_time` may be overwritten by later ingestion. Caveats like
+  these belong in the tool description and, where they affect a write, in `next_step`.
+- **It is a write.** Set `read_only_hint = false` and confirm the target with the user via
+  `next_step` before acting, per Step 0.
+
+Service skeleton (the tool handler stays thin and just forwards its flat `Option` params):
+
+```rust
+pub async fn update_run(
+    &self,
+    run_id: String,
+    name: Option<String>,
+    description: Option<String>,
+    tags: Option<Vec<String>>,
+) -> Result<Run> {
+    let mut run = Run { run_id, ..Default::default() };
+    let mut paths = Vec::new();
+
+    if let Some(name) = name {
+        run.name = name;
+        paths.push("name".to_string());
+    }
+    if let Some(description) = description {
+        run.description = description;
+        paths.push("description".to_string());
+    }
+    if let Some(tags) = tags {
+        run.tags = tags;
+        paths.push("tags".to_string());
+    }
+
+    let channel = self.channel.clone();
+    let resp = with_retry(&self.policy, move || {
+        let channel = channel.clone();
+        let run = run.clone();
+        let paths = paths.clone();
+        async move {
+            let mut client = RunServiceClient::new(channel);
+            client
+                .update_run(UpdateRunRequest {
+                    run: Some(run),
+                    update_mask: Some(FieldMask { paths }),
+                })
+                .await
+                .map(|resp| resp.into_inner())
+        }
+    })
+    .await
+    .context("failed to update run")?;
+
+    resp.run.ok_or_else(|| anyhow!("update response missing run"))
+}
+```
+
+`FieldMask` is `pbjson_types::FieldMask` (`pbjson-types` is already a dependency). A good service
+test asserts the request's `update_mask.paths` contains exactly the fields that were provided and
+nothing else.
+
+**Legacy services without masks.** A few pre-AIP services do not use a field mask. `rules/v1
+UpdateRule` (`protos/sift/rules/v1/rules.proto`) is the example: the update request carries the
+fields directly. Do not synthesize a mask for these. Read the proto and follow its request shape.
+When in doubt, check whether the `Update<Resource>Request` has an `update_mask` field.
+
 ---
 
 ## Step 5 — Source `list_*` tools from protos
@@ -480,6 +576,10 @@ Run through this before declaring the tool done:
 - [ ] Multi-service tasks place orchestration correctly: light fan-out in the handler, heavy
       logic in a composite service. Validation precedes writes; partial-failure behavior is
       stated in the description and `next_step`.
+- [ ] Update tools expose flat `Option` params (not a nested resource or raw mask), build the
+      `FieldMask` in the service, reject an empty mask with `INVALID_PARAMS`, and source the
+      updatable field set from the `Update<Resource>Request` doc comment. Legacy mask-less
+      services follow their own proto shape.
 - [ ] Description follows the five-section structure and the style rules. `list_*` descriptions
       match the current proto comments.
 - [ ] `read_only_hint` is correct. Write tools confirm the destination via `next_step`.
