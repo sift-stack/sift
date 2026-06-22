@@ -3,7 +3,7 @@
 Resource attributes assign attribute keys to Sift entities (assets, channels, runs)
 for attribute based access control. The model has three tiers:
 
-- ``ResourceAttributeKey`` defines an attribute (e.g. ``psm_id``) and its value type.
+- ``ResourceAttributeKey`` defines an attribute (e.g. ``licenses``) and its value type.
 - ``ResourceAttributeEnumValue`` is an allowed value for an ``ENUM``/``SET_OF_ENUM`` key.
 - ``ResourceAttribute`` is a single assignment of a value to one entity.
 

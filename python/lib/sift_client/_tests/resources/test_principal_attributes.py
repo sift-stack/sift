@@ -26,7 +26,7 @@ def _key() -> PrincipalAttributeKey:
     return PrincipalAttributeKey._from_proto(
         pa.PrincipalAttributeKey(
             principal_attribute_key_id="pk1",
-            display_name="psm_id",
+            display_name="licenses",
             type=pa.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM,
         )
     )

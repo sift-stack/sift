@@ -16,7 +16,7 @@ An attribute key is the entry point. Create or fetch a key, define its enum valu
 ```python
 from sift_client.sift_types import ResourceAttributeKeyType
 
-key = client.resource_attributes.get_or_create_key("psm_id", ResourceAttributeKeyType.SET_OF_ENUM)
+key = client.resource_attributes.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
 licenses = key.get_or_create_enum_values(["LICENSE_A", "LICENSE_B"])
 key.assign_to(channels, value=licenses)
 ```
@@ -26,7 +26,7 @@ Principal attributes accept user IDs or email addresses, resolving emails to use
 ```python
 from sift_client.sift_types import PrincipalAttributeValueType
 
-key = client.principal_attributes.get_or_create_key("psm_id", PrincipalAttributeValueType.SET_OF_ENUM)
+key = client.principal_attributes.get_or_create_key("licenses", PrincipalAttributeValueType.SET_OF_ENUM)
 licenses = key.get_or_create_enum_values(["LICENSE_A"])
 key.assign_to(["user@example.com"], value=licenses)
 ```

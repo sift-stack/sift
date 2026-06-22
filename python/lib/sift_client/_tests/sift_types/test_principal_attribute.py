@@ -15,7 +15,7 @@ def _key_proto() -> pa.PrincipalAttributeKey:
     return pa.PrincipalAttributeKey(
         principal_attribute_key_id="pk1",
         organization_id="org1",
-        display_name="psm_id",
+        display_name="licenses",
         description="license ids",
         type=pa.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM,
         is_archived=False,
@@ -30,7 +30,7 @@ class TestPrincipalAttributeKey:
         assert key.archived_date is None
 
     def test_str_is_display_name(self):
-        assert str(PrincipalAttributeKey._from_proto(_key_proto())) == "psm_id"
+        assert str(PrincipalAttributeKey._from_proto(_key_proto())) == "licenses"
 
 
 class TestPrincipalAttributeValue:
@@ -85,7 +85,7 @@ class TestPrincipalAttributeValue:
             principal_id="u1",
             principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
             principal_attribute_enum_value_id="ev1",
-            key=pa.PrincipalAttributeKey(principal_attribute_key_id="pk1", display_name="psm_id"),
+            key=pa.PrincipalAttributeKey(principal_attribute_key_id="pk1", display_name="licenses"),
             enum_value_details=pa.PrincipalAttributeEnumValue(
                 principal_attribute_enum_value_id="ev1", display_name="LIC_A"
             ),

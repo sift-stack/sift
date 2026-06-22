@@ -24,18 +24,18 @@ class TestCreateKey:
         stub.CreateResourceAttributeKey = AsyncMock(
             return_value=ra.CreateResourceAttributeKeyResponse(
                 resource_attribute_key=ra.ResourceAttributeKey(
-                    resource_attribute_key_id="k1", display_name="psm_id"
+                    resource_attribute_key_id="k1", display_name="licenses"
                 )
             )
         )
         client = _client_with_stub(stub)
 
         key = await client.create_key(
-            display_name="psm_id", key_type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM
+            display_name="licenses", key_type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM
         )
 
         request = stub.CreateResourceAttributeKey.call_args[0][0]
-        assert request.display_name == "psm_id"
+        assert request.display_name == "licenses"
         assert request.type == ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM
         assert key.id_ == "k1"
 
@@ -93,10 +93,10 @@ class TestListAllKeys:
         )
         client = _client_with_stub(stub)
 
-        await client.list_all_keys(query_filter='name == "psm_id"', include_archived=True)
+        await client.list_all_keys(query_filter='name == "licenses"', include_archived=True)
 
         request = stub.ListResourceAttributeKeys.call_args[0][0]
-        assert request.filter == 'name == "psm_id"'
+        assert request.filter == 'name == "licenses"'
         assert request.include_archived is True
 
 

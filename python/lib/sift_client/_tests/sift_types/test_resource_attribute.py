@@ -19,7 +19,7 @@ def _key_proto(*, is_archived: bool = False) -> ra.ResourceAttributeKey:
     return ra.ResourceAttributeKey(
         resource_attribute_key_id="k1",
         organization_id="org1",
-        display_name="psm_id",
+        display_name="licenses",
         description="license ids",
         type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM,
         is_archived=is_archived,
@@ -46,7 +46,7 @@ class TestResourceAttributeKey:
     def test_from_proto_maps_fields_and_renames_type(self):
         key = ResourceAttributeKey._from_proto(_key_proto())
         assert key.id_ == "k1"
-        assert key.display_name == "psm_id"
+        assert key.display_name == "licenses"
         assert key.key_type == ResourceAttributeKeyType.SET_OF_ENUM
         assert key.is_archived is False
         assert key.archived_date is None
@@ -59,7 +59,7 @@ class TestResourceAttributeKey:
         assert key.archived_date == datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     def test_str_is_display_name(self):
-        assert str(ResourceAttributeKey._from_proto(_key_proto())) == "psm_id"
+        assert str(ResourceAttributeKey._from_proto(_key_proto())) == "licenses"
 
 
 class TestResourceAttribute:
@@ -97,7 +97,7 @@ class TestResourceAttribute:
             resource_attribute_id="a1",
             resource_attribute_key_id="k1",
             resource_attribute_enum_value_id="ev1",
-            key=ra.ResourceAttributeKey(resource_attribute_key_id="k1", display_name="psm_id"),
+            key=ra.ResourceAttributeKey(resource_attribute_key_id="k1", display_name="licenses"),
             enum_value_details=ra.ResourceAttributeEnumValue(
                 resource_attribute_enum_value_id="ev1", display_name="LIC_A"
             ),

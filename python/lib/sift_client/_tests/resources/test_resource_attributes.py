@@ -29,7 +29,7 @@ def _api() -> ResourceAttributesAPIAsync:
 def _key(key_type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM) -> ResourceAttributeKey:
     return ResourceAttributeKey._from_proto(
         ra.ResourceAttributeKey(
-            resource_attribute_key_id="k1", display_name="psm_id", type=key_type
+            resource_attribute_key_id="k1", display_name="licenses", type=key_type
         )
     )
 
@@ -49,7 +49,7 @@ class TestGetOrCreateKey:
         api._low_level_client.list_all_keys = AsyncMock(return_value=[_key()])
         api._low_level_client.create_key = AsyncMock(side_effect=AssertionError("must not create"))
 
-        key = await api.get_or_create_key("psm_id", ResourceAttributeKeyType.SET_OF_ENUM)
+        key = await api.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
 
         assert key.id_ == "k1"
 
@@ -59,7 +59,7 @@ class TestGetOrCreateKey:
         api._low_level_client.list_all_keys = AsyncMock(return_value=[])
         api._low_level_client.create_key = AsyncMock(return_value=_key())
 
-        key = await api.get_or_create_key("psm_id", ResourceAttributeKeyType.SET_OF_ENUM)
+        key = await api.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
 
         api._low_level_client.create_key.assert_awaited_once()
         assert key.id_ == "k1"
