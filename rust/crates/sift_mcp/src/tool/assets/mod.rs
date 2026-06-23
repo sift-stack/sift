@@ -113,10 +113,7 @@ impl SiftMcpServer {
         ",
         annotations(title = "assets_router/update_asset", read_only_hint = false)
     )]
-    pub async fn update_asset(
-        &self,
-        params: Parameters<UpdateAssetParams>,
-    ) -> error::McpResult {
+    pub async fn update_asset(&self, params: Parameters<UpdateAssetParams>) -> error::McpResult {
         let Parameters(UpdateAssetParams {
             asset_id,
             tags,
@@ -124,7 +121,10 @@ impl SiftMcpServer {
         }) = params;
 
         if asset_id.is_empty() {
-            return Err(ErrorData::invalid_params("`asset_id` must not be empty", None));
+            return Err(ErrorData::invalid_params(
+                "`asset_id` must not be empty",
+                None,
+            ));
         }
         if tags.is_none() && metadata.is_none() {
             return Err(ErrorData::invalid_params(
@@ -133,8 +133,7 @@ impl SiftMcpServer {
             ));
         }
 
-        let metadata =
-            metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
+        let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
 
         let asset = self
             .asset_service

@@ -276,7 +276,10 @@ async fn update_asset_tags_only_sets_tags_mask() {
 
     assert_eq!(updated.asset_id, "a1");
     assert_eq!(updated.name, "engine");
-    assert_eq!(updated.tags, vec!["primary".to_string(), "prod".to_string()]);
+    assert_eq!(
+        updated.tags,
+        vec!["primary".to_string(), "prod".to_string()]
+    );
 }
 
 #[tokio::test]
@@ -429,5 +432,8 @@ async fn update_asset_errors_when_response_missing_asset() {
         .await
         .expect_err("expected error");
 
-    assert!(err.to_string().contains("update_asset response missing asset"));
+    assert!(
+        err.to_string()
+            .contains("update_asset response missing asset")
+    );
 }
