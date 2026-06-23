@@ -50,7 +50,10 @@ jobs:
               owner: 'sift-stack',
               repo: 'azimuth',
               workflow_id: 'python_release_processor.yml',
-              ref: 'main'
+              ref: 'main',
+              inputs: {
+                build_sha: '${{ github.sha }}'
+              }
             })
 
   create-github-release:
