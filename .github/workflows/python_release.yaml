@@ -40,6 +40,7 @@ jobs:
     name: Trigger Python release processor
     needs: publish-to-pypi
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Dispatch python_release_processor
         uses: actions/github-script@v7
@@ -50,7 +51,10 @@ jobs:
               owner: 'sift-stack',
               repo: 'azimuth',
               workflow_id: 'python_release_processor.yml',
-              ref: 'main'
+              ref: 'main',
+              inputs: {
+                build_sha: '${{ github.sha }}'
+              }
             })
 
   create-github-release:
