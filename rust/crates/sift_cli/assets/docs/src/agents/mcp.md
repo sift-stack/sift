@@ -41,6 +41,7 @@ not run interactively.
 | `get_data`       | Download channel data for an asset/run to a Parquet file, with optional decimation. |
 | `sql`            | Run SQL over one or more Parquet files; chain after `get_data` for analysis.  |
 | `upload_dataset` | Stream a Parquet dataset into Sift.                                           |
+| `update_asset`   | Update an asset's tags and/or metadata (replace semantics).                   |
 | `create_rule`    | Create a rule from a JSON definition.                                         |
 | `update_rule`    | Update specific fields of a rule; unspecified fields are preserved.          |
 | `archive_rule`   | Archive a rule so it stops evaluating.                                        |
