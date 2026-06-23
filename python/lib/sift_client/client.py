@@ -136,6 +136,7 @@ class SiftClient(
         rest_url: str | None = None,
         connection_config: SiftConnectionConfig | None = None,
         app_url: str | None = None,
+        data_cache_max_bytes: int | None = None,
     ):
         """Initialize the SiftClient with specific connection parameters or a connection_config.
 
@@ -148,7 +149,16 @@ class SiftClient(
                 Set this for on-prem or custom deployments whose API host can't be
                 mapped to a frontend automatically; see the ``app_url`` property.
                 A value here takes precedence over ``connection_config.app_url``.
+            data_cache_max_bytes: Cap on the in-memory channel data cache used
+                by ``client.channels.get_data`` (bytes). When the bound is
+                reached, the least-recently-used cached channel is evicted.
+                Defaults to 512 MiB. Set to ``0`` to disable caching. Must be
+                ``>= 0``.
         """
+        if data_cache_max_bytes is not None and data_cache_max_bytes < 0:
+            raise ValueError(
+                f"data_cache_max_bytes must be >= 0, got {data_cache_max_bytes}"
+            )
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
                 "Either api_key, grpc_url and rest_url or connection_config must be provided to establish a connection."
@@ -178,6 +188,11 @@ class SiftClient(
         # contacting Sift. Read by `TestResultsAPIAsync._simulate`. Used by the
         # pytest plugin's ``--sift-disabled`` mode.
         self._simulate: bool = False
+
+        # Read by ``ChannelsAPIAsync._ensure_data_low_level_client`` when it
+        # lazily constructs the data wrapper. ``None`` means "use the wrapper
+        # default" so we don't have to import the constant here.
+        self._data_cache_max_bytes: int | None = data_cache_max_bytes
 
         self.ping = PingAPI(self)
         self.assets = AssetsAPI(self)

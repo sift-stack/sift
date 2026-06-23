@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, cast
 
@@ -34,17 +35,123 @@ CHANNELS_DEFAULT_PAGE_SIZE = 10_000
 # has been resolved. In the mean time each channel gets its own request.
 REQUEST_BATCH_SIZE = 1
 
+# Default in-memory budget for cached channel DataFrames, per ``DataLowLevelClient``
+# instance. 512 MiB is well below typical pod limits while still letting common
+# interactive workloads stay in cache. Override via ``SiftClient(data_cache_max_bytes=...)``.
+DEFAULT_DATA_CACHE_MAX_BYTES = 512 * 1024 * 1024
+
 
 class ChannelCacheEntry(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     data: pd.DataFrame
     start_time: datetime
     end_time: datetime
+    # ``df.memory_usage(deep=True).sum()`` at construction time. Stored on the
+    # entry so eviction is O(1) per dropped item instead of re-walking frames.
+    size_bytes: int
 
 
-class ChannelCache(BaseModel):
-    name_id_map: dict[str, str]
-    channels: dict[str, ChannelCacheEntry]
+def _new_cache_entry(
+    data: pd.DataFrame, start_time: datetime, end_time: datetime
+) -> ChannelCacheEntry:
+    return ChannelCacheEntry(
+        data=data,
+        start_time=start_time,
+        end_time=end_time,
+        size_bytes=int(data.memory_usage(deep=True).sum()),
+    )
+
+
+class ChannelCache:
+    """LRU-ordered, byte-bounded cache of per-channel DataFrames.
+
+    Each ``DataLowLevelClient`` owns its own ``ChannelCache``; the previous
+    implementation kept this on the class, which silently shared state across
+    every ``SiftClient`` in the process and grew without bound. Sustained pulls
+    against that shared cache OOM'd long-running pods.
+
+    Bookkeeping invariant: ``_total_bytes == sum(e.size_bytes for e in _entries.values())``.
+    Maintained by every mutation path so the bound is checked in O(1) without
+    re-walking entries.
+
+    ``max_bytes <= 0`` disables retention: every ``get`` misses, ``put`` returns
+    without storing. ``name_id_map`` is intentionally outside the bound — it's
+    a tiny string→string map and forms part of the contract with ``_update_cache``,
+    which depends on it to translate channel names to ids.
+    """
+
+    def __init__(self, max_bytes: int = DEFAULT_DATA_CACHE_MAX_BYTES):
+        if max_bytes < 0:
+            raise ValueError(
+                f"data_cache_max_bytes must be >= 0, got {max_bytes}"
+            )
+        self.name_id_map: dict[str, str] = {}
+        self._entries: OrderedDict[str, ChannelCacheEntry] = OrderedDict()
+        self._total_bytes: int = 0
+        self._max_bytes: int = max_bytes
+
+    @property
+    def enabled(self) -> bool:
+        return self._max_bytes > 0
+
+    @property
+    def max_bytes(self) -> int:
+        return self._max_bytes
+
+    @property
+    def total_bytes(self) -> int:
+        return self._total_bytes
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    def __contains__(self, channel_id: str) -> bool:
+        return channel_id in self._entries
+
+    def get(self, channel_id: str) -> ChannelCacheEntry | None:
+        """Return the entry for ``channel_id`` if cached, otherwise None.
+
+        Promotes the entry to most-recently-used on hit.
+        """
+        entry = self._entries.get(channel_id)
+        if entry is not None:
+            self._entries.move_to_end(channel_id)
+        return entry
+
+    def put(self, channel_id: str, entry: ChannelCacheEntry) -> None:
+        """Insert or replace ``channel_id``, then evict LRU until under the bound.
+
+        Reclaims any prior entry's byte count BEFORE adding the new one's, so a
+        re-insert (e.g. concat-merge of fresh data into an existing entry)
+        accounts for the size delta correctly rather than double-counting.
+        """
+        if not self.enabled:
+            return
+        prior = self._entries.pop(channel_id, None)
+        if prior is not None:
+            self._total_bytes -= prior.size_bytes
+        self._entries[channel_id] = entry
+        self._total_bytes += entry.size_bytes
+        self._evict_until_under_bound()
+
+    def invalidate(self, channel_id: str) -> None:
+        prior = self._entries.pop(channel_id, None)
+        if prior is not None:
+            self._total_bytes -= prior.size_bytes
+
+    def clear(self) -> None:
+        self._entries.clear()
+        self._total_bytes = 0
+
+    def _evict_until_under_bound(self) -> None:
+        # ``popitem(last=False)`` drops the oldest entry. A single fresh entry
+        # whose ``size_bytes`` alone exceeds ``max_bytes`` ends up evicted on
+        # the final iteration — the deliberate choice over "keep the oversized
+        # entry and violate the bound" or "evict everyone else and still
+        # violate the bound."
+        while self._entries and self._total_bytes > self._max_bytes:
+            _, dropped = self._entries.popitem(last=False)
+            self._total_bytes -= dropped.size_bytes
 
 
 class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -53,15 +160,21 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
     This class provides a thin wrapper around the autogenerated bindings for the DataAPI.
     """
 
-    channel_cache: ChannelCache = ChannelCache(name_id_map={}, channels={})
-
-    def __init__(self, grpc_client: GrpcClient):
+    def __init__(
+        self,
+        grpc_client: GrpcClient,
+        *,
+        data_cache_max_bytes: int = DEFAULT_DATA_CACHE_MAX_BYTES,
+    ):
         """Initialize the DataLowLevelClient.
 
         Args:
             grpc_client: The gRPC client to use for making API calls.
+            data_cache_max_bytes: Cap on the in-memory channel-data cache (bytes).
+                Set to ``0`` to disable caching. See ``ChannelCache``.
         """
         super().__init__(grpc_client)
+        self.channel_cache = ChannelCache(max_bytes=data_cache_max_bytes)
 
     def _update_name_id_map(self, channels: list[Channel]):
         """Update the name id map with the new channels."""
@@ -109,7 +222,9 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         cached_channels = []
         not_cached_channels = []
         for channel_id in channel_ids:
-            if self.channel_cache.channels.get(channel_id):
+            # ``__contains__`` is a non-promoting peek; ``_check_cache`` does
+            # the LRU-touching ``get`` shortly after for the actual lookup.
+            if channel_id in self.channel_cache:
                 cached_channels.append(channel_id)
             else:
                 not_cached_channels.append(channel_id)
@@ -139,7 +254,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             A tuple of (data, start_time, end_time)
             where data is a pandas dataframe and start and end times are what should be used for the next call based on what is not covered by the cached data.
         """
-        cached_data = self.channel_cache.channels.get(channel_id)
+        cached_data = self.channel_cache.get(channel_id)
         ret_start_time = start_time
         ret_end_time = end_time
         ret_data = None
@@ -204,24 +319,23 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     # So we just don't update the cache.
                     continue
 
-            if channel_id in self.channel_cache.channels:
-                self.channel_cache.channels[channel_id].data = (
-                    pd.concat([self.channel_cache.channels[channel_id].data, data])
-                    .groupby(level=0)
-                    .last()
+            existing = self.channel_cache.get(channel_id)
+            if existing is not None:
+                merged_data = (
+                    pd.concat([existing.data, data]).groupby(level=0).last()
                 )
-                self.channel_cache.channels[channel_id].start_time = min(
-                    suggested_start_time, self.channel_cache.channels[channel_id].start_time
-                )
-                self.channel_cache.channels[channel_id].end_time = max(
-                    end_time, self.channel_cache.channels[channel_id].end_time
+                entry = _new_cache_entry(
+                    data=merged_data,
+                    start_time=min(suggested_start_time, existing.start_time),
+                    end_time=max(end_time, existing.end_time),
                 )
             else:
-                self.channel_cache.channels[channel_id] = ChannelCacheEntry(
+                entry = _new_cache_entry(
                     data=data,
                     start_time=suggested_start_time,
                     end_time=end_time,
                 )
+            self.channel_cache.put(channel_id, entry)
 
     async def get_channel_data(
         self,
@@ -308,9 +422,14 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     else:
                         ret_data[name] = pd.concat([ret_data[name], df]).groupby(level=0).last()
 
-        self._update_cache(
-            channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id
-        )
+        # ``ignore_cache=True`` is documented as a read-side bypass, but the
+        # previous implementation still wrote to the shared cache on every
+        # call, which meant a "non-caching" workload still grew the cache
+        # without bound. Skip writes when the caller asked us to ignore it.
+        if not ignore_cache:
+            self._update_cache(
+                channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id
+            )
 
         return ret_data
 

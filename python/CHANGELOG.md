@@ -7,6 +7,21 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+#### Bounded channel data cache
+
+`SiftClient.get_data` cache state is now per-instance and byte-bounded instead of shared across the process and unbounded. A new `data_cache_max_bytes` constructor kwarg (default 512 MiB) caps the in-memory channel-data footprint; the least-recently-used cached channel is evicted once the bound is reached. Set `data_cache_max_bytes=0` to disable caching entirely.
+
+`ignore_cache=True` on `client.channels.get_data(...)` now also skips writing into the cache, matching its read-side bypass semantics. Previously a "non-caching" workload still appended to the shared cache on every call, which silently OOM'd long-running pods doing sustained data pulls.
+
+```python
+client = SiftClient(
+    connection_config=config,
+    data_cache_max_bytes=128 * 1024 * 1024,  # 128 MiB cap
+)
+```
+
+The internal `DataLowLevelClient.channel_cache` is no longer a class attribute. Any external code that relied on `DataLowLevelClient.channel_cache.channels.clear()` as a workaround should remove it — the bounded cache no longer requires manual purging.
+
 #### Resource and principal attributes (ABAC)
 
 Added a public API for attribute based access control (ABAC) attributes. `client.resource_attributes` manages attribute keys assigned to entities (assets, channels, runs), and `client.principal_attributes` manages attribute keys assigned to principals (users and user groups). Both are available synchronously and asynchronously via `client.async_`.

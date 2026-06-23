@@ -242,9 +242,18 @@ class ChannelsAPIAsync(ResourceBase):
     def _ensure_data_low_level_client(self):
         """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""
         if self._data_low_level_client is None:
-            from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
+            from sift_client._internal.low_level_wrappers.data import (
+                DEFAULT_DATA_CACHE_MAX_BYTES,
+                DataLowLevelClient,
+            )
 
-            self._data_low_level_client = DataLowLevelClient(grpc_client=self.client.grpc_client)
+            max_bytes = getattr(self.client, "_data_cache_max_bytes", None)
+            self._data_low_level_client = DataLowLevelClient(
+                grpc_client=self.client.grpc_client,
+                data_cache_max_bytes=(
+                    DEFAULT_DATA_CACHE_MAX_BYTES if max_bytes is None else max_bytes
+                ),
+            )
 
     async def get_data(
         self,
