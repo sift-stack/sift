@@ -1,4 +1,11 @@
-use sift_rs::assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer};
+use sift_rs::{
+    assets::v1::{
+        Asset, ListAssetsResponse, UpdateAssetResponse, asset_service_server::AssetServiceServer,
+    },
+    metadata::v1::{
+        MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
+    },
+};
 use sift_test_util::{grpc::memory_sift_channel, mock::assets::v1::MockAssetServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -6,6 +13,18 @@ use tonic::{Response, Status, transport::Server};
 use super::AssetService;
 use crate::policy::RetryPolicy;
 use crate::service::common::PAGE_SIZE;
+
+fn string_metadata(name: &str, value: &str) -> MetadataValue {
+    MetadataValue {
+        key: Some(MetadataKey {
+            name: name.into(),
+            r#type: MetadataKeyType::String.into(),
+            ..Default::default()
+        }),
+        value: Some(MetadataValueInner::StringValue(value.into())),
+        ..Default::default()
+    }
+}
 
 async fn service_with_mock(mock: MockAssetServiceImpl) -> (AssetService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -221,4 +240,194 @@ async fn list_assets_propagates_grpc_error() {
         .expect_err("expected error");
 
     assert!(err.to_string().contains("failed to query assets"));
+}
+
+#[tokio::test]
+async fn update_asset_tags_only_sets_tags_mask() {
+    let mut mock = MockAssetServiceImpl::new();
+    mock.expect_update_asset()
+        .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            let asset = req.asset.as_ref().expect("asset present");
+            let mask = req.update_mask.as_ref().expect("mask present");
+            asset.asset_id == "a1"
+                && asset.tags == vec!["primary".to_string(), "prod".to_string()]
+                && asset.metadata.is_empty()
+                && mask.paths == vec!["tags".to_string()]
+        })
+        .returning(|req| {
+            let req = req.into_inner();
+            let mut asset = req.asset.expect("asset present");
+            asset.name = "engine".into();
+            Ok(Response::new(UpdateAssetResponse { asset: Some(asset) }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let updated = service
+        .update_asset(
+            "a1".to_string(),
+            Some(vec!["primary".into(), "prod".into()]),
+            None,
+        )
+        .await
+        .expect("update_asset failed");
+
+    assert_eq!(updated.asset_id, "a1");
+    assert_eq!(updated.name, "engine");
+    assert_eq!(updated.tags, vec!["primary".to_string(), "prod".to_string()]);
+}
+
+#[tokio::test]
+async fn update_asset_metadata_only_sets_metadata_mask() {
+    let mut mock = MockAssetServiceImpl::new();
+    mock.expect_update_asset()
+        .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            let asset = req.asset.as_ref().expect("asset present");
+            let mask = req.update_mask.as_ref().expect("mask present");
+            asset.asset_id == "a2"
+                && asset.tags.is_empty()
+                && asset.metadata.len() == 1
+                && asset
+                    .metadata
+                    .first()
+                    .and_then(|v| v.key.as_ref().map(|k| k.name.as_str()))
+                    == Some("mission")
+                && mask.paths == vec!["metadata".to_string()]
+        })
+        .returning(|req| {
+            let req = req.into_inner();
+            Ok(Response::new(UpdateAssetResponse { asset: req.asset }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let updated = service
+        .update_asset(
+            "a2".to_string(),
+            None,
+            Some(vec![string_metadata("mission", "varda-m6")]),
+        )
+        .await
+        .expect("update_asset failed");
+
+    assert_eq!(updated.asset_id, "a2");
+    assert_eq!(updated.metadata.len(), 1);
+}
+
+#[tokio::test]
+async fn update_asset_both_fields_sets_both_mask_paths_in_order() {
+    let mut mock = MockAssetServiceImpl::new();
+    mock.expect_update_asset()
+        .times(1)
+        .withf(|req| {
+            let mask = req.get_ref().update_mask.as_ref().expect("mask present");
+            mask.paths == vec!["tags".to_string(), "metadata".to_string()]
+        })
+        .returning(|req| {
+            let req = req.into_inner();
+            Ok(Response::new(UpdateAssetResponse { asset: req.asset }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_asset(
+            "a3".to_string(),
+            Some(vec!["x".into()]),
+            Some(vec![string_metadata("mission", "varda-m6")]),
+        )
+        .await
+        .expect("update_asset failed");
+}
+
+#[tokio::test]
+async fn update_asset_empty_tags_clears_tags_with_mask_set() {
+    // Passing Some(vec![]) explicitly is the agent's way of clearing all tags.
+    // The mask must still include `tags` so the server replaces the field.
+    let mut mock = MockAssetServiceImpl::new();
+    mock.expect_update_asset()
+        .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            let asset = req.asset.as_ref().expect("asset present");
+            let mask = req.update_mask.as_ref().expect("mask present");
+            asset.tags.is_empty() && mask.paths == vec!["tags".to_string()]
+        })
+        .returning(|req| {
+            let req = req.into_inner();
+            Ok(Response::new(UpdateAssetResponse { asset: req.asset }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_asset("a4".to_string(), Some(vec![]), None)
+        .await
+        .expect("update_asset failed");
+}
+
+#[tokio::test]
+async fn update_asset_no_fields_sends_empty_mask() {
+    // Tool handler validates this case before calling the service, but the
+    // service contract is to send whatever the caller provided. Verify the
+    // request carries an empty mask and an asset with only the id set.
+    let mut mock = MockAssetServiceImpl::new();
+    mock.expect_update_asset()
+        .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            let asset = req.asset.as_ref().expect("asset present");
+            let mask = req.update_mask.as_ref().expect("mask present");
+            asset.asset_id == "a5"
+                && asset.tags.is_empty()
+                && asset.metadata.is_empty()
+                && mask.paths.is_empty()
+        })
+        .returning(|req| {
+            let req = req.into_inner();
+            Ok(Response::new(UpdateAssetResponse { asset: req.asset }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_asset("a5".to_string(), None, None)
+        .await
+        .expect("update_asset failed");
+}
+
+#[tokio::test]
+async fn update_asset_propagates_grpc_error() {
+    let mut mock = MockAssetServiceImpl::new();
+    mock.expect_update_asset()
+        .returning(|_| Err(Status::not_found("asset missing")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .update_asset("missing".to_string(), Some(vec!["x".into()]), None)
+        .await
+        .expect_err("expected error");
+
+    assert!(err.to_string().contains("failed to update asset"));
+}
+
+#[tokio::test]
+async fn update_asset_errors_when_response_missing_asset() {
+    let mut mock = MockAssetServiceImpl::new();
+    mock.expect_update_asset()
+        .returning(|_| Ok(Response::new(UpdateAssetResponse { asset: None })));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .update_asset("a6".to_string(), Some(vec!["x".into()]), None)
+        .await
+        .expect_err("expected error");
+
+    assert!(err.to_string().contains("update_asset response missing asset"));
 }
