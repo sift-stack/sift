@@ -7,11 +7,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+#### Faster `get_data` pagination
+
+Up to a ~80x speedup for some get_data calls.
+
 #### Bounded channel data cache
 
-`SiftClient.get_data` cache state is now per-instance and byte-bounded instead of shared across the process and unbounded. A new `data_cache_max_bytes` constructor kwarg (default 512 MiB) caps the in-memory channel-data footprint; the least-recently-used cached channel is evicted once the bound is reached. Set `data_cache_max_bytes=0` to disable caching entirely.
+A new `data_cache_max_bytes` constructor kwarg (default 512 MiB) caps the in-memory channel-data footprint; the least-recently-used cached channel is evicted once the bound is reached. Set `data_cache_max_bytes=0` to disable caching entirely.
 
-`ignore_cache=True` on `client.channels.get_data(...)` now also skips writing into the cache, matching its read-side bypass semantics. Previously a "non-caching" workload still appended to the shared cache on every call, which silently OOM'd long-running pods doing sustained data pulls.
+`ignore_cache=True` on `client.channels.get_data(...)` now also skips writing into the cache, matching its read-side bypass semantics. Previously a "non-caching" workload still appended to the shared cache on every call, which still caused increased memory usage.
 
 ```python
 client = SiftClient(

@@ -16,7 +16,7 @@ the canary that catches anyone re-introducing that pattern.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -267,3 +267,176 @@ class TestDataLowLevelClientIntegration:
         )
         assert "c1" not in client.channel_cache
         assert client.channel_cache.total_bytes == 0
+
+
+class TestMergePages:
+    """Behavioural tests for :meth:`DataLowLevelClient._merge_pages`.
+
+    The helper replaces a previously inline O(N²) per-page concat loop with a
+    single batched concat per channel. These tests pin the merge semantics so
+    a future refactor can't silently drift, in particular:
+
+    * Single-frame channels skip the concat entirely (cheap path).
+    * Multi-frame channels concat in the order frames were collected.
+    * Cached slices from ``_check_cache`` are folded in as the first frame so
+      fresher pages win on overlapping timestamps via ``groupby.last``.
+    """
+
+    @staticmethod
+    def _client_with_fake_deserializer(
+        sentinel_to_frames: dict[str, dict[str, pd.DataFrame]],
+    ):
+        """Build a DataLowLevelClient whose ``try_deserialize_channel_data``
+        translates string sentinels (passed in lieu of protos) to dicts of
+        already-built DataFrames. Lets the merge logic be tested without
+        constructing protos.
+        """
+        client = DataLowLevelClient(MagicMock())
+        patcher = patch.object(
+            DataLowLevelClient,
+            "try_deserialize_channel_data",
+            staticmethod(lambda data: sentinel_to_frames[data]),
+        )
+        patcher.start()
+        return client, patcher
+
+    @staticmethod
+    def _frame(channel: str, start: str, rows: int, offset: int = 0) -> pd.DataFrame:
+        index = pd.date_range(start, periods=rows, freq="ms", tz=timezone.utc)
+        return pd.DataFrame({channel: range(offset, offset + rows)}, index=index)
+
+    def test_empty_pages_returns_initial(self) -> None:
+        """No pages, no fresh data — initial passes through untouched."""
+        client, patcher = self._client_with_fake_deserializer({})
+        try:
+            initial_df = self._frame("chan", "2025-01-01", rows=5)
+            result = client._merge_pages(pages=[], initial={"chan": initial_df})
+            assert result["chan"] is initial_df
+        finally:
+            patcher.stop()
+
+    def test_single_frame_skips_concat(self) -> None:
+        """One frame for a channel → returned by identity, no concat call."""
+        only_df = self._frame("chan", "2025-01-01", rows=5)
+        client, patcher = self._client_with_fake_deserializer(
+            {"page_a": {"chan": only_df}}
+        )
+        try:
+            result = client._merge_pages(pages=[["page_a"]], initial={})
+            # Identity check: no concat happened, so the original frame is
+            # returned by reference.
+            assert result["chan"] is only_df
+        finally:
+            patcher.stop()
+
+    def test_disjoint_pages_concat_in_order(self) -> None:
+        """Multiple disjoint pages for one channel → single concat result."""
+        df1 = self._frame("chan", "2025-01-01", rows=10, offset=0)
+        df2 = self._frame("chan", "2025-01-02", rows=10, offset=10)
+        df3 = self._frame("chan", "2025-01-03", rows=10, offset=20)
+        client, patcher = self._client_with_fake_deserializer(
+            {
+                "p1": {"chan": df1},
+                "p2": {"chan": df2},
+                "p3": {"chan": df3},
+            }
+        )
+        try:
+            result = client._merge_pages(pages=[["p1", "p2"], ["p3"]], initial={})
+
+            expected = pd.concat([df1, df2, df3]).groupby(level=0).last()
+            pd.testing.assert_frame_equal(
+                result["chan"].sort_index(), expected.sort_index()
+            )
+            assert len(result["chan"]) == 30
+        finally:
+            patcher.stop()
+
+    def test_overlapping_timestamps_later_page_wins(self) -> None:
+        """On overlapping timestamps, the later page's value survives groupby.last.
+
+        This pins the existing behavior: the loop's old shape did
+        ``concat([acc, new]).groupby(...).last()`` which kept the LATER value
+        on conflict; the batched concat must preserve that ordering.
+        """
+        index = pd.date_range("2025-01-01", periods=5, freq="ms", tz=timezone.utc)
+        df_first = pd.DataFrame({"chan": [0] * 5}, index=index)
+        df_second = pd.DataFrame({"chan": [99] * 5}, index=index)
+        client, patcher = self._client_with_fake_deserializer(
+            {"p1": {"chan": df_first}, "p2": {"chan": df_second}}
+        )
+        try:
+            result = client._merge_pages(pages=[["p1", "p2"]], initial={})
+            assert (result["chan"]["chan"] == 99).all()
+        finally:
+            patcher.stop()
+
+    def test_cached_slice_folded_in_first_and_loses_on_overlap(self) -> None:
+        """Cached slice from ``_check_cache`` is the first frame in the merge.
+
+        Fresh pages should overwrite cached values on duplicate timestamps,
+        matching the pre-existing semantic that the latest fetch wins.
+        """
+        index = pd.date_range("2025-01-01", periods=5, freq="ms", tz=timezone.utc)
+        cached = pd.DataFrame({"chan": [-1] * 5}, index=index)
+        fresh = pd.DataFrame({"chan": [42] * 5}, index=index)
+        client, patcher = self._client_with_fake_deserializer(
+            {"p1": {"chan": fresh}}
+        )
+        try:
+            result = client._merge_pages(
+                pages=[["p1"]], initial={"chan": cached}
+            )
+            assert (result["chan"]["chan"] == 42).all()
+        finally:
+            patcher.stop()
+
+    def test_cached_only_no_pages_preserves_cache(self) -> None:
+        """Channels in ``initial`` with no fresh page data must survive intact."""
+        client, patcher = self._client_with_fake_deserializer({})
+        try:
+            cached = self._frame("chan", "2025-01-01", rows=5)
+            result = client._merge_pages(pages=[[]], initial={"chan": cached})
+            assert result["chan"] is cached
+        finally:
+            patcher.stop()
+
+    def test_multiple_channels_independent(self) -> None:
+        """Per-channel grouping is independent: one channel's pages don't bleed.
+
+        Same shape as a multi-channel ``get_data`` call where each channel
+        returns its own pages.
+        """
+        a1 = self._frame("a", "2025-01-01", rows=5, offset=0)
+        a2 = self._frame("a", "2025-01-02", rows=5, offset=5)
+        b1 = self._frame("b", "2025-01-01", rows=5, offset=100)
+        client, patcher = self._client_with_fake_deserializer(
+            {
+                "p_a1": {"a": a1},
+                "p_a2": {"a": a2},
+                "p_b1": {"b": b1},
+            }
+        )
+        try:
+            result = client._merge_pages(
+                pages=[["p_a1", "p_b1"], ["p_a2"]], initial={}
+            )
+            assert len(result["a"]) == 10
+            assert len(result["b"]) == 5
+            assert (result["b"]["b"] >= 100).all()
+        finally:
+            patcher.stop()
+
+    def test_does_not_mutate_initial(self) -> None:
+        """``initial`` is a defensive copy; caller's dict isn't mutated."""
+        cached = self._frame("chan", "2025-01-01", rows=5)
+        initial = {"chan": cached}
+        fresh = self._frame("chan", "2025-01-02", rows=5, offset=10)
+        client, patcher = self._client_with_fake_deserializer(
+            {"p1": {"chan": fresh}}
+        )
+        try:
+            _ = client._merge_pages(pages=[["p1"]], initial=initial)
+            assert initial["chan"] is cached
+        finally:
+            patcher.stop()
