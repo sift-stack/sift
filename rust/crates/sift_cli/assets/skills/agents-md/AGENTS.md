@@ -57,6 +57,31 @@ and stop at the first that does the job:
    custom streaming, data transformation, or programmatic logic the above
    cannot express. Prefer `sift_client` over the deprecated `sift_py`.
 
+## Running `sift-cli` from your shell
+
+When you reach for `sift-cli` per the order above, invoke it through your
+client's shell execution. Follow this loop so imports and other writes are
+predictable for the user:
+
+1. **Discover first.** Before constructing the command for a subcommand you
+   have not used recently, run `sift-cli <subcommand> --help` (or
+   `sift-cli --help` for the top level). The clap-generated help is the
+   source of truth for flags, defaults, and value formats. Do not guess
+   flag names from memory.
+2. **Confirm writes.** For any subcommand that mutates Sift state
+   (imports, config changes), surface the proposed command and the target
+   (asset, run, profile) to the user and wait for approval before running.
+3. **Use absolute paths.** Pass absolute paths for any file argument so
+   the command does not depend on the shell's current directory.
+4. **For imports, always pass `--wait`.** With `--wait` the CLI blocks
+   until the server-side import job finishes and emits a final status
+   line. Without it you cannot confirm the data actually landed. Relay
+   the final stdout line to the user verbatim.
+5. **On failure, read stderr and retry.** A non-zero exit usually means a
+   bad flag combination or missing required argument; the CLI's stderr
+   names the exact issue. Adjust the command and run again rather than
+   treating the failure as terminal.
+
 ## Local data analysis
 
 When the user wants numbers, summaries, or transformed data — anything where
