@@ -74,15 +74,22 @@ and stop at the first that does the job:
 ## Running `sift-cli` from your shell
 
 When you reach for `sift-cli` per the order above, invoke it through your
-client's shell execution. Follow this loop so imports and other writes are
-predictable for the user:
+client's shell execution. The first step runs once per session; the rest
+apply per subcommand invocation:
 
-1. **Discover first.** Before constructing the command for a subcommand you
-   have not used recently, run `sift-cli <subcommand> --help` (or
-   `sift-cli --help` for the top level). The clap-generated help is the
-   source of truth for flags, defaults, and value formats. Do not guess
-   flag names from memory.
-2. **Probe useful optionals.** After reading `--help`, identify optional
+1. **Pick a profile (once per session).** Run `sift-cli config show` to list
+   the configured profiles. If only one is configured, use it (no
+   `--profile` needed). If multiple are configured, ask the user which one
+   to target and pass `--profile <name>` as a global flag on every
+   subsequent `sift-cli` call in this session. Do not silently default
+   when several profiles exist — the user may have prod and staging side
+   by side and writing to the wrong one is a real foot-gun.
+2. **Discover the subcommand.** Before constructing the command for a
+   subcommand you have not used recently, run `sift-cli <subcommand>
+   --help` (or `sift-cli --help` for the top level). The clap-generated
+   help is the source of truth for flags, defaults, and value formats.
+   Do not guess flag names from memory.
+3. **Probe useful optionals.** After reading `--help`, identify optional
    flags whose answer changes the outcome and ask the user about them
    before running. For imports, the common ones are:
    - `--run`: associate the data with a named run. Ask whether to create
@@ -98,17 +105,17 @@ predictable for the user:
    Do not enumerate every flag — pick the ones likely to matter for
    the user's task. When in doubt, ask one focused question rather than
    running with assumed defaults.
-3. **Confirm writes.** For any subcommand that mutates Sift state
+4. **Confirm writes.** For any subcommand that mutates Sift state
    (imports, config changes), surface the final proposed command and the
    target (asset, run, profile) to the user and wait for approval before
    running.
-4. **Use absolute paths.** Pass absolute paths for any file argument so
+5. **Use absolute paths.** Pass absolute paths for any file argument so
    the command does not depend on the shell's current directory.
-5. **For imports, always pass `--wait`.** With `--wait` the CLI blocks
+6. **For imports, always pass `--wait`.** With `--wait` the CLI blocks
    until the server-side import job finishes and emits a final status
    line. Without it you cannot confirm the data actually landed. Relay
    the final stdout line to the user verbatim.
-6. **On failure, read stderr and retry.** A non-zero exit usually means a
+7. **On failure, read stderr and retry.** A non-zero exit usually means a
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than
    treating the failure as terminal.
