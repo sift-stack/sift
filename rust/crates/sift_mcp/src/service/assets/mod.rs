@@ -1,14 +1,11 @@
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
-use anyhow::{Context, Result, anyhow};
-use pbjson_types::FieldMask;
+use anyhow::{Context, Result};
 use sift_rs::{
     SiftChannel,
     assets::v1::{
-        Asset, ListAssetsRequest, ListAssetsResponse, UpdateAssetRequest,
-        asset_service_client::AssetServiceClient,
+        Asset, ListAssetsRequest, ListAssetsResponse, asset_service_client::AssetServiceClient,
     },
-    metadata::v1::MetadataValue,
 };
 
 #[cfg(test)]
@@ -83,58 +80,5 @@ impl AssetService {
         results.truncate(record_limit);
 
         Ok(results)
-    }
-
-    /// Update a subset of an existing asset's fields. Per
-    /// `protos/sift/assets/v1/assets.proto::UpdateAssetRequest`, the updatable
-    /// fields are `tags`, `metadata`, `archived_date`, and `is_archived`. This
-    /// service exposes `tags` and `metadata` only; archive flow has its own
-    /// dedicated RPC and would be a separate tool.
-    ///
-    /// Both `tags` and `metadata` use REPLACE semantics — passing `Some(vec![])`
-    /// clears the field. The caller is responsible for read-modify-write when
-    /// appending.
-    pub async fn update_asset(
-        &self,
-        asset_id: String,
-        tags: Option<Vec<String>>,
-        metadata: Option<Vec<MetadataValue>>,
-    ) -> Result<Asset> {
-        let mut asset = Asset {
-            asset_id,
-            ..Default::default()
-        };
-        let mut paths = Vec::new();
-
-        if let Some(v) = tags {
-            asset.tags = v;
-            paths.push("tags".to_string());
-        }
-        if let Some(v) = metadata {
-            asset.metadata = v;
-            paths.push("metadata".to_string());
-        }
-
-        let grpc_channel = self.channel.clone();
-        let resp = with_retry(&self.policy, move || {
-            let grpc_channel = grpc_channel.clone();
-            let asset = asset.clone();
-            let paths = paths.clone();
-            async move {
-                let mut client = AssetServiceClient::new(grpc_channel);
-                client
-                    .update_asset(UpdateAssetRequest {
-                        asset: Some(asset),
-                        update_mask: Some(FieldMask { paths }),
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
-        })
-        .await
-        .context("failed to update asset")?;
-
-        resp.asset
-            .ok_or_else(|| anyhow!("update_asset response missing asset"))
     }
 }
