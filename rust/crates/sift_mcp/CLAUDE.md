@@ -530,6 +530,31 @@ including the order of calls and a failure injected partway through.
 
 ---
 
+## Step 6.5 — Routing and conflict evals
+
+Service tests prove the tool *works*. They do not prove the agent *selects* it, or that it does
+not steal traffic from a neighbor. Tool names do not disambiguate here: domain-oriented routers
+use plain names (`list_rules`, `list_webhooks`), so the one-line purpose in the description is the
+only thing separating two adjacent tools. Test it.
+
+For every new tool, add eval cases to the routing golden set:
+
+- **Positive routing.** A task that should select this tool does. Assert on the
+  `<domain>_router/<tool>` annotation title, not on output text.
+- **Conflict / neighbor.** One case per adjacent tool whose one-line purpose overlaps: a task that
+  belongs to that neighbor still routes to it, and this tool does not capture it.
+- **Should clarify / decline.** Where the task is ambiguous or out of scope, the agent asks or
+  declines rather than guessing.
+- **Write tools.** An approve case (the action executes) and a reject case (no write happens),
+  exercising the `next_step` confirmation.
+
+Run each case 3–5 times to account for non-determinism; report pass@1 and pass^k. Grade outcomes
+(which tool, sane params), not the exact path. A tool selected 3 of 5 times is a description
+problem, not a flake — tighten the one-line purpose and re-run. The smoke subset (positive plus
+neighbor cases) is merge-blocking on a routing regression; the full set runs nightly.
+
+---
+
 ## Step 7 — Update the onboarding docs
 
 The MCP server ships as part of `sift-cli`, and its onboarding docs live in
@@ -605,4 +630,10 @@ Run through this before declaring the tool done:
       was added to `sift_test_util` if one did not exist.
 - [ ] Onboarding docs updated: `agents/mcp.md` for a tool, `agents/prompts.md` for a prompt. Skill
       files (`SKILL.md` / `AGENTS.md`) updated per `sift_cli/CLAUDE.md` if the tool list changed.
+- [ ] Routing eval added: a task that should select this tool does, asserted on the
+      `<domain>_router/<tool>` annotation title.
+- [ ] Conflict eval added: tasks belonging to adjacent tools still route to them; this tool does
+      not capture them. (Names don't disambiguate in domain-router design — the one-line purpose
+      does, so this must be tested.)
+- [ ] Write tools: approve-path executes, reject-path performs no write.
 - [ ] `cargo build -p sift_mcp` and `cargo test -p sift_mcp` both pass.
