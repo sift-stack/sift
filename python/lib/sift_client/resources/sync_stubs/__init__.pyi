@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import os
     import re
     from datetime import datetime, timedelta
     from pathlib import Path
@@ -449,6 +450,86 @@ class ChannelsAPI:
         Args:
             channels: List of channel IDs or Channel objects to archive. If a Channel
                 has no id set, raises ValueError.
+        """
+        ...
+
+    def clear_data_cache_on_disk(self, path: str | os.PathLike[str] | None = None) -> None:
+        """Delete a previously-persisted on-disk channel data cache directory.
+
+        Drops stale caches from previous sessions, recovers from a corrupt
+        cache, or reclaims disk space. Removes the directory entirely; a
+        future :meth:`enable_data_cache_disk` call at the same path will see
+        a fresh empty cache.
+
+        This is a thin proxy around
+        :meth:`ChannelCache.clear_disk <sift_client._internal.low_level_wrappers.data.ChannelCache.clear_disk>`
+        — exposed on the resource so callers don't need to reach into
+        ``_internal`` modules. But that is a class method so the user could call without a client if desired.
+
+        Args:
+            path: Directory of the cache to clear. ``None`` (the default)
+                targets ``ChannelCache.DEFAULT_DISK_PATH``.
+
+        Raises:
+            ValueError: If ``path`` exists but does not look like a sift
+                channel data cache directory.
+        """
+        ...
+
+    def configure_data_cache(self, *, max_bytes: int) -> None:
+        """Configure the in-memory channel data cache used by ``get_data``.
+
+        Args:
+            max_bytes: Byte cap on the cache. ``0`` disables caching
+                (every ``get_data`` call goes to the wire). Defaults to
+                512 MiB until explicitly configured. Must be ``>= 0``.
+
+        Safe to call before or after the first ``get_data``. If the cache is
+        already live, the new cap is applied immediately and least-recently-
+        used entries are evicted until ``total_bytes`` fits.
+
+        Example:
+            client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
+            client.channels.configure_data_cache(max_bytes=0)  # disable
+        """
+        ...
+
+    def disable_data_cache_disk(self) -> None:
+        """Stop persisting the channel data cache to disk.
+
+        Closes the disk-cache file handle. The on-disk directory is NOT
+        deleted — use :meth:`clear_data_cache_on_disk` to wipe it. In-memory
+        entries are preserved.
+        """
+        ...
+
+    def enable_data_cache_disk(
+        self, *, path: str | os.PathLike[str] | None = None, max_bytes: int | None = None
+    ) -> None:
+        """Persist the channel data cache to disk, surviving process restarts.
+
+        The disk-backed tier is a second-chance layer beneath the in-memory
+        cache: on a memory miss, ``get_data`` checks disk before going to the
+        wire. The default path lives under ``tempfile.gettempdir()`` and is
+        shared across sessions, so a re-run of the same workload picks up
+        previously-cached windows without a fetch.
+
+        Safe to call before or after the first ``get_data``. Reconfiguring
+        (different ``path`` or ``max_bytes``) closes the previous disk handle
+        and opens a new one; in-memory contents are preserved across the swap.
+
+        Args:
+            path: Directory to persist the cache to. ``None`` (the default)
+                uses ``DEFAULT_DISK_CACHE_PATH``. Existing entries at the path
+                become available as cache hits.
+            max_bytes: Byte cap on the disk tier. ``None`` uses
+                ``DEFAULT_DISK_CACHE_MAX_BYTES`` (4 GiB). When the bound is
+                reached, ``diskcache``'s LRU eviction takes over.
+
+        Example:
+            client.channels.enable_data_cache_disk()
+            client.channels.enable_data_cache_disk(path="/data/sift-cache")
+            client.channels.enable_data_cache_disk(max_bytes=1024 ** 3)  # 1 GiB
         """
         ...
 
