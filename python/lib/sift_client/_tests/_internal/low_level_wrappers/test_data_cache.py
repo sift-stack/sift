@@ -318,9 +318,7 @@ class TestMergePages:
     def test_single_frame_skips_concat(self) -> None:
         """One frame for a channel → returned by identity, no concat call."""
         only_df = self._frame("chan", "2025-01-01", rows=5)
-        client, patcher = self._client_with_fake_deserializer(
-            {"page_a": {"chan": only_df}}
-        )
+        client, patcher = self._client_with_fake_deserializer({"page_a": {"chan": only_df}})
         try:
             result = client._merge_pages(pages=[["page_a"]], initial={})
             # Identity check: no concat happened, so the original frame is
@@ -345,9 +343,7 @@ class TestMergePages:
             result = client._merge_pages(pages=[["p1", "p2"], ["p3"]], initial={})
 
             expected = pd.concat([df1, df2, df3]).groupby(level=0).last()
-            pd.testing.assert_frame_equal(
-                result["chan"].sort_index(), expected.sort_index()
-            )
+            pd.testing.assert_frame_equal(result["chan"].sort_index(), expected.sort_index())
             assert len(result["chan"]) == 30
         finally:
             patcher.stop()
@@ -380,13 +376,9 @@ class TestMergePages:
         index = pd.date_range("2025-01-01", periods=5, freq="ms", tz=timezone.utc)
         cached = pd.DataFrame({"chan": [-1] * 5}, index=index)
         fresh = pd.DataFrame({"chan": [42] * 5}, index=index)
-        client, patcher = self._client_with_fake_deserializer(
-            {"p1": {"chan": fresh}}
-        )
+        client, patcher = self._client_with_fake_deserializer({"p1": {"chan": fresh}})
         try:
-            result = client._merge_pages(
-                pages=[["p1"]], initial={"chan": cached}
-            )
+            result = client._merge_pages(pages=[["p1"]], initial={"chan": cached})
             assert (result["chan"]["chan"] == 42).all()
         finally:
             patcher.stop()
@@ -418,9 +410,7 @@ class TestMergePages:
             }
         )
         try:
-            result = client._merge_pages(
-                pages=[["p_a1", "p_b1"], ["p_a2"]], initial={}
-            )
+            result = client._merge_pages(pages=[["p_a1", "p_b1"], ["p_a2"]], initial={})
             assert len(result["a"]) == 10
             assert len(result["b"]) == 5
             assert (result["b"]["b"] >= 100).all()
@@ -432,9 +422,7 @@ class TestMergePages:
         cached = self._frame("chan", "2025-01-01", rows=5)
         initial = {"chan": cached}
         fresh = self._frame("chan", "2025-01-02", rows=5, offset=10)
-        client, patcher = self._client_with_fake_deserializer(
-            {"p1": {"chan": fresh}}
-        )
+        client, patcher = self._client_with_fake_deserializer({"p1": {"chan": fresh}})
         try:
             _ = client._merge_pages(pages=[["p1"]], initial=initial)
             assert initial["chan"] is cached

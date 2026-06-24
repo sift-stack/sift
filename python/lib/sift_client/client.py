@@ -156,9 +156,7 @@ class SiftClient(
                 ``>= 0``.
         """
         if data_cache_max_bytes is not None and data_cache_max_bytes < 0:
-            raise ValueError(
-                f"data_cache_max_bytes must be >= 0, got {data_cache_max_bytes}"
-            )
+            raise ValueError(f"data_cache_max_bytes must be >= 0, got {data_cache_max_bytes}")
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
                 "Either api_key, grpc_url and rest_url or connection_config must be provided to establish a connection."

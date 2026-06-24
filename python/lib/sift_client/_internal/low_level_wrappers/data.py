@@ -82,9 +82,7 @@ class ChannelCache:
 
     def __init__(self, max_bytes: int = DEFAULT_DATA_CACHE_MAX_BYTES):
         if max_bytes < 0:
-            raise ValueError(
-                f"data_cache_max_bytes must be >= 0, got {max_bytes}"
-            )
+            raise ValueError(f"data_cache_max_bytes must be >= 0, got {max_bytes}")
         self.name_id_map: dict[str, str] = {}
         self._entries: OrderedDict[str, ChannelCacheEntry] = OrderedDict()
         self._total_bytes: int = 0
@@ -321,9 +319,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
             existing = self.channel_cache.get(channel_id)
             if existing is not None:
-                merged_data = (
-                    pd.concat([existing.data, data]).groupby(level=0).last()
-                )
+                merged_data = pd.concat([existing.data, data]).groupby(level=0).last()
                 entry = _new_cache_entry(
                     data=merged_data,
                     start_time=min(suggested_start_time, existing.start_time),
