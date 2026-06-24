@@ -83,6 +83,20 @@ class ChannelCache:
     def max_bytes(self) -> int:
         return self._max_bytes
 
+    @max_bytes.setter
+    def max_bytes(self, value: int) -> None:
+        """Reconfigure the byte cap and immediately evict any excess.
+
+        Used by ``ChannelsAPIAsync.configure_data_cache`` to retune a live
+        cache. Lowering the cap below ``total_bytes`` triggers LRU eviction
+        in the same loop ``put`` uses, so the invariant ``total_bytes <=
+        max_bytes`` is restored before the setter returns.
+        """
+        if value < 0:
+            raise ValueError(f"data_cache_max_bytes must be >= 0, got {value}")
+        self._max_bytes = value
+        self._evict_until_under_bound()
+
     @property
     def total_bytes(self) -> int:
         return self._total_bytes

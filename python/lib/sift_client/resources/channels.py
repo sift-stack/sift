@@ -64,6 +64,32 @@ class ChannelsAPIAsync(ResourceBase):
         self._low_level_client = ChannelsLowLevelClient(grpc_client=self.client.grpc_client)
         self._units_low_level_client = UnitsLowLevelClient(grpc_client=self.client.grpc_client)
         self._data_low_level_client = None
+        # Caller-supplied cache size; ``None`` means "use the wrapper default
+        # at lazy-init time" so we don't have to import ``data.py`` (and
+        # therefore pandas) just to remember the default.
+        self._data_cache_max_bytes: int | None = None
+
+    def configure_data_cache(self, *, max_bytes: int) -> None:
+        """Configure the in-memory channel data cache used by ``get_data``.
+
+        Args:
+            max_bytes: Byte cap on the cache. ``0`` disables caching
+                (every ``get_data`` call goes to the wire). Defaults to
+                512 MiB until explicitly configured. Must be ``>= 0``.
+
+        Safe to call before or after the first ``get_data``. If the cache is
+        already live, the new cap is applied immediately and least-recently-
+        used entries are evicted until ``total_bytes`` fits.
+
+        Example:
+            client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
+            client.channels.configure_data_cache(max_bytes=0)  # disable
+        """
+        if max_bytes < 0:
+            raise ValueError(f"max_bytes must be >= 0, got {max_bytes}")
+        self._data_cache_max_bytes = max_bytes
+        if self._data_low_level_client is not None:
+            self._data_low_level_client.channel_cache.max_bytes = max_bytes
 
     async def get(
         self,
@@ -242,17 +268,16 @@ class ChannelsAPIAsync(ResourceBase):
     def _ensure_data_low_level_client(self):
         """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""
         if self._data_low_level_client is None:
-            from sift_client._internal.low_level_wrappers.data import (
-                DEFAULT_DATA_CACHE_MAX_BYTES,
-                DataLowLevelClient,
-            )
+            from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 
-            max_bytes = getattr(self.client, "_data_cache_max_bytes", None)
+            # Pass the kwarg only when explicitly configured so the wrapper's
+            # own default (currently 512 MiB) remains the single source of truth.
+            kwargs = {}
+            if self._data_cache_max_bytes is not None:
+                kwargs["data_cache_max_bytes"] = self._data_cache_max_bytes
             self._data_low_level_client = DataLowLevelClient(
                 grpc_client=self.client.grpc_client,
-                data_cache_max_bytes=(
-                    DEFAULT_DATA_CACHE_MAX_BYTES if max_bytes is None else max_bytes
-                ),
+                **kwargs,
             )
 
     async def get_data(

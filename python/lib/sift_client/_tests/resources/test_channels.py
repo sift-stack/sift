@@ -501,3 +501,40 @@ class TestUpdateUnitResolution:
 
         api._units_low_level_client.create_unit.assert_not_awaited()
         assert captured["update"].unit == ""
+
+
+class TestConfigureDataCache:
+    """``configure_data_cache`` is the resource-level knob for the in-memory
+    channel data cache. Before the cache is initialized, it stashes the value
+    for the lazy-init path; after, it retunes the live cache.
+    """
+
+    def test_before_lazy_init_propagates_to_cache(self):
+        """Configuring before the first ``get_data`` lands on the cache at init."""
+        api = _make_api()
+        api.configure_data_cache(max_bytes=123)
+        assert api._data_low_level_client is None  # still lazy
+        api._ensure_data_low_level_client()
+        assert api._data_low_level_client.channel_cache.max_bytes == 123
+
+    def test_after_lazy_init_updates_live_cache(self):
+        """Configuring after first use retunes the live cache in place."""
+        api = _make_api()
+        api._ensure_data_low_level_client()
+        original_client = api._data_low_level_client
+        api.configure_data_cache(max_bytes=456)
+        # Same wrapper instance — we mutated, not replaced.
+        assert api._data_low_level_client is original_client
+        assert api._data_low_level_client.channel_cache.max_bytes == 456
+
+    def test_zero_disables_cache_via_resource(self):
+        """Resource-level ``max_bytes=0`` end-to-end disables the cache."""
+        api = _make_api()
+        api.configure_data_cache(max_bytes=0)
+        api._ensure_data_low_level_client()
+        assert not api._data_low_level_client.channel_cache.enabled
+
+    def test_negative_raises(self):
+        api = _make_api()
+        with pytest.raises(ValueError, match="max_bytes"):
+            api.configure_data_cache(max_bytes=-1)

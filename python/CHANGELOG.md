@@ -13,16 +13,18 @@ Up to a ~80x speedup for some get_data calls.
 
 #### Bounded channel data cache
 
-A new `data_cache_max_bytes` constructor kwarg (default 512 MiB) caps the in-memory channel-data footprint; the least-recently-used cached channel is evicted once the bound is reached. Set `data_cache_max_bytes=0` to disable caching entirely.
+The in-memory channel data cache used by `client.channels.get_data(...)` is now byte-bounded with LRU eviction (default 512 MiB). Once the bound is reached, the least-recently-used cached channel is evicted.
 
-`ignore_cache=True` on `client.channels.get_data(...)` now also skips writing into the cache, matching its read-side bypass semantics. Previously a "non-caching" workload still appended to the shared cache on every call, which still caused increased memory usage.
+Configure the bound on the `channels` resource:
 
 ```python
-client = SiftClient(
-    connection_config=config,
-    data_cache_max_bytes=128 * 1024 * 1024,  # 128 MiB cap
-)
+client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)  # 128 MiB cap
+client.channels.configure_data_cache(max_bytes=0)                  # disable caching
 ```
+
+`configure_data_cache` may be called at any time; if the cache is already populated, the new bound is applied immediately and excess entries are evicted.
+
+`ignore_cache=True` on `client.channels.get_data(...)` now also skips writing into the cache, matching its read-side bypass semantics. Previously a "non-caching" workload still appended to the shared cache on every call, which still caused increased memory usage.
 
 The internal `DataLowLevelClient.channel_cache` is no longer a class attribute. Any external code that relied on `DataLowLevelClient.channel_cache.channels.clear()` as a workaround should remove it — the bounded cache no longer requires manual purging.
 

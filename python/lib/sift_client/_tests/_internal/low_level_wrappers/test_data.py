@@ -256,6 +256,30 @@ class TestChannelCache:
         with pytest.raises(ValueError, match="data_cache_max_bytes"):
             ChannelCache(max_bytes=-1)
 
+    def test_set_max_bytes_lower_evicts_immediately(self) -> None:
+        """Lowering ``max_bytes`` below ``total_bytes`` evicts LRU until it fits.
+
+        Used by ``ChannelsAPIAsync.configure_data_cache`` to retune a live
+        cache without forcing the caller to call ``clear()`` first.
+        """
+        a, b, c = _entry(rows=50), _entry(rows=50), _entry(rows=50)
+        cache = ChannelCache(max_bytes=a.size_bytes + b.size_bytes + c.size_bytes)
+        cache.put("a", a)
+        cache.put("b", b)
+        cache.put("c", c)
+        # Lower the cap to fit only one entry; LRU "a" and "b" must drop.
+        cache.max_bytes = c.size_bytes
+        assert cache.max_bytes == c.size_bytes
+        assert "a" not in cache
+        assert "b" not in cache
+        assert "c" in cache
+        assert _invariant_holds(cache)
+
+    def test_set_max_bytes_negative_raises(self) -> None:
+        cache = ChannelCache(max_bytes=100)
+        with pytest.raises(ValueError, match="data_cache_max_bytes"):
+            cache.max_bytes = -1
+
     def test_repeated_concat_updates_stay_under_bound(self) -> None:
         """Simulates the customer's sliding-window pull: same channel, growing.
 
@@ -297,9 +321,7 @@ class TestMergePages:
       frame so fresh pages still win on overlap.
     """
 
-    @pytest.mark.parametrize(
-        "pages", [[], [[]]], ids=["no_tasks_queued", "task_returned_empty"]
-    )
+    @pytest.mark.parametrize("pages", [[], [[]]], ids=["no_tasks_queued", "task_returned_empty"])
     def test_no_fresh_data_returns_initial(self, pages: list) -> None:
         """No fresh pages → initial dict passes through by identity."""
         client = DataLowLevelClient(MagicMock())
@@ -410,7 +432,9 @@ class TestDataLowLevelClient:
         test just verifies the constructor passes the kwarg through.
         """
         assert DataLowLevelClient(MagicMock(), data_cache_max_bytes=0).channel_cache.max_bytes == 0
-        assert DataLowLevelClient(MagicMock(), data_cache_max_bytes=42).channel_cache.max_bytes == 42
+        assert (
+            DataLowLevelClient(MagicMock(), data_cache_max_bytes=42).channel_cache.max_bytes == 42
+        )
 
 
 class TestGetChannelData:
@@ -510,9 +534,7 @@ class TestGetChannelData:
 
         assert new_calls, "c2 should hit the wire on the second call"
         for call in new_calls:
-            assert call["channel_ids"] == ["c2"], (
-                f"only c2 should hit the wire, saw {call!r}"
-            )
+            assert call["channel_ids"] == ["c2"], f"only c2 should hit the wire, saw {call!r}"
         assert set(result.keys()) == {"c1", "c2"}
         pd.testing.assert_frame_equal(result["c1"].sort_index(), c1_df.sort_index())
         pd.testing.assert_frame_equal(result["c2"].sort_index(), c2_df.sort_index())
