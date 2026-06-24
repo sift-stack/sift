@@ -229,8 +229,16 @@ type Rule struct {
 	ArchivedDate *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=archived_date,json=archivedDate,proto3" json:"archived_date,omitempty"`
 	// is_archived is inferred from when archived_date is not null
 	IsArchived bool `protobuf:"varint,21,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
-	// If set to `true` then this rule will be evaluated on live data, otherwise live rule evaluation
-	// will be disabled. This rule can still be used, however, in report generation.
+	// If `true`, this rule will be evaluated on live data; if `false`, live rule evaluation is
+	// disabled (the rule remains usable for report generation).
+	//
+	// Note: this value is the server's effective state, not necessarily what was requested. A rule
+	// saved via `BatchUpdateRulesRequest.override_expression_validation = true` whose UDF inlining
+	// fails (e.g. type resolution exhausted; see error returned by `BatchUpdateRules`) is forced
+	// to `is_live_evaluation_enabled = false` even when the caller requested `true`. To recover
+	// after the underlying issue is fixed (channels populated, expression simplified, etc.),
+	// reissue an `UpdateRule` / `BatchUpdateRules` request that explicitly sets
+	// `is_live_evaluation_enabled = true`.
 	IsLiveEvaluationEnabled bool `protobuf:"varint,22,opt,name=is_live_evaluation_enabled,json=isLiveEvaluationEnabled,proto3" json:"is_live_evaluation_enabled,omitempty"`
 	// The current version of the rule. This is may be different from the rule_version.version if the rule has been updated since the rule_version was created.
 	CurrentVersionId string `protobuf:"bytes,23,opt,name=current_version_id,json=currentVersionId,proto3" json:"current_version_id,omitempty"`
@@ -1347,7 +1355,13 @@ type UpdateRuleRequest struct {
 	IsArchived         bool                    `protobuf:"varint,14,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
 	// If set to `true` then this rule will be evaluated on live data, otherwise live rule evaluation
 	// will be disabled. This rule can still be used, however, in report generation. If this value
-	// is null then the original value is preserved
+	// is null then the original value is preserved.
+	//
+	// This is a request, not a guarantee. When combined with
+	// `BatchUpdateRulesRequest.override_expression_validation = true`, a `true` value here can be
+	// silently overridden to `false` if UDF inlining fails (the rule is still persisted, just with
+	// live evaluation disabled). Re-send this request with the underlying issue resolved -- e.g.
+	// the referenced channels populated, or the expression simplified -- to flip it back on.
 	IsLiveEvaluationEnabled *bool `protobuf:"varint,15,opt,name=is_live_evaluation_enabled,json=isLiveEvaluationEnabled,proto3,oneof" json:"is_live_evaluation_enabled,omitempty"`
 }
 
@@ -1755,7 +1769,22 @@ type BatchUpdateRulesRequest struct {
 	Rules []*UpdateRuleRequest `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	// If validate_only is true, the request will only validate the request and not save the rules.
 	ValidateOnly bool `protobuf:"varint,2,opt,name=validate_only,json=validateOnly,proto3" json:"validate_only,omitempty"`
-	// Deprecated - to improve API response clarity in the event of a failure, Sift will always perform input validation.
+	// Discouraged escape hatch for saving rules whose expression cannot be fully validated
+	// server-side. When `true`:
+	//   - Per-asset expression validation errors (e.g. channel not present on the in-scope asset)
+	//     are returned in `validation_results` for visibility but do not block the save.
+	//   - If the rule's UDF/calculated-channel inlining cannot resolve types (typically because
+	//     the referenced channels haven't been ingested yet, or there are too many distinct
+	//     identifiers for the type-inference budget) the rule is still persisted, but its
+	//     `is_live_evaluation_enabled` is forced to `false`. Live alerts will skip it; report
+	//     generation and on-demand `EvaluateRules` calls still work because they re-resolve
+	//     types at run time.
+	//
+	// To bring such a rule back online, fix the underlying problem (ingest the channels, simplify
+	// the expression, etc.) and reissue an update with `is_live_evaluation_enabled = true`.
+	//
+	// Marked `deprecated = true` because new integrations should validate input *before*
+	// submitting; existing SDK call sites that rely on this flag continue to work.
 	//
 	// Deprecated: Do not use.
 	OverrideExpressionValidation bool `protobuf:"varint,3,opt,name=override_expression_validation,json=overrideExpressionValidation,proto3" json:"override_expression_validation,omitempty"`
@@ -3341,7 +3370,11 @@ type ListRulesRequest struct {
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
 	// `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, `archived_date`, and `is_live_evaluation_enabled`.
-	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name. Folder membership is filterable via the `folders` field, e.g. `"<folder_id>" in folders` returns rules in the given folder, and `size(folders) == 0` returns uncategorized rules.
+	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+	// Folder membership is filterable via the `folders` and `activeFolders` fields. Both contain the ids of the folders
+	// the rule belongs to; `activeFolders` excludes archived folders. Use `"<folder_id>" in folders` to return rules in
+	// the given folder, and `size(activeFolders) == 0` to return uncategorized rules (rules whose only memberships are
+	// in archived folders count as uncategorized).
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	// Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
