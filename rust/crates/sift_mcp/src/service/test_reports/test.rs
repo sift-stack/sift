@@ -1,15 +1,23 @@
 use sift_rs::test_reports::v1::{
-    CountTestMeasurementsResponse, CountTestStepsResponse, ListTestMeasurementsResponse,
-    ListTestReportsResponse, ListTestStepsResponse, TestMeasurement, TestReport, TestStep,
+    CountTestMeasurementsResponse, CountTestStepsResponse, CreateTestMeasurementsResponse,
+    CreateTestReportResponse, CreateTestStepResponse, ListTestMeasurementsResponse,
+    ListTestReportsResponse, ListTestStepsResponse, TestMeasurement, TestMeasurementType,
+    TestReport, TestStatus, TestStep, TestStepType, test_measurement,
     test_report_service_server::TestReportServiceServer,
 };
 use sift_test_util::{grpc::memory_sift_channel, mock::test_reports::v1::MockTestReportServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
+use super::spec;
 use super::TestReportService;
 use crate::policy::RetryPolicy;
 use crate::service::common::PAGE_SIZE;
+
+fn built_from_json(json: &str) -> spec::BuiltReport {
+    let parsed = serde_json::from_str(json).expect("spec should parse");
+    spec::build(parsed).expect("spec should build")
+}
 
 async fn service_with_mock(
     mock: MockTestReportServiceImpl,
@@ -276,4 +284,289 @@ async fn count_test_measurements_returns_count() {
         .expect("count_test_measurements failed");
 
     assert_eq!(count, 3);
+}
+
+// --- spec::build (pure validation + mapping) ---
+
+#[test]
+fn build_computes_step_paths_and_parent_links() {
+    let built = built_from_json(
+        r#"{
+            "name": "r", "test_system_name": "rig", "test_case": "tc",
+            "steps": [
+                { "name": "first" },
+                { "name": "second", "steps": [ { "name": "child" } ] }
+            ]
+        }"#,
+    );
+
+    let paths: Vec<(&str, Option<&str>)> = built
+        .steps
+        .iter()
+        .map(|s| (s.step_path.as_str(), s.parent_path.as_deref()))
+        .collect();
+    // Pre-order, with computed paths and parent links.
+    assert_eq!(
+        paths,
+        vec![("1", None), ("2", None), ("2.1", Some("2"))]
+    );
+    assert_eq!(built.steps[2].step.step_path, "2.1");
+}
+
+#[test]
+fn build_defaults_status_and_step_type() {
+    let built = built_from_json(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc",
+             "steps": [ { "name": "s" } ] }"#,
+    );
+    assert_eq!(built.request.status, TestStatus::Passed as i32);
+    assert_eq!(built.steps[0].step.status, TestStatus::Passed as i32);
+    assert_eq!(built.steps[0].step.step_type, TestStepType::Action as i32);
+}
+
+#[test]
+fn build_computes_passed_from_numeric_bounds() {
+    let built = built_from_json(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc",
+             "steps": [ { "name": "s", "measurements": [
+                { "name": "in",  "numeric_value": 3.3, "numeric_bounds": { "min": 3.0, "max": 3.6 } },
+                { "name": "out", "numeric_value": 9.9, "numeric_bounds": { "min": 3.0, "max": 3.6 } }
+             ] } ] }"#,
+    );
+    let ms = &built.steps[0].measurements;
+    assert!(ms[0].passed, "in-bounds should pass");
+    assert!(!ms[1].passed, "out-of-bounds should fail");
+    assert_eq!(ms[0].measurement_type, TestMeasurementType::Double as i32);
+    match &ms[0].value {
+        Some(test_measurement::Value::NumericValue(v)) => assert_eq!(*v, 3.3),
+        _ => panic!("expected numeric value"),
+    }
+}
+
+#[test]
+fn build_explicit_passed_overrides_bounds() {
+    let built = built_from_json(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc",
+             "steps": [ { "name": "s", "measurements": [
+                { "name": "m", "numeric_value": 9.9, "numeric_bounds": { "max": 1.0 }, "passed": true }
+             ] } ] }"#,
+    );
+    assert!(built.steps[0].measurements[0].passed);
+}
+
+#[test]
+fn build_derives_string_and_boolean_types() {
+    let built = built_from_json(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc",
+             "steps": [ { "name": "s", "measurements": [
+                { "name": "str", "string_value": "ok", "string_expected": "ok" },
+                { "name": "bool", "boolean_value": true }
+             ] } ] }"#,
+    );
+    let ms = &built.steps[0].measurements;
+    assert_eq!(ms[0].measurement_type, TestMeasurementType::String as i32);
+    assert!(ms[0].passed, "string equal to expected should pass");
+    assert_eq!(ms[1].measurement_type, TestMeasurementType::Boolean as i32);
+}
+
+#[test]
+fn build_rejects_wrong_value_count() {
+    let zero = serde_json::from_str(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc",
+             "steps": [ { "name": "s", "measurements": [ { "name": "m" } ] } ] }"#,
+    )
+    .unwrap();
+    assert!(spec::build(zero).is_err(), "zero values must be rejected");
+
+    let two = serde_json::from_str(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc",
+             "steps": [ { "name": "s", "measurements": [
+                { "name": "m", "numeric_value": 1.0, "boolean_value": true } ] } ] }"#,
+    )
+    .unwrap();
+    assert!(spec::build(two).is_err(), "two values must be rejected");
+}
+
+#[test]
+fn build_rejects_unknown_enum_and_bad_timestamp() {
+    let bad_status = serde_json::from_str(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc", "status": "NOPE" }"#,
+    )
+    .unwrap();
+    assert!(spec::build(bad_status).is_err());
+
+    let bad_ts = serde_json::from_str(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc", "start_time": "not-a-time" }"#,
+    )
+    .unwrap();
+    assert!(spec::build(bad_ts).is_err());
+}
+
+#[test]
+fn build_rejects_empty_required_field() {
+    let empty_name = serde_json::from_str(
+        r#"{ "name": "", "test_system_name": "rig", "test_case": "tc" }"#,
+    )
+    .unwrap();
+    assert!(spec::build(empty_name).is_err());
+}
+
+// --- create_test_report (composite orchestration against the mock) ---
+
+#[tokio::test]
+async fn create_test_report_creates_tree_in_order() {
+    let mut mock = MockTestReportServiceImpl::new();
+
+    mock.expect_create_test_report().times(1).returning(|_| {
+        Ok(Response::new(CreateTestReportResponse {
+            test_report: Some(TestReport {
+                test_report_id: "r1".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    // Echo back an id derived from step_path, and assert report id + parent linkage.
+    mock.expect_create_test_step().times(3).returning(|req| {
+        let step = req.into_inner().test_step.expect("step present");
+        assert_eq!(step.test_report_id, "r1");
+        if step.step_path == "2.1" {
+            assert_eq!(step.parent_step_id, "id-2", "child links to parent's real id");
+        } else {
+            assert_eq!(step.parent_step_id, "", "roots have no parent");
+        }
+        let test_step_id = format!("id-{}", step.step_path);
+        Ok(Response::new(CreateTestStepResponse {
+            test_step: Some(TestStep {
+                test_step_id,
+                ..step
+            }),
+        }))
+    });
+
+    mock.expect_create_test_measurements()
+        .times(1)
+        .returning(|req| {
+            let measurements = req.into_inner().test_measurements;
+            assert_eq!(measurements.len(), 1);
+            assert_eq!(measurements[0].test_step_id, "id-1");
+            assert_eq!(measurements[0].test_report_id, "r1");
+            Ok(Response::new(CreateTestMeasurementsResponse {
+                measurements_created_count: measurements.len() as i32,
+                measurement_ids: vec!["m1".into()],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let built = built_from_json(
+        r#"{
+            "name": "r", "test_system_name": "rig", "test_case": "tc",
+            "steps": [
+                { "name": "first", "measurements": [ { "name": "v", "numeric_value": 1.0 } ] },
+                { "name": "second", "steps": [ { "name": "child" } ] }
+            ]
+        }"#,
+    );
+
+    let created = service
+        .create_test_report(built)
+        .await
+        .expect("create_test_report failed");
+
+    assert_eq!(created.test_report_id, "r1");
+    assert_eq!(created.steps_created, 3);
+    assert_eq!(created.measurements_created, 1);
+}
+
+#[tokio::test]
+async fn create_test_report_surfaces_report_id_on_step_failure() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_create_test_report().returning(|_| {
+        Ok(Response::new(CreateTestReportResponse {
+            test_report: Some(TestReport {
+                test_report_id: "r1".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+    mock.expect_create_test_step()
+        .returning(|_| Err(Status::internal("boom")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let built = built_from_json(
+        r#"{ "name": "r", "test_system_name": "rig", "test_case": "tc",
+             "steps": [ { "name": "s" } ] }"#,
+    );
+
+    let err = service
+        .create_test_report(built)
+        .await
+        .expect_err("expected step failure");
+
+    let msg = err.to_string();
+    assert!(msg.contains("r1"), "error should name the created report id: {msg}");
+}
+
+// --- append_test_measurements ---
+
+#[tokio::test]
+async fn append_test_measurements_sets_ids_and_batches() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_create_test_measurements()
+        .times(1)
+        .returning(|req| {
+            let measurements = req.into_inner().test_measurements;
+            assert_eq!(measurements.len(), 2);
+            for m in &measurements {
+                assert_eq!(m.test_report_id, "r9");
+                assert_eq!(m.test_step_id, "s9");
+            }
+            Ok(Response::new(CreateTestMeasurementsResponse {
+                measurements_created_count: measurements.len() as i32,
+                measurement_ids: vec!["m1".into(), "m2".into()],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let measurements = spec::build_measurements(
+        serde_json::from_str(
+            r#"[
+                { "name": "v", "numeric_value": 1.0 },
+                { "name": "ok", "boolean_value": true }
+            ]"#,
+        )
+        .unwrap(),
+    )
+    .expect("measurements should build");
+
+    let created = service
+        .append_test_measurements("r9".to_string(), "s9".to_string(), measurements)
+        .await
+        .expect("append_test_measurements failed");
+
+    assert_eq!(created, 2);
+}
+
+#[tokio::test]
+async fn append_test_measurements_propagates_grpc_error() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_create_test_measurements()
+        .returning(|_| Err(Status::not_found("no such step")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let measurements = spec::build_measurements(
+        serde_json::from_str(r#"[ { "name": "v", "numeric_value": 1.0 } ]"#).unwrap(),
+    )
+    .unwrap();
+
+    let err = service
+        .append_test_measurements("r9".to_string(), "missing".to_string(), measurements)
+        .await
+        .expect_err("expected error");
+
+    assert!(err.to_string().contains("failed to append test measurements"));
 }

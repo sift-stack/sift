@@ -1,6 +1,7 @@
 use rmcp::{
+    ErrorData,
     handler::server::wrapper::Parameters,
-    model::CallToolResult,
+    model::{CallToolResult, Content},
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -9,14 +10,33 @@ use serde::Deserialize;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
+    service::test_reports::spec::{self, ReportSpec},
     tool::common::ListParams,
 };
+
+/// Parse the `report_json` author spec, mapping any deserialization error to `INVALID_PARAMS`.
+fn parse_report_spec(report_json: &str) -> Result<ReportSpec, ErrorData> {
+    serde_json::from_str::<ReportSpec>(report_json)
+        .map_err(|e| ErrorData::invalid_params(format!("`report_json` is not valid: {e}"), None))
+}
 
 /// Filter-only parameters for the `count_*` test-results tools. Counting takes no
 /// ordering or page size, so it does not reuse `ListParams`.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CountParams {
     pub(crate) filter: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CreateTestReportParams {
+    pub(crate) report_json: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AppendMeasurementsParams {
+    pub(crate) test_report_id: String,
+    pub(crate) test_step_id: String,
+    pub(crate) measurements_json: String,
 }
 
 #[tool_router(router = test_reports_router, vis = "pub(crate)")]
@@ -260,5 +280,164 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         Ok(CallToolResult::structured(out))
+    }
+
+    #[tool(
+        name = "create_test_report",
+        description = "
+            Create a test report together with its tree of steps and measurements in one call,
+            from a single JSON document. WRITE: this creates data in Sift. Confirm the destination
+            with the user before calling, and report back what was created.
+
+            Parameters:
+              - `report_json`: a JSON object describing the report. Shape:
+                - Report fields: `name` (required), `test_system_name` (required), `test_case`
+                  (required), `status` (optional, default `PASSED`; accepts `PASSED` or
+                  `TEST_STATUS_PASSED`), `start_time`/`end_time` (optional RFC3339, e.g.
+                  \"2026-06-24T10:00:00Z\"; default now), `serial_number`, `part_number`,
+                  `system_operator`, `run_id` (optional; links the report to an existing Sift run),
+                  `metadata` (optional flat object of string/number/bool values).
+                - `steps`: optional array. Each step has `name` (required), `status` (optional,
+                  default `PASSED`), `step_type` (optional, default `ACTION`; one of `SEQUENCE`,
+                  `GROUP`, `ACTION`, `FLOW_CONTROL`), `description`, `start_time`/`end_time`
+                  (optional, default the report window), `error_info` (`{ error_code, error_message }`),
+                  `metadata`, `measurements`, and a nested `steps` array for children. `step_path`
+                  and `parent_step_id` are computed from nesting (roots `1`, `2`; child of `1` is
+                  `1.1`) — do not supply them.
+                - Each measurement has `name` (required), EXACTLY ONE of `numeric_value`,
+                  `string_value`, or `boolean_value`, optional `numeric_bounds` (`{ min, max }`, with
+                  `numeric_value`) or `string_expected` (with `string_value`), `unit`, `passed`
+                  (optional; computed from bounds when omitted — numeric bounds inclusive, string
+                  equals `string_expected`, else true), `measurement_type` (optional; derived from
+                  the value kind), `timestamp` (optional RFC3339, default the step start), `description`,
+                  `channel_names` (array), and `metadata`.
+
+            Output:
+              - `{ \"test_report_id\": \"...\", \"steps_created\": N, \"measurements_created\": M, \"next_step\": \"...\" }`.
+
+            Errors:
+              - `INVALID_PARAMS` if `report_json` is not valid JSON, omits a required field, names an
+                unknown enum value, has a non-RFC3339 timestamp, or a measurement does not set exactly
+                one value (or pairs bounds with the wrong value kind).
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - The create calls are not transactional. If a step or measurement fails after the report
+                is created, the report and earlier steps remain; the error names the created
+                `test_report_id`. Verify with `list_test_steps` (filter `test_report_id == \"...\"`).
+        ",
+        annotations(title = "test_reports_router/create_test_report", read_only_hint = false)
+    )]
+    pub async fn create_test_report(
+        &self,
+        params: Parameters<CreateTestReportParams>,
+    ) -> error::McpResult {
+        let Parameters(CreateTestReportParams { report_json }) = params;
+
+        let report_spec = parse_report_spec(&report_json)?;
+        let built = spec::build(report_spec)
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+
+        let created = self
+            .test_report_service
+            .create_test_report(built)
+            .await
+            .map_err(from_anyhow)?;
+
+        let next_step = format!(
+            "Created test report `{}` with {} step(s) and {} measurement(s) in Sift. Tell the user \
+             the new `test_report_id`. If they haven't indicated a next step, offer to verify with \
+             `list_test_steps` (filter `test_report_id == \"{}\"`).",
+            created.test_report_id,
+            created.steps_created,
+            created.measurements_created,
+            created.test_report_id,
+        );
+
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "test_report_id": created.test_report_id,
+            "steps_created": created.steps_created,
+            "measurements_created": created.measurements_created,
+            "next_step": next_step,
+        }));
+        result.content = vec![Content::text(next_step)];
+        Ok(result)
+    }
+
+    #[tool(
+        name = "append_test_measurements",
+        description = "
+            Append measurements to an existing test step. WRITE: this creates data in Sift.
+            Confirm the destination with the user before calling.
+
+            Parameters:
+              - `test_report_id`: the report the step belongs to (required).
+              - `test_step_id`: the step to attach the measurements to (required).
+              - `measurements_json`: a JSON array of measurement objects, each with the same shape
+                as a measurement in `create_test_report`: `name` (required), EXACTLY ONE of
+                `numeric_value`/`string_value`/`boolean_value`, optional `numeric_bounds`
+                (`{ min, max }`) or `string_expected`, `unit`, `passed` (computed from bounds when
+                omitted), `measurement_type` (derived from the value kind), `timestamp` (RFC3339,
+                default now), `description`, `channel_names`, and `metadata`. Must be non-empty.
+
+            Output:
+              - `{ \"test_report_id\": \"...\", \"test_step_id\": \"...\", \"measurements_created\": N, \"next_step\": \"...\" }`.
+
+            Errors:
+              - `INVALID_PARAMS` if `measurements_json` is not a valid array, is empty, or a
+                measurement does not set exactly one value (or pairs bounds with the wrong value kind).
+              - `RESOURCE_NOT_FOUND` / `INVALID_PARAMS` if `test_report_id` or `test_step_id` does not
+                exist (the server rejects unknown ids).
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+        ",
+        annotations(
+            title = "test_reports_router/append_test_measurements",
+            read_only_hint = false
+        )
+    )]
+    pub async fn append_test_measurements(
+        &self,
+        params: Parameters<AppendMeasurementsParams>,
+    ) -> error::McpResult {
+        let Parameters(AppendMeasurementsParams {
+            test_report_id,
+            test_step_id,
+            measurements_json,
+        }) = params;
+
+        let specs: Vec<spec::MeasurementSpec> =
+            serde_json::from_str(&measurements_json).map_err(|e| {
+                ErrorData::invalid_params(format!("`measurements_json` is not valid: {e}"), None)
+            })?;
+        if specs.is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`measurements_json` must contain at least one measurement",
+                None,
+            ));
+        }
+
+        let measurements =
+            spec::build_measurements(specs).map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+
+        let created = self
+            .test_report_service
+            .append_test_measurements(test_report_id.clone(), test_step_id.clone(), measurements)
+            .await
+            .map_err(from_anyhow)?;
+
+        let next_step = format!(
+            "Appended {created} measurement(s) to step `{test_step_id}` in report \
+             `{test_report_id}`. Tell the user. If they haven't indicated a next step, offer to \
+             verify with `list_test_measurements` (filter `test_step_id == \"{test_step_id}\"`).",
+        );
+
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "test_report_id": test_report_id,
+            "test_step_id": test_step_id,
+            "measurements_created": created,
+            "next_step": next_step,
+        }));
+        result.content = vec![Content::text(next_step)];
+        Ok(result)
     }
 }

@@ -49,6 +49,8 @@ not run interactively.
 | `list_test_measurements` | List test measurements, with filtering and ordering.                  |
 | `count_test_steps` | Count test steps matching a filter, without fetching them.                  |
 | `count_test_measurements` | Count test measurements matching a filter, without fetching them.    |
+| `create_test_report` | Create a test report with its steps and measurements from a JSON document.  |
+| `append_test_measurements` | Append measurements to an existing test step.                          |
 | `get_data`       | Download channel data for an asset/run to a Parquet file, with optional decimation. |
 | `sql`            | Run SQL over one or more Parquet files; chain after `get_data` for analysis.  |
 | `upload_dataset` | Stream a Parquet dataset into Sift.                                           |
