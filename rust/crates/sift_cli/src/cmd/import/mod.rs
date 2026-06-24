@@ -23,6 +23,7 @@ pub async fn wait_for_job_completion(
     grpc_channel: SiftChannel,
     job_id: String,
     import_output_location: String,
+    explore_url: Option<String>,
 ) -> Result<ExitCode> {
     let spinner = Spinner::new();
     spinner.set_message(format!("{} file for processing", "Uploaded".green()));
@@ -80,12 +81,16 @@ pub async fn wait_for_job_completion(
             }
             JobStatus::Finished => {
                 spinner.finish_and_clear();
-                Output::new()
+                let mut output = Output::new();
+                output
                     .line(format!("{} data import job", "Completed".green()))
                     .tip(format!(
                         "The data should be available on the {import_output_location}"
-                    ))
-                    .print();
+                    ));
+                if let Some(url) = &explore_url {
+                    output.tip(format!("View in Sift: {url}"));
+                }
+                output.print();
                 break;
             }
             _ => (),

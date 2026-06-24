@@ -24,7 +24,7 @@ use crate::{
         Context,
         import::utils::{try_parse_bit_field_config, try_parse_enum_config},
     },
-    util::{api::create_grpc_channel, tty::Output},
+    util::{api::create_grpc_channel, explore_url::build_explore_url, tty::Output},
 };
 
 use super::{
@@ -76,22 +76,28 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
         .await
         .context("failed to upload CSV file")?;
 
+    let explore_url = build_explore_url(ctx.rest_uri.clone(), args.asset.clone(), args.run.clone());
+
     let location = args.run.as_ref().map_or_else(
         || format!("asset '{}'", args.asset.cyan()),
         |r| format!("run '{}'", r.clone().cyan()),
     );
 
     if !args.wait {
-        Output::new()
+        let mut output = Output::new();
+        output
             .line(format!("{} file for processing", "Uploaded".green()))
             .tip(format!(
                 "Once processing is complete the data will be available on the {location}."
-            ))
-            .print();
+            ));
+        if let Some(url) = &explore_url {
+            output.tip(format!("View in Sift: {url}"));
+        }
+        output.print();
 
         return Ok(ExitCode::SUCCESS);
     }
-    wait_for_job_completion(grpc_channel, job_id, location).await
+    wait_for_job_completion(grpc_channel, job_id, location, explore_url).await
 }
 
 fn create_data_import_request<R: io::Read>(

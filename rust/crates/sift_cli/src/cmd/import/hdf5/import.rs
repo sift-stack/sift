@@ -23,7 +23,7 @@ use crate::{
             wait_for_job_completion,
         },
     },
-    util::{api::create_grpc_channel, tty::Output},
+    util::{api::create_grpc_channel, explore_url::build_explore_url, tty::Output},
 };
 
 fn print_skipped_block(skipped: &[SkippedDataset]) {
@@ -116,23 +116,33 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     .await
     .context("failed to upload hdf5 file")?;
 
+    let explore_url = build_explore_url(
+        ctx.rest_uri.clone(),
+        args.common.asset.clone(),
+        args.common.run.clone(),
+    );
+
     let location = args.common.run.as_ref().map_or_else(
         || format!("asset '{}'", args.common.asset.cyan()),
         |r| format!("run '{}'", r.clone().cyan()),
     );
 
     if !args.common.wait {
-        Output::new()
+        let mut output = Output::new();
+        output
             .line(format!("{} file for processing", "Uploaded".green()))
             .tip(format!(
                 "Once processing is complete the data will be available on the {location}."
-            ))
-            .print();
+            ));
+        if let Some(url) = &explore_url {
+            output.tip(format!("View in Sift: {url}"));
+        }
+        output.print();
 
         return Ok(ExitCode::SUCCESS);
     }
 
-    wait_for_job_completion(grpc_channel, job_id, location).await
+    wait_for_job_completion(grpc_channel, job_id, location, explore_url).await
 }
 
 pub fn build_hdf5_config(args: &ImportHdf5Args) -> Result<Hdf5Config> {

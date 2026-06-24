@@ -27,7 +27,7 @@ use crate::cmd::{
         wait_for_job_completion,
     },
 };
-use crate::util::{api::create_grpc_channel, tty::Output};
+use crate::util::{api::create_grpc_channel, explore_url::build_explore_url, tty::Output};
 
 pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
@@ -125,22 +125,32 @@ pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     .await
     .context("failed to upload Parquet file")?;
 
+    let explore_url = build_explore_url(
+        ctx.rest_uri.clone(),
+        args.common.asset.clone(),
+        args.common.run.clone(),
+    );
+
     let location = args.common.run.as_ref().map_or_else(
         || format!("asset '{}'", args.common.asset.cyan()),
         |r| format!("run '{}'", r.clone().cyan()),
     );
 
     if !args.common.wait {
-        Output::new()
+        let mut output = Output::new();
+        output
             .line(format!("{} file for processing", "Uploaded".green()))
             .tip(format!(
                 "Once processing is complete the data will be available on the {location}."
-            ))
-            .print();
+            ));
+        if let Some(url) = &explore_url {
+            output.tip(format!("View in Sift: {url}"));
+        }
+        output.print();
         return Ok(ExitCode::SUCCESS);
     }
 
-    wait_for_job_completion(grpc_channel, job_id, location).await
+    wait_for_job_completion(grpc_channel, job_id, location, explore_url).await
 }
 
 fn create_data_import_request(
