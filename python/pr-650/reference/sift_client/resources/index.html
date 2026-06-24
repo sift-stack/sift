@@ -1703,6 +1703,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.configure_data_cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;configure_data_cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.ChannelsAPIAsync.find" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7318,6 +7329,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;archive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.configure_data_cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;configure_data_cache
       
     </span>
   </a>
@@ -20275,6 +20297,14 @@ representation of a channel using standard Python data structures and types.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            configure_data_cache (sift_client.resources.ChannelsAPIAsync.configure_data_cache)" href="#sift_client.resources.ChannelsAPIAsync.configure_data_cache">configure_data_cache</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Configure the in-memory channel data cache used by <code>get_data</code>.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            find
 
 
@@ -20577,6 +20607,65 @@ has no id set, raises ValueError.</p>
       </tbody>
     </table>
 
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.ChannelsAPIAsync.configure_data_cache" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">configure_data_cache</span>
+
+
+<a href="#sift_client.resources.ChannelsAPIAsync.configure_data_cache" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">configure_data_cache</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Configure the in-memory channel data cache used by <code>get_data</code>.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_bytes</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Byte cap on the cache. <code>0</code> disables caching
+(every <code>get_data</code> call goes to the wire). Defaults to
+512 MiB until explicitly configured. Must be <code>&gt;= 0</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Safe to call before or after the first <code>get_data</code>. If the cache is
+already live, the new cap is applied immediately and least-recently-
+used entries are evicted until <code>total_bytes</code> fits.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
+client.channels.configure_data_cache(max_bytes=0)  # disable</p>
+</details>
 
     </div>
 
