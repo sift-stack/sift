@@ -36,7 +36,7 @@ CHANNELS_DEFAULT_PAGE_SIZE = 10_000
 REQUEST_BATCH_SIZE = 1
 
 # Default in-memory budget for cached channel DataFrames, per ``DataLowLevelClient``
-# instance. 512 MiB is well below typical pod limits while still letting common
+# instance. 512 MiB is well below typical limits while still letting common
 # interactive workloads stay in cache. Override via ``SiftClient(data_cache_max_bytes=...)``.
 DEFAULT_DATA_CACHE_MAX_BYTES = 512 * 1024 * 1024
 
@@ -46,8 +46,6 @@ class ChannelCacheEntry(BaseModel):
     data: pd.DataFrame
     start_time: datetime
     end_time: datetime
-    # ``df.memory_usage(deep=True).sum()`` at construction time. Stored on the
-    # entry so eviction is O(1) per dropped item instead of re-walking frames.
     size_bytes: int
 
 
@@ -65,19 +63,8 @@ def _new_cache_entry(
 class ChannelCache:
     """LRU-ordered, byte-bounded cache of per-channel DataFrames.
 
-    Each ``DataLowLevelClient`` owns its own ``ChannelCache``; the previous
-    implementation kept this on the class, which silently shared state across
-    every ``SiftClient`` in the process and grew without bound. Sustained pulls
-    against that shared cache OOM'd long-running pods.
-
-    Bookkeeping invariant: ``_total_bytes == sum(e.size_bytes for e in _entries.values())``.
-    Maintained by every mutation path so the bound is checked in O(1) without
-    re-walking entries.
-
     ``max_bytes <= 0`` disables retention: every ``get`` misses, ``put`` returns
-    without storing. ``name_id_map`` is intentionally outside the bound — it's
-    a tiny string→string map and forms part of the contract with ``_update_cache``,
-    which depends on it to translate channel names to ids.
+    without storing.
     """
 
     def __init__(self, max_bytes: int = DEFAULT_DATA_CACHE_MAX_BYTES):
@@ -117,7 +104,7 @@ class ChannelCache:
         return entry
 
     def put(self, channel_id: str, entry: ChannelCacheEntry) -> None:
-        """Insert or replace ``channel_id``, then evict LRU until under the bound.
+        """Insert or replace ``channel_id``, then evict LRU until within size bounds.
 
         Reclaims any prior entry's byte count BEFORE adding the new one's, so a
         re-insert (e.g. concat-merge of fresh data into an existing entry)
@@ -144,9 +131,7 @@ class ChannelCache:
     def _evict_until_under_bound(self) -> None:
         # ``popitem(last=False)`` drops the oldest entry. A single fresh entry
         # whose ``size_bytes`` alone exceeds ``max_bytes`` ends up evicted on
-        # the final iteration — the deliberate choice over "keep the oversized
-        # entry and violate the bound" or "evict everyone else and still
-        # violate the bound."
+        # the final iteration.
         while self._entries and self._total_bytes > self._max_bytes:
             _, dropped = self._entries.popitem(last=False)
             self._total_bytes -= dropped.size_bytes
@@ -220,8 +205,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         cached_channels = []
         not_cached_channels = []
         for channel_id in channel_ids:
-            # ``__contains__`` is a non-promoting peek; ``_check_cache`` does
-            # the LRU-touching ``get`` shortly after for the actual lookup.
             if channel_id in self.channel_cache:
                 cached_channels.append(channel_id)
             else:
@@ -410,10 +393,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         pages = await asyncio.gather(*tasks)
         ret_data = self._merge_pages(pages, initial=ret_data)
 
-        # ``ignore_cache=True`` is documented as a read-side bypass, but the
-        # previous implementation still wrote to the shared cache on every
-        # call, which meant a "non-caching" workload still grew the cache
-        # without bound. Skip writes when the caller asked us to ignore it.
         if not ignore_cache:
             self._update_cache(
                 channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id
@@ -428,12 +407,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         initial: dict[str, pd.DataFrame],
     ) -> dict[str, pd.DataFrame]:
         """Flatten paged channel data + any cached slices into one DataFrame per channel.
-
-        Replaces a per-page ``pd.concat(...).groupby(...)`` loop that was
-        O(N²) in the number of pages — each iteration copied the cumulative
-        DataFrame — with a single batched concat per channel. At realistic
-        pagination depths the speedup is large: 200 pages of 10k rows each
-        drops from ~11 s to ~130 ms in the bench.
 
         ``initial`` carries any cached slices already populated by
         ``_check_cache``. Cached entries are folded in as the first frame for
