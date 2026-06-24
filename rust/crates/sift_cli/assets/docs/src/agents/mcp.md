@@ -44,6 +44,11 @@ not run interactively.
 | `update_annotation` | Update an annotation's fields (replace semantics for collections).         |
 | `list_rules`     | List rules, with filtering and ordering.                                      |
 | `list_rule_versions` | List the version history of a single rule.                                |
+| `list_test_reports` | List test reports (test-results runs), with filtering and ordering.        |
+| `list_test_steps` | List test steps within a report, with filtering and ordering.                |
+| `list_test_measurements` | List test measurements, with filtering and ordering.                  |
+| `count_test_steps` | Count test steps matching a filter, without fetching them.                  |
+| `count_test_measurements` | Count test measurements matching a filter, without fetching them.    |
 | `get_data`       | Download channel data for an asset/run to a Parquet file, with optional decimation. |
 | `sql`            | Run SQL over one or more Parquet files; chain after `get_data` for analysis.  |
 | `upload_dataset` | Stream a Parquet dataset into Sift.                                           |
