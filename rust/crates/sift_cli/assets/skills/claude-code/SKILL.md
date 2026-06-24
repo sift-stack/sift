@@ -35,6 +35,8 @@ to combine them when working with Sift.
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
    - `upload_dataset`: stream a Parquet dataset into Sift.
+   - `update_asset`: replace an existing asset's tags and/or metadata (write —
+     replace semantics, so read-modify-write when appending).
    - `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`: manage rules
      (writes — confirm the change with the user first).
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
