@@ -538,3 +538,90 @@ class TestConfigureDataCache:
         api = _make_api()
         with pytest.raises(ValueError, match="max_bytes"):
             api.configure_data_cache(max_bytes=-1)
+
+
+class TestEnableDataCacheDisk:
+    """``enable_data_cache_disk`` / ``disable_data_cache_disk`` plumb the disk
+    tier setting to the underlying ``ChannelCache``, both pre- and post-init.
+
+    The disk tier itself is exercised directly in
+    ``test_data.py::TestChannelCacheDisk``; the tests here just verify the
+    resource-level wiring around it.
+    """
+
+    def test_disabled_by_default(self):
+        api = _make_api()
+        api._ensure_data_low_level_client()
+        assert not api._data_low_level_client.channel_cache.disk_enabled
+
+    def test_enable_before_lazy_init_propagates(self, tmp_path):
+        api = _make_api()
+        api.enable_data_cache_disk(path=str(tmp_path / "pre-init"), max_bytes=4096)
+        api._ensure_data_low_level_client()
+        cache = api._data_low_level_client.channel_cache
+        try:
+            assert cache.disk_enabled
+            assert cache.disk_path == str(tmp_path / "pre-init")
+            assert cache.disk_max_bytes == 4096
+        finally:
+            cache.close()
+
+    def test_enable_after_lazy_init_updates_live_cache(self, tmp_path):
+        api = _make_api()
+        api._ensure_data_low_level_client()
+        cache = api._data_low_level_client.channel_cache
+        try:
+            assert not cache.disk_enabled
+            api.enable_data_cache_disk(path=str(tmp_path / "post-init"))
+            assert cache.disk_enabled
+            assert cache.disk_path == str(tmp_path / "post-init")
+        finally:
+            cache.close()
+
+    def test_enable_with_default_path_lands_on_default(self, monkeypatch, tmp_path):
+        """Calling ``enable_data_cache_disk()`` with no args uses the default path.
+
+        Redirects ``ChannelCache.DEFAULT_DISK_PATH`` to ``tmp_path`` so the
+        test doesn't create the real ``/tmp/sift-channel-data-cache``
+        directory.
+        """
+        from sift_client._internal.low_level_wrappers.data import ChannelCache
+
+        fake_default = str(tmp_path / "fake-default")
+        monkeypatch.setattr(ChannelCache, "DEFAULT_DISK_PATH", fake_default)
+
+        api = _make_api()
+        api.enable_data_cache_disk()
+        api._ensure_data_low_level_client()
+        cache = api._data_low_level_client.channel_cache
+        try:
+            assert cache.disk_path == fake_default
+        finally:
+            cache.close()
+
+    def test_disable_closes_live_disk_handle(self, tmp_path):
+        api = _make_api()
+        api.enable_data_cache_disk(path=str(tmp_path / "to-close"))
+        api._ensure_data_low_level_client()
+        cache = api._data_low_level_client.channel_cache
+        try:
+            assert cache.disk_enabled
+            api.disable_data_cache_disk()
+            assert not cache.disk_enabled
+            assert cache.disk_path is None
+        finally:
+            cache.close()
+
+    def test_clear_data_cache_on_disk_proxies_to_cache(self, tmp_path):
+        """The resource method removes the directory by proxying to ChannelCache."""
+        from sift_client._internal.low_level_wrappers.data import ChannelCache
+
+        path = tmp_path / "to-clear"
+        # Populate a real disk-cache directory so the marker check passes.
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=path)
+        cache.close()
+        assert path.exists()
+
+        api = _make_api()
+        api.clear_data_cache_on_disk(path)
+        assert not path.exists()

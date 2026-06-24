@@ -1,9 +1,13 @@
 """Tests for :mod:`sift_client._internal.low_level_wrappers.data`.
 
-Four classes, narrowest scope first:
+Five classes, narrowest scope first:
 
 * :class:`TestChannelCache` — pure ``ChannelCache`` unit tests (byte
   accounting, LRU promotion, eviction).
+* :class:`TestChannelCacheDisk` — disk-backed second-chance tier
+  (fresh open, cross-session reload, fall-through reads, disable).
+* :class:`TestChannelCacheClearDisk` — ``ChannelCache.clear_disk``
+  classmethod (default path, custom path, safety guard).
 * :class:`TestMergePages` — ``DataLowLevelClient._merge_pages``, the
   per-channel concat helper.
 * :class:`TestDataLowLevelClient` — constructor wiring and per-instance
@@ -305,6 +309,219 @@ class TestChannelCache:
                 f"iteration {i}: total_bytes={cache.total_bytes} exceeded cap={cap}"
             )
             assert _invariant_holds(cache)
+
+
+class TestChannelCacheDisk:
+    """Disk-backed second-chance tier of :class:`ChannelCache`.
+
+    Three things must hold across these tests:
+
+    1. A fresh disk directory starts empty and accepts new writes.
+    2. Closing a populated cache and reopening at the same path surfaces
+       the previous entries on read (the "previous session" requirement).
+    3. The two tiers stay consistent across ``invalidate``/``clear`` and
+       ``disable_disk``, so the disk tier never becomes a stale shadow of
+       memory.
+
+    All tests confine writes to ``tmp_path`` so nothing leaks into the real
+    ``/tmp/sift-channel-data-cache``.
+    """
+
+    def test_disabled_by_default(self) -> None:
+        """No ``disk_path`` → disk tier stays off and untouched."""
+        cache = ChannelCache(max_bytes=10_000_000)
+        assert cache.disk_enabled is False
+        assert cache.disk_path is None
+        assert cache.disk_max_bytes is None
+
+    def test_fresh_cache_writes_and_reads(self, tmp_path) -> None:
+        """A fresh disk directory accepts writes and serves them back."""
+        path = tmp_path / "fresh"
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=path)
+        try:
+            assert cache.disk_enabled
+            assert cache.disk_path == str(path)
+            assert cache.disk_max_bytes == ChannelCache.DEFAULT_DISK_MAX_BYTES
+            entry = _entry(rows=8)
+            cache.put("chan-1", entry)
+            # Same instance: memory hit takes precedence; disk is just a copy.
+            assert "chan-1" in cache
+            got = cache.get("chan-1")
+            assert got is not None
+            pd.testing.assert_frame_equal(got.data, entry.data)
+        finally:
+            cache.close()
+
+    def test_reopen_existing_dir_sees_prior_session_entries(self, tmp_path) -> None:
+        """Closing then reopening at the same path makes prior entries hit.
+
+        This is the "look for existing caches from previous sessions"
+        guarantee: a new ``ChannelCache`` with an empty in-memory tier
+        finds entries on disk and promotes them into memory on first read.
+        """
+        path = tmp_path / "prev-session"
+        df = _frame("chan-1", rows=12, freq="s")
+        original_entry = _new_cache_entry(
+            data=df,
+            start_time=df.index[0].to_pydatetime(),
+            end_time=df.index[-1].to_pydatetime(),
+        )
+        # Session 1: populate and close.
+        session1 = ChannelCache(max_bytes=10_000_000, disk_path=path)
+        session1.put("chan-1", original_entry)
+        session1.close()
+
+        # Session 2: fresh process simulated by a brand-new ChannelCache.
+        # Memory starts empty, but ``__contains__`` reports the entry from
+        # disk and ``get`` returns it with bytes intact.
+        session2 = ChannelCache(max_bytes=10_000_000, disk_path=path)
+        try:
+            assert len(session2) == 0  # in-memory tier starts cold
+            assert "chan-1" in session2  # disk-backed contains
+            got = session2.get("chan-1")
+            assert got is not None
+            pd.testing.assert_frame_equal(got.data, original_entry.data)
+            assert got.start_time == original_entry.start_time
+            assert got.end_time == original_entry.end_time
+            # After the disk hit, the entry is now promoted into memory.
+            assert len(session2) == 1
+        finally:
+            session2.close()
+
+    def test_disk_hit_promotes_into_memory(self, tmp_path) -> None:
+        """A disk-only entry becomes a memory entry after one ``get``."""
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=tmp_path / "promote")
+        try:
+            cache.put("chan-1", _entry(rows=4))
+            # Drop from memory only (simulate eviction).
+            del cache._entries["chan-1"]
+            cache._total_bytes = 0
+            assert "chan-1" in cache  # still on disk
+            assert cache.get("chan-1") is not None
+            assert "chan-1" in cache._entries  # promoted back into memory
+        finally:
+            cache.close()
+
+    def test_disk_only_when_memory_disabled(self, tmp_path) -> None:
+        """``max_bytes=0`` (no memory) still routes writes/reads through disk.
+
+        Cold-storage configuration: caller wants persistence without
+        paying the in-memory footprint.
+        """
+        cache = ChannelCache(max_bytes=0, disk_path=tmp_path / "disk-only")
+        try:
+            assert not cache.enabled
+            assert cache.disk_enabled
+            cache.put("chan-1", _entry(rows=4))
+            assert "chan-1" not in cache._entries  # never landed in memory
+            got = cache.get("chan-1")
+            assert got is not None
+            assert "chan-1" not in cache._entries  # memory still bypassed
+        finally:
+            cache.close()
+
+    def test_invalidate_clears_both_tiers(self, tmp_path) -> None:
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=tmp_path / "inval")
+        try:
+            cache.put("chan-1", _entry(rows=4))
+            cache.invalidate("chan-1")
+            assert "chan-1" not in cache._entries
+            assert "chan-1" not in cache  # contains() must check disk too
+        finally:
+            cache.close()
+
+    def test_clear_wipes_both_tiers(self, tmp_path) -> None:
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=tmp_path / "clear")
+        try:
+            cache.put("chan-1", _entry(rows=4))
+            cache.put("chan-2", _entry(rows=4))
+            cache.clear()
+            assert len(cache) == 0
+            assert "chan-1" not in cache
+            assert "chan-2" not in cache
+        finally:
+            cache.close()
+
+    def test_disable_disk_preserves_memory(self, tmp_path) -> None:
+        """Turning off disk closes the handle but keeps memory intact."""
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=tmp_path / "disable")
+        try:
+            cache.put("chan-1", _entry(rows=4))
+            cache.disable_disk()
+            assert not cache.disk_enabled
+            assert cache.disk_path is None
+            # Memory entry survives the disk-tier teardown.
+            assert "chan-1" in cache
+            assert cache.get("chan-1") is not None
+        finally:
+            cache.close()
+
+    def test_enable_disk_reconfigures_path(self, tmp_path) -> None:
+        """Reconfiguring to a different path closes the old handle."""
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=tmp_path / "a")
+        try:
+            cache.put("chan-1", _entry(rows=4))
+            cache.enable_disk(path=tmp_path / "b")
+            assert cache.disk_path == str(tmp_path / "b")
+            # The new disk dir is fresh: nothing on disk yet under the new path.
+            # ``chan-1`` is still in memory, so __contains__ is still True.
+            assert "chan-1" in cache
+            # But the new disk dir is empty; drop from memory and the
+            # contains check now relies on disk, which won't find it.
+            del cache._entries["chan-1"]
+            cache._total_bytes = 0
+            assert "chan-1" not in cache
+        finally:
+            cache.close()
+
+    def test_enable_disk_noop_when_same_settings(self, tmp_path) -> None:
+        """Re-enabling with identical settings doesn't churn the disk handle."""
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=tmp_path / "noop")
+        try:
+            handle_before = cache._disk
+            cache.enable_disk(path=tmp_path / "noop", max_bytes=ChannelCache.DEFAULT_DISK_MAX_BYTES)
+            # Same handle, no reopen.
+            assert cache._disk is handle_before
+        finally:
+            cache.close()
+
+
+class TestChannelCacheClearDisk:
+    """``ChannelCache.clear_disk`` removes a cache dir, refuses other dirs.
+
+    The classmethod is the source of truth that the resource-level
+    ``ChannelsAPIAsync.clear_data_cache_on_disk`` proxies through, so it
+    must be defensive against pointing at the wrong directory.
+    """
+
+    def test_clear_removes_directory(self, tmp_path) -> None:
+        path = tmp_path / "victim"
+        cache = ChannelCache(max_bytes=10_000_000, disk_path=path)
+        cache.put("chan-1", _entry(rows=4))
+        cache.close()
+        assert path.exists()
+        ChannelCache.clear_disk(path)
+        assert not path.exists()
+
+    def test_clear_missing_path_is_noop(self, tmp_path) -> None:
+        ChannelCache.clear_disk(tmp_path / "never-existed")  # no raise
+
+    def test_clear_refuses_non_diskcache_directory(self, tmp_path) -> None:
+        """A typo'd path with unrelated contents must not be wiped."""
+        target = tmp_path / "user-stuff"
+        target.mkdir()
+        (target / "important.txt").write_text("don't delete me")
+        with pytest.raises(ValueError, match="does not look like a sift channel data cache"):
+            ChannelCache.clear_disk(target)
+        # Unrelated contents preserved.
+        assert (target / "important.txt").read_text() == "don't delete me"
+
+    def test_default_path_constant_under_tmp(self) -> None:
+        """Default lives under the OS tmp dir, not a user directory."""
+        import tempfile
+
+        assert ChannelCache.DEFAULT_DISK_PATH.startswith(tempfile.gettempdir())
+        assert ChannelCache.DEFAULT_DISK_PATH.endswith("sift-channel-data-cache")
 
 
 class TestMergePages:

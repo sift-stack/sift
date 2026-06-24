@@ -11,6 +11,7 @@ from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import os
     import re
     from datetime import datetime
 
@@ -68,6 +69,13 @@ class ChannelsAPIAsync(ResourceBase):
         # at lazy-init time" so we don't have to import ``data.py`` (and
         # therefore pandas) just to remember the default.
         self._data_cache_max_bytes: int | None = None
+        # Disk-tier configuration, stashed until lazy init (or applied
+        # immediately if the wrapper is already constructed). All three
+        # remain ``None`` / ``False`` when the disk tier is disabled, which
+        # is the default — disk persistence is opt-in.
+        self._disk_cache_enabled: bool = False
+        self._disk_cache_path: str | None = None
+        self._disk_cache_max_bytes: int | None = None
 
     def configure_data_cache(self, *, max_bytes: int) -> None:
         """Configure the in-memory channel data cache used by ``get_data``.
@@ -90,6 +98,81 @@ class ChannelsAPIAsync(ResourceBase):
         self._data_cache_max_bytes = max_bytes
         if self._data_low_level_client is not None:
             self._data_low_level_client.channel_cache.max_bytes = max_bytes
+
+    def enable_data_cache_disk(
+        self,
+        *,
+        path: str | os.PathLike[str] | None = None,
+        max_bytes: int | None = None,
+    ) -> None:
+        """Persist the channel data cache to disk, surviving process restarts.
+
+        The disk-backed tier is a second-chance layer beneath the in-memory
+        cache: on a memory miss, ``get_data`` checks disk before going to the
+        wire. The default path lives under ``tempfile.gettempdir()`` and is
+        shared across sessions, so a re-run of the same workload picks up
+        previously-cached windows without a fetch.
+
+        Safe to call before or after the first ``get_data``. Reconfiguring
+        (different ``path`` or ``max_bytes``) closes the previous disk handle
+        and opens a new one; in-memory contents are preserved across the swap.
+
+        Args:
+            path: Directory to persist the cache to. ``None`` (the default)
+                uses ``DEFAULT_DISK_CACHE_PATH``. Existing entries at the path
+                become available as cache hits.
+            max_bytes: Byte cap on the disk tier. ``None`` uses
+                ``DEFAULT_DISK_CACHE_MAX_BYTES`` (4 GiB). When the bound is
+                reached, ``diskcache``'s LRU eviction takes over.
+
+        Example:
+            client.channels.enable_data_cache_disk()
+            client.channels.enable_data_cache_disk(path="/data/sift-cache")
+            client.channels.enable_data_cache_disk(max_bytes=1024 ** 3)  # 1 GiB
+        """
+        self._disk_cache_enabled = True
+        self._disk_cache_path = str(path) if path is not None else None
+        self._disk_cache_max_bytes = max_bytes
+        if self._data_low_level_client is not None:
+            self._data_low_level_client.channel_cache.enable_disk(path=path, max_bytes=max_bytes)
+
+    def disable_data_cache_disk(self) -> None:
+        """Stop persisting the channel data cache to disk.
+
+        Closes the disk-cache file handle. The on-disk directory is NOT
+        deleted — use :meth:`clear_data_cache_on_disk` to wipe it. In-memory
+        entries are preserved.
+        """
+        self._disk_cache_enabled = False
+        self._disk_cache_path = None
+        self._disk_cache_max_bytes = None
+        if self._data_low_level_client is not None:
+            self._data_low_level_client.channel_cache.disable_disk()
+
+    def clear_data_cache_on_disk(self, path: str | os.PathLike[str] | None = None) -> None:
+        """Delete a previously-persisted on-disk channel data cache directory.
+
+        Drops stale caches from previous sessions, recovers from a corrupt
+        cache, or reclaims disk space. Removes the directory entirely; a
+        future :meth:`enable_data_cache_disk` call at the same path will see
+        a fresh empty cache.
+
+        This is a thin proxy around
+        :meth:`ChannelCache.clear_disk <sift_client._internal.low_level_wrappers.data.ChannelCache.clear_disk>`
+        — exposed on the resource so callers don't need to reach into
+        ``_internal`` modules. But that is a class method so the user could call without a client if desired.
+
+        Args:
+            path: Directory of the cache to clear. ``None`` (the default)
+                targets ``ChannelCache.DEFAULT_DISK_PATH``.
+
+        Raises:
+            ValueError: If ``path`` exists but does not look like a sift
+                channel data cache directory.
+        """
+        from sift_client._internal.low_level_wrappers.data import ChannelCache
+
+        ChannelCache.clear_disk(path)
 
     async def get(
         self,
@@ -268,13 +351,23 @@ class ChannelsAPIAsync(ResourceBase):
     def _ensure_data_low_level_client(self):
         """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""
         if self._data_low_level_client is None:
-            from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
+            from sift_client._internal.low_level_wrappers.data import (
+                ChannelCache,
+                DataLowLevelClient,
+            )
 
-            # Pass the kwarg only when explicitly configured so the wrapper's
-            # own default (currently 512 MiB) remains the single source of truth.
-            kwargs = {}
+            # Pass each kwarg only when explicitly configured so the wrapper's
+            # own defaults remain the single source of truth.
+            kwargs: dict = {}
             if self._data_cache_max_bytes is not None:
                 kwargs["data_cache_max_bytes"] = self._data_cache_max_bytes
+            if self._disk_cache_enabled:
+                # ``disk_path=None`` means "disabled" to ChannelCache; substitute
+                # the default explicitly so an explicit ``enable_data_cache_disk()``
+                # without a path still opens the disk tier.
+                kwargs["disk_cache_path"] = self._disk_cache_path or ChannelCache.DEFAULT_DISK_PATH
+                if self._disk_cache_max_bytes is not None:
+                    kwargs["disk_cache_max_bytes"] = self._disk_cache_max_bytes
             self._data_low_level_client = DataLowLevelClient(
                 grpc_client=self.client.grpc_client,
                 **kwargs,

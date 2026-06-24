@@ -36,6 +36,7 @@ dependencies = [
     "requests~=2.25",
     "requests-toolbelt~=1.0",
     "alive-progress~=3.0",
+    "diskcache~=5.6",
     # May move these to optional dependencies in the future.
     "pandas-stubs>=2.0,<4.0",
     "types-PyYAML~=6.0",
@@ -349,6 +350,12 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "nptdms"
+ignore_missing_imports = true
+
+# diskcache ships without inline type hints or PEP 561 marker. Used by the
+# channel data cache's optional on-disk tier.
+[[tool.mypy.overrides]]
+module = "diskcache"
 ignore_missing_imports = true
 ignore_errors = true
 

@@ -28,6 +28,32 @@ client.channels.configure_data_cache(max_bytes=0)                  # disable cac
 
 The internal `DataLowLevelClient.channel_cache` is no longer a class attribute. Any external code that relied on `DataLowLevelClient.channel_cache.channels.clear()` as a workaround should remove it — the bounded cache no longer requires manual purging.
 
+#### On-disk channel data cache (opt-in)
+
+The channel data cache can now optionally persist to disk, surviving process restarts. The disk tier is a second-chance layer beneath the in-memory cache: on a memory miss, `get_data` checks disk before going to the wire. Re-running the same workload in a new session picks up the previously-cached windows for free.
+
+```python
+# Enable disk persistence at the default tmp location.
+client.channels.enable_data_cache_disk()
+
+# Or pick a custom directory and byte cap.
+client.channels.enable_data_cache_disk(path="/data/sift-cache", max_bytes=2 * 1024 ** 3)
+
+# Stop persisting (does not delete on-disk data).
+client.channels.disable_data_cache_disk()
+```
+
+To remove a stale cache directory from a previous session:
+
+```python
+client.channels.clear_data_cache_on_disk()                   # default tmp path
+client.channels.clear_data_cache_on_disk("/data/sift-cache") # custom path
+```
+
+`clear_data_cache_on_disk` refuses to delete directories that don't look like a sift channel data cache (missing the `diskcache` marker), so a typo'd path won't wipe unrelated data.
+
+The disk tier is powered by [`diskcache`](https://grantjenks.com/docs/diskcache/) (pure-Python, SQLite-backed) and has its own independent byte cap with LRU eviction. The in-memory tier remains the fast path — disk is only consulted on a memory miss.
+
 #### Resource and principal attributes (ABAC)
 
 Added a public API for attribute based access control (ABAC) attributes. `client.resource_attributes` manages attribute keys assigned to entities (assets, channels, runs), and `client.principal_attributes` manages attribute keys assigned to principals (users and user groups). Both are available synchronously and asynchronously via `client.async_`.
