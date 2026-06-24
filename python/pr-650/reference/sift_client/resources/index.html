@@ -1703,10 +1703,43 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.clear_data_cache_on_disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;clear_data_cache_on_disk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.ChannelsAPIAsync.configure_data_cache" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;configure_data_cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.disable_data_cache_disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;disable_data_cache_disk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.enable_data_cache_disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;enable_data_cache_disk
       
     </span>
   </a>
@@ -7336,10 +7369,43 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.clear_data_cache_on_disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;clear_data_cache_on_disk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.ChannelsAPIAsync.configure_data_cache" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;configure_data_cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.disable_data_cache_disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;disable_data_cache_disk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ChannelsAPIAsync.enable_data_cache_disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;enable_data_cache_disk
       
     </span>
   </a>
@@ -20297,10 +20363,34 @@ representation of a channel using standard Python data structures and types.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            clear_data_cache_on_disk (sift_client.resources.ChannelsAPIAsync.clear_data_cache_on_disk)" href="#sift_client.resources.ChannelsAPIAsync.clear_data_cache_on_disk">clear_data_cache_on_disk</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Delete a previously-persisted on-disk channel data cache directory.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            configure_data_cache (sift_client.resources.ChannelsAPIAsync.configure_data_cache)" href="#sift_client.resources.ChannelsAPIAsync.configure_data_cache">configure_data_cache</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Configure the in-memory channel data cache used by <code>get_data</code>.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            disable_data_cache_disk (sift_client.resources.ChannelsAPIAsync.disable_data_cache_disk)" href="#sift_client.resources.ChannelsAPIAsync.disable_data_cache_disk">disable_data_cache_disk</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Stop persisting the channel data cache to disk.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            enable_data_cache_disk (sift_client.resources.ChannelsAPIAsync.enable_data_cache_disk)" href="#sift_client.resources.ChannelsAPIAsync.enable_data_cache_disk">enable_data_cache_disk</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Persist the channel data cache to disk, surviving process restarts.</p>
                 </div>
               </td>
             </tr>
@@ -20615,6 +20705,94 @@ has no id set, raises ValueError.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sift_client.resources.ChannelsAPIAsync.clear_data_cache_on_disk" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">clear_data_cache_on_disk</span>
+
+
+<a href="#sift_client.resources.ChannelsAPIAsync.clear_data_cache_on_disk" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">clear_data_cache_on_disk</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="os.PathLike">PathLike</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Delete a previously-persisted on-disk channel data cache directory.</p>
+<p>Drops stale caches from previous sessions, recovers from a corrupt
+cache, or reclaims disk space. Removes the directory entirely; a
+future :meth:<code>enable_data_cache_disk</code> call at the same path will see
+a fresh empty cache.</p>
+<p>This is a thin proxy around
+:meth:<code>ChannelCache.clear_disk &lt;sift_client._internal.low_level_wrappers.data.ChannelCache.clear_disk&gt;</code>
+— exposed on the resource so callers don't need to reach into
+<code>_internal</code> modules. But that is a class method so the user could call without a client if desired.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Directory of the cache to clear. <code>None</code> (the default)
+targets <code>ChannelCache.DEFAULT_DISK_PATH</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="os.PathLike">PathLike</span>[<span title="str">str</span>] | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If <code>path</code> exists but does not look like a sift
+channel data cache directory.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sift_client.resources.ChannelsAPIAsync.configure_data_cache" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">configure_data_cache</span>
 
@@ -20665,6 +20843,124 @@ used entries are evicted until <code>total_bytes</code> fits.</p>
   <summary>Example</summary>
   <p>client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
 client.channels.configure_data_cache(max_bytes=0)  # disable</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.ChannelsAPIAsync.disable_data_cache_disk" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">disable_data_cache_disk</span>
+
+
+<a href="#sift_client.resources.ChannelsAPIAsync.disable_data_cache_disk" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disable_data_cache_disk</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Stop persisting the channel data cache to disk.</p>
+<p>Closes the disk-cache file handle. The on-disk directory is NOT
+deleted — use :meth:<code>clear_data_cache_on_disk</code> to wipe it. In-memory
+entries are preserved.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.ChannelsAPIAsync.enable_data_cache_disk" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">enable_data_cache_disk</span>
+
+
+<a href="#sift_client.resources.ChannelsAPIAsync.enable_data_cache_disk" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">enable_data_cache_disk</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="os.PathLike">PathLike</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">max_bytes</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Persist the channel data cache to disk, surviving process restarts.</p>
+<p>The disk-backed tier is a second-chance layer beneath the in-memory
+cache: on a memory miss, <code>get_data</code> checks disk before going to the
+wire. The default path lives under <code>tempfile.gettempdir()</code> and is
+shared across sessions, so a re-run of the same workload picks up
+previously-cached windows without a fetch.</p>
+<p>Safe to call before or after the first <code>get_data</code>. Reconfiguring
+(different <code>path</code> or <code>max_bytes</code>) closes the previous disk handle
+and opens a new one; in-memory contents are preserved across the swap.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Directory to persist the cache to. <code>None</code> (the default)
+uses <code>DEFAULT_DISK_CACHE_PATH</code>. Existing entries at the path
+become available as cache hits.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="os.PathLike">PathLike</span>[<span title="str">str</span>] | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_bytes</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Byte cap on the disk tier. <code>None</code> uses
+<code>DEFAULT_DISK_CACHE_MAX_BYTES</code> (4 GiB). When the bound is
+reached, <code>diskcache</code>'s LRU eviction takes over.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>client.channels.enable_data_cache_disk()
+client.channels.enable_data_cache_disk(path="/data/sift-cache")
+client.channels.enable_data_cache_disk(max_bytes=1024 ** 3)  # 1 GiB</p>
 </details>
 
     </div>
