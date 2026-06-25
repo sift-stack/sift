@@ -15,16 +15,19 @@ fn encode(s: &str) -> String {
 /// `None` when `app_uri` is unset or empty — Sift URLs are not deterministic
 /// from the API host (e.g. `gov.siftstack.com` / `gov.grpc-api.siftstack.com`),
 /// so the user must configure the web app URL explicitly in their profile.
+///
+/// `run` accepts either a run name or a run UUID — Sift Explore resolves both
+/// when passed as the `runs=` query value.
 pub fn build_explore_url(
     app_uri: Option<&str>,
     asset_name: &str,
-    run_name: Option<&str>,
+    run: Option<&str>,
 ) -> Option<String> {
     let host = app_uri.map(str::trim).filter(|s| !s.is_empty())?;
     let host = host.trim_end_matches('/');
 
     let mut url = format!("{host}/explore?method=single&assets={}", encode(asset_name));
-    if let Some(run) = run_name {
+    if let Some(run) = run {
         url.push_str(&format!("&runs={}", encode(run)));
     }
     Some(url)

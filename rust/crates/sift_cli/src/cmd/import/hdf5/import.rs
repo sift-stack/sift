@@ -120,15 +120,16 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     .await
     .context("failed to upload hdf5 file")?;
 
-    let explore_url = build_explore_url(
-        ctx.app_uri.as_deref(),
-        &args.common.asset,
-        args.common.run.as_deref(),
-    );
+    let run_identifier = args
+        .common
+        .run_id
+        .as_deref()
+        .or(args.common.run.as_deref());
+    let explore_url = build_explore_url(ctx.app_uri.as_deref(), &args.common.asset, run_identifier);
 
-    let location = args.common.run.as_ref().map_or_else(
+    let location = run_identifier.map_or_else(
         || format!("asset '{}'", args.common.asset.cyan()),
-        |r| format!("run '{}'", r.clone().cyan()),
+        |r| format!("run '{}'", r.cyan()),
     );
 
     if !args.common.wait {
