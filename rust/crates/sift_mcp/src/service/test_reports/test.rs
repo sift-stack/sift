@@ -570,3 +570,79 @@ async fn append_test_measurements_propagates_grpc_error() {
 
     assert!(err.to_string().contains("failed to append test measurements"));
 }
+
+#[test]
+fn normalize_enum_filter_rewrites_canonical_names_to_short_form() {
+    use super::normalize_enum_filter;
+
+    assert_eq!(
+        normalize_enum_filter("status == \"TEST_STATUS_FAILED\""),
+        "status == \"failed\""
+    );
+    assert_eq!(
+        normalize_enum_filter("status == \"TEST_STATUS_IN_PROGRESS\""),
+        "status == \"in_progress\""
+    );
+    assert_eq!(
+        normalize_enum_filter("step_type == \"TEST_STEP_TYPE_ACTION\""),
+        "step_type == \"action\""
+    );
+    assert_eq!(
+        normalize_enum_filter("measurement_type == \"TEST_MEASUREMENT_TYPE_DOUBLE\""),
+        "measurement_type == \"double\""
+    );
+}
+
+#[test]
+fn normalize_enum_filter_handles_compound_and_already_short_filters() {
+    use super::normalize_enum_filter;
+
+    // Multiple enum values in one expression are each rewritten.
+    assert_eq!(
+        normalize_enum_filter(
+            "test_report_id == \"r1\" && status == \"TEST_STATUS_FAILED\" \
+             && step_type == \"TEST_STEP_TYPE_GROUP\""
+        ),
+        "test_report_id == \"r1\" && status == \"failed\" && step_type == \"group\""
+    );
+
+    // The short form the backend already accepts is left untouched.
+    assert_eq!(
+        normalize_enum_filter("status == \"failed\""),
+        "status == \"failed\""
+    );
+}
+
+#[test]
+fn normalize_enum_filter_leaves_unrelated_values_intact() {
+    use super::normalize_enum_filter;
+
+    // Identifiers, operators, and ordinary string values are not enum values and stay verbatim.
+    assert_eq!(
+        normalize_enum_filter("name == \"nightly\" && passed == false"),
+        "name == \"nightly\" && passed == false"
+    );
+
+    // A prefix with no suffix is not a valid enum value and is left alone.
+    assert_eq!(
+        normalize_enum_filter("name == \"TEST_STATUS_\""),
+        "name == \"TEST_STATUS_\""
+    );
+}
+
+#[tokio::test]
+async fn count_test_steps_forwards_short_enum_form() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_count_test_steps()
+        .withf(|req| req.get_ref().filter == "status == \"failed\"")
+        .returning(|_| Ok(Response::new(CountTestStepsResponse { count: 7 })));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let count = service
+        .count_test_steps("status == \"TEST_STATUS_FAILED\"".to_string())
+        .await
+        .expect("count_test_steps failed");
+
+    assert_eq!(count, 7);
+}

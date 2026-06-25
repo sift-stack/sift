@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use crate::policy::{RetryPolicy, with_retry};
@@ -34,6 +35,82 @@ pub struct TestReportService {
     policy: RetryPolicy,
 }
 
+/// Canonical proto prefixes for the enum-valued filter fields (`status`, `step_type`,
+/// `measurement_type`).
+const ENUM_VALUE_PREFIXES: [&str; 3] =
+    ["TEST_STATUS_", "TEST_STEP_TYPE_", "TEST_MEASUREMENT_TYPE_"];
+
+/// Rewrite canonical enum names inside a CEL filter to the short form the backend accepts.
+///
+/// The backend's filter evaluator matches enum values by their short, lowercase name
+/// (`status == "failed"`), but every list/count response and tool description uses the canonical
+/// proto name (`TEST_STATUS_FAILED`). A caller who copies a value out of a result and filters on
+/// it would otherwise hit an opaque backend error. Rewriting here lets the documented canonical
+/// form work without changing what the agent is told to send.
+///
+/// This is a client-side shim. The fix belongs in the backend evaluator (accept the canonical
+/// name directly); remove this once that ships.
+///
+/// Only the contents of double-quoted string literals are touched, so field names and operators
+/// are left intact. A literal is rewritten only when it is a prefix followed by a non-empty
+/// uppercase/underscore/digit suffix, which keeps unrelated string values (e.g. metadata) safe.
+fn normalize_enum_filter(filter: &str) -> String {
+    let mut out = String::with_capacity(filter.len());
+    let mut chars = filter.chars();
+
+    while let Some(c) = chars.next() {
+        if c != '"' {
+            out.push(c);
+            continue;
+        }
+
+        // Opening quote: collect the literal's raw contents, preserving escape sequences, up to
+        // the closing quote.
+        out.push('"');
+        let mut content = String::new();
+        let mut closed = false;
+        while let Some(ch) = chars.next() {
+            match ch {
+                '\\' => {
+                    content.push(ch);
+                    if let Some(escaped) = chars.next() {
+                        content.push(escaped);
+                    }
+                }
+                '"' => {
+                    closed = true;
+                    break;
+                }
+                _ => content.push(ch),
+            }
+        }
+
+        out.push_str(&shorten_enum_value(&content));
+        if closed {
+            out.push('"');
+        }
+    }
+
+    out
+}
+
+/// Map a single canonical enum value to its short form, borrowing the input unchanged when it is
+/// not a recognized enum value.
+fn shorten_enum_value(content: &str) -> Cow<'_, str> {
+    for prefix in ENUM_VALUE_PREFIXES {
+        if let Some(rest) = content.strip_prefix(prefix) {
+            let is_enum_suffix = !rest.is_empty()
+                && rest
+                    .bytes()
+                    .all(|b| b.is_ascii_uppercase() || b == b'_' || b.is_ascii_digit());
+            if is_enum_suffix {
+                return Cow::Owned(rest.to_ascii_lowercase());
+            }
+        }
+    }
+    Cow::Borrowed(content)
+}
+
 impl TestReportService {
     pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
@@ -45,6 +122,7 @@ impl TestReportService {
         order_by: Option<String>,
         limit: Option<u32>,
     ) -> Result<Vec<TestReport>> {
+        let filter = normalize_enum_filter(&filter);
         let (page_size, record_limit) = common::paging(limit);
         let order_by = order_by.unwrap_or_default();
         let mut page_token = String::new();
@@ -101,6 +179,7 @@ impl TestReportService {
         order_by: Option<String>,
         limit: Option<u32>,
     ) -> Result<Vec<TestStep>> {
+        let filter = normalize_enum_filter(&filter);
         let (page_size, record_limit) = common::paging(limit);
         let order_by = order_by.unwrap_or_default();
         let mut page_token = String::new();
@@ -157,6 +236,7 @@ impl TestReportService {
         order_by: Option<String>,
         limit: Option<u32>,
     ) -> Result<Vec<TestMeasurement>> {
+        let filter = normalize_enum_filter(&filter);
         let (page_size, record_limit) = common::paging(limit);
         let order_by = order_by.unwrap_or_default();
         let mut page_token = String::new();
@@ -208,6 +288,7 @@ impl TestReportService {
     }
 
     pub async fn count_test_steps(&self, filter: String) -> Result<i64> {
+        let filter = normalize_enum_filter(&filter);
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
@@ -227,6 +308,7 @@ impl TestReportService {
     }
 
     pub async fn count_test_measurements(&self, filter: String) -> Result<i64> {
+        let filter = normalize_enum_filter(&filter);
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
