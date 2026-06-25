@@ -26,7 +26,7 @@ use crate::{
     },
     util::{
         api::create_grpc_channel,
-        explore_url::build_explore_url,
+        explore_url::{build_explore_url, pending_import_tip},
         tty::Output,
     },
 };
@@ -88,14 +88,9 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
     );
 
     if !args.wait {
-        let mut tip_text =
-            format!("Once processing is complete the data will be available on the {location}.");
-        if let Some(url) = &explore_url {
-            tip_text.push_str(&format!("\nView in Sift: {url}"));
-        }
         Output::new()
             .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(tip_text)
+            .tip(pending_import_tip(&location, explore_url.as_deref()))
             .print();
 
         return Ok(ExitCode::SUCCESS);

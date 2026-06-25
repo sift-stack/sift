@@ -11,6 +11,19 @@ fn encode(s: &str) -> String {
     utf8_percent_encode(s, VALUE_ENCODE_SET).to_string()
 }
 
+/// Tip text shown immediately after an import is uploaded but before the
+/// server-side job has finished processing. Appends a `View in Sift: <url>`
+/// line when `explore_url` is present. Used by every import subcommand so the
+/// wording stays uniform across formats.
+pub fn pending_import_tip(location: &str, explore_url: Option<&str>) -> String {
+    let mut tip =
+        format!("Once processing is complete the data will be available on the {location}.");
+    if let Some(url) = explore_url {
+        tip.push_str(&format!("\nView in Sift: {url}"));
+    }
+    tip
+}
+
 /// Build a Sift Explore deep-link from the user-configured `app_uri`. Returns
 /// `None` when `app_uri` is unset or empty — Sift URLs are not deterministic
 /// from the API host (e.g. `gov.siftstack.com` / `gov.grpc-api.siftstack.com`),
