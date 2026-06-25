@@ -332,15 +332,18 @@ impl SiftMcpServer {
               - `report_id`: required; the id of the report to update.
               - `metadata`: required; REPLACES the report's full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }` where `value` is a string, number, or boolean.
-                Pass `[]` to clear all metadata. The key must already exist in the organization's metadata schema.
+                Pass `[]` to clear all metadata. A `name` that does not yet exist in the organization's
+                metadata schema is created on the fly with type inferred from `value`; for an existing key,
+                `value`'s type must match the key's current type.
 
             Note: per the API, only `metadata` is updatable through this tool. Report name/description and the
             archive flow are not exposed here.
 
             Errors:
-              - `INVALID_PARAMS` if `report_id` is empty.
+              - `INVALID_PARAMS` if `report_id` is empty, the `metadata` list contains duplicate key names, or
+                a value's type does not match an existing metadata key's type.
               - `RESOURCE_NOT_FOUND` if no report matches `report_id`.
-              - `INTERNAL_ERROR` for upstream gRPC failures (e.g. unknown metadata key).
+              - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
               - This is a write with REPLACE semantics. CONFIRM the full metadata list with the user — for appends,

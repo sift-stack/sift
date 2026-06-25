@@ -167,19 +167,22 @@ impl SiftMcpServer {
               - `state`: optional; one of `open`, `flagged`, `resolved`. MUST be omitted when `annotation_type`
                 is `phase` (the server rejects a phase annotation with a state).
               - `assets`: optional list of asset NAMES to associate.
-              - `tags`: optional list of tag names to associate.
+              - `tags`: optional list of tag names to associate. Names that do not yet exist are created.
               - `linked_channel_ids`: optional list of channel ids to link. Only plain channels are supported;
                 bit-field and calculated-channel links are not exposed here.
               - `run_id`: optional id of the run to associate.
               - `assign_to_user_id`: optional id of the user to assign the annotation to.
               - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries; `value` is a
-                string, number, or boolean. The key must already exist in the organization's metadata schema.
+                string, number, or boolean. A `name` that does not yet exist in the organization's metadata
+                schema is created on the fly with type inferred from `value`; for an existing key, `value`'s
+                type must match the key's current type.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
 
             Errors:
               - `INVALID_PARAMS` if `name` is empty, the time range is inverted, `annotation_type`/`state` is not a
-                recognized value, or a `state` is supplied for a `phase` annotation.
-              - `INTERNAL_ERROR` for upstream gRPC failures (e.g. unknown metadata key, missing run/asset).
+                recognized value, a `state` is supplied for a `phase` annotation, the `metadata` list contains
+                duplicate key names, or a value's type does not match an existing metadata key's type.
+              - `INTERNAL_ERROR` for upstream gRPC failures (e.g. missing run/asset).
 
             Guidance:
               - This is a write. CONFIRM the time range, type, and associations with the user before invoking.
