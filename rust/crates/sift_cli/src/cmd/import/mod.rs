@@ -5,7 +5,13 @@ use tokio::time::sleep;
 
 use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatus};
 
-use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output};
+use crate::cmd::Context;
+use crate::util::{
+    explore_url::{explore_or_note, import_target, pending_import_tip, resolve_app_uri},
+    job::JobServiceWrapper,
+    progress::Spinner,
+    tty::Output,
+};
 
 pub mod backup;
 pub mod csv;
@@ -18,6 +24,37 @@ const INDENT_1: &str = "  ";
 const INDENT_2: &str = "    ";
 const INDENT_3: &str = "      ";
 const INDENT_4: &str = "        ";
+
+/// Final step of every import: resolve the destination, then either report the
+/// pending state and exit or block on the server-side job. All format-specific
+/// work (parsing, schema detection, upload) happens before this; everything
+/// after upload is identical across CSV, Parquet, TDMS, HDF5, and backups, so
+/// it lives in one place here.
+pub async fn finish_import(
+    ctx: &Context,
+    grpc_channel: SiftChannel,
+    job_id: String,
+    asset: &str,
+    run_name: Option<&str>,
+    run_id: Option<&str>,
+    wait: bool,
+) -> Result<ExitCode> {
+    let app_uri = resolve_app_uri(ctx.app_uri.as_deref(), &ctx.rest_uri);
+    let target = import_target(asset, run_name, run_id, app_uri.as_deref());
+
+    if !wait {
+        Output::new()
+            .line(format!("{} file for processing", "Uploaded".green()))
+            .tip(pending_import_tip(
+                &target.location,
+                target.explore_url.as_deref(),
+            ))
+            .print();
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    wait_for_job_completion(grpc_channel, job_id, target.location, target.explore_url).await
+}
 
 pub async fn wait_for_job_completion(
     grpc_channel: SiftChannel,
@@ -83,9 +120,7 @@ pub async fn wait_for_job_completion(
                 spinner.finish_and_clear();
                 let mut tip_text =
                     format!("The data should be available on the {import_output_location}");
-                if let Some(url) = &explore_url {
-                    tip_text.push_str(&format!("\nView in Sift: {url}"));
-                }
+                tip_text.push_str(&explore_or_note(explore_url.as_deref()));
                 Output::new()
                     .line(format!("{} data import job", "Completed".green()))
                     .tip(tip_text)

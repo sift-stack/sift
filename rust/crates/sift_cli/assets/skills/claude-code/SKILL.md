@@ -140,13 +140,17 @@ apply per subcommand invocation:
    until the server-side import job finishes and emits a final status
    line. Without it you cannot confirm the data actually landed. Relay
    the final stdout line to the user verbatim.
-7. **Surface the Explore link from import output.** When the user's
-   profile has `app_uri` set, `sift-cli import` prints a line of the form
-   `View in Sift: <URL>` in stdout. Surface that URL to the user as plain
-   text, in full. Do not wrap it in a markdown link, do not summarize it
-   away — the URL is part of the deliverable, and not every IDE renders
-   markdown. If no `View in Sift:` line appears, the profile has no
-   `app_uri` configured — do not invent a URL.
+7. **Surface the Explore link from import output.** `sift-cli import`
+   prints a tip line after a successful upload. It is either
+   `View in Sift: <URL>` (when the profile sets `app_uri`, or the API
+   host is a recognized Sift SaaS environment) or a fallback note of the
+   form `Run `sift-cli config update --app-uri <SIFT_WEB_URL>` so future
+   imports include a Sift Explore link.` (custom or on-prem deployments
+   without `app_uri` set). When a URL line appears, surface that URL to
+   the user as plain text, in full. Do not wrap it in a markdown link,
+   do not summarize it away — the URL is part of the deliverable, and
+   not every IDE renders markdown. When the fallback note appears, relay
+   it verbatim and do not invent a URL.
 8. **On failure, read stderr and retry.** A non-zero exit usually means a
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than

@@ -20,7 +20,8 @@ pub struct Context {
     #[allow(dead_code)]
     pub rest_uri: String,
     /// Sift web app URL configured by the user (e.g. https://app.siftstack.com).
-    /// `None` when the profile omits `app_uri` — clickable links are disabled.
+    /// `None` when the profile omits `app_uri`; Explore links are omitted unless
+    /// the host can be derived from `rest_uri` via `resolve_app_uri`.
     pub app_uri: Option<String>,
 }
 

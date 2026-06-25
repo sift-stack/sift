@@ -83,8 +83,9 @@ pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCod
                 .prompt("  Provide your Sift API key: ")
                 .prompt(
                     "  Specify the Sift web app URL — the address you visit in your browser \
-                     when signed in to Sift (e.g. https://app.siftstack.com). Optional; \
-                     leave blank to disable clickable links: ",
+                     when signed in to Sift (e.g. https://app.siftstack.com). Optional for \
+                     standard Sift hosts; set it for custom or on-prem deployments to enable \
+                     Explore links: ",
                 )
                 .run()?
                 .try_into()

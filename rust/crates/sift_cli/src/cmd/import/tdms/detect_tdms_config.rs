@@ -2,7 +2,6 @@ use std::{fs::File, path::Path, process::ExitCode};
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use chrono::DateTime;
-use crossterm::style::Stylize;
 use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
@@ -21,16 +20,11 @@ use crate::{
     cmd::{
         Context,
         import::{
-            preview_import_config,
+            finish_import, preview_import_config,
             utils::{upload_gzipped_file, validate_time_format},
-            wait_for_job_completion,
         },
     },
-    util::{
-        api::create_grpc_channel,
-        explore_url::{build_explore_url, pending_import_tip},
-        tty::Output,
-    },
+    util::{api::create_grpc_channel, tty::Output},
 };
 
 pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
@@ -83,24 +77,16 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
     .await
     .context("failed to upload tdms file")?;
 
-    let run_identifier = args.common.run_id.as_deref().or(args.common.run.as_deref());
-    let explore_url = build_explore_url(ctx.app_uri.as_deref(), &args.common.asset, run_identifier);
-
-    let location = run_identifier.map_or_else(
-        || format!("asset '{}'", args.common.asset.cyan()),
-        |r| format!("run '{}'", r.cyan()),
-    );
-
-    if !args.common.wait {
-        Output::new()
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(pending_import_tip(&location, explore_url.as_deref()))
-            .print();
-
-        return Ok(ExitCode::SUCCESS);
-    }
-
-    wait_for_job_completion(grpc_channel, job_id, location, explore_url).await
+    finish_import(
+        &ctx,
+        grpc_channel,
+        job_id,
+        &args.common.asset,
+        args.common.run.as_deref(),
+        args.common.run_id.as_deref(),
+        args.common.wait,
+    )
+    .await
 }
 
 pub fn build_tdms_config(args: &ImportTdmsArgs) -> Result<TdmsConfig> {

@@ -1,3 +1,4 @@
+use crossterm::style::Stylize;
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 
 const VALUE_ENCODE_SET: &AsciiSet = &NON_ALPHANUMERIC
@@ -11,25 +12,91 @@ fn encode(s: &str) -> String {
     utf8_percent_encode(s, VALUE_ENCODE_SET).to_string()
 }
 
+/// Where an import is going to land, packaged for output. `location` is the
+/// human-readable phrase (`run '<id>'` or `asset '<name>'`) that gets dropped
+/// into tip text; `explore_url` is the Sift Explore deep-link when the user's
+/// profile has `app_uri` set.
+pub struct ImportTarget {
+    pub location: String,
+    pub explore_url: Option<String>,
+}
+
+/// Resolve the run identifier (preferring `run_id` over `run_name`), format the
+/// "asset 'X'" / "run 'Y'" location phrase, and build the Sift Explore deep-link
+/// in one call. Used by every import subcommand so the wording and precedence
+/// stay uniform across formats.
+pub fn import_target(
+    asset: &str,
+    run_name: Option<&str>,
+    run_id: Option<&str>,
+    app_uri: Option<&str>,
+) -> ImportTarget {
+    let run = run_id.or(run_name);
+    let location = run.map_or_else(
+        || format!("asset '{}'", asset.cyan()),
+        |r| format!("run '{}'", r.cyan()),
+    );
+    let explore_url = build_explore_url(app_uri, asset, run);
+    ImportTarget {
+        location,
+        explore_url,
+    }
+}
+
+/// Resolve the Sift web app URL for link-rendering. Order of precedence:
+/// 1. The user's configured `app_uri` (whatever they set in their profile).
+/// 2. A built-in mapping for the standard SaaS hosts (`api.siftstack.com` and
+///    `gov.api.siftstack.com`). This mirrors the Python client's
+///    `_internal/urls.py` table so the two clients agree.
+/// 3. `None` — the user has a non-standard `rest_uri` and no `app_uri` set; the
+///    caller should surface a note pointing them at the config.
+pub fn resolve_app_uri(app_uri: Option<&str>, rest_uri: &str) -> Option<String> {
+    if let Some(uri) = app_uri.map(str::trim).filter(|s| !s.is_empty()) {
+        return Some(uri.to_string());
+    }
+    match host_of(rest_uri)? {
+        "api.siftstack.com" => Some("https://app.siftstack.com".to_string()),
+        "gov.api.siftstack.com" => Some("https://gov.siftstack.com".to_string()),
+        _ => None,
+    }
+}
+
+fn host_of(url: &str) -> Option<&str> {
+    let after_scheme = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
+    let host_with_port = after_scheme.split('/').next()?;
+    Some(host_with_port.split(':').next().unwrap_or(host_with_port))
+}
+
+/// Line appended to import-output tips: a `View in Sift: <url>` link when
+/// `explore_url` is present, or a note telling the user how to enable links
+/// when it isn't.
+pub fn explore_or_note(explore_url: Option<&str>) -> String {
+    match explore_url {
+        Some(url) => format!("\nView in Sift: {url}"),
+        None => "\nRun `sift-cli config update --app-uri <SIFT_WEB_URL>` so future imports \
+                 include a Sift Explore link."
+            .to_string(),
+    }
+}
+
 /// Tip text shown immediately after an import is uploaded but before the
-/// server-side job has finished processing. Appends a `View in Sift: <url>`
-/// line when `explore_url` is present. Used by every import subcommand so the
-/// wording stays uniform across formats.
+/// server-side job has finished processing. Appends either a `View in Sift`
+/// link or a "set `app_uri`" note via [`explore_or_note`]. Used by every
+/// import subcommand so the wording stays uniform across formats.
 pub fn pending_import_tip(location: &str, explore_url: Option<&str>) -> String {
     let mut tip =
         format!("Once processing is complete the data will be available on the {location}.");
-    if let Some(url) = explore_url {
-        tip.push_str(&format!("\nView in Sift: {url}"));
-    }
+    tip.push_str(&explore_or_note(explore_url));
     tip
 }
 
 /// Build a Sift Explore deep-link from the user-configured `app_uri`. Returns
-/// `None` when `app_uri` is unset or empty — Sift URLs are not deterministic
-/// from the API host (e.g. `gov.siftstack.com` / `gov.grpc-api.siftstack.com`),
-/// so the user must configure the web app URL explicitly in their profile.
+/// `None` when `app_uri` is unset or empty. Sift URLs are not deterministic
+/// from the API host (e.g. `gov.siftstack.com` pairs with
+/// `gov.api.siftstack.com`), so callers should pass the resolved web URL —
+/// see [`resolve_app_uri`].
 ///
-/// `run` accepts either a run name or a run UUID — Sift Explore resolves both
+/// `run` accepts either a run name or a run UUID; Sift Explore resolves both
 /// when passed as the `runs=` query value.
 pub fn build_explore_url(
     app_uri: Option<&str>,

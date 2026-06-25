@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fs::File, io::Seek, process::ExitCode};
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
-use crossterm::style::Stylize;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
     data_imports::v2::{
@@ -21,17 +20,13 @@ use crate::{
         Context,
         import::{
             TimePreview,
+            finish_import,
             parquet::FooterMetadata,
             preview_import_config,
             utils::{try_parse_bit_field_config, try_parse_enum_config, upload_gzipped_file},
-            wait_for_job_completion,
         },
     },
-    util::{
-        api::create_grpc_channel,
-        explore_url::{build_explore_url, pending_import_tip},
-        tty::Output,
-    },
+    util::api::create_grpc_channel,
 };
 
 pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
@@ -109,23 +104,16 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     .await
     .context("failed to upload Parquet file")?;
 
-    let run_identifier = args.common.run_id.as_deref().or(args.common.run.as_deref());
-    let explore_url = build_explore_url(ctx.app_uri.as_deref(), &args.common.asset, run_identifier);
-
-    let location = run_identifier.map_or_else(
-        || format!("asset '{}'", args.common.asset.cyan()),
-        |r| format!("run '{}'", r.cyan()),
-    );
-
-    if !args.common.wait {
-        Output::new()
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(pending_import_tip(&location, explore_url.as_deref()))
-            .print();
-
-        return Ok(ExitCode::SUCCESS);
-    }
-    wait_for_job_completion(grpc_channel, job_id, location, explore_url).await
+    finish_import(
+        &ctx,
+        grpc_channel,
+        job_id,
+        &args.common.asset,
+        args.common.run.as_deref(),
+        args.common.run_id.as_deref(),
+        args.common.wait,
+    )
+    .await
 }
 
 fn update_config_with_overrides(

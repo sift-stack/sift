@@ -17,17 +17,13 @@ use crate::{
     cmd::{
         Context,
         import::{
+            finish_import,
             hdf5::detect_hdf5_schema::{SUPPORTED_TYPES_BLURB, SkippedDataset, detect_config},
             preview_import_config,
             utils::{upload_gzipped_file, validate_time_format},
-            wait_for_job_completion,
         },
     },
-    util::{
-        api::create_grpc_channel,
-        explore_url::{build_explore_url, pending_import_tip},
-        tty::Output,
-    },
+    util::{api::create_grpc_channel, tty::Output},
 };
 
 fn print_skipped_block(skipped: &[SkippedDataset]) {
@@ -120,24 +116,16 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     .await
     .context("failed to upload hdf5 file")?;
 
-    let run_identifier = args.common.run_id.as_deref().or(args.common.run.as_deref());
-    let explore_url = build_explore_url(ctx.app_uri.as_deref(), &args.common.asset, run_identifier);
-
-    let location = run_identifier.map_or_else(
-        || format!("asset '{}'", args.common.asset.cyan()),
-        |r| format!("run '{}'", r.cyan()),
-    );
-
-    if !args.common.wait {
-        Output::new()
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(pending_import_tip(&location, explore_url.as_deref()))
-            .print();
-
-        return Ok(ExitCode::SUCCESS);
-    }
-
-    wait_for_job_completion(grpc_channel, job_id, location, explore_url).await
+    finish_import(
+        &ctx,
+        grpc_channel,
+        job_id,
+        &args.common.asset,
+        args.common.run.as_deref(),
+        args.common.run_id.as_deref(),
+        args.common.wait,
+    )
+    .await
 }
 
 pub fn build_hdf5_config(args: &ImportHdf5Args) -> Result<Hdf5Config> {
