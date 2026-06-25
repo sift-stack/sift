@@ -109,11 +109,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
     .await
     .context("failed to upload Parquet file")?;
 
-    let run_identifier = args
-        .common
-        .run_id
-        .as_deref()
-        .or(args.common.run.as_deref());
+    let run_identifier = args.common.run_id.as_deref().or(args.common.run.as_deref());
     let explore_url = build_explore_url(ctx.app_uri.as_deref(), &args.common.asset, run_identifier);
 
     let location = run_identifier.map_or_else(

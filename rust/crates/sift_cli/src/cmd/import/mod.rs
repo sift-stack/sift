@@ -5,11 +5,7 @@ use tokio::time::sleep;
 
 use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatus};
 
-use crate::util::{
-    job::JobServiceWrapper,
-    progress::Spinner,
-    tty::Output,
-};
+use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output};
 
 pub mod backup;
 pub mod csv;
