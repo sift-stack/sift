@@ -136,8 +136,7 @@ pub fn build(spec: ReportSpec) -> Result<BuiltReport> {
 
     let start =
         parse_ts(spec.start_time.as_deref(), "report start_time")?.unwrap_or_else(now_timestamp);
-    let end =
-        parse_ts(spec.end_time.as_deref(), "report end_time")?.unwrap_or_else(|| start.clone());
+    let end = parse_ts(spec.end_time.as_deref(), "report end_time")?.unwrap_or(start);
 
     let request = CreateTestReportRequest {
         status: parse_enum::<_>(spec.status.as_deref(), "TEST_STATUS_", "status", |n| {
@@ -147,8 +146,8 @@ pub fn build(spec: ReportSpec) -> Result<BuiltReport> {
         name: spec.name,
         test_system_name: spec.test_system_name,
         test_case: spec.test_case,
-        start_time: Some(start.clone()),
-        end_time: Some(end.clone()),
+        start_time: Some(start),
+        end_time: Some(end),
         metadata: metadata_values(spec.metadata),
         serial_number: spec.serial_number.unwrap_or_default(),
         part_number: spec.part_number.unwrap_or_default(),
@@ -192,10 +191,9 @@ fn build_steps(
         )?
         .unwrap_or(TestStepType::Action as i32);
 
-        let start = parse_ts(spec.start_time.as_deref(), "step start_time")?
-            .unwrap_or_else(|| report_start.clone());
-        let end = parse_ts(spec.end_time.as_deref(), "step end_time")?
-            .unwrap_or_else(|| report_end.clone());
+        let start =
+            parse_ts(spec.start_time.as_deref(), "step start_time")?.unwrap_or(*report_start);
+        let end = parse_ts(spec.end_time.as_deref(), "step end_time")?.unwrap_or(*report_end);
 
         let step = TestStep {
             name: spec.name,
@@ -203,7 +201,7 @@ fn build_steps(
             step_type,
             step_path: step_path.clone(),
             status,
-            start_time: Some(start.clone()),
+            start_time: Some(start),
             end_time: Some(end),
             error_info: spec.error_info.map(|e| ErrorInfo {
                 error_code: e.error_code,
@@ -327,8 +325,8 @@ fn build_measurement(
     )?
     .unwrap_or(default_type as i32);
 
-    let timestamp = parse_ts(spec.timestamp.as_deref(), "measurement timestamp")?
-        .unwrap_or_else(|| step_start.clone());
+    let timestamp =
+        parse_ts(spec.timestamp.as_deref(), "measurement timestamp")?.unwrap_or(*step_start);
 
     Ok(TestMeasurement {
         measurement_type,
@@ -351,15 +349,15 @@ fn build_measurement(
 /// Numeric pass/fail, replicating `util/test_results/bounds.py`: both ends inclusive, an
 /// absent bound is unbounded on that side.
 fn passes_numeric(value: f64, bounds: &NumericBoundsSpec) -> bool {
-    if let Some(min) = bounds.min {
-        if value < min {
-            return false;
-        }
+    if let Some(min) = bounds.min
+        && value < min
+    {
+        return false;
     }
-    if let Some(max) = bounds.max {
-        if value > max {
-            return false;
-        }
+    if let Some(max) = bounds.max
+        && value > max
+    {
+        return false;
     }
     true
 }
