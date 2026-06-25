@@ -13,8 +13,8 @@ This repository contains client libraries and protocol buffers to interact with 
 to compile the protocol buffers yourself there are instructions on how to go about it in the [Manual Protobuf Compilation](#manual-protobuf-compilation) section.
 
 **Language-specific documentation:**
-- [Python](/python/)
-- [Rust](/rust/)
+- [Python](https://sift-stack.github.io/sift/python/latest/)
+- [Rust](https://docs.rs/sift_stream/latest/sift_stream/)
 - [Go](/go/)
 - [C++](/cpp/)
 
