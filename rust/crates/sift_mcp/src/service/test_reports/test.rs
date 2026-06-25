@@ -5,12 +5,14 @@ use sift_rs::test_reports::v1::{
     TestReport, TestStatus, TestStep, TestStepType, test_measurement,
     test_report_service_server::TestReportServiceServer,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::test_reports::v1::MockTestReportServiceImpl};
+use sift_test_util::{
+    grpc::memory_sift_channel, mock::test_reports::v1::MockTestReportServiceImpl,
+};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::spec;
 use super::TestReportService;
+use super::spec;
 use crate::policy::RetryPolicy;
 use crate::service::common::PAGE_SIZE;
 
@@ -19,9 +21,7 @@ fn built_from_json(json: &str) -> spec::BuiltReport {
     spec::build(parsed).expect("spec should build")
 }
 
-async fn service_with_mock(
-    mock: MockTestReportServiceImpl,
-) -> (TestReportService, JoinHandle<()>) {
+async fn service_with_mock(mock: MockTestReportServiceImpl) -> (TestReportService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
 
@@ -33,7 +33,10 @@ async fn service_with_mock(
             .unwrap();
     });
 
-    (TestReportService::new(channel, RetryPolicy::default()), handle)
+    (
+        TestReportService::new(channel, RetryPolicy::default()),
+        handle,
+    )
 }
 
 #[tokio::test]
@@ -244,9 +247,7 @@ async fn count_test_steps_returns_count() {
     let (service, _h) = service_with_mock(mock).await;
 
     let count = service
-        .count_test_steps(
-            "test_report_id == \"r1\" && status == TEST_STATUS_FAILED".to_string(),
-        )
+        .count_test_steps("test_report_id == \"r1\" && status == TEST_STATUS_FAILED".to_string())
         .await
         .expect("count_test_steps failed");
 
@@ -306,10 +307,7 @@ fn build_computes_step_paths_and_parent_links() {
         .map(|s| (s.step_path.as_str(), s.parent_path.as_deref()))
         .collect();
     // Pre-order, with computed paths and parent links.
-    assert_eq!(
-        paths,
-        vec![("1", None), ("2", None), ("2.1", Some("2"))]
-    );
+    assert_eq!(paths, vec![("1", None), ("2", None), ("2.1", Some("2"))]);
     assert_eq!(built.steps[2].step.step_path, "2.1");
 }
 
@@ -404,10 +402,9 @@ fn build_rejects_unknown_enum_and_bad_timestamp() {
 
 #[test]
 fn build_rejects_empty_required_field() {
-    let empty_name = serde_json::from_str(
-        r#"{ "name": "", "test_system_name": "rig", "test_case": "tc" }"#,
-    )
-    .unwrap();
+    let empty_name =
+        serde_json::from_str(r#"{ "name": "", "test_system_name": "rig", "test_case": "tc" }"#)
+            .unwrap();
     assert!(spec::build(empty_name).is_err());
 }
 
@@ -431,7 +428,10 @@ async fn create_test_report_creates_tree_in_order() {
         let step = req.into_inner().test_step.expect("step present");
         assert_eq!(step.test_report_id, "r1");
         if step.step_path == "2.1" {
-            assert_eq!(step.parent_step_id, "id-2", "child links to parent's real id");
+            assert_eq!(
+                step.parent_step_id, "id-2",
+                "child links to parent's real id"
+            );
         } else {
             assert_eq!(step.parent_step_id, "", "roots have no parent");
         }
@@ -506,7 +506,10 @@ async fn create_test_report_surfaces_report_id_on_step_failure() {
         .expect_err("expected step failure");
 
     let msg = err.to_string();
-    assert!(msg.contains("r1"), "error should name the created report id: {msg}");
+    assert!(
+        msg.contains("r1"),
+        "error should name the created report id: {msg}"
+    );
 }
 
 // --- append_test_measurements ---
@@ -568,7 +571,10 @@ async fn append_test_measurements_propagates_grpc_error() {
         .await
         .expect_err("expected error");
 
-    assert!(err.to_string().contains("failed to append test measurements"));
+    assert!(
+        err.to_string()
+            .contains("failed to append test measurements")
+    );
 }
 
 #[test]

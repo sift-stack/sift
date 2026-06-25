@@ -134,9 +134,10 @@ pub fn build(spec: ReportSpec) -> Result<BuiltReport> {
         bail!("report `test_case` must not be empty");
     }
 
-    let start = parse_ts(spec.start_time.as_deref(), "report start_time")?
-        .unwrap_or_else(now_timestamp);
-    let end = parse_ts(spec.end_time.as_deref(), "report end_time")?.unwrap_or_else(|| start.clone());
+    let start =
+        parse_ts(spec.start_time.as_deref(), "report start_time")?.unwrap_or_else(now_timestamp);
+    let end =
+        parse_ts(spec.end_time.as_deref(), "report end_time")?.unwrap_or_else(|| start.clone());
 
     let request = CreateTestReportRequest {
         status: parse_enum::<_>(spec.status.as_deref(), "TEST_STATUS_", "status", |n| {

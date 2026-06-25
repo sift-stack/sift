@@ -193,7 +193,10 @@ impl SiftMcpServer {
               - To audit limit checks, filter `passed == false` within a report and compare each value against its
                 `numeric_bounds`/`string_bounds`.
         ",
-        annotations(title = "test_reports_router/list_test_measurements", read_only_hint = true)
+        annotations(
+            title = "test_reports_router/list_test_measurements",
+            read_only_hint = true
+        )
     )]
     pub async fn list_test_measurements(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -267,7 +270,10 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
               - `INTERNAL_ERROR` for upstream gRPC failures.
         ",
-        annotations(title = "test_reports_router/count_test_measurements", read_only_hint = true)
+        annotations(
+            title = "test_reports_router/count_test_measurements",
+            read_only_hint = true
+        )
     )]
     pub async fn count_test_measurements(
         &self,
@@ -332,7 +338,10 @@ impl SiftMcpServer {
                 is created, the report and earlier steps remain; the error names the created
                 `test_report_id`. Verify with `list_test_steps` (filter `test_report_id == \"...\"`).
         ",
-        annotations(title = "test_reports_router/create_test_report", read_only_hint = false)
+        annotations(
+            title = "test_reports_router/create_test_report",
+            read_only_hint = false
+        )
     )]
     pub async fn create_test_report(
         &self,
@@ -430,8 +439,8 @@ impl SiftMcpServer {
             ));
         }
 
-        let measurements =
-            spec::build_measurements(specs).map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let measurements = spec::build_measurements(specs)
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
 
         let created = self
             .test_report_service

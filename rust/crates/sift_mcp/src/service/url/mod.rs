@@ -142,7 +142,10 @@ impl UrlService {
     /// self-hosted `rest_uri` without an `api.` subdomain).
     pub fn build_test_report_url(&self, test_report_id: &str) -> Result<String, ErrorData> {
         let host = derive_web_host(&self.rest_uri)?;
-        Ok(format!("{host}/test-results/{}", encode_value(test_report_id)))
+        Ok(format!(
+            "{host}/test-results/{}",
+            encode_value(test_report_id)
+        ))
     }
 
     /// Build the Sift web URL for a single rule: `<host>/rules/<rule_id>`. The
