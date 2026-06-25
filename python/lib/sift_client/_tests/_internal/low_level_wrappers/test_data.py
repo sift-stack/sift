@@ -22,6 +22,7 @@ is the canary that catches anyone re-introducing that pattern.
 
 from __future__ import annotations
 
+import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator
@@ -100,6 +101,31 @@ def _channel(cid: str) -> Channel:
 def _invariant_holds(cache: ChannelCache) -> bool:
     """``total_bytes`` must equal the sum of per-entry sizes at all times."""
     return cache.total_bytes == sum(e.size_bytes for e in cache._entries.values())
+
+
+@contextmanager
+def _capture_data_warnings() -> Iterator[list[logging.LogRecord]]:
+    """Capture warnings emitted by the ``data`` module's logger directly.
+
+    Pytest's ``caplog`` reads from the root logger, but the Sift pytest plugin
+    sets ``propagate=False`` on the ``sift_client`` logger when audit logging
+    is active, so records emitted from any descendant don't reach the root.
+    Attaching a list-backed handler at the leaf logger bypasses that and
+    surfaces exactly the records we emit.
+    """
+    target = logging.getLogger("sift_client._internal.low_level_wrappers.data")
+    records: list[logging.LogRecord] = []
+
+    class _ListHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            records.append(record)
+
+    handler = _ListHandler(level=logging.WARNING)
+    target.addHandler(handler)
+    try:
+        yield records
+    finally:
+        target.removeHandler(handler)
 
 
 def _patch_deserializer(sentinel_to_frames: dict[str, dict[str, pd.DataFrame]]) -> Any:
@@ -236,24 +262,100 @@ class TestChannelCache:
         assert "c" in cache
         assert _invariant_holds(cache)
 
-    def test_oversized_entry_evicts_with_neighbours(self) -> None:
-        """A single entry larger than the cap ends up evicted itself.
+    def test_oversized_entry_skips_cache_preserves_neighbours(self) -> None:
+        """A single entry larger than the cap is rejected without evicting peers.
 
-        The alternative ("keep the oversized entry and accept that the cap
-        is soft") would silently reintroduce unbounded growth for any
-        workload whose typical entry is bigger than ``max_bytes``.
+        Before this guard, ``_put_memory`` would insert the oversized entry,
+        then loop popping LRU until the cap was satisfied — but since no
+        amount of eviction makes an oversized entry fit, the loop drained
+        every other entry *and* the oversized one, wiping the cache on every
+        fetch of that channel. The fix: detect the oversized case up front,
+        warn, and skip the insert.
         """
         small_a, small_b, oversized = _entry(rows=10), _entry(rows=10), _entry(rows=10_000)
         cache = ChannelCache(max_bytes=small_a.size_bytes + small_b.size_bytes)
         cache.put("a", small_a)
         cache.put("b", small_b)
-        cache.put("huge", oversized)
+        with _capture_data_warnings() as records:
+            cache.put("huge", oversized)
         assert "huge" not in cache
-        # Every other entry was evicted in the failed attempt to make room.
-        assert "a" not in cache
-        assert "b" not in cache
+        # Critical: the previously cached entries survive.
+        assert "a" in cache
+        assert "b" in cache
+        assert cache.total_bytes == small_a.size_bytes + small_b.size_bytes
+        assert _invariant_holds(cache)
+        # User gets a clear, actionable warning.
+        assert any("larger than the in-memory cache cap" in r.getMessage() for r in records)
+
+    def test_oversized_put_drops_prior_entry(self) -> None:
+        """An oversized re-insert must drop the prior slice, not silently keep it.
+
+        Otherwise a stale subrange would masquerade as a hit on the next
+        ``get`` even though the caller's intent was to refresh the entry.
+        """
+        small, oversized = _entry(rows=10), _entry(rows=10_000)
+        cache = ChannelCache(max_bytes=small.size_bytes)
+        cache.put("chan", small)
+        assert "chan" in cache
+        cache.put("chan", oversized)
+        assert "chan" not in cache
         assert cache.total_bytes == 0
         assert _invariant_holds(cache)
+
+    def test_oversized_put_warns_once_per_channel(self) -> None:
+        """Repeated oversized puts for the same channel log once, not on every call.
+
+        Without dedup, every ``get_data`` for an oversized channel would
+        write a fresh WARNING line — quickly drowning out other signal in
+        the logs.
+        """
+        oversized = _entry(rows=10_000)
+        cache = ChannelCache(max_bytes=oversized.size_bytes // 4)
+        with _capture_data_warnings() as records:
+            for _ in range(5):
+                cache.put("chan", oversized)
+        warnings = [r for r in records if "larger than the in-memory cache cap" in r.getMessage()]
+        assert len(warnings) == 1
+
+    def test_oversized_warning_resets_after_normal_put(self) -> None:
+        """A successful normal-sized put clears the dedup bit.
+
+        Used by callers who narrow a time window after seeing the warning:
+        the next oversized regression should re-warn rather than stay silent.
+        """
+        oversized = _entry(rows=10_000)
+        small = _entry(rows=10)
+        cache = ChannelCache(max_bytes=small.size_bytes * 2)
+        with _capture_data_warnings() as records:
+            cache.put("chan", oversized)  # 1st warning
+            cache.put("chan", small)  # resets state
+            cache.put("chan", oversized)  # 2nd warning
+        warnings = [r for r in records if "larger than the in-memory cache cap" in r.getMessage()]
+        assert len(warnings) == 2
+
+    def test_invalidate_resets_oversized_warning(self) -> None:
+        """``invalidate`` is a fresh start; the next oversized put re-warns."""
+        oversized = _entry(rows=10_000)
+        cache = ChannelCache(max_bytes=oversized.size_bytes // 4)
+        with _capture_data_warnings() as records:
+            cache.put("chan", oversized)
+            cache.invalidate("chan")
+            cache.put("chan", oversized)
+        warnings = [r for r in records if "larger than the in-memory cache cap" in r.getMessage()]
+        assert len(warnings) == 2
+
+    def test_clear_resets_oversized_warning(self) -> None:
+        """``clear`` resets all dedup state across channels."""
+        oversized = _entry(rows=10_000)
+        cache = ChannelCache(max_bytes=oversized.size_bytes // 4)
+        with _capture_data_warnings() as records:
+            cache.put("chan-a", oversized)
+            cache.put("chan-b", oversized)
+            cache.clear()
+            cache.put("chan-a", oversized)
+            cache.put("chan-b", oversized)
+        warnings = [r for r in records if "larger than the in-memory cache cap" in r.getMessage()]
+        assert len(warnings) == 4
 
     def test_max_bytes_zero_disables_cache(self) -> None:
         cache = ChannelCache(max_bytes=0)
@@ -446,6 +548,45 @@ class TestChannelCacheDisk:
             assert len(cache) == 0
             assert "chan-1" not in cache
             assert "chan-2" not in cache
+        finally:
+            cache.close()
+
+    def test_oversized_entry_skips_disk_preserves_other_entries(self, tmp_path) -> None:
+        """An entry larger than the disk cap is skipped on disk too.
+
+        Without the guard, ``diskcache``'s cull() would evict every other
+        on-disk row trying to fit an unfittable entry, then drop the entry
+        itself — the same wipe-everything failure mode as the memory tier.
+
+        Memory is sized to accept small entries but reject the oversized one
+        too, so memory-tier writes don't compete with disk-tier writes. We
+        assert on the disk ``_disk`` mapping directly because that's where
+        the contested behavior lives.
+        """
+        small = _entry(rows=4)
+        oversized = _entry(rows=10_000)
+        # ``disk_max_bytes`` has to leave room for ``diskcache``'s pickle
+        # envelope around each small entry (a few KB) AND be small enough
+        # that the oversized entry trips the guard. Half the oversized
+        # DataFrame's raw byte size hits both constraints comfortably.
+        cache = ChannelCache(
+            max_bytes=oversized.size_bytes * 2,
+            disk_path=tmp_path / "disk-oversize",
+            disk_max_bytes=oversized.size_bytes // 2,
+        )
+        try:
+            cache.put("small-1", small)
+            cache.put("small-2", small)
+            assert cache._disk is not None
+            with _capture_data_warnings() as records:
+                cache.put("huge", oversized)
+            # Disk-side prior entries survive; oversized one was not written.
+            assert "small-1" in cache._disk
+            assert "small-2" in cache._disk
+            assert "huge" not in cache._disk
+            assert any(
+                "larger than the disk cache cap" in r.getMessage() for r in records
+            )
         finally:
             cache.close()
 

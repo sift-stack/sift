@@ -125,6 +125,13 @@ class ChannelCache:
         self._entries: OrderedDict[str, ChannelCacheEntry] = OrderedDict()
         self._total_bytes: int = 0
         self._max_bytes: int = max_bytes
+        # Channels we've already logged an "entry exceeds tier cap" warning
+        # for. The check on the put path would otherwise spam the log once
+        # per ``get_data`` call for any channel whose typical entry is bigger
+        # than the cap. A successful normal put for the same channel clears
+        # the bit so a future regression re-warns.
+        self._oversized_memory_warned: set[str] = set()
+        self._oversized_disk_warned: set[str] = set()
         self._disk: diskcache.Cache | None = None
         self._disk_path: str | None = None
         self._disk_max_bytes: int | None = None
@@ -307,8 +314,30 @@ class ChannelCache:
         if self.enabled:
             self._put_memory(channel_id, entry)
         if self._disk is not None:
+            if (
+                self._disk_max_bytes is not None
+                and entry.size_bytes > self._disk_max_bytes
+            ):
+                if channel_id not in self._oversized_disk_warned:
+                    logger.warning(
+                        "Channel %s data (%d bytes) is larger than the disk "
+                        "cache cap (%d bytes); skipping disk cache for this "
+                        "channel so other entries aren't evicted. Raise the "
+                        "cap via ``client.channels.enable_data_cache_disk("
+                        "max_bytes=...)`` to cache this channel on disk.",
+                        channel_id,
+                        entry.size_bytes,
+                        self._disk_max_bytes,
+                    )
+                    self._oversized_disk_warned.add(channel_id)
+                try:
+                    self._disk.delete(channel_id, retry=True)
+                except Exception:
+                    pass
+                return
             try:
                 self._disk.set(channel_id, entry, retry=True)
+                self._oversized_disk_warned.discard(channel_id)
             except Exception:
                 # Best-effort persistence: keep going on disk errors so the
                 # in-memory cache (and the user's ``get_data`` call) still
@@ -323,6 +352,11 @@ class ChannelCache:
         prior = self._entries.pop(channel_id, None)
         if prior is not None:
             self._total_bytes -= prior.size_bytes
+        # Invalidation is a fresh start for this channel; if it was warned
+        # about as oversized previously, the next put should re-evaluate
+        # against the current cap and re-warn if still too big.
+        self._oversized_memory_warned.discard(channel_id)
+        self._oversized_disk_warned.discard(channel_id)
         if self._disk is not None:
             try:
                 self._disk.delete(channel_id, retry=True)
@@ -332,6 +366,8 @@ class ChannelCache:
     def clear(self) -> None:
         self._entries.clear()
         self._total_bytes = 0
+        self._oversized_memory_warned.clear()
+        self._oversized_disk_warned.clear()
         if self._disk is not None:
             self._disk.clear()
 
@@ -340,10 +376,26 @@ class ChannelCache:
         self._close_disk()
 
     def _put_memory(self, channel_id: str, entry: ChannelCacheEntry) -> None:
-        """Memory-tier insert + eviction. Caller has already gated on ``enabled``."""
+        """Memory-tier insert + eviction. Caller has already gated on ``enabled``.
+        """
         prior = self._entries.pop(channel_id, None)
         if prior is not None:
             self._total_bytes -= prior.size_bytes
+        if entry.size_bytes > self._max_bytes:
+            if channel_id not in self._oversized_memory_warned:
+                logger.warning(
+                    "Channel %s data (%d bytes) is larger than the in-memory "
+                    "cache cap (%d bytes); skipping cache for this channel so "
+                    "other entries aren't evicted. Raise the cap via "
+                    "``client.channels.configure_data_cache(max_bytes=...)`` "
+                    "to cache this channel.",
+                    channel_id,
+                    entry.size_bytes,
+                    self._max_bytes,
+                )
+                self._oversized_memory_warned.add(channel_id)
+            return
+        self._oversized_memory_warned.discard(channel_id)
         self._entries[channel_id] = entry
         self._total_bytes += entry.size_bytes
         self._evict_until_under_bound()
