@@ -584,9 +584,7 @@ class TestChannelCacheDisk:
             assert "small-1" in cache._disk
             assert "small-2" in cache._disk
             assert "huge" not in cache._disk
-            assert any(
-                "larger than the disk cache cap" in r.getMessage() for r in records
-            )
+            assert any("larger than the disk cache cap" in r.getMessage() for r in records)
         finally:
             cache.close()
 

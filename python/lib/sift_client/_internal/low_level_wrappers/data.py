@@ -314,10 +314,7 @@ class ChannelCache:
         if self.enabled:
             self._put_memory(channel_id, entry)
         if self._disk is not None:
-            if (
-                self._disk_max_bytes is not None
-                and entry.size_bytes > self._disk_max_bytes
-            ):
+            if self._disk_max_bytes is not None and entry.size_bytes > self._disk_max_bytes:
                 if channel_id not in self._oversized_disk_warned:
                     logger.warning(
                         "Channel %s data (%d bytes) is larger than the disk "
@@ -376,8 +373,7 @@ class ChannelCache:
         self._close_disk()
 
     def _put_memory(self, channel_id: str, entry: ChannelCacheEntry) -> None:
-        """Memory-tier insert + eviction. Caller has already gated on ``enabled``.
-        """
+        """Memory-tier insert + eviction. Caller has already gated on ``enabled``."""
         prior = self._entries.pop(channel_id, None)
         if prior is not None:
             self._total_bytes -= prior.size_bytes
