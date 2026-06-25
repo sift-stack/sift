@@ -10,9 +10,7 @@ use rmcp::{
 };
 use serde::Deserialize;
 
-use sift_rs::metadata::v1::{
-    MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
-};
+use sift_rs::metadata::v1::MetadataValue;
 
 use crate::{
     error::{self, from_anyhow},
@@ -21,6 +19,7 @@ use crate::{
         data::{ChannelInput, DataService, TimeRange},
         ingest::RunForm,
     },
+    tool::common::MetadataEntry,
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -44,20 +43,6 @@ pub struct SqlParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum MetadataScalar {
-    String(String),
-    Number(f64),
-    Boolean(bool),
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct MetadataEntry {
-    name: String,
-    value: MetadataScalar,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
 pub struct UploadDatasetParams {
     asset: String,
     run_name: Option<String>,
@@ -66,32 +51,6 @@ pub struct UploadDatasetParams {
     #[serde(default)]
     metadata: Vec<MetadataEntry>,
     input: PathBuf,
-}
-
-impl From<MetadataEntry> for MetadataValue {
-    fn from(entry: MetadataEntry) -> Self {
-        let (key_type, value) = match entry.value {
-            MetadataScalar::String(s) => {
-                (MetadataKeyType::String, MetadataValueInner::StringValue(s))
-            }
-            MetadataScalar::Number(n) => {
-                (MetadataKeyType::Number, MetadataValueInner::NumberValue(n))
-            }
-            MetadataScalar::Boolean(b) => (
-                MetadataKeyType::Boolean,
-                MetadataValueInner::BooleanValue(b),
-            ),
-        };
-        MetadataValue {
-            key: Some(MetadataKey {
-                name: entry.name,
-                r#type: key_type.into(),
-                ..Default::default()
-            }),
-            value: Some(value),
-            ..Default::default()
-        }
-    }
 }
 
 #[tool_router(router = data_router, vis = "pub(crate)")]

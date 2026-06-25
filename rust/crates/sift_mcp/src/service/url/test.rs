@@ -2,14 +2,14 @@ use super::*;
 
 const REST_URI: &str = "https://api.siftstack.com";
 
-fn service() -> ExploreService {
-    ExploreService::new(REST_URI.to_string())
+fn service() -> UrlService {
+    UrlService::new(REST_URI.to_string())
 }
 
 #[test]
 fn full_url_with_all_params() {
     let url = service()
-        .build_url(ExploreUrlRequest {
+        .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![String::from("Engine-7")]),
             runs: Some(vec![String::from("2025-thrust-test")]),
             channels: Some(vec![String::from("temperature"), String::from("pressure")]),
@@ -34,7 +34,7 @@ fn full_url_with_all_params() {
 #[test]
 fn axis_prefix_colon_is_preserved() {
     let url = service()
-        .build_url(ExploreUrlRequest {
+        .build_explore_url(ExploreUrlRequest {
             channels: Some(vec![
                 String::from("L1:temperature"),
                 String::from("L2:pressure"),
@@ -51,7 +51,7 @@ fn axis_prefix_colon_is_preserved() {
 #[test]
 fn comma_inside_single_value_is_encoded() {
     let url = service()
-        .build_url(ExploreUrlRequest {
+        .build_explore_url(ExploreUrlRequest {
             channels: Some(vec![String::from("weird,name")]),
             ..Default::default()
         })
@@ -62,7 +62,7 @@ fn comma_inside_single_value_is_encoded() {
 #[test]
 fn unknown_panel_type_is_rejected() {
     let err = service()
-        .build_url(ExploreUrlRequest {
+        .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![String::from("a")]),
             panel_type: Some(String::from("bogus")),
             ..Default::default()
@@ -75,7 +75,7 @@ fn unknown_panel_type_is_rejected() {
 #[test]
 fn empty_request_is_rejected() {
     let err = service()
-        .build_url(ExploreUrlRequest::default())
+        .build_explore_url(ExploreUrlRequest::default())
         .unwrap_err();
     assert_eq!(err.code.0, -32602);
 }
@@ -83,7 +83,7 @@ fn empty_request_is_rejected() {
 #[test]
 fn empty_vecs_are_treated_as_missing() {
     let err = service()
-        .build_url(ExploreUrlRequest {
+        .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![]),
             runs: Some(vec![]),
             channels: Some(vec![]),
@@ -95,9 +95,9 @@ fn empty_vecs_are_treated_as_missing() {
 
 #[test]
 fn host_derivation_strips_rest_uri_path() {
-    let svc = ExploreService::new(String::from("https://api.siftstack.com/v1"));
+    let svc = UrlService::new(String::from("https://api.siftstack.com/v1"));
     let url = svc
-        .build_url(ExploreUrlRequest {
+        .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![String::from("a")]),
             ..Default::default()
         })
@@ -110,9 +110,9 @@ fn host_derivation_strips_rest_uri_path() {
 
 #[test]
 fn unsupported_rest_uri_without_explore_host_errors() {
-    let svc = ExploreService::new(String::from("https://my-self-hosted.example"));
+    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
     let err = svc
-        .build_url(ExploreUrlRequest {
+        .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![String::from("a")]),
             ..Default::default()
         })
@@ -123,4 +123,58 @@ fn unsupported_rest_uri_without_explore_host_errors() {
         "expected guidance to point at explore_host, got `{}`",
         err.message
     );
+}
+
+#[test]
+fn report_url_uses_derived_web_host() {
+    let url = service().build_report_url("rep-123").unwrap();
+    assert_eq!(url, "https://app.siftstack.com/reports/rep-123");
+}
+
+#[test]
+fn report_url_errors_when_host_cannot_be_derived() {
+    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
+    let err = svc.build_report_url("rep-123").unwrap_err();
+    assert_eq!(err.code.0, -32602);
+}
+
+#[test]
+fn rule_url_uses_derived_web_host() {
+    let url = service().build_rule_url("rule-123").unwrap();
+    assert_eq!(url, "https://app.siftstack.com/rules/rule-123");
+}
+
+#[test]
+fn rule_url_errors_when_host_cannot_be_derived() {
+    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
+    let err = svc.build_rule_url("rule-123").unwrap_err();
+    assert_eq!(err.code.0, -32602);
+}
+
+#[test]
+fn annotation_asset_run_urls_use_singular_path_segments() {
+    let svc = service();
+    assert_eq!(
+        svc.build_annotation_url("ann-1").unwrap(),
+        "https://app.siftstack.com/annotation/ann-1"
+    );
+    assert_eq!(
+        svc.build_asset_url("asset-1").unwrap(),
+        "https://app.siftstack.com/asset/asset-1"
+    );
+    assert_eq!(
+        svc.build_run_url("run-1").unwrap(),
+        "https://app.siftstack.com/run/run-1"
+    );
+}
+
+#[test]
+fn annotation_asset_run_urls_error_when_host_cannot_be_derived() {
+    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
+    assert_eq!(
+        svc.build_annotation_url("ann-1").unwrap_err().code.0,
+        -32602
+    );
+    assert_eq!(svc.build_asset_url("asset-1").unwrap_err().code.0, -32602);
+    assert_eq!(svc.build_run_url("run-1").unwrap_err().code.0, -32602);
 }

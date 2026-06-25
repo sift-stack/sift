@@ -36,12 +36,19 @@ not run interactively.
 | `list_runs`      | List runs, with filtering and ordering.                                       |
 | `list_channels`  | List channels for an asset.                                                   |
 | `list_reports`   | List reports, with filtering and ordering.                                    |
+| `list_report_rule_summaries` | List the per-rule pass/fail/open summaries for a single report.   |
+| `create_report`  | Create a report over a run, from a template or a set of rules.                |
+| `update_report`  | Update a report's metadata (replace semantics).                               |
+| `list_annotations` | List annotations, with filtering and ordering.                              |
+| `create_annotation` | Create a data-review or phase annotation over a time range.                |
+| `update_annotation` | Update an annotation's fields (replace semantics for collections).         |
 | `list_rules`     | List rules, with filtering and ordering.                                      |
 | `list_rule_versions` | List the version history of a single rule.                                |
 | `get_data`       | Download channel data for an asset/run to a Parquet file, with optional decimation. |
 | `sql`            | Run SQL over one or more Parquet files; chain after `get_data` for analysis.  |
 | `upload_dataset` | Stream a Parquet dataset into Sift.                                           |
 | `update_asset`   | Update an asset's tags and/or metadata (replace semantics).                   |
+| `update_run`     | Update a run's fields (name, time bounds, pin, tags, metadata).               |
 | `create_rule`    | Create a rule from a JSON definition.                                         |
 | `update_rule`    | Update specific fields of a rule; unspecified fields are preserved.          |
 | `archive_rule`   | Archive a rule so it stops evaluating.                                        |

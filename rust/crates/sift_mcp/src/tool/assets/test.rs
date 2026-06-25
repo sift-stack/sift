@@ -62,6 +62,7 @@ async fn list_assets_returns_single_page() {
     let assets = structured_field(resp, "assets");
     assert_eq!(assets.as_array().unwrap().len(), 2);
     assert_eq!(assets[0]["assetId"], "a1");
+    assert_eq!(assets[0]["url"], "https://app.test.local/asset/a1");
     assert_eq!(assets[1]["assetId"], "a2");
 }
 

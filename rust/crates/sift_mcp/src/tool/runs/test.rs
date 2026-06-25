@@ -1,13 +1,30 @@
-use rmcp::model::ErrorCode;
-use sift_rs::runs::v2::{ListRunsResponse, Run, run_service_server::RunServiceServer};
+use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
+use sift_rs::runs::v2::{
+    ListRunsResponse, Run, UpdateRunResponse, run_service_server::RunServiceServer,
+};
 use sift_test_util::{grpc::memory_sift_channel, mock::runs::v2::MockRunServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
+use super::UpdateRunParams;
 use crate::{
     server::SiftMcpServer,
     tool::common::test_support::{list_params, structured_field},
 };
+
+fn update_run_params(run_id: &str) -> UpdateRunParams {
+    UpdateRunParams {
+        run_id: run_id.into(),
+        name: None,
+        description: None,
+        start_time_unix_nanos: None,
+        stop_time_unix_nanos: None,
+        is_pinned: None,
+        client_key: None,
+        tags: None,
+        metadata: None,
+    }
+}
 
 async fn server_with_mock(mock: MockRunServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -54,6 +71,7 @@ async fn list_runs_returns_single_page() {
     let runs = structured_field(resp, "runs");
     assert_eq!(runs.as_array().unwrap().len(), 1);
     assert_eq!(runs[0]["runId"], "r1");
+    assert_eq!(runs[0]["url"], "https://app.test.local/run/r1");
 }
 
 #[tokio::test]
@@ -175,4 +193,57 @@ async fn list_runs_propagates_grpc_error() {
 
     assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
     assert!(err.message.contains("no such run"));
+}
+
+#[tokio::test]
+async fn update_run_happy_path_surfaces_url() {
+    let mut run_mock = MockRunServiceImpl::new();
+    run_mock.expect_update_run().returning(|_| {
+        Ok(Response::new(UpdateRunResponse {
+            run: Some(Run {
+                run_id: "r1".into(),
+                name: "renamed".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(run_mock).await;
+
+    let mut params = update_run_params("r1");
+    params.name = Some("renamed".into());
+
+    let resp = server
+        .update_run(Parameters(params))
+        .await
+        .expect("update_run failed");
+
+    let run_url = structured_field(resp.clone(), "run_url");
+    assert_eq!(run_url, "https://app.test.local/run/r1");
+    let run = structured_field(resp, "run");
+    assert_eq!(run["name"], "renamed");
+}
+
+#[tokio::test]
+async fn update_run_rejects_empty_id() {
+    let (server, _h) = server_with_mock(MockRunServiceImpl::new()).await;
+
+    let err = server
+        .update_run(Parameters(update_run_params("")))
+        .await
+        .expect_err("expected error");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn update_run_rejects_no_fields() {
+    let (server, _h) = server_with_mock(MockRunServiceImpl::new()).await;
+
+    let err = server
+        .update_run(Parameters(update_run_params("r1")))
+        .await
+        .expect_err("expected error");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }

@@ -1,3 +1,4 @@
+pub mod annotations;
 pub mod assets;
 pub mod channels;
 pub mod common;
