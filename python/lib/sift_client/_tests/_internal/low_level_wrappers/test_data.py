@@ -42,6 +42,13 @@ from sift_client.sift_types.channel import Channel, ChannelDataType
 _NOW = datetime(2025, 1, 1, tzinfo=timezone.utc)
 _WINDOW_END = _NOW + timedelta(days=1)
 
+# Snapshot of the real ``DEFAULT_DISK_PATH`` constant captured at module import.
+# The autouse ``_isolate_default_disk_cache_path`` fixture in ``conftest.py``
+# overrides the class attribute on every test for isolation; the
+# ``TestChannelCacheClearDisk::test_default_path_constant_under_tmp`` test still
+# needs to see the production value to verify its shape.
+_PRODUCTION_DEFAULT_DISK_PATH = ChannelCache.DEFAULT_DISK_PATH
+
 
 # ---------- shared helpers -----------
 
@@ -517,11 +524,17 @@ class TestChannelCacheClearDisk:
         assert (target / "important.txt").read_text() == "don't delete me"
 
     def test_default_path_constant_under_tmp(self) -> None:
-        """Default lives under the OS tmp dir, not a user directory."""
+        """Default lives under the OS tmp dir, not a user directory.
+
+        Reads the module-level snapshot captured at import time rather than
+        ``ChannelCache.DEFAULT_DISK_PATH`` directly, because the autouse
+        ``_isolate_default_disk_cache_path`` fixture monkeypatches that
+        attribute for every test to keep ``/tmp`` clean.
+        """
         import tempfile
 
-        assert ChannelCache.DEFAULT_DISK_PATH.startswith(tempfile.gettempdir())
-        assert ChannelCache.DEFAULT_DISK_PATH.endswith("sift-channel-data-cache")
+        assert _PRODUCTION_DEFAULT_DISK_PATH.startswith(tempfile.gettempdir())
+        assert _PRODUCTION_DEFAULT_DISK_PATH.endswith("sift-channel-data-cache")
 
 
 class TestMergePages:

@@ -457,14 +457,16 @@ class ChannelsAPI:
         """Delete a previously-persisted on-disk channel data cache directory.
 
         Drops stale caches from previous sessions, recovers from a corrupt
-        cache, or reclaims disk space. Removes the directory entirely; a
-        future :meth:`enable_data_cache_disk` call at the same path will see
-        a fresh empty cache.
+        cache, or reclaims disk space. Removes the directory entirely; if disk
+        persistence is on, the next ``get_data`` re-opens an empty cache at
+        the same path.
 
         This is a thin proxy around
         :meth:`ChannelCache.clear_disk <sift_client._internal.low_level_wrappers.data.ChannelCache.clear_disk>`
         — exposed on the resource so callers don't need to reach into
-        ``_internal`` modules. But that is a class method so the user could call without a client if desired.
+        ``_internal`` modules. The underlying classmethod is also reachable
+        directly (``ChannelCache.clear_disk(...)``) if the caller doesn't have
+        a ``SiftClient`` handy.
 
         Args:
             path: Directory of the cache to clear. ``None`` (the default)
@@ -495,18 +497,24 @@ class ChannelsAPI:
         ...
 
     def disable_data_cache_disk(self) -> None:
-        """Stop persisting the channel data cache to disk.
+        """Opt out of disk persistence for the channel data cache.
 
-        Closes the disk-cache file handle. The on-disk directory is NOT
-        deleted — use :meth:`clear_data_cache_on_disk` to wipe it. In-memory
-        entries are preserved.
+        Disk persistence is on by default; call this when you don't want any
+        cached data written to disk. Closes any open disk-cache file handle.
+        The on-disk directory is NOT deleted — use
+        :meth:`clear_data_cache_on_disk` to wipe it. In-memory entries are
+        preserved.
         """
         ...
 
     def enable_data_cache_disk(
         self, *, path: str | os.PathLike[str] | None = None, max_bytes: int | None = None
     ) -> None:
-        """Persist the channel data cache to disk, surviving process restarts.
+        """Configure (or re-enable after ``disable_data_cache_disk``) the disk cache.
+
+        Disk persistence is **on by default** at ``ChannelCache.DEFAULT_DISK_PATH``;
+        use this method when you want to override the path or size, or to turn
+        the tier back on after a prior ``disable_data_cache_disk`` call.
 
         The disk-backed tier is a second-chance layer beneath the in-memory
         cache: on a memory miss, ``get_data`` checks disk before going to the
@@ -518,16 +526,20 @@ class ChannelsAPI:
         (different ``path`` or ``max_bytes``) closes the previous disk handle
         and opens a new one; in-memory contents are preserved across the swap.
 
+        An explicit ``path`` that can't be opened (e.g. permission denied,
+        read-only filesystem) raises so the caller knows the request didn't
+        take. The default-path open does *not* raise — see
+        ``_ensure_data_low_level_client`` for the fall-back-to-memory path.
+
         Args:
             path: Directory to persist the cache to. ``None`` (the default)
-                uses ``DEFAULT_DISK_CACHE_PATH``. Existing entries at the path
-                become available as cache hits.
+                uses ``ChannelCache.DEFAULT_DISK_PATH``. Existing entries at
+                the path become available as cache hits.
             max_bytes: Byte cap on the disk tier. ``None`` uses
-                ``DEFAULT_DISK_CACHE_MAX_BYTES`` (4 GiB). When the bound is
-                reached, ``diskcache``'s LRU eviction takes over.
+                ``ChannelCache.DEFAULT_DISK_MAX_BYTES`` (4 GiB). When the
+                bound is reached, ``diskcache``'s LRU eviction takes over.
 
         Example:
-            client.channels.enable_data_cache_disk()
             client.channels.enable_data_cache_disk(path="/data/sift-cache")
             client.channels.enable_data_cache_disk(max_bytes=1024 ** 3)  # 1 GiB
         """

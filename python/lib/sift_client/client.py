@@ -149,10 +149,6 @@ class SiftClient(
                 mapped to a frontend automatically; see the ``app_url`` property.
                 A value here takes precedence over ``connection_config.app_url``.
 
-        Resource-specific knobs live on the resource itself. For example,
-        to tune the channel data cache used by ``client.channels.get_data``::
-
-            client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
         """
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(

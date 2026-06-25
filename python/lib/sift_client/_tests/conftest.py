@@ -9,6 +9,33 @@ from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.util.util import AsyncAPIs
 
 
+@pytest.fixture(autouse=True)
+def _isolate_default_disk_cache_path(monkeypatch, tmp_path):
+    """Redirect ``ChannelCache.DEFAULT_DISK_PATH`` to a per-test tmp dir.
+
+    The channel data disk cache is **opt-out** — any test that triggers the
+    lazy ``DataLowLevelClient`` init through ``ChannelsAPIAsync`` would
+    otherwise create the real ``/tmp/sift-channel-data-cache`` directory and
+    leak state across runs. Redirecting the default to ``tmp_path`` keeps
+    every test self-contained without each test having to know that the disk
+    tier is on by default.
+
+    The override deliberately preserves the ``sift-channel-data-cache``
+    suffix so ``TestChannelCacheClearDisk::test_default_path_constant_under_tmp``
+    keeps validating the real shape of the constant.
+
+    Importing ``ChannelCache`` here pulls in pandas, but only once per
+    session — fixture body still runs per-test, just the monkeypatch.
+    """
+    from sift_client._internal.low_level_wrappers.data import ChannelCache
+
+    monkeypatch.setattr(
+        ChannelCache,
+        "DEFAULT_DISK_PATH",
+        str(tmp_path / "sift-channel-data-cache"),
+    )
+
+
 @pytest.fixture(scope="session")
 def sift_client() -> SiftClient:
     """Create a SiftClient instance for testing.

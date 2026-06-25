@@ -26,31 +26,27 @@ client.channels.configure_data_cache(max_bytes=0)                  # disable cac
 
 `ignore_cache=True` on `client.channels.get_data(...)` now also skips writing into the cache, matching its read-side bypass semantics. Previously a "non-caching" workload still appended to the shared cache on every call, which still caused increased memory usage.
 
-The internal `DataLowLevelClient.channel_cache` is no longer a class attribute. Any external code that relied on `DataLowLevelClient.channel_cache.channels.clear()` as a workaround should remove it — the bounded cache no longer requires manual purging.
+#### On-disk channel data cache (opt-out, on by default)
 
-#### On-disk channel data cache (opt-in)
+The channel data cache now persists to disk by default, surviving process restarts. The disk tier is a second-chance layer beneath the in-memory cache: on a memory miss, `get_data` checks disk before going to the wire. Re-running the same workload in a new session picks up the previously-cached windows for free — no configuration required.
 
-The channel data cache can now optionally persist to disk, surviving process restarts. The disk tier is a second-chance layer beneath the in-memory cache: on a memory miss, `get_data` checks disk before going to the wire. Re-running the same workload in a new session picks up the previously-cached windows for free.
+The default location is `<tempfile.gettempdir()>/sift-channel-data-cache`, capped at 4 GiB with LRU eviction. If the default path can't be opened (read-only filesystem, restricted container, etc.), the client logs a warning and falls back to the in-memory cache only — `get_data` continues to work.
+
+Opt out, reconfigure, or wipe the on-disk cache from the `channels` resource:
 
 ```python
-# Enable disk persistence at the default tmp location.
-client.channels.enable_data_cache_disk()
+# Opt out — no data persisted to disk.
+client.channels.disable_data_cache_disk()
 
-# Or pick a custom directory and byte cap.
+# Reconfigure the location or byte cap.
 client.channels.enable_data_cache_disk(path="/data/sift-cache", max_bytes=2 * 1024 ** 3)
 
-# Stop persisting (does not delete on-disk data).
-client.channels.disable_data_cache_disk()
-```
-
-To remove a stale cache directory from a previous session:
-
-```python
+# Remove a stale or corrupted cache directory.
 client.channels.clear_data_cache_on_disk()                   # default tmp path
 client.channels.clear_data_cache_on_disk("/data/sift-cache") # custom path
 ```
 
-`clear_data_cache_on_disk` refuses to delete directories that don't look like a sift channel data cache (missing the `diskcache` marker), so a typo'd path won't wipe unrelated data.
+`enable_data_cache_disk` is also the way to turn the tier back on after a prior `disable_data_cache_disk` call.
 
 The disk tier is powered by [`diskcache`](https://grantjenks.com/docs/diskcache/) (pure-Python, SQLite-backed) and has its own independent byte cap with LRU eviction. The in-memory tier remains the fast path — disk is only consulted on a memory miss.
 
