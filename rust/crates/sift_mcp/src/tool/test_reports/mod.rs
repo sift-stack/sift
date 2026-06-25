@@ -11,8 +11,11 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::test_reports::spec::{self, ReportSpec},
-    tool::common::ListParams,
+    tool::common::{ListParams, url_clause},
 };
+
+#[cfg(test)]
+mod test;
 
 /// Parse the `report_json` author spec, mapping any deserialization error to `INVALID_PARAMS`.
 fn parse_report_spec(report_json: &str) -> Result<ReportSpec, ErrorData> {
@@ -313,7 +316,10 @@ impl SiftMcpServer {
                   `channel_names` (array), and `metadata`.
 
             Output:
-              - `{ \"test_report_id\": \"...\", \"steps_created\": N, \"measurements_created\": M, \"next_step\": \"...\" }`.
+              - `{ \"test_report_id\": \"...\", \"steps_created\": N, \"measurements_created\": M, \"report_url\": string|null, \"next_step\": \"...\" }`.
+                `report_url` is the report's Sift web link (`<host>/test-results/<id>`), or null when
+                the host cannot be derived (self-hosted deployments). Surface it to the user as a
+                clickable link.
 
             Errors:
               - `INVALID_PARAMS` if `report_json` is not valid JSON, omits a required field, names an
@@ -344,13 +350,19 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
+        let report_url = self
+            .url_service
+            .build_test_report_url(&created.test_report_id)
+            .ok();
+
         let next_step = format!(
-            "Created test report `{}` with {} step(s) and {} measurement(s) in Sift. Tell the user \
-             the new `test_report_id`. If they haven't indicated a next step, offer to verify with \
-             `list_test_steps` (filter `test_report_id == \"{}\"`).",
+            "Created test report `{}` with {} step(s) and {} measurement(s) in Sift.{} Tell the \
+             user the new `test_report_id` and surface the link. If they haven't indicated a next \
+             step, offer to verify with `list_test_steps` (filter `test_report_id == \"{}\"`).",
             created.test_report_id,
             created.steps_created,
             created.measurements_created,
+            url_clause(report_url.as_deref()),
             created.test_report_id,
         );
 
@@ -358,6 +370,7 @@ impl SiftMcpServer {
             "test_report_id": created.test_report_id,
             "steps_created": created.steps_created,
             "measurements_created": created.measurements_created,
+            "report_url": report_url,
             "next_step": next_step,
         }));
         result.content = vec![Content::text(next_step)];
@@ -381,7 +394,8 @@ impl SiftMcpServer {
                 default now), `description`, `channel_names`, and `metadata`. Must be non-empty.
 
             Output:
-              - `{ \"test_report_id\": \"...\", \"test_step_id\": \"...\", \"measurements_created\": N, \"next_step\": \"...\" }`.
+              - `{ \"test_report_id\": \"...\", \"test_step_id\": \"...\", \"measurements_created\": N, \"report_url\": string|null, \"next_step\": \"...\" }`.
+                `report_url` is the report's Sift web link, or null when the host cannot be derived.
 
             Errors:
               - `INVALID_PARAMS` if `measurements_json` is not a valid array, is empty, or a
@@ -425,16 +439,20 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
+        let report_url = self.url_service.build_test_report_url(&test_report_id).ok();
+
         let next_step = format!(
             "Appended {created} measurement(s) to step `{test_step_id}` in report \
-             `{test_report_id}`. Tell the user. If they haven't indicated a next step, offer to \
+             `{test_report_id}`.{} Tell the user. If they haven't indicated a next step, offer to \
              verify with `list_test_measurements` (filter `test_step_id == \"{test_step_id}\"`).",
+            url_clause(report_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
             "test_report_id": test_report_id,
             "test_step_id": test_step_id,
             "measurements_created": created,
+            "report_url": report_url,
             "next_step": next_step,
         }));
         result.content = vec![Content::text(next_step)];

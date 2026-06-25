@@ -136,6 +136,15 @@ impl UrlService {
         Ok(format!("{host}/reports/{}", encode_value(report_id)))
     }
 
+    /// Build the Sift web URL for a single test report:
+    /// `<host>/test-results/<test_report_id>`. The host is derived from
+    /// `rest_uri`. Returns `INVALID_PARAMS` if the host cannot be derived (e.g. a
+    /// self-hosted `rest_uri` without an `api.` subdomain).
+    pub fn build_test_report_url(&self, test_report_id: &str) -> Result<String, ErrorData> {
+        let host = derive_web_host(&self.rest_uri)?;
+        Ok(format!("{host}/test-results/{}", encode_value(test_report_id)))
+    }
+
     /// Build the Sift web URL for a single rule: `<host>/rules/<rule_id>`. The
     /// host is derived from `rest_uri`. Returns `INVALID_PARAMS` if the host
     /// cannot be derived (e.g. a self-hosted `rest_uri` without an `api.`
