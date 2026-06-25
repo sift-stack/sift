@@ -24,7 +24,11 @@ use crate::{
         Context,
         import::utils::{try_parse_bit_field_config, try_parse_enum_config},
     },
-    util::{api::create_grpc_channel, explore_url::build_explore_url, tty::Output},
+    util::{
+        api::create_grpc_channel,
+        explore_url::build_explore_url,
+        tty::{Output, hyperlink},
+    },
 };
 
 use super::{
@@ -76,7 +80,7 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
         .await
         .context("failed to upload CSV file")?;
 
-    let explore_url = build_explore_url(ctx.rest_uri.clone(), args.asset.clone(), args.run.clone());
+    let explore_url = build_explore_url(ctx.app_uri.as_deref(), &args.asset, args.run.as_deref());
 
     let location = args.run.as_ref().map_or_else(
         || format!("asset '{}'", args.asset.cyan()),
@@ -84,16 +88,15 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
     );
 
     if !args.wait {
-        let mut output = Output::new();
-        output
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(format!(
-                "Once processing is complete the data will be available on the {location}."
-            ));
+        let mut tip_text =
+            format!("Once processing is complete the data will be available on the {location}.");
         if let Some(url) = &explore_url {
-            output.tip(format!("View in Sift: {url}"));
+            tip_text.push_str(&format!("\n{}", hyperlink(url, "View in Sift")));
         }
-        output.print();
+        Output::new()
+            .line(format!("{} file for processing", "Uploaded".green()))
+            .tip(tip_text)
+            .print();
 
         return Ok(ExitCode::SUCCESS);
     }

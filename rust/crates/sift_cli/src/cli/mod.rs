@@ -246,6 +246,12 @@ pub struct ConfigUpdateArgs {
     /// API key used for authentication
     #[arg(short = 'k', long)]
     pub api_key: Option<String>,
+
+    /// Sift web app URL — the address you visit in your browser when signed in
+    /// to Sift (e.g. https://app.siftstack.com). Used to build clickable
+    /// Explore links after imports. Optional; links are omitted when unset.
+    #[arg(long)]
+    pub app_uri: Option<String>,
 }
 
 #[derive(clap::Args)]

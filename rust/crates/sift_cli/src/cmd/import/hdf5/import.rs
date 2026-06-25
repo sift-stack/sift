@@ -23,7 +23,11 @@ use crate::{
             wait_for_job_completion,
         },
     },
-    util::{api::create_grpc_channel, explore_url::build_explore_url, tty::Output},
+    util::{
+        api::create_grpc_channel,
+        explore_url::build_explore_url,
+        tty::{Output, hyperlink},
+    },
 };
 
 fn print_skipped_block(skipped: &[SkippedDataset]) {
@@ -117,9 +121,9 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     .context("failed to upload hdf5 file")?;
 
     let explore_url = build_explore_url(
-        ctx.rest_uri.clone(),
-        args.common.asset.clone(),
-        args.common.run.clone(),
+        ctx.app_uri.as_deref(),
+        &args.common.asset,
+        args.common.run.as_deref(),
     );
 
     let location = args.common.run.as_ref().map_or_else(
@@ -128,16 +132,15 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     );
 
     if !args.common.wait {
-        let mut output = Output::new();
-        output
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(format!(
-                "Once processing is complete the data will be available on the {location}."
-            ));
+        let mut tip_text =
+            format!("Once processing is complete the data will be available on the {location}.");
         if let Some(url) = &explore_url {
-            output.tip(format!("View in Sift: {url}"));
+            tip_text.push_str(&format!("\n{}", hyperlink(url, "View in Sift")));
         }
-        output.print();
+        Output::new()
+            .line(format!("{} file for processing", "Uploaded".green()))
+            .tip(tip_text)
+            .print();
 
         return Ok(ExitCode::SUCCESS);
     }

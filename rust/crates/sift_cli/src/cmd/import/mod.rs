@@ -5,7 +5,11 @@ use tokio::time::sleep;
 
 use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatus};
 
-use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output};
+use crate::util::{
+    job::JobServiceWrapper,
+    progress::Spinner,
+    tty::{Output, hyperlink},
+};
 
 pub mod backup;
 pub mod csv;
@@ -81,16 +85,15 @@ pub async fn wait_for_job_completion(
             }
             JobStatus::Finished => {
                 spinner.finish_and_clear();
-                let mut output = Output::new();
-                output
-                    .line(format!("{} data import job", "Completed".green()))
-                    .tip(format!(
-                        "The data should be available on the {import_output_location}"
-                    ));
+                let mut tip_text =
+                    format!("The data should be available on the {import_output_location}");
                 if let Some(url) = &explore_url {
-                    output.tip(format!("View in Sift: {url}"));
+                    tip_text.push_str(&format!("\n{}", hyperlink(url, "View in Sift")));
                 }
-                output.print();
+                Output::new()
+                    .line(format!("{} data import job", "Completed".green()))
+                    .tip(tip_text)
+                    .print();
                 break;
             }
             _ => (),

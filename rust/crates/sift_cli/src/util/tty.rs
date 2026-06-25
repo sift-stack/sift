@@ -3,6 +3,15 @@ use std::io::{self, Write};
 use anyhow::Result;
 use crossterm::style::Stylize;
 
+/// Wrap `label` in an OSC 8 hyperlink escape pointing at `url`, with cyan +
+/// underline styling so it still reads as a link in terminals that ignore
+/// OSC 8. Uses BEL (`\x07`) as the string terminator — more widely supported
+/// than the `ESC \` alternative.
+pub fn hyperlink(url: &str, label: &str) -> String {
+    let styled = label.cyan().underlined();
+    format!("\x1b]8;;{url}\x07{styled}\x1b]8;;\x07")
+}
+
 #[derive(Default)]
 pub struct PromptUser {
     header: Option<String>,

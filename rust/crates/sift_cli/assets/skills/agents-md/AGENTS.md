@@ -21,7 +21,10 @@ to combine them when working with Sift.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
-   - `upload_dataset`: stream a Parquet dataset into Sift.
+   - `upload_dataset`: stream a Parquet dataset into Sift. Returns an
+     `explore_url` field when the user's profile has `app_uri` configured —
+     surface it inline as a clickable markdown link. If `explore_url` is null,
+     do not invent a link.
    - `update_asset`: replace an existing asset's tags and/or metadata (write —
      replace semantics, so read-modify-write when appending).
    - `update_run`: update a run's name, time bounds, pin state, tags, or metadata
@@ -33,7 +36,9 @@ to combine them when working with Sift.
    - `create_report`, `update_report`: manage reports (writes — confirm first).
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
      selection, with an optional panel/chart pre-defined. Surface the URL
-     inline as a clickable link so the user can open the view.
+     inline as a clickable link so the user can open the view. Requires
+     `app_uri` configured in the user's `sift-cli` profile (or pass
+     `explore_host` per-call); fails with `INVALID_PARAMS` otherwise.
 2. **`sift-cli`** — the command-line tool. Key subcommands:
    - `import`: `csv`, `parquet flat-dataset`, `tdms`, `hdf5`, `backups`.
    - `export`: `run`, `asset` (to CSV and other formats).
@@ -121,7 +126,9 @@ the output is text or a new dataset — pull the source data locally with
 `get_data` (writes a Parquet file) and run `sql` over it. Chain
 `get_data` → `sql` for filtering, aggregation, or feature derivation. If the
 result should land back in Sift as a new dataset, follow with
-`upload_dataset`, and confirm the target asset/run with the user first.
+`upload_dataset`, and confirm the target asset/run with the user first. When
+`upload_dataset` returns an `explore_url`, render it inline as a clickable
+markdown link so the user can jump straight to the imported data.
 
 ## Visualizing in Sift Explore
 
