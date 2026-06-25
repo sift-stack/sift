@@ -11,7 +11,7 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::{common::ListParams, data::MetadataEntry},
+    tool::common::{ListParams, MetadataEntry, url_clause, with_urls},
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -33,7 +33,9 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"assets\": [Asset, ...] }`. Each item is the full Sift `Asset` shape including `asset_id`, `name`,
-                tags, metadata, timestamps, and archive state.
+                tags, metadata, timestamps, and archive state, plus an added `url` field with the asset's Sift web
+                link (`<host>/asset/<asset_id>`). `url` is omitted when the host can't be derived. Surface these
+                links to the user when presenting assets.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -63,14 +65,19 @@ impl SiftMcpServer {
             order_by,
         }) = params;
 
-        let out = self
+        let assets = self
             .asset_service
             .list_assets(filter, order_by, limit)
             .await
-            .map(|assets| serde_json::json!({ "assets": assets }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let assets = with_urls(&assets, |a| {
+            self.url_service.build_asset_url(&a.asset_id).ok()
+        })?;
+
+        Ok(CallToolResult::structured(
+            serde_json::json!({ "assets": assets }),
+        ))
     }
 
     #[tool(
@@ -79,8 +86,9 @@ impl SiftMcpServer {
             Update an existing asset's tags and/or metadata. Wraps `assets/v1 UpdateAsset`.
 
             Output:
-              - `{ \"asset\": Asset, \"next_step\": string }`. The returned `Asset` is the
-                post-update state from the server.
+              - `{ \"asset\": Asset, \"asset_url\": string|null, \"next_step\": string }`. The returned `Asset` is
+                the post-update state from the server; `asset_url` is its Sift web link
+                (`<host>/asset/<asset_id>`), or null when the host can't be derived.
 
             Parameters:
               - `asset_id`: required; the id of the asset to update.
@@ -141,15 +149,19 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
+        let asset_url = self.url_service.build_asset_url(&asset.asset_id).ok();
         let next_step = format!(
-            "Updated asset `{}` ({}). Surface the new state to the user and confirm the change \
+            "Updated asset `{}` ({}).{} Surface the new state to the user and confirm the change \
              matches their intent. Remember: tags and metadata are REPLACE operations — verify \
              nothing was unintentionally dropped.",
-            asset.name, asset.asset_id,
+            asset.name,
+            asset.asset_id,
+            url_clause(asset_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
             "asset": asset,
+            "asset_url": asset_url,
             "next_step": next_step,
         }));
         result.content = vec![Content::text(next_step)];
