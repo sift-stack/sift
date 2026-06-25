@@ -39,7 +39,11 @@ async fn server_with_mock(mock: MockRunServiceImpl) -> (SiftMcpServer, JoinHandl
     });
 
     (
-        SiftMcpServer::new(channel, String::from("https://api.test.local")),
+        SiftMcpServer::new(
+            channel,
+            String::from("https://api.test.local"),
+            String::new(),
+        ),
         handle,
     )
 }

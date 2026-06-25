@@ -3,14 +3,16 @@ name: sift
 description: >-
   Use when working with Sift: ingesting or importing time-series data,
   querying assets/runs/channels, exporting data, decimating or running SQL
-  over data, opening a view in the Sift Explore web app, or writing code
-  that integrates with Sift. Covers the Sift MCP server (started by
+  over data, opening a view in the Sift Explore web app, writing code
+  that integrates with Sift, or looking up how Sift works in its product and
+  API documentation. Covers the Sift MCP server (started by
   `sift-cli mcp`), the `sift-cli` itself, the Sift REST API over cURL, the
   Sift Python library (`sift_client`), and the Sift Rust streaming library
   (`sift_stream`). Triggers include phrases like "import this file into
   Sift", "stream data to Sift", "list assets/runs/channels", "export a
-  run", "query Sift", "graph", "plot", "visualize", "open in Explore", or
-  "write code to integrate with Sift".
+  run", "query Sift", "graph", "plot", "visualize", "open in Explore",
+  "write code to integrate with Sift", "how does X work in Sift", "what does
+  this endpoint do", or "look up the Sift API reference".
 ---
 
 <!--
@@ -61,6 +63,8 @@ to combine them when working with Sift.
      wrap it in a markdown link. Requires `app_uri` configured in the user's
      `sift-cli` profile (or pass `explore_host` per-call); fails with
      `INVALID_PARAMS` otherwise.
+   - `search_docs`: search Sift's product documentation by keyword (`query`),
+     then read a matching page by `path`. One tool, two modes.
 2. **`sift-cli`** — the command-line tool. Key subcommands:
    - `import`: `csv`, `parquet flat-dataset`, `tdms`, `hdf5`, `backups`.
    - `export`: `run`, `asset` (to CSV and other formats).
@@ -160,6 +164,28 @@ apply per subcommand invocation:
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than
    treating the failure as terminal.
+
+## Looking things up in the docs
+
+When you need to know how Sift works — a feature, an endpoint, a parameter, a
+CEL expression, calculated channels, UDFs — look it up with `search_docs`
+rather than relying on memory. It serves Sift's product documentation (the same
+content as docs.siftstack.com, including the full REST/gRPC API reference) and
+is authenticated for you. Prefer it over guessing whenever you are unsure of a
+detail or about to write code against the API.
+
+`search_docs` has two modes; pass exactly one of `query` or `path`:
+
+- **Search** (`query`): keywords like `asset channels CEL`. Returns ranked
+  `hits`, each with `path`, `title`, `score`, `match_line`, `total_lines`, and
+  `content` — the first page of the doc inline, so the top hit is usually
+  answerable without a second call.
+- **Read** (`path`): pass a hit's `path` to page past the `content` already
+  returned, using `index` (1-indexed start line) and `lines` (count) with
+  `total_lines` to know how far the page goes.
+
+Search the topic, answer from the hit's `content`, and read only to page deeper
+into a long doc. Cite the page you used.
 
 ## Local data analysis
 

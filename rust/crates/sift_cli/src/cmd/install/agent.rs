@@ -1,6 +1,6 @@
 use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result, bail};
@@ -29,6 +29,17 @@ pub fn skills(args: AgentSkillsArgs) -> Result<ExitCode> {
         None => agent.default_skill_path()?,
     };
 
+    write_skill(&target_path, content)?;
+    println!(
+        "Successfully installed {} skill at {}",
+        agent_label(agent),
+        target_path.display()
+    );
+
+    Ok(ExitCode::SUCCESS)
+}
+
+fn write_skill(target_path: &Path, content: &str) -> Result<()> {
     if let Some(target_dir) = target_path.parent()
         && !target_dir.as_os_str().is_empty()
         && let Err(err) = fs::create_dir_all(target_dir)
@@ -44,19 +55,13 @@ pub fn skills(args: AgentSkillsArgs) -> Result<ExitCode> {
         .create(true)
         .write(true)
         .truncate(true)
-        .open(&target_path)
+        .open(target_path)
         .with_context(|| format!("failed to open {}", target_path.display()))?;
 
     write!(target, "{content}")
         .with_context(|| format!("failed to write to file {}", target_path.display()))?;
 
-    println!(
-        "Successfully installed {} skill at {}",
-        agent_label(agent),
-        target_path.display()
-    );
-
-    Ok(ExitCode::SUCCESS)
+    Ok(())
 }
 
 fn skill_content(agent: Agent) -> &'static str {

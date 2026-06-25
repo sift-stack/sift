@@ -23,7 +23,11 @@ async fn server_with_mock(mock: MockAnnotationServiceImpl) -> (SiftMcpServer, Jo
     });
 
     (
-        SiftMcpServer::new(channel, String::from("https://api.test.local")),
+        SiftMcpServer::new(
+            channel,
+            String::from("https://api.test.local"),
+            String::new(),
+        ),
         handle,
     )
 }

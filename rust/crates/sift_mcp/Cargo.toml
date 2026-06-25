@@ -30,9 +30,11 @@ arrow.workspace = true
 parquet.workspace = true
 polars = { workspace = true, features = ["lazy", "parquet", "sql"] }
 tokio-stream.workspace = true
+reqwest = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 sift_test_util.workspace = true
 tokio-stream.workspace = true
 bytes.workspace = true
 tempdir.workspace = true
+axum.workspace = true
