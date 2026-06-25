@@ -97,19 +97,20 @@ impl SiftMcpServer {
                 `asset_id == \"<id>\"` and send the union. Pass `[]` to clear all tags.
               - `metadata`: optional; REPLACES the asset's full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }` where `value` is a string,
-                number, or boolean. Pass `[]` to clear. The key must already exist in the
-                organization's metadata schema (managed via the `metadata/v1` service); this
-                tool attaches values to existing keys, it does not create new keys.
+                number, or boolean. Pass `[]` to clear. A `name` that does not yet exist in
+                the organization's metadata schema is created on the fly with type inferred
+                from `value`; for an existing key, `value`'s type must match the key's
+                current type. Tag names that do not yet exist are likewise created.
 
               At least one of `tags` or `metadata` must be set; otherwise the update is a no-op
               and the tool returns `INVALID_PARAMS`.
 
             Errors:
-              - `INVALID_PARAMS` if `asset_id` is empty or neither `tags` nor `metadata` is
-                provided.
+              - `INVALID_PARAMS` if `asset_id` is empty, neither `tags` nor `metadata` is
+                provided, the `metadata` list contains duplicate key names, or a value's
+                type does not match an existing metadata key's type.
               - `RESOURCE_NOT_FOUND` if no asset matches `asset_id`.
-              - `INTERNAL_ERROR` for upstream gRPC failures (e.g. server rejecting a metadata
-                key that does not exist).
+              - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
               - This is a write. CONFIRM the target asset and the full proposed `tags` /
