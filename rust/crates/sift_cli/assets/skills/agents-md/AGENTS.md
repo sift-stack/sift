@@ -83,6 +83,16 @@ apply per subcommand invocation:
    subsequent `sift-cli` call in this session. Do not silently default
    when several profiles exist — the user may have prod and staging side
    by side and writing to the wrong one is a real foot-gun.
+
+   **Never switch profiles to recover from a failure.** Once a profile is
+   chosen for the session, stick with it. If a command fails — bad
+   credentials, host unreachable, the default profile doesn't resolve,
+   gRPC errors, anything — surface the failure and ask the user before
+   moving to a different profile. Do not retry the same command against
+   another profile to "make it work"; that risks writing the user's data
+   into the wrong environment. The same applies in reverse: if the user
+   has not named a profile and only one exists but it fails, stop and
+   report — don't probe other profiles.
 2. **Discover the subcommand.** Before constructing the command for a
    subcommand you have not used recently, run `sift-cli <subcommand>
    --help` (or `sift-cli --help` for the top level). The clap-generated
