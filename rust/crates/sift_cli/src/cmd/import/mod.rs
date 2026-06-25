@@ -8,7 +8,7 @@ use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatu
 use crate::util::{
     job::JobServiceWrapper,
     progress::Spinner,
-    tty::{Output, hyperlink},
+    tty::Output,
 };
 
 pub mod backup;
@@ -88,7 +88,7 @@ pub async fn wait_for_job_completion(
                 let mut tip_text =
                     format!("The data should be available on the {import_output_location}");
                 if let Some(url) = &explore_url {
-                    tip_text.push_str(&format!("\n{}", hyperlink(url, "View in Sift")));
+                    tip_text.push_str(&format!("\nView in Sift: {url}"));
                 }
                 Output::new()
                     .line(format!("{} data import job", "Completed".green()))

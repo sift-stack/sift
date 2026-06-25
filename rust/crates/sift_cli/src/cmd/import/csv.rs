@@ -27,7 +27,7 @@ use crate::{
     util::{
         api::create_grpc_channel,
         explore_url::build_explore_url,
-        tty::{Output, hyperlink},
+        tty::Output,
     },
 };
 
@@ -91,7 +91,7 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
         let mut tip_text =
             format!("Once processing is complete the data will be available on the {location}.");
         if let Some(url) = &explore_url {
-            tip_text.push_str(&format!("\n{}", hyperlink(url, "View in Sift")));
+            tip_text.push_str(&format!("\nView in Sift: {url}"));
         }
         Output::new()
             .line(format!("{} file for processing", "Uploaded".green()))
