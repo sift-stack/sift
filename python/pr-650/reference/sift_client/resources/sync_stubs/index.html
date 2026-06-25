@@ -1465,17 +1465,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.ChannelsAPI.configure_data_cache" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;configure_data_cache
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.resources.sync_stubs.ChannelsAPI.disable_data_cache_disk" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3761,17 +3750,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;clear_data_cache_on_disk
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.resources.sync_stubs.ChannelsAPI.configure_data_cache" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;configure_data_cache
       
     </span>
   </a>
@@ -8669,18 +8647,10 @@ representation of a channel using standard Python data structures and types.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            configure_data_cache (sift_client.resources.sync_stubs.ChannelsAPI.configure_data_cache)" href="#sift_client.resources.sync_stubs.ChannelsAPI.configure_data_cache">configure_data_cache</a></code></td>
-              <td class="doc-function-details">
-                <div class="doc-md-description">
-                  <p>Configure the in-memory channel data cache used by <code>get_data</code>.</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            disable_data_cache_disk (sift_client.resources.sync_stubs.ChannelsAPI.disable_data_cache_disk)" href="#sift_client.resources.sync_stubs.ChannelsAPI.disable_data_cache_disk">disable_data_cache_disk</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Opt out of disk persistence for the channel data cache.</p>
+                  <p>Opt out of caching for <code>get_data</code> (no reads or writes).</p>
                 </div>
               </td>
             </tr>
@@ -8919,65 +8889,6 @@ channel data cache directory.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="sift_client.resources.sync_stubs.ChannelsAPI.configure_data_cache" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">configure_data_cache</span>
-
-
-<a href="#sift_client.resources.sync_stubs.ChannelsAPI.configure_data_cache" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">configure_data_cache</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Configure the in-memory channel data cache used by <code>get_data</code>.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">PARAMETER</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>max_bytes</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Byte cap on the cache. <code>0</code> disables caching
-(every <code>get_data</code> call goes to the wire). Defaults to
-512 MiB until explicitly configured. Must be <code>&gt;= 0</code>.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-        <p>Safe to call before or after the first <code>get_data</code>. If the cache is
-already live, the new cap is applied immediately and least-recently-
-used entries are evicted until <code>total_bytes</code> fits.</p>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <p>client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
-client.channels.configure_data_cache(max_bytes=0)  # disable</p>
-</details>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
 <h3 id="sift_client.resources.sync_stubs.ChannelsAPI.disable_data_cache_disk" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">disable_data_cache_disk</span>
 
@@ -8988,12 +8899,11 @@ client.channels.configure_data_cache(max_bytes=0)  # disable</p>
 
     <div class="doc doc-contents ">
 
-        <p>Opt out of disk persistence for the channel data cache.</p>
-<p>Disk persistence is on by default; call this when you don't want any
-cached data written to disk. Closes any open disk-cache file handle.
-The on-disk directory is NOT deleted — use
-:meth:<code>clear_data_cache_on_disk</code> to wipe it. In-memory entries are
-preserved.</p>
+        <p>Opt out of caching for <code>get_data</code> (no reads or writes).</p>
+<p>Caching is on by default; call this when you don't want any cached
+data written to or read from disk. Closes any open cache file
+handle. The on-disk directory is NOT deleted — use
+:meth:<code>clear_data_cache_on_disk</code> to wipe it.</p>
 
 
     </div>
@@ -9020,19 +8930,19 @@ preserved.</p>
         <p>Configure (or re-enable after <code>disable_data_cache_disk</code>) the disk cache.</p>
 <p>Disk persistence is <strong>on by default</strong> at <code>ChannelCache.DEFAULT_DISK_PATH</code>;
 use this method when you want to override the path or size, or to turn
-the tier back on after a prior <code>disable_data_cache_disk</code> call.</p>
-<p>The disk-backed tier is a second-chance layer beneath the in-memory
-cache: on a memory miss, <code>get_data</code> checks disk before going to the
-wire. The default path lives under <code>tempfile.gettempdir()</code> and is
-shared across sessions, so a re-run of the same workload picks up
-previously-cached windows without a fetch.</p>
+the cache back on after a prior <code>disable_data_cache_disk</code> call.</p>
+<p>Each entry that <code>get_data</code> returns is written to the cache and read
+back on subsequent calls, even after process restart. The default
+path lives under <code>tempfile.gettempdir()</code> and is shared across
+sessions, so a re-run of the same workload picks up previously-cached
+windows without a fetch.</p>
 <p>Safe to call before or after the first <code>get_data</code>. Reconfiguring
-(different <code>path</code> or <code>max_bytes</code>) closes the previous disk handle
-and opens a new one; in-memory contents are preserved across the swap.</p>
+(different <code>path</code> or <code>max_bytes</code>) closes the previous handle and
+opens a new one.</p>
 <p>An explicit <code>path</code> that can't be opened (e.g. permission denied,
 read-only filesystem) raises so the caller knows the request didn't
 take. The default-path open does <em>not</em> raise — see
-<code>_ensure_data_low_level_client</code> for the fall-back-to-memory path.</p>
+<code>_ensure_data_low_level_client</code> for the silent fall-back behaviour.</p>
 
 
 <table>
@@ -9071,7 +8981,7 @@ the path become available as cache hits.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Byte cap on the disk tier. <code>None</code> uses
+                <p>Byte cap on disk usage. <code>None</code> uses
 <code>ChannelCache.DEFAULT_DISK_MAX_BYTES</code> (4 GiB). When the
 bound is reached, <code>diskcache</code>'s LRU eviction takes over.</p>
               </div>
