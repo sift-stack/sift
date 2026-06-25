@@ -114,7 +114,16 @@ apply per subcommand invocation:
    until the server-side import job finishes and emits a final status
    line. Without it you cannot confirm the data actually landed. Relay
    the final stdout line to the user verbatim.
-7. **On failure, read stderr and retry.** A non-zero exit usually means a
+7. **Surface the Explore link from import output.** When the user's
+   profile has `app_uri` set, `sift-cli import` emits an OSC 8 hyperlink
+   in stdout with the visible label `View in Sift`. The raw escape
+   sequence is `\x1b]8;;<URL>\x07View in Sift\x1b]8;;\x07` — extract the
+   URL between `]8;;` and the first `\x07` (or `ESC \`) and render it to
+   the user as a clickable markdown link, e.g. `[View in Sift](<URL>)`.
+   Do not summarize the link away; the URL is part of the deliverable.
+   If no link appears in stdout, the profile has no `app_uri` configured
+   — do not invent one.
+8. **On failure, read stderr and retry.** A non-zero exit usually means a
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than
    treating the failure as terminal.
