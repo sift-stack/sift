@@ -503,69 +503,18 @@ class TestUpdateUnitResolution:
         assert captured["update"].unit == ""
 
 
-class TestConfigureDataCache:
-    """``configure_data_cache`` is the resource-level knob for the in-memory
-    channel data cache. Before the cache is initialized, it stashes the value
-    for the lazy-init path; after, it retunes the live cache.
-
-    Each test that triggers ``_ensure_data_low_level_client`` opens the
-    opt-out disk tier (redirected to ``tmp_path`` by the conftest fixture)
-    and closes the handle in ``finally`` so the diskcache lock doesn't leak
-    into the next test.
-    """
-
-    def test_before_lazy_init_propagates_to_cache(self):
-        """Configuring before the first ``get_data`` lands on the cache at init."""
-        api = _make_api()
-        api.configure_data_cache(max_bytes=123)
-        assert api._data_low_level_client is None  # still lazy
-        api._ensure_data_low_level_client()
-        try:
-            assert api._data_low_level_client.channel_cache.max_bytes == 123
-        finally:
-            api._data_low_level_client.channel_cache.close()
-
-    def test_after_lazy_init_updates_live_cache(self):
-        """Configuring after first use retunes the live cache in place."""
-        api = _make_api()
-        api._ensure_data_low_level_client()
-        try:
-            original_client = api._data_low_level_client
-            api.configure_data_cache(max_bytes=456)
-            # Same wrapper instance — we mutated, not replaced.
-            assert api._data_low_level_client is original_client
-            assert api._data_low_level_client.channel_cache.max_bytes == 456
-        finally:
-            api._data_low_level_client.channel_cache.close()
-
-    def test_zero_disables_cache_via_resource(self):
-        """Resource-level ``max_bytes=0`` end-to-end disables the cache."""
-        api = _make_api()
-        api.configure_data_cache(max_bytes=0)
-        api._ensure_data_low_level_client()
-        try:
-            assert not api._data_low_level_client.channel_cache.enabled
-        finally:
-            api._data_low_level_client.channel_cache.close()
-
-    def test_negative_raises(self):
-        api = _make_api()
-        with pytest.raises(ValueError, match="max_bytes"):
-            api.configure_data_cache(max_bytes=-1)
-
-
 class TestEnableDataCacheDisk:
     """``enable_data_cache_disk`` / ``disable_data_cache_disk`` plumb the disk
-    tier setting to the underlying ``ChannelCache``, both pre- and post-init.
+    cache settings to the underlying ``ChannelCache``, both pre- and post-init.
 
-    The disk tier itself is exercised directly in
-    ``test_data.py::TestChannelCacheDisk``; the tests here just verify the
+    The cache itself is exercised directly in
+    ``test_data.py::TestChannelCache``; the tests here just verify the
     resource-level wiring around it.
     """
 
     def test_enabled_by_default(self):
-        """Disk persistence is opt-out: the default-constructed resource
-        lands at ``ChannelCache.DEFAULT_DISK_PATH`` on first ``get_data``.
+        """Disk caching is opt-out: the default-constructed resource lands
+        at ``ChannelCache.DEFAULT_DISK_PATH`` on first ``get_data``.
 
         The autouse ``_isolate_default_disk_cache_path`` fixture in
         ``conftest.py`` redirects the constant to a per-test tmp dir so this
@@ -652,7 +601,7 @@ class TestEnableDataCacheDisk:
 
         path = tmp_path / "to-clear"
         # Populate a real disk-cache directory so the marker check passes.
-        cache = ChannelCache(max_bytes=10_000_000, disk_path=path)
+        cache = ChannelCache(disk_path=path)
         cache.close()
         assert path.exists()
 
@@ -660,9 +609,9 @@ class TestEnableDataCacheDisk:
         api.clear_data_cache_on_disk(path)
         assert not path.exists()
 
-    def test_default_path_failure_falls_back_to_memory(self, monkeypatch, tmp_path):
-        """If the opt-out default disk path can't be opened, the wrapper logs
-        a warning and continues with the in-memory cache only.
+    def test_default_path_failure_falls_back_to_no_cache(self, monkeypatch, tmp_path):
+        """If the opt-out default cache path can't be opened, the wrapper
+        logs a warning and continues with caching disabled.
 
         Simulated by pointing ``DEFAULT_DISK_PATH`` at a path that already
         exists as a regular file — ``os.makedirs(..., exist_ok=True)`` raises
@@ -678,9 +627,8 @@ class TestEnableDataCacheDisk:
         api._ensure_data_low_level_client()  # must not raise
         cache = api._data_low_level_client.channel_cache
         try:
-            # Disk silently dropped, memory still working.
+            # Cache silently dropped; ``get_data`` will go straight to the wire.
             assert not cache.disk_enabled
-            assert cache.enabled
         finally:
             cache.close()
 

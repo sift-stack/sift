@@ -69,33 +69,7 @@ class ChannelsAPIAsync(ResourceBase):
         self._low_level_client = ChannelsLowLevelClient(grpc_client=self.client.grpc_client)
         self._units_low_level_client = UnitsLowLevelClient(grpc_client=self.client.grpc_client)
         self._data_low_level_client = None
-        # Caller-supplied cache size; ``None`` means "use the wrapper default
-        # at lazy-init time" so we don't have to import ``data.py`` (and
-        # therefore pandas) just to remember the default.
-        self._data_cache_max_bytes: int | None = None
         self._disk_cache_config = DiskCacheConfig(enabled=True)
-
-    def configure_data_cache(self, *, max_bytes: int) -> None:
-        """Configure the in-memory channel data cache used by ``get_data``.
-
-        Args:
-            max_bytes: Byte cap on the cache. ``0`` disables caching
-                (every ``get_data`` call goes to the wire). Defaults to
-                512 MiB until explicitly configured. Must be ``>= 0``.
-
-        Safe to call before or after the first ``get_data``. If the cache is
-        already live, the new cap is applied immediately and least-recently-
-        used entries are evicted until ``total_bytes`` fits.
-
-        Example:
-            client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
-            client.channels.configure_data_cache(max_bytes=0)  # disable
-        """
-        if max_bytes < 0:
-            raise ValueError(f"max_bytes must be >= 0, got {max_bytes}")
-        self._data_cache_max_bytes = max_bytes
-        if self._data_low_level_client is not None:
-            self._data_low_level_client.channel_cache.max_bytes = max_bytes
 
     def enable_data_cache_disk(
         self,
@@ -107,28 +81,28 @@ class ChannelsAPIAsync(ResourceBase):
 
         Disk persistence is **on by default** at ``ChannelCache.DEFAULT_DISK_PATH``;
         use this method when you want to override the path or size, or to turn
-        the tier back on after a prior ``disable_data_cache_disk`` call.
+        the cache back on after a prior ``disable_data_cache_disk`` call.
 
-        The disk-backed tier is a second-chance layer beneath the in-memory
-        cache: on a memory miss, ``get_data`` checks disk before going to the
-        wire. The default path lives under ``tempfile.gettempdir()`` and is
-        shared across sessions, so a re-run of the same workload picks up
-        previously-cached windows without a fetch.
+        Each entry that ``get_data`` returns is written to the cache and read
+        back on subsequent calls, even after process restart. The default
+        path lives under ``tempfile.gettempdir()`` and is shared across
+        sessions, so a re-run of the same workload picks up previously-cached
+        windows without a fetch.
 
         Safe to call before or after the first ``get_data``. Reconfiguring
-        (different ``path`` or ``max_bytes``) closes the previous disk handle
-        and opens a new one; in-memory contents are preserved across the swap.
+        (different ``path`` or ``max_bytes``) closes the previous handle and
+        opens a new one.
 
         An explicit ``path`` that can't be opened (e.g. permission denied,
         read-only filesystem) raises so the caller knows the request didn't
         take. The default-path open does *not* raise — see
-        ``_ensure_data_low_level_client`` for the fall-back-to-memory path.
+        ``_ensure_data_low_level_client`` for the silent fall-back behaviour.
 
         Args:
             path: Directory to persist the cache to. ``None`` (the default)
                 uses ``ChannelCache.DEFAULT_DISK_PATH``. Existing entries at
                 the path become available as cache hits.
-            max_bytes: Byte cap on the disk tier. ``None`` uses
+            max_bytes: Byte cap on disk usage. ``None`` uses
                 ``ChannelCache.DEFAULT_DISK_MAX_BYTES`` (4 GiB). When the
                 bound is reached, ``diskcache``'s LRU eviction takes over.
 
@@ -141,13 +115,12 @@ class ChannelsAPIAsync(ResourceBase):
             self._data_low_level_client.channel_cache.enable_disk(path=path, max_bytes=max_bytes)
 
     def disable_data_cache_disk(self) -> None:
-        """Opt out of disk persistence for the channel data cache.
+        """Opt out of caching for ``get_data`` (no reads or writes).
 
-        Disk persistence is on by default; call this when you don't want any
-        cached data written to disk. Closes any open disk-cache file handle.
-        The on-disk directory is NOT deleted — use
-        :meth:`clear_data_cache_on_disk` to wipe it. In-memory entries are
-        preserved.
+        Caching is on by default; call this when you don't want any cached
+        data written to or read from disk. Closes any open cache file
+        handle. The on-disk directory is NOT deleted — use
+        :meth:`clear_data_cache_on_disk` to wipe it.
         """
         self._disk_cache_config.disable()
         if self._data_low_level_client is not None:
@@ -362,16 +335,12 @@ class ChannelsAPIAsync(ResourceBase):
                 DataLowLevelClient,
             )
 
-            # Pass each kwarg only when explicitly configured so the wrapper's
-            # own defaults remain the single source of truth.
             kwargs: dict = {}
-            if self._data_cache_max_bytes is not None:
-                kwargs["data_cache_max_bytes"] = self._data_cache_max_bytes
             disk_config = self._disk_cache_config
             if disk_config.enabled:
-                # ``disk_path=None`` means "disabled" to ChannelCache; substitute
+                # ``disk_path=None`` means "no cache" to ChannelCache; substitute
                 # the default explicitly so the opt-out default still opens
-                # the disk tier. ``DEFAULT_DISK_PATH`` is read here (not at
+                # the cache. ``DEFAULT_DISK_PATH`` is read here (not at
                 # config construction) so test fixtures that monkeypatch the
                 # class attribute see the override.
                 kwargs["disk_cache_path"] = disk_config.path or ChannelCache.DEFAULT_DISK_PATH
@@ -383,26 +352,23 @@ class ChannelsAPIAsync(ResourceBase):
                     **kwargs,
                 )
             except Exception:
-                # Explicit user-supplied disk path failures propagate so the
+                # Explicit user-supplied paths failures propagate so the
                 # caller knows their request didn't take. Default-path failures
                 # (read-only ``/tmp``, restricted containers, etc.) degrade
-                # silently to memory-only so ``get_data`` still works.
+                # silently to no-cache mode so ``get_data`` still works.
                 if not disk_config.using_default_path:
                     raise
                 logger.warning(
-                    "Could not open the default channel data disk cache at %r; "
-                    "falling back to in-memory cache only. Call "
+                    "Could not open the default channel data cache at %r; "
+                    "falling back to no caching for ``get_data``. Call "
                     "``client.channels.disable_data_cache_disk()`` to silence "
                     "this warning, or pass an explicit path via "
                     "``enable_data_cache_disk(path=...)``.",
                     kwargs.get("disk_cache_path"),
                     exc_info=True,
                 )
-                kwargs.pop("disk_cache_path", None)
-                kwargs.pop("disk_cache_max_bytes", None)
                 self._data_low_level_client = DataLowLevelClient(
                     grpc_client=self.client.grpc_client,
-                    **kwargs,
                 )
 
     async def get_data(

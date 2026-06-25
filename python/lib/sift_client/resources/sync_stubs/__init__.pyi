@@ -478,32 +478,13 @@ class ChannelsAPI:
         """
         ...
 
-    def configure_data_cache(self, *, max_bytes: int) -> None:
-        """Configure the in-memory channel data cache used by ``get_data``.
-
-        Args:
-            max_bytes: Byte cap on the cache. ``0`` disables caching
-                (every ``get_data`` call goes to the wire). Defaults to
-                512 MiB until explicitly configured. Must be ``>= 0``.
-
-        Safe to call before or after the first ``get_data``. If the cache is
-        already live, the new cap is applied immediately and least-recently-
-        used entries are evicted until ``total_bytes`` fits.
-
-        Example:
-            client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)
-            client.channels.configure_data_cache(max_bytes=0)  # disable
-        """
-        ...
-
     def disable_data_cache_disk(self) -> None:
-        """Opt out of disk persistence for the channel data cache.
+        """Opt out of caching for ``get_data`` (no reads or writes).
 
-        Disk persistence is on by default; call this when you don't want any
-        cached data written to disk. Closes any open disk-cache file handle.
-        The on-disk directory is NOT deleted — use
-        :meth:`clear_data_cache_on_disk` to wipe it. In-memory entries are
-        preserved.
+        Caching is on by default; call this when you don't want any cached
+        data written to or read from disk. Closes any open cache file
+        handle. The on-disk directory is NOT deleted — use
+        :meth:`clear_data_cache_on_disk` to wipe it.
         """
         ...
 
@@ -514,28 +495,28 @@ class ChannelsAPI:
 
         Disk persistence is **on by default** at ``ChannelCache.DEFAULT_DISK_PATH``;
         use this method when you want to override the path or size, or to turn
-        the tier back on after a prior ``disable_data_cache_disk`` call.
+        the cache back on after a prior ``disable_data_cache_disk`` call.
 
-        The disk-backed tier is a second-chance layer beneath the in-memory
-        cache: on a memory miss, ``get_data`` checks disk before going to the
-        wire. The default path lives under ``tempfile.gettempdir()`` and is
-        shared across sessions, so a re-run of the same workload picks up
-        previously-cached windows without a fetch.
+        Each entry that ``get_data`` returns is written to the cache and read
+        back on subsequent calls, even after process restart. The default
+        path lives under ``tempfile.gettempdir()`` and is shared across
+        sessions, so a re-run of the same workload picks up previously-cached
+        windows without a fetch.
 
         Safe to call before or after the first ``get_data``. Reconfiguring
-        (different ``path`` or ``max_bytes``) closes the previous disk handle
-        and opens a new one; in-memory contents are preserved across the swap.
+        (different ``path`` or ``max_bytes``) closes the previous handle and
+        opens a new one.
 
         An explicit ``path`` that can't be opened (e.g. permission denied,
         read-only filesystem) raises so the caller knows the request didn't
         take. The default-path open does *not* raise — see
-        ``_ensure_data_low_level_client`` for the fall-back-to-memory path.
+        ``_ensure_data_low_level_client`` for the silent fall-back behaviour.
 
         Args:
             path: Directory to persist the cache to. ``None`` (the default)
                 uses ``ChannelCache.DEFAULT_DISK_PATH``. Existing entries at
                 the path become available as cache hits.
-            max_bytes: Byte cap on the disk tier. ``None`` uses
+            max_bytes: Byte cap on disk usage. ``None`` uses
                 ``ChannelCache.DEFAULT_DISK_MAX_BYTES`` (4 GiB). When the
                 bound is reached, ``diskcache``'s LRU eviction takes over.
 

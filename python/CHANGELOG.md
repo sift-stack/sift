@@ -11,31 +11,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 Up to a ~80x speedup for some get_data calls.
 
-#### Bounded channel data cache
+#### Channel data cache (opt-out, on by default)
 
-The in-memory channel data cache used by `client.channels.get_data(...)` is now byte-bounded with LRU eviction (default 512 MiB). Once the bound is reached, the least-recently-used cached channel is evicted.
+`client.channels.get_data(...)` now caches the channel windows it returns to disk by default. Subsequent calls covering the same channel/time range — including from a fresh process — read straight out of the cache instead of going to the wire. This also bounds memory: nothing is held in process after the call returns, which fixes the OOM seen on long sustained pulls (~5–7 GB of cache for a 145M-point pull in earlier versions).
 
-Configure the bound on the `channels` resource:
+The default location is `<tempfile.gettempdir()>/sift-channel-data-cache`, capped at 4 GiB with LRU eviction. If the default path can't be opened (read-only filesystem, restricted container, etc.), the client logs a warning and continues with caching disabled — `get_data` still works, it just always goes to the wire.
 
-```python
-client.channels.configure_data_cache(max_bytes=128 * 1024 * 1024)  # 128 MiB cap
-client.channels.configure_data_cache(max_bytes=0)                  # disable caching
-```
+`ignore_cache=True` on `client.channels.get_data(...)` now skips writing into the cache as well as reading from it. Previously a "non-caching" workload still appended to the shared cache on every call.
 
-`configure_data_cache` may be called at any time; if the cache is already populated, the new bound is applied immediately and excess entries are evicted.
-
-`ignore_cache=True` on `client.channels.get_data(...)` now also skips writing into the cache, matching its read-side bypass semantics. Previously a "non-caching" workload still appended to the shared cache on every call, which still caused increased memory usage.
-
-#### On-disk channel data cache (opt-out, on by default)
-
-The channel data cache now persists to disk by default, surviving process restarts. The disk tier is a second-chance layer beneath the in-memory cache: on a memory miss, `get_data` checks disk before going to the wire. Re-running the same workload in a new session picks up the previously-cached windows for free — no configuration required.
-
-The default location is `<tempfile.gettempdir()>/sift-channel-data-cache`, capped at 4 GiB with LRU eviction. If the default path can't be opened (read-only filesystem, restricted container, etc.), the client logs a warning and falls back to the in-memory cache only — `get_data` continues to work.
-
-Opt out, reconfigure, or wipe the on-disk cache from the `channels` resource:
+Opt out, reconfigure, or wipe the cache from the `channels` resource:
 
 ```python
-# Opt out — no data persisted to disk.
+# Opt out — no data persisted to disk; every get_data call goes to the wire.
 client.channels.disable_data_cache_disk()
 
 # Reconfigure the location or byte cap.
@@ -46,9 +33,9 @@ client.channels.clear_data_cache_on_disk()                   # default tmp path
 client.channels.clear_data_cache_on_disk("/data/sift-cache") # custom path
 ```
 
-`enable_data_cache_disk` is also the way to turn the tier back on after a prior `disable_data_cache_disk` call.
+`enable_data_cache_disk` is also the way to turn the cache back on after a prior `disable_data_cache_disk` call.
 
-The disk tier is powered by [`diskcache`](https://grantjenks.com/docs/diskcache/) (pure-Python, SQLite-backed) and has its own independent byte cap with LRU eviction. The in-memory tier remains the fast path — disk is only consulted on a memory miss.
+The cache is powered by [`diskcache`](https://grantjenks.com/docs/diskcache/) (pure-Python, SQLite-backed) with LRU eviction.
 
 #### Resource and principal attributes (ABAC)
 

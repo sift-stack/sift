@@ -5,7 +5,6 @@ import logging
 import os
 import shutil
 import tempfile
-from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -41,11 +40,6 @@ CHANNELS_DEFAULT_PAGE_SIZE = 10_000
 # has been resolved. In the mean time each channel gets its own request.
 REQUEST_BATCH_SIZE = 1
 
-# Default in-memory budget for cached channel DataFrames, per ``DataLowLevelClient``
-# instance. 512 MiB is well below typical limits while still letting common
-# interactive workloads stay in cache. Override via ``SiftClient(data_cache_max_bytes=...)``.
-DEFAULT_DATA_CACHE_MAX_BYTES = 512 * 1024 * 1024
-
 
 class ChannelCacheEntry(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -67,33 +61,37 @@ def _new_cache_entry(
 
 
 class ChannelCache:
-    """Two-tier cache of per-channel DataFrames.
+    """Disk-backed cache of per-channel DataFrames.
 
-    Tier 1: an LRU-ordered, byte-bounded in-memory dict (hot path). ``max_bytes
-    <= 0`` disables this tier: ``get`` always misses memory, ``put`` doesn't
-    populate it.
+    A ``diskcache``-backed key/value store that survives process restarts.
+    ``put`` writes through to disk, ``get`` reads from disk, and
+    ``invalidate``/``clear`` remove entries. The disk tier has a byte cap
+    that ``diskcache`` enforces with its own LRU eviction.
 
-    Tier 2 (optional, see ``enable_disk``): a ``diskcache``-backed write-through
-    layer that survives process restarts. When enabled, ``put`` writes to both
-    tiers, ``get`` falls back to disk on a memory miss (promoting the hit back
-    into memory), and ``invalidate``/``clear`` cascade to disk. The disk tier
-    has its own byte cap that ``diskcache`` enforces with LRU eviction.
+    When no ``disk_path`` is supplied the cache is a no-op: ``get`` always
+    returns ``None``, ``__contains__`` is always ``False``, and ``put`` is
+    silently dropped. This is the "caching disabled" mode used after a
+    :meth:`disable_disk` call (or when disk persistence is turned off on
+    the owning resource).
 
-    The two tiers are independent: setting ``max_bytes=0`` keeps the disk layer
-    active, useful for "cold storage only" workloads.
+    An in-memory tier previously sat in front of disk. It was removed once
+    benchmarks showed that for the workloads driving the OOM regression the
+    extra memory footprint outweighed the per-call pickle/deserialize cost
+    on a warm disk hit; if profiling shows the disk reads dominating again,
+    re-introduce a small front cache here.
     """
 
-    #: Default directory for the on-disk tier. Lives under
-    #: ``tempfile.gettempdir()`` so it survives across sessions of the same
-    #: user but doesn't pollute the user's home dir. The suffix is fixed so
-    #: multiple processes (different ``SiftClient`` instances, notebooks, etc.)
-    #: naturally share the same store and can read each other's prior sessions.
+    #: Default directory for the cache. Lives under ``tempfile.gettempdir()``
+    #: so it survives across sessions of the same user but doesn't pollute
+    #: the user's home dir. The suffix is fixed so multiple processes
+    #: (different ``SiftClient`` instances, notebooks, etc.) naturally share
+    #: the same store and can read each other's prior sessions.
     DEFAULT_DISK_PATH: str = os.path.join(tempfile.gettempdir(), "sift-channel-data-cache")
 
-    #: Default byte cap for the disk tier when ``enable_disk`` is called
-    #: without an explicit ``max_bytes``. 4 GiB is a generous ceiling for the
-    #: typical ``/tmp`` filesystem; ``diskcache`` enforces it with its own
-    #: SQLite-backed LRU eviction once the bound is reached.
+    #: Default byte cap for the cache when ``enable_disk`` is called without
+    #: an explicit ``max_bytes``. 4 GiB is a generous ceiling for the typical
+    #: ``/tmp`` filesystem; ``diskcache`` enforces it with its own SQLite-
+    #: backed LRU eviction once the bound is reached.
     DEFAULT_DISK_MAX_BYTES: int = 4 * 1024 * 1024 * 1024
 
     #: Marker file ``diskcache`` writes inside every cache directory. We
@@ -103,34 +101,27 @@ class ChannelCache:
 
     def __init__(
         self,
-        max_bytes: int = DEFAULT_DATA_CACHE_MAX_BYTES,
         *,
         disk_path: str | os.PathLike[str] | None = None,
         disk_max_bytes: int | None = None,
     ):
-        """Construct an in-memory cache, optionally backed by disk.
+        """Construct a disk-backed cache.
 
         Args:
-            max_bytes: Byte cap on the in-memory tier. ``0`` disables it.
-            disk_path: Directory for the disk tier. ``None`` (the default)
-                disables disk. A previously-populated directory is reused,
-                so subsequent sessions can read from existing entries.
-            disk_max_bytes: Byte cap on the disk tier. ``None`` falls back to
+            disk_path: Directory for the cache. ``None`` disables caching
+                entirely (every operation becomes a no-op). A previously-
+                populated directory is reused, so subsequent sessions can
+                read existing entries.
+            disk_max_bytes: Byte cap on disk usage. ``None`` falls back to
                 ``DEFAULT_DISK_MAX_BYTES``. Ignored when ``disk_path`` is
                 ``None``.
         """
-        if max_bytes < 0:
-            raise ValueError(f"data_cache_max_bytes must be >= 0, got {max_bytes}")
         self.name_id_map: dict[str, str] = {}
-        self._entries: OrderedDict[str, ChannelCacheEntry] = OrderedDict()
-        self._total_bytes: int = 0
-        self._max_bytes: int = max_bytes
-        # Channels we've already logged an "entry exceeds tier cap" warning
+        # Channels we've already logged an "entry exceeds disk cap" warning
         # for. The check on the put path would otherwise spam the log once
         # per ``get_data`` call for any channel whose typical entry is bigger
         # than the cap. A successful normal put for the same channel clears
         # the bit so a future regression re-warns.
-        self._oversized_memory_warned: set[str] = set()
         self._oversized_disk_warned: set[str] = set()
         self._disk: diskcache.Cache | None = None
         self._disk_path: str | None = None
@@ -172,63 +163,30 @@ class ChannelCache:
         shutil.rmtree(target)
 
     @property
-    def enabled(self) -> bool:
-        """Whether the in-memory tier accepts writes (``max_bytes > 0``)."""
-        return self._max_bytes > 0
-
-    @property
-    def max_bytes(self) -> int:
-        return self._max_bytes
-
-    @max_bytes.setter
-    def max_bytes(self, value: int) -> None:
-        """Reconfigure the in-memory byte cap and immediately evict any excess.
-
-        Used by ``ChannelsAPIAsync.configure_data_cache`` to retune a live
-        cache. Lowering the cap below ``total_bytes`` triggers LRU eviction
-        in the same loop ``put`` uses, so the invariant ``total_bytes <=
-        max_bytes`` is restored before the setter returns. Does not touch
-        the disk tier.
-        """
-        if value < 0:
-            raise ValueError(f"data_cache_max_bytes must be >= 0, got {value}")
-        self._max_bytes = value
-        self._evict_until_under_bound()
-
-    @property
-    def total_bytes(self) -> int:
-        return self._total_bytes
-
-    @property
     def disk_enabled(self) -> bool:
-        """Whether the disk-backed second-chance tier is currently open."""
+        """Whether the disk-backed store is currently open."""
         return self._disk is not None
 
     @property
     def disk_path(self) -> str | None:
-        """Filesystem path of the disk tier when enabled, else ``None``."""
+        """Filesystem path of the cache when enabled, else ``None``."""
         return self._disk_path
 
     @property
     def disk_max_bytes(self) -> int | None:
-        """Configured byte cap on the disk tier, or ``None`` when disabled."""
+        """Configured byte cap on disk usage, or ``None`` when disabled."""
         return self._disk_max_bytes
 
-    def __len__(self) -> int:
-        return len(self._entries)
-
     def __contains__(self, channel_id: str) -> bool:
-        """True if the channel is cached in memory OR on disk.
+        """True if the channel is cached on disk.
 
         Used by ``_filter_cached_channels`` to decide whether ``get_data``
-        needs to hit the wire. Including the disk tier here lets a fresh
-        session served by a warm disk avoid re-fetching.
+        needs to hit the wire. A warm disk lets a fresh session avoid
+        re-fetching previously-served windows.
         """
-        if channel_id in self._entries:
-            return True
-        if self._disk is not None and channel_id in self._disk:
-            return True
-        return False
+        if self._disk is None:
+            return False
+        return channel_id in self._disk
 
     def enable_disk(
         self,
@@ -236,19 +194,19 @@ class ChannelCache:
         path: str | os.PathLike[str] | None = None,
         max_bytes: int | None = None,
     ) -> None:
-        """Enable (or reconfigure) the disk-backed second-chance tier.
+        """Enable (or reconfigure) the disk-backed cache.
 
-        If a previous disk tier was open at a different path or with a
-        different size cap, it's closed first. Memory contents are left
-        intact; they are NOT replayed to disk so disk reflects only future
-        writes.
+        If a previous disk handle was open at a different path or with a
+        different size cap, it's closed first. Disk contents at the new
+        path are NOT recreated from anywhere — only future writes land in
+        the new location.
 
         Args:
             path: Directory to persist to. ``None`` uses
                 :attr:`DEFAULT_DISK_PATH`. The directory is created if
                 missing; an existing one is opened in place and its
                 contents become available to ``get``.
-            max_bytes: Byte cap for the disk tier (``None`` →
+            max_bytes: Byte cap on disk usage (``None`` →
                 :attr:`DEFAULT_DISK_MAX_BYTES`).
         """
         target_path = str(path) if path is not None else self.DEFAULT_DISK_PATH
@@ -263,24 +221,15 @@ class ChannelCache:
         self._open_disk(target_path, target_max)
 
     def disable_disk(self) -> None:
-        """Close the disk tier (if open). Does not touch the disk contents.
+        """Close the disk handle (if open). Does not touch the disk contents.
 
-        Use ``sift_client.clear_data_cache_on_disk(path)`` to remove a
+        Use ``client.channels.clear_data_cache_on_disk(path)`` to remove a
         directory from disk.
         """
         self._close_disk()
 
     def get(self, channel_id: str) -> ChannelCacheEntry | None:
-        """Return the entry for ``channel_id`` if cached, otherwise None.
-
-        Memory is consulted first; on a miss, the disk tier (if enabled) is
-        checked. A disk hit is promoted back into memory (subject to the
-        in-memory cap) so subsequent accesses stay hot.
-        """
-        entry = self._entries.get(channel_id)
-        if entry is not None:
-            self._entries.move_to_end(channel_id)
-            return entry
+        """Return the entry for ``channel_id`` if cached, otherwise None."""
         if self._disk is None:
             return None
         try:
@@ -288,8 +237,8 @@ class ChannelCache:
         except Exception:
             # diskcache surfaces ``sqlite3.DatabaseError`` (and friends) for
             # corrupt or partially-written entries from a prior session.
-            # Treat as a miss; force ``invalidate`` to drop the bad row so
-            # we don't repeatedly trip the same path.
+            # Treat as a miss; force-drop the bad row so we don't repeatedly
+            # trip the same path.
             logger.warning("disk cache read failed for %s; invalidating", channel_id)
             try:
                 del self._disk[channel_id]
@@ -298,61 +247,55 @@ class ChannelCache:
             return None
         if disk_entry is None or not isinstance(disk_entry, ChannelCacheEntry):
             return None
-        if self.enabled:
-            # Promote disk hit into memory so subsequent reads are cheap.
-            self._put_memory(channel_id, disk_entry)
         return disk_entry
 
     def put(self, channel_id: str, entry: ChannelCacheEntry) -> None:
-        """Insert or replace ``channel_id`` in memory (if enabled) and on disk.
+        """Insert or replace ``channel_id`` on disk.
 
-        Memory reclaims any prior entry's byte count BEFORE adding the new
-        one's, so a re-insert (e.g. concat-merge of fresh data into an
-        existing entry) accounts for the size delta correctly. Disk writes
-        replace the prior row.
+        No-op when the disk tier is disabled. Entries larger than
+        ``disk_max_bytes`` are skipped (with a one-shot warning per
+        channel) instead of being inserted, since diskcache's eviction
+        loop would otherwise drain every other row trying — and failing —
+        to fit them.
         """
-        if self.enabled:
-            self._put_memory(channel_id, entry)
-        if self._disk is not None:
-            if self._disk_max_bytes is not None and entry.size_bytes > self._disk_max_bytes:
-                if channel_id not in self._oversized_disk_warned:
-                    logger.warning(
-                        "Channel %s data (%d bytes) is larger than the disk "
-                        "cache cap (%d bytes); skipping disk cache for this "
-                        "channel so other entries aren't evicted. Raise the "
-                        "cap via ``client.channels.enable_data_cache_disk("
-                        "max_bytes=...)`` to cache this channel on disk.",
-                        channel_id,
-                        entry.size_bytes,
-                        self._disk_max_bytes,
-                    )
-                    self._oversized_disk_warned.add(channel_id)
-                try:
-                    self._disk.delete(channel_id, retry=True)
-                except Exception:
-                    pass
-                return
+        if self._disk is None:
+            return
+        if self._disk_max_bytes is not None and entry.size_bytes > self._disk_max_bytes:
+            if channel_id not in self._oversized_disk_warned:
+                logger.warning(
+                    "Channel %s data (%d bytes) is larger than the disk "
+                    "cache cap (%d bytes); skipping disk cache for this "
+                    "channel so other entries aren't evicted. Raise the "
+                    "cap via ``client.channels.enable_data_cache_disk("
+                    "max_bytes=...)`` to cache this channel on disk.",
+                    channel_id,
+                    entry.size_bytes,
+                    self._disk_max_bytes,
+                )
+                self._oversized_disk_warned.add(channel_id)
             try:
-                self._disk.set(channel_id, entry, retry=True)
-                self._oversized_disk_warned.discard(channel_id)
+                self._disk.delete(channel_id, retry=True)
             except Exception:
-                # Best-effort persistence: keep going on disk errors so the
-                # in-memory cache (and the user's ``get_data`` call) still
-                # succeeds. Drop the (possibly partial) disk row.
-                logger.warning("disk cache write failed for %s; invalidating", channel_id)
-                try:
-                    self._disk.delete(channel_id, retry=True)
-                except Exception:
-                    pass
+                pass
+            return
+        try:
+            self._disk.set(channel_id, entry, retry=True)
+            self._oversized_disk_warned.discard(channel_id)
+        except Exception:
+            # Best-effort persistence: keep going on disk errors so the
+            # user's ``get_data`` call still succeeds. Drop the (possibly
+            # partial) disk row.
+            logger.warning("disk cache write failed for %s; invalidating", channel_id)
+            try:
+                self._disk.delete(channel_id, retry=True)
+            except Exception:
+                pass
 
     def invalidate(self, channel_id: str) -> None:
-        prior = self._entries.pop(channel_id, None)
-        if prior is not None:
-            self._total_bytes -= prior.size_bytes
+        """Remove ``channel_id`` from the cache. Safe to call when absent."""
         # Invalidation is a fresh start for this channel; if it was warned
         # about as oversized previously, the next put should re-evaluate
         # against the current cap and re-warn if still too big.
-        self._oversized_memory_warned.discard(channel_id)
         self._oversized_disk_warned.discard(channel_id)
         if self._disk is not None:
             try:
@@ -361,55 +304,19 @@ class ChannelCache:
                 pass
 
     def clear(self) -> None:
-        self._entries.clear()
-        self._total_bytes = 0
-        self._oversized_memory_warned.clear()
+        """Wipe all entries from disk. The directory itself remains."""
         self._oversized_disk_warned.clear()
         if self._disk is not None:
             self._disk.clear()
 
     def close(self) -> None:
-        """Release the disk-tier file handle. Safe to call without disk enabled."""
+        """Release the disk file handle. Safe to call without disk enabled."""
         self._close_disk()
-
-    def _put_memory(self, channel_id: str, entry: ChannelCacheEntry) -> None:
-        """Memory-tier insert + eviction. Caller has already gated on ``enabled``."""
-        prior = self._entries.pop(channel_id, None)
-        if prior is not None:
-            self._total_bytes -= prior.size_bytes
-        if entry.size_bytes > self._max_bytes:
-            if channel_id not in self._oversized_memory_warned:
-                logger.warning(
-                    "Channel %s data (%d bytes) is larger than the in-memory "
-                    "cache cap (%d bytes); skipping cache for this channel so "
-                    "other entries aren't evicted. Raise the cap via "
-                    "``client.channels.configure_data_cache(max_bytes=...)`` "
-                    "to cache this channel.",
-                    channel_id,
-                    entry.size_bytes,
-                    self._max_bytes,
-                )
-                self._oversized_memory_warned.add(channel_id)
-            return
-        self._oversized_memory_warned.discard(channel_id)
-        self._entries[channel_id] = entry
-        self._total_bytes += entry.size_bytes
-        self._evict_until_under_bound()
-
-    def _evict_until_under_bound(self) -> None:
-        # ``popitem(last=False)`` drops the oldest entry. A single fresh entry
-        # whose ``size_bytes`` alone exceeds ``max_bytes`` ends up evicted on
-        # the final iteration.
-        while self._entries and self._total_bytes > self._max_bytes:
-            _, dropped = self._entries.popitem(last=False)
-            self._total_bytes -= dropped.size_bytes
 
     def _open_disk(self, path: str, max_bytes: int) -> None:
         import diskcache
 
         os.makedirs(path, exist_ok=True)
-        # ``least-recently-used`` matches the in-memory tier's eviction policy;
-        # statistics/tag_index are off because we only need plain k/v reads.
         self._disk = diskcache.Cache(
             directory=path,
             size_limit=max_bytes,
@@ -442,7 +349,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         grpc_client: GrpcClient,
         *,
-        data_cache_max_bytes: int = DEFAULT_DATA_CACHE_MAX_BYTES,
         disk_cache_path: str | os.PathLike[str] | None = None,
         disk_cache_max_bytes: int | None = None,
     ):
@@ -450,17 +356,14 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Args:
             grpc_client: The gRPC client to use for making API calls.
-            data_cache_max_bytes: Cap on the in-memory channel-data cache (bytes).
-                Set to ``0`` to disable in-memory caching. See ``ChannelCache``.
-            disk_cache_path: Directory for the disk-backed second-chance tier.
-                ``None`` disables disk persistence. See ``ChannelCache``.
-            disk_cache_max_bytes: Byte cap for the disk tier. ``None`` uses
-                ``DEFAULT_DISK_CACHE_MAX_BYTES``. Ignored when
+            disk_cache_path: Directory for the disk-backed channel-data cache.
+                ``None`` disables caching entirely. See ``ChannelCache``.
+            disk_cache_max_bytes: Byte cap for disk usage. ``None`` uses
+                ``ChannelCache.DEFAULT_DISK_MAX_BYTES``. Ignored when
                 ``disk_cache_path`` is ``None``.
         """
         super().__init__(grpc_client)
         self.channel_cache = ChannelCache(
-            max_bytes=data_cache_max_bytes,
             disk_path=disk_cache_path,
             disk_max_bytes=disk_cache_max_bytes,
         )
