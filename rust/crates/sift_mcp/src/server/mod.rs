@@ -12,8 +12,9 @@ use sift_rs::SiftChannel;
 use crate::policy::RetryPolicy;
 use crate::service::{
     annotations::AnnotationService, assets::AssetService, channels::ChannelService,
-    data::DataService, ingest::IngestService, ping::PingService, reports::ReportService,
-    rules::RuleService, runs::RunService, test_reports::TestReportService, url::UrlService,
+    data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
+    reports::ReportService, rules::RuleService, runs::RunService, test_reports::TestReportService,
+    url::UrlService,
 };
 
 #[derive(Clone)]
@@ -32,6 +33,7 @@ pub struct SiftMcpServer {
     pub report_service: ReportService,
     pub rule_service: RuleService,
     pub test_report_service: TestReportService,
+    pub docs_service: DocsService,
 }
 
 #[tool_handler(
@@ -57,6 +59,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::rules_router());
         tool_router.merge(Self::annotations_router());
         tool_router.merge(Self::test_reports_router());
+        tool_router.merge(Self::docs_router());
 
         let prompt_router = Self::prompt_router();
 
@@ -72,7 +75,8 @@ impl SiftMcpServer {
         let run_service = RunService::new(channel.clone(), retry_policy.clone());
         let report_service = ReportService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
-        let test_report_service = TestReportService::new(channel.clone(), retry_policy);
+        let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
+        let docs_service = DocsService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,
@@ -86,6 +90,7 @@ impl SiftMcpServer {
             report_service,
             rule_service,
             test_report_service,
+            docs_service,
             tool_router,
             prompt_router,
         }

@@ -99,19 +99,9 @@ message Policy {
   string policy_id = 1 [(google.api.field_behavior) = REQUIRED];
   string name = 2 [(google.api.field_behavior) = REQUIRED];
   optional string description = 3 [(google.api.field_behavior) = OPTIONAL];
-  string organization_id = 4 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string created_by_user_id = 5 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string modified_by_user_id = 6 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string organization_id = 4 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
+  string created_by_user_id = 5 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
+  string modified_by_user_id = 6 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp created_date = 7 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
@@ -123,10 +113,7 @@ message Policy {
   // Policy rules/configuration
   PolicyConfiguration configuration = 9 [(google.api.field_behavior) = REQUIRED];
   // Reference to the current policy version ID
-  string policy_version_id = 10 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string policy_version_id = 10 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   // The date the policy was archived.
   google.protobuf.Timestamp archived_date = 11 [
     (google.api.field_behavior) = OPTIONAL,

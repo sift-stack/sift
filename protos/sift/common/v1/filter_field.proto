@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package sift.common.v1;
 
+
 // Describes the type of a filter field.
 enum FilterFieldType {
   FILTER_FIELD_TYPE_UNSPECIFIED = 0;

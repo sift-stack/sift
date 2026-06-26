@@ -257,15 +257,8 @@ enum PrincipalAttributePrincipalType {
 }
 
 message PrincipalAttributeKey {
-  string principal_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string organization_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string principal_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   string display_name = 3 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = IMMUTABLE
@@ -279,18 +272,12 @@ message PrincipalAttributeKey {
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string created_by_user_id = 7 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp modified_date = 8 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string modified_by_user_id = 9 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string modified_by_user_id = 9 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp archived_date = 10 [
     (google.api.field_behavior) = OPTIONAL,
     (google.api.field_behavior) = OUTPUT_ONLY
@@ -412,15 +399,8 @@ message UnarchivePrincipalAttributeKeysResponse {}
 // Represents a possible enumerable value for ENUM type principal attribute keys.
 // Users can add new enum values as needed.
 message PrincipalAttributeEnumValue {
-  string principal_attribute_enum_value_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string principal_attribute_key_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string principal_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
+  string principal_attribute_key_id = 2 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   string display_name = 3 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = IMMUTABLE
@@ -430,18 +410,12 @@ message PrincipalAttributeEnumValue {
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string created_by_user_id = 6 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string created_by_user_id = 6 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp modified_date = 7 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string modified_by_user_id = 8 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp archived_date = 9 [
     (google.api.field_behavior) = OPTIONAL,
     (google.api.field_behavior) = OUTPUT_ONLY
@@ -458,40 +432,22 @@ message PrincipalAttributeEnumValueIdList {
 }
 
 message PrincipalAttributeValue {
-  string principal_attribute_value_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string principal_attribute_key_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string principal_attribute_value_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
+  string principal_attribute_key_id = 2 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   // The ID of the user or user group this value is assigned to.
-  string principal_id = 3 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string principal_id = 3 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   PrincipalAttributePrincipalType principal_type = 4 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = IMMUTABLE,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string organization_id = 5 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string organization_id = 5 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   oneof value {
     string principal_attribute_enum_value_id = 6;
     int64 number_value = 7;
     bool boolean_value = 8;
   }
-  string created_by_user_id = 9 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string created_by_user_id = 9 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp created_date = 10 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY

@@ -329,7 +329,8 @@ message StopRunRequest {
 message StopRunResponse {}
 
 // The request for a call to `RunService_GetFilterFields`.
-message GetFilterFieldsRequest {}
+message GetFilterFieldsRequest {
+}
 
 // The response of a call to `RunService_GetFilterFields`.
 message GetFilterFieldsResponse {
