@@ -39,15 +39,11 @@ pub fn resolve_app_uri(app_uri: Option<&str>, rest_uri: &str) -> Option<String> 
     if let Some(uri) = app_uri.map(str::trim).filter(|s| !s.is_empty()) {
         return Some(uri.to_string());
     }
-    let host = host_of(rest_uri)?;
-    match host {
+    match host_of(rest_uri)? {
         "api.siftstack.com" => Some("https://app.siftstack.com".to_string()),
         "gov.api.siftstack.com" => Some("https://gov.siftstack.com".to_string()),
         "api.development.siftstack.com" => {
             Some("https://app.development.siftstack.com".to_string())
-        }
-        "localhost" | "127.0.0.1" if rest_uri.starts_with("http://") => {
-            Some("http://localhost:3000".to_string())
         }
         _ => None,
     }
