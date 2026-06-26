@@ -19,8 +19,7 @@ use crate::{
     cmd::{
         Context,
         import::{
-            TimePreview,
-            finish_import,
+            TimePreview, finish_import,
             parquet::FooterMetadata,
             preview_import_config,
             utils::{try_parse_bit_field_config, try_parse_enum_config, upload_gzipped_file},
