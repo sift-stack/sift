@@ -19,6 +19,12 @@ to combine them when working with Sift.
    - `list_assets`, `list_runs`, `list_channels`, `list_reports`, `list_rules`,
      `list_rule_versions`, `list_annotations`: discover what exists.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
+   - `list_test_reports`, `list_test_steps`, `list_test_measurements`: inspect
+     test-results data (reports own steps own measurements); `count_test_steps`,
+     `count_test_measurements`: totals matching a filter without fetching rows.
+   - `create_test_report`, `append_test_measurements`: create a test report with
+     its step/measurement tree, or add measurements to an existing step (writes —
+     confirm with the user first).
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
    - `upload_dataset`: stream a Parquet dataset into Sift.

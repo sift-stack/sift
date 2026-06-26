@@ -7,6 +7,7 @@ pub mod ping;
 pub mod reports;
 pub mod rules;
 pub mod runs;
+pub mod test_reports;
 pub mod url;
 
 pub(crate) mod common;
