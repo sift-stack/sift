@@ -182,9 +182,7 @@ class TestDiskCache:
         cache = DiskCache(disk_path=tmp_path / "noop")
         try:
             handle_before = cache._disk
-            cache.enable_disk(
-                path=tmp_path / "noop", max_bytes=DiskCache.DEFAULT_DISK_MAX_BYTES
-            )
+            cache.enable_disk(path=tmp_path / "noop", max_bytes=DiskCache.DEFAULT_DISK_MAX_BYTES)
             assert cache._disk is handle_before
         finally:
             cache.close()
