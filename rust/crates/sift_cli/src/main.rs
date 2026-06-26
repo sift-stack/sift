@@ -78,7 +78,6 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
     let ctx = Context::new(clargs.profile.clone(), clargs.disable_tls)?;
 
     // Mcp Server
-    #[cfg(feature = "mcp")]
     if let Cmd::Mcp = clargs.cmd {
         return run_future_mt(cmd::mcp::run(ctx));
     }
