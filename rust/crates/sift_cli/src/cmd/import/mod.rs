@@ -25,11 +25,6 @@ const INDENT_2: &str = "    ";
 const INDENT_3: &str = "      ";
 const INDENT_4: &str = "        ";
 
-/// Final step of every import: resolve the destination, then either report the
-/// pending state and exit or block on the server-side job. All format-specific
-/// work (parsing, schema detection, upload) happens before this; everything
-/// after upload is identical across CSV, Parquet, TDMS, HDF5, and backups, so
-/// it lives in one place here.
 pub async fn finish_import(
     ctx: &Context,
     grpc_channel: SiftChannel,

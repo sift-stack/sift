@@ -247,10 +247,9 @@ pub struct ConfigUpdateArgs {
     #[arg(short = 'k', long)]
     pub api_key: Option<String>,
 
-    /// Sift web app URL — the address you visit in your browser when signed in
-    /// to Sift (e.g. https://app.siftstack.com). Used to build Sift Explore
-    /// links after imports. Optional for standard Sift hosts; required for
-    /// custom or on-prem deployments to render Explore links.
+    /// Sift web app URL (e.g. https://app.siftstack.com). Optional for standard
+    /// Sift hosts; required for custom or on-prem deployments to render Explore
+    /// links.
     #[arg(long)]
     pub app_uri: Option<String>,
 }

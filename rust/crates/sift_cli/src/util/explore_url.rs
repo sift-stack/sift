@@ -12,19 +12,11 @@ fn encode(s: &str) -> String {
     utf8_percent_encode(s, VALUE_ENCODE_SET).to_string()
 }
 
-/// Where an import is going to land, packaged for output. `location` is the
-/// human-readable phrase (`run '<id>'` or `asset '<name>'`) that gets dropped
-/// into tip text; `explore_url` is the Sift Explore deep-link when the user's
-/// profile has `app_uri` set.
 pub struct ImportTarget {
     pub location: String,
     pub explore_url: Option<String>,
 }
 
-/// Resolve the run identifier (preferring `run_id` over `run_name`), format the
-/// "asset 'X'" / "run 'Y'" location phrase, and build the Sift Explore deep-link
-/// in one call. Used by every import subcommand so the wording and precedence
-/// stay uniform across formats.
 pub fn import_target(
     asset: &str,
     run_name: Option<&str>,
@@ -43,16 +35,8 @@ pub fn import_target(
     }
 }
 
-/// Resolve the Sift web app URL for link-rendering. Order of precedence:
-/// 1. The user's configured `app_uri` (whatever they set in their profile).
-/// 2. A built-in mapping for the standard SaaS hosts (`api.siftstack.com` and
-///    `gov.api.siftstack.com`). This mirrors the Python client's
-///    `_internal/urls.py` table so the two clients agree.
-/// 3. A plaintext-HTTP localhost rest_uri resolves to `http://localhost:3000` —
-///    the Sift local dev web app convention. Gated on `http://` so a
-///    `https://localhost` setup (non-standard) falls through to `None`.
-/// 4. `None` — non-standard `rest_uri` without `app_uri` set; the caller should
-///    surface a note pointing the user at the config.
+/// Resolve the Sift web app URL. The host table mirrors the Python client's
+/// `_internal/urls.py` — keep them in sync.
 pub fn resolve_app_uri(app_uri: Option<&str>, rest_uri: &str) -> Option<String> {
     if let Some(uri) = app_uri.map(str::trim).filter(|s| !s.is_empty()) {
         return Some(uri.to_string());
@@ -74,9 +58,6 @@ fn host_of(url: &str) -> Option<&str> {
     Some(host_with_port.split(':').next().unwrap_or(host_with_port))
 }
 
-/// Line appended to import-output tips: a `View in Sift: <url>` link when
-/// `explore_url` is present, or a note telling the user how to enable links
-/// when it isn't.
 pub fn explore_or_note(explore_url: Option<&str>) -> String {
     match explore_url {
         Some(url) => format!("\nView in Sift: {url}"),
@@ -86,10 +67,6 @@ pub fn explore_or_note(explore_url: Option<&str>) -> String {
     }
 }
 
-/// Tip text shown immediately after an import is uploaded but before the
-/// server-side job has finished processing. Appends either a `View in Sift`
-/// link or a "set `app_uri`" note via [`explore_or_note`]. Used by every
-/// import subcommand so the wording stays uniform across formats.
 pub fn pending_import_tip(location: &str, explore_url: Option<&str>) -> String {
     let mut tip =
         format!("Once processing is complete the data will be available on the {location}.");
@@ -97,14 +74,7 @@ pub fn pending_import_tip(location: &str, explore_url: Option<&str>) -> String {
     tip
 }
 
-/// Build a Sift Explore deep-link from the user-configured `app_uri`. Returns
-/// `None` when `app_uri` is unset or empty. Sift URLs are not deterministic
-/// from the API host (e.g. `gov.siftstack.com` pairs with
-/// `gov.api.siftstack.com`), so callers should pass the resolved web URL —
-/// see [`resolve_app_uri`].
-///
-/// `run` accepts either a run name or a run UUID; Sift Explore resolves both
-/// when passed as the `runs=` query value.
+/// `run` accepts a name or UUID; Sift Explore resolves both.
 pub fn build_explore_url(
     app_uri: Option<&str>,
     asset_name: &str,
