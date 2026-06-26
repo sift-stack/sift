@@ -13,6 +13,7 @@ backstop for anything still open.
 
 from __future__ import annotations
 
+import inspect
 import logging
 import warnings
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
@@ -422,9 +423,10 @@ def build_hierarchy_chain(
             node = node.parent
             continue
         try:
-            doc = (
-                (getattr(node, "obj", None) and getattr(node.obj, "__doc__", None)) or ""
-            ).strip() or None
+            obj = getattr(node, "obj", None)
+            # ``inspect.getdoc`` cleans the docstring (dedents interior lines,
+            # trims surrounding blank lines) and walks inheritance.
+            doc = (inspect.getdoc(obj) or None) if obj is not None else None
         except Exception:
             doc = None
         chain.append((node.nodeid, node.name, doc, rendered, scope))

@@ -1,3 +1,4 @@
+import inspect
 from datetime import datetime, timezone
 
 import numpy as np
@@ -32,8 +33,22 @@ class TestContextManager:
         Args:
             step: The step to test.
         """
-        expected_description = self.test_docstring_description_setup.__doc__
+        # The plugin stores the cleaned docstring via ``inspect.getdoc``, not
+        # the raw ``__doc__``. The raw form keeps the source indentation (the
+        # ``step:`` line sits at 12 spaces); the stored form must be dedented
+        # (interior indentation reduced to 4) with the trailing blank trimmed.
+        raw_docstring = self.test_docstring_description_setup.__doc__
+        assert raw_docstring is not None
+        assert "\n            step: The step to test." in raw_docstring
+        expected_description = (
+            "Test that the description of a step is set to the docstring of the test function.\n"
+            "\n"
+            "Args:\n"
+            "    step: The step to test."
+        )
         assert step.current_step.description == expected_description
+        # Guard against a regression to raw ``__doc__``: cleaning must change it.
+        assert step.current_step.description != raw_docstring
 
         def helper_function(_step: NewStep):
             """Helper function description."""
@@ -45,7 +60,7 @@ class TestContextManager:
 
     def test_docstring_description_override(self, step):
         """This description can still be overridden."""
-        current_desc = self.test_docstring_description_override.__doc__
+        current_desc = inspect.getdoc(self.test_docstring_description_override)
         assert step.current_step.description == current_desc
         new_desc = "Manually updated description."
         step.current_step.update({"description": new_desc})
