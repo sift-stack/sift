@@ -48,15 +48,22 @@ pub fn import_target(
 /// 2. A built-in mapping for the standard SaaS hosts (`api.siftstack.com` and
 ///    `gov.api.siftstack.com`). This mirrors the Python client's
 ///    `_internal/urls.py` table so the two clients agree.
-/// 3. `None` — the user has a non-standard `rest_uri` and no `app_uri` set; the
-///    caller should surface a note pointing them at the config.
+/// 3. A plaintext-HTTP localhost rest_uri resolves to `http://localhost:3000` —
+///    the Sift local dev web app convention. Gated on `http://` so a
+///    `https://localhost` setup (non-standard) falls through to `None`.
+/// 4. `None` — non-standard `rest_uri` without `app_uri` set; the caller should
+///    surface a note pointing the user at the config.
 pub fn resolve_app_uri(app_uri: Option<&str>, rest_uri: &str) -> Option<String> {
     if let Some(uri) = app_uri.map(str::trim).filter(|s| !s.is_empty()) {
         return Some(uri.to_string());
     }
-    match host_of(rest_uri)? {
+    let host = host_of(rest_uri)?;
+    match host {
         "api.siftstack.com" => Some("https://app.siftstack.com".to_string()),
         "gov.api.siftstack.com" => Some("https://gov.siftstack.com".to_string()),
+        "localhost" | "127.0.0.1" if rest_uri.starts_with("http://") => {
+            Some("http://localhost:3000".to_string())
+        }
         _ => None,
     }
 }
