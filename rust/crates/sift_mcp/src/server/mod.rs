@@ -46,7 +46,7 @@ pub struct SiftMcpServer {
 impl ServerHandler for SiftMcpServer {}
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel, rest_uri: String, api_key: String) -> Self {
+    pub fn new(channel: SiftChannel, rest_uri: String) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
@@ -69,14 +69,14 @@ impl SiftMcpServer {
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
-        let url_service = UrlService::new(rest_uri.clone());
+        let url_service = UrlService::new(rest_uri);
         let ingest_service = IngestService::new(channel.clone());
         let ping_service = PingService::new(channel.clone(), retry_policy.clone());
         let run_service = RunService::new(channel.clone(), retry_policy.clone());
         let report_service = ReportService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
-        let test_report_service = TestReportService::new(channel.clone(), retry_policy);
-        let docs_service = DocsService::new(rest_uri, api_key);
+        let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
+        let docs_service = DocsService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,

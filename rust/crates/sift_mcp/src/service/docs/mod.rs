@@ -1,92 +1,27 @@
+use crate::policy::{RetryPolicy, with_retry};
 use anyhow::{Context, Result};
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use tonic::{Code, Status};
+use sift_rs::{
+    SiftChannel,
+    docs::v1::{
+        ReadDocRequest, ReadDocResponse, SearchDocsRequest, SearchDocsResponse,
+        docs_service_client::DocsServiceClient,
+    },
+};
 
 #[cfg(test)]
 mod test;
 
-/// Percent-encode a query-parameter value (encodes all non-alphanumerics,
-/// including spaces and `/`, which the server decodes).
-fn encode(s: &str) -> String {
-    percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC).to_string()
-}
-
-/// One search hit. The search endpoint now embeds the first page of the doc
-/// (the same payload `read_doc` returns for that path) so a hit can be read
-/// without a second request. Field names tolerate both the camelCase (protojson
-/// default) and snake_case forms the gateway may emit; the struct serializes
-/// back out in snake_case to match `read_doc`'s output.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub struct DocHit {
-    #[serde(default)]
-    pub path: String,
-    #[serde(default)]
-    pub title: String,
-    #[serde(default)]
-    pub score: i32,
-    /// 1-indexed line in the page where the query matched.
-    #[serde(default, alias = "matchLine")]
-    pub match_line: i32,
-    /// Total number of lines in the page; page further with `read_doc`.
-    #[serde(default, alias = "totalLines")]
-    pub total_lines: i32,
-    /// First page of the page's markdown, each line prefixed with `<line>\t`.
-    #[serde(default)]
-    pub content: String,
-}
-
-// `rename_all`/`alias` on this and `ReadDocResponse` govern only how the upstream
-// docs-API JSON is parsed (it may emit camelCase protojson or snake_case). The
-// tool output is rebuilt as snake_case in `tool/docs/mod.rs`, matching `DocHit`.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct SearchDocsResponse {
-    #[serde(default)]
-    pub hits: Vec<DocHit>,
-    #[serde(default, alias = "total_scanned")]
-    pub total_scanned: i32,
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct ReadDocResponse {
-    #[serde(default)]
-    pub path: String,
-    #[serde(default)]
-    pub title: String,
-    #[serde(default, alias = "total_lines")]
-    pub total_lines: i32,
-    #[serde(default, alias = "start_line")]
-    pub start_line: i32,
-    #[serde(default)]
-    pub content: String,
-}
-
-/// Read-only client for Sift's documentation HTTP API (`/api/v1/docs:*`),
-/// authenticated with the same bearer token used for the rest of the Sift API.
+/// Read-only client for Sift's documentation service (`sift.docs.v1.DocsService`).
+/// Auth rides the shared gRPC channel, so this needs nothing beyond the channel.
 #[derive(Clone)]
 pub struct DocsService {
-    base_url: String,
-    api_key: String,
-    client: Client,
+    channel: SiftChannel,
+    policy: RetryPolicy,
 }
 
 impl DocsService {
-    pub fn new(rest_uri: String, api_key: String) -> Self {
-        // Bound the request so a slow or hung docs gateway surfaces as an error
-        // rather than wedging the MCP tool call indefinitely (reqwest applies no
-        // timeout by default).
-        let client = Client::builder()
-            .connect_timeout(std::time::Duration::from_secs(10))
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .expect("failed to build reqwest client");
-        Self {
-            base_url: rest_uri.trim_end_matches('/').to_string(),
-            api_key,
-            client,
-        }
+    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+        Self { channel, policy }
     }
 
     pub async fn search_docs(
@@ -94,27 +29,24 @@ impl DocsService {
         query: String,
         max_results: Option<u32>,
     ) -> Result<SearchDocsResponse> {
-        let mut url = format!(
-            "{}/api/v1/docs:search?query={}",
-            self.base_url,
-            encode(&query)
-        );
-        // Enforce the documented contract here rather than trusting the gateway:
-        // default to 10 hits, cap at 25.
-        let max_results = max_results.unwrap_or(10).min(25);
-        url.push_str(&format!("&max_results={max_results}"));
+        // Forward to the proto's int32. 0 lets the service apply its documented
+        // default of 10 hits and hard cap of 25.
+        let max_results = max_results.unwrap_or(0) as i32;
 
-        let resp = self
-            .client
-            .get(url)
-            .bearer_auth(&self.api_key)
-            .send()
-            .await
-            .context("docs search request failed")?;
-
-        Self::decode(resp)
-            .await
-            .context("failed to read docs search response")
+        let channel = self.channel.clone();
+        with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let query = query.clone();
+            async move {
+                let mut client = DocsServiceClient::new(channel);
+                client
+                    .search_docs(SearchDocsRequest { query, max_results })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to search docs")
     }
 
     pub async fn read_doc(
@@ -123,46 +55,28 @@ impl DocsService {
         offset: Option<u32>,
         limit: Option<u32>,
     ) -> Result<ReadDocResponse> {
-        let mut url = format!("{}/api/v1/docs:read?path={}", self.base_url, encode(&path));
-        if let Some(offset) = offset {
-            url.push_str(&format!("&offset={offset}"));
-        }
-        if let Some(limit) = limit {
-            url.push_str(&format!("&limit={limit}"));
-        }
+        // Forward to the proto's int32. 0 lets the service apply its defaults
+        // (offset 1, all remaining lines).
+        let offset = offset.unwrap_or(0) as i32;
+        let limit = limit.unwrap_or(0) as i32;
 
-        let resp = self
-            .client
-            .get(url)
-            .bearer_auth(&self.api_key)
-            .send()
-            .await
-            .context("docs read request failed")?;
-
-        Self::decode(resp)
-            .await
-            .context("failed to read docs read response")
-    }
-
-    /// Map a non-success HTTP status onto a `tonic::Status` so `from_anyhow`
-    /// classifies it (e.g. 400 -> INVALID_PARAMS, 404 -> RESOURCE_NOT_FOUND),
-    /// then deserialize the JSON body.
-    async fn decode<T: serde::de::DeserializeOwned>(resp: reqwest::Response) -> Result<T> {
-        let status = resp.status();
-        if !status.is_success() {
-            let body = resp.text().await.unwrap_or_default();
-            let code = match status.as_u16() {
-                400 => Code::InvalidArgument,
-                404 => Code::NotFound,
-                _ => Code::Internal,
-            };
-            return Err(Status::new(code, format!("docs API returned {status}: {body}")).into());
-        }
-
-        let value = resp
-            .json::<T>()
-            .await
-            .context("failed to deserialize docs API response")?;
-        Ok(value)
+        let channel = self.channel.clone();
+        with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let path = path.clone();
+            async move {
+                let mut client = DocsServiceClient::new(channel);
+                client
+                    .read_doc(ReadDocRequest {
+                        path,
+                        offset,
+                        limit,
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to read doc")
     }
 }

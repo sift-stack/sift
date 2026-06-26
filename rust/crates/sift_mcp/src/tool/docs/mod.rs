@@ -60,10 +60,9 @@ impl SiftMcpServer {
                 page through with `index` (1-indexed start line) and `lines` (count) using `total_lines`.
 
             Errors:
-              - `INVALID_PARAMS` if both `query` and `path` are set, if neither is set, or if the docs API
-                rejects the request.
+              - `INVALID_PARAMS` if both `query` and `path` are set, if neither is set, or if the docs
+                service rejects the request.
               - `RESOURCE_NOT_FOUND` if `path` does not match a doc page.
-              - `INTERNAL_ERROR` for upstream HTTP failures.
         ",
         annotations(title = "docs_router/search_docs", read_only_hint = true)
     )]
@@ -83,9 +82,26 @@ impl SiftMcpServer {
                     .search_docs(query, max_results)
                     .await
                     .map(|resp| {
+                        // Build snake_case hits explicitly; the generated DocHit
+                        // serializes as camelCase (pbjson), but this tool's
+                        // contract is snake_case, matching READ MODE.
+                        let hits: Vec<_> = resp
+                            .hits
+                            .iter()
+                            .map(|h| {
+                                serde_json::json!({
+                                    "path": h.path,
+                                    "title": h.title,
+                                    "score": h.score,
+                                    "match_line": h.match_line,
+                                    "total_lines": h.total_lines,
+                                    "content": h.content,
+                                })
+                            })
+                            .collect();
                         serde_json::json!({
                             "mode": "search",
-                            "hits": resp.hits,
+                            "hits": hits,
                             "total_scanned": resp.total_scanned,
                         })
                     })

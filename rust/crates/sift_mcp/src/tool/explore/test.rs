@@ -10,7 +10,7 @@ const REST_URI: &str = "https://api.siftstack.com";
 async fn server_for_explore(rest_uri: &str) -> SiftMcpServer {
     let (client, _server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
-    SiftMcpServer::new(channel, rest_uri.to_string(), String::new())
+    SiftMcpServer::new(channel, rest_uri.to_string())
 }
 
 fn structured_field(result: rmcp::model::CallToolResult, key: &str) -> Value {

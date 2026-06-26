@@ -25,11 +25,7 @@ async fn server_with_mock(mock: MockTestReportServiceImpl) -> (SiftMcpServer, Jo
     });
 
     (
-        SiftMcpServer::new(
-            channel,
-            String::from("https://api.test.local"),
-            String::new(),
-        ),
+        SiftMcpServer::new(channel, String::from("https://api.test.local")),
         handle,
     )
 }
