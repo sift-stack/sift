@@ -225,6 +225,9 @@ message ReportCumulativeRuleSummary {
   uint32 num_of_rules_without_annotations = 12 [(google.api.field_behavior) = REQUIRED];
 }
 
+
+
+
 enum ReportRuleStatus {
   REPORT_RULE_STATUS_UNSPECIFIED = 0;
   REPORT_RULE_STATUS_CREATED = 1;
