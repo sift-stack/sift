@@ -28,6 +28,9 @@ impl serde::Serialize for BatchConfig {
         if self.default_hdf5_config.is_some() {
             len += 1;
         }
+        if self.default_ulog_config.is_some() {
+            len += 1;
+        }
         if !self.file_configs.is_empty() {
             len += 1;
         }
@@ -52,6 +55,9 @@ impl serde::Serialize for BatchConfig {
         }
         if let Some(v) = self.default_hdf5_config.as_ref() {
             struct_ser.serialize_field("defaultHdf5Config", v)?;
+        }
+        if let Some(v) = self.default_ulog_config.as_ref() {
+            struct_ser.serialize_field("defaultUlogConfig", v)?;
         }
         if !self.file_configs.is_empty() {
             struct_ser.serialize_field("fileConfigs", &self.file_configs)?;
@@ -80,6 +86,8 @@ impl<'de> serde::Deserialize<'de> for BatchConfig {
             "defaultParquetConfig",
             "default_hdf5_config",
             "defaultHdf5Config",
+            "default_ulog_config",
+            "defaultUlogConfig",
             "file_configs",
             "fileConfigs",
         ];
@@ -93,6 +101,7 @@ impl<'de> serde::Deserialize<'de> for BatchConfig {
             DefaultTdmsConfig,
             DefaultParquetConfig,
             DefaultHdf5Config,
+            DefaultUlogConfig,
             FileConfigs,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -122,6 +131,7 @@ impl<'de> serde::Deserialize<'de> for BatchConfig {
                             "defaultTdmsConfig" | "default_tdms_config" => Ok(GeneratedField::DefaultTdmsConfig),
                             "defaultParquetConfig" | "default_parquet_config" => Ok(GeneratedField::DefaultParquetConfig),
                             "defaultHdf5Config" | "default_hdf5_config" => Ok(GeneratedField::DefaultHdf5Config),
+                            "defaultUlogConfig" | "default_ulog_config" => Ok(GeneratedField::DefaultUlogConfig),
                             "fileConfigs" | "file_configs" => Ok(GeneratedField::FileConfigs),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
@@ -149,6 +159,7 @@ impl<'de> serde::Deserialize<'de> for BatchConfig {
                 let mut default_tdms_config__ = None;
                 let mut default_parquet_config__ = None;
                 let mut default_hdf5_config__ = None;
+                let mut default_ulog_config__ = None;
                 let mut file_configs__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -194,6 +205,12 @@ impl<'de> serde::Deserialize<'de> for BatchConfig {
                             }
                             default_hdf5_config__ = map_.next_value()?;
                         }
+                        GeneratedField::DefaultUlogConfig => {
+                            if default_ulog_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("defaultUlogConfig"));
+                            }
+                            default_ulog_config__ = map_.next_value()?;
+                        }
                         GeneratedField::FileConfigs => {
                             if file_configs__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fileConfigs"));
@@ -212,6 +229,7 @@ impl<'de> serde::Deserialize<'de> for BatchConfig {
                     default_tdms_config: default_tdms_config__,
                     default_parquet_config: default_parquet_config__,
                     default_hdf5_config: default_hdf5_config__,
+                    default_ulog_config: default_ulog_config__,
                     file_configs: file_configs__.unwrap_or_default(),
                 })
             }
@@ -253,6 +271,9 @@ impl serde::Serialize for BatchFileConfig {
                 batch_file_config::Config::Hdf5Config(v) => {
                     struct_ser.serialize_field("hdf5Config", v)?;
                 }
+                batch_file_config::Config::UlogConfig(v) => {
+                    struct_ser.serialize_field("ulogConfig", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -274,6 +295,8 @@ impl<'de> serde::Deserialize<'de> for BatchFileConfig {
             "parquetConfig",
             "hdf5_config",
             "hdf5Config",
+            "ulog_config",
+            "ulogConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -283,6 +306,7 @@ impl<'de> serde::Deserialize<'de> for BatchFileConfig {
             TdmsConfig,
             ParquetConfig,
             Hdf5Config,
+            UlogConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -309,6 +333,7 @@ impl<'de> serde::Deserialize<'de> for BatchFileConfig {
                             "tdmsConfig" | "tdms_config" => Ok(GeneratedField::TdmsConfig),
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
+                            "ulogConfig" | "ulog_config" => Ok(GeneratedField::UlogConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -364,6 +389,13 @@ impl<'de> serde::Deserialize<'de> for BatchFileConfig {
                                 return Err(serde::de::Error::duplicate_field("hdf5Config"));
                             }
                             config__ = map_.next_value::<::std::option::Option<_>>()?.map(batch_file_config::Config::Hdf5Config)
+;
+                        }
+                        GeneratedField::UlogConfig => {
+                            if config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ulogConfig"));
+                            }
+                            config__ = map_.next_value::<::std::option::Option<_>>()?.map(batch_file_config::Config::UlogConfig)
 ;
                         }
                     }
@@ -531,6 +563,9 @@ impl serde::Serialize for CreateDataImportFromUploadRequest {
         if self.batch_config.is_some() {
             len += 1;
         }
+        if self.ulog_config.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CreateDataImportFromUploadRequest", len)?;
         if let Some(v) = self.csv_config.as_ref() {
             struct_ser.serialize_field("csvConfig", v)?;
@@ -549,6 +584,9 @@ impl serde::Serialize for CreateDataImportFromUploadRequest {
         }
         if let Some(v) = self.batch_config.as_ref() {
             struct_ser.serialize_field("batchConfig", v)?;
+        }
+        if let Some(v) = self.ulog_config.as_ref() {
+            struct_ser.serialize_field("ulogConfig", v)?;
         }
         struct_ser.end()
     }
@@ -572,6 +610,8 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
             "hdf5Config",
             "batch_config",
             "batchConfig",
+            "ulog_config",
+            "ulogConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -582,6 +622,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
             ParquetConfig,
             Hdf5Config,
             BatchConfig,
+            UlogConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -609,6 +650,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
                             "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
+                            "ulogConfig" | "ulog_config" => Ok(GeneratedField::UlogConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -634,6 +676,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                 let mut parquet_config__ = None;
                 let mut hdf5_config__ = None;
                 let mut batch_config__ = None;
+                let mut ulog_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CsvConfig => {
@@ -672,6 +715,12 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                             }
                             batch_config__ = map_.next_value()?;
                         }
+                        GeneratedField::UlogConfig => {
+                            if ulog_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ulogConfig"));
+                            }
+                            ulog_config__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateDataImportFromUploadRequest {
@@ -681,6 +730,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                     parquet_config: parquet_config__,
                     hdf5_config: hdf5_config__,
                     batch_config: batch_config__,
+                    ulog_config: ulog_config__,
                 })
             }
         }
@@ -826,6 +876,9 @@ impl serde::Serialize for CreateDataImportFromUrlRequest {
         if self.batch_config.is_some() {
             len += 1;
         }
+        if self.ulog_config.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CreateDataImportFromUrlRequest", len)?;
         if !self.url.is_empty() {
             struct_ser.serialize_field("url", &self.url)?;
@@ -847,6 +900,9 @@ impl serde::Serialize for CreateDataImportFromUrlRequest {
         }
         if let Some(v) = self.batch_config.as_ref() {
             struct_ser.serialize_field("batchConfig", v)?;
+        }
+        if let Some(v) = self.ulog_config.as_ref() {
+            struct_ser.serialize_field("ulogConfig", v)?;
         }
         struct_ser.end()
     }
@@ -871,6 +927,8 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
             "hdf5Config",
             "batch_config",
             "batchConfig",
+            "ulog_config",
+            "ulogConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -882,6 +940,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
             ParquetConfig,
             Hdf5Config,
             BatchConfig,
+            UlogConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -910,6 +969,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
                             "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
+                            "ulogConfig" | "ulog_config" => Ok(GeneratedField::UlogConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -936,6 +996,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                 let mut parquet_config__ = None;
                 let mut hdf5_config__ = None;
                 let mut batch_config__ = None;
+                let mut ulog_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Url => {
@@ -980,6 +1041,12 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                             }
                             batch_config__ = map_.next_value()?;
                         }
+                        GeneratedField::UlogConfig => {
+                            if ulog_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ulogConfig"));
+                            }
+                            ulog_config__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateDataImportFromUrlRequest {
@@ -990,6 +1057,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                     parquet_config: parquet_config__,
                     hdf5_config: hdf5_config__,
                     batch_config: batch_config__,
+                    ulog_config: ulog_config__,
                 })
             }
         }
@@ -1472,6 +1540,9 @@ impl serde::Serialize for DataImport {
         if self.batch_config.is_some() {
             len += 1;
         }
+        if self.ulog_config.is_some() {
+            len += 1;
+        }
         if self.run_id.is_some() {
             len += 1;
         }
@@ -1526,6 +1597,9 @@ impl serde::Serialize for DataImport {
         if let Some(v) = self.batch_config.as_ref() {
             struct_ser.serialize_field("batchConfig", v)?;
         }
+        if let Some(v) = self.ulog_config.as_ref() {
+            struct_ser.serialize_field("ulogConfig", v)?;
+        }
         if let Some(v) = self.run_id.as_ref() {
             struct_ser.serialize_field("runId", v)?;
         }
@@ -1574,6 +1648,8 @@ impl<'de> serde::Deserialize<'de> for DataImport {
             "hdf5Config",
             "batch_config",
             "batchConfig",
+            "ulog_config",
+            "ulogConfig",
             "run_id",
             "runId",
             "report_id",
@@ -1600,6 +1676,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
             ParquetConfig,
             Hdf5Config,
             BatchConfig,
+            UlogConfig,
             RunId,
             ReportId,
             AssetId,
@@ -1638,6 +1715,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                             "parquetConfig" | "parquet_config" => Ok(GeneratedField::ParquetConfig),
                             "hdf5Config" | "hdf5_config" => Ok(GeneratedField::Hdf5Config),
                             "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
+                            "ulogConfig" | "ulog_config" => Ok(GeneratedField::UlogConfig),
                             "runId" | "run_id" => Ok(GeneratedField::RunId),
                             "reportId" | "report_id" => Ok(GeneratedField::ReportId),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
@@ -1674,6 +1752,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                 let mut parquet_config__ = None;
                 let mut hdf5_config__ = None;
                 let mut batch_config__ = None;
+                let mut ulog_config__ = None;
                 let mut run_id__ = None;
                 let mut report_id__ = None;
                 let mut asset_id__ = None;
@@ -1753,6 +1832,12 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                             }
                             batch_config__ = map_.next_value()?;
                         }
+                        GeneratedField::UlogConfig => {
+                            if ulog_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ulogConfig"));
+                            }
+                            ulog_config__ = map_.next_value()?;
+                        }
                         GeneratedField::RunId => {
                             if run_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("runId"));
@@ -1798,6 +1883,7 @@ impl<'de> serde::Deserialize<'de> for DataImport {
                     parquet_config: parquet_config__,
                     hdf5_config: hdf5_config__,
                     batch_config: batch_config__,
+                    ulog_config: ulog_config__,
                     run_id: run_id__,
                     report_id: report_id__,
                     asset_id: asset_id__,
@@ -1903,6 +1989,7 @@ impl serde::Serialize for DataTypeKey {
             Self::ParquetFlatdataset => "DATA_TYPE_KEY_PARQUET_FLATDATASET",
             Self::ParquetSingleChannelPerRow => "DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW",
             Self::Hdf5 => "DATA_TYPE_KEY_HDF5",
+            Self::Ulog => "DATA_TYPE_KEY_ULOG",
         };
         serializer.serialize_str(variant)
     }
@@ -1921,6 +2008,7 @@ impl<'de> serde::Deserialize<'de> for DataTypeKey {
             "DATA_TYPE_KEY_PARQUET_FLATDATASET",
             "DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW",
             "DATA_TYPE_KEY_HDF5",
+            "DATA_TYPE_KEY_ULOG",
         ];
 
         struct GeneratedVisitor;
@@ -1968,6 +2056,7 @@ impl<'de> serde::Deserialize<'de> for DataTypeKey {
                     "DATA_TYPE_KEY_PARQUET_FLATDATASET" => Ok(DataTypeKey::ParquetFlatdataset),
                     "DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW" => Ok(DataTypeKey::ParquetSingleChannelPerRow),
                     "DATA_TYPE_KEY_HDF5" => Ok(DataTypeKey::Hdf5),
+                    "DATA_TYPE_KEY_ULOG" => Ok(DataTypeKey::Ulog),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -5047,6 +5136,408 @@ impl<'de> serde::Deserialize<'de> for TimeFormat {
                     "TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS" => Ok(TimeFormat::AbsoluteUnixMilliseconds),
                     "TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS" => Ok(TimeFormat::AbsoluteUnixMicroseconds),
                     "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS" => Ok(TimeFormat::AbsoluteUnixNanoseconds),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UlogConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.asset_name.is_empty() {
+            len += 1;
+        }
+        if !self.run_name.is_empty() {
+            len += 1;
+        }
+        if !self.run_id.is_empty() {
+            len += 1;
+        }
+        if !self.data.is_empty() {
+            len += 1;
+        }
+        if self.relative_start_time.is_some() {
+            len += 1;
+        }
+        if !self.info_keys.is_empty() {
+            len += 1;
+        }
+        if !self.param_keys.is_empty() {
+            len += 1;
+        }
+        if self.parse_error_policy != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.UlogConfig", len)?;
+        if !self.asset_name.is_empty() {
+            struct_ser.serialize_field("assetName", &self.asset_name)?;
+        }
+        if !self.run_name.is_empty() {
+            struct_ser.serialize_field("runName", &self.run_name)?;
+        }
+        if !self.run_id.is_empty() {
+            struct_ser.serialize_field("runId", &self.run_id)?;
+        }
+        if !self.data.is_empty() {
+            struct_ser.serialize_field("data", &self.data)?;
+        }
+        if let Some(v) = self.relative_start_time.as_ref() {
+            struct_ser.serialize_field("relativeStartTime", v)?;
+        }
+        if !self.info_keys.is_empty() {
+            struct_ser.serialize_field("infoKeys", &self.info_keys)?;
+        }
+        if !self.param_keys.is_empty() {
+            struct_ser.serialize_field("paramKeys", &self.param_keys)?;
+        }
+        if self.parse_error_policy != 0 {
+            let v = UlogParseErrorPolicy::try_from(self.parse_error_policy)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.parse_error_policy)))?;
+            struct_ser.serialize_field("parseErrorPolicy", &v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UlogConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "asset_name",
+            "assetName",
+            "run_name",
+            "runName",
+            "run_id",
+            "runId",
+            "data",
+            "relative_start_time",
+            "relativeStartTime",
+            "info_keys",
+            "infoKeys",
+            "param_keys",
+            "paramKeys",
+            "parse_error_policy",
+            "parseErrorPolicy",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AssetName,
+            RunName,
+            RunId,
+            Data,
+            RelativeStartTime,
+            InfoKeys,
+            ParamKeys,
+            ParseErrorPolicy,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "assetName" | "asset_name" => Ok(GeneratedField::AssetName),
+                            "runName" | "run_name" => Ok(GeneratedField::RunName),
+                            "runId" | "run_id" => Ok(GeneratedField::RunId),
+                            "data" => Ok(GeneratedField::Data),
+                            "relativeStartTime" | "relative_start_time" => Ok(GeneratedField::RelativeStartTime),
+                            "infoKeys" | "info_keys" => Ok(GeneratedField::InfoKeys),
+                            "paramKeys" | "param_keys" => Ok(GeneratedField::ParamKeys),
+                            "parseErrorPolicy" | "parse_error_policy" => Ok(GeneratedField::ParseErrorPolicy),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UlogConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data_imports.v2.UlogConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UlogConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut asset_name__ = None;
+                let mut run_name__ = None;
+                let mut run_id__ = None;
+                let mut data__ = None;
+                let mut relative_start_time__ = None;
+                let mut info_keys__ = None;
+                let mut param_keys__ = None;
+                let mut parse_error_policy__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AssetName => {
+                            if asset_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetName"));
+                            }
+                            asset_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RunName => {
+                            if run_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runName"));
+                            }
+                            run_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RunId => {
+                            if run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runId"));
+                            }
+                            run_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Data => {
+                            if data__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("data"));
+                            }
+                            data__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RelativeStartTime => {
+                            if relative_start_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("relativeStartTime"));
+                            }
+                            relative_start_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::InfoKeys => {
+                            if info_keys__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("infoKeys"));
+                            }
+                            info_keys__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ParamKeys => {
+                            if param_keys__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("paramKeys"));
+                            }
+                            param_keys__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ParseErrorPolicy => {
+                            if parse_error_policy__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("parseErrorPolicy"));
+                            }
+                            parse_error_policy__ = Some(map_.next_value::<UlogParseErrorPolicy>()? as i32);
+                        }
+                    }
+                }
+                Ok(UlogConfig {
+                    asset_name: asset_name__.unwrap_or_default(),
+                    run_name: run_name__.unwrap_or_default(),
+                    run_id: run_id__.unwrap_or_default(),
+                    data: data__.unwrap_or_default(),
+                    relative_start_time: relative_start_time__,
+                    info_keys: info_keys__.unwrap_or_default(),
+                    param_keys: param_keys__.unwrap_or_default(),
+                    parse_error_policy: parse_error_policy__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data_imports.v2.UlogConfig", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UlogDataConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.channel.is_empty() {
+            len += 1;
+        }
+        if self.channel_config.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.UlogDataConfig", len)?;
+        if !self.channel.is_empty() {
+            struct_ser.serialize_field("channel", &self.channel)?;
+        }
+        if let Some(v) = self.channel_config.as_ref() {
+            struct_ser.serialize_field("channelConfig", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UlogDataConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channel",
+            "channel_config",
+            "channelConfig",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Channel,
+            ChannelConfig,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channel" => Ok(GeneratedField::Channel),
+                            "channelConfig" | "channel_config" => Ok(GeneratedField::ChannelConfig),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UlogDataConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data_imports.v2.UlogDataConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UlogDataConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channel__ = None;
+                let mut channel_config__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Channel => {
+                            if channel__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channel"));
+                            }
+                            channel__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChannelConfig => {
+                            if channel_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelConfig"));
+                            }
+                            channel_config__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UlogDataConfig {
+                    channel: channel__.unwrap_or_default(),
+                    channel_config: channel_config__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data_imports.v2.UlogDataConfig", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UlogParseErrorPolicy {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "ULOG_PARSE_ERROR_POLICY_UNSPECIFIED",
+            Self::FailOnError => "ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR",
+            Self::IgnoreError => "ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for UlogParseErrorPolicy {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "ULOG_PARSE_ERROR_POLICY_UNSPECIFIED",
+            "ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR",
+            "ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UlogParseErrorPolicy;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "ULOG_PARSE_ERROR_POLICY_UNSPECIFIED" => Ok(UlogParseErrorPolicy::Unspecified),
+                    "ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR" => Ok(UlogParseErrorPolicy::FailOnError),
+                    "ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR" => Ok(UlogParseErrorPolicy::IgnoreError),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

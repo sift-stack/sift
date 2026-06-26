@@ -225,7 +225,11 @@ class ListPanelConfigurationsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string
     Available fields to filter by are 'name', 'created_date', 'modified_date', 'is_archived', and `metadata`.
-    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name. Folder membership is filterable via the `folders` field, e.g. `"<folder_id>" in folders` returns panel configurations in the given folder, and `size(folders) == 0` returns uncategorized panel configurations.
+    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    Folder membership is filterable via the `folders` and `activeFolders` fields. Both contain the ids of the folders
+    the panel configuration belongs to; `activeFolders` excludes archived folders. Use `"<folder_id>" in folders` to
+    return panel configurations in the given folder, and `size(activeFolders) == 0` to return uncategorized panel
+    configurations (panel configurations whose only memberships are in archived folders count as uncategorized).
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str

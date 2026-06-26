@@ -86,6 +86,7 @@ message CreateDataImportFromUrlRequest {
   ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
   Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
   BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
+  UlogConfig ulog_config = 8 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUrlResponse {
@@ -107,6 +108,7 @@ message CreateDataImportFromUploadRequest {
   ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
   Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
   BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
+  UlogConfig ulog_config = 8 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUploadResponse {
@@ -152,6 +154,8 @@ message CsvTimeColumn {
   optional google.protobuf.Timestamp relative_start_time = 3;
 }
 
+
+
 enum DataTypeKey {
   DATA_TYPE_KEY_UNSPECIFIED = 0 [deprecated = true];
   DATA_TYPE_KEY_CSV = 1;
@@ -160,6 +164,7 @@ enum DataTypeKey {
   DATA_TYPE_KEY_PARQUET_FLATDATASET = 4;
   DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW = 5;
   DATA_TYPE_KEY_HDF5 = 6;
+  DATA_TYPE_KEY_ULOG = 7;
 }
 
 message DetectConfigRequest {
@@ -344,6 +349,43 @@ message Hdf5Config {
   optional google.protobuf.Timestamp relative_start_time = 6;
 }
 
+enum UlogParseErrorPolicy {
+  // Treated as ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR.
+  ULOG_PARSE_ERROR_POLICY_UNSPECIFIED = 0;
+  // Fail the import on any recoverable parse error.
+  ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR = 1;
+  // Import what parsed; skipped records are logged.
+  ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR = 2;
+}
+
+message UlogDataConfig {
+  // The full ULog channel name (e.g. "sensor_accel_0.x").
+  string channel = 1;
+  // The Sift channel config the channel is imported with.
+  sift.common.type.v1.ChannelConfig channel_config = 2;
+}
+
+message UlogConfig {
+  string asset_name = 1;
+  string run_name = 2;
+  // The id of the run to add this data to. If set, `run_name` is ignored.
+  string run_id = 3;
+  // Channels to import. Empty imports all detected channels with their
+  // defaults; if set, only the listed channels are imported, each with a
+  // required channel config.
+  repeated UlogDataConfig data = 4;
+  // Log-start UTC. When set, it anchors the timeline and takes precedence over
+  // the log's GPS fix; otherwise the GPS fix anchors the timeline. The import
+  // fails if neither is available.
+  optional google.protobuf.Timestamp relative_start_time = 5;
+  // I/M message info keys to import as run metadata (stored as info.<key>). Empty: none.
+  repeated string info_keys = 6;
+  // P parameter names to import as run metadata (stored as param.<name>). Empty: none.
+  repeated string param_keys = 7;
+  // Recoverable parse errors; defaults to failing the import.
+  UlogParseErrorPolicy parse_error_policy = 8;
+}
+
 message BatchConfig {
   // Shared run for all files. Both are optional. If neither is set, data is ingested without a run.
   // Run information must be set here instead of the per file configs if a Run is desired.
@@ -362,6 +404,7 @@ message BatchConfig {
   // extract footer information for the user.
   ParquetConfig default_parquet_config = 6;
   Hdf5Config default_hdf5_config = 7;
+  UlogConfig default_ulog_config = 9;
 
   // Files to import. Key is the filepath as it appears within the archive.
   // Only files listed here are imported; other archive files are ignored.
@@ -381,6 +424,7 @@ message BatchFileConfig {
     // extract footer information for the user.
     ParquetConfig parquet_config = 4;
     Hdf5Config hdf5_config = 5;
+    UlogConfig ulog_config = 6;
   }
 }
 
@@ -405,6 +449,7 @@ message DataImport {
   ParquetConfig parquet_config = 16 [(google.api.field_behavior) = OPTIONAL];
   Hdf5Config hdf5_config = 17 [(google.api.field_behavior) = OPTIONAL];
   BatchConfig batch_config = 18 [(google.api.field_behavior) = OPTIONAL];
+  UlogConfig ulog_config = 19 [(google.api.field_behavior) = OPTIONAL];
 
   // The run id will be set if the data import ingests to a run once the run is available.
   optional string run_id = 11 [(google.api.field_behavior) = OPTIONAL];

@@ -36,7 +36,8 @@ message Permissions {
   map<string, PermissionResources> organization_permission_resources = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
-message GetMeRequest {}
+message GetMeRequest {
+}
 
 message GetMeResponse {
   string user_id = 1 [(google.api.field_behavior) = REQUIRED];
