@@ -2,11 +2,9 @@
 
 Four classes, narrowest scope first:
 
-* :class:`TestChannelCache` — disk-backed :class:`ChannelCache` unit tests
-  (fresh open, cross-session reload, invalidate/clear, oversized guards,
-  disable/reconfigure).
-* :class:`TestChannelCacheClearDisk` — ``ChannelCache.clear_disk``
-  classmethod (default path, custom path, safety guard).
+* :class:`TestChannelDataCache` — the typed adapter over the shared
+  :class:`DiskCache`. Covers key namespacing, the isinstance guard on
+  ``get``, and the prefix-scoped ``clear``.
 * :class:`TestMergePages` — ``DataLowLevelClient._merge_pages``, the
   per-channel concat helper.
 * :class:`TestDataLowLevelClient` — constructor wiring and per-instance
@@ -14,14 +12,18 @@ Four classes, narrowest scope first:
 * :class:`TestGetChannelData` — end-to-end on the public
   ``get_channel_data`` API against a mocked ``_get_data_impl``.
 
-The OOM regression that motivated this code happened because the cache was
-a class attribute that grew without bound. ``test_per_instance_isolation``
-is the canary that catches anyone re-introducing that pattern.
+Storage-layer behaviour (oversize guards, marker-checked clear,
+cross-session reload) lives in ``_tests/_internal/test_disk_cache.py``;
+this file stays focused on the channel-data path.
+
+The OOM regression that motivated this code happened because the cache
+was a class attribute that grew without bound. ``test_per_instance_isolation``
+is the canary that catches anyone re-introducing that pattern, even though
+ownership has since moved to the client.
 """
 
 from __future__ import annotations
 
-import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator
@@ -30,9 +32,10 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from sift_client._internal.disk_cache import DiskCache
 from sift_client._internal.low_level_wrappers.data import (
-    ChannelCache,
     ChannelCacheEntry,
+    ChannelDataCache,
     DataLowLevelClient,
     _new_cache_entry,
 )
@@ -40,13 +43,6 @@ from sift_client.sift_types.channel import Channel, ChannelDataType
 
 _NOW = datetime(2025, 1, 1, tzinfo=timezone.utc)
 _WINDOW_END = _NOW + timedelta(days=1)
-
-# Snapshot of the real ``DEFAULT_DISK_PATH`` constant captured at module import.
-# The autouse ``_isolate_default_disk_cache_path`` fixture in ``conftest.py``
-# overrides the class attribute on every test for isolation; the
-# ``TestChannelCacheClearDisk::test_default_path_constant_under_tmp`` test still
-# needs to see the production value to verify its shape.
-_PRODUCTION_DEFAULT_DISK_PATH = ChannelCache.DEFAULT_DISK_PATH
 
 
 # ---------- shared helpers -----------
@@ -97,39 +93,15 @@ def _channel(cid: str) -> Channel:
 
 
 def _client_with_cache(tmp_path, subdir: str = "cache") -> DataLowLevelClient:
-    """Build a ``DataLowLevelClient`` whose ``ChannelCache`` points at ``tmp_path``.
+    """Build a ``DataLowLevelClient`` whose adapter points at ``tmp_path``.
 
-    Tests that exercise cache behaviour (hits/misses/eviction) need an
-    actual disk-backed cache, so ``disk_cache_path`` must be supplied. A
-    plain ``DataLowLevelClient(MagicMock())`` defaults to no-cache mode
+    Tests that exercise cache behaviour (hits/misses) need an actual
+    disk-backed adapter, so the store has to be opened explicitly. A
+    plain ``DataLowLevelClient(MagicMock())`` defaults to a no-op store
     and would silently turn every cache test into a wire-path test.
     """
-    return DataLowLevelClient(MagicMock(), disk_cache_path=tmp_path / subdir)
-
-
-@contextmanager
-def _capture_data_warnings() -> Iterator[list[logging.LogRecord]]:
-    """Capture warnings emitted by the ``data`` module's logger directly.
-
-    Pytest's ``caplog`` reads from the root logger, but the Sift pytest plugin
-    sets ``propagate=False`` on the ``sift_client`` logger when audit logging
-    is active, so records emitted from any descendant don't reach the root.
-    Attaching a list-backed handler at the leaf logger bypasses that and
-    surfaces exactly the records we emit.
-    """
-    target = logging.getLogger("sift_client._internal.low_level_wrappers.data")
-    records: list[logging.LogRecord] = []
-
-    class _ListHandler(logging.Handler):
-        def emit(self, record: logging.LogRecord) -> None:
-            records.append(record)
-
-    handler = _ListHandler(level=logging.WARNING)
-    target.addHandler(handler)
-    try:
-        yield records
-    finally:
-        target.removeHandler(handler)
+    store = DiskCache(disk_path=tmp_path / subdir)
+    return DataLowLevelClient(MagicMock(), channel_cache=ChannelDataCache(store))
 
 
 def _patch_deserializer(sentinel_to_frames: dict[str, dict[str, pd.DataFrame]]) -> Any:
@@ -201,348 +173,140 @@ def _fake_grpc(
 # ---------- tests -----------
 
 
-class TestChannelCache:
-    """Disk-backed :class:`ChannelCache` behaviour.
+class TestChannelDataCache:
+    """The typed adapter over the shared :class:`DiskCache`.
 
-    Five invariants must hold across these tests:
+    Three invariants get pinned:
 
-    1. Constructing without a ``disk_path`` yields a no-op cache (every
-       operation is silent; ``__contains__`` returns ``False``).
-    2. A fresh disk directory starts empty and accepts new writes.
-    3. Closing a populated cache and reopening at the same path surfaces
-       the previous entries on read (the "previous session" requirement
-       that powers cold-start reuse).
-    4. Oversized entries are skipped with a deduped warning rather than
-       being inserted and triggering an eviction storm.
-    5. ``invalidate``/``clear`` reset the oversized-warning dedup state
-       so a future regression re-warns.
+    1. Every operation routes through the namespaced key
+       (``channel:<id>``), so two adapters sharing one store don't
+       collide on bare resource ids.
+    2. :meth:`ChannelDataCache.get` returns ``None`` on a type-mismatch
+       hit (e.g. a row another adapter wrote) instead of handing
+       arbitrary objects to downstream pandas code.
+    3. :meth:`ChannelDataCache.clear` wipes only the adapter's namespace
+       — entries belonging to other adapters survive.
 
-    All tests confine writes to ``tmp_path`` so nothing leaks into the
-    real ``/tmp/sift-channel-data-cache``.
+    Store-level behaviour (oversized guards, cross-session reload,
+    marker-checked clear_disk) is exercised in ``test_disk_cache.py``.
     """
 
-    def test_disabled_when_no_path(self) -> None:
-        """``ChannelCache()`` with no ``disk_path`` is a silent no-op."""
-        cache = ChannelCache()
-        assert cache.disk_enabled is False
-        assert cache.disk_path is None
-        assert cache.disk_max_bytes is None
-        # Operations don't raise; the cache just stays empty.
-        cache.put("chan-1", _entry(rows=4))
-        assert "chan-1" not in cache
-        assert cache.get("chan-1") is None
-        cache.invalidate("chan-1")
-        cache.clear()
-        cache.close()
-
-    def test_fresh_cache_writes_and_reads(self, tmp_path) -> None:
-        """A fresh disk directory accepts writes and serves them back."""
-        path = tmp_path / "fresh"
-        cache = ChannelCache(disk_path=path)
+    def test_get_miss_returns_none(self, tmp_path):
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "miss"))
         try:
-            assert cache.disk_enabled
-            assert cache.disk_path == str(path)
-            assert cache.disk_max_bytes == ChannelCache.DEFAULT_DISK_MAX_BYTES
+            assert "c1" not in adapter
+            assert adapter.get("c1") is None
+        finally:
+            adapter.store.close()
+
+    def test_round_trip(self, tmp_path):
+        """Put then get returns an equivalent entry."""
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "rt"))
+        try:
             entry = _entry(rows=8)
-            cache.put("chan-1", entry)
-            assert "chan-1" in cache
-            got = cache.get("chan-1")
+            adapter.put("c1", entry)
+            assert "c1" in adapter
+            got = adapter.get("c1")
             assert got is not None
             pd.testing.assert_frame_equal(got.data, entry.data)
             assert got.start_time == entry.start_time
             assert got.end_time == entry.end_time
         finally:
-            cache.close()
+            adapter.store.close()
 
-    def test_reopen_existing_dir_sees_prior_session_entries(self, tmp_path) -> None:
-        """Closing then reopening at the same path makes prior entries hit.
+    def test_writes_use_namespaced_key(self, tmp_path):
+        """The raw store sees ``channel:<id>``, not the bare id.
 
-        This is the "look for existing caches from previous sessions"
-        guarantee: a new ``ChannelCache`` at a populated directory finds
-        entries on disk and returns them on the next read.
+        Pins the key-shape contract two adapters share. Without it, a
+        second adapter that happens to share an id with the channel
+        adapter would clobber the channel row.
         """
-        path = tmp_path / "prev-session"
-        df = _frame("chan-1", rows=12, freq="s")
-        original_entry = _new_cache_entry(
-            data=df,
-            start_time=df.index[0].to_pydatetime(),
-            end_time=df.index[-1].to_pydatetime(),
-        )
-        # Session 1: populate and close.
-        session1 = ChannelCache(disk_path=path)
-        session1.put("chan-1", original_entry)
-        session1.close()
-
-        # Session 2: fresh process simulated by a brand-new ChannelCache
-        # at the same directory.
-        session2 = ChannelCache(disk_path=path)
+        store = DiskCache(disk_path=tmp_path / "ns")
+        adapter = ChannelDataCache(store)
         try:
-            assert "chan-1" in session2
-            got = session2.get("chan-1")
-            assert got is not None
-            pd.testing.assert_frame_equal(got.data, original_entry.data)
-            assert got.start_time == original_entry.start_time
-            assert got.end_time == original_entry.end_time
+            adapter.put("c1", _entry(rows=4))
+            assert "channel:c1" in store
+            assert "c1" not in store
         finally:
-            session2.close()
+            store.close()
 
-    def test_repeated_put_overwrites(self, tmp_path) -> None:
-        """A second ``put`` on the same key replaces the prior entry."""
-        cache = ChannelCache(disk_path=tmp_path / "overwrite")
-        try:
-            small = _entry(rows=10)
-            bigger = _entry(rows=100)
-            cache.put("chan", small)
-            cache.put("chan", bigger)
-            got = cache.get("chan")
-            assert got is not None
-            pd.testing.assert_frame_equal(got.data, bigger.data)
-        finally:
-            cache.close()
+    def test_get_isinstance_check_filters_foreign_rows(self, tmp_path):
+        """A row whose value isn't a ChannelCacheEntry reads as a miss.
 
-    def test_invalidate_removes_entry(self, tmp_path) -> None:
-        """``invalidate`` drops the entry; safe to call when absent."""
-        cache = ChannelCache(disk_path=tmp_path / "inval")
-        try:
-            cache.invalidate("never_added")  # safe before any puts
-            cache.put("chan-1", _entry(rows=4))
-            cache.invalidate("chan-1")
-            assert "chan-1" not in cache
-            assert cache.get("chan-1") is None
-        finally:
-            cache.close()
-
-    def test_clear_wipes_disk(self, tmp_path) -> None:
-        cache = ChannelCache(disk_path=tmp_path / "clear")
-        try:
-            cache.put("chan-1", _entry(rows=4))
-            cache.put("chan-2", _entry(rows=4))
-            cache.clear()
-            assert "chan-1" not in cache
-            assert "chan-2" not in cache
-        finally:
-            cache.close()
-
-    def test_disable_disk_closes_handle(self, tmp_path) -> None:
-        """Turning off disk closes the handle and silences subsequent ops."""
-        cache = ChannelCache(disk_path=tmp_path / "disable")
-        try:
-            cache.put("chan-1", _entry(rows=4))
-            cache.disable_disk()
-            assert not cache.disk_enabled
-            assert cache.disk_path is None
-            assert "chan-1" not in cache  # no handle → no hits
-            assert cache.get("chan-1") is None
-            # Subsequent puts are silently dropped.
-            cache.put("chan-2", _entry(rows=4))
-            assert "chan-2" not in cache
-        finally:
-            cache.close()
-
-    def test_enable_disk_reconfigures_path(self, tmp_path) -> None:
-        """Reconfiguring to a different path closes the old handle.
-
-        The new directory starts empty: ``chan-1`` lived in the old
-        directory's diskcache, so the lookup at the new path misses.
+        Models a corrupt entry or a key collision from another writer.
+        ``ChannelDataCache.get`` must isinstance-check the raw value so
+        callers downstream never receive the wrong shape.
         """
-        cache = ChannelCache(disk_path=tmp_path / "a")
+        store = DiskCache(disk_path=tmp_path / "foreign")
+        adapter = ChannelDataCache(store)
         try:
-            cache.put("chan-1", _entry(rows=4))
-            cache.enable_disk(path=tmp_path / "b")
-            assert cache.disk_path == str(tmp_path / "b")
-            assert "chan-1" not in cache  # fresh directory
+            store.put("channel:c1", {"not": "an entry"}, size_bytes=64)
+            assert adapter.get("c1") is None
         finally:
-            cache.close()
+            store.close()
 
-    def test_enable_disk_noop_when_same_settings(self, tmp_path) -> None:
-        """Re-enabling with identical settings doesn't churn the disk handle."""
-        cache = ChannelCache(disk_path=tmp_path / "noop")
+    def test_invalidate_removes_entry(self, tmp_path):
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "inval"))
         try:
-            handle_before = cache._disk
-            cache.enable_disk(path=tmp_path / "noop", max_bytes=ChannelCache.DEFAULT_DISK_MAX_BYTES)
-            assert cache._disk is handle_before
+            adapter.invalidate("never_added")  # safe before any puts
+            adapter.put("c1", _entry(rows=4))
+            adapter.invalidate("c1")
+            assert "c1" not in adapter
+            assert adapter.get("c1") is None
         finally:
-            cache.close()
+            adapter.store.close()
 
-    def test_oversized_entry_skips_cache_preserves_neighbours(self, tmp_path) -> None:
-        """An entry larger than the cap is skipped without evicting peers.
+    def test_clear_is_prefix_scoped(self, tmp_path):
+        """``clear`` drops channel rows but leaves other adapters' rows alone.
 
-        Without this guard, ``diskcache``'s cull would evict every other
-        row trying to fit an unfittable entry, then drop the entry itself
-        — the wipe-everything failure mode the bounded-cache work
-        originally fixed. The disk-tier guard mirrors that fix.
-
-        Memory is sized to accept small entries but reject the oversized one
-        so memory-tier writes don't compete with disk-tier writes. We
-        assert on the disk ``_disk`` mapping directly because that's where
-        the contested behavior lives.
-
-        ``disk_max_bytes`` has to leave room for ``diskcache``'s pickle
-        envelope around each small entry (a few KB) AND be small enough
-        that the oversized entry trips the guard. Half the oversized
-        DataFrame's raw byte size hits both constraints comfortably.
+        Simulates a second resource writing to the same store with a
+        different prefix; the channel adapter's clear must not be a
+        whole-store wipe.
         """
-        small = _entry(rows=4)
-        oversized = _entry(rows=10_000)
-        cache = ChannelCache(
-            disk_path=tmp_path / "disk-oversize",
-            disk_max_bytes=oversized.size_bytes // 2,
-        )
+        store = DiskCache(disk_path=tmp_path / "scoped")
+        adapter = ChannelDataCache(store)
         try:
-            cache.put("small-1", small)
-            cache.put("small-2", small)
-            assert cache._disk is not None
-            with _capture_data_warnings() as records:
-                cache.put("huge", oversized)
-            # Prior entries survive; oversized one was not written.
-            assert "small-1" in cache
-            assert "small-2" in cache
-            assert "huge" not in cache
-            assert any("larger than the disk cache cap" in r.getMessage() for r in records)
+            adapter.put("c1", _entry(rows=4))
+            adapter.put("c2", _entry(rows=4))
+            # Simulate a row written by a different adapter.
+            store.put("other:1", "foreign-value", size_bytes=64)
+            adapter.clear()
+            assert "c1" not in adapter
+            assert "c2" not in adapter
+            assert "other:1" in store
         finally:
-            cache.close()
+            store.close()
 
-    def test_oversized_put_drops_prior_entry(self, tmp_path) -> None:
-        """An oversized re-insert must drop the prior slice, not silently keep it.
+    def test_size_bytes_propagates_to_store(self, tmp_path):
+        """The adapter forwards the entry's ``size_bytes`` to the store guard.
 
-        Otherwise a stale subrange would masquerade as a hit on the next
-        ``get`` even though the caller's intent was to refresh the entry.
+        Sized below the entry's actual ``size_bytes`` so the store's
+        oversize guard kicks in. The adapter never measures size itself;
+        it relies on ``_new_cache_entry`` having stamped the value.
         """
-        small = _entry(rows=4)
-        oversized = _entry(rows=10_000)
-        cache = ChannelCache(
-            disk_path=tmp_path / "drop-prior",
-            disk_max_bytes=oversized.size_bytes // 2,
-        )
+        entry = _entry(rows=10_000)
+        store = DiskCache(disk_path=tmp_path / "size", disk_max_bytes=entry.size_bytes // 2)
+        adapter = ChannelDataCache(store)
         try:
-            cache.put("chan", small)
-            assert "chan" in cache
-            cache.put("chan", oversized)
-            assert "chan" not in cache
+            adapter.put("c1", entry)
+            assert "c1" not in adapter  # oversize skipped by the store
         finally:
-            cache.close()
+            store.close()
 
-    def test_oversized_put_warns_once_per_channel(self, tmp_path) -> None:
-        """Repeated oversized puts for the same channel log once, not on every call.
+    def test_no_op_store_keeps_adapter_silent(self):
+        """An adapter on a disabled store behaves like a cold cache.
 
-        Without dedup, every ``get_data`` for an oversized channel would
-        write a fresh WARNING line — quickly drowning out other signal in
-        the logs.
+        Disabling the store is the path ``client.cache.disable_disk()``
+        exercises; resources can keep their adapter reference and every
+        operation just no-ops.
         """
-        oversized = _entry(rows=10_000)
-        cache = ChannelCache(
-            disk_path=tmp_path / "dedup",
-            disk_max_bytes=oversized.size_bytes // 2,
-        )
-        try:
-            with _capture_data_warnings() as records:
-                for _ in range(5):
-                    cache.put("chan", oversized)
-            warnings = [r for r in records if "larger than the disk cache cap" in r.getMessage()]
-            assert len(warnings) == 1
-        finally:
-            cache.close()
-
-    def test_oversized_warning_resets_after_normal_put(self, tmp_path) -> None:
-        """A successful normal-sized put clears the dedup bit.
-
-        Used by callers who narrow a time window after seeing the warning:
-        the next oversized regression should re-warn rather than stay silent.
-        """
-        small = _entry(rows=4)
-        oversized = _entry(rows=10_000)
-        cache = ChannelCache(
-            disk_path=tmp_path / "reset-after-normal",
-            disk_max_bytes=oversized.size_bytes // 2,
-        )
-        try:
-            with _capture_data_warnings() as records:
-                cache.put("chan", oversized)  # 1st warning
-                cache.put("chan", small)  # resets state
-                cache.put("chan", oversized)  # 2nd warning
-            warnings = [r for r in records if "larger than the disk cache cap" in r.getMessage()]
-            assert len(warnings) == 2
-        finally:
-            cache.close()
-
-    def test_invalidate_resets_oversized_warning(self, tmp_path) -> None:
-        """``invalidate`` is a fresh start; the next oversized put re-warns."""
-        oversized = _entry(rows=10_000)
-        cache = ChannelCache(
-            disk_path=tmp_path / "reset-invalidate",
-            disk_max_bytes=oversized.size_bytes // 2,
-        )
-        try:
-            with _capture_data_warnings() as records:
-                cache.put("chan", oversized)
-                cache.invalidate("chan")
-                cache.put("chan", oversized)
-            warnings = [r for r in records if "larger than the disk cache cap" in r.getMessage()]
-            assert len(warnings) == 2
-        finally:
-            cache.close()
-
-    def test_clear_resets_oversized_warning(self, tmp_path) -> None:
-        """``clear`` resets dedup state across channels."""
-        oversized = _entry(rows=10_000)
-        cache = ChannelCache(
-            disk_path=tmp_path / "reset-clear",
-            disk_max_bytes=oversized.size_bytes // 2,
-        )
-        try:
-            with _capture_data_warnings() as records:
-                cache.put("chan-a", oversized)
-                cache.put("chan-b", oversized)
-                cache.clear()
-                cache.put("chan-a", oversized)
-                cache.put("chan-b", oversized)
-            warnings = [r for r in records if "larger than the disk cache cap" in r.getMessage()]
-            assert len(warnings) == 4
-        finally:
-            cache.close()
-
-
-class TestChannelCacheClearDisk:
-    """``ChannelCache.clear_disk`` removes a cache dir, refuses other dirs.
-
-    The classmethod is the source of truth that the resource-level
-    ``ChannelsAPIAsync.clear_data_cache_on_disk`` proxies through, so it
-    must be defensive against pointing at the wrong directory.
-    """
-
-    def test_clear_removes_directory(self, tmp_path) -> None:
-        path = tmp_path / "victim"
-        cache = ChannelCache(disk_path=path)
-        cache.put("chan-1", _entry(rows=4))
-        cache.close()
-        assert path.exists()
-        ChannelCache.clear_disk(path)
-        assert not path.exists()
-
-    def test_clear_missing_path_is_noop(self, tmp_path) -> None:
-        ChannelCache.clear_disk(tmp_path / "never-existed")  # no raise
-
-    def test_clear_refuses_non_diskcache_directory(self, tmp_path) -> None:
-        """A typo'd path with unrelated contents must not be wiped."""
-        target = tmp_path / "user-stuff"
-        target.mkdir()
-        (target / "important.txt").write_text("don't delete me")
-        with pytest.raises(ValueError, match="does not look like a sift channel data cache"):
-            ChannelCache.clear_disk(target)
-        assert (target / "important.txt").read_text() == "don't delete me"
-
-    def test_default_path_constant_under_tmp(self) -> None:
-        """Default lives under the OS tmp dir, not a user directory.
-
-        Reads the module-level snapshot captured at import time rather than
-        ``ChannelCache.DEFAULT_DISK_PATH`` directly, because the autouse
-        ``_isolate_default_disk_cache_path`` fixture monkeypatches that
-        attribute for every test to keep ``/tmp`` clean.
-        """
-        import tempfile
-
-        assert _PRODUCTION_DEFAULT_DISK_PATH.startswith(tempfile.gettempdir())
-        assert _PRODUCTION_DEFAULT_DISK_PATH.endswith("sift-channel-data-cache")
+        adapter = ChannelDataCache(DiskCache())
+        assert not adapter.store.disk_enabled
+        adapter.put("c1", _entry(rows=4))
+        assert "c1" not in adapter
+        assert adapter.get("c1") is None
+        adapter.invalidate("c1")
+        adapter.clear()
 
 
 class TestMergePages:
@@ -648,24 +412,24 @@ class TestDataLowLevelClient:
     :class:`TestGetChannelData`.
     """
 
-    def test_no_cache_when_disk_path_omitted(self) -> None:
-        """Default construction leaves the cache in no-op mode.
+    def test_default_construction_uses_no_op_store(self) -> None:
+        """Default construction leaves the adapter wrapping a disabled store.
 
-        The ``ChannelsAPIAsync`` resource is the public surface for
-        opting into disk persistence; the bare ``DataLowLevelClient``
-        keeps caching off so unit tests don't accidentally write to
-        ``/tmp`` just by instantiating the wrapper.
+        Resources wire the shared store in via the keyword arg; the
+        ``MagicMock()``-only path here keeps unit tests free of disk I/O.
         """
         client = DataLowLevelClient(MagicMock())
-        assert not client.channel_cache.disk_enabled
+        assert isinstance(client.channel_cache, ChannelDataCache)
+        assert not client.channel_cache.store.disk_enabled
 
     def test_per_instance_isolation(self, tmp_path) -> None:
-        """Two clients with separate disk paths must not share cache state.
+        """Two clients with distinct stores must not share cache state.
 
         Regression test for the original OOM bug: ``channel_cache`` was a
         class attribute, so every ``SiftClient`` in the process appended
-        to the same dict. Two fresh clients with distinct directories must
-        have independent caches.
+        to the same dict. Two fresh adapters over independent stores must
+        stay independent — even now that store ownership has moved to the
+        client, the contract is the same.
         """
         client_a = _client_with_cache(tmp_path, "a")
         client_b = _client_with_cache(tmp_path, "b")
@@ -674,23 +438,24 @@ class TestDataLowLevelClient:
             assert "c1" in client_a.channel_cache
             assert "c1" not in client_b.channel_cache
         finally:
-            client_a.channel_cache.close()
-            client_b.channel_cache.close()
+            client_a.channel_cache.store.close()
+            client_b.channel_cache.store.close()
 
-    def test_disk_cache_kwargs_propagate(self, tmp_path) -> None:
-        """Constructor kwargs land on the underlying ``ChannelCache``."""
-        path = tmp_path / "kwargs"
-        client = DataLowLevelClient(
-            MagicMock(),
-            disk_cache_path=path,
-            disk_cache_max_bytes=8_192,
-        )
+    def test_adapter_kwarg_propagates(self, tmp_path) -> None:
+        """The constructor honours an externally-constructed adapter.
+
+        Mirrors the production wiring where ``ChannelsAPIAsync`` builds
+        the adapter from ``client._get_disk_cache()`` and hands it in.
+        """
+        store = DiskCache(disk_path=tmp_path / "external", disk_max_bytes=8_192)
+        adapter = ChannelDataCache(store)
+        client = DataLowLevelClient(MagicMock(), channel_cache=adapter)
         try:
-            assert client.channel_cache.disk_enabled
-            assert client.channel_cache.disk_path == str(path)
-            assert client.channel_cache.disk_max_bytes == 8_192
+            assert client.channel_cache is adapter
+            assert client.channel_cache.store is store
+            assert client.channel_cache.store.disk_max_bytes == 8_192
         finally:
-            client.channel_cache.close()
+            store.close()
 
 
 class TestGetChannelData:
@@ -766,7 +531,7 @@ class TestGetChannelData:
                 )
             pd.testing.assert_frame_equal(first["c1"].sort_index(), second["c1"].sort_index())
         finally:
-            client.channel_cache.close()
+            client.channel_cache.store.close()
 
     @pytest.mark.asyncio
     async def test_partial_cache_hit_merges_cached_and_fresh(self, tmp_path) -> None:
@@ -799,7 +564,7 @@ class TestGetChannelData:
             pd.testing.assert_frame_equal(result["c1"].sort_index(), c1_df.sort_index())
             pd.testing.assert_frame_equal(result["c2"].sort_index(), c2_df.sort_index())
         finally:
-            client.channel_cache.close()
+            client.channel_cache.store.close()
 
     @pytest.mark.asyncio
     async def test_ignore_cache_true_returns_fresh_and_skips_write(self, tmp_path) -> None:
@@ -822,4 +587,4 @@ class TestGetChannelData:
             pd.testing.assert_frame_equal(result["c1"], df)
             assert "c1" not in client.channel_cache
         finally:
-            client.channel_cache.close()
+            client.channel_cache.store.close()

@@ -2,11 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
-import shutil
-import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
@@ -20,14 +16,13 @@ from sift.data.v2.data_pb2 import (
 )
 from sift.data.v2.data_pb2_grpc import DataServiceStub
 
+from sift_client._internal.disk_cache import DiskCache
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.time import to_timestamp_nanos
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
-    import diskcache
-
     from sift_client.transport.grpc_transport import GrpcClient
 
 # Configure logging
@@ -60,283 +55,100 @@ def _new_cache_entry(
     )
 
 
-class ChannelCache:
-    """Disk-backed cache of per-channel DataFrames.
+class ChannelDataCache:
+    """Channel-side adapter over the shared :class:`DiskCache` store.
 
-    A ``diskcache``-backed key/value store that survives process restarts.
-    ``put`` writes through to disk, ``get`` reads from disk, and
-    ``invalidate``/``clear`` remove entries. The disk tier has a byte cap
-    that ``diskcache`` enforces with its own LRU eviction.
+    The store is owned by :class:`~sift_client.client.SiftClient` and
+    shared by every cache-aware resource; this adapter is the typed,
+    namespaced view of it that the channel data path uses.
 
-    When no ``disk_path`` is supplied the cache is a no-op: ``get`` always
-    returns ``None``, ``__contains__`` is always ``False``, and ``put`` is
-    silently dropped. This is the "caching disabled" mode used after a
-    :meth:`disable_disk` call (or when disk persistence is turned off on
-    the owning resource).
+    Responsibilities the adapter holds onto:
 
-    An in-memory tier previously sat in front of disk. It was removed once
-    benchmarks showed that for the workloads driving the OOM regression the
-    extra memory footprint outweighed the per-call pickle/deserialize cost
-    on a warm disk hit; if profiling shows the disk reads dominating again,
-    re-introduce a small front cache here.
+    * **Key namespacing.** Every read/write goes through :meth:`_key`,
+      which prefixes the channel id with ``channel:``. That keeps a
+      future calculated-channels or exports adapter on the same store
+      from colliding on raw resource ids.
+    * **Typing.** ``put`` only accepts :class:`ChannelCacheEntry`;
+      ``get`` ``isinstance``-checks the raw value before handing it back,
+      so a corrupt or cross-adapter row reads as a miss instead of
+      blowing up downstream pandas code.
+    * **Size measurement.** The store stays value-agnostic; the adapter
+      already computes ``size_bytes`` on the entry via
+      :func:`_new_cache_entry` (``DataFrame.memory_usage(deep=True)``) so
+      it just forwards that to the store's oversize guard.
+    * **Resource-side state.** :attr:`name_id_map` lives here because
+      it's channel-specific bookkeeping needed to wire raw fetch
+      responses (keyed by channel *name*) back to the cache (keyed by
+      channel *id*).
+
+    The :class:`DiskCacheAdapter` ``Protocol`` is intentionally not
+    declared yet — there's only one adapter shape so far. When a second
+    resource grows its own adapter, extract the Protocol from the two
+    real shapes rather than guessing from one.
     """
 
-    #: Default directory for the cache. Lives under ``tempfile.gettempdir()``
-    #: so it survives across sessions of the same user but doesn't pollute
-    #: the user's home dir. The suffix is fixed so multiple processes
-    #: (different ``SiftClient`` instances, notebooks, etc.) naturally share
-    #: the same store and can read each other's prior sessions.
-    DEFAULT_DISK_PATH: str = os.path.join(tempfile.gettempdir(), "sift-channel-data-cache")
+    #: Namespace prefix for keys this adapter writes to the shared
+    #: :class:`DiskCache`. Picked at class scope so adapters in other
+    #: resources can pick distinct prefixes without runtime negotiation.
+    KEY_PREFIX: str = "channel:"
 
-    #: Default byte cap for the cache when ``enable_disk`` is called without
-    #: an explicit ``max_bytes``. 4 GiB is a generous ceiling for the typical
-    #: ``/tmp`` filesystem; ``diskcache`` enforces it with its own SQLite-
-    #: backed LRU eviction once the bound is reached.
-    DEFAULT_DISK_MAX_BYTES: int = 4 * 1024 * 1024 * 1024
-
-    #: Marker file ``diskcache`` writes inside every cache directory. We
-    #: sanity-check for this before any ``shutil.rmtree`` so a typo in the
-    #: ``clear_disk`` ``path`` argument can't wipe out an unrelated directory.
-    _DISKCACHE_MARKER: str = "cache.db"
-
-    def __init__(
-        self,
-        *,
-        disk_path: str | os.PathLike[str] | None = None,
-        disk_max_bytes: int | None = None,
-    ):
-        """Construct a disk-backed cache.
+    def __init__(self, store: DiskCache):
+        """Wrap ``store`` with channel-data semantics.
 
         Args:
-            disk_path: Directory for the cache. ``None`` disables caching
-                entirely (every operation becomes a no-op). A previously-
-                populated directory is reused, so subsequent sessions can
-                read existing entries.
-            disk_max_bytes: Byte cap on disk usage. ``None`` falls back to
-                ``DEFAULT_DISK_MAX_BYTES``. Ignored when ``disk_path`` is
-                ``None``.
+            store: The shared :class:`DiskCache` instance owned by the
+                :class:`SiftClient`. Multiple adapters may share one store.
         """
+        self._store = store
         self.name_id_map: dict[str, str] = {}
-        # Channels we've already logged an "entry exceeds disk cap" warning
-        # for. The check on the put path would otherwise spam the log once
-        # per ``get_data`` call for any channel whose typical entry is bigger
-        # than the cap. A successful normal put for the same channel clears
-        # the bit so a future regression re-warns.
-        self._oversized_disk_warned: set[str] = set()
-        self._disk: diskcache.Cache | None = None
-        self._disk_path: str | None = None
-        self._disk_max_bytes: int | None = None
-        if disk_path is not None:
-            self._open_disk(
-                str(disk_path),
-                disk_max_bytes if disk_max_bytes is not None else self.DEFAULT_DISK_MAX_BYTES,
-            )
 
-    @classmethod
-    def clear_disk(cls, path: str | os.PathLike[str] | None = None) -> None:
-        """Delete a previously-persisted on-disk cache directory.
-
-        Use this to drop stale caches from previous sessions, recover from a
-        corrupt cache, or reclaim disk space. The directory is removed
-        entirely; a future ``enable_disk`` call at the same path will see a
-        fresh empty cache.
-
-        Args:
-            path: Directory of the cache to clear. ``None`` (the default)
-                targets :attr:`DEFAULT_DISK_PATH`.
-
-        Raises:
-            ValueError: If ``path`` exists but does not look like a sift
-                channel data cache directory (missing the ``diskcache``
-                marker file). This guard makes accidental misuse a hard
-                error rather than silent data loss.
-        """
-        target = Path(path) if path is not None else Path(cls.DEFAULT_DISK_PATH)
-        if not target.exists():
-            return
-        if not (target / cls._DISKCACHE_MARKER).exists():
-            raise ValueError(
-                f"{str(target)!r} does not look like a sift channel data cache "
-                f"directory (missing {cls._DISKCACHE_MARKER!r} marker). "
-                f"Refusing to delete."
-            )
-        shutil.rmtree(target)
+    def _key(self, channel_id: str) -> str:
+        return f"{self.KEY_PREFIX}{channel_id}"
 
     @property
-    def disk_enabled(self) -> bool:
-        """Whether the disk-backed store is currently open."""
-        return self._disk is not None
-
-    @property
-    def disk_path(self) -> str | None:
-        """Filesystem path of the cache when enabled, else ``None``."""
-        return self._disk_path
-
-    @property
-    def disk_max_bytes(self) -> int | None:
-        """Configured byte cap on disk usage, or ``None`` when disabled."""
-        return self._disk_max_bytes
+    def store(self) -> DiskCache:
+        """The shared underlying store. Tests reach in for store-level state."""
+        return self._store
 
     def __contains__(self, channel_id: str) -> bool:
-        """True if the channel is cached on disk.
-
-        Used by ``_filter_cached_channels`` to decide whether ``get_data``
-        needs to hit the wire. A warm disk lets a fresh session avoid
-        re-fetching previously-served windows.
-        """
-        if self._disk is None:
-            return False
-        return channel_id in self._disk
-
-    def enable_disk(
-        self,
-        *,
-        path: str | os.PathLike[str] | None = None,
-        max_bytes: int | None = None,
-    ) -> None:
-        """Enable (or reconfigure) the disk-backed cache.
-
-        If a previous disk handle was open at a different path or with a
-        different size cap, it's closed first. Disk contents at the new
-        path are NOT recreated from anywhere — only future writes land in
-        the new location.
-
-        Args:
-            path: Directory to persist to. ``None`` uses
-                :attr:`DEFAULT_DISK_PATH`. The directory is created if
-                missing; an existing one is opened in place and its
-                contents become available to ``get``.
-            max_bytes: Byte cap on disk usage (``None`` →
-                :attr:`DEFAULT_DISK_MAX_BYTES`).
-        """
-        target_path = str(path) if path is not None else self.DEFAULT_DISK_PATH
-        target_max = max_bytes if max_bytes is not None else self.DEFAULT_DISK_MAX_BYTES
-        if (
-            self._disk is not None
-            and self._disk_path == target_path
-            and self._disk_max_bytes == target_max
-        ):
-            return
-        self._close_disk()
-        self._open_disk(target_path, target_max)
-
-    def disable_disk(self) -> None:
-        """Close the disk handle (if open). Does not touch the disk contents.
-
-        Use ``client.channels.clear_data_cache_on_disk(path)`` to remove a
-        directory from disk.
-        """
-        self._close_disk()
+        """True if the channel is cached. False when the store is disabled."""
+        return self._key(channel_id) in self._store
 
     def get(self, channel_id: str) -> ChannelCacheEntry | None:
-        """Return the entry for ``channel_id`` if cached, otherwise None."""
-        if self._disk is None:
+        """Return the entry for ``channel_id`` if cached, otherwise None.
+
+        Type-checks the raw value before returning so a row written by a
+        different adapter (or a corrupt entry that survived) reads as a
+        miss instead of being handed back as the wrong type.
+        """
+        raw = self._store.get(self._key(channel_id))
+        if not isinstance(raw, ChannelCacheEntry):
             return None
-        try:
-            disk_entry = self._disk.get(channel_id, default=None, retry=True)
-        except Exception:
-            # diskcache surfaces ``sqlite3.DatabaseError`` (and friends) for
-            # corrupt or partially-written entries from a prior session.
-            # Treat as a miss; force-drop the bad row so we don't repeatedly
-            # trip the same path.
-            logger.warning("disk cache read failed for %s; invalidating", channel_id)
-            try:
-                del self._disk[channel_id]
-            except Exception:
-                pass
-            return None
-        if disk_entry is None or not isinstance(disk_entry, ChannelCacheEntry):
-            return None
-        return disk_entry
+        return raw
 
     def put(self, channel_id: str, entry: ChannelCacheEntry) -> None:
         """Insert or replace ``channel_id`` on disk.
 
-        No-op when the disk tier is disabled. Entries larger than
-        ``disk_max_bytes`` are skipped (with a one-shot warning per
-        channel) instead of being inserted, since diskcache's eviction
-        loop would otherwise drain every other row trying — and failing —
-        to fit them.
+        Forwards :attr:`ChannelCacheEntry.size_bytes` to the store so its
+        oversize guard can decide whether to write or skip+warn. No-op
+        when the underlying store is disabled.
         """
-        if self._disk is None:
-            return
-        if self._disk_max_bytes is not None and entry.size_bytes > self._disk_max_bytes:
-            if channel_id not in self._oversized_disk_warned:
-                logger.warning(
-                    "Channel %s data (%d bytes) is larger than the disk "
-                    "cache cap (%d bytes); skipping disk cache for this "
-                    "channel so other entries aren't evicted. Raise the "
-                    "cap via ``client.channels.enable_data_cache_disk("
-                    "max_bytes=...)`` to cache this channel on disk.",
-                    channel_id,
-                    entry.size_bytes,
-                    self._disk_max_bytes,
-                )
-                self._oversized_disk_warned.add(channel_id)
-            try:
-                self._disk.delete(channel_id, retry=True)
-            except Exception:
-                pass
-            return
-        try:
-            self._disk.set(channel_id, entry, retry=True)
-            self._oversized_disk_warned.discard(channel_id)
-        except Exception:
-            # Best-effort persistence: keep going on disk errors so the
-            # user's ``get_data`` call still succeeds. Drop the (possibly
-            # partial) disk row.
-            logger.warning("disk cache write failed for %s; invalidating", channel_id)
-            try:
-                self._disk.delete(channel_id, retry=True)
-            except Exception:
-                pass
+        self._store.put(self._key(channel_id), entry, size_bytes=entry.size_bytes)
 
     def invalidate(self, channel_id: str) -> None:
-        """Remove ``channel_id`` from the cache. Safe to call when absent."""
-        # Invalidation is a fresh start for this channel; if it was warned
-        # about as oversized previously, the next put should re-evaluate
-        # against the current cap and re-warn if still too big.
-        self._oversized_disk_warned.discard(channel_id)
-        if self._disk is not None:
-            try:
-                self._disk.delete(channel_id, retry=True)
-            except Exception:
-                pass
+        """Remove ``channel_id`` from the cache. Safe when absent."""
+        self._store.invalidate(self._key(channel_id))
 
     def clear(self) -> None:
-        """Wipe all entries from disk. The directory itself remains."""
-        self._oversized_disk_warned.clear()
-        if self._disk is not None:
-            self._disk.clear()
+        """Wipe every channel entry. Other adapters' entries are preserved.
 
-    def close(self) -> None:
-        """Release the disk file handle. Safe to call without disk enabled."""
-        self._close_disk()
-
-    def _open_disk(self, path: str, max_bytes: int) -> None:
-        import diskcache
-
-        os.makedirs(path, exist_ok=True)
-        self._disk = diskcache.Cache(
-            directory=path,
-            size_limit=max_bytes,
-            eviction_policy="least-recently-used",
-            statistics=0,
-            tag_index=0,
-        )
-        self._disk_path = path
-        self._disk_max_bytes = max_bytes
-
-    def _close_disk(self) -> None:
-        if self._disk is None:
-            return
-        try:
-            self._disk.close()
-        except Exception:
-            pass
-        self._disk = None
-        self._disk_path = None
-        self._disk_max_bytes = None
+        Walks the shared store's keyspace once and drops anything under
+        :attr:`KEY_PREFIX`. ``list(...)`` snapshots the iterator since
+        we mutate during iteration.
+        """
+        for key in list(self._store):
+            if key.startswith(self.KEY_PREFIX):
+                self._store.invalidate(key)
 
 
 class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -349,24 +161,25 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         grpc_client: GrpcClient,
         *,
-        disk_cache_path: str | os.PathLike[str] | None = None,
-        disk_cache_max_bytes: int | None = None,
+        channel_cache: ChannelDataCache | None = None,
     ):
         """Initialize the DataLowLevelClient.
 
         Args:
             grpc_client: The gRPC client to use for making API calls.
-            disk_cache_path: Directory for the disk-backed channel-data cache.
-                ``None`` disables caching entirely. See ``ChannelCache``.
-            disk_cache_max_bytes: Byte cap for disk usage. ``None`` uses
-                ``ChannelCache.DEFAULT_DISK_MAX_BYTES``. Ignored when
-                ``disk_cache_path`` is ``None``.
+            channel_cache: Adapter wrapping the shared :class:`DiskCache` the
+                :class:`SiftClient` owns. When ``None`` (only the unit-test
+                construction path), the wrapper falls back to a no-op store
+                so cache reads/writes are silent. Production callers always
+                pass an adapter built from ``client._get_disk_cache()``.
         """
         super().__init__(grpc_client)
-        self.channel_cache = ChannelCache(
-            disk_path=disk_cache_path,
-            disk_max_bytes=disk_cache_max_bytes,
-        )
+        # Production wires the shared store in via the resource. The fallback
+        # here lets a bare ``DataLowLevelClient(MagicMock())`` keep working
+        # in unit tests without forcing every site to plumb a store.
+        if channel_cache is None:
+            channel_cache = ChannelDataCache(DiskCache())
+        self.channel_cache = channel_cache
 
     def _update_name_id_map(self, channels: list[Channel]):
         """Update the name id map with the new channels."""

@@ -11,29 +11,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 Up to a ~80x speedup for some get_data calls.
 
-#### Channel data cache (opt-out, on by default)
+#### Shared on-disk cache (opt-out, on by default)
 
 `client.channels.get_data(...)` now caches the channel windows it returns to disk by default. Subsequent calls covering the same channel/time range — including from a fresh process — read straight out of the cache instead of going to the wire. This also bounds memory: nothing is held in process after the call returns, which fixes the OOM seen on long sustained pulls (~5–7 GB of cache for a 145M-point pull in earlier versions).
 
-The default location is `<tempfile.gettempdir()>/sift-channel-data-cache`, capped at 4 GiB with LRU eviction. If the default path can't be opened (read-only filesystem, restricted container, etc.), the client logs a warning and continues with caching disabled — `get_data` still works, it just always goes to the wire.
+The cache lives on the `SiftClient` as a single shared store: every cache-aware resource writes to one global byte budget at one path, with one LRU policy. The default location is `<tempfile.gettempdir()>/sift-data-cache`, capped at 4 GiB with LRU eviction. If the default path can't be opened (read-only filesystem, restricted container, etc.), the client logs a warning and continues with caching disabled — `get_data` still works, it just always goes to the wire.
 
 `ignore_cache=True` on `client.channels.get_data(...)` now skips writing into the cache as well as reading from it. Previously a "non-caching" workload still appended to the shared cache on every call.
 
-Opt out, reconfigure, or wipe the cache from the `channels` resource:
+Configuration lives on the new `client.cache` namespace — knobs are global because the store is shared:
 
 ```python
 # Opt out — no data persisted to disk; every get_data call goes to the wire.
-client.channels.disable_data_cache_disk()
+client.cache.disable_disk()
 
 # Reconfigure the location or byte cap.
-client.channels.enable_data_cache_disk(path="/data/sift-cache", max_bytes=2 * 1024 ** 3)
+client.cache.enable_disk(path="/data/sift-cache", max_bytes=2 * 1024 ** 3)
 
 # Remove a stale or corrupted cache directory.
-client.channels.clear_data_cache_on_disk()                   # default tmp path
-client.channels.clear_data_cache_on_disk("/data/sift-cache") # custom path
+client.cache.clear_disk()                   # default tmp path
+client.cache.clear_disk("/data/sift-cache") # custom path
 ```
 
-`enable_data_cache_disk` is also the way to turn the cache back on after a prior `disable_data_cache_disk` call.
+`enable_disk` is also the way to turn the cache back on after a prior `disable_disk` call.
 
 The cache is powered by [`diskcache`](https://grantjenks.com/docs/diskcache/) (pure-Python, SQLite-backed) with LRU eviction.
 

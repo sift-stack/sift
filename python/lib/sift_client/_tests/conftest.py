@@ -11,28 +11,25 @@ from sift_client.util.util import AsyncAPIs
 
 @pytest.fixture(autouse=True)
 def _isolate_default_disk_cache_path(monkeypatch, tmp_path):
-    """Redirect ``ChannelCache.DEFAULT_DISK_PATH`` to a per-test tmp dir.
+    """Redirect ``DiskCache.DEFAULT_DISK_PATH`` to a per-test tmp dir.
 
-    The channel data disk cache is **opt-out** — any test that triggers the
-    lazy ``DataLowLevelClient`` init through ``ChannelsAPIAsync`` would
-    otherwise create the real ``/tmp/sift-channel-data-cache`` directory and
-    leak state across runs. Redirecting the default to ``tmp_path`` keeps
-    every test self-contained without each test having to know that the disk
-    tier is on by default.
+    On-disk caching is **opt-out** — any test that triggers the lazy
+    ``DiskCache`` init through ``SiftClient._get_disk_cache`` would
+    otherwise create the real ``/tmp/sift-data-cache`` directory and leak
+    state across runs. Redirecting the default to ``tmp_path`` keeps every
+    test self-contained without each test having to know the cache is on
+    by default.
 
-    The override deliberately preserves the ``sift-channel-data-cache``
-    suffix so ``TestChannelCacheClearDisk::test_default_path_constant_under_tmp``
-    keeps validating the real shape of the constant.
-
-    Importing ``ChannelCache`` here pulls in pandas, but only once per
-    session — fixture body still runs per-test, just the monkeypatch.
+    The override preserves the ``sift-data-cache`` suffix so
+    ``TestClearDisk::test_default_path_constant_under_tmp`` keeps
+    validating the real shape of the constant.
     """
-    from sift_client._internal.low_level_wrappers.data import ChannelCache
+    from sift_client._internal.disk_cache import DiskCache
 
     monkeypatch.setattr(
-        ChannelCache,
+        DiskCache,
         "DEFAULT_DISK_PATH",
-        str(tmp_path / "sift-channel-data-cache"),
+        str(tmp_path / "sift-data-cache"),
     )
 
 

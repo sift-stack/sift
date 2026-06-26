@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
-from sift_client._internal.disk_cache_config import DiskCacheConfig
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
 from sift_client._internal.low_level_wrappers.units import UnitsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -13,7 +11,6 @@ from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
-    import os
     import re
     from datetime import datetime
 
@@ -21,8 +18,6 @@ if TYPE_CHECKING:
     import pyarrow as pa
 
     from sift_client.client import SiftClient
-
-logger = logging.getLogger(__name__)
 
 
 def _channel_ids_from_list(items: list[str | Channel]) -> list[str]:
@@ -69,89 +64,6 @@ class ChannelsAPIAsync(ResourceBase):
         self._low_level_client = ChannelsLowLevelClient(grpc_client=self.client.grpc_client)
         self._units_low_level_client = UnitsLowLevelClient(grpc_client=self.client.grpc_client)
         self._data_low_level_client = None
-        self._disk_cache_config = DiskCacheConfig(enabled=True)
-
-    def enable_data_cache_disk(
-        self,
-        *,
-        path: str | os.PathLike[str] | None = None,
-        max_bytes: int | None = None,
-    ) -> None:
-        """Configure (or re-enable after ``disable_data_cache_disk``) the disk cache.
-
-        Disk persistence is **on by default** at ``ChannelCache.DEFAULT_DISK_PATH``;
-        use this method when you want to override the path or size, or to turn
-        the cache back on after a prior ``disable_data_cache_disk`` call.
-
-        Each entry that ``get_data`` returns is written to the cache and read
-        back on subsequent calls, even after process restart. The default
-        path lives under ``tempfile.gettempdir()`` and is shared across
-        sessions, so a re-run of the same workload picks up previously-cached
-        windows without a fetch.
-
-        Safe to call before or after the first ``get_data``. Reconfiguring
-        (different ``path`` or ``max_bytes``) closes the previous handle and
-        opens a new one.
-
-        An explicit ``path`` that can't be opened (e.g. permission denied,
-        read-only filesystem) raises so the caller knows the request didn't
-        take. The default-path open does *not* raise — see
-        ``_ensure_data_low_level_client`` for the silent fall-back behaviour.
-
-        Args:
-            path: Directory to persist the cache to. ``None`` (the default)
-                uses ``ChannelCache.DEFAULT_DISK_PATH``. Existing entries at
-                the path become available as cache hits.
-            max_bytes: Byte cap on disk usage. ``None`` uses
-                ``ChannelCache.DEFAULT_DISK_MAX_BYTES`` (4 GiB). When the
-                bound is reached, ``diskcache``'s LRU eviction takes over.
-
-        Example:
-            client.channels.enable_data_cache_disk(path="/data/sift-cache")
-            client.channels.enable_data_cache_disk(max_bytes=1024 ** 3)  # 1 GiB
-        """
-        self._disk_cache_config.enable(path=path, max_bytes=max_bytes)
-        if self._data_low_level_client is not None:
-            self._data_low_level_client.channel_cache.enable_disk(path=path, max_bytes=max_bytes)
-
-    def disable_data_cache_disk(self) -> None:
-        """Opt out of caching for ``get_data`` (no reads or writes).
-
-        Caching is on by default; call this when you don't want any cached
-        data written to or read from disk. Closes any open cache file
-        handle. The on-disk directory is NOT deleted — use
-        :meth:`clear_data_cache_on_disk` to wipe it.
-        """
-        self._disk_cache_config.disable()
-        if self._data_low_level_client is not None:
-            self._data_low_level_client.channel_cache.disable_disk()
-
-    def clear_data_cache_on_disk(self, path: str | os.PathLike[str] | None = None) -> None:
-        """Delete a previously-persisted on-disk channel data cache directory.
-
-        Drops stale caches from previous sessions, recovers from a corrupt
-        cache, or reclaims disk space. Removes the directory entirely; if disk
-        persistence is on, the next ``get_data`` re-opens an empty cache at
-        the same path.
-
-        This is a thin proxy around
-        :meth:`ChannelCache.clear_disk <sift_client._internal.low_level_wrappers.data.ChannelCache.clear_disk>`
-        — exposed on the resource so callers don't need to reach into
-        ``_internal`` modules. The underlying classmethod is also reachable
-        directly (``ChannelCache.clear_disk(...)``) if the caller doesn't have
-        a ``SiftClient`` handy.
-
-        Args:
-            path: Directory of the cache to clear. ``None`` (the default)
-                targets ``ChannelCache.DEFAULT_DISK_PATH``.
-
-        Raises:
-            ValueError: If ``path`` exists but does not look like a sift
-                channel data cache directory.
-        """
-        from sift_client._internal.low_level_wrappers.data import ChannelCache
-
-        ChannelCache.clear_disk(path)
 
     async def get(
         self,
@@ -331,45 +243,19 @@ class ChannelsAPIAsync(ResourceBase):
         """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""
         if self._data_low_level_client is None:
             from sift_client._internal.low_level_wrappers.data import (
-                ChannelCache,
+                ChannelDataCache,
                 DataLowLevelClient,
             )
 
-            kwargs: dict = {}
-            disk_config = self._disk_cache_config
-            if disk_config.enabled:
-                # ``disk_path=None`` means "no cache" to ChannelCache; substitute
-                # the default explicitly so the opt-out default still opens
-                # the cache. ``DEFAULT_DISK_PATH`` is read here (not at
-                # config construction) so test fixtures that monkeypatch the
-                # class attribute see the override.
-                kwargs["disk_cache_path"] = disk_config.path or ChannelCache.DEFAULT_DISK_PATH
-                if disk_config.max_bytes is not None:
-                    kwargs["disk_cache_max_bytes"] = disk_config.max_bytes
-            try:
-                self._data_low_level_client = DataLowLevelClient(
-                    grpc_client=self.client.grpc_client,
-                    **kwargs,
-                )
-            except Exception:
-                # Explicit user-supplied paths failures propagate so the
-                # caller knows their request didn't take. Default-path failures
-                # (read-only ``/tmp``, restricted containers, etc.) degrade
-                # silently to no-cache mode so ``get_data`` still works.
-                if not disk_config.using_default_path:
-                    raise
-                logger.warning(
-                    "Could not open the default channel data cache at %r; "
-                    "falling back to no caching for ``get_data``. Call "
-                    "``client.channels.disable_data_cache_disk()`` to silence "
-                    "this warning, or pass an explicit path via "
-                    "``enable_data_cache_disk(path=...)``.",
-                    kwargs.get("disk_cache_path"),
-                    exc_info=True,
-                )
-                self._data_low_level_client = DataLowLevelClient(
-                    grpc_client=self.client.grpc_client,
-                )
+            # The shared on-disk store lives on the client; we just wrap it
+            # in the channel-side adapter. Cache configuration (enable /
+            # disable / clear / path / max_bytes) is owned by
+            # ``client.cache`` — there's no resource-level knob anymore.
+            store = self.client._get_disk_cache()
+            self._data_low_level_client = DataLowLevelClient(
+                grpc_client=self.client.grpc_client,
+                channel_cache=ChannelDataCache(store),
+            )
 
     async def get_data(
         self,

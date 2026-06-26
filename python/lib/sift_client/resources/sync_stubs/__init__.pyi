@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import os
     import re
     from datetime import datetime, timedelta
     from pathlib import Path
@@ -450,79 +449,6 @@ class ChannelsAPI:
         Args:
             channels: List of channel IDs or Channel objects to archive. If a Channel
                 has no id set, raises ValueError.
-        """
-        ...
-
-    def clear_data_cache_on_disk(self, path: str | os.PathLike[str] | None = None) -> None:
-        """Delete a previously-persisted on-disk channel data cache directory.
-
-        Drops stale caches from previous sessions, recovers from a corrupt
-        cache, or reclaims disk space. Removes the directory entirely; if disk
-        persistence is on, the next ``get_data`` re-opens an empty cache at
-        the same path.
-
-        This is a thin proxy around
-        :meth:`ChannelCache.clear_disk <sift_client._internal.low_level_wrappers.data.ChannelCache.clear_disk>`
-        — exposed on the resource so callers don't need to reach into
-        ``_internal`` modules. The underlying classmethod is also reachable
-        directly (``ChannelCache.clear_disk(...)``) if the caller doesn't have
-        a ``SiftClient`` handy.
-
-        Args:
-            path: Directory of the cache to clear. ``None`` (the default)
-                targets ``ChannelCache.DEFAULT_DISK_PATH``.
-
-        Raises:
-            ValueError: If ``path`` exists but does not look like a sift
-                channel data cache directory.
-        """
-        ...
-
-    def disable_data_cache_disk(self) -> None:
-        """Opt out of caching for ``get_data`` (no reads or writes).
-
-        Caching is on by default; call this when you don't want any cached
-        data written to or read from disk. Closes any open cache file
-        handle. The on-disk directory is NOT deleted — use
-        :meth:`clear_data_cache_on_disk` to wipe it.
-        """
-        ...
-
-    def enable_data_cache_disk(
-        self, *, path: str | os.PathLike[str] | None = None, max_bytes: int | None = None
-    ) -> None:
-        """Configure (or re-enable after ``disable_data_cache_disk``) the disk cache.
-
-        Disk persistence is **on by default** at ``ChannelCache.DEFAULT_DISK_PATH``;
-        use this method when you want to override the path or size, or to turn
-        the cache back on after a prior ``disable_data_cache_disk`` call.
-
-        Each entry that ``get_data`` returns is written to the cache and read
-        back on subsequent calls, even after process restart. The default
-        path lives under ``tempfile.gettempdir()`` and is shared across
-        sessions, so a re-run of the same workload picks up previously-cached
-        windows without a fetch.
-
-        Safe to call before or after the first ``get_data``. Reconfiguring
-        (different ``path`` or ``max_bytes``) closes the previous handle and
-        opens a new one.
-
-        An explicit ``path`` that can't be opened (e.g. permission denied,
-        read-only filesystem) raises so the caller knows the request didn't
-        take. The default-path open does *not* raise — see
-        ``_ensure_data_low_level_client`` for the silent fall-back behaviour.
-
-        Args:
-            path: Directory to persist the cache to. ``None`` (the default)
-                uses ``ChannelCache.DEFAULT_DISK_PATH``. Existing entries at
-                the path become available as cache hits.
-            max_bytes: Byte cap on disk usage. ``None`` uses
-                ``ChannelCache.DEFAULT_DISK_MAX_BYTES`` (4 GiB). When the
-                bound is reached, ``diskcache``'s LRU eviction takes over.
-
-        Example:
-            client.channels.enable_data_cache_disk(path="/data/sift-cache")
-            client.channels.enable_data_cache_disk(max_bytes=1024 ** 3)  # 1 GiB
         """
         ...
 
