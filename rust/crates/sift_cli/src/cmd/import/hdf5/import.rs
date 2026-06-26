@@ -17,10 +17,10 @@ use crate::{
     cmd::{
         Context,
         import::{
+            finish_import,
             hdf5::detect_hdf5_schema::{SUPPORTED_TYPES_BLURB, SkippedDataset, detect_config},
             preview_import_config,
             utils::{upload_gzipped_file, validate_time_format},
-            wait_for_job_completion,
         },
     },
     util::{api::create_grpc_channel, tty::Output},
@@ -116,23 +116,16 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
     .await
     .context("failed to upload hdf5 file")?;
 
-    let location = args.common.run.as_ref().map_or_else(
-        || format!("asset '{}'", args.common.asset.cyan()),
-        |r| format!("run '{}'", r.clone().cyan()),
-    );
-
-    if !args.common.wait {
-        Output::new()
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(format!(
-                "Once processing is complete the data will be available on the {location}."
-            ))
-            .print();
-
-        return Ok(ExitCode::SUCCESS);
-    }
-
-    wait_for_job_completion(grpc_channel, job_id, location).await
+    finish_import(
+        &ctx,
+        grpc_channel,
+        job_id,
+        &args.common.asset,
+        args.common.run.as_deref(),
+        args.common.run_id.as_deref(),
+        args.common.wait,
+    )
+    .await
 }
 
 pub fn build_hdf5_config(args: &ImportHdf5Args) -> Result<Hdf5Config> {

@@ -19,6 +19,7 @@ pub struct Context {
     pub disable_tls: bool,
     #[allow(dead_code)]
     pub rest_uri: String,
+    pub app_uri: Option<String>,
 }
 
 impl Context {
@@ -82,6 +83,11 @@ impl Context {
             ));
         }
 
+        let app_uri = match target_profile.get("app_uri") {
+            Some(Value::String(s)) if !s.is_empty() => Some(s.clone()),
+            _ => None,
+        };
+
         let Some(Value::String(api_key)) = target_profile.get("apikey").cloned() else {
             return Err(anyhow!(
                 "Expected value of '{}' to be a string",
@@ -100,6 +106,7 @@ impl Context {
             rest_uri,
             api_key,
             disable_tls,
+            app_uri,
         })
     }
 }

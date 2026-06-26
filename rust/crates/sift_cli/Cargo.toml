@@ -32,6 +32,7 @@ flate2 = { workspace = true }
 indicatif = { workspace = true }
 parquet = { workspace = true }
 pbjson-types = { workspace = true }
+percent-encoding = { workspace = true }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
 sift_mcp.workspace = true

@@ -41,7 +41,11 @@ to combine them when working with Sift.
      confirm with the user first).
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
-   - `upload_dataset`: stream a Parquet dataset into Sift.
+   - `upload_dataset`: stream a Parquet dataset into Sift. Returns an
+     `explore_url` field when the user's profile has `app_uri` configured —
+     surface it to the user as plain text, in full. Do not wrap it in a
+     markdown link; not every IDE renders markdown. If `explore_url` is null,
+     do not invent a link.
    - `update_asset`: replace an existing asset's tags and/or metadata (write —
      replace semantics, so read-modify-write when appending).
    - `update_run`: update a run's name, time bounds, pin state, tags, or metadata
@@ -52,8 +56,11 @@ to combine them when working with Sift.
      collections use replace semantics, so confirm the change first).
    - `create_report`, `update_report`: manage reports (writes — confirm first).
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
-     selection, with an optional panel/chart pre-defined. Surface the URL
-     inline as a clickable link so the user can open the view.
+     selection, with an optional panel/chart pre-defined. Surface the URL to
+     the user as plain text, in full, so the user can open the view. Do not
+     wrap it in a markdown link. Requires `app_uri` configured in the user's
+     `sift-cli` profile (or pass `explore_host` per-call); fails with
+     `INVALID_PARAMS` otherwise.
 2. **`sift-cli`** — the command-line tool. Key subcommands:
    - `import`: `csv`, `parquet flat-dataset`, `tdms`, `hdf5`, `backups`.
    - `export`: `run`, `asset` (to CSV and other formats).
@@ -98,6 +105,16 @@ apply per subcommand invocation:
    subsequent `sift-cli` call in this session. Do not silently default
    when several profiles exist — the user may have prod and staging side
    by side and writing to the wrong one is a real foot-gun.
+
+   **Never switch profiles to recover from a failure.** Once a profile is
+   chosen for the session, stick with it. If a command fails — bad
+   credentials, host unreachable, the default profile doesn't resolve,
+   gRPC errors, anything — surface the failure and ask the user before
+   moving to a different profile. Do not retry the same command against
+   another profile to "make it work"; that risks writing the user's data
+   into the wrong environment. The same applies in reverse: if the user
+   has not named a profile and only one exists but it fails, stop and
+   report — don't probe other profiles.
 2. **Discover the subcommand.** Before constructing the command for a
    subcommand you have not used recently, run `sift-cli <subcommand>
    --help` (or `sift-cli --help` for the top level). The clap-generated
@@ -129,7 +146,17 @@ apply per subcommand invocation:
    until the server-side import job finishes and emits a final status
    line. Without it you cannot confirm the data actually landed. Relay
    the final stdout line to the user verbatim.
-7. **On failure, read stderr and retry.** A non-zero exit usually means a
+7. **Surface the Explore link from import output.** `sift-cli import`
+   prints a `View in Sift: <URL>` tip line after a successful upload when
+   the URL can be resolved — either because the profile sets `app_uri`
+   or because the API host is a recognized Sift environment (prod, gov,
+   or Sift's dev SaaS). Surface that URL to the user as plain text, in
+   full. Do not wrap it in a markdown link, do not summarize it away —
+   the URL is part of the deliverable, and not every IDE renders
+   markdown. Otherwise the CLI prints a fallback note telling the user
+   how to configure `app_uri`; relay that note verbatim and do not
+   invent a URL.
+8. **On failure, read stderr and retry.** A non-zero exit usually means a
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than
    treating the failure as terminal.
@@ -141,13 +168,17 @@ the output is text or a new dataset — pull the source data locally with
 `get_data` (writes a Parquet file) and run `sql` over it. Chain
 `get_data` → `sql` for filtering, aggregation, or feature derivation. If the
 result should land back in Sift as a new dataset, follow with
-`upload_dataset`, and confirm the target asset/run with the user first.
+`upload_dataset`, and confirm the target asset/run with the user first. When
+`upload_dataset` returns an `explore_url`, surface it to the user as plain
+text, in full, so they can jump straight to the imported data. Do not wrap it
+in a markdown link.
 
 ## Visualizing in Sift Explore
 
 When the user wants to see, view, graph, plot, or open data in Sift, build
-a link with `explore_url` and render the URL inline as a clickable markdown
-link. The URL is the deliverable — do not summarize it away. Pick the
+a link with `explore_url` and surface the URL to the user as plain text, in
+full. The URL is the deliverable — do not wrap it in a markdown link, do not
+summarize it away. Pick the
 `panel_type` that fits the request: `timeseries` (default), `histogram`,
 `table`, `fft`, `metrics`, `scatter-plot`, or `geo-map`. Prefix channels
 with `L1:` / `L2:` for multi-axis plots; with `x:` / `y:` / `color:` for

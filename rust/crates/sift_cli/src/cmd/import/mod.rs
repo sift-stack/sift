@@ -5,7 +5,13 @@ use tokio::time::sleep;
 
 use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatus};
 
-use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output};
+use crate::cmd::Context;
+use crate::util::{
+    explore_url::{explore_or_note, import_target, pending_import_tip, resolve_app_uri},
+    job::JobServiceWrapper,
+    progress::Spinner,
+    tty::Output,
+};
 
 pub mod backup;
 pub mod csv;
@@ -19,10 +25,37 @@ const INDENT_2: &str = "    ";
 const INDENT_3: &str = "      ";
 const INDENT_4: &str = "        ";
 
+pub async fn finish_import(
+    ctx: &Context,
+    grpc_channel: SiftChannel,
+    job_id: String,
+    asset: &str,
+    run_name: Option<&str>,
+    run_id: Option<&str>,
+    wait: bool,
+) -> Result<ExitCode> {
+    let app_uri = resolve_app_uri(ctx.app_uri.as_deref(), &ctx.rest_uri);
+    let target = import_target(asset, run_name, run_id, app_uri.as_deref());
+
+    if !wait {
+        Output::new()
+            .line(format!("{} file for processing", "Uploaded".green()))
+            .tip(pending_import_tip(
+                &target.location,
+                target.explore_url.as_deref(),
+            ))
+            .print();
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    wait_for_job_completion(grpc_channel, job_id, target.location, target.explore_url).await
+}
+
 pub async fn wait_for_job_completion(
     grpc_channel: SiftChannel,
     job_id: String,
     import_output_location: String,
+    explore_url: Option<String>,
 ) -> Result<ExitCode> {
     let spinner = Spinner::new();
     spinner.set_message(format!("{} file for processing", "Uploaded".green()));
@@ -80,11 +113,12 @@ pub async fn wait_for_job_completion(
             }
             JobStatus::Finished => {
                 spinner.finish_and_clear();
+                let mut tip_text =
+                    format!("The data should be available on the {import_output_location}");
+                tip_text.push_str(&explore_or_note(explore_url.as_deref()));
                 Output::new()
                     .line(format!("{} data import job", "Completed".green()))
-                    .tip(format!(
-                        "The data should be available on the {import_output_location}"
-                    ))
+                    .tip(tip_text)
                     .print();
                 break;
             }

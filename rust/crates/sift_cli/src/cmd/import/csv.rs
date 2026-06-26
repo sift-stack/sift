@@ -7,7 +7,6 @@ use std::{
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use chrono::DateTime;
-use crossterm::style::Stylize;
 use pbjson_types::Timestamp;
 use sift_rs::{
     common::r#type::v1::{ChannelConfig, ChannelDataType},
@@ -24,13 +23,12 @@ use crate::{
         Context,
         import::utils::{try_parse_bit_field_config, try_parse_enum_config},
     },
-    util::{api::create_grpc_channel, tty::Output},
+    util::api::create_grpc_channel,
 };
 
 use super::{
-    preview_import_config,
+    finish_import, preview_import_config,
     utils::{upload_gzipped_file, validate_time_format},
-    wait_for_job_completion,
 };
 
 pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
@@ -76,22 +74,16 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
         .await
         .context("failed to upload CSV file")?;
 
-    let location = args.run.as_ref().map_or_else(
-        || format!("asset '{}'", args.asset.cyan()),
-        |r| format!("run '{}'", r.clone().cyan()),
-    );
-
-    if !args.wait {
-        Output::new()
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(format!(
-                "Once processing is complete the data will be available on the {location}."
-            ))
-            .print();
-
-        return Ok(ExitCode::SUCCESS);
-    }
-    wait_for_job_completion(grpc_channel, job_id, location).await
+    finish_import(
+        &ctx,
+        grpc_channel,
+        job_id,
+        &args.asset,
+        args.run.as_deref(),
+        None,
+        args.wait,
+    )
+    .await
 }
 
 fn create_data_import_request<R: io::Read>(
