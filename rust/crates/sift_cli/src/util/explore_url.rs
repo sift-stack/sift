@@ -35,8 +35,6 @@ pub fn import_target(
     }
 }
 
-/// Resolve the Sift web app URL. The host table mirrors the Python client's
-/// `_internal/urls.py` — keep them in sync.
 pub fn resolve_app_uri(app_uri: Option<&str>, rest_uri: &str) -> Option<String> {
     if let Some(uri) = app_uri.map(str::trim).filter(|s| !s.is_empty()) {
         return Some(uri.to_string());
@@ -74,7 +72,6 @@ pub fn pending_import_tip(location: &str, explore_url: Option<&str>) -> String {
     tip
 }
 
-/// `run` accepts a name or UUID; Sift Explore resolves both.
 pub fn build_explore_url(
     app_uri: Option<&str>,
     asset_name: &str,
