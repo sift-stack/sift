@@ -3,6 +3,7 @@ pub mod assets;
 pub mod channels;
 pub mod common;
 pub mod data;
+pub mod docs;
 pub mod explore;
 pub mod ping;
 pub mod reports;

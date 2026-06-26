@@ -118,6 +118,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.dlq_errors.v2)
         }
     }
+    pub mod docs {
+        // @@protoc_insertion_point(attribute:sift.docs.v1)
+        pub mod v1 {
+            include!("sift/docs/v1/sift.docs.v1.rs");
+            // @@protoc_insertion_point(sift.docs.v1)
+        }
+    }
     pub mod exports {
         // @@protoc_insertion_point(attribute:sift.exports.v1)
         pub mod v1 {

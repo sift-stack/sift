@@ -60,6 +60,7 @@ not run interactively.
 | `update_rule`    | Update specific fields of a rule; unspecified fields are preserved.          |
 | `archive_rule`   | Archive a rule so it stops evaluating.                                        |
 | `unarchive_rule` | Restore an archived rule.                                                     |
+| `search_docs`    | Search and read the Sift documentation and REST/gRPC API reference.           |
 
 A typical agent flow is `list_assets` → `list_channels` → `get_data` → `sql`,
 and `upload_dataset` to write results back.
