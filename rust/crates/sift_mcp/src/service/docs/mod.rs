@@ -36,6 +36,9 @@ pub struct DocHit {
     pub content: String,
 }
 
+// `rename_all`/`alias` on this and `ReadDocResponse` govern only how the upstream
+// docs-API JSON is parsed (it may emit camelCase protojson or snake_case). The
+// tool output is rebuilt as snake_case in `tool/docs/mod.rs`, matching `DocHit`.
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchDocsResponse {

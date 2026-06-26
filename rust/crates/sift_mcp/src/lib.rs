@@ -12,12 +12,13 @@ mod prompt;
 mod service;
 mod tool;
 
-pub async fn run(
-    credentials: Credentials,
-    use_tls: bool,
-    rest_uri: String,
-    api_key: String,
-) -> Result<()> {
+pub async fn run(credentials: Credentials, use_tls: bool, rest_uri: String) -> Result<()> {
+    // The docs HTTP client needs the bearer token directly, so resolve it from
+    // the credentials before the channel builder consumes them.
+    let api_key = credentials
+        .api_key()
+        .context("failed to resolve API key from credentials")?;
+
     let channel = SiftChannelBuilder::new(credentials)
         .use_tls(use_tls)
         .user_agent(format!("{}/{}", crate_name!(), crate_version!()))

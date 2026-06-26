@@ -63,6 +63,16 @@ pub enum Credentials {
     Config { uri: String, apikey: String },
 }
 
+impl Credentials {
+    /// Resolve the API key for these credentials, reading the configured profile
+    /// from `sift.toml` when [`Credentials::Profile`] is used. This is the same
+    /// resolution the gRPC channel builder performs; use it when a non-gRPC
+    /// client (e.g. an HTTP service) needs the bearer token directly.
+    pub fn api_key(&self) -> Result<String> {
+        Ok(SiftChannelConfig::try_from(self.clone())?.apikey)
+    }
+}
+
 #[derive(Default, Clone)]
 pub(crate) struct SiftChannelConfig {
     pub uri: String,

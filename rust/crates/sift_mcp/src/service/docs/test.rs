@@ -9,9 +9,11 @@ use super::{DocsService, ReadDocResponse, SearchDocsResponse};
 /// supplied JSON bodies, capturing the inbound query params and auth header for
 /// assertion. Returns the service pointed at it plus the captured request state.
 async fn service_with_routes(
-    search_body: &'static str,
-    read_body: &'static str,
+    search_body: &str,
+    read_body: &str,
 ) -> (DocsService, JoinHandle<()>, String) {
+    let search_body = search_body.to_string();
+    let read_body = read_body.to_string();
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     let base = format!("http://{addr}");

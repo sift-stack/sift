@@ -8,9 +8,9 @@ use crate::cmd::Context;
 pub async fn run(ctx: Context) -> Result<ExitCode> {
     let credentials = Credentials::Config {
         uri: ctx.grpc_uri,
-        apikey: ctx.api_key.clone(),
+        apikey: ctx.api_key,
     };
-    match sift_mcp::run(credentials, !ctx.disable_tls, ctx.rest_uri, ctx.api_key).await {
+    match sift_mcp::run(credentials, !ctx.disable_tls, ctx.rest_uri).await {
         Ok(_) => Ok(ExitCode::SUCCESS),
         Err(err) => Err(err),
     }
