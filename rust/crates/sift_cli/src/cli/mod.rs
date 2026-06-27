@@ -59,6 +59,9 @@ pub enum Cmd {
 
     /// Ping the Sift API to verify credentials and connectivity
     Ping,
+
+    /// Print the installed CLI version and check for a newer release on GitHub
+    Version,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.

@@ -65,6 +65,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             ConfigCmd::Update(args) => return cmd::config::update(clargs.profile, args),
         },
         Cmd::Doc(args) => return run_future(cmd::doc::serve(args)),
+        Cmd::Version => return run_future(cmd::version::run()),
         Cmd::Install(cmd) => match cmd {
             InstallCmd::Completions(cmd) => match cmd {
                 cli::CompletionsCmd::Print(args) => return cmd::install::completions::print(args),
