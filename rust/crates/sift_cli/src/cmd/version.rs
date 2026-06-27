@@ -34,7 +34,6 @@ pub async fn run() -> Result<ExitCode> {
                     current_str.yellow(),
                     latest.to_string().green(),
                 ));
-                out.tip("run `sift-cli update` to install the latest release");
             } else {
                 out.line("You're on the latest release.".to_string());
             }
