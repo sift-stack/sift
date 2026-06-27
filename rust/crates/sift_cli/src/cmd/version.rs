@@ -8,8 +8,7 @@ use serde::Deserialize;
 
 use crate::util::tty::Output;
 
-const RELEASES_URL: &str =
-    "https://api.github.com/repos/sift-stack/sift/releases?per_page=100";
+const RELEASES_URL: &str = "https://api.github.com/repos/sift-stack/sift/releases?per_page=100";
 const TAG_PREFIX: &str = "sift_cli-v";
 const USER_AGENT: &str = concat!("sift-cli/", env!("CARGO_PKG_VERSION"));
 
@@ -64,8 +63,13 @@ async fn fetch_latest() -> Result<Option<Version>> {
         .timeout(Duration::from_secs(5))
         .build()?;
 
-    let releases: Vec<GithubRelease> =
-        client.get(RELEASES_URL).send().await?.error_for_status()?.json().await?;
+    let releases: Vec<GithubRelease> = client
+        .get(RELEASES_URL)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
 
     Ok(releases
         .into_iter()
