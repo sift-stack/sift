@@ -72,6 +72,7 @@ pub struct DocArgs {
 /// Install optional Sift tooling such as autocompletions or Agent skills
 #[derive(Subcommand)]
 pub enum InstallCmd {
+    /// Install or print shell completions for sift-cli
     #[command(subcommand)]
     Completions(CompletionsCmd),
 
