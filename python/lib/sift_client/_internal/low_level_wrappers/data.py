@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Tuple, cast
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -55,50 +55,63 @@ def _new_cache_entry(
     )
 
 
+TimeRange = Tuple[datetime, datetime]
+
+
+class SegmentRef(BaseModel):
+    """Pointer to one cached segment, stored on the per-bucket index."""
+
+    model_config = ConfigDict(frozen=True)
+    seg_id: int
+    start_time: datetime
+    end_time: datetime
+    size_bytes: int
+
+
+class SegmentIndex(BaseModel):
+    """Per-(channel, run) index of cached segments."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    schema_version: int = 1
+    next_seg_id: int = 0
+    segments: list[SegmentRef] = []
+
+
 class ChannelDataCache:
     """Channel-side adapter over the shared :class:`DiskCache` store.
 
-    The store is owned by :class:`~sift_client.client.SiftClient` and
-    shared by every cache-aware resource; this adapter is the typed,
-    namespaced view of it that the channel data path uses.
+    Each ``(channel_id, run_id)`` bucket is split across two key shapes
+    in the underlying store:
 
-    Responsibilities the adapter holds onto:
+    * One **index** entry (``channel:<run>:<id>:idx``) holding a
+      :class:`SegmentIndex` — a tiny list of :class:`SegmentRef` ptrs
+      describing every segment that exists for the bucket.
+    * One **segment** entry per fetch (``channel:<run>:<id>:seg:<n>``)
+      holding the :class:`ChannelCacheEntry` for that fetch's slice.
 
-    * **Key namespacing.** Every read/write goes through :meth:`_key`,
-      which prefixes the channel id with ``channel:`` and folds in the
-      ``run_id`` it was queried under. Run id is part of the cache
-      dimension because the same channel can have wholly different data
-      under different runs (different timelines, different points). A
-      bare ``channel:<id>`` key would conflate runs and serve run-A's
-      data to a run-B query. The ``channel:`` prefix also keeps a future
-      calculated-channels or exports adapter on the same store from
-      colliding on raw resource ids.
-    * **Typing.** ``put`` only accepts :class:`ChannelCacheEntry`;
-      ``get`` ``isinstance``-checks the raw value before handing it back,
-      so a corrupt or cross-adapter row reads as a miss instead of
-      blowing up downstream pandas code.
-    * **Size measurement.** The store stays value-agnostic; the adapter
-      already computes ``size_bytes`` on the entry via
-      :func:`_new_cache_entry` (``DataFrame.memory_usage(deep=True)``) so
-      it just forwards that to the store's oversize guard.
-    * **Resource-side state.** :attr:`name_id_map` lives here because
-      it's channel-specific bookkeeping needed to wire raw fetch
-      responses (keyed by channel *name*) back to the cache (keyed by
-      channel *id*).
+    Reads stitch the relevant segments together via :meth:`get_range`,
+    which also reports which sub-ranges of the requested window have no
+    cached coverage (``gaps``) so the caller can fetch only the holes.
 
-    The :class:`DiskCacheAdapter` ``Protocol`` is intentionally not
-    declared yet — there's only one adapter shape so far. When a second
-    resource grows its own adapter, extract the Protocol from the two
-    real shapes rather than guessing from one.
+    Eviction tolerance: ``diskcache``'s LRU can drop a segment while
+    keeping the index. The reader treats a missing segment as a gap,
+    which forces a wire fetch for that range. The opposite (index
+    evicted, segments orphaned) is also fine — orphans are unreachable
+    and will eventually LRU-evict.
 
     Attributes:
-        KEY_PREFIX: Namespace prefix for keys this adapter writes to the
-            shared :class:`DiskCache`. Picked at class scope so adapters
-            in other resources can pick distinct prefixes without runtime
-            negotiation.
+        KEY_PREFIX: Namespace prefix for every key this adapter writes
+            to the shared :class:`DiskCache`. Picked at class scope so
+            adapters in other resources can pick distinct prefixes
+            without runtime negotiation.
+        SCHEMA_VERSION: Index entry schema version. Bump when the
+            shape changes incompatibly so older on-disk indexes are
+            discarded on read rather than mis-deserialized.
+
     """
 
     KEY_PREFIX: str = "channel:"
+    SCHEMA_VERSION: int = 1
 
     def __init__(self, store: DiskCache):
         """Wrap ``store`` with channel-data semantics.
@@ -110,72 +123,237 @@ class ChannelDataCache:
         self._store = store
         self.name_id_map: dict[str, str] = {}
 
-    def _key(self, channel_id: str, run_id: str | None) -> str:
-        # Run id is part of the key because the same channel under
-        # different runs has different data. Empty run segment is safe
-        # because real run ids are UUIDs (never empty) so there's no
-        # collision between the run-scoped and unscoped buckets.
+    # --- key helpers ---
+
+    def _bucket_prefix(self, channel_id: str, run_id: str | None) -> str:
+        # Stem all index/segment keys for a bucket share. Empty run
+        # segment is safe because real run ids are UUIDs (never empty)
+        # so there's no collision between the run-scoped and unscoped
+        # buckets.
         return f"{self.KEY_PREFIX}{run_id or ''}:{channel_id}"
+
+    def _index_key(self, channel_id: str, run_id: str | None) -> str:
+        return f"{self._bucket_prefix(channel_id, run_id)}:idx"
+
+    def _segment_key(self, channel_id: str, run_id: str | None, seg_id: int) -> str:
+        return f"{self._bucket_prefix(channel_id, run_id)}:seg:{seg_id}"
 
     @property
     def store(self) -> DiskCache:
         """The shared underlying store. Tests reach in for store-level state."""
         return self._store
 
-    def has(self, channel_id: str, run_id: str | None = None) -> bool:
-        """True if ``(channel_id, run_id)`` is cached.
+    # --- public API ---
 
-        Replaces an earlier ``__contains__`` that only took a channel id.
-        ``in`` was dropped on purpose: forcing the call site to name the
-        run keeps callers from silently sharing cache entries across runs.
+    def has_any(self, channel_id: str, run_id: str | None = None) -> bool:
+        """True if at least one segment is cached for this bucket.
+
+        Cheap check (one index read) — does NOT touch segment data.
+        Useful for "should I consult the cache at all?" gates.
         """
-        return self._key(channel_id, run_id) in self._store
+        idx = self._load_index(channel_id, run_id)
+        return idx is not None and bool(idx.segments)
 
-    def get(self, channel_id: str, run_id: str | None = None) -> ChannelCacheEntry | None:
-        """Return the entry for ``(channel_id, run_id)`` if cached, otherwise None.
+    def get_range(
+        self,
+        channel_id: str,
+        run_id: str | None,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> tuple[pd.DataFrame | None, list[TimeRange]]:
+        """Return cached data covering ``[start_time, end_time]`` plus gaps.
 
-        Type-checks the raw value before returning so a row written by a
-        different adapter (or a corrupt entry that survived) reads as a
-        miss instead of being handed back as the wrong type.
+        Walks the bucket's segments, slices each one to the query range,
+        stitches them together, and reports which sub-ranges still need
+        a wire fetch.
+
+        Returns:
+            ``(stitched_data, gaps)`` where ``stitched_data`` is the
+            concat of every overlapping segment sliced to the query
+            range (or ``None`` if no rows were found), and ``gaps`` is
+            the list of ``(gap_start, gap_end)`` sub-ranges within the
+            query window not covered by any present segment.
+            ``gaps == []`` means the cache fully covers the request.
         """
-        raw = self._store.get(self._key(channel_id, run_id))
+        idx = self._load_index(channel_id, run_id)
+        if idx is None or not idx.segments:
+            return None, [(start_time, end_time)]
+
+        # Sort by start_time so the stitch order is deterministic.
+        sorted_refs = sorted(idx.segments, key=lambda r: r.start_time)
+
+        frames: list[pd.DataFrame] = []
+        present_ranges: list[TimeRange] = []
+        for ref in sorted_refs:
+            # Skip non-overlapping segments cheaply (no segment load).
+            if ref.end_time < start_time or ref.start_time > end_time:
+                continue
+            entry = self._load_segment(channel_id, run_id, ref.seg_id)
+            if entry is None:
+                # Evicted by diskcache LRU (or index/segment got out of
+                # sync). Treat the segment's range as uncovered so the
+                # caller refetches it.
+                continue
+
+            present_ranges.append((max(ref.start_time, start_time), min(ref.end_time, end_time)))
+            sliced = entry.data[start_time:end_time]  # type: ignore[misc]
+            if len(sliced) > 0:
+                frames.append(sliced)
+
+        gaps = self._compute_gaps(start_time, end_time, present_ranges)
+        if not frames:
+            return None, gaps
+        if len(frames) == 1:
+            return frames[0], gaps
+        # Multiple segments → stitch. ``groupby.last()`` dedups any
+        # boundary-overlapping timestamps and keeps the later segment's
+        # value on conflict (sorted by start_time above).
+        return pd.concat(frames).groupby(level=0).last(), gaps
+
+    def put_segment(
+        self,
+        channel_id: str,
+        run_id: str | None,
+        data: pd.DataFrame,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> None:
+        """Write a new segment and update the index.
+
+        Args:
+            channel_id: Parent channel id (bitfield elements all share
+                the same id — group them upstream and pass one wide
+                frame here).
+            run_id: Per-run cache dimension; ``None`` for the unscoped
+                bucket.
+            data: This fetch's rows, indexed by tz-aware ``DatetimeIndex``.
+            start_time: Claimed lower bound of cache coverage for this
+                segment. Callers can claim more than ``data`` actually
+                spans to record "we asked the wire about this range" and
+                avoid re-fetching empty sub-ranges.
+            end_time: Claimed upper bound; same semantics as start.
+
+        Per-fetch disk write is O(this segment) — no rewrite of any
+        already-cached segment.
+
+        Write order is segment-first, then index: an interrupted update
+        leaves an unreachable orphan segment (harmless; LRU-evicts) but
+        never leaves the index pointing at a missing segment.
+        """
+        if len(data) == 0:
+            # Skipping empty puts keeps the segment list shorter at the
+            # cost of re-fetching no-data ranges. Acceptable trade for
+            # the draft; see the class-level TODO.
+            return
+
+        size_bytes = int(data.memory_usage(deep=True).sum())
+        idx = self._load_index(channel_id, run_id) or SegmentIndex(
+            schema_version=self.SCHEMA_VERSION
+        )
+        seg_id = idx.next_seg_id
+
+        entry = ChannelCacheEntry(
+            data=data,
+            start_time=start_time,
+            end_time=end_time,
+            size_bytes=size_bytes,
+        )
+
+        # Segment first.
+        seg_key = self._segment_key(channel_id, run_id, seg_id)
+        self._store.put(seg_key, entry, size_bytes=size_bytes)
+        if seg_key not in self._store:
+            # The store rejected the segment (oversize, disabled, etc.).
+            # Skipping the index update keeps us from leaving a
+            # dangling reference to a never-written segment.
+            return
+
+        idx.segments.append(
+            SegmentRef(
+                seg_id=seg_id,
+                start_time=start_time,
+                end_time=end_time,
+                size_bytes=size_bytes,
+            )
+        )
+        idx.next_seg_id += 1
+        self._store.put(
+            self._index_key(channel_id, run_id),
+            idx,
+            size_bytes=max(1024, 128 * len(idx.segments)),
+        )
+
+    def invalidate(self, channel_id: str, run_id: str | None = None) -> None:
+        """Drop every segment in a bucket plus the index. Safe when absent.
+
+        Only touches the one ``(channel_id, run_id)`` bucket — segments
+        under other runs survive.
+        """
+        idx = self._load_index(channel_id, run_id)
+        if idx is None:
+            return
+        for ref in idx.segments:
+            self._store.invalidate(self._segment_key(channel_id, run_id, ref.seg_id))
+        self._store.invalidate(self._index_key(channel_id, run_id))
+
+    def clear(self) -> None:
+        """Wipe every channel entry (all buckets, all runs)."""
+        for key in list(self._store):
+            if key.startswith(self.KEY_PREFIX):
+                self._store.invalidate(key)
+
+    # --- internal helpers ---
+
+    def _load_index(self, channel_id: str, run_id: str | None) -> SegmentIndex | None:
+        raw = self._store.get(self._index_key(channel_id, run_id))
+        if not isinstance(raw, SegmentIndex):
+            return None
+        if raw.schema_version != self.SCHEMA_VERSION:
+            # Future migration: discard incompatible on-disk indexes.
+            return None
+        return raw
+
+    def _load_segment(
+        self, channel_id: str, run_id: str | None, seg_id: int
+    ) -> ChannelCacheEntry | None:
+        raw = self._store.get(self._segment_key(channel_id, run_id, seg_id))
         if not isinstance(raw, ChannelCacheEntry):
             return None
         return raw
 
-    def put(
-        self,
-        channel_id: str,
-        entry: ChannelCacheEntry,
-        *,
-        run_id: str | None = None,
-    ) -> None:
-        """Insert or replace the entry for ``(channel_id, run_id)``.
+    @staticmethod
+    def _compute_gaps(
+        query_start: datetime,
+        query_end: datetime,
+        covered: list[TimeRange],
+    ) -> list[TimeRange]:
+        """Sub-ranges of ``[query_start, query_end]`` not in ``covered``.
 
-        Forwards :attr:`ChannelCacheEntry.size_bytes` to the store so its
-        oversize guard can decide whether to write or skip+warn. No-op
-        when the underlying store is disabled.
+        ``covered`` is the list of segment ranges (already clamped to
+        the query window). Algorithm: merge overlapping/adjacent
+        intervals, then sweep emitting gaps between them.
         """
-        self._store.put(self._key(channel_id, run_id), entry, size_bytes=entry.size_bytes)
+        if not covered:
+            return [(query_start, query_end)]
 
-    def invalidate(self, channel_id: str, run_id: str | None = None) -> None:
-        """Remove ``(channel_id, run_id)`` from the cache. Safe when absent.
+        sorted_ranges = sorted(covered, key=lambda r: r[0])
+        merged: list[TimeRange] = [sorted_ranges[0]]
+        for seg_start, seg_end in sorted_ranges[1:]:
+            last_start, last_end = merged[-1]
+            if seg_start <= last_end:
+                merged[-1] = (last_start, max(last_end, seg_end))
+            else:
+                merged.append((seg_start, seg_end))
 
-        Only invalidates the one run-scoped bucket — entries for the same
-        ``channel_id`` under other runs are preserved.
-        """
-        self._store.invalidate(self._key(channel_id, run_id))
-
-    def clear(self) -> None:
-        """Wipe every channel entry across all runs. Other adapters' entries are preserved.
-
-        Walks the shared store's keyspace once and drops anything under
-        :attr:`KEY_PREFIX`. ``list(...)`` snapshots the iterator since
-        we mutate during iteration.
-        """
-        for key in list(self._store):
-            if key.startswith(self.KEY_PREFIX):
-                self._store.invalidate(key)
+        gaps: list[TimeRange] = []
+        cursor = query_start
+        for seg_start, seg_end in merged:
+            if seg_start > cursor:
+                gaps.append((cursor, seg_start))
+            cursor = max(cursor, seg_end)
+        if cursor < query_end:
+            gaps.append((cursor, query_end))
+        return gaps
 
 
 class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -250,78 +428,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
-    def _filter_cached_channels(
-        self, channel_ids: list[str], run_id: str | None = None
-    ) -> tuple[list[str], list[str]]:
-        """Split ``channel_ids`` into (cached-under-``run_id``, not-cached)."""
-        cached_channels = []
-        not_cached_channels = []
-        for channel_id in channel_ids:
-            if self.channel_cache.has(channel_id, run_id):
-                cached_channels.append(channel_id)
-            else:
-                not_cached_channels.append(channel_id)
-        return cached_channels, not_cached_channels
-
-    def _check_cache(
-        self,
-        *,
-        channel_id: str,
-        start_time: datetime,
-        end_time: datetime,
-        run_id: str | None = None,
-    ) -> tuple[pd.DataFrame | None, datetime | None, datetime | None]:
-        """Check if the data for a channel during a run is cached and return how to query remaining data if so.
-
-        There are a variety of requested start/end time vs cached start/end time cases to consider.
-        Below diagram represents time aligned ranges for each case:
-
-        Cache interval:               |-------------------------------|
-        Case 1:                         |---------------------------|
-        Case 2:                              |--------------------------------|
-        Case 3:                                                           |----------|
-        Case 4:                 |--------------------------------|
-        Case 5:         |------| or |-----------------------------------------|
-
-        Returns:
-            A tuple of (data, start_time, end_time)
-            where data is a pandas dataframe and start and end times are what should be used for the next call based on what is not covered by the cached data.
-        """
-        cached_data = self.channel_cache.get(channel_id, run_id)
-        ret_start_time = start_time
-        ret_end_time = end_time
-        ret_data = None
-        if cached_data:
-            start_time_cached = cached_data.start_time
-            end_time_cached = cached_data.end_time
-            ret_data = cached_data.data
-            # Filter data to desiredtime range
-            ret_data = ret_data[start_time:end_time]  # type: ignore # mypy doesn't understand pandas that well seemingly
-
-            if start_time_cached <= start_time:
-                if start_time < end_time_cached:
-                    if end_time <= end_time_cached:
-                        # Case 1
-                        ret_start_time = None  # type: ignore
-                        ret_end_time = None  # type: ignore
-                    else:
-                        # Case 2
-                        ret_start_time = end_time_cached
-                        ret_end_time = end_time
-                else:
-                    # Case 3
-                    return (None, start_time, end_time)
-            else:
-                if start_time_cached < end_time and end_time <= end_time_cached:
-                    # Case 4
-                    ret_start_time = start_time
-                    ret_end_time = start_time_cached
-                else:
-                    # Case 5
-                    return (None, start_time, end_time)
-
-        return (ret_data, ret_start_time, ret_end_time)
-
     def _update_cache(
         self,
         *,
@@ -330,51 +436,73 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         end_time: datetime,
         run_id: str | None = None,
     ):
-        """Update the cache with the new data and start/end times."""
+        """Write each channel's fresh data as a new segment.
+
+        Per-fetch disk write is O(this segment) — no merging with prior
+        segments and no re-pickle of accumulated data, so n sequential
+        incremental pulls cost O(n) total disk write instead of O(n²).
+
+        Bitfield grouping: ``try_deserialize_channel_data`` returns one
+        dotted-name DataFrame per bitfield element, all mapping to the
+        same parent ``channel_id`` via :attr:`name_id_map`. We group
+        them by parent id and concat into one wide frame so each fetch
+        produces exactly one segment per channel, regardless of how
+        many elements that channel exposes.
+
+        Empty data is skipped (no zero-row segments). This means a
+        no-run query that returns nothing won't record coverage, so the
+        next identical query will re-fetch — see the ``put_segment``
+        TODO for "we tried, no data" segments.
+        """
         assert start_time is not None
         assert end_time is not None
         name_id_map = self.channel_cache.name_id_map
 
+        # Group dotted-name frames by parent channel id so bitfield
+        # elements land in one segment.
+        by_channel_id: dict[str, list[pd.DataFrame]] = {}
         for channel_name, data in channel_data.items():
             channel_id = name_id_map.get(channel_name)
             if not channel_id:
                 raise ValueError(
-                    f"{channel_name} not found in name_id_map. Not sure got data for this channel without a call that should've updated the map."
+                    f"{channel_name} not found in name_id_map. Not sure got "
+                    f"data for this channel without a call that should've "
+                    f"updated the map."
                 )
+            by_channel_id.setdefault(channel_id, []).append(data)
 
-            suggested_start_time = start_time
-            if run_id:
-                if len(data) > 0:
-                    suggested_start_time = data.index[0]
-                else:
-                    # Because we didn't get any data, we can't know what the start time should be.
-                    # And because this was queried w/ a run ID, we can't say there's no data before the run started.
-                    # So we just don't update the cache.
-                    continue
-
-            existing = self.channel_cache.get(channel_id, run_id)
-            if existing is not None:
-                # ``groupby(level=0).last()`` is only needed to dedup
-                # overlapping timestamps. Strictly disjoint ranges
-                # (append after / prepend before) carry no overlap.
-                if len(data) > 0 and data.index[0] > existing.end_time:
-                    merged_data = pd.concat([existing.data, data])
-                elif len(data) > 0 and data.index[-1] < existing.start_time:
-                    merged_data = pd.concat([data, existing.data])
-                else:
-                    merged_data = pd.concat([existing.data, data]).groupby(level=0).last()
-                entry = _new_cache_entry(
-                    data=merged_data,
-                    start_time=min(suggested_start_time, existing.start_time),
-                    end_time=max(end_time, existing.end_time),
-                )
+        for channel_id, frames in by_channel_id.items():
+            if len(frames) == 1:
+                combined = frames[0]
             else:
-                entry = _new_cache_entry(
-                    data=data,
-                    start_time=suggested_start_time,
-                    end_time=end_time,
-                )
-            self.channel_cache.put(channel_id, entry, run_id=run_id)
+                # Bitfield: per-element single-column frames → one wide
+                # frame. ``groupby.last`` dedups any boundary overlaps.
+                combined = pd.concat(frames).groupby(level=0).last()
+
+            if len(combined) == 0:
+                continue
+
+            # Segment coverage range. For run-scoped queries, claim
+            # only what the data actually spans (we can't assert
+            # absence outside the data — the run might not have
+            # started yet). For unscoped queries, claim the full
+            # requested range so a follow-up of the same range hits.
+            if run_id:
+                seg_start = combined.index[0]
+                if not isinstance(seg_start, datetime):
+                    seg_start = seg_start.to_pydatetime()
+                seg_end = end_time
+            else:
+                seg_start = start_time
+                seg_end = end_time
+
+            self.channel_cache.put_segment(
+                channel_id=channel_id,
+                run_id=run_id,
+                data=combined,
+                start_time=seg_start,
+                end_time=seg_end,
+            )
 
     async def get_channel_data(
         self,
@@ -388,25 +516,50 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ignore_cache: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get the data for a channel during a run."""
-        ret_data = {}
+        ret_data: dict[str, pd.DataFrame] = {}
         # No data will be returned if end_time is not provided.
         start_time = start_time or datetime.fromtimestamp(0, tz=timezone.utc)
         end_time = end_time or datetime.now(timezone.utc)
 
         self._update_name_id_map(channels)
-        channel_ids = [c.id_ for c in channels]
-        cached_channels, not_cached_channels = (
-            ([], channel_ids)
-            if ignore_cache
-            else self._filter_cached_channels(channel_ids, run_id=run_id)  # type: ignore
-        )
+
+        # Two work queues. Fully uncached channels share the full range
+        # and get batched; partial-hit channels carry per-gap ranges
+        # and go one fetch at a time.
+        fully_uncached: list[str] = []
+        partial_gaps: list[tuple[str, list[TimeRange]]] = []
+
+        for channel in channels:
+            cid = channel.id_
+            assert cid is not None
+            if ignore_cache:
+                cached_data: pd.DataFrame | None = None
+                gaps: list[TimeRange] = [(start_time, end_time)]
+            else:
+                cached_data, gaps = self.channel_cache.get_range(cid, run_id, start_time, end_time)
+
+            if cached_data is not None:
+                # Slice per column so each result key carries only its
+                # own element frame (matches the per-element shape
+                # ``try_deserialize_channel_data`` produces; without
+                # this slice, a bitfield's wide cached frame would land
+                # under every dotted key).
+                for name in cached_data.columns:
+                    ret_data[name] = cached_data[[name]]
+
+            if not gaps:
+                continue
+            if len(gaps) == 1 and gaps[0] == (start_time, end_time):
+                fully_uncached.append(cid)
+            else:
+                partial_gaps.append((cid, gaps))
 
         tasks = []
-        # Queue up calls for non-cached channels in batches.
+        # Batch fully-uncached channels (sharing the full requested
+        # range) into one wire call each.
         batch_size = REQUEST_BATCH_SIZE
-        for i in range(0, len(not_cached_channels), batch_size):  # type: ignore
-            batch = not_cached_channels[i : i + batch_size]  # type: ignore
-
+        for i in range(0, len(fully_uncached), batch_size):
+            batch = fully_uncached[i : i + batch_size]
             task = asyncio.create_task(
                 self._handle_pagination(
                     self._get_data_impl,
@@ -422,44 +575,37 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
             tasks.append(task)
 
-        # Handling cached channels 1 by 1 instead of in batches to account for channels that may have been cached from calls with different start/end times.
-        for channel_id in cached_channels:
-            cached_data, new_start_time, new_end_time = self._check_cache(
-                channel_id=channel_id,
-                start_time=start_time,
-                end_time=end_time,
-                run_id=run_id,
-            )
-
-            if cached_data is not None:
-                for name in cached_data.columns:
-                    ret_data[name] = cached_data[[name]]
-                if new_start_time is None:
-                    # Cache fully encompassed the desired time range so don't queue a call.
-                    continue
-            task = asyncio.create_task(
-                self._handle_pagination(
-                    self._get_data_impl,
-                    kwargs={
-                        "channel_ids": [channel_id],
-                        "run_id": run_id,
-                        "start_time": new_start_time,
-                        "end_time": new_end_time or end_time,
-                    },
-                    page_size=page_size,
-                    max_results=max_results,
+        # Partial gaps: one fetch per (channel, gap).
+        for cid, gaps in partial_gaps:
+            for gap_start, gap_end in gaps:
+                task = asyncio.create_task(
+                    self._handle_pagination(
+                        self._get_data_impl,
+                        kwargs={
+                            "channel_ids": [cid],
+                            "run_id": run_id,
+                            "start_time": gap_start,
+                            "end_time": gap_end,
+                        },
+                        page_size=page_size,
+                        max_results=max_results,
+                    )
                 )
-            )
-            tasks.append(task)
+                tasks.append(task)
 
         pages = await asyncio.gather(*tasks)
         ret_data = self._merge_pages(pages, initial=ret_data)
 
-        # Skip the cache update when no fresh pages arrived.
+        # Skip the cache update when no fresh pages arrived (pure cache
+        # hit). Avoids the redundant "rewrite same bytes" case that
+        # Tier 1A also targeted under the old single-entry shape.
         had_fresh_data = any(pages)
         if not ignore_cache and had_fresh_data:
             self._update_cache(
-                channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id
+                channel_data=ret_data,
+                start_time=start_time,
+                end_time=end_time,
+                run_id=run_id,
             )
 
         return ret_data

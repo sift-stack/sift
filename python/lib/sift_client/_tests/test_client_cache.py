@@ -234,9 +234,9 @@ class TestStats:
     2. **Enabled, empty** — ``enabled=True``, ``path`` populated,
        sizes/counts at zero. Distinguishes "nothing cached yet" from
        "no cache configured".
-    3. **Enabled, populated** — channel entries count matches what the
-       adapter wrote, and foreign-prefix rows don't bleed into the
-       channel counter.
+    3. **Enabled, populated** — bucket and segment counters reflect
+       what the adapter wrote, and foreign-prefix rows don't bleed
+       into the channel counters.
     """
 
     def test_stats_when_disabled(self):
@@ -249,7 +249,8 @@ class TestStats:
         assert stats.max_bytes is None
         assert stats.size_bytes == 0
         assert stats.entry_count == 0
-        assert stats.channel_entries == 0
+        assert stats.channel_buckets == 0
+        assert stats.channel_segments == 0
         assert "disabled" in str(stats).lower()
 
     def test_stats_when_enabled_empty(self, tmp_path):
@@ -263,55 +264,68 @@ class TestStats:
             assert stats.path == path
             assert stats.max_bytes == 8 * 1024 * 1024
             assert stats.entry_count == 0
-            assert stats.channel_entries == 0
+            assert stats.channel_buckets == 0
+            assert stats.channel_segments == 0
             # path appears in the friendly print
             assert path in str(stats)
         finally:
             client._disk_cache.close()  # type: ignore[union-attr]
 
-    def test_stats_counts_channel_entries(self, tmp_path):
-        """Channel writes increment ``channel_entries`` and ``entry_count``.
+    def test_stats_counts_buckets_and_segments(self, tmp_path):
+        """Writes increment ``channel_buckets`` and ``channel_segments``.
 
         Uses ``ChannelDataCache`` directly (rather than the
         ``DataLowLevelClient`` end-to-end path) so the test stays
-        focused on the stats accounting.
+        focused on the stats accounting. Two of the three channels
+        get a second segment so the bucket-vs-segment split is
+        observable, not just N == N.
         """
+        from datetime import datetime, timedelta, timezone
+
         import pandas as pd
 
-        from sift_client._internal.low_level_wrappers.data import (
-            ChannelDataCache,
-            _new_cache_entry,
-        )
+        from sift_client._internal.low_level_wrappers.data import ChannelDataCache
 
         client = _make_client()
         client.cache.enable(path=str(tmp_path / "stats"))
         try:
             store = client._get_disk_cache()
             adapter = ChannelDataCache(store)
+            base = datetime(2025, 1, 1, tzinfo=timezone.utc)
             for i, cid in enumerate(("c1", "c2", "c3")):
                 df = pd.DataFrame(
                     {cid: [float(i)]},
-                    index=pd.date_range("2025-01-01", periods=1, freq="s", tz="UTC"),
+                    index=pd.date_range(base, periods=1, freq="s", tz="UTC"),
                 )
-                adapter.put(
+                adapter.put_segment(
                     cid,
-                    _new_cache_entry(
-                        data=df,
-                        start_time=df.index[0].to_pydatetime(),
-                        end_time=df.index[-1].to_pydatetime(),
-                    ),
+                    None,
+                    df,
+                    start_time=base,
+                    end_time=base,
                 )
+            # Append a second, disjoint segment to two of the buckets
+            # so segments > buckets.
+            for cid in ("c1", "c2"):
+                later = base + timedelta(minutes=5)
+                df = pd.DataFrame(
+                    {cid: [9.0]},
+                    index=pd.date_range(later, periods=1, freq="s", tz="UTC"),
+                )
+                adapter.put_segment(cid, None, df, start_time=later, end_time=later)
 
             stats = client.cache.stats()
             assert stats.enabled is True
-            assert stats.channel_entries == 3
-            assert stats.entry_count == 3
+            assert stats.channel_buckets == 3
+            assert stats.channel_segments == 5
+            # 3 index rows + 5 segment rows.
+            assert stats.entry_count == 8
             assert stats.size_bytes > 0
         finally:
             client._disk_cache.close()  # type: ignore[union-attr]
 
     def test_stats_ignores_foreign_adapter_keys_in_channel_count(self, tmp_path):
-        """Keys outside the channel namespace don't bump ``channel_entries``.
+        """Keys outside the channel namespace don't bump channel counters.
 
         Pins the prefix-scoping so a future second adapter doesn't
         double-count here.
@@ -325,7 +339,8 @@ class TestStats:
 
             stats = client.cache.stats()
             assert stats.entry_count == 2
-            assert stats.channel_entries == 0
+            assert stats.channel_buckets == 0
+            assert stats.channel_segments == 0
         finally:
             client._disk_cache.close()  # type: ignore[union-attr]
 

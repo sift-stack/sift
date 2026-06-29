@@ -3,8 +3,8 @@
 Five classes, narrowest scope first:
 
 * :class:`TestChannelDataCache` — the typed adapter over the shared
-  :class:`DiskCache`. Covers key namespacing, the isinstance guard on
-  ``get``, and the prefix-scoped ``clear``.
+  :class:`DiskCache`. Covers key namespacing, eviction-tolerant
+  stitching, gap computation, and the prefix-scoped ``clear``.
 * :class:`TestMergePages` — ``DataLowLevelClient._merge_pages``, the
   per-channel concat helper.
 * :class:`TestDataLowLevelClient` — constructor wiring and per-instance
@@ -23,6 +23,14 @@ The OOM regression that motivated this code happened because the cache
 was a class attribute that grew without bound. ``test_per_instance_isolation``
 is the canary that catches anyone re-introducing that pattern, even though
 ownership has since moved to the client.
+
+The cache stores data as per-fetch *segments* under one index per
+``(channel_id, run_id)`` bucket. ``put_segment`` writes a new segment
++ updates the index; ``get_range`` walks the index, slices each
+overlapping segment to the query window, and reports any uncovered
+sub-ranges as gaps. The segment model is what eliminates the prior
+write amplification on incremental pulls (where every fetch re-pickled
+the entire accumulated frame).
 """
 
 from __future__ import annotations
@@ -214,197 +222,421 @@ def _fake_grpc(
 # ---------- tests -----------
 
 
+def _put(
+    adapter: ChannelDataCache,
+    channel_id: str,
+    *,
+    data: pd.DataFrame | None = None,
+    rows: int = 5,
+    start: datetime = _NOW,
+    offset: int = 0,
+    freq: str = "ms",
+    seg_start: datetime | None = None,
+    seg_end: datetime | None = None,
+    run_id: str | None = None,
+) -> pd.DataFrame:
+    """Convenience: build a frame, write it as one segment, return it.
+
+    ``seg_start`` / ``seg_end`` default to the data's actual range so
+    tests get tightly-bounded segments unless they specifically want to
+    claim extra coverage.
+    """
+    if data is None:
+        data = _frame(channel_id, rows=rows, start=start, offset=offset, freq=freq)
+    if seg_start is None:
+        seg_start = data.index[0].to_pydatetime()
+    if seg_end is None:
+        seg_end = data.index[-1].to_pydatetime()
+    adapter.put_segment(
+        channel_id=channel_id,
+        run_id=run_id,
+        data=data,
+        start_time=seg_start,
+        end_time=seg_end,
+    )
+    return data
+
+
 class TestChannelDataCache:
     """The typed adapter over the shared :class:`DiskCache`.
 
-    Four invariants get pinned:
+    Five invariants get pinned across the per-segment shape:
 
     1. Every operation routes through the namespaced key
-       (``channel:<run_id>:<id>``), so two adapters sharing one store
-       don't collide on bare resource ids.
+       (``channel:<run_id>:<id>:{idx,seg:N}``), so two adapters sharing
+       one store don't collide on bare resource ids.
     2. Run id is part of the cache dimension: the same ``channel_id``
        under two different runs is two cache buckets, not one.
-    3. :meth:`ChannelDataCache.get` returns ``None`` on a type-mismatch
-       hit (e.g. a row another adapter wrote) instead of handing
-       arbitrary objects to downstream pandas code.
-    4. :meth:`ChannelDataCache.clear` wipes only the adapter's namespace
+    3. :meth:`ChannelDataCache.get_range` stitches multiple segments
+       and reports uncovered sub-ranges as gaps. Missing (evicted)
+       segments degrade to gaps, never to errors.
+    4. :meth:`ChannelDataCache.invalidate` drops every segment in a
+       bucket and the index, leaving other buckets untouched.
+    5. :meth:`ChannelDataCache.clear` wipes only the adapter's namespace
        — entries belonging to other adapters survive.
 
     Store-level behaviour (oversized guards, cross-session reload,
     marker-checked clear_disk) is exercised in ``test_disk_cache.py``.
     """
 
-    def test_get_miss_returns_none(self, tmp_path):
+    def test_miss_returns_none_and_full_gap(self, tmp_path):
         adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "miss"))
         try:
-            assert not adapter.has("c1")
-            assert adapter.get("c1") is None
+            assert not adapter.has_any("c1")
+            data, gaps = adapter.get_range("c1", None, _NOW, _WINDOW_END)
+            assert data is None
+            assert gaps == [(_NOW, _WINDOW_END)]
         finally:
             adapter.store.close()
 
-    def test_round_trip(self, tmp_path):
-        """Put then get returns an equivalent entry."""
+    def test_round_trip_single_segment(self, tmp_path):
+        """Put one segment, get_range back covers the whole frame and reports no gap."""
         adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "rt"))
         try:
-            entry = _entry(rows=8)
-            adapter.put("c1", entry)
-            assert adapter.has("c1")
-            got = adapter.get("c1")
+            df = _put(adapter, "c1", rows=8)
+            assert adapter.has_any("c1")
+            got, gaps = adapter.get_range("c1", None, df.index[0], df.index[-1])
             assert got is not None
-            pd.testing.assert_frame_equal(got.data, entry.data)
-            assert got.start_time == entry.start_time
-            assert got.end_time == entry.end_time
+            pd.testing.assert_frame_equal(got, df)
+            assert gaps == []
         finally:
             adapter.store.close()
 
-    def test_writes_use_namespaced_key(self, tmp_path):
-        """The raw store sees ``channel:<run>:<id>``, not the bare id.
+    def test_writes_use_namespaced_index_and_segment_keys(self, tmp_path):
+        """The raw store sees ``channel:<run>:<id>:idx`` + ``...:seg:0``.
 
-        Pins the key-shape contract two adapters share. Without it, a
-        second adapter that happens to share an id with the channel
-        adapter would clobber the channel row. Empty run segment marks
-        the unscoped bucket; UUIDs can never be empty so there's no
-        collision risk.
+        Pins the per-segment key shape: one index plus one segment key
+        per fetch. Without the prefix, a second adapter that happens to
+        share an id with the channel adapter would clobber the rows.
         """
         store = DiskCache(disk_path=tmp_path / "ns")
         adapter = ChannelDataCache(store)
         try:
-            adapter.put("c1", _entry(rows=4))
-            assert "channel::c1" in store
+            _put(adapter, "c1", rows=4)
+            assert "channel::c1:idx" in store
+            assert "channel::c1:seg:0" in store
             assert "c1" not in store
-            assert "channel:c1" not in store  # old (pre-run-scoping) shape
+            assert "channel:c1" not in store  # never the bare-id shape
         finally:
             store.close()
 
     def test_run_id_is_part_of_the_key(self, tmp_path):
         """Same channel under two runs is two cache buckets, not one.
 
-        Regression guard for the bug this code was added to fix: a bare
-        ``channel:<id>`` key conflated runs and served run-A's data to a
-        query for run-B. ``run_id`` is now a label on the cache
-        dimension; put under run-A must not be visible to a get under
-        run-B (or the unscoped bucket).
+        Regression guard for the run-scoping bug: a bare ``channel:<id>``
+        key conflated runs and served run-A's data to a query for run-B.
+        With segments, that turns into "the two buckets share an index"
+        — the test below pins them as fully independent.
         """
         adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "runs"))
         try:
-            entry_a = _entry(rows=4)
-            entry_b = _entry(rows=8)
-            adapter.put("c1", entry_a, run_id="run-A")
-            adapter.put("c1", entry_b, run_id="run-B")
+            df_a = _put(adapter, "c1", rows=4, run_id="run-A")
+            df_b = _put(adapter, "c1", rows=8, run_id="run-B")
 
-            assert adapter.has("c1", "run-A")
-            assert adapter.has("c1", "run-B")
-            assert not adapter.has("c1")  # unscoped bucket stays empty
-            assert not adapter.has("c1", "run-C")  # unknown run still misses
+            assert adapter.has_any("c1", "run-A")
+            assert adapter.has_any("c1", "run-B")
+            assert not adapter.has_any("c1")  # unscoped bucket stays empty
+            assert not adapter.has_any("c1", "run-C")  # unknown run still misses
 
-            got_a = adapter.get("c1", "run-A")
-            got_b = adapter.get("c1", "run-B")
+            got_a, _ = adapter.get_range("c1", "run-A", df_a.index[0], df_a.index[-1])
+            got_b, _ = adapter.get_range("c1", "run-B", df_b.index[0], df_b.index[-1])
             assert got_a is not None
+            assert len(got_a) == 4
             assert got_b is not None
-            assert len(got_a.data) == 4
-            assert len(got_b.data) == 8
+            assert len(got_b) == 8
         finally:
             adapter.store.close()
 
     def test_unscoped_and_scoped_buckets_are_independent(self, tmp_path):
-        """An unscoped put (``run_id=None``) doesn't satisfy a run-scoped get.
-
-        Pins the other direction of the run-scope contract.
-        """
+        """An unscoped put (``run_id=None``) doesn't satisfy a run-scoped get."""
         adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "indep"))
         try:
-            adapter.put("c1", _entry(rows=4))  # no run
-            assert adapter.has("c1")
-            assert not adapter.has("c1", "run-A")
-            assert adapter.get("c1", "run-A") is None
+            _put(adapter, "c1", rows=4)  # no run
+            assert adapter.has_any("c1")
+            assert not adapter.has_any("c1", "run-A")
+            data, gaps = adapter.get_range("c1", "run-A", _NOW, _WINDOW_END)
+            assert data is None
+            assert gaps == [(_NOW, _WINDOW_END)]
         finally:
             adapter.store.close()
 
-    def test_get_isinstance_check_filters_foreign_rows(self, tmp_path):
-        """A row whose value isn't a ChannelCacheEntry reads as a miss.
+    def test_get_range_isinstance_filters_foreign_segments(self, tmp_path):
+        """A segment row with the wrong shape reads as a miss → gap.
 
         Models a corrupt entry or a key collision from another writer.
-        ``ChannelDataCache.get`` must isinstance-check the raw value so
-        callers downstream never receive the wrong shape.
+        ``_load_segment`` isinstance-checks before handing back; the
+        evicted-segment-as-gap fallback covers this too.
         """
         store = DiskCache(disk_path=tmp_path / "foreign")
         adapter = ChannelDataCache(store)
         try:
-            store.put("channel::c1", {"not": "an entry"}, size_bytes=64)
-            assert adapter.get("c1") is None
+            _put(adapter, "c1", rows=4)
+            # Overwrite the segment's payload with foreign data; the
+            # index still claims it exists, so the read should treat
+            # the segment range as a gap.
+            store.put("channel::c1:seg:0", {"not": "an entry"}, size_bytes=64)
+            data, gaps = adapter.get_range("c1", None, _NOW, _WINDOW_END)
+            assert data is None
+            # The whole query range is uncovered (one merged gap).
+            assert gaps == [(_NOW, _WINDOW_END)]
         finally:
             store.close()
 
     def test_invalidate_is_run_scoped(self, tmp_path):
-        """``invalidate`` only drops the named ``(channel, run)`` bucket.
-
-        Entries for the same channel under other runs survive — runs
-        are independent cache dimensions, so dropping one shouldn't
-        cascade.
-        """
+        """``invalidate`` only drops the named ``(channel, run)`` bucket."""
         adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "inval"))
         try:
             adapter.invalidate("never_added")  # safe before any puts
-            adapter.put("c1", _entry(rows=4), run_id="run-A")
-            adapter.put("c1", _entry(rows=8), run_id="run-B")
+            _put(adapter, "c1", rows=4, run_id="run-A")
+            _put(adapter, "c1", rows=8, run_id="run-B")
             adapter.invalidate("c1", "run-A")
-            assert not adapter.has("c1", "run-A")
-            assert adapter.get("c1", "run-A") is None
-            assert adapter.has("c1", "run-B")  # run-B survives
+            assert not adapter.has_any("c1", "run-A")
+            assert adapter.has_any("c1", "run-B")  # run-B survives
         finally:
             adapter.store.close()
 
     def test_clear_is_prefix_scoped(self, tmp_path):
-        """``clear`` drops channel rows across all runs, leaves other adapters alone.
-
-        Simulates a second resource writing to the same store with a
-        different prefix; the channel adapter's clear must not be a
-        whole-store wipe, but it must reach every run-scoped bucket.
-        """
+        """``clear`` drops channel rows across all runs, leaves other adapters alone."""
         store = DiskCache(disk_path=tmp_path / "scoped")
         adapter = ChannelDataCache(store)
         try:
-            adapter.put("c1", _entry(rows=4))  # unscoped
-            adapter.put("c2", _entry(rows=4), run_id="run-A")
-            # Simulate a row written by a different adapter.
+            _put(adapter, "c1", rows=4)  # unscoped
+            _put(adapter, "c2", rows=4, run_id="run-A")
             store.put("other:1", "foreign-value", size_bytes=64)
             adapter.clear()
-            assert not adapter.has("c1")
-            assert not adapter.has("c2", "run-A")
+            assert not adapter.has_any("c1")
+            assert not adapter.has_any("c2", "run-A")
             assert "other:1" in store
         finally:
             store.close()
 
     def test_size_bytes_propagates_to_store(self, tmp_path):
-        """The adapter forwards the entry's ``size_bytes`` to the store guard.
+        """Oversized segments are skipped by the store; index/segment-write order matters.
 
-        Sized below the entry's actual ``size_bytes`` so the store's
-        oversize guard kicks in. The adapter never measures size itself;
-        it relies on ``_new_cache_entry`` having stamped the value.
+        The segment is written first, then the index. When the store
+        refuses the segment (oversize), the index stays empty and
+        ``has_any`` reports false. Without this ordering you'd get an
+        index entry pointing at a missing segment.
         """
-        entry = _entry(rows=10_000)
-        store = DiskCache(disk_path=tmp_path / "size", disk_max_bytes=entry.size_bytes // 2)
+        big = _frame("c1", rows=10_000)
+        size_bytes = int(big.memory_usage(deep=True).sum())
+        store = DiskCache(disk_path=tmp_path / "size", disk_max_bytes=size_bytes // 2)
         adapter = ChannelDataCache(store)
         try:
-            adapter.put("c1", entry)
-            assert not adapter.has("c1")  # oversize skipped by the store
+            adapter.put_segment(
+                "c1", None, big, big.index[0].to_pydatetime(), big.index[-1].to_pydatetime()
+            )
+            assert not adapter.has_any("c1")
         finally:
             store.close()
 
     def test_no_op_store_keeps_adapter_silent(self):
-        """An adapter on a disabled store behaves like a cold cache.
-
-        Disabling the store is the path ``client.cache.disable()``
-        exercises; resources can keep their adapter reference and every
-        operation just no-ops.
-        """
+        """An adapter on a disabled store behaves like a cold cache."""
         adapter = ChannelDataCache(DiskCache())
         assert not adapter.store.disk_enabled
-        adapter.put("c1", _entry(rows=4))
-        assert not adapter.has("c1")
-        assert adapter.get("c1") is None
+        _put(adapter, "c1", rows=4)
+        assert not adapter.has_any("c1")
+        data, gaps = adapter.get_range("c1", None, _NOW, _WINDOW_END)
+        assert data is None
+        assert gaps == [(_NOW, _WINDOW_END)]
         adapter.invalidate("c1")
         adapter.clear()
+
+    # --- stitching + gap behaviour (new with the per-segment shape) ---
+
+    def test_get_range_stitches_multiple_segments(self, tmp_path):
+        """Two segments whose claimed ranges together cover the query → one stitched frame.
+
+        Segments claim ``[seg_start, seg_end]`` boundaries that abut at
+        the query midpoint so gap math reports zero gaps. The stitch
+        path concats and dedups via ``groupby.last``.
+        """
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "stitch"))
+        try:
+            df1 = _frame("c1", rows=5, start=_NOW, freq="ms", offset=0)
+            df1_end = df1.index[-1].to_pydatetime()
+            df2 = _frame(
+                "c1",
+                rows=5,
+                start=df1_end + timedelta(milliseconds=1),
+                freq="ms",
+                offset=100,
+            )
+            query_start = df1.index[0].to_pydatetime()
+            query_end = df2.index[-1].to_pydatetime()
+            # Claim seg2 starts right where seg1 ends so the abutting
+            # ranges leave no gap. Real callers do this via
+            # ``_update_cache`` claiming the requested window.
+            adapter.put_segment("c1", None, df1, query_start, df1_end)
+            adapter.put_segment("c1", None, df2, df1_end, query_end)
+            got, gaps = adapter.get_range("c1", None, query_start, query_end)
+            assert got is not None
+            assert len(got) == 10
+            expected = pd.concat([df1, df2]).groupby(level=0).last()
+            pd.testing.assert_frame_equal(got.sort_index(), expected.sort_index(), check_freq=False)
+            assert gaps == []  # abutting claimed ranges → no gap
+        finally:
+            adapter.store.close()
+
+    def test_get_range_reports_internal_gap_between_segments(self, tmp_path):
+        """Query window wider than the two segments → one gap between them."""
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "midgap"))
+        try:
+            seg_a_start = _NOW
+            seg_a_end = _NOW + timedelta(seconds=5)
+            seg_b_start = _NOW + timedelta(seconds=10)
+            seg_b_end = _NOW + timedelta(seconds=15)
+            adapter.put_segment(
+                "c1",
+                None,
+                _frame("c1", rows=2, start=seg_a_start, freq="s"),
+                seg_a_start,
+                seg_a_end,
+            )
+            adapter.put_segment(
+                "c1",
+                None,
+                _frame("c1", rows=2, start=seg_b_start, freq="s"),
+                seg_b_start,
+                seg_b_end,
+            )
+            _, gaps = adapter.get_range("c1", None, seg_a_start, seg_b_end)
+            assert gaps == [(seg_a_end, seg_b_start)]
+        finally:
+            adapter.store.close()
+
+    def test_get_range_reports_outer_gaps(self, tmp_path):
+        """Query wider than the cached segment on both sides → two gaps."""
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "outer"))
+        try:
+            seg_start = _NOW + timedelta(seconds=5)
+            seg_end = _NOW + timedelta(seconds=10)
+            adapter.put_segment(
+                "c1",
+                None,
+                _frame("c1", rows=2, start=seg_start, freq="s"),
+                seg_start,
+                seg_end,
+            )
+            query_end = _NOW + timedelta(seconds=15)
+            _, gaps = adapter.get_range("c1", None, _NOW, query_end)
+            assert gaps == [(_NOW, seg_start), (seg_end, query_end)]
+        finally:
+            adapter.store.close()
+
+    def test_evicted_segment_degrades_to_gap(self, tmp_path):
+        """If the store loses a segment (LRU), the reader treats its range as a gap.
+
+        Pins the eviction-tolerance contract. The index can outlive
+        its segments under memory pressure; reads must not error and
+        must surface the uncovered range so the caller refetches.
+        """
+        store = DiskCache(disk_path=tmp_path / "evict")
+        adapter = ChannelDataCache(store)
+        try:
+            df = _put(adapter, "c1", rows=5)
+            store.invalidate("channel::c1:seg:0")  # simulate eviction
+            data, gaps = adapter.get_range("c1", None, df.index[0], df.index[-1])
+            assert data is None
+            assert gaps == [(df.index[0], df.index[-1])]
+        finally:
+            store.close()
+
+    def test_segment_count_grows_with_each_put(self, tmp_path):
+        """``put_segment`` writes a new key per call — no merging on the write path.
+
+        Pins the "no rewrite of accumulated bytes per fetch" contract.
+        ``next_seg_id`` advances; raw store key count grows by one
+        index update + one new segment per put.
+        """
+        store = DiskCache(disk_path=tmp_path / "grow")
+        adapter = ChannelDataCache(store)
+        try:
+            for i in range(3):
+                _put(
+                    adapter,
+                    "c1",
+                    rows=2,
+                    start=_NOW + timedelta(seconds=i * 10),
+                    freq="s",
+                )
+            # Expect: 1 index + 3 segments.
+            channel_keys = sorted(k for k in store if k.startswith("channel:"))
+            assert channel_keys == [
+                "channel::c1:idx",
+                "channel::c1:seg:0",
+                "channel::c1:seg:1",
+                "channel::c1:seg:2",
+            ]
+        finally:
+            store.close()
+
+    def test_empty_put_is_skipped(self, tmp_path):
+        """``put_segment`` with an empty frame is a no-op (no index update).
+
+        Documented trade-off: no "we tried, no data" segments. A
+        follow-up identical query will re-fetch. See class TODO.
+        """
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "empty"))
+        try:
+            empty = pd.DataFrame(
+                {"c1": []},
+                index=pd.DatetimeIndex([], tz=timezone.utc),
+            )
+            adapter.put_segment("c1", None, empty, _NOW, _WINDOW_END)
+            assert not adapter.has_any("c1")
+        finally:
+            adapter.store.close()
+
+    # --- gap-math unit tests ---
+
+    @pytest.mark.parametrize(
+        ("covered", "expected"),
+        [
+            # Fully uncovered.
+            ([], [(_NOW, _NOW + timedelta(seconds=10))]),
+            # Fully covered.
+            ([(_NOW, _NOW + timedelta(seconds=10))], []),
+            # Left-only gap.
+            (
+                [(_NOW + timedelta(seconds=5), _NOW + timedelta(seconds=10))],
+                [(_NOW, _NOW + timedelta(seconds=5))],
+            ),
+            # Right-only gap.
+            (
+                [(_NOW, _NOW + timedelta(seconds=5))],
+                [(_NOW + timedelta(seconds=5), _NOW + timedelta(seconds=10))],
+            ),
+            # Two segments, one internal gap.
+            (
+                [
+                    (_NOW, _NOW + timedelta(seconds=2)),
+                    (_NOW + timedelta(seconds=7), _NOW + timedelta(seconds=10)),
+                ],
+                [(_NOW + timedelta(seconds=2), _NOW + timedelta(seconds=7))],
+            ),
+            # Overlapping covered ranges merge before gap math.
+            (
+                [
+                    (_NOW, _NOW + timedelta(seconds=6)),
+                    (_NOW + timedelta(seconds=4), _NOW + timedelta(seconds=8)),
+                ],
+                [(_NOW + timedelta(seconds=8), _NOW + timedelta(seconds=10))],
+            ),
+        ],
+        ids=[
+            "fully_uncovered",
+            "fully_covered",
+            "left_gap",
+            "right_gap",
+            "internal_gap",
+            "overlapping_covered_merges",
+        ],
+    )
+    def test_compute_gaps(self, covered, expected):
+        query_start = _NOW
+        query_end = _NOW + timedelta(seconds=10)
+        assert ChannelDataCache._compute_gaps(query_start, query_end, covered) == expected
 
 
 class TestMergePages:
@@ -417,8 +649,8 @@ class TestMergePages:
     * Single-frame channels skip the concat entirely (cheap identity path).
     * Multi-frame channels concat in collected order; ``groupby.last``
       makes the latest frame win on overlapping timestamps.
-    * Cached slices from ``_check_cache`` are folded in as the *first*
-      frame so fresh pages still win on overlap.
+    * Cached slices from the segment-stitched read are folded in as
+      the *first* frame so fresh pages still win on overlap.
     """
 
     @pytest.mark.parametrize("pages", [[], [[]]], ids=["no_tasks_queued", "task_returned_empty"])
@@ -466,7 +698,7 @@ class TestMergePages:
         assert (result["chan"]["chan"] == 99).all()
 
     def test_cached_slice_folded_in_first_and_loses_on_overlap(self) -> None:
-        """Cached slice from ``_check_cache`` is the first frame in the merge.
+        """Cached slice from the segment read is the first frame in the merge.
 
         Fresh pages must overwrite cached values on duplicate timestamps,
         matching the pre-existing "latest fetch wins" semantic.
@@ -532,9 +764,9 @@ class TestDataLowLevelClient:
         client_a = _client_with_cache(tmp_path, "a")
         client_b = _client_with_cache(tmp_path, "b")
         try:
-            client_a.channel_cache.put("c1", _entry(rows=10))
-            assert client_a.channel_cache.has("c1")
-            assert not client_b.channel_cache.has("c1")
+            _put(client_a.channel_cache, "c1", rows=10)
+            assert client_a.channel_cache.has_any("c1")
+            assert not client_b.channel_cache.has_any("c1")
         finally:
             client_a.channel_cache.store.close()
             client_b.channel_cache.store.close()
@@ -702,9 +934,9 @@ class TestGetChannelData:
             pd.testing.assert_frame_equal(second["c1"].sort_index(), df_b.sort_index())
             # Both runs end up cached independently; the unscoped bucket
             # stays empty because every query named a run.
-            assert client.channel_cache.has("c1", "run-A")
-            assert client.channel_cache.has("c1", "run-B")
-            assert not client.channel_cache.has("c1")
+            assert client.channel_cache.has_any("c1", "run-A")
+            assert client.channel_cache.has_any("c1", "run-B")
+            assert not client.channel_cache.has_any("c1")
         finally:
             client.channel_cache.store.close()
 
@@ -729,13 +961,13 @@ class TestGetChannelData:
                 )
 
             put_calls: list[Any] = []
-            original_put = client.channel_cache.put
+            original_put = client.channel_cache.put_segment
 
-            def spy_put(*args: Any, **kwargs: Any) -> None:
+            def spy_put_segment(*args: Any, **kwargs: Any) -> None:
                 put_calls.append((args, kwargs))
                 original_put(*args, **kwargs)
 
-            client.channel_cache.put = spy_put  # type: ignore[method-assign]
+            client.channel_cache.put_segment = spy_put_segment  # type: ignore[method-assign]
             with _fake_grpc(client, {"c1": []}):
                 await client.get_channel_data(
                     channels=[_channel("c1")],
@@ -747,15 +979,12 @@ class TestGetChannelData:
             client.channel_cache.store.close()
 
     @pytest.mark.asyncio
-    async def test_disjoint_forward_paging_preserves_all_rows(self, tmp_path) -> None:
-        """Strictly disjoint append skips ``groupby.last`` and keeps every row.
+    async def test_disjoint_forward_paging_lands_in_separate_segments(self, tmp_path) -> None:
+        """Two disjoint forward pulls write two segments and stitch on read.
 
-        Pins the Tier-1C optimization: when the second query's range
-        starts strictly after the cached range, ``_update_cache`` uses
-        plain ``pd.concat`` instead of ``concat + groupby.last``. The
-        groupby would be correct but wasted (no overlap to dedup); this
-        test guards against a future regression that drops rows on the
-        fast path.
+        Under the segment shape, each fetch lands in its own cache key
+        — no merging on the write path. A subsequent read stitches the
+        segments back together via ``get_range``.
         """
         client = _client_with_cache(tmp_path)
         df1 = _frame("c1", rows=5, start=_NOW, offset=0)
@@ -775,10 +1004,20 @@ class TestGetChannelData:
                     end_time=_WINDOW_END,
                 )
 
-            entry = client.channel_cache.get("c1")
-            assert entry is not None
-            assert len(entry.data) == 10
-            assert set(entry.data.columns) == {"c1"}
+            # Two segments under the parent id (no rewrite on the second
+            # fetch — that's the whole point of the per-segment shape).
+            idx = client.channel_cache._load_index("c1", None)
+            assert idx is not None
+            assert len(idx.segments) == 2
+
+            stitched, gaps = client.channel_cache.get_range("c1", None, _NOW, _WINDOW_END)
+            assert stitched is not None
+            assert len(stitched) == 10
+            assert set(stitched.columns) == {"c1"}
+            # Reads still report the truly-uncovered window between the
+            # two segments (segments only claim what their data spans
+            # when run-scoped, but here we used the requested ranges).
+            assert gaps == []
         finally:
             client.channel_cache.store.close()
 
@@ -801,7 +1040,7 @@ class TestGetChannelData:
                     ignore_cache=True,
                 )
             pd.testing.assert_frame_equal(result["c1"], df)
-            assert not client.channel_cache.has("c1")
+            assert not client.channel_cache.has_any("c1")
         finally:
             client.channel_cache.store.close()
 
@@ -821,9 +1060,9 @@ class TestBitFieldChannels:
        every element, all pointing at the parent id — so when
        ``_update_cache`` looks up a dotted name, it lands on the
        parent's cache row.
-    2. Element frames merge into a single wide-DataFrame cache entry
-       under the parent id, and ``_filter_cached_channels`` correctly
-       treats the bitfield as cached as a unit.
+    2. Element frames merge into a single wide-DataFrame segment
+       under the parent id, and ``get_range`` correctly treats the
+       bitfield as cached as a unit (zero gaps for the warmed window).
     3. Fresh-fetch and cache-hit return shapes match — both produce
        one single-column frame per dotted element name. The cache-hit
        branch slices the wide cached frame per column to keep this
@@ -847,13 +1086,12 @@ class TestBitFieldChannels:
             "ch1.hi": "abc",
         }
 
-    def test_update_cache_merges_elements_under_parent_id(self, tmp_path) -> None:
-        """All element frames land in one cache entry keyed by the parent id.
+    def test_update_cache_merges_elements_into_one_segment(self, tmp_path) -> None:
+        """All element frames land in one segment keyed by the parent id.
 
-        ``_update_cache`` iterates element frames; the first put writes
-        a single-column entry, the second sees ``existing`` for the
-        same parent id and merges via
-        ``pd.concat([...]).groupby(level=0).last()`` into a wide frame.
+        ``_update_cache`` groups frames by their parent id before
+        writing, so bitfield elements that came in one wire fetch
+        produce exactly one wide segment — not one segment per element.
         Nothing should land under a dotted-name key.
         """
         client = _client_with_cache(tmp_path)
@@ -867,25 +1105,31 @@ class TestBitFieldChannels:
                 start_time=_NOW,
                 end_time=_WINDOW_END,
             )
-            assert client.channel_cache.has("abc")
-            assert not client.channel_cache.has("ch1.lo")
-            assert not client.channel_cache.has("ch1.hi")
-            entry = client.channel_cache.get("abc")
-            assert entry is not None
-            assert set(entry.data.columns) == {"ch1.lo", "ch1.hi"}
-            # Overlapping indices collapse via groupby.last; 5 rows in,
-            # 5 rows out (with both element columns populated).
-            assert len(entry.data) == 5
+            assert client.channel_cache.has_any("abc")
+            assert not client.channel_cache.has_any("ch1.lo")
+            assert not client.channel_cache.has_any("ch1.hi")
+
+            # Exactly one segment under the parent id holding both
+            # element columns. ``get_range`` returns the wide frame;
+            # downstream slicing happens in ``get_channel_data``.
+            idx = client.channel_cache._load_index("abc", None)
+            assert idx is not None
+            assert len(idx.segments) == 1
+
+            data, _ = client.channel_cache.get_range("abc", None, _NOW, _WINDOW_END)
+            assert data is not None
+            assert set(data.columns) == {"ch1.lo", "ch1.hi"}
+            assert len(data) == 5
         finally:
             client.channel_cache.store.close()
 
-    def test_filter_cached_channels_treats_bitfield_as_one(self, tmp_path) -> None:
-        """``_filter_cached_channels`` consults the parent id, not element names.
+    def test_get_range_treats_bitfield_as_one_bucket(self, tmp_path) -> None:
+        """A bitfield warmed by a prior fetch reports zero gaps for the same range.
 
         Pins the read side of the id/name asymmetry: a bitfield warmed
-        by a prior fetch is "cached" as a unit. Without this, a second
-        call would re-issue the wire fetch for the parent id even
-        though the elements are in the cache.
+        by a prior fetch is "cached" as a unit under the parent id.
+        Without this, a second call would re-fetch the whole window
+        even though the elements are in the cache.
         """
         client = _client_with_cache(tmp_path)
         ch = _bitfield_channel(cid="abc", name="ch1", elements=["lo", "hi"])
@@ -899,9 +1143,9 @@ class TestBitFieldChannels:
                 start_time=_NOW,
                 end_time=_WINDOW_END,
             )
-            cached, not_cached = client._filter_cached_channels(["abc"])
-            assert cached == ["abc"]
-            assert not_cached == []
+            data, gaps = client.channel_cache.get_range("abc", None, _NOW, _WINDOW_END)
+            assert data is not None
+            assert gaps == []  # parent id covers the whole window
         finally:
             client.channel_cache.store.close()
 
@@ -932,10 +1176,10 @@ class TestBitFieldChannels:
             assert list(result["ch1.hi"].columns) == ["ch1.hi"]
             pd.testing.assert_frame_equal(result["ch1.lo"].sort_index(), df_lo.sort_index())
             pd.testing.assert_frame_equal(result["ch1.hi"].sort_index(), df_hi.sort_index())
-            # Cache holds one wide entry under the parent id.
-            entry = client.channel_cache.get("abc")
-            assert entry is not None
-            assert set(entry.data.columns) == {"ch1.lo", "ch1.hi"}
+            # Cache holds one wide segment under the parent id.
+            data, _ = client.channel_cache.get_range("abc", None, _NOW, _WINDOW_END)
+            assert data is not None
+            assert set(data.columns) == {"ch1.lo", "ch1.hi"}
         finally:
             client.channel_cache.store.close()
 
