@@ -59,6 +59,28 @@ pub enum Cmd {
 
     /// Ping the Sift API to verify credentials and connectivity
     Ping,
+
+    /// Update sift-cli to the latest release (or a pinned version)
+    Update(UpdateArgs),
+}
+
+#[derive(clap::Args)]
+pub struct UpdateArgs {
+    /// Pin to a specific version (e.g. 0.3.0). Defaults to the latest release.
+    #[arg(long)]
+    pub version: Option<String>,
+
+    /// Include prereleases when picking the latest version
+    #[arg(long)]
+    pub pre: bool,
+
+    /// Report what would happen without applying the update
+    #[arg(long)]
+    pub check: bool,
+
+    /// Skip the confirmation prompt
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.
