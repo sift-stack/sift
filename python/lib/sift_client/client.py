@@ -4,7 +4,6 @@ import logging
 import warnings
 from typing import TYPE_CHECKING
 
-from sift_client._internal.cache_namespace import CacheNamespace
 from sift_client._internal.disk_cache_config import DiskCacheConfig
 from sift_client._internal.urls import frontend_origin_for_api
 from sift_client.errors import SiftWarning
@@ -50,6 +49,7 @@ from sift_client.transport import (
     WithGrpcClient,
     WithRestClient,
 )
+from sift_client.util.cache import CacheNamespace
 from sift_client.util.util import AsyncAPIs
 
 if TYPE_CHECKING:

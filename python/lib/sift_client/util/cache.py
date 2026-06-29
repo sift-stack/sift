@@ -1,10 +1,14 @@
 """User-facing surface for the shared on-disk cache.
 
-This module hosts the small bag of methods exposed as ``client.cache``.
+This module hosts the small bag of methods exposed as ``client.cache``,
+plus the :class:`CacheStats` snapshot type returned by
+:meth:`CacheNamespace.stats`. Both classes are public — they're
+re-exported from the top-level ``sift_client`` package and surfaced in
+the generated API docs.
+
 The cache itself (a :class:`~sift_client._internal.disk_cache.DiskCache`)
 lives on :class:`~sift_client.client.SiftClient` so every resource that
 wants to persist results across calls can reach into one shared store.
-
 The namespace deliberately mirrors :class:`DiskCache` rather than the
 old per-resource API (``client.channels.enable_data_cache_disk(...)``):
 since the store is shared, configuration is global.
@@ -52,17 +56,16 @@ class CacheStats:
 
     Field semantics:
 
-    * **enabled** — whether the disk handle is open (matches
-      :attr:`DiskCache.disk_enabled`). When ``False``, all the size/count
-      fields are zero regardless of on-disk state.
+    * **enabled** — whether the disk handle is open. When ``False``, all
+      the size/count fields are zero regardless of on-disk state.
     * **path** — directory the cache is open against, or ``None`` when
       disabled. Useful for "where does this cache actually live?".
     * **max_bytes** — configured byte cap on disk usage, or ``None``
       when disabled. ``diskcache``'s LRU evicts once usage approaches
       this.
     * **size_bytes** — current on-disk usage including SQLite overhead.
-      Tends to trend slightly higher than the sum of caller-supplied
-      ``size_bytes`` from :meth:`DiskCache.put` calls.
+      Tends to trend slightly higher than the sum of per-entry
+      ``size_bytes`` the resources hand to the store.
     * **entry_count** — total cache keys across all adapter prefixes
       (channel entries + any future foreign-adapter rows).
     * **channel_entries** — channel cache entries (one per
@@ -98,21 +101,23 @@ class CacheStats:
 class CacheNamespace:
     """Resource-agnostic surface for the on-disk cache shared by all resources.
 
-    Exposed as ``client.cache``. The actual handle (:class:`DiskCache`) is
-    constructed lazily on first use so importing :mod:`sift_client` doesn't
-    pay the diskcache cost up front. Configuration changes made before
-    that first use are recorded against the
-    :class:`~sift_client._internal.disk_cache_config.DiskCacheConfig` on the
-    client and applied when the store opens; changes after first use are
-    routed directly to the live :class:`DiskCache`.
+    Exposed as ``client.cache``. The actual handle
+    (:class:`~sift_client._internal.disk_cache.DiskCache`) is constructed
+    lazily on first use so importing :mod:`sift_client` doesn't pay the
+    diskcache cost up front. Configuration changes made before that
+    first use are recorded against the client's
+    :class:`~sift_client._internal.disk_cache_config.DiskCacheConfig`
+    and applied when the store opens; changes after first use are
+    routed directly to the live store.
 
-    Default policy: disk caching is **opt-out** (the ``DiskCacheConfig`` is
-    constructed with ``enabled=True``). Users who don't want any state on
-    disk call :meth:`disable` to silence it; users who want a custom
+    Default policy: disk caching is **opt-out** (the config is
+    constructed with ``enabled=True``). Users who don't want any state
+    on disk call :meth:`disable` to silence it; users who want a custom
     location or byte cap call :meth:`enable` with arguments.
     """
 
     def __init__(self, client: SiftClient):
+        """Bind this namespace to ``client``. Constructed by :class:`SiftClient`."""
         self._client = client
 
     def enable(
@@ -123,9 +128,10 @@ class CacheNamespace:
     ) -> None:
         """Enable (or reconfigure) on-disk caching.
 
-        Disk caching is **on by default** at :attr:`DiskCache.DEFAULT_DISK_PATH`;
-        use this method to override the path or size, or to turn the cache
-        back on after a prior :meth:`disable` call.
+        Disk caching is **on by default** at
+        :attr:`~sift_client._internal.disk_cache.DiskCache.DEFAULT_DISK_PATH`;
+        use this method to override the path or size, or to turn the
+        cache back on after a prior :meth:`disable` call.
 
         Reconfiguring a live cache (different ``path`` or ``max_bytes``)
         closes the previous handle and opens a new one. Existing entries
@@ -133,15 +139,15 @@ class CacheNamespace:
 
         An explicit ``path`` that can't be opened (permission denied,
         read-only filesystem, ...) raises so the caller knows their
-        request didn't take. The default-path open does *not* raise — see
-        :meth:`SiftClient._get_disk_cache` for the silent fall-back.
+        request didn't take. The default-path open does *not* raise —
+        see :meth:`SiftClient._get_disk_cache` for the silent fall-back.
 
         Args:
             path: Directory to persist to. ``None`` (the default) uses
-                :attr:`DiskCache.DEFAULT_DISK_PATH`.
-            max_bytes: Byte cap on disk usage. ``None`` uses
-                :attr:`DiskCache.DEFAULT_DISK_MAX_BYTES` (4 GiB). When the
-                bound is reached, ``diskcache``'s LRU eviction takes over.
+                the cache's :attr:`DEFAULT_DISK_PATH`.
+            max_bytes: Byte cap on disk usage. ``None`` uses the cache's
+                :attr:`DEFAULT_DISK_MAX_BYTES` (4 GiB). When the bound
+                is reached, ``diskcache``'s LRU eviction takes over.
 
         Example:
             client.cache.enable(path="/data/sift-cache")
@@ -187,9 +193,9 @@ class CacheNamespace:
               used:     142.3 MiB / 4.0 GiB (3.5%)
               entries:  487 (487 channel)
         """
-        # Importing here keeps ``client.cache`` and this module light at
-        # import time — pulling the adapter pulls pandas, which is the
-        # whole reason ``_ensure_data_low_level_client`` is lazy too.
+        # Importing here keeps this module light at import time — pulling
+        # the adapter pulls pandas, which is the whole reason
+        # ``_ensure_data_low_level_client`` is lazy too.
         from sift_client._internal.low_level_wrappers.data import ChannelDataCache
 
         # ``_get_disk_cache`` is idempotent: it opens the store on first
@@ -230,10 +236,14 @@ class CacheNamespace:
 
         Args:
             path: Directory of the cache to clear. ``None`` (the default)
-                targets :attr:`DiskCache.DEFAULT_DISK_PATH`.
+                targets the cache's
+                :attr:`~sift_client._internal.disk_cache.DiskCache.DEFAULT_DISK_PATH`.
 
         Raises:
             ValueError: If ``path`` exists but does not look like a sift
                 data cache directory.
         """
         DiskCache.clear_disk(path)
+
+
+__all__ = ["CacheNamespace", "CacheStats"]

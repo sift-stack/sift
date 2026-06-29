@@ -1,4 +1,4 @@
-"""Tests for :mod:`sift_client._internal.cache_namespace`.
+"""Tests for :mod:`sift_client.util.cache`.
 
 The namespace is the user-facing surface for the shared on-disk store
 that lives on the :class:`SiftClient`. Three concerns get pinned here:
@@ -32,8 +32,8 @@ def _make_client():
     ``_disk_cache``, so a tiny stand-in keeps these tests independent of
     transport setup.
     """
-    from sift_client._internal.cache_namespace import CacheNamespace
     from sift_client._internal.disk_cache_config import DiskCacheConfig
+    from sift_client.util.cache import CacheNamespace
 
     class _StandinClient:
         def __init__(self) -> None:
