@@ -95,7 +95,9 @@ class PrincipalAttributeEnumValue(
             Returns the migration count; it does not refresh this instance's
             ``is_archived``/``archived_date``. Re-fetch the enum value to observe those.
         """
-        return self.client.access_control.principal_attributes.archive_enum_value(self, replacement=replacement)
+        return self.client.access_control.principal_attributes.archive_enum_value(
+            self, replacement=replacement
+        )
 
     def unarchive(self) -> PrincipalAttributeEnumValue:
         """Unarchive this enum value."""
@@ -249,7 +251,9 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
 
     def get_or_create_enum_values(self, names: list[str]) -> list[PrincipalAttributeEnumValue]:
         """Get existing enum values by name, creating any that don't exist."""
-        return self.client.access_control.principal_attributes.get_or_create_enum_values(self, names)
+        return self.client.access_control.principal_attributes.get_or_create_enum_values(
+            self, names
+        )
 
     def list_enum_values(
         self, *, include_archived: bool = False

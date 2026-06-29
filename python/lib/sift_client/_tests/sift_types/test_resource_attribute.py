@@ -118,13 +118,15 @@ class TestResourceAttribute:
         archived = ra.ResourceAttribute(
             resource_attribute_id="a1", resource_attribute_key_id="k1", is_archived=True
         )
-        mock_client.access_control.resource_attributes.get_assignment.return_value = ResourceAttribute._from_proto(
-            archived
+        mock_client.access_control.resource_attributes.get_assignment.return_value = (
+            ResourceAttribute._from_proto(archived)
         )
 
         result = attr.archive()
 
-        mock_client.access_control.resource_attributes.archive_assignments.assert_called_once_with([attr])
+        mock_client.access_control.resource_attributes.archive_assignments.assert_called_once_with(
+            [attr]
+        )
         assert result is attr
         assert attr.is_archived is True
 

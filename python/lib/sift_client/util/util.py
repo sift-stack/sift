@@ -27,7 +27,8 @@ if TYPE_CHECKING:
 
 class AccessControlAPI:
     """Access-control namespace. Groups the ABAC APIs; roles, policies, and user groups
-    will live here as they are added."""
+    will live here as they are added.
+    """
 
     resource_attributes: ResourceAttributesAPI
     """Attribute keys assigned to entities (assets, channels, runs)."""
@@ -41,6 +42,7 @@ class AccessControlAPI:
         resource_attributes: ResourceAttributesAPI,
         principal_attributes: PrincipalAttributesAPI,
     ):
+        """Initialize the access-control namespace with its sub-APIs."""
         self.resource_attributes = resource_attributes
         self.principal_attributes = principal_attributes
 
@@ -60,6 +62,7 @@ class AccessControlAPIAsync:
         resource_attributes: ResourceAttributesAPIAsync,
         principal_attributes: PrincipalAttributesAPIAsync,
     ):
+        """Initialize the access-control namespace with its sub-APIs."""
         self.resource_attributes = resource_attributes
         self.principal_attributes = principal_attributes
 

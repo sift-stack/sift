@@ -132,7 +132,9 @@ class ResourceAttributeEnumValue(
             Returns the migration count; it does not refresh this instance's
             ``is_archived``/``archived_date``. Re-fetch the enum value to observe those.
         """
-        return self.client.access_control.resource_attributes.archive_enum_value(self, replacement=replacement)
+        return self.client.access_control.resource_attributes.archive_enum_value(
+            self, replacement=replacement
+        )
 
     def unarchive(self) -> ResourceAttributeEnumValue:
         """Unarchive this enum value."""
@@ -219,7 +221,9 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
         """Archive this assignment."""
         self.client.access_control.resource_attributes.archive_assignments([self])
         self._update(
-            self.client.access_control.resource_attributes.get_assignment(assignment_id=self._id_or_error)
+            self.client.access_control.resource_attributes.get_assignment(
+                assignment_id=self._id_or_error
+            )
         )
         return self
 
@@ -227,7 +231,9 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
         """Unarchive this assignment."""
         self.client.access_control.resource_attributes.unarchive_assignments([self])
         self._update(
-            self.client.access_control.resource_attributes.get_assignment(assignment_id=self._id_or_error)
+            self.client.access_control.resource_attributes.get_assignment(
+                assignment_id=self._id_or_error
+            )
         )
         return self
 
