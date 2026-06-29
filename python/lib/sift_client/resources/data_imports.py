@@ -21,6 +21,7 @@ from sift_client.sift_types.data_import import (
     ParquetTimeColumn,
     TdmsImportConfig,
     TimeFormat,
+    UlogImportConfig,
 )
 from sift_client.sift_types.run import Run
 
@@ -66,7 +67,7 @@ class DataImportAPIAsync(ResourceBase):
         completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
-        ``detect_config`` (CSV, Parquet, HDF5, and TDMS).
+        ``detect_config`` (CSV, Parquet, HDF5, TDMS, and ULog).
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -209,12 +210,12 @@ class DataImportAPIAsync(ResourceBase):
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
-        Reads a sample of the file, sends it to the server's DetectConfig
-        endpoint, and returns the detected configuration. The file format
-        is inferred from the file extension when ``data_type`` is not
-        provided.
+        Returns the detected configuration, inferring the file format from the
+        extension when ``data_type`` is not provided. CSV and Parquet are
+        detected by sending a sample of the file to the server's DetectConfig
+        endpoint; TDMS, HDF5, and ULog are detected locally on the client.
 
-        CSV, Parquet, HDF5, and TDMS files are supported for
+        CSV, Parquet, HDF5, TDMS, and ULog files are supported for
         auto-detection.
 
         For CSV files, the server scans the first two rows for an optional
@@ -267,7 +268,10 @@ class DataImportAPIAsync(ResourceBase):
         config = await self._detect_config_for_type(path, data_type_key)
         if time_format is not None:
             _apply_time_format(config, time_format)
-        elif not isinstance(config, TdmsImportConfig) and _get_time_format(config) is None:
+        elif (
+            not isinstance(config, (TdmsImportConfig, UlogImportConfig))
+            and _get_time_format(config) is None
+        ):
             _apply_time_format(config, TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
         return config
 
@@ -298,6 +302,15 @@ class DataImportAPIAsync(ResourceBase):
                     "Install it via `pip install sift-stack-py[tdms]`."
                 ) from e
             return await run_sync_function(lambda: detect_tdms_config(path))
+        if data_type_key == DataTypeKey.ULOG:
+            try:
+                from sift_client._internal.util.ulog import detect_ulog_config
+            except ImportError as e:
+                raise RuntimeError(
+                    "pyulog is required for ULog import. "
+                    "Install it via `pip install sift-stack-py[ulog]`."
+                ) from e
+            return await run_sync_function(lambda: detect_ulog_config(path))
 
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,
@@ -335,7 +348,7 @@ class DataImportAPIAsync(ResourceBase):
 
         raise ValueError(
             f"No supported configuration detected for '{path.name}'. "
-            "Only CSV, Parquet, HDF5, and TDMS are supported by auto-detection."
+            "Only CSV, Parquet, HDF5, TDMS, and ULog are supported by auto-detection."
         )
 
 

@@ -40,6 +40,9 @@ from sift_client.sift_types.data_import import (
     ParquetTimeColumn,
     TdmsImportConfig,
     TimeFormat,
+    UlogDataColumn,
+    UlogImportConfig,
+    UlogParseErrorPolicy,
 )
 
 if TYPE_CHECKING:
@@ -311,6 +314,104 @@ class TestHdf5Config:
             config._to_proto()
 
 
+class TestUlogConfig:
+    def _config(self):
+        return UlogImportConfig(
+            asset_name="my_asset",
+            run_name="run1",
+            data=[
+                UlogDataColumn(
+                    channel="sensor_accel_0.x",
+                    name="sensor_accel_0.x",
+                    data_type=ChannelDataType.FLOAT,
+                ),
+                UlogDataColumn(
+                    channel="vehicle_status_0.nav_state",
+                    name="nav_state",
+                    data_type=ChannelDataType.UINT_32,
+                    units="enum",
+                    description="navigation state",
+                ),
+            ],
+            info_keys=["ver_sw"],
+            param_keys=["BAT1_CAPACITY"],
+            parse_error_policy=UlogParseErrorPolicy.IGNORE_ERROR,
+        )
+
+    def test_to_proto(self):
+        proto = self._config()._to_proto()
+        assert proto.asset_name == "my_asset"
+        assert proto.run_name == "run1"
+        assert len(proto.data) == 2
+        assert proto.data[0].channel == "sensor_accel_0.x"
+        assert proto.data[0].channel_config.name == "sensor_accel_0.x"
+        assert proto.data[1].channel == "vehicle_status_0.nav_state"
+        assert proto.data[1].channel_config.name == "nav_state"
+        assert proto.data[1].channel_config.units == "enum"
+        assert list(proto.info_keys) == ["ver_sw"]
+        assert list(proto.param_keys) == ["BAT1_CAPACITY"]
+
+    def test_to_proto_defaults(self):
+        """An empty config imports all channels; the default policy fails on error."""
+        from sift.data_imports.v2.data_imports_pb2 import (
+            ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR,
+        )
+
+        proto = UlogImportConfig(asset_name="a")._to_proto()
+        assert len(proto.data) == 0
+        assert proto.run_id == ""
+        assert proto.parse_error_policy == ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR
+        assert not proto.HasField("relative_start_time")
+
+    def test_relative_start_time_round_trips(self):
+        config = UlogImportConfig(
+            asset_name="a",
+            relative_start_time=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        )
+        proto = config._to_proto()
+        assert proto.HasField("relative_start_time")
+        restored = UlogImportConfig._from_proto(proto)
+        assert restored.relative_start_time == config.relative_start_time
+
+    def test_from_proto_round_trip(self):
+        config = self._config()
+        restored = UlogImportConfig._from_proto(config._to_proto())
+        assert restored.asset_name == config.asset_name
+        assert restored.run_name == config.run_name
+        assert restored.info_keys == config.info_keys
+        assert restored.param_keys == config.param_keys
+        assert restored.parse_error_policy == UlogParseErrorPolicy.IGNORE_ERROR
+        assert len(restored.data) == 2
+        assert restored.data[1].channel == "vehicle_status_0.nav_state"
+        assert restored.data[1].name == "nav_state"
+        assert restored.data[1].data_type == ChannelDataType.UINT_32
+        assert restored.data[1].units == "enum"
+
+    def test_run_id_takes_precedence(self):
+        proto = UlogImportConfig(asset_name="a", run_name="ignored", run_id="run_123")._to_proto()
+        assert proto.run_id == "run_123"
+
+    def test_name_defaults_to_channel(self):
+        col = UlogDataColumn(channel="sensor_accel_0.x", data_type=ChannelDataType.FLOAT)
+        assert col.name == "sensor_accel_0.x"
+
+    def test_explicit_name_overrides_channel(self):
+        col = UlogDataColumn(
+            channel="vehicle_status_0.nav_state",
+            name="nav_state",
+            data_type=ChannelDataType.UINT_32,
+        )
+        assert col.name == "nav_state"
+
+    def test_getitem(self):
+        col = self._config()["nav_state"]
+        assert col.channel == "vehicle_status_0.nav_state"
+
+    def test_getitem_not_found(self):
+        with pytest.raises(KeyError, match="nonexistent"):
+            self._config()["nonexistent"]
+
+
 class TestCsvToProto:
     def test_to_proto(self, csv_config):
         proto = csv_config._to_proto()
@@ -400,6 +501,9 @@ class TestResolveDataTypeKey:
 
     def test_known_extension_uses_map(self):
         assert _resolve_data_type_key(".csv", None) == DataTypeKey.CSV
+
+    def test_ulog_extension_uses_map(self):
+        assert _resolve_data_type_key(".ulg", None) == DataTypeKey.ULOG
 
     def test_explicit_data_type_overrides_extension(self):
         result = _resolve_data_type_key(".csv", DataTypeKey.TDMS)

@@ -20,6 +20,7 @@ from sift_client.sift_types.data_import import (
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
     TdmsImportConfig,
+    UlogImportConfig,
 )
 from sift_client.transport import WithGrpcClient
 
@@ -44,6 +45,8 @@ def _set_config_on_request(
         request.tdms_config.CopyFrom(config._to_proto())
     elif isinstance(config, Hdf5ImportConfig):
         request.hdf5_config.CopyFrom(config._to_proto())
+    elif isinstance(config, UlogImportConfig):
+        request.ulog_config.CopyFrom(config._to_proto())
     else:
         raise TypeError(f"Unsupported import config type: {type(config).__name__}")
 
