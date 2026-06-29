@@ -56,7 +56,7 @@ class AsyncAPIs(NamedTuple):
     """Instance of the Rules API for making asynchronous requests."""
 
     access_control: AccessControlAPIAsync
-    """Namespace for the access-control APIs (resource and principal attributes)."""
+    """Namespace for access-control APIs."""
 
     tags: TagsAPIAsync
     """Instance of the Tags API for making asynchronous requests."""

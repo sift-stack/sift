@@ -110,7 +110,7 @@ class SiftClient(
     """Instance of the Runs API for making synchronous requests."""
 
     access_control: AccessControlAPI
-    """Namespace for the access-control APIs (resource and principal attributes)."""
+    """Namespace for access-control APIs."""
 
     tags: TagsAPI
     """Instance of the Tags API for making synchronous requests."""

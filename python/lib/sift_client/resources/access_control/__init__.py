@@ -1,8 +1,7 @@
-"""Access-control APIs.
+"""Access-control API namespace.
 
-Groups the ABAC sub-APIs (resource and principal attributes); roles, policies, and
-user groups will live here as they are added. The namespace is exposed on the client
-as ``client.access_control`` (and ``client.async_.access_control``).
+Use ``client.access_control`` for synchronous APIs and
+``client.async_.access_control`` for asynchronous APIs.
 """
 
 from __future__ import annotations
@@ -23,15 +22,13 @@ if TYPE_CHECKING:
 
 
 class AccessControlAPI:
-    """Access-control namespace. Groups the ABAC APIs; roles, policies, and user groups
-    will live here as they are added.
-    """
+    """Namespace for access-control APIs."""
 
     resource_attributes: ResourceAttributesAPI
-    """Attribute keys assigned to entities (assets, channels, runs)."""
+    """Manage ABAC attributes for assets, channels, and runs."""
 
     principal_attributes: PrincipalAttributesAPI
-    """Attribute keys assigned to principals (users, user groups)."""
+    """Manage ABAC attributes for users and user groups."""
 
     def __init__(
         self,
@@ -39,19 +36,19 @@ class AccessControlAPI:
         resource_attributes: ResourceAttributesAPI,
         principal_attributes: PrincipalAttributesAPI,
     ):
-        """Initialize the access-control namespace with its sub-APIs."""
+        """Initialize the namespace."""
         self.resource_attributes = resource_attributes
         self.principal_attributes = principal_attributes
 
 
 class AccessControlAPIAsync:
-    """Asynchronous counterpart to `AccessControlAPI`."""
+    """Namespace for async access-control APIs."""
 
     resource_attributes: ResourceAttributesAPIAsync
-    """Attribute keys assigned to entities (assets, channels, runs)."""
+    """Manage ABAC attributes for assets, channels, and runs."""
 
     principal_attributes: PrincipalAttributesAPIAsync
-    """Attribute keys assigned to principals (users, user groups)."""
+    """Manage ABAC attributes for users and user groups."""
 
     def __init__(
         self,
@@ -59,6 +56,6 @@ class AccessControlAPIAsync:
         resource_attributes: ResourceAttributesAPIAsync,
         principal_attributes: PrincipalAttributesAPIAsync,
     ):
-        """Initialize the access-control namespace with its sub-APIs."""
+        """Initialize the namespace."""
         self.resource_attributes = resource_attributes
         self.principal_attributes = principal_attributes
