@@ -2347,11 +2347,11 @@ extension alone is ambiguous.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2723,12 +2723,12 @@ not provided.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. Only used when
-<code>config</code> is not provided.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling. Only used when <code>config</code> is
+not provided.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">

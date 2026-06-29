@@ -5797,7 +5797,7 @@ You're not viewing the latest version.
    (sift_client.sift_types.data_import.UlogDataColumn)" href="#sift_client.sift_types.data_import.UlogDataColumn">UlogDataColumn</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>A channel to import from a ULog file.</p>
+                <p>A single ULog channel selection.</p>
               </div>
             </td>
           </tr>
@@ -5818,7 +5818,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            UlogParseErrorPolicy (sift_client.sift_types.data_import.UlogParseErrorPolicy)" href="#sift_client.sift_types.data_import.UlogParseErrorPolicy">UlogParseErrorPolicy</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>How the importer handles recoverable ULog parse errors.</p>
+                <p>Controls how ULog import handles records the parser can skip.</p>
               </div>
             </td>
           </tr>
@@ -12567,7 +12567,7 @@ Useful when waveform channels have <code>wf_increment</code> but no <code>wf_sta
       pydantic-model
    (sift_client.sift_types.data_import.DataColumnBase)" href="#sift_client.sift_types.data_import.DataColumnBase">DataColumnBase</a></code></p>
 
-        <p>A channel to import from a ULog file.</p>
+        <p>A single ULog channel selection.</p>
 
 
 <table>
@@ -12587,10 +12587,28 @@ Useful when waveform channels have <code>wf_increment</code> but no <code>wf_sta
    (sift_client.sift_types.data_import.UlogDataColumn.channel)" href="#sift_client.sift_types.data_import.UlogDataColumn.channel">channel</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>The full ULog channel name, formed from the message name, its
-multi-instance index, and the field (e.g. <code>"sensor_accel_0.x"</code>).
-This selects the source field; the inherited <code>name</code> is the Sift
-channel name it is imported as and defaults to <code>channel</code>.</p>
+                <p>Source channel key, such as <code>"sensor_accel_0.x"</code>. The key is
+<code>&lt;message&gt;_&lt;instance&gt;.&lt;field&gt;</code> and is returned by
+<code>detect_config</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            name
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.data_import.UlogDataColumn.name)" href="#sift_client.sift_types.data_import.UlogDataColumn.name">name</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>Sift channel name to create. Defaults to <code>channel</code>.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -12817,9 +12835,9 @@ channel name it is imported as and defaults to <code>channel</code>.</p>
    (sift_client.sift_types.data_import.ImportConfigBase)" href="#sift_client.sift_types.data_import.ImportConfigBase">ImportConfigBase</a></code></p>
 
         <p>Configuration for importing a PX4 ULog (<code>.ulg</code>) file.</p>
-<p>ULog files are self-describing, so <code>detect_config</code> enumerates every
-channel from the embedded schema and you supply no column mapping. Inspect
-the detected <code>data</code> and drop, rename, or retype channels before importing.</p>
+<p>ULog files describe their own channels. Leave <code>data</code> empty to import every
+detected channel, or call <code>detect_config</code> and edit the returned <code>data</code>
+list to skip, rename, retype, or annotate channels before importing.</p>
 
 
 <table>
@@ -12839,8 +12857,9 @@ the detected <code>data</code> and drop, rename, or retype channels before impor
    (sift_client.sift_types.data_import.UlogImportConfig.data)" href="#sift_client.sift_types.data_import.UlogImportConfig.data">data</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Channels to import. Empty imports every detected channel with its
-defaults; if non-empty, only the listed channels are imported.</p>
+                <p>Channel selections. Empty imports all detected channels with
+default names and data types. If non-empty, only these channels are
+imported.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -12864,10 +12883,9 @@ defaults; if non-empty, only the listed channels are imported.</p>
    (sift_client.sift_types.data_import.UlogImportConfig.relative_start_time)" href="#sift_client.sift_types.data_import.UlogImportConfig.relative_start_time">relative_start_time</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Log-start UTC. ULog timestamps are relative to a
-boot clock; the timeline is anchored to absolute time by the log's
-GPS fix when present, otherwise by this value. The import fails if
-neither is available, so set this for logs without a GPS fix.</p>
+                <p>Absolute log start time to use when the log does
+not contain a GPS-derived UTC reference. ULog timestamps are
+relative to boot time. Set this for logs without that reference.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -13251,10 +13269,9 @@ failing the import.</p>
 
 
 
-        <p>How the importer handles recoverable ULog parse errors.</p>
-<p>Recoverable errors include a truncated final record, a data record
-referencing an unbound message id, and garbage bytes skipped to the next
-sync marker. The policy is enforced server-side at import time.</p>
+        <p>Controls how ULog import handles records the parser can skip.</p>
+<p>Recoverable errors include a truncated final record or bytes skipped while
+resynchronizing the log. The policy is enforced server-side at import time.</p>
 
 
 
@@ -13287,7 +13304,7 @@ sync marker. The policy is enforced server-side at import time.</p>
    (sift_client.sift_types.data_import.UlogParseErrorPolicy.FAIL_ON_ERROR)" href="#sift_client.sift_types.data_import.UlogParseErrorPolicy.FAIL_ON_ERROR">FAIL_ON_ERROR</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Fail the import on any recoverable parse error.</p>
+                <p>Fail the import on the first recoverable parse error.</p>
               </div>
               <p>
               </p>
@@ -13303,7 +13320,7 @@ sync marker. The policy is enforced server-side at import time.</p>
    (sift_client.sift_types.data_import.UlogParseErrorPolicy.IGNORE_ERROR)" href="#sift_client.sift_types.data_import.UlogParseErrorPolicy.IGNORE_ERROR">IGNORE_ERROR</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Import the records that parsed; skipped records are logged.</p>
+                <p>Skip bad records and import the rest of the file.</p>
               </div>
               <p>
               </p>
@@ -13342,7 +13359,7 @@ sync marker. The policy is enforced server-side at import time.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Fail the import on any recoverable parse error.</p>
+        <p>Fail the import on the first recoverable parse error.</p>
 
     </div>
 
@@ -13367,7 +13384,7 @@ sync marker. The policy is enforced server-side at import time.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Import the records that parsed; skipped records are logged.</p>
+        <p>Skip bad records and import the rest of the file.</p>
 
     </div>
 
