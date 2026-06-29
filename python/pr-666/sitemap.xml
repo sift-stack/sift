@@ -313,6 +313,18 @@
          <lastmod>2026-06-29</lastmod>
     </url>
     <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/access_control/</loc>
+         <lastmod>2026-06-29</lastmod>
+    </url>
+    <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/access_control/principal_attributes/</loc>
+         <lastmod>2026-06-29</lastmod>
+    </url>
+    <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/access_control/resource_attributes/</loc>
+         <lastmod>2026-06-29</lastmod>
+    </url>
+    <url>
          <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/assets/</loc>
          <lastmod>2026-06-29</lastmod>
     </url>
@@ -349,15 +361,7 @@
          <lastmod>2026-06-29</lastmod>
     </url>
     <url>
-         <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/principal_attributes/</loc>
-         <lastmod>2026-06-29</lastmod>
-    </url>
-    <url>
          <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/reports/</loc>
-         <lastmod>2026-06-29</lastmod>
-    </url>
-    <url>
-         <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/resource_attributes/</loc>
          <lastmod>2026-06-29</lastmod>
     </url>
     <url>
