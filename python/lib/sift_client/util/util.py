@@ -13,14 +13,55 @@ if TYPE_CHECKING:
         IngestionAPIAsync,
         JobsAPIAsync,
         PingAPIAsync,
+        PrincipalAttributesAPI,
         PrincipalAttributesAPIAsync,
         ReportsAPIAsync,
+        ResourceAttributesAPI,
         ResourceAttributesAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
         TagsAPIAsync,
         TestResultsAPIAsync,
     )
+
+
+class AccessControlAPI:
+    """Access-control namespace. Groups the ABAC APIs; roles, policies, and user groups
+    will live here as they are added."""
+
+    resource_attributes: ResourceAttributesAPI
+    """Attribute keys assigned to entities (assets, channels, runs)."""
+
+    principal_attributes: PrincipalAttributesAPI
+    """Attribute keys assigned to principals (users, user groups)."""
+
+    def __init__(
+        self,
+        *,
+        resource_attributes: ResourceAttributesAPI,
+        principal_attributes: PrincipalAttributesAPI,
+    ):
+        self.resource_attributes = resource_attributes
+        self.principal_attributes = principal_attributes
+
+
+class AccessControlAPIAsync:
+    """Asynchronous counterpart to `AccessControlAPI`."""
+
+    resource_attributes: ResourceAttributesAPIAsync
+    """Attribute keys assigned to entities (assets, channels, runs)."""
+
+    principal_attributes: PrincipalAttributesAPIAsync
+    """Attribute keys assigned to principals (users, user groups)."""
+
+    def __init__(
+        self,
+        *,
+        resource_attributes: ResourceAttributesAPIAsync,
+        principal_attributes: PrincipalAttributesAPIAsync,
+    ):
+        self.resource_attributes = resource_attributes
+        self.principal_attributes = principal_attributes
 
 
 class AsyncAPIs(NamedTuple):
@@ -56,11 +97,8 @@ class AsyncAPIs(NamedTuple):
     rules: RulesAPIAsync
     """Instance of the Rules API for making asynchronous requests."""
 
-    resource_attributes: ResourceAttributesAPIAsync
-    """Instance of the Resource Attributes API for making asynchronous requests."""
-
-    principal_attributes: PrincipalAttributesAPIAsync
-    """Instance of the Principal Attributes API for making asynchronous requests."""
+    access_control: AccessControlAPIAsync
+    """Namespace for the access-control APIs (resource and principal attributes)."""
 
     tags: TagsAPIAsync
     """Instance of the Tags API for making asynchronous requests."""

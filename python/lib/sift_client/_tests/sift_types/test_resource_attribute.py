@@ -118,13 +118,13 @@ class TestResourceAttribute:
         archived = ra.ResourceAttribute(
             resource_attribute_id="a1", resource_attribute_key_id="k1", is_archived=True
         )
-        mock_client.resource_attributes.get_assignment.return_value = ResourceAttribute._from_proto(
+        mock_client.access_control.resource_attributes.get_assignment.return_value = ResourceAttribute._from_proto(
             archived
         )
 
         result = attr.archive()
 
-        mock_client.resource_attributes.archive_assignments.assert_called_once_with([attr])
+        mock_client.access_control.resource_attributes.archive_assignments.assert_called_once_with([attr])
         assert result is attr
         assert attr.is_archived is True
 
@@ -134,22 +134,22 @@ class TestResourceAttributeKeyConvenience:
         key = ResourceAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
         archived = ResourceAttributeKey._from_proto(_key_proto(is_archived=True))
-        mock_client.resource_attributes.archive_key.return_value = archived
+        mock_client.access_control.resource_attributes.archive_key.return_value = archived
 
         result = key.archive()
 
-        mock_client.resource_attributes.archive_key.assert_called_once_with(key)
+        mock_client.access_control.resource_attributes.archive_key.assert_called_once_with(key)
         assert result is key
         assert key.is_archived is True
 
     def test_assign_to_delegates(self, mock_client):
         key = ResourceAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
-        mock_client.resource_attributes.assign.return_value = ["sentinel"]
+        mock_client.access_control.resource_attributes.assign.return_value = ["sentinel"]
 
         result = key.assign_to(["ch1"], value=["LIC_A"])
 
-        mock_client.resource_attributes.assign.assert_called_once_with(
+        mock_client.access_control.resource_attributes.assign.assert_called_once_with(
             key, ["ch1"], value=["LIC_A"]
         )
         assert result == ["sentinel"]
@@ -157,7 +157,7 @@ class TestResourceAttributeKeyConvenience:
     def test_check_archive_impact_delegates(self, mock_client):
         key = ResourceAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
-        mock_client.resource_attributes.check_key_archive_impact.return_value = 7
+        mock_client.access_control.resource_attributes.check_key_archive_impact.return_value = 7
 
         assert key.check_archive_impact() == 7
 
@@ -176,11 +176,11 @@ class TestResourceAttributeEnumValue:
         )
         value = ResourceAttributeEnumValue._from_proto(proto)
         value._apply_client_to_instance(mock_client)
-        mock_client.resource_attributes.archive_enum_value.return_value = 3
+        mock_client.access_control.resource_attributes.archive_enum_value.return_value = 3
 
         migrated = value.archive(replacement="ev2")
 
-        mock_client.resource_attributes.archive_enum_value.assert_called_once_with(
+        mock_client.access_control.resource_attributes.archive_enum_value.assert_called_once_with(
             value, replacement="ev2"
         )
         assert migrated == 3
