@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sift.principal_attributes.v1 import principal_attributes_pb2 as pa
 
-from sift_client.resources.principal_attributes import PrincipalAttributesAPIAsync
+from sift_client.resources.access_control.principal_attributes import PrincipalAttributesAPIAsync
 from sift_client.sift_types.principal_attribute import (
     PrincipalAttributeKey,
     PrincipalType,

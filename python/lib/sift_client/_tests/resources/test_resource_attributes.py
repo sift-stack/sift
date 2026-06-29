@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sift.resource_attribute.v1 import resource_attribute_pb2 as ra
 
-from sift_client.resources.resource_attributes import ResourceAttributesAPIAsync
+from sift_client.resources.access_control.resource_attributes import ResourceAttributesAPIAsync
 from sift_client.sift_types.resource_attribute import (
     ResourceAttributeEntity,
     ResourceAttributeEnumValue,

@@ -13,58 +13,13 @@ if TYPE_CHECKING:
         IngestionAPIAsync,
         JobsAPIAsync,
         PingAPIAsync,
-        PrincipalAttributesAPI,
-        PrincipalAttributesAPIAsync,
         ReportsAPIAsync,
-        ResourceAttributesAPI,
-        ResourceAttributesAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
         TagsAPIAsync,
         TestResultsAPIAsync,
     )
-
-
-class AccessControlAPI:
-    """Access-control namespace. Groups the ABAC APIs; roles, policies, and user groups
-    will live here as they are added.
-    """
-
-    resource_attributes: ResourceAttributesAPI
-    """Attribute keys assigned to entities (assets, channels, runs)."""
-
-    principal_attributes: PrincipalAttributesAPI
-    """Attribute keys assigned to principals (users, user groups)."""
-
-    def __init__(
-        self,
-        *,
-        resource_attributes: ResourceAttributesAPI,
-        principal_attributes: PrincipalAttributesAPI,
-    ):
-        """Initialize the access-control namespace with its sub-APIs."""
-        self.resource_attributes = resource_attributes
-        self.principal_attributes = principal_attributes
-
-
-class AccessControlAPIAsync:
-    """Asynchronous counterpart to `AccessControlAPI`."""
-
-    resource_attributes: ResourceAttributesAPIAsync
-    """Attribute keys assigned to entities (assets, channels, runs)."""
-
-    principal_attributes: PrincipalAttributesAPIAsync
-    """Attribute keys assigned to principals (users, user groups)."""
-
-    def __init__(
-        self,
-        *,
-        resource_attributes: ResourceAttributesAPIAsync,
-        principal_attributes: PrincipalAttributesAPIAsync,
-    ):
-        """Initialize the access-control namespace with its sub-APIs."""
-        self.resource_attributes = resource_attributes
-        self.principal_attributes = principal_attributes
+    from sift_client.resources.access_control import AccessControlAPIAsync
 
 
 class AsyncAPIs(NamedTuple):

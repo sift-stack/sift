@@ -34,6 +34,7 @@ from sift_client.resources import (
     TestResultsAPI,
     TestResultsAPIAsync,
 )
+from sift_client.resources.access_control import AccessControlAPI, AccessControlAPIAsync
 from sift_client.transport import (
     GrpcClient,
     GrpcConfig,
@@ -43,7 +44,7 @@ from sift_client.transport import (
     WithGrpcClient,
     WithRestClient,
 )
-from sift_client.util.util import AccessControlAPI, AccessControlAPIAsync, AsyncAPIs
+from sift_client.util.util import AsyncAPIs
 
 
 class SiftClient(
