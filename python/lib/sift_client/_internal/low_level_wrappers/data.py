@@ -131,9 +131,7 @@ class ChannelDataCache:
         """
         return self._key(channel_id, run_id) in self._store
 
-    def get(
-        self, channel_id: str, run_id: str | None = None
-    ) -> ChannelCacheEntry | None:
+    def get(self, channel_id: str, run_id: str | None = None) -> ChannelCacheEntry | None:
         """Return the entry for ``(channel_id, run_id)`` if cached, otherwise None.
 
         Type-checks the raw value before returning so a row written by a
@@ -158,9 +156,7 @@ class ChannelDataCache:
         oversize guard can decide whether to write or skip+warn. No-op
         when the underlying store is disabled.
         """
-        self._store.put(
-            self._key(channel_id, run_id), entry, size_bytes=entry.size_bytes
-        )
+        self._store.put(self._key(channel_id, run_id), entry, size_bytes=entry.size_bytes)
 
     def invalidate(self, channel_id: str, run_id: str | None = None) -> None:
         """Remove ``(channel_id, run_id)`` from the cache. Safe when absent.

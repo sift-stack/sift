@@ -155,6 +155,30 @@ class DiskCache:
         """Configured byte cap on disk usage, or ``None`` when disabled."""
         return self._disk_max_bytes
 
+    def volume(self) -> int:
+        """Estimated bytes currently on disk for this cache. ``0`` when disabled.
+
+        ``diskcache`` tracks this against its size cap, so the number here
+        is the same one its LRU eviction loop reasons about. Includes
+        SQLite overhead, not just raw value sizes, so the figure trends
+        slightly higher than the sum of caller-supplied ``size_bytes``.
+        """
+        if self._disk is None:
+            return 0
+        try:
+            return int(self._disk.volume())
+        except Exception:
+            return 0
+
+    def __len__(self) -> int:
+        """Total entries across all adapter prefixes. ``0`` when disabled."""
+        if self._disk is None:
+            return 0
+        try:
+            return len(self._disk)
+        except Exception:
+            return 0
+
     def __contains__(self, key: str) -> bool:
         """True if ``key`` is cached. Always ``False`` when disabled."""
         if self._disk is None:

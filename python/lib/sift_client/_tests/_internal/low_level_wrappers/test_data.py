@@ -114,8 +114,7 @@ def _bitfield_channel(*, cid: str, name: str, elements: list[str]) -> Channel:
         asset_id="a1",
         is_archived=False,
         bit_field_elements=[
-            ChannelBitFieldElement(name=el, index=i, bit_count=8)
-            for i, el in enumerate(elements)
+            ChannelBitFieldElement(name=el, index=i, bit_count=8) for i, el in enumerate(elements)
         ],
         created_date=_NOW,
         modified_date=_NOW,
@@ -697,9 +696,7 @@ class TestGetChannelData:
                     start_time=_NOW,
                     end_time=_WINDOW_END,
                 )
-            assert len(log_b) >= 1, (
-                "run-B should still hit the wire even though run-A cached c1"
-            )
+            assert len(log_b) >= 1, "run-B should still hit the wire even though run-A cached c1"
 
             pd.testing.assert_frame_equal(first["c1"].sort_index(), df_a.sort_index())
             pd.testing.assert_frame_equal(second["c1"].sort_index(), df_b.sort_index())
@@ -745,9 +742,7 @@ class TestGetChannelData:
                     start_time=_NOW,
                     end_time=_WINDOW_END,
                 )
-            assert put_calls == [], (
-                "second call is a full cache hit; no disk write should occur"
-            )
+            assert put_calls == [], "second call is a full cache hit; no disk write should occur"
         finally:
             client.channel_cache.store.close()
 
@@ -764,9 +759,7 @@ class TestGetChannelData:
         """
         client = _client_with_cache(tmp_path)
         df1 = _frame("c1", rows=5, start=_NOW, offset=0)
-        df2 = _frame(
-            "c1", rows=5, start=_NOW + timedelta(minutes=1), offset=100
-        )
+        df2 = _frame("c1", rows=5, start=_NOW + timedelta(minutes=1), offset=100)
         window1_end = _NOW + timedelta(seconds=30)
         try:
             with _fake_grpc(client, {"c1": [df1]}):

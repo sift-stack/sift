@@ -41,6 +41,12 @@ def _make_client():
             self._disk_cache: DiskCache | None = None
             self.cache = CacheNamespace(self)  # type: ignore[arg-type]
 
+        # Matches the real ``SiftClient._get_disk_cache`` so any namespace
+        # code that goes through this accessor (e.g. ``stats()``) sees
+        # the same lazy-init semantics in tests.
+        def _get_disk_cache(self) -> DiskCache:
+            return _get_disk_cache(self)
+
     return _StandinClient()
 
 
@@ -216,6 +222,112 @@ class TestLazyInitFallback:
         client.cache.enable(path=str(blocker))
         with pytest.raises(FileExistsError):
             _get_disk_cache(client)
+
+
+class TestStats:
+    """``client.cache.stats()`` reports the current cache state.
+
+    Three shapes get pinned:
+
+    1. **Disabled** — every numeric field zeroes out and ``path`` is
+       ``None``. Matches the cold/silent-store contract.
+    2. **Enabled, empty** — ``enabled=True``, ``path`` populated,
+       sizes/counts at zero. Distinguishes "nothing cached yet" from
+       "no cache configured".
+    3. **Enabled, populated** — channel entries count matches what the
+       adapter wrote, and foreign-prefix rows don't bleed into the
+       channel counter.
+    """
+
+    def test_stats_when_disabled(self):
+        """Disabled cache reports zeros and ``None`` path."""
+        client = _make_client()
+        client.cache.disable()
+        stats = client.cache.stats()
+        assert stats.enabled is False
+        assert stats.path is None
+        assert stats.max_bytes is None
+        assert stats.size_bytes == 0
+        assert stats.entry_count == 0
+        assert stats.channel_entries == 0
+        assert "disabled" in str(stats).lower()
+
+    def test_stats_when_enabled_empty(self, tmp_path):
+        """Enabled but empty cache reports the path and zero usage."""
+        path = str(tmp_path / "empty")
+        client = _make_client()
+        client.cache.enable(path=path, max_bytes=8 * 1024 * 1024)
+        try:
+            stats = client.cache.stats()
+            assert stats.enabled is True
+            assert stats.path == path
+            assert stats.max_bytes == 8 * 1024 * 1024
+            assert stats.entry_count == 0
+            assert stats.channel_entries == 0
+            # path appears in the friendly print
+            assert path in str(stats)
+        finally:
+            client._disk_cache.close()  # type: ignore[union-attr]
+
+    def test_stats_counts_channel_entries(self, tmp_path):
+        """Channel writes increment ``channel_entries`` and ``entry_count``.
+
+        Uses ``ChannelDataCache`` directly (rather than the
+        ``DataLowLevelClient`` end-to-end path) so the test stays
+        focused on the stats accounting.
+        """
+        import pandas as pd
+
+        from sift_client._internal.low_level_wrappers.data import (
+            ChannelDataCache,
+            _new_cache_entry,
+        )
+
+        client = _make_client()
+        client.cache.enable(path=str(tmp_path / "stats"))
+        try:
+            store = client._get_disk_cache()
+            adapter = ChannelDataCache(store)
+            for i, cid in enumerate(("c1", "c2", "c3")):
+                df = pd.DataFrame(
+                    {cid: [float(i)]},
+                    index=pd.date_range("2025-01-01", periods=1, freq="s", tz="UTC"),
+                )
+                adapter.put(
+                    cid,
+                    _new_cache_entry(
+                        data=df,
+                        start_time=df.index[0].to_pydatetime(),
+                        end_time=df.index[-1].to_pydatetime(),
+                    ),
+                )
+
+            stats = client.cache.stats()
+            assert stats.enabled is True
+            assert stats.channel_entries == 3
+            assert stats.entry_count == 3
+            assert stats.size_bytes > 0
+        finally:
+            client._disk_cache.close()  # type: ignore[union-attr]
+
+    def test_stats_ignores_foreign_adapter_keys_in_channel_count(self, tmp_path):
+        """Keys outside the channel namespace don't bump ``channel_entries``.
+
+        Pins the prefix-scoping so a future second adapter doesn't
+        double-count here.
+        """
+        client = _make_client()
+        client.cache.enable(path=str(tmp_path / "foreign"))
+        try:
+            store = client._get_disk_cache()
+            store.put("other:foo", "x", size_bytes=64)
+            store.put("other:bar", "y", size_bytes=64)
+
+            stats = client.cache.stats()
+            assert stats.entry_count == 2
+            assert stats.channel_entries == 0
+        finally:
+            client._disk_cache.close()  # type: ignore[union-attr]
 
 
 class TestSiftClientIntegration:
