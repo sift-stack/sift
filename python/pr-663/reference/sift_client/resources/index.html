@@ -22929,11 +22929,11 @@ name removed from channel name display.</p>
     <div class="doc doc-contents ">
 
         <p>Auto-detect import configuration from a file.</p>
-<p>Reads a sample of the file, sends it to the server's DetectConfig
-endpoint, and returns the detected configuration. The file format
-is inferred from the file extension when <code>data_type</code> is not
-provided.</p>
-<p>CSV, Parquet, HDF5, and TDMS files are supported for
+<p>Returns the detected configuration, inferring the file format from the
+extension when <code>data_type</code> is not provided. CSV and Parquet are
+detected by sending a sample of the file to the server's DetectConfig
+endpoint; TDMS, HDF5, and ULog are detected locally on the client.</p>
+<p>CSV, Parquet, HDF5, TDMS, and ULog files are supported for
 auto-detection.</p>
 <p>For CSV files, the server scans the first two rows for an optional
 JSON metadata row. Row 1 is checked first; row 2 is checked only
@@ -23006,11 +23006,11 @@ extension alone is ambiguous.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -23259,7 +23259,7 @@ server-side and typically completes shortly after upload. Use
 <code>job.wait_until_complete()</code> only if you need to confirm
 completion before proceeding.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-<code>detect_config</code> (CSV, Parquet, HDF5, and TDMS).
+<code>detect_config</code> (CSV, Parquet, HDF5, TDMS, and ULog).
 When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
@@ -23374,12 +23374,12 @@ not provided.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. Only used when
-<code>config</code> is not provided.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling. Only used when <code>config</code> is
+not provided.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
