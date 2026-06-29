@@ -66,6 +66,7 @@ all = [
     'polars~=1.8',
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
+    'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'sift-stream-bindings==0.4.1',
     'types-pyOpenSSL<24.0.0',
@@ -108,6 +109,7 @@ dev-all = [
     'pytest-mock==3.14.0',
     'pytest-randomly==3.15.0',
     'pytest==8.2.2',
+    'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
     'sift-stream-bindings==0.4.1',
@@ -163,6 +165,7 @@ docs-build = [
     'pytest-mock==3.14.0',
     'pytest-randomly==3.15.0',
     'pytest==8.2.2',
+    'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
     'sift-stream-bindings==0.4.1',
@@ -173,6 +176,7 @@ file-imports = [
     'h5py~=3.11',
     'npTDMS~=1.9',
     'polars~=1.8',
+    'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
 hdf5 = [
@@ -195,6 +199,9 @@ sift-stream-bindings = [
 ]
 tdms = [
     'npTDMS~=1.9',
+]
+ulog = [
+    'pyulog~=1.2.2',
 ]
 
 [tool.sift.extras]
@@ -234,6 +241,7 @@ tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0 ; python_full_version >= '3.8.2'"]
 sift-stream = ["sift-stream-bindings==0.4.1"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
+ulog = ["pyulog~=1.2.2"]
 data-review = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
@@ -244,7 +252,7 @@ dev = ["development"]
 sift-stream-bindings = ["sift-stream"]
 
 # combinations
-file-imports = ["tdms", "rosbags", "hdf5"]
+file-imports = ["tdms", "rosbags", "hdf5", "ulog"]
 all = ["openssl", "sift-stream", "file-imports", "data-review"]
 
 dev-all = ["development", "all", "build"]
@@ -312,6 +320,10 @@ ignore_missing_imports = true
 module = "grpc_testing"
 ignore_missing_imports = true
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "pyulog"
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "grpc"

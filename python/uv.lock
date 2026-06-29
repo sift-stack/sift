@@ -3694,6 +3694,21 @@ wheels = [
 ]
 
 [[package]]
+name = "pyulog"
+version = "1.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e0/9a/5fc70f3ac7033e07cb4fad927a9c18b6547bb310aa40f536ecd480a7cd46/pyulog-1.2.3.tar.gz", hash = "sha256:ea67e8284f33af9c6a2ce6072aad59c207323651243648661c68141e9a802734", size = 81146, upload-time = "2026-06-16T07:08:13.187Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/c7/b69618b216523e3f3d13425a15df47fea16a968d01dbefe949f9fd365898/pyulog-1.2.3-py3-none-any.whl", hash = "sha256:bffbada69dc852a3ab796ec30a35bdb6594edc5f2ebebcb2831c3be9780ac64d", size = 52285, upload-time = "2026-06-16T07:08:11.856Z" },
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -4390,6 +4405,7 @@ all = [
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "pyarrow", version = "24.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pyopenssl" },
+    { name = "pyulog" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "sift-stream-bindings" },
@@ -4443,6 +4459,7 @@ dev-all = [
     { name = "pytest-dotenv" },
     { name = "pytest-mock" },
     { name = "pytest-randomly" },
+    { name = "pyulog" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "ruff" },
@@ -4507,6 +4524,7 @@ docs-build = [
     { name = "pytest-dotenv" },
     { name = "pytest-mock" },
     { name = "pytest-randomly" },
+    { name = "pyulog" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "ruff" },
@@ -4522,6 +4540,7 @@ file-imports = [
     { name = "polars", version = "1.8.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "polars", version = "1.36.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "polars", version = "1.40.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "pyulog" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
@@ -4550,6 +4569,9 @@ sift-stream-bindings = [
 ]
 tdms = [
     { name = "nptdms" },
+]
+ulog = [
+    { name = "pyulog" },
 ]
 
 [package.metadata]
@@ -4650,6 +4672,11 @@ requires-dist = [
     { name = "pytest-randomly", marker = "extra == 'dev-all'", specifier = "==3.15.0" },
     { name = "pytest-randomly", marker = "extra == 'development'", specifier = "==3.15.0" },
     { name = "pytest-randomly", marker = "extra == 'docs-build'", specifier = "==3.15.0" },
+    { name = "pyulog", marker = "extra == 'all'", specifier = "~=1.2.2" },
+    { name = "pyulog", marker = "extra == 'dev-all'", specifier = "~=1.2.2" },
+    { name = "pyulog", marker = "extra == 'docs-build'", specifier = "~=1.2.2" },
+    { name = "pyulog", marker = "extra == 'file-imports'", specifier = "~=1.2.2" },
+    { name = "pyulog", marker = "extra == 'ulog'", specifier = "~=1.2.2" },
     { name = "pyyaml", specifier = "~=6.0" },
     { name = "rapidyaml", specifier = "~=0.11" },
     { name = "requests", specifier = "~=2.25" },
@@ -4682,7 +4709,7 @@ requires-dist = [
     { name = "types-requests", specifier = "~=2.25" },
     { name = "typing-extensions", specifier = "~=4.6" },
 ]
-provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "openssl", "rosbags", "sift-stream", "sift-stream-bindings", "tdms"]
+provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "openssl", "rosbags", "sift-stream", "sift-stream-bindings", "tdms", "ulog"]
 
 [[package]]
 name = "sift-stream-bindings"
