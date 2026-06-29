@@ -147,12 +147,12 @@ class TestDiskCache:
         finally:
             cache.close()
 
-    def test_disable_disk_closes_handle(self, tmp_path) -> None:
+    def test_disable_closes_handle(self, tmp_path) -> None:
         """Turning off disk closes the handle and silences subsequent ops."""
         cache = DiskCache(disk_path=tmp_path / "disable")
         try:
             cache.put("k", "v", size_bytes=4)
-            cache.disable_disk()
+            cache.disable()
             assert not cache.disk_enabled
             assert cache.disk_path is None
             assert "k" not in cache
@@ -162,7 +162,7 @@ class TestDiskCache:
         finally:
             cache.close()
 
-    def test_enable_disk_reconfigures_path(self, tmp_path) -> None:
+    def test_enable_reconfigures_path(self, tmp_path) -> None:
         """Reconfiguring to a different path closes the old handle.
 
         The new directory starts empty: ``k`` lived in the old directory
@@ -171,18 +171,18 @@ class TestDiskCache:
         cache = DiskCache(disk_path=tmp_path / "a")
         try:
             cache.put("k", "v", size_bytes=4)
-            cache.enable_disk(path=tmp_path / "b")
+            cache.enable(path=tmp_path / "b")
             assert cache.disk_path == str(tmp_path / "b")
             assert "k" not in cache
         finally:
             cache.close()
 
-    def test_enable_disk_noop_when_same_settings(self, tmp_path) -> None:
+    def test_enable_noop_when_same_settings(self, tmp_path) -> None:
         """Re-enabling with identical settings doesn't churn the disk handle."""
         cache = DiskCache(disk_path=tmp_path / "noop")
         try:
             handle_before = cache._disk
-            cache.enable_disk(path=tmp_path / "noop", max_bytes=DiskCache.DEFAULT_DISK_MAX_BYTES)
+            cache.enable(path=tmp_path / "noop", max_bytes=DiskCache.DEFAULT_DISK_MAX_BYTES)
             assert cache._disk is handle_before
         finally:
             cache.close()

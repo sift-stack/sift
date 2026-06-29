@@ -23,17 +23,17 @@ Configuration lives on the new `client.cache` namespace — knobs are global bec
 
 ```python
 # Opt out — no data persisted to disk; every get_data call goes to the wire.
-client.cache.disable_disk()
+client.cache.disable()
 
 # Reconfigure the location or byte cap.
-client.cache.enable_disk(path="/data/sift-cache", max_bytes=2 * 1024 ** 3)
+client.cache.enable(path="/data/sift-cache", max_bytes=2 * 1024 ** 3)
 
 # Remove a stale or corrupted cache directory.
-client.cache.clear_disk()                   # default tmp path
-client.cache.clear_disk("/data/sift-cache") # custom path
+client.cache.clear()                   # default tmp path
+client.cache.clear("/data/sift-cache") # custom path
 ```
 
-`enable_disk` is also the way to turn the cache back on after a prior `disable_disk` call.
+`enable` is also the way to turn the cache back on after a prior `disable` call.
 
 The cache is powered by [`diskcache`](https://grantjenks.com/docs/diskcache/) (pure-Python, SQLite-backed) with LRU eviction.
 

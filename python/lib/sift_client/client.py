@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import TYPE_CHECKING
 
 from sift_client._internal.cache_namespace import CacheNamespace
 from sift_client._internal.disk_cache_config import DiskCacheConfig
 from sift_client._internal.urls import frontend_origin_for_api
+from sift_client.errors import SiftWarning
 from sift_client.resources import (
     AssetsAPI,
     AssetsAPIAsync,
@@ -267,7 +269,7 @@ class SiftClient(
         their request didn't take.
 
         After the first call this just returns the memoized handle.
-        Subsequent ``client.cache.enable_disk(...)`` calls mutate the
+        Subsequent ``client.cache.enable(...)`` calls mutate the
         existing handle in place; this method is not re-entered.
         """
         if self._disk_cache is None:
@@ -286,14 +288,14 @@ class SiftClient(
             except Exception:
                 if not config.using_default_path:
                     raise
-                logger.warning(
-                    "Could not open the default sift data cache at %r; "
+                warnings.warn(
+                    f"Could not open the default sift data cache at {target_path}; "
                     "falling back to no caching. Call "
-                    "``client.cache.disable_disk()`` to silence this "
+                    "``client.cache.disable()`` to silence this "
                     "warning, or pass an explicit path via "
-                    "``client.cache.enable_disk(path=...)``.",
-                    target_path,
-                    exc_info=True,
+                    "``client.cache.enable(path=...)``.",
+                    SiftWarning,
+                    stacklevel=2,
                 )
                 self._disk_cache = DiskCache()
         return self._disk_cache

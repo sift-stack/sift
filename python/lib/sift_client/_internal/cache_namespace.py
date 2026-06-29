@@ -38,14 +38,14 @@ class CacheNamespace:
 
     Default policy: disk caching is **opt-out** (the ``DiskCacheConfig`` is
     constructed with ``enabled=True``). Users who don't want any state on
-    disk call :meth:`disable_disk` to silence it; users who want a custom
-    location or byte cap call :meth:`enable_disk` with arguments.
+    disk call :meth:`disable` to silence it; users who want a custom
+    location or byte cap call :meth:`enable` with arguments.
     """
 
     def __init__(self, client: SiftClient):
         self._client = client
 
-    def enable_disk(
+    def enable(
         self,
         *,
         path: str | os.PathLike[str] | None = None,
@@ -55,7 +55,7 @@ class CacheNamespace:
 
         Disk caching is **on by default** at :attr:`DiskCache.DEFAULT_DISK_PATH`;
         use this method to override the path or size, or to turn the cache
-        back on after a prior :meth:`disable_disk` call.
+        back on after a prior :meth:`disable` call.
 
         Reconfiguring a live cache (different ``path`` or ``max_bytes``)
         closes the previous handle and opens a new one. Existing entries
@@ -74,28 +74,28 @@ class CacheNamespace:
                 bound is reached, ``diskcache``'s LRU eviction takes over.
 
         Example:
-            client.cache.enable_disk(path="/data/sift-cache")
-            client.cache.enable_disk(max_bytes=1024 ** 3)  # 1 GiB
+            client.cache.enable(path="/data/sift-cache")
+            client.cache.enable(max_bytes=1024 ** 3)  # 1 GiB
         """
         client = self._client
         client._disk_cache_config.enable(path=path, max_bytes=max_bytes)
         if client._disk_cache is not None:
-            client._disk_cache.enable_disk(path=path, max_bytes=max_bytes)
+            client._disk_cache.enable(path=path, max_bytes=max_bytes)
 
-    def disable_disk(self) -> None:
+    def disable(self) -> None:
         """Opt out of on-disk caching (no reads or writes).
 
         Caching is on by default; call this when you don't want any
         cached data written to or read from disk. Closes any open cache
         file handle. The on-disk directory is NOT deleted — use
-        :meth:`clear_disk` to wipe it.
+        :meth:`clear` to wipe it.
         """
         client = self._client
         client._disk_cache_config.disable()
         if client._disk_cache is not None:
-            client._disk_cache.disable_disk()
+            client._disk_cache.disable()
 
-    def clear_disk(self, path: str | os.PathLike[str] | None = None) -> None:
+    def clear(self, path: str | os.PathLike[str] | None = None) -> None:
         """Delete a previously-persisted on-disk cache directory.
 
         Drops stale caches from previous sessions, recovers from a

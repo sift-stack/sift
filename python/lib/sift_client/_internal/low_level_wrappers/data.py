@@ -65,9 +65,14 @@ class ChannelDataCache:
     Responsibilities the adapter holds onto:
 
     * **Key namespacing.** Every read/write goes through :meth:`_key`,
-      which prefixes the channel id with ``channel:``. That keeps a
-      future calculated-channels or exports adapter on the same store
-      from colliding on raw resource ids.
+      which prefixes the channel id with ``channel:`` and folds in the
+      ``run_id`` it was queried under. Run id is part of the cache
+      dimension because the same channel can have wholly different data
+      under different runs (different timelines, different points). A
+      bare ``channel:<id>`` key would conflate runs and serve run-A's
+      data to a run-B query. The ``channel:`` prefix also keeps a future
+      calculated-channels or exports adapter on the same store from
+      colliding on raw resource ids.
     * **Typing.** ``put`` only accepts :class:`ChannelCacheEntry`;
       ``get`` ``isinstance``-checks the raw value before handing it back,
       so a corrupt or cross-adapter row reads as a miss instead of
@@ -85,11 +90,14 @@ class ChannelDataCache:
     declared yet — there's only one adapter shape so far. When a second
     resource grows its own adapter, extract the Protocol from the two
     real shapes rather than guessing from one.
+
+    Attributes:
+        KEY_PREFIX: Namespace prefix for keys this adapter writes to the
+            shared :class:`DiskCache`. Picked at class scope so adapters
+            in other resources can pick distinct prefixes without runtime
+            negotiation.
     """
 
-    #: Namespace prefix for keys this adapter writes to the shared
-    #: :class:`DiskCache`. Picked at class scope so adapters in other
-    #: resources can pick distinct prefixes without runtime negotiation.
     KEY_PREFIX: str = "channel:"
 
     def __init__(self, store: DiskCache):
@@ -102,45 +110,68 @@ class ChannelDataCache:
         self._store = store
         self.name_id_map: dict[str, str] = {}
 
-    def _key(self, channel_id: str) -> str:
-        return f"{self.KEY_PREFIX}{channel_id}"
+    def _key(self, channel_id: str, run_id: str | None) -> str:
+        # Run id is part of the key because the same channel under
+        # different runs has different data. Empty run segment is safe
+        # because real run ids are UUIDs (never empty) so there's no
+        # collision between the run-scoped and unscoped buckets.
+        return f"{self.KEY_PREFIX}{run_id or ''}:{channel_id}"
 
     @property
     def store(self) -> DiskCache:
         """The shared underlying store. Tests reach in for store-level state."""
         return self._store
 
-    def __contains__(self, channel_id: str) -> bool:
-        """True if the channel is cached. False when the store is disabled."""
-        return self._key(channel_id) in self._store
+    def has(self, channel_id: str, run_id: str | None = None) -> bool:
+        """True if ``(channel_id, run_id)`` is cached.
 
-    def get(self, channel_id: str) -> ChannelCacheEntry | None:
-        """Return the entry for ``channel_id`` if cached, otherwise None.
+        Replaces an earlier ``__contains__`` that only took a channel id.
+        ``in`` was dropped on purpose: forcing the call site to name the
+        run keeps callers from silently sharing cache entries across runs.
+        """
+        return self._key(channel_id, run_id) in self._store
+
+    def get(
+        self, channel_id: str, run_id: str | None = None
+    ) -> ChannelCacheEntry | None:
+        """Return the entry for ``(channel_id, run_id)`` if cached, otherwise None.
 
         Type-checks the raw value before returning so a row written by a
         different adapter (or a corrupt entry that survived) reads as a
         miss instead of being handed back as the wrong type.
         """
-        raw = self._store.get(self._key(channel_id))
+        raw = self._store.get(self._key(channel_id, run_id))
         if not isinstance(raw, ChannelCacheEntry):
             return None
         return raw
 
-    def put(self, channel_id: str, entry: ChannelCacheEntry) -> None:
-        """Insert or replace ``channel_id`` on disk.
+    def put(
+        self,
+        channel_id: str,
+        entry: ChannelCacheEntry,
+        *,
+        run_id: str | None = None,
+    ) -> None:
+        """Insert or replace the entry for ``(channel_id, run_id)``.
 
         Forwards :attr:`ChannelCacheEntry.size_bytes` to the store so its
         oversize guard can decide whether to write or skip+warn. No-op
         when the underlying store is disabled.
         """
-        self._store.put(self._key(channel_id), entry, size_bytes=entry.size_bytes)
+        self._store.put(
+            self._key(channel_id, run_id), entry, size_bytes=entry.size_bytes
+        )
 
-    def invalidate(self, channel_id: str) -> None:
-        """Remove ``channel_id`` from the cache. Safe when absent."""
-        self._store.invalidate(self._key(channel_id))
+    def invalidate(self, channel_id: str, run_id: str | None = None) -> None:
+        """Remove ``(channel_id, run_id)`` from the cache. Safe when absent.
+
+        Only invalidates the one run-scoped bucket — entries for the same
+        ``channel_id`` under other runs are preserved.
+        """
+        self._store.invalidate(self._key(channel_id, run_id))
 
     def clear(self) -> None:
-        """Wipe every channel entry. Other adapters' entries are preserved.
+        """Wipe every channel entry across all runs. Other adapters' entries are preserved.
 
         Walks the shared store's keyspace once and drops anything under
         :attr:`KEY_PREFIX`. ``list(...)`` snapshots the iterator since
@@ -223,11 +254,14 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
-    def _filter_cached_channels(self, channel_ids: list[str]) -> tuple[list[str], list[str]]:
+    def _filter_cached_channels(
+        self, channel_ids: list[str], run_id: str | None = None
+    ) -> tuple[list[str], list[str]]:
+        """Split ``channel_ids`` into (cached-under-``run_id``, not-cached)."""
         cached_channels = []
         not_cached_channels = []
         for channel_id in channel_ids:
-            if channel_id in self.channel_cache:
+            if self.channel_cache.has(channel_id, run_id):
                 cached_channels.append(channel_id)
             else:
                 not_cached_channels.append(channel_id)
@@ -257,7 +291,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             A tuple of (data, start_time, end_time)
             where data is a pandas dataframe and start and end times are what should be used for the next call based on what is not covered by the cached data.
         """
-        cached_data = self.channel_cache.get(channel_id)
+        cached_data = self.channel_cache.get(channel_id, run_id)
         ret_start_time = start_time
         ret_end_time = end_time
         ret_data = None
@@ -322,9 +356,17 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     # So we just don't update the cache.
                     continue
 
-            existing = self.channel_cache.get(channel_id)
+            existing = self.channel_cache.get(channel_id, run_id)
             if existing is not None:
-                merged_data = pd.concat([existing.data, data]).groupby(level=0).last()
+                # ``groupby(level=0).last()`` is only needed to dedup
+                # overlapping timestamps. Strictly disjoint ranges
+                # (append after / prepend before) carry no overlap.
+                if len(data) > 0 and data.index[0] > existing.end_time:
+                    merged_data = pd.concat([existing.data, data])
+                elif len(data) > 0 and data.index[-1] < existing.start_time:
+                    merged_data = pd.concat([data, existing.data])
+                else:
+                    merged_data = pd.concat([existing.data, data]).groupby(level=0).last()
                 entry = _new_cache_entry(
                     data=merged_data,
                     start_time=min(suggested_start_time, existing.start_time),
@@ -336,7 +378,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     start_time=suggested_start_time,
                     end_time=end_time,
                 )
-            self.channel_cache.put(channel_id, entry)
+            self.channel_cache.put(channel_id, entry, run_id=run_id)
 
     async def get_channel_data(
         self,
@@ -358,7 +400,9 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self._update_name_id_map(channels)
         channel_ids = [c.id_ for c in channels]
         cached_channels, not_cached_channels = (
-            ([], channel_ids) if ignore_cache else self._filter_cached_channels(channel_ids)  # type: ignore
+            ([], channel_ids)
+            if ignore_cache
+            else self._filter_cached_channels(channel_ids, run_id=run_id)  # type: ignore
         )
 
         tasks = []
@@ -393,7 +437,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
             if cached_data is not None:
                 for name in cached_data.columns:
-                    ret_data[name] = cached_data
+                    ret_data[name] = cached_data[[name]]
                 if new_start_time is None:
                     # Cache fully encompassed the desired time range so don't queue a call.
                     continue
@@ -415,7 +459,9 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         pages = await asyncio.gather(*tasks)
         ret_data = self._merge_pages(pages, initial=ret_data)
 
-        if not ignore_cache:
+        # Skip the cache update when no fresh pages arrived.
+        had_fresh_data = any(pages)
+        if not ignore_cache and had_fresh_data:
             self._update_cache(
                 channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id
             )

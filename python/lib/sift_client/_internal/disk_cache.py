@@ -24,7 +24,7 @@ Key behaviours pinned here so the adapter layer can stay thin:
 * Oversized entries are skipped with a one-shot warning per key —
   otherwise diskcache's eviction loop would drain every other row
   trying to fit an unfittable entry.
-* Construction with ``disk_path=None`` (or after :meth:`disable_disk`)
+* Construction with ``disk_path=None`` (or after :meth:`disable`)
   is a silent no-op store. Callers don't need to branch on disabled
   state; reads always miss and writes are dropped.
 """
@@ -57,6 +57,19 @@ class DiskCache:
     always ``False``. This lets callers treat "caching disabled" the same
     as a cold cache, with no branching needed at the read/write site.
 
+    Attributes:
+        DEFAULT_DISK_PATH: Default directory for the shared cache. Lives
+            under :func:`tempfile.gettempdir` so it survives across
+            sessions of the same user but doesn't pollute the home
+            directory. The suffix is fixed so multiple ``SiftClient``
+            instances naturally share the same store and pick up each
+            other's prior sessions.
+        DEFAULT_DISK_MAX_BYTES: Default byte cap when :meth:`enable`
+            is called without an explicit ``max_bytes``. 4 GiB is generous
+            for the typical ``/tmp`` filesystem; ``diskcache`` enforces
+            the cap with its own SQLite-backed LRU eviction once the
+            bound is reached.
+
     Args:
         disk_path: Directory to persist to. ``None`` keeps the store
             disabled. A previously-populated directory is reused, so a
@@ -66,23 +79,14 @@ class DiskCache:
             is ``None``.
     """
 
-    #: Default directory for the shared cache. Lives under
-    #: :func:`tempfile.gettempdir` so it survives across sessions of the
-    #: same user but doesn't pollute the home directory. The suffix is
-    #: fixed so multiple ``SiftClient`` instances naturally share the
-    #: same store and pick up each other's prior sessions.
     DEFAULT_DISK_PATH: str = os.path.join(tempfile.gettempdir(), "sift-data-cache")
-
-    #: Default byte cap when :meth:`enable_disk` is called without an
-    #: explicit ``max_bytes``. 4 GiB is generous for the typical ``/tmp``
-    #: filesystem; ``diskcache`` enforces the cap with its own SQLite-
-    #: backed LRU eviction once the bound is reached.
     DEFAULT_DISK_MAX_BYTES: int = 4 * 1024 * 1024 * 1024
 
-    #: Marker file ``diskcache`` writes inside every cache directory. The
-    #: classmethod :meth:`clear_disk` checks for this before any
-    #: ``shutil.rmtree`` so a typo'd path can't wipe out an unrelated
-    #: directory.
+    # Marker file ``diskcache`` writes inside every cache directory. The
+    # classmethod :meth:`clear_disk` checks for this before any
+    # ``shutil.rmtree`` so a typo'd path can't wipe out an unrelated
+    # directory. Underscore-prefixed because it's an implementation
+    # detail of the safety guard, not a knob.
     _DISKCACHE_MARKER: str = "cache.db"
 
     def __init__(
@@ -112,7 +116,7 @@ class DiskCache:
 
         Use this to drop stale caches from previous sessions, recover
         from a corrupt cache, or reclaim disk space. The directory is
-        removed entirely; a future :meth:`enable_disk` call at the same
+        removed entirely; a future :meth:`enable` call at the same
         path opens a fresh empty cache.
 
         Args:
@@ -174,7 +178,7 @@ class DiskCache:
         for key in self._disk:
             yield cast("str", key)
 
-    def enable_disk(
+    def enable(
         self,
         *,
         path: str | os.PathLike[str] | None = None,
@@ -202,7 +206,7 @@ class DiskCache:
         self._close_disk()
         self._open_disk(target_path, target_max)
 
-    def disable_disk(self) -> None:
+    def disable(self) -> None:
         """Close the disk handle (if open). Does not touch on-disk contents.
 
         Use :meth:`clear_disk` to remove a directory from disk.
@@ -258,7 +262,7 @@ class DiskCache:
                     "Entry for %s (%d bytes) is larger than the disk "
                     "cache cap (%d bytes); skipping disk cache for this "
                     "entry so other entries aren't evicted. Raise the "
-                    "cap via ``client.cache.enable_disk(max_bytes=...)`` "
+                    "cap via ``client.cache.enable(max_bytes=...)`` "
                     "to cache this entry on disk.",
                     key,
                     size_bytes,

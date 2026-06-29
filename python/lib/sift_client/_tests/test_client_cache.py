@@ -5,9 +5,9 @@ that lives on the :class:`SiftClient`. Three concerns get pinned here:
 
 1. Default policy (opt-out: caching on at the default path) lands on
    the live store on first use.
-2. Pre-init configuration (``client.cache.disable_disk()`` /
-   ``enable_disk(path=..., max_bytes=...)`` before any resource has
-   touched the cache) takes effect on the lazy build.
+2. Pre-init configuration (``client.cache.disable()`` /
+   ``enable(path=..., max_bytes=...)`` before any resource has touched
+   the cache) takes effect on the lazy build.
 3. Post-init reconfiguration mutates the live :class:`DiskCache` in
    place rather than swapping it out — every resource adapter holds a
    reference to the same store.
@@ -89,12 +89,12 @@ class TestCacheNamespaceDefaults:
             first.close()
 
 
-class TestEnableDisk:
-    """``client.cache.enable_disk`` configures the store, pre- and post-init."""
+class TestEnable:
+    """``client.cache.enable`` configures the store, pre- and post-init."""
 
     def test_pre_init_path_lands_on_store(self, tmp_path):
         client = _make_client()
-        client.cache.enable_disk(path=str(tmp_path / "pre"), max_bytes=4096)
+        client.cache.enable(path=str(tmp_path / "pre"), max_bytes=4096)
         store = _get_disk_cache(client)
         try:
             assert store.disk_enabled
@@ -108,15 +108,15 @@ class TestEnableDisk:
 
         Every resource adapter holds a reference to ``client._disk_cache``;
         if a reconfig replaced the handle, those adapters would still see
-        the stale one. ``DiskCache.enable_disk`` swaps the *contents* on
+        the stale one. ``DiskCache.enable`` swaps the *contents* on
         the same instance.
         """
         client = _make_client()
-        client.cache.disable_disk()  # start from off so this is a real on transition
+        client.cache.disable()  # start from off so this is a real on transition
         store = _get_disk_cache(client)
         try:
             assert not store.disk_enabled
-            client.cache.enable_disk(path=str(tmp_path / "post"))
+            client.cache.enable(path=str(tmp_path / "post"))
             assert client._disk_cache is store  # same instance
             assert store.disk_enabled
             assert store.disk_path == str(tmp_path / "post")
@@ -124,7 +124,7 @@ class TestEnableDisk:
             store.close()
 
     def test_enable_with_default_path_lands_on_default(self, monkeypatch, tmp_path):
-        """``enable_disk()`` with no args uses :attr:`DEFAULT_DISK_PATH`.
+        """``enable()`` with no args uses :attr:`DEFAULT_DISK_PATH`.
 
         Redirects the constant so the test doesn't create the real
         ``/tmp/sift-data-cache`` directory.
@@ -133,7 +133,7 @@ class TestEnableDisk:
         monkeypatch.setattr(DiskCache, "DEFAULT_DISK_PATH", fake_default)
 
         client = _make_client()
-        client.cache.enable_disk()
+        client.cache.enable()
         store = _get_disk_cache(client)
         try:
             assert store.disk_path == fake_default
@@ -141,16 +141,16 @@ class TestEnableDisk:
             store.close()
 
 
-class TestDisableDisk:
-    """``client.cache.disable_disk`` turns the live cache off."""
+class TestDisable:
+    """``client.cache.disable`` turns the live cache off."""
 
     def test_disable_closes_live_handle(self, tmp_path):
         client = _make_client()
-        client.cache.enable_disk(path=str(tmp_path / "to-close"))
+        client.cache.enable(path=str(tmp_path / "to-close"))
         store = _get_disk_cache(client)
         try:
             assert store.disk_enabled
-            client.cache.disable_disk()
+            client.cache.disable()
             assert not store.disk_enabled
             assert store.disk_path is None
         finally:
@@ -159,7 +159,7 @@ class TestDisableDisk:
     def test_disable_before_lazy_init_keeps_store_off(self, tmp_path):
         """Calling disable before first use means the lazy build skips the open."""
         client = _make_client()
-        client.cache.disable_disk()
+        client.cache.disable()
         store = _get_disk_cache(client)
         try:
             assert not store.disk_enabled
@@ -167,8 +167,8 @@ class TestDisableDisk:
             store.close()
 
 
-class TestClearDiskProxy:
-    """``client.cache.clear_disk`` proxies through to :meth:`DiskCache.clear_disk`."""
+class TestClearProxy:
+    """``client.cache.clear`` proxies through to :meth:`DiskCache.clear_disk`."""
 
     def test_clear_removes_directory(self, tmp_path):
         path = tmp_path / "to-clear"
@@ -178,7 +178,7 @@ class TestClearDiskProxy:
         assert path.exists()
 
         client = _make_client()
-        client.cache.clear_disk(path)
+        client.cache.clear(path)
         assert not path.exists()
 
 
@@ -213,7 +213,7 @@ class TestLazyInitFallback:
         blocker.write_text("i am a file, not a directory")
 
         client = _make_client()
-        client.cache.enable_disk(path=str(blocker))
+        client.cache.enable(path=str(blocker))
         with pytest.raises(FileExistsError):
             _get_disk_cache(client)
 
@@ -253,7 +253,7 @@ class TestSiftClientIntegration:
 
     def test_disable_before_first_get_data_keeps_store_off(self):
         client = self._make_real_client()
-        client.cache.disable_disk()
+        client.cache.disable()
         store = client._get_disk_cache()
         try:
             assert not store.disk_enabled
