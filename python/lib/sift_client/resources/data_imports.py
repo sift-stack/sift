@@ -112,12 +112,12 @@ class DataImportAPIAsync(ResourceBase):
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
                 not provided.
-            time_format: Time format override. When provided, takes
-                precedence over the format returned by detection. When
-                omitted, the returned config uses the detected format if
-                available, falling back to
-                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. Only used when
-                ``config`` is not provided.
+            time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
+                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+                detected format if available, otherwise
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
+                detected/default time handling. Only used when ``config`` is
+                not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
@@ -245,11 +245,11 @@ class DataImportAPIAsync(ResourceBase):
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous.
-            time_format: Time format override. When provided, takes
-                precedence over the format returned by detection. When
-                omitted, the returned config uses the detected format if
-                available, falling back to
-                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``.
+            time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
+                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+                detected format if available, otherwise
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
+                detected/default time handling.
 
         Returns:
             The detected import config.
@@ -354,8 +354,9 @@ class DataImportAPIAsync(ResourceBase):
 
 def _apply_time_format(config: ImportConfig, time_format: TimeFormat) -> None:
     """Set the time format on a detected config, dispatching by config type.
-    CSV and Parquet store the format under ``time_column.format``; TDMS and
-    HDF5 store it on ``time_format`` directly.
+
+    CSV and Parquet store the format under ``time_column.format``. TDMS and
+    HDF5 store it on ``time_format``. ULog has no configurable time format.
     """
     if isinstance(
         config,
