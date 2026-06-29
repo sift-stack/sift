@@ -11,6 +11,7 @@ pub mod import;
 pub mod install;
 pub mod mcp;
 pub mod ping;
+pub mod update;
 
 pub struct Context {
     pub grpc_uri: String,

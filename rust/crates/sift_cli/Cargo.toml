@@ -17,6 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
+axoupdater = { workspace = true }
 arrow-array = { workspace = true }
 arrow-schema = { workspace = true }
 chrono = { workspace = true }
