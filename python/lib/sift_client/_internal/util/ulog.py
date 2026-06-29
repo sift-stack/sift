@@ -1,14 +1,9 @@
-"""ULog (PX4 .ulg) channel detection.
+"""Detect channels in PX4 ULog (``.ulg``) files.
 
-ULog files are self-describing: the embedded schema names every channel and its
-C type, so detection enumerates channels with no user input. This mirrors the
-server-side importer so a detected config imports identically.
-
-Detection never decodes data records. It walks the message stream reading only
-the AddLogged ('A') subscriptions and logged-string ('L'/'C') markers, and
-parses the Definitions section (via pyulog, header-only) for the message
-formats. The channel naming, type mapping, and field flattening match the
-server importer field for field.
+Detection reads the ULog definitions and lightweight message records to find
+logged topics, multi-instance IDs, and logged-string channels. It does not
+decode data records. Channel keys, type mapping, and flattened field names
+match the server importer.
 """
 
 from __future__ import annotations
@@ -27,9 +22,8 @@ from sift_client.sift_types.data_import import UlogDataColumn, UlogImportConfig
 if TYPE_CHECKING:
     from typing import BinaryIO
 
-# ULog C scalar types to Sift channel types. Narrow integers widen to 32-bit
-# and char/char[N] become STRING, matching the server importer and the other
-# import formats.
+# Map ULog C scalars to Sift channel types. Smaller ints widen to 32-bit, and
+# char fields import as strings.
 ULOG_TO_SIFT_TYPE: dict[str, ChannelDataType] = {
     "int8_t": ChannelDataType.INT_32,
     "int16_t": ChannelDataType.INT_32,
@@ -45,7 +39,7 @@ ULOG_TO_SIFT_TYPE: dict[str, ChannelDataType] = {
     "char": ChannelDataType.STRING,
 }
 
-# Channel that collects printf-style logged strings ('L' and tagged 'C').
+# Base channel for ULog logged strings; tagged logs use ``log_messages_<tag>``.
 LOG_MESSAGES_CHANNEL = "log_messages"
 
 ULOG_MAGIC = b"\x55\x4c\x6f\x67\x01\x12\x35"
@@ -58,12 +52,12 @@ KNOWN_MESSAGE_TYPES = frozenset(b"BFIMPQARDLCSO")
 
 
 def _is_padding(channel_key: str) -> bool:
-    """True if any dotted segment of the key is a ULog padding field."""
+    """Return whether a channel key contains a ULog padding field."""
     return any(seg.startswith("_padding") for seg in channel_key.split("."))
 
 
 def _find_next_sync(f: BinaryIO, start: int) -> int:
-    """Absolute offset of the next sync marker at or after ``start``, or -1."""
+    """Return the next sync marker offset at or after ``start``, or -1."""
     chunk_size = 1 << 16
     overlap = len(SYNC_MESSAGE) - 1
     f.seek(start)
@@ -82,9 +76,7 @@ def _find_next_sync(f: BinaryIO, start: int) -> int:
 
 
 class _ScanResult:
-    """Structural findings the header parse does not surface: which
-    ``(message_name, multi_id)`` pairs were logged and whether the file carries
-    logged-string channels."""
+    """Logged topics and log-string markers found while scanning records."""
 
     def __init__(self) -> None:
         self.subscriptions: list[tuple[str, int]] = []
@@ -93,12 +85,11 @@ class _ScanResult:
 
 
 def _scan_subscriptions(path: Path) -> _ScanResult:
-    """Walk the message stream for subscriptions and logged-string markers.
+    """Collect logged topics and log-string markers without decoding data.
 
-    Reads only 'A', 'L', and 'C' payloads and skips 'D' data records, so the
-    cost is one streaming pass with no data decode. Tolerates a truncated final
-    record and reframes past garbage at the next sync marker, so a partially
-    corrupt log still enumerates its channels.
+    The scan skips data records and stops cleanly on a truncated tail. If
+    framing is lost, it resumes at the next sync marker so later channels can
+    still be detected.
     """
     result = _ScanResult()
     size = path.stat().st_size
@@ -154,11 +145,10 @@ def _scan_subscriptions(path: Path) -> _ScanResult:
 
 
 def expand_message_fields(message_formats: dict, message_name: str) -> list[tuple[str, str]]:
-    """Flatten one message format into ``(field_key, c_type)`` leaf entries.
+    """Flatten a message format into ``(field_key, c_type)`` leaf entries.
 
-    Scalars yield one entry; ``type[N]`` arrays yield one per element with the
-    index in brackets (``gyro_rad[0]``); ``char``/``char[N]`` collapse to a
-    single ``char`` entry; nested message types recurse to dotted leaf paths.
+    Arrays expand to ``field[i]``, nested messages use dotted paths, and
+    ``char[N]`` stays one string field.
     """
     flattened: list[tuple[str, str]] = []
 
@@ -186,11 +176,10 @@ def expand_message_fields(message_formats: dict, message_name: str) -> list[tupl
 
 
 def detect_ulog_fields(message_formats: dict, scan: _ScanResult) -> dict[str, str]:
-    """Enumerate importable channels as ``{channel_key: c_type}``.
+    """Return importable channels as ``{channel_key: c_type}``.
 
-    Each logged ``(message_name, multi_id)`` contributes its non-timestamp,
-    non-padding fields under the ``<message>_<multi_id>.<field>`` prefix.
-    Logged-string channels are appended as ``log_messages`` and
+    Logged topics use ``<message>_<multi_id>.<field>``. The timestamp axis and
+    padding fields are excluded; logged strings become ``log_messages`` or
     ``log_messages_<tag>``.
     """
     fields: dict[str, str] = {}
@@ -229,10 +218,10 @@ def detect_ulog_config(file_path: str | Path, asset_name: str = "") -> UlogImpor
         asset_name: The asset name to set on the config.
 
     Returns:
-        A UlogImportConfig whose ``data`` lists every detected channel with its
-        default name (the channel key) and mapped data type. Drop, rename, or
-        retype entries before importing; an empty ``data`` list imports all
-        channels with these same defaults server-side.
+        A config whose ``data`` lists detected channels with default Sift names
+        and data types. Remove entries to skip channels, or edit entries before
+        importing. Leaving ``data`` empty lets the server import all channels
+        with the same defaults.
     """
     path = Path(file_path)
     scan = _scan_subscriptions(path)

@@ -850,40 +850,36 @@ class Hdf5ImportConfig(ImportConfigBase):
 
 
 class UlogParseErrorPolicy(Enum):
-    """How the importer handles recoverable ULog parse errors.
+    """Controls how ULog import handles records the parser can skip.
 
-    Recoverable errors include a truncated final record, a data record
-    referencing an unbound message id, and garbage bytes skipped to the next
-    sync marker. The policy is enforced server-side at import time.
+    Recoverable errors include a truncated final record or bytes skipped while
+    resynchronizing the log. The policy is enforced server-side at import time.
     """
 
     FAIL_ON_ERROR = ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR
-    """Fail the import on any recoverable parse error."""
+    """Fail the import on the first recoverable parse error."""
 
     IGNORE_ERROR = ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR
-    """Import the records that parsed; skipped records are logged."""
+    """Skip bad records and import the rest of the file."""
 
 
 class UlogDataColumn(DataColumnBase):
-    """A channel to import from a ULog file.
+    """A single ULog channel selection.
 
     Attributes:
-        channel: The full ULog channel name, formed from the message name, its
-            multi-instance index, and the field (e.g. ``"sensor_accel_0.x"``).
-            This selects the source field; the inherited ``name`` is the Sift
-            channel name it is imported as and defaults to ``channel``.
+        channel: Source channel key, such as ``"sensor_accel_0.x"``. The key is
+            ``<message>_<instance>.<field>`` and is returned by
+            ``detect_config``.
+        name: Sift channel name to create. Defaults to ``channel``.
     """
 
     channel: str
-    # Declared optional so a column can be built from `channel` alone; the
-    # validator below fills it in. Inherited `name` is otherwise required.
+    # Allow building a column from ``channel`` alone; the validator fills ``name``.
     name: str = ""
 
     @model_validator(mode="before")
     @classmethod
     def _default_name_to_channel(cls, data: object) -> object:
-        # The Sift name defaults to the ULog channel key, matching the
-        # import-all default, so a selection can be built from `channel` alone.
         if isinstance(data, dict) and not data.get("name") and data.get("channel"):
             data["name"] = data["channel"]
         return data
@@ -892,17 +888,17 @@ class UlogDataColumn(DataColumnBase):
 class UlogImportConfig(ImportConfigBase):
     """Configuration for importing a PX4 ULog (``.ulg``) file.
 
-    ULog files are self-describing, so ``detect_config`` enumerates every
-    channel from the embedded schema and you supply no column mapping. Inspect
-    the detected ``data`` and drop, rename, or retype channels before importing.
+    ULog files describe their own channels. Leave ``data`` empty to import every
+    detected channel, or call ``detect_config`` and edit the returned ``data``
+    list to skip, rename, retype, or annotate channels before importing.
 
     Attributes:
-        data: Channels to import. Empty imports every detected channel with its
-            defaults; if non-empty, only the listed channels are imported.
-        relative_start_time: Log-start UTC. ULog timestamps are relative to a
-            boot clock; the timeline is anchored to absolute time by the log's
-            GPS fix when present, otherwise by this value. The import fails if
-            neither is available, so set this for logs without a GPS fix.
+        data: Channel selections. Empty imports all detected channels with
+            default names and data types. If non-empty, only these channels are
+            imported.
+        relative_start_time: Absolute log start time to use when the log does
+            not contain a GPS-derived UTC reference. ULog timestamps are
+            relative to boot time. Set this for logs without that reference.
         info_keys: Info (``I``/``M``) message keys to import as run metadata,
             stored as ``info.<key>``. Requires ``run_name`` or ``run_id``.
         param_keys: Parameter (``P``) names to import as run metadata, stored
@@ -918,7 +914,7 @@ class UlogImportConfig(ImportConfigBase):
     parse_error_policy: UlogParseErrorPolicy = UlogParseErrorPolicy.FAIL_ON_ERROR
 
     def __getitem__(self, name: str) -> UlogDataColumn:
-        """Look up a data column by Sift channel name.
+        """Look up a configured ULog channel by Sift channel name.
 
         Example::
 
