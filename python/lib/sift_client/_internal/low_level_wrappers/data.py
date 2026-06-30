@@ -53,11 +53,6 @@ class SegmentRef(BaseModel):
     start_time: datetime
     end_time: datetime
 
-    @property
-    def is_empty(self) -> bool:
-        """True for an empty ref (no backing segment body)."""
-        return self.seg_id is None
-
 
 class SegmentIndex(BaseModel):
     """Per-(channel, run) index of cached segments."""
@@ -195,7 +190,7 @@ class ChannelDataCache:
 
             clamped = (max(ref.start_time, start_time), min(ref.end_time, end_time))
 
-            if ref.is_empty:
+            if ref.seg_id is None:
                 # Empty ref: the wire was asked about this range and
                 # returned no data. Count it toward coverage so the
                 # caller doesn't refetch.
@@ -298,7 +293,7 @@ class ChannelDataCache:
         if idx is None:
             return
         for ref in idx.segments:
-            if ref.is_empty:
+            if ref.seg_id is None:
                 continue
             self._store.invalidate(self._segment_key(channel_id, run_id, ref.seg_id))
         self._store.invalidate(self._index_key(channel_id, run_id))
@@ -384,13 +379,13 @@ class ChannelDataCache:
         # degrade to gaps (we don't merge missing data).
         frames: list[pd.DataFrame] = []
         for ref in refs:
-            if ref.is_empty:
+            if ref.seg_id is None:
                 continue
             frame = self._load_segment(channel_id, run_id, ref.seg_id)
             if frame is not None:
                 frames.append(frame)
 
-        old_seg_ids = [r.seg_id for r in refs if not r.is_empty]
+        old_seg_ids: list[int] = [r.seg_id for r in refs if r.seg_id is not None]
 
         # Claimed coverage of the merged ref spans *every* ref's claim
         # (data + empty + evicted) — the index already represents "we
@@ -673,14 +668,15 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             # absence outside the data — the run might not have
             # started yet). For unscoped queries, claim the full
             # requested range so a follow-up of the same range hits.
+            seg_end = end_time
             if run_id:
-                seg_start = combined.index[0]
-                if not isinstance(seg_start, datetime):
-                    seg_start = seg_start.to_pydatetime()
-                seg_end = end_time
+                # ``combined.index`` is a ``DatetimeIndex`` (built from
+                # the wire's nanosecond timestamps), so ``index[0]`` is
+                # always ``pd.Timestamp`` at runtime; pandas-stubs types
+                # it as the wider ``Scalar`` union.
+                seg_start = cast(pd.Timestamp, combined.index[0]).to_pydatetime()
             else:
                 seg_start = start_time
-                seg_end = end_time
 
             self.channel_cache.put_segment(
                 channel_id=channel_id,
