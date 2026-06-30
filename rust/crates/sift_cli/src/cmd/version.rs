@@ -34,6 +34,10 @@ pub async fn run() -> Result<ExitCode> {
                     current_str.yellow(),
                     latest.to_string().green(),
                 ));
+                out.tip(install_command(&latest).cyan().to_string());
+            } else if current_str.contains("alpha") {
+                out.line("You are on an alpha release.".to_string());
+                out.tip(install_command(&latest).cyan().to_string());
             } else {
                 out.line("You're on the latest release.".to_string());
             }
@@ -62,7 +66,7 @@ async fn fetch_latest() -> Result<Option<Version>> {
         .timeout(Duration::from_secs(5))
         .build()?;
 
-    let releases: Vec<GithubRelease> = client
+    let mut releases: Vec<GithubRelease> = client
         .get(RELEASES_URL)
         .send()
         .await?
@@ -70,9 +74,37 @@ async fn fetch_latest() -> Result<Option<Version>> {
         .json()
         .await?;
 
+    let mut i = 0;
+    while i < releases.len() {
+        if releases[i].tag_name.contains("alpha") {
+            releases.remove(i);
+        } else {
+            i += 1;
+        }
+    }
+
     Ok(releases
         .into_iter()
         .filter_map(|r| r.tag_name.strip_prefix(TAG_PREFIX).map(str::to_string))
         .filter_map(|v| Version::parse(&v).ok())
         .max())
+}
+
+fn install_command(latest: &Version) -> String {
+    let (asset, cmd_tmpl) = if cfg!(windows) {
+        (
+            "sift_cli-installer.ps1",
+            "powershell -ExecutionPolicy ByPass -c \"irm {url} | iex\"",
+        )
+    } else {
+        (
+            "sift_cli-installer.sh",
+            "curl --proto '=https' --tlsv1.2 -LsSf {url} | sh",
+        )
+    };
+
+    let url = format!(
+        "https://github.com/sift-stack/sift/releases/download/{TAG_PREFIX}{latest}/{asset}"
+    );
+    cmd_tmpl.replace("{url}", &url)
 }
