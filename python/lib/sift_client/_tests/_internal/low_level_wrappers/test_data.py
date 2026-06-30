@@ -756,6 +756,7 @@ class TestCompaction:
             assert idx is not None
             assert len(idx.segments) == 1
             merged_id = idx.segments[0].seg_id
+            assert merged_id is not None
             assert merged_id >= 4
 
             channel_keys = sorted(k for k in store if k.startswith("channel:"))
