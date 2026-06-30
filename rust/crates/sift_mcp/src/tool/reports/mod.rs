@@ -224,7 +224,12 @@ impl SiftMcpServer {
                 before invoking.
               - Use `list_report_rule_summaries` on the returned `report_id` to track per-rule progress.
         ",
-        annotations(title = "reports_router/create_report", read_only_hint = false)
+        annotations(
+            title = "reports_router/create_report",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+        )
     )]
     pub async fn create_report(&self, params: Parameters<CreateReportParams>) -> error::McpResult {
         let Parameters(CreateReportParams {
@@ -349,7 +354,12 @@ impl SiftMcpServer {
               - This is a write with REPLACE semantics. CONFIRM the full metadata list with the user — for appends,
                 read the current report via `list_reports` filtered by `report_id == \"<id>\"` and send the union.
         ",
-        annotations(title = "reports_router/update_report", read_only_hint = false)
+        annotations(
+            title = "reports_router/update_report",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn update_report(&self, params: Parameters<UpdateReportParams>) -> error::McpResult {
         let Parameters(UpdateReportParams {

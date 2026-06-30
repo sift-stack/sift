@@ -120,7 +120,12 @@ impl SiftMcpServer {
                 entry to the existing collection, then call this tool with the union.
               - The asset proto has no `description` field — there is no equivalent to update.
         ",
-        annotations(title = "assets_router/update_asset", read_only_hint = false)
+        annotations(
+            title = "assets_router/update_asset",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn update_asset(&self, params: Parameters<UpdateAssetParams>) -> error::McpResult {
         let Parameters(UpdateAssetParams {
