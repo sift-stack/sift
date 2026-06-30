@@ -674,7 +674,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 # the wire's nanosecond timestamps), so ``index[0]`` is
                 # always ``pd.Timestamp`` at runtime; pandas-stubs types
                 # it as the wider ``Scalar`` union.
-                seg_start = cast(pd.Timestamp, combined.index[0]).to_pydatetime()
+                seg_start = cast("pd.Timestamp", combined.index[0]).to_pydatetime()
             else:
                 seg_start = start_time
 

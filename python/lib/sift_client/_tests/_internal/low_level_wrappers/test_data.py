@@ -232,9 +232,9 @@ def _put(
     if data is None:
         data = _frame(channel_id, rows=rows, start=start, offset=offset, freq=freq)
     if seg_start is None:
-        seg_start = cast(pd.Timestamp, data.index[0]).to_pydatetime()
+        seg_start = cast("pd.Timestamp", data.index[0]).to_pydatetime()
     if seg_end is None:
-        seg_end = cast(pd.Timestamp, data.index[-1]).to_pydatetime()
+        seg_end = cast("pd.Timestamp", data.index[-1]).to_pydatetime()
     adapter.put_segment(
         channel_id=channel_id,
         run_id=run_id,
