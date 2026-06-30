@@ -36,43 +36,33 @@ CHANNELS_DEFAULT_PAGE_SIZE = 10_000
 REQUEST_BATCH_SIZE = 1
 
 
-class ChannelCacheEntry(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    data: pd.DataFrame
-    start_time: datetime
-    end_time: datetime
-    size_bytes: int
-
-
-def _new_cache_entry(
-    data: pd.DataFrame, start_time: datetime, end_time: datetime
-) -> ChannelCacheEntry:
-    return ChannelCacheEntry(
-        data=data,
-        start_time=start_time,
-        end_time=end_time,
-        size_bytes=int(data.memory_usage(deep=True).sum()),
-    )
-
-
 TimeRange = Tuple[datetime, datetime]
 
 
 class SegmentRef(BaseModel):
-    """Pointer to one cached segment, stored on the per-bucket index."""
+    """Pointer to one cached segment, stored on the per-bucket index.
+
+    ``seg_id`` is ``None`` for an **empty ref** — a record of "we
+    queried this range and the wire returned no data". Empty refs
+    contribute to coverage (so a repeat of a known-empty range
+    doesn't hit the wire).
+    """
 
     model_config = ConfigDict(frozen=True)
-    seg_id: int
+    seg_id: int | None
     start_time: datetime
     end_time: datetime
-    size_bytes: int
+
+    @property
+    def is_empty(self) -> bool:
+        """True for an empty ref (no backing segment body)."""
+        return self.seg_id is None
 
 
 class SegmentIndex(BaseModel):
     """Per-(channel, run) index of cached segments."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    schema_version: int = 1
     next_seg_id: int = 0
     segments: list[SegmentRef] = []
 
@@ -83,11 +73,17 @@ class ChannelDataCache:
     Each ``(channel_id, run_id)`` bucket is split across two key shapes
     in the underlying store:
 
-    * One **index** entry (``channel:<run>:<id>:idx``) holding a
+    * One **index** entry (``channel:v2:<run>:<id>:idx``) holding a
       :class:`SegmentIndex` — a tiny list of :class:`SegmentRef` ptrs
-      describing every segment that exists for the bucket.
-    * One **segment** entry per fetch (``channel:<run>:<id>:seg:<n>``)
-      holding the :class:`ChannelCacheEntry` for that fetch's slice.
+      describing every segment that exists for the bucket. Some refs
+      are *empty* (``seg_id is None``) — they record "we queried this
+      range and the wire returned no data" without a backing segment.
+    * One **segment** entry per fetch with data
+      (``channel:v2:<run>:<id>:seg:<n>``) holding the
+      :class:`pandas.DataFrame` for that fetch's slice. The
+      :class:`SegmentRef` on the index already carries the claimed
+      time range and is the source of truth for coverage, so segment
+      bodies are stored as raw frames.
 
     Reads stitch the relevant segments together via :meth:`get_range`,
     which also reports which sub-ranges of the requested window have no
@@ -100,18 +96,26 @@ class ChannelDataCache:
     and will eventually LRU-evict.
 
     Attributes:
-        KEY_PREFIX: Namespace prefix for every key this adapter writes
-            to the shared :class:`DiskCache`. Picked at class scope so
-            adapters in other resources can pick distinct prefixes
-            without runtime negotiation.
-        SCHEMA_VERSION: Index entry schema version. Bump when the
-            shape changes incompatibly so older on-disk indexes are
-            discarded on read rather than mis-deserialized.
+        KEY_PREFIX: Versioned namespace prefix for every key this
+            adapter writes to the shared :class:`DiskCache`. Picked at
+            class scope so adapters in other resources can pick
+            distinct prefixes without runtime negotiation. The ``v1``
+            suffix is the schema version: bump it (e.g. to
+            ``"channel:v2:"``) when either entry shape changes
+            incompatibly so old keys are silently unreachable rather
+            than mis-deserialized.
+        MAX_SEGMENTS_PER_BUCKET: Per-bucket cap on segment count
+            before :meth:`_compact_bucket` folds them into one.
+            Without compaction a long incrementally-pulled run grows
+            ``len(idx.segments)`` without bound, so every full-range
+            ``get_range`` would load and concat all segments —
+            swapping the old O(n^2) write for unbounded read fan-out.
+            The cap bounds that fan-out at a known constant.
 
     """
 
-    KEY_PREFIX: str = "channel:"
-    SCHEMA_VERSION: int = 1
+    KEY_PREFIX: str = "channel:v2:"
+    MAX_SEGMENTS_PER_BUCKET: int = 16
 
     def __init__(self, store: DiskCache):
         """Wrap ``store`` with channel-data semantics.
@@ -188,15 +192,25 @@ class ChannelDataCache:
             # Skip non-overlapping segments cheaply (no segment load).
             if ref.end_time < start_time or ref.start_time > end_time:
                 continue
-            entry = self._load_segment(channel_id, run_id, ref.seg_id)
-            if entry is None:
+
+            clamped = (max(ref.start_time, start_time), min(ref.end_time, end_time))
+
+            if ref.is_empty:
+                # Empty ref: the wire was asked about this range and
+                # returned no data. Count it toward coverage so the
+                # caller doesn't refetch.
+                present_ranges.append(clamped)
+                continue
+
+            frame = self._load_segment(channel_id, run_id, ref.seg_id)
+            if frame is None:
                 # Evicted by diskcache LRU (or index/segment got out of
                 # sync). Treat the segment's range as uncovered so the
                 # caller refetches it.
                 continue
 
-            present_ranges.append((max(ref.start_time, start_time), min(ref.end_time, end_time)))
-            sliced = entry.data[start_time:end_time]  # type: ignore[misc]
+            present_ranges.append(clamped)
+            sliced = frame[start_time:end_time]  # type: ignore[misc]
             if len(sliced) > 0:
                 frames.append(sliced)
 
@@ -226,7 +240,8 @@ class ChannelDataCache:
                 frame here).
             run_id: Per-run cache dimension; ``None`` for the unscoped
                 bucket.
-            data: This fetch's rows, indexed by tz-aware ``DatetimeIndex``.
+            data: This fetch's rows, indexed by tz-aware
+                ``DatetimeIndex``.
             start_time: Claimed lower bound of cache coverage for this
                 segment. Callers can claim more than ``data`` actually
                 spans to record "we asked the wire about this range" and
@@ -238,61 +253,53 @@ class ChannelDataCache:
 
         Write order is segment-first, then index: an interrupted update
         leaves an unreachable orphan segment (harmless; LRU-evicts) but
-        never leaves the index pointing at a missing segment.
+        never leaves the index pointing at a missing segment. Empty
+        puts skip the segment write entirely and update the index
+        directly.
         """
+        idx = self._load_index(channel_id, run_id) or SegmentIndex()
+
         if len(data) == 0:
-            # Skipping empty puts keeps the segment list shorter at the
-            # cost of re-fetching no-data ranges. Acceptable trade for
-            # the draft; see the class-level TODO.
-            return
+            # Empty ref: coverage-only entry, no segment body. Doesn't
+            # bump ``next_seg_id`` because there's no segment to key.
+            idx.segments.append(SegmentRef(seg_id=None, start_time=start_time, end_time=end_time))
+            self._write_index(channel_id, run_id, idx)
+        else:
+            size_bytes = int(data.memory_usage(deep=True).sum())
+            seg_id = idx.next_seg_id
 
-        size_bytes = int(data.memory_usage(deep=True).sum())
-        idx = self._load_index(channel_id, run_id) or SegmentIndex(
-            schema_version=self.SCHEMA_VERSION
-        )
-        seg_id = idx.next_seg_id
+            # Segment first.
+            seg_key = self._segment_key(channel_id, run_id, seg_id)
+            self._store.put(seg_key, data, size_bytes=size_bytes)
+            if seg_key not in self._store:
+                # The store rejected the segment (oversize, disabled,
+                # etc.). Skipping the index update keeps us from
+                # leaving a dangling reference to a never-written
+                # segment.
+                return
 
-        entry = ChannelCacheEntry(
-            data=data,
-            start_time=start_time,
-            end_time=end_time,
-            size_bytes=size_bytes,
-        )
+            idx.segments.append(SegmentRef(seg_id=seg_id, start_time=start_time, end_time=end_time))
+            idx.next_seg_id += 1
+            self._write_index(channel_id, run_id, idx)
 
-        # Segment first.
-        seg_key = self._segment_key(channel_id, run_id, seg_id)
-        self._store.put(seg_key, entry, size_bytes=size_bytes)
-        if seg_key not in self._store:
-            # The store rejected the segment (oversize, disabled, etc.).
-            # Skipping the index update keeps us from leaving a
-            # dangling reference to a never-written segment.
-            return
-
-        idx.segments.append(
-            SegmentRef(
-                seg_id=seg_id,
-                start_time=start_time,
-                end_time=end_time,
-                size_bytes=size_bytes,
-            )
-        )
-        idx.next_seg_id += 1
-        self._store.put(
-            self._index_key(channel_id, run_id),
-            idx,
-            size_bytes=max(1024, 128 * len(idx.segments)),
-        )
+        # Bound read fan-out: collapse all segments into one once the
+        # bucket would carry more than the cap.
+        if len(idx.segments) > self.MAX_SEGMENTS_PER_BUCKET:
+            self._compact_bucket(channel_id, run_id)
 
     def invalidate(self, channel_id: str, run_id: str | None = None) -> None:
         """Drop every segment in a bucket plus the index. Safe when absent.
 
         Only touches the one ``(channel_id, run_id)`` bucket — segments
-        under other runs survive.
+        under other runs survive. Empty refs carry no segment key, so
+        only data refs (``seg_id is not None``) hit the store here.
         """
         idx = self._load_index(channel_id, run_id)
         if idx is None:
             return
         for ref in idx.segments:
+            if ref.is_empty:
+                continue
             self._store.invalidate(self._segment_key(channel_id, run_id, ref.seg_id))
         self._store.invalidate(self._index_key(channel_id, run_id))
 
@@ -308,18 +315,175 @@ class ChannelDataCache:
         raw = self._store.get(self._index_key(channel_id, run_id))
         if not isinstance(raw, SegmentIndex):
             return None
-        if raw.schema_version != self.SCHEMA_VERSION:
-            # Future migration: discard incompatible on-disk indexes.
-            return None
         return raw
 
     def _load_segment(
         self, channel_id: str, run_id: str | None, seg_id: int
-    ) -> ChannelCacheEntry | None:
+    ) -> pd.DataFrame | None:
         raw = self._store.get(self._segment_key(channel_id, run_id, seg_id))
-        if not isinstance(raw, ChannelCacheEntry):
+        if not isinstance(raw, pd.DataFrame):
             return None
         return raw
+
+    def _write_index(self, channel_id: str, run_id: str | None, idx: SegmentIndex) -> None:
+        # Pydantic indexes serialize small (refs are scalars), but we
+        # still pass a size hint that scales with segment count so the
+        # store's per-entry-size eviction sees an honest weight.
+        self._store.put(
+            self._index_key(channel_id, run_id),
+            idx,
+            size_bytes=max(1024, 128 * len(idx.segments)),
+        )
+
+    def _compact_bucket(self, channel_id: str, run_id: str | None) -> None:
+        """Fold every ref in a bucket into a single merged ref.
+
+        Called by :meth:`put_segment` once the per-bucket ref count
+        crosses :attr:`MAX_SEGMENTS_PER_BUCKET`. The motivation is read
+        fan-out: without compaction ``get_range`` on a long
+        incrementally-pulled run would walk one ref per prior fetch,
+        so the per-read cost climbs linearly in the number of writes.
+        After compaction the bucket holds at most one data ref (or one
+        empty ref, if every prior fetch returned no data) until the
+        next put.
+
+        Empty refs (``seg_id is None``) carry coverage but no body;
+        their claimed ``[start, end]`` is folded into the merged ref's
+        claim along with the data refs. If every loadable body went
+        away (all-empty or every data ref LRU-evicted), the bucket
+        compacts to a single empty ref covering the union of all
+        prior claims so the "no data here" coverage is preserved.
+
+        Write ordering (crash safety):
+
+        1. Write the merged segment under a fresh ``seg_id`` so a
+           crash here leaves the old segments + old index intact
+           (the orphan merged seg LRU-evicts).
+        2. Rewrite the index to point at *only* the merged seg. A
+           crash here leaves the old segs as orphans (LRU-evicts).
+        3. Delete the old segment keys. Any crash here is harmless
+           since the index already points elsewhere.
+
+        Cost note: under a flat cap M, total work across N fetches is
+        O(N^2 / M) — quadratic in fetches with the constant reduced by
+        the cap. That's the documented first-cut; if compaction shows
+        up as a hot spot in stats, the next step is LSM-style
+        geometric levels rather than tuning M.
+        """
+        idx = self._load_index(channel_id, run_id)
+        if idx is None or len(idx.segments) <= self.MAX_SEGMENTS_PER_BUCKET:
+            # Bucket already cleaned up (concurrent invalidate, LRU,
+            # or a parallel compactor) — nothing to do.
+            return
+
+        refs = sorted(idx.segments, key=lambda r: r.start_time)
+
+        # Empty refs have no body to load — their contribution is
+        # purely coverage, which we fold into the merged claim below.
+        # LRU may also have dropped a data ref's body; those refs
+        # degrade to gaps (we don't merge missing data).
+        frames: list[pd.DataFrame] = []
+        for ref in refs:
+            if ref.is_empty:
+                continue
+            frame = self._load_segment(channel_id, run_id, ref.seg_id)
+            if frame is not None:
+                frames.append(frame)
+
+        old_seg_ids = [r.seg_id for r in refs if not r.is_empty]
+
+        # Claimed coverage of the merged ref spans *every* ref's claim
+        # (data + empty + evicted) — the index already represents "we
+        # asked the wire about this range" and compaction must preserve
+        # that, even if the underlying data went away.
+        merged_start = min(r.start_time for r in refs)
+        merged_end = max(r.end_time for r in refs)
+
+        if not frames:
+            # No usable data bodies left — bucket collapses to a single
+            # empty ref covering the union of all prior claims. Future
+            # reads in that range are cache hits returning no rows.
+            self._replace_index_and_drop_segments(
+                channel_id,
+                run_id,
+                new_segments=[
+                    SegmentRef(seg_id=None, start_time=merged_start, end_time=merged_end)
+                ],
+                next_seg_id=idx.next_seg_id,
+                drop_seg_ids=old_seg_ids,
+            )
+            logger.debug(
+                "compacted bucket %r:%r from %d refs to 1 empty ref",
+                run_id or "",
+                channel_id,
+                len(refs),
+            )
+            return
+
+        # Mirror :meth:`get_range`'s dedup: later segments win on
+        # boundary-overlapping timestamps (refs are already sorted by
+        # start_time above).
+        merged_data = frames[0] if len(frames) == 1 else pd.concat(frames).groupby(level=0).last()
+        merged_size = int(merged_data.memory_usage(deep=True).sum())
+        new_seg_id = idx.next_seg_id
+
+        # Step 1: write the merged segment first.
+        new_seg_key = self._segment_key(channel_id, run_id, new_seg_id)
+        self._store.put(new_seg_key, merged_data, size_bytes=merged_size)
+        if new_seg_key not in self._store:
+            # Store rejected (typically oversize). Leave the bucket
+            # alone so the per-fetch segments remain readable; the
+            # next ``put_segment`` will retry the cap check.
+            logger.debug(
+                "compaction skipped for bucket %r:%r (merged size %d exceeded store cap)",
+                run_id or "",
+                channel_id,
+                merged_size,
+            )
+            return
+
+        # Steps 2 + 3: rewrite the index to point at only the merged
+        # seg, then drop superseded segment keys.
+        self._replace_index_and_drop_segments(
+            channel_id,
+            run_id,
+            new_segments=[
+                SegmentRef(seg_id=new_seg_id, start_time=merged_start, end_time=merged_end)
+            ],
+            next_seg_id=new_seg_id + 1,
+            drop_seg_ids=old_seg_ids,
+        )
+        logger.debug(
+            "compacted bucket %r:%r from %d refs to 1 (merged size %d)",
+            run_id or "",
+            channel_id,
+            len(refs),
+            merged_size,
+        )
+
+    def _replace_index_and_drop_segments(
+        self,
+        channel_id: str,
+        run_id: str | None,
+        *,
+        new_segments: list[SegmentRef],
+        next_seg_id: int,
+        drop_seg_ids: list[int],
+    ) -> None:
+        """Rewrite the index, then invalidate superseded segment keys.
+
+        Order matters for crash safety: the new index goes down first
+        so that an interrupt before the deletes leaves the old segs as
+        unreachable orphans (which LRU-evict) rather than leaving the
+        index pointing at deleted keys.
+        """
+        self._write_index(
+            channel_id,
+            run_id,
+            SegmentIndex(next_seg_id=next_seg_id, segments=new_segments),
+        )
+        for seg_id in drop_seg_ids:
+            self._store.invalidate(self._segment_key(channel_id, run_id, seg_id))
 
     @staticmethod
     def _compute_gaps(
@@ -432,11 +596,12 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         *,
         channel_data: dict[str, pd.DataFrame],
+        fetched_ranges_per_channel: dict[str, list[TimeRange]],
         start_time: datetime,
         end_time: datetime,
         run_id: str | None = None,
     ):
-        """Write each channel's fresh data as a new segment.
+        """Write each channel's fresh data or empty-ref as a new segment.
 
         Per-fetch disk write is O(this segment) — no merging with prior
         segments and no re-pickle of accumulated data, so n sequential
@@ -449,10 +614,26 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         produces exactly one segment per channel, regardless of how
         many elements that channel exposes.
 
-        Empty data is skipped (no zero-row segments). This means a
-        no-run query that returns nothing won't record coverage, so the
-        next identical query will re-fetch — see the ``put_segment``
-        TODO for "we tried, no data" segments.
+        Empty results are recorded as empty refs (no segment body) —
+        one ref per fetched range — so a repeat of a known-empty range
+        is a cache hit returning no rows instead of another wire call.
+        For run-scoped queries we claim only the exact fetched window:
+        absence outside it isn't assertable (the run may not have
+        started yet, may have ended early, etc.).
+
+        Args:
+            channel_data: Merged per-name frames coming out of
+                :meth:`_merge_pages`. A channel absent from this dict
+                returned zero rows across every page; a present channel
+                with a zero-row frame had every page return zero rows
+                (bitfield elements that all came back empty).
+            fetched_ranges_per_channel: Per-channel-id list of the
+                ``[start, end]`` windows we actually asked the wire
+                about this call. Drives empty-ref recording: any cid
+                in this dict whose data dropped out for the empty case
+                gets one empty ref per range. Pure cache hits don't
+                reach this method (the caller skips when nothing was
+                fetched).
         """
         assert start_time is not None
         assert end_time is not None
@@ -471,6 +652,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 )
             by_channel_id.setdefault(channel_id, []).append(data)
 
+        ids_with_data: set[str] = set()
         for channel_id, frames in by_channel_id.items():
             if len(frames) == 1:
                 combined = frames[0]
@@ -480,7 +662,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 combined = pd.concat(frames).groupby(level=0).last()
 
             if len(combined) == 0:
+                # Bitfield with every element empty, or other edge
+                # cases — handled by the empty-ref loop below.
                 continue
+
+            ids_with_data.add(channel_id)
 
             # Segment coverage range. For run-scoped queries, claim
             # only what the data actually spans (we can't assert
@@ -504,6 +690,24 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 end_time=seg_end,
             )
 
+        # Empty refs for channels that were queried this call but came
+        # back with zero rows. One ref per fetched range so the
+        # coverage claim matches what we actually asked the wire about
+        # — overclaiming would let a future query for an adjacent
+        # range hit the cache and miss data that actually exists.
+        empty_df = pd.DataFrame()
+        for cid, ranges in fetched_ranges_per_channel.items():
+            if cid in ids_with_data:
+                continue
+            for fetched_start, fetched_end in ranges:
+                self.channel_cache.put_segment(
+                    channel_id=cid,
+                    run_id=run_id,
+                    data=empty_df,
+                    start_time=fetched_start,
+                    end_time=fetched_end,
+                )
+
     async def get_channel_data(
         self,
         *,
@@ -525,9 +729,14 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         # Two work queues. Fully uncached channels share the full range
         # and get batched; partial-hit channels carry per-gap ranges
-        # and go one fetch at a time.
+        # and go one fetch at a time. ``fetched_ranges_per_channel``
+        # records the exact ``[s, e]`` windows we asked the wire about,
+        # per channel — used downstream to record empty refs (a "no
+        # data here" coverage claim) so a repeat of a known-empty
+        # query is a cache hit instead of another wire call.
         fully_uncached: list[str] = []
         partial_gaps: list[tuple[str, list[TimeRange]]] = []
+        fetched_ranges_per_channel: dict[str, list[TimeRange]] = {}
 
         for channel in channels:
             cid = channel.id_
@@ -549,6 +758,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
             if not gaps:
                 continue
+            fetched_ranges_per_channel.setdefault(cid, []).extend(gaps)
             if len(gaps) == 1 and gaps[0] == (start_time, end_time):
                 fully_uncached.append(cid)
             else:
@@ -596,13 +806,15 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         pages = await asyncio.gather(*tasks)
         ret_data = self._merge_pages(pages, initial=ret_data)
 
-        # Skip the cache update when no fresh pages arrived (pure cache
-        # hit). Avoids the redundant "rewrite same bytes" case that
-        # Tier 1A also targeted under the old single-entry shape.
-        had_fresh_data = any(pages)
-        if not ignore_cache and had_fresh_data:
+        # Pure cache hits never reach ``_update_cache`` because nothing
+        # was fetched (``fetched_ranges_per_channel`` is empty). When
+        # we did fetch, ``_update_cache`` writes both data segments and
+        # empty refs — the latter covers the "asked the wire, got
+        # nothing" case so a repeat doesn't refetch.
+        if not ignore_cache and fetched_ranges_per_channel:
             self._update_cache(
                 channel_data=ret_data,
+                fetched_ranges_per_channel=fetched_ranges_per_channel,
                 start_time=start_time,
                 end_time=end_time,
                 run_id=run_id,
