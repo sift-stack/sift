@@ -130,18 +130,26 @@ class ResourceAttributesAPIAsync(ResourceBase):
         unique_ids = list(dict.fromkeys(resource_ids))
         matched_types: dict[str, set[ResourceAttributeEntityType]] = {}
         for batch in _chunks(unique_ids, ASSIGN_BATCH_SIZE):
+            assets: list[Asset]
+            channels: list[Channel]
+            runs: list[Run]
             assets, channels, runs = await asyncio.gather(
                 self.client.async_.assets.list_(asset_ids=batch, include_archived=True),
                 self.client.async_.channels.list_(channel_ids=batch),
                 self.client.async_.runs.list_(run_ids=batch, include_archived=True),
             )
-            for resources_for_type, entity_type in (
-                (assets, ResourceAttributeEntityType.ASSET),
-                (channels, ResourceAttributeEntityType.CHANNEL),
-                (runs, ResourceAttributeEntityType.RUN),
-            ):
-                for resource in resources_for_type:
-                    matched_types.setdefault(resource._id_or_error, set()).add(entity_type)
+            for asset in assets:
+                matched_types.setdefault(asset._id_or_error, set()).add(
+                    ResourceAttributeEntityType.ASSET
+                )
+            for channel in channels:
+                matched_types.setdefault(channel._id_or_error, set()).add(
+                    ResourceAttributeEntityType.CHANNEL
+                )
+            for run in runs:
+                matched_types.setdefault(run._id_or_error, set()).add(
+                    ResourceAttributeEntityType.RUN
+                )
 
         ambiguous_ids = [
             resource_id
