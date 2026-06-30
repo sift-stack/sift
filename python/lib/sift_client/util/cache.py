@@ -67,11 +67,17 @@ class CacheStats:
       Tends to trend slightly higher than the sum of per-entry
       ``size_bytes`` the resources hand to the store.
     * **entry_count** — total cache keys across all adapter prefixes
-      (channel entries + any future foreign-adapter rows).
-    * **channel_entries** — channel cache entries (one per
-      ``(channel_id, run_id)`` bucket under the current single-entry
-      shape). Counted by walking the channel adapter's namespace
-      prefix.
+      (channel index + segment rows, plus any future foreign-adapter
+      rows).
+    * **channel_buckets** — number of distinct
+      ``(channel_id, run_id)`` channel buckets currently cached.
+      Counted by walking the channel adapter's index keys; one index
+      per bucket regardless of how many segments live under it.
+    * **channel_segments** — total cached segment frames across every
+      bucket. Each ``put_segment`` call adds one; ``diskcache`` LRU
+      evictions can drop them independently of their parent index, so
+      this can be lower than the sum of segments the adapter has
+      written over the session.
 
     ``str(stats)`` prints a multi-line summary suitable for
     notebook/REPL display; the structured fields are available for
@@ -83,7 +89,8 @@ class CacheStats:
     max_bytes: int | None
     size_bytes: int
     entry_count: int
-    channel_entries: int
+    channel_buckets: int
+    channel_segments: int
 
     def __str__(self) -> str:
         if not self.enabled:
@@ -94,7 +101,9 @@ class CacheStats:
             "Sift cache:\n"
             f"  path:     {self.path}\n"
             f"  used:     {_format_bytes(self.size_bytes)} / {cap}{pct}\n"
-            f"  entries:  {self.entry_count} ({self.channel_entries} channel)"
+            f"  channels: {self.channel_buckets} buckets, "
+            f"{self.channel_segments} segments\n"
+            f"  entries:  {self.entry_count} total"
         )
 
 
@@ -191,7 +200,8 @@ class CacheNamespace:
             Sift cache:
               path:     /tmp/sift-data-cache
               used:     142.3 MiB / 4.0 GiB (3.5%)
-              entries:  487 (487 channel)
+              channels: 12 buckets, 487 segments
+              entries:  499 total
         """
         # Importing here keeps this module light at import time — pulling
         # the adapter pulls pandas, which is the whole reason
@@ -211,19 +221,33 @@ class CacheNamespace:
                 max_bytes=None,
                 size_bytes=0,
                 entry_count=0,
-                channel_entries=0,
+                channel_buckets=0,
+                channel_segments=0,
             )
 
         # One pass over the keyspace. Cheap — diskcache keys are SQLite
         # rows, and we only touch metadata (no value loads).
-        channel_entries = sum(1 for key in store if key.startswith(ChannelDataCache.KEY_PREFIX))
+        # Bucket index keys end in ``:idx`` and segment keys carry
+        # ``:seg:`` inside the suffix; those two shapes partition the
+        # channel adapter's namespace cleanly.
+        channel_prefix = ChannelDataCache.KEY_PREFIX
+        channel_buckets = 0
+        channel_segments = 0
+        for key in store:
+            if not key.startswith(channel_prefix):
+                continue
+            if key.endswith(":idx"):
+                channel_buckets += 1
+            elif ":seg:" in key:
+                channel_segments += 1
         return CacheStats(
             enabled=True,
             path=store.disk_path,
             max_bytes=store.disk_max_bytes,
             size_bytes=store.volume(),
             entry_count=len(store),
-            channel_entries=channel_entries,
+            channel_buckets=channel_buckets,
+            channel_segments=channel_segments,
         )
 
     def clear(self, path: str | os.PathLike[str] | None = None) -> None:
