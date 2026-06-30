@@ -12,7 +12,7 @@ use cmd::Context;
 mod util;
 use util::tty::Output;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 
 use crate::cli::InstallCmd;
 
@@ -56,8 +56,17 @@ where
 }
 
 fn run(clargs: cli::Args) -> Result<ExitCode> {
+    if clargs.version {
+        return run_future(cmd::version::run());
+    }
+
+    let Some(cmd) = clargs.cmd else {
+        cli::Args::command().print_help()?;
+        return Ok(ExitCode::SUCCESS);
+    };
+
     // These commands don't require `Context`
-    match clargs.cmd {
+    match cmd {
         Cmd::Config(cmd) => match cmd {
             ConfigCmd::Show => return cmd::config::show(),
             ConfigCmd::Create => return cmd::config::create(),
@@ -65,7 +74,6 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             ConfigCmd::Update(args) => return cmd::config::update(clargs.profile, args),
         },
         Cmd::Doc(args) => return run_future(cmd::doc::serve(args)),
-        Cmd::Version => return run_future(cmd::version::run()),
         Cmd::Install(cmd) => match cmd {
             InstallCmd::Completions(cmd) => match cmd {
                 cli::CompletionsCmd::Print(args) => return cmd::install::completions::print(args),
@@ -79,7 +87,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
     let ctx = Context::new(clargs.profile.clone(), clargs.disable_tls)?;
 
     // Mcp Server
-    if let Cmd::Mcp = clargs.cmd {
+    if let Cmd::Mcp = cmd {
         return run_future_mt(cmd::mcp::run(ctx));
     }
 
@@ -93,7 +101,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         .print();
 
     // These commands require `Context`
-    match clargs.cmd {
+    match cmd {
         Cmd::Import(cmd) => match cmd {
             cli::ImportCmd::Csv(args) => run_future(cmd::import::csv::run(ctx, args)),
             cli::ImportCmd::Parquet(cmd) => match cmd {
