@@ -37802,26 +37802,30 @@ reassigned to. If None, assignments using this value are archived.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a></span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
 
 
   
       pydantic-model
-   (sift_client.sift_types.asset.Asset)" href="asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
+   (sift_client.sift_types.asset.Asset)" href="asset/#sift_client.sift_types.asset.Asset">Asset</a></span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
 
 
   
       pydantic-model
-   (sift_client.sift_types.channel.Channel)" href="channel/#sift_client.sift_types.channel.Channel">Channel</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+   (sift_client.sift_types.channel.Channel)" href="channel/#sift_client.sift_types.channel.Channel">Channel</a></span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="run/#sift_client.sift_types.run.Run">Run</a></span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">],</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttribute
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="o">|</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="p">],</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttribute
 
 
   
@@ -37849,8 +37853,8 @@ reassigned to. If None, assignments using this value are archived.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Resources to assign to. For currently supported resource types, pass
-<code>Asset</code>, <code>Channel</code>, or <code>Run</code> objects directly, or use
-<code>ResourceAttributeEntity</code> when you only have an ID.</p>
+<code>Asset</code>, <code>Channel</code>, or <code>Run</code> objects, their IDs, or
+<code>ResourceAttributeEntity</code> when you already know the resource type.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -37875,7 +37879,7 @@ reassigned to. If None, assignments using this value are archived.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="run/#sift_client.sift_types.run.Run">Run</a>]</code>
+   (sift_client.sift_types.run.Run)" href="run/#sift_client.sift_types.run.Run">Run</a> | <span title="str">str</span>]</code>
                   </span>
               </p>
             </td>
