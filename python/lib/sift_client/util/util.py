@@ -56,7 +56,7 @@ class AsyncAPIs(NamedTuple):
     """Instance of the Rules API for making asynchronous requests."""
 
     access_control: AccessControlAPIAsync
-    """Namespace for access-control APIs."""
+    """Async access-control APIs for configuring who can access what in Sift."""
 
     tags: TagsAPIAsync
     """Instance of the Tags API for making asynchronous requests."""

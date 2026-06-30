@@ -1,5 +1,8 @@
 """Access-control API namespace.
 
+Access-control APIs configure who can access what in Sift. In these APIs, a
+principal is the "who" and a resource is the "what" that access applies to.
+
 Use ``client.access_control`` for synchronous APIs and
 ``client.async_.access_control`` for asynchronous APIs.
 """
@@ -22,13 +25,13 @@ if TYPE_CHECKING:
 
 
 class AccessControlAPI:
-    """Namespace for access-control APIs."""
+    """Access-control APIs for configuring who can access what in Sift."""
 
     resource_attributes: ResourceAttributesAPI
-    """Manage ABAC attributes for assets, channels, and runs."""
+    """Manage attributes on supported resources, such as assets, channels, and runs."""
 
     principal_attributes: PrincipalAttributesAPI
-    """Manage ABAC attributes for users and user groups."""
+    """Manage attributes on principals such as users and user groups."""
 
     def __init__(
         self,
@@ -42,13 +45,13 @@ class AccessControlAPI:
 
 
 class AccessControlAPIAsync:
-    """Namespace for async access-control APIs."""
+    """Async access-control APIs for configuring who can access what in Sift."""
 
     resource_attributes: ResourceAttributesAPIAsync
-    """Manage ABAC attributes for assets, channels, and runs."""
+    """Manage attributes on supported resources, such as assets, channels, and runs."""
 
     principal_attributes: PrincipalAttributesAPIAsync
-    """Manage ABAC attributes for users and user groups."""
+    """Manage attributes on principals such as users and user groups."""
 
     def __init__(
         self,

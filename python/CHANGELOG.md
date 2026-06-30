@@ -9,14 +9,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 #### Resource and principal attributes (ABAC)
 
-Added a public API for attribute based access control (ABAC) attributes under `client.access_control`. Use `client.access_control.resource_attributes` for assets, channels, and runs. Use `client.access_control.principal_attributes` for users and user groups. Async APIs are available under `client.async_.access_control`.
+Added a public API for attribute-based access control (ABAC) attributes under `client.access_control`. Resource attributes describe the Sift objects an access decision applies to, such as assets, channels, and runs. Principal attributes describe the users or groups an access decision applies to. Async APIs are available under `client.async_.access_control`.
 
-An attribute key is the entry point. Create or fetch a key, define its enum values, then assign a value to a set of entities:
+An attribute key is the entry point. Create or fetch a key, define its enum values, then assign a value to a set of resources:
 
 ```python
 from sift_client.sift_types import ResourceAttributeKeyType
 
-key = client.access_control.resource_attributes.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
+key = client.access_control.resource_attributes.get_or_create_key(
+    "licenses",
+    ResourceAttributeKeyType.SET_OF_ENUM,
+)
 licenses = key.get_or_create_enum_values(["LICENSE_A", "LICENSE_B"])
 key.assign_to(channels, value=licenses)
 ```
@@ -26,7 +29,10 @@ Principal attributes accept user IDs or email addresses, resolving emails to use
 ```python
 from sift_client.sift_types import PrincipalAttributeValueType
 
-key = client.access_control.principal_attributes.get_or_create_key("licenses", PrincipalAttributeValueType.SET_OF_ENUM)
+key = client.access_control.principal_attributes.get_or_create_key(
+    "licenses",
+    PrincipalAttributeValueType.SET_OF_ENUM,
+)
 licenses = key.get_or_create_enum_values(["LICENSE_A"])
 key.assign_to(["user@example.com"], value=licenses)
 ```

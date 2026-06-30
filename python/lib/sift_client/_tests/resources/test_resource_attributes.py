@@ -13,6 +13,7 @@ from sift.resource_attribute.v1 import resource_attribute_pb2 as ra
 from sift_client.resources.access_control.resource_attributes import ResourceAttributesAPIAsync
 from sift_client.sift_types.resource_attribute import (
     ResourceAttributeEntity,
+    ResourceAttributeEntityType,
     ResourceAttributeEnumValue,
     ResourceAttributeKey,
     ResourceAttributeKeyType,
@@ -127,6 +128,34 @@ class TestAssignValueResolution:
         entities = kwargs["entities"]
         assert entities[0].entity_type == ResourceAttributeEntity.for_asset("a1").entity_type
         assert entities[0].entity_id == "a1"
+
+    @pytest.mark.asyncio
+    async def test_rejects_resource_entity_types_outside_current_supported_targets(self):
+        api = _api()
+        api._low_level_client.batch_create_resource_attributes = AsyncMock(return_value=[])
+        unsupported = ResourceAttributeEntity(
+            entity_id="unknown",
+            entity_type=ResourceAttributeEntityType.UNSPECIFIED,
+        )
+
+        with pytest.raises(ValueError, match="currently support assets, channels, and runs"):
+            await api.assign(_key(), [unsupported], value=["e_a"])
+
+        api._low_level_client.batch_create_resource_attributes.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rejects_resource_assignment_filters_outside_current_supported_targets(self):
+        api = _api()
+        api._low_level_client.list_all_resource_attributes_by_entity = AsyncMock(return_value=[])
+        unsupported = ResourceAttributeEntity(
+            entity_id="unknown",
+            entity_type=ResourceAttributeEntityType.UNSPECIFIED,
+        )
+
+        with pytest.raises(ValueError, match="currently support assets, channels, and runs"):
+            await api.list_assignments(resource=unsupported)
+
+        api._low_level_client.list_all_resource_attributes_by_entity.assert_not_called()
 
 
 def _asset_proto():

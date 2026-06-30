@@ -1,11 +1,11 @@
-"""Domain types for resource attributes (ABAC).
+"""Domain types for resource attributes.
 
-Resource attributes assign attribute keys to Sift entities (assets, channels, runs)
-for attribute based access control. The model has three tiers:
+Resource attributes describe the Sift objects an access decision applies to. A resource
+is the "what" in an access decision. The model has three tiers:
 
 - ``ResourceAttributeKey`` defines an attribute (e.g. ``licenses``) and its value type.
 - ``ResourceAttributeEnumValue`` is an allowed value for an ``ENUM``/``SET_OF_ENUM`` key.
-- ``ResourceAttribute`` is a single assignment of a value to one entity.
+- ``ResourceAttribute`` is a single assignment of a value to one resource.
 
 The ``ResourceAttributeKey`` acts as the entry point: enum values and assignments are
 managed through methods on a key instance.
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 from sift.resource_attribute.v1 import resource_attribute_pb2 as ra_pb
@@ -24,6 +24,9 @@ from sift_client.sift_types._base import BaseType
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.run import Run
 
 
 class ResourceAttributeKeyType(Enum):
@@ -37,7 +40,7 @@ class ResourceAttributeKeyType(Enum):
 
 
 class ResourceAttributeEntityType(Enum):
-    """Kind of Sift entity a resource attribute can be assigned to."""
+    """Kind of Sift resource a resource attribute can be assigned to."""
 
     UNSPECIFIED = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_UNSPECIFIED
     ASSET = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
@@ -46,24 +49,24 @@ class ResourceAttributeEntityType(Enum):
 
 
 class ResourceAttributeEntity(BaseModel):
-    """Identifies the entity a resource attribute is assigned to."""
+    """Identifies the supported resource a resource attribute is assigned to."""
 
     entity_id: str
     entity_type: ResourceAttributeEntityType
 
     @classmethod
     def for_asset(cls, entity_id: str) -> ResourceAttributeEntity:
-        """Build an entity identifier for an asset ID."""
+        """Build an identifier for an asset ID."""
         return cls(entity_id=entity_id, entity_type=ResourceAttributeEntityType.ASSET)
 
     @classmethod
     def for_channel(cls, entity_id: str) -> ResourceAttributeEntity:
-        """Build an entity identifier for a channel ID."""
+        """Build an identifier for a channel ID."""
         return cls(entity_id=entity_id, entity_type=ResourceAttributeEntityType.CHANNEL)
 
     @classmethod
     def for_run(cls, entity_id: str) -> ResourceAttributeEntity:
-        """Build an entity identifier for a run ID."""
+        """Build an identifier for a run ID."""
         return cls(entity_id=entity_id, entity_type=ResourceAttributeEntityType.RUN)
 
     @classmethod
@@ -147,7 +150,7 @@ class ResourceAttributeEnumValue(
 
 
 class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
-    """A single assignment of a resource attribute value to an entity."""
+    """A single assignment of a resource attribute value to a supported resource."""
 
     organization_id: str
     key_id: str
@@ -296,21 +299,27 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
             self, include_archived=include_archived
         )
 
-    def assign_to(self, entities, *, value) -> list[ResourceAttribute]:
-        """Assign a value to one or more entities for this key.
+    def assign_to(
+        self,
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run],
+        *,
+        value: Any,
+    ) -> list[ResourceAttribute]:
+        """Assign a value to one or more resources for this key.
 
         Args:
-            entities: Entities to assign to. Each may be a ``ResourceAttributeEntity``
-                or an ``Asset``/``Channel``/``Run`` instance.
+            resources: Resources to assign to. For currently supported resource types, pass
+                ``Asset``, ``Channel``, or ``Run`` objects directly, or use
+                ``ResourceAttributeEntity`` when you only have an ID.
             value: The value to assign. For ``SET_OF_ENUM`` keys, a list of enum values
                 (or their IDs); for ``ENUM`` keys, a single enum value; for ``BOOLEAN``
                 keys, a bool; for ``NUMBER`` keys, an int. For ``SET_OF_ENUM`` this
-                replaces the full set on each entity.
+                replaces the full set on each resource.
 
         Returns:
             The created assignments.
         """
-        return self.client.access_control.resource_attributes.assign(self, entities, value=value)
+        return self.client.access_control.resource_attributes.assign(self, resources, value=value)
 
     def list_assignments(self, *, include_archived: bool = False) -> list[ResourceAttribute]:
         """List all assignments of this key."""

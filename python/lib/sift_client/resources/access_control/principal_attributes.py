@@ -45,11 +45,14 @@ def _chunks(items: list[Any], size: int):
 
 
 class PrincipalAttributesAPIAsync(ResourceBase):
-    """High-level API for principal attributes (ABAC).
+    """High-level API for principal attributes.
 
-    Principal attributes assign attribute keys to principals (users or user groups). The
-    attribute key is the entry point: enum values and assignments are managed through
-    methods on a key, or through the corresponding methods here.
+    Principal attributes describe the users or groups an access decision applies to.
+    A principal is the "who" in an access decision, such as a user or user group.
+
+    Create or fetch an attribute key, define enum values when the key uses them, then
+    assign a value to principals. User principals accept either user IDs or email
+    addresses; user-group principals use user-group IDs.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -62,8 +65,6 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         self._low_level_client = PrincipalAttributesLowLevelClient(
             grpc_client=self.client.grpc_client
         )
-
-    # ───────── Keys ─────────
 
     async def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
         """Get a principal attribute key by ID."""
@@ -189,8 +190,6 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
         return await self._low_level_client.check_key_archive_impact(key_id)
 
-    # ───────── Enum values ─────────
-
     async def create_enum_value(
         self,
         key: str | PrincipalAttributeKey,
@@ -280,8 +279,6 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         value = await self._low_level_client.get_enum_value(enum_value_id)
         return self._apply_client_to_instance(value)
 
-    # ───────── Assignments (values) ─────────
-
     async def assign(
         self,
         key: PrincipalAttributeKey,
@@ -290,16 +287,17 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         value: Any,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> list[PrincipalAttributeValue]:
-        """Assign a value to principals for a key.
+        """Assign a key's value to principals.
 
         Args:
             key: The key to assign. Its ``value_type`` determines how ``value`` is interpreted.
-            principals: Principal IDs. For ``USER`` principals, an entry containing ``@`` is
-                treated as an email and resolved to a user ID.
+            principals: Principal IDs. For ``USER`` principals, entries containing ``@`` are
+                treated as email addresses and resolved to user IDs.
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
                 full set on each principal; for ``ENUM``, a single enum value; for ``BOOLEAN``,
                 a bool; for ``NUMBER``, an int.
-            principal_type: The kind of principal being assigned to. Defaults to ``USER``.
+            principal_type: The kind of principal being assigned to. Defaults to ``USER``. Use
+                ``PrincipalType.USER_GROUP`` when assigning to user groups.
 
         Returns:
             The created assignments.
@@ -348,7 +346,8 @@ class PrincipalAttributesAPIAsync(ResourceBase):
 
         Args:
             key: Filter to assignments of this key.
-            principal: Filter to assignments for this principal (user ID, or email for users).
+            principal: Filter to assignments for this principal. Use a user ID or email address
+                for users; use a user-group ID with ``PrincipalType.USER_GROUP`` for user groups.
             principal_type: The kind of principal to list assignments for. Defaults to ``USER``.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
@@ -411,8 +410,6 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             await self._low_level_client.unarchive_values(
                 batch, principal_type=principal_type.value
             )
-
-    # ───────── User resolution ─────────
 
     async def resolve_user_id(self, email: str) -> str:
         """Resolve a user's email (its user name) to a user ID.

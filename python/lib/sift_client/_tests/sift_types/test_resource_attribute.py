@@ -149,10 +149,12 @@ class TestResourceAttributeKeyConvenience:
         key._apply_client_to_instance(mock_client)
         mock_client.access_control.resource_attributes.assign.return_value = ["sentinel"]
 
-        result = key.assign_to(["ch1"], value=["LIC_A"])
+        resource = ResourceAttributeEntity.for_channel("ch1")
+
+        result = key.assign_to([resource], value=["LIC_A"])
 
         mock_client.access_control.resource_attributes.assign.assert_called_once_with(
-            key, ["ch1"], value=["LIC_A"]
+            key, [resource], value=["LIC_A"]
         )
         assert result == ["sentinel"]
 
