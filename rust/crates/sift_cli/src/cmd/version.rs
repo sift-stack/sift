@@ -34,10 +34,10 @@ pub async fn run() -> Result<ExitCode> {
                     current_str.yellow(),
                     latest.to_string().green(),
                 ));
-                out.tip(install_command(&latest).cyan().to_string());
+                out.tip(format!("`{}`", install_command(&latest)).cyan().to_string());
             } else if current_str.contains("alpha") {
                 out.line("You are on an alpha release.".to_string());
-                out.tip(install_command(&latest).cyan().to_string());
+                out.tip(format!("`{}`", install_command(&latest)).cyan().to_string());
             } else {
                 out.line("You're on the latest release.".to_string());
             }
