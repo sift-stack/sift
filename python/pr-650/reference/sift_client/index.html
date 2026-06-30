@@ -844,10 +844,21 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.CacheStats.channel_entries" class="md-nav__link">
+  <a href="#sift_client.CacheStats.channel_buckets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_entries
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_buckets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.CacheStats.channel_segments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_segments
       
     </span>
   </a>
@@ -2145,10 +2156,21 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.CacheStats.channel_entries" class="md-nav__link">
+  <a href="#sift_client.CacheStats.channel_buckets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_entries
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_buckets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.CacheStats.channel_segments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_segments
       
     </span>
   </a>
@@ -3269,7 +3291,8 @@ now there's only one adapter so the dedicated field stays flat.</p>
 Sift cache:
   path:     /tmp/sift-data-cache
   used:     142.3 MiB / 4.0 GiB (3.5%)
-  entries:  487 (487 channel)</p>
+  channels: 12 buckets, 487 segments
+  entries:  499 total</p>
 </blockquote>
 </blockquote>
 </blockquote>
@@ -3306,8 +3329,9 @@ Sift cache:
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">max_bytes</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">size_bytes</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">entry_count</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">channel_entries</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">channel_buckets</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">channel_segments</span><span class="p">:</span> <span class="n"><span title="int">int</span></span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3331,11 +3355,17 @@ diagnostics without surprise mutation.</p>
   Tends to trend slightly higher than the sum of per-entry
   <code>size_bytes</code> the resources hand to the store.</li>
 <li><strong>entry_count</strong> — total cache keys across all adapter prefixes
-  (channel entries + any future foreign-adapter rows).</li>
-<li><strong>channel_entries</strong> — channel cache entries (one per
-  <code>(channel_id, run_id)</code> bucket under the current single-entry
-  shape). Counted by walking the channel adapter's namespace
-  prefix.</li>
+  (channel index + segment rows, plus any future foreign-adapter
+  rows).</li>
+<li><strong>channel_buckets</strong> — number of distinct
+  <code>(channel_id, run_id)</code> channel buckets currently cached.
+  Counted by walking the channel adapter's index keys; one index
+  per bucket regardless of how many segments live under it.</li>
+<li><strong>channel_segments</strong> — total cached segment frames across every
+  bucket. Each <code>put_segment</code> call adds one; <code>diskcache</code> LRU
+  evictions can drop them independently of their parent index, so
+  this can be lower than the sum of segments the adapter has
+  written over the session.</li>
 </ul>
 <p><code>str(stats)</code> prints a multi-line summary suitable for
 notebook/REPL display; the structured fields are available for
@@ -3363,12 +3393,31 @@ programmatic checks.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            channel_entries
+            <td><code><a class="autorefs autorefs-internal" title="            channel_buckets
 
 
   
       instance-attribute
-   (sift_client.CacheStats.channel_entries)" href="#sift_client.CacheStats.channel_entries">channel_entries</a></code></td>
+   (sift_client.CacheStats.channel_buckets)" href="#sift_client.CacheStats.channel_buckets">channel_buckets</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            channel_segments
+
+
+  
+      instance-attribute
+   (sift_client.CacheStats.channel_segments)" href="#sift_client.CacheStats.channel_segments">channel_segments</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
                 
@@ -3494,16 +3543,38 @@ programmatic checks.</p>
 
 
 
-<h3 id="sift_client.CacheStats.channel_entries" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel_entries</span>
+<h3 id="sift_client.CacheStats.channel_buckets" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel_buckets</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-<a href="#sift_client.CacheStats.channel_entries" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel_entries</span><span class="p">:</span> <span class="n"><span title="int">int</span></span>
+<a href="#sift_client.CacheStats.channel_buckets" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel_buckets</span><span class="p">:</span> <span class="n"><span title="int">int</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.CacheStats.channel_segments" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel_segments</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_client.CacheStats.channel_segments" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel_segments</span><span class="p">:</span> <span class="n"><span title="int">int</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
