@@ -66,6 +66,15 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             grpc_client=self.client.grpc_client
         )
 
+    async def _resolve_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+        if isinstance(key, PrincipalAttributeKey):
+            return key
+        if not isinstance(key, str):
+            raise TypeError("assign requires a PrincipalAttributeKey or key ID string.")
+        if not key:
+            raise ValueError("Key ID cannot be empty.")
+        return await self.get_key(key_id=key)
+
     async def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
         """Get a principal attribute key by ID."""
         key = await self._low_level_client.get_key(key_id)
@@ -281,7 +290,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
 
     async def assign(
         self,
-        key: PrincipalAttributeKey,
+        key: str | PrincipalAttributeKey,
         principals: list[str],
         *,
         value: Any,
@@ -290,7 +299,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         """Assign a key's value to principals.
 
         Args:
-            key: The key to assign. Its ``value_type`` determines how ``value`` is interpreted.
+            key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
             principals: Principal IDs. For ``USER`` principals, entries containing ``@`` are
                 treated as email addresses and resolved to user IDs.
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
@@ -302,15 +311,14 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         Returns:
             The created assignments.
         """
-        if not isinstance(key, PrincipalAttributeKey):
-            raise TypeError("assign requires a PrincipalAttributeKey (with a known value_type).")
+        resolved_key = await self._resolve_key(key)
         resolved_ids = await self._resolve_principal_ids(principals, principal_type=principal_type)
-        create_kwargs = _principal_value_kwargs(key.value_type, value)
+        create_kwargs = _principal_value_kwargs(resolved_key.value_type, value)
 
         created: list[PrincipalAttributeValue] = []
         for batch in _chunks(resolved_ids, ASSIGN_BATCH_SIZE):
             values = await self._low_level_client.batch_create_values(
-                key_id=key._id_or_error,
+                key_id=resolved_key._id_or_error,
                 principal_ids=batch,
                 principal_type=principal_type.value,
                 **create_kwargs,
