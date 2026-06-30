@@ -3459,13 +3459,13 @@ You're not viewing the latest version.
 
     <div class="doc doc-contents first">
 
-        <p>Domain types for resource attributes (ABAC).</p>
-<p>Resource attributes assign attribute keys to Sift entities (assets, channels, runs)
-for attribute based access control. The model has three tiers:</p>
+        <p>Domain types for resource attributes.</p>
+<p>Resource attributes describe the Sift objects an access decision applies to. A resource
+is the "what" in an access decision. The model has three tiers:</p>
 <ul>
 <li><code>ResourceAttributeKey</code> defines an attribute (e.g. <code>licenses</code>) and its value type.</li>
 <li><code>ResourceAttributeEnumValue</code> is an allowed value for an <code>ENUM</code>/<code>SET_OF_ENUM</code> key.</li>
-<li><code>ResourceAttribute</code> is a single assignment of a value to one entity.</li>
+<li><code>ResourceAttribute</code> is a single assignment of a value to one resource.</li>
 </ul>
 <p>The <code>ResourceAttributeKey</code> acts as the entry point: enum values and assignments are
 managed through methods on a key instance.</p>
@@ -3496,7 +3496,7 @@ managed through methods on a key instance.</p>
    (sift_client.sift_types.resource_attribute.ResourceAttribute)" href="#sift_client.sift_types.resource_attribute.ResourceAttribute">ResourceAttribute</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>A single assignment of a resource attribute value to an entity.</p>
+                <p>A single assignment of a resource attribute value to a supported resource.</p>
               </div>
             </td>
           </tr>
@@ -3509,7 +3509,7 @@ managed through methods on a key instance.</p>
    (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Identifies the entity a resource attribute is assigned to.</p>
+                <p>Identifies the supported resource a resource attribute is assigned to.</p>
               </div>
             </td>
           </tr>
@@ -3517,7 +3517,7 @@ managed through methods on a key instance.</p>
             <td><code><a class="autorefs autorefs-internal" title="            ResourceAttributeEntityType (sift_client.sift_types.resource_attribute.ResourceAttributeEntityType)" href="#sift_client.sift_types.resource_attribute.ResourceAttributeEntityType">ResourceAttributeEntityType</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Kind of Sift entity a resource attribute can be assigned to.</p>
+                <p>Kind of Sift resource a resource attribute can be assigned to.</p>
               </div>
             </td>
           </tr>
@@ -3593,7 +3593,7 @@ managed through methods on a key instance.</p>
             <p class="doc doc-class-bases">
               Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.resource_attribute.v1.resource_attribute_pb2.ResourceAttribute">ResourceAttribute</span>, &#39;ResourceAttribute&#39;]</code></p>
 
-        <p>A single assignment of a resource attribute value to an entity.</p>
+        <p>A single assignment of a resource attribute value to a supported resource.</p>
 
     
 
@@ -4211,7 +4211,7 @@ managed through methods on a key instance.</p>
             <p class="doc doc-class-bases">
               Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
 
-        <p>Identifies the entity a resource attribute is assigned to.</p>
+        <p>Identifies the supported resource a resource attribute is assigned to.</p>
 
     
 
@@ -4317,7 +4317,7 @@ managed through methods on a key instance.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Build an entity identifier for an asset ID.</p>
+        <p>Build an identifier for an asset ID.</p>
 
 
     </div>
@@ -4346,7 +4346,7 @@ managed through methods on a key instance.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Build an entity identifier for a channel ID.</p>
+        <p>Build an identifier for a channel ID.</p>
 
 
     </div>
@@ -4375,7 +4375,7 @@ managed through methods on a key instance.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Build an entity identifier for a run ID.</p>
+        <p>Build an identifier for a run ID.</p>
 
 
     </div>
@@ -4407,7 +4407,7 @@ managed through methods on a key instance.</p>
 
 
 
-        <p>Kind of Sift entity a resource attribute can be assigned to.</p>
+        <p>Kind of Sift resource a resource attribute can be assigned to.</p>
 
 
 
@@ -5682,7 +5682,33 @@ reassigned to. If None, assignments using this value are archived.</p>
 
 
 <a href="#sift_client.sift_types.resource_attribute.ResourceAttributeKey.assign_to" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">assign_to</span><span class="p">(</span><span class="n">entities</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttribute
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">assign_to</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">resources</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="../channel/#sift_client.sift_types.channel.Channel">Channel</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../run/#sift_client.sift_types.run.Run">Run</a></span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">],</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttribute
 
 
   
@@ -5692,7 +5718,7 @@ reassigned to. If None, assignments using this value are archived.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Assign a value to one or more entities for this key.</p>
+        <p>Assign a value to one or more resources for this key.</p>
 
 
 <table>
@@ -5705,14 +5731,39 @@ reassigned to. If None, assignments using this value are archived.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>entities</code>
+                <code>resources</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Entities to assign to. Each may be a <code>ResourceAttributeEntity</code>
-or an <code>Asset</code>/<code>Channel</code>/<code>Run</code> instance.</p>
+                <p>Resources to assign to. For currently supported resource types, pass
+<code>Asset</code>, <code>Channel</code>, or <code>Run</code> objects directly, or use
+<code>ResourceAttributeEntity</code> when you only have an ID.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a> | <a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../asset/#sift_client.sift_types.asset.Asset">Asset</a> | <a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="../channel/#sift_client.sift_types.channel.Channel">Channel</a> | <a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../run/#sift_client.sift_types.run.Run">Run</a>]</code>
+                  </span>
               </p>
             </td>
           </tr>
@@ -5725,9 +5776,13 @@ or an <code>Asset</code>/<code>Channel</code>/<code>Run</code> instance.</p>
                 <p>The value to assign. For <code>SET_OF_ENUM</code> keys, a list of enum values
 (or their IDs); for <code>ENUM</code> keys, a single enum value; for <code>BOOLEAN</code>
 keys, a bool; for <code>NUMBER</code> keys, an int. For <code>SET_OF_ENUM</code> this
-replaces the full set on each entity.</p>
+replaces the full set on each resource.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="typing.Any">Any</span></code>
+                  </span>
               </p>
             </td>
           </tr>

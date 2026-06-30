@@ -20551,7 +20551,7 @@ internal state with the updated values from the API.</p>
             <td><code><a class="autorefs autorefs-internal" title="            sift_client.sift_types.principal_attribute" href="principal_attribute/#sift_client.sift_types.principal_attribute">principal_attribute</a></code></td>
             <td class="doc-module-details">
               <div class="doc-md-description">
-                <p>Domain types for principal attributes (ABAC).</p>
+                <p>Domain types for principal attributes.</p>
               </div>
             </td>
           </tr>
@@ -20567,7 +20567,7 @@ internal state with the updated values from the API.</p>
             <td><code><a class="autorefs autorefs-internal" title="            sift_client.sift_types.resource_attribute" href="resource_attribute/#sift_client.sift_types.resource_attribute">resource_attribute</a></code></td>
             <td class="doc-module-details">
               <div class="doc-md-description">
-                <p>Domain types for resource attributes (ABAC).</p>
+                <p>Domain types for resource attributes.</p>
               </div>
             </td>
           </tr>
@@ -21001,7 +21001,7 @@ internal state with the updated values from the API.</p>
    (sift_client.sift_types.ResourceAttribute)" href="#sift_client.sift_types.ResourceAttribute">ResourceAttribute</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>A single assignment of a resource attribute value to an entity.</p>
+                <p>A single assignment of a resource attribute value to a supported resource.</p>
               </div>
             </td>
           </tr>
@@ -21014,7 +21014,7 @@ internal state with the updated values from the API.</p>
    (sift_client.sift_types.ResourceAttributeEntity)" href="#sift_client.sift_types.ResourceAttributeEntity">ResourceAttributeEntity</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Identifies the entity a resource attribute is assigned to.</p>
+                <p>Identifies the supported resource a resource attribute is assigned to.</p>
               </div>
             </td>
           </tr>
@@ -21022,7 +21022,7 @@ internal state with the updated values from the API.</p>
             <td><code><a class="autorefs autorefs-internal" title="            ResourceAttributeEntityType (sift_client.sift_types.ResourceAttributeEntityType)" href="#sift_client.sift_types.ResourceAttributeEntityType">ResourceAttributeEntityType</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Kind of Sift entity a resource attribute can be assigned to.</p>
+                <p>Kind of Sift resource a resource attribute can be assigned to.</p>
               </div>
             </td>
           </tr>
@@ -32349,9 +32349,9 @@ reassigned to. If None, assignments using this value are archived.</p>
 
 <a href="#sift_client.sift_types.PrincipalAttributeKey.assign_to" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">assign_to</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">principals</span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">principals</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">value</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            USER
 
 
@@ -32386,10 +32386,14 @@ reassigned to. If None, assignments using this value are archived.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Principal IDs to assign to. For <code>USER</code> principals, an entry
-containing <code>@</code> is treated as an email and resolved to a user ID.</p>
+                <p>Principal IDs to assign to. For <code>USER</code> principals, entries
+containing <code>@</code> are treated as email addresses and resolved to user IDs.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<span title="str">str</span>]</code>
+                  </span>
               </p>
             </td>
           </tr>
@@ -32405,6 +32409,10 @@ keys, a bool; for <code>NUMBER</code> keys, an int. For <code>SET_OF_ENUM</code>
 replaces the full set on each principal.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="typing.Any">Any</span></code>
+                  </span>
               </p>
             </td>
           </tr>
@@ -32414,7 +32422,8 @@ replaces the full set on each principal.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The kind of principal being assigned to. Defaults to <code>USER</code>.</p>
+                <p>The kind of principal being assigned to. Defaults to <code>USER</code>. Use
+<code>PrincipalType.USER_GROUP</code> when assigning to user groups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -35697,7 +35706,7 @@ replaces the full set on each principal.</p>
             <p class="doc doc-class-bases">
               Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.resource_attribute.v1.resource_attribute_pb2.ResourceAttribute">ResourceAttribute</span>, &#39;ResourceAttribute&#39;]</code></p>
 
-        <p>A single assignment of a resource attribute value to an entity.</p>
+        <p>A single assignment of a resource attribute value to a supported resource.</p>
 
     
 
@@ -36315,7 +36324,7 @@ replaces the full set on each principal.</p>
             <p class="doc doc-class-bases">
               Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
 
-        <p>Identifies the entity a resource attribute is assigned to.</p>
+        <p>Identifies the supported resource a resource attribute is assigned to.</p>
 
     
 
@@ -36421,7 +36430,7 @@ replaces the full set on each principal.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Build an entity identifier for an asset ID.</p>
+        <p>Build an identifier for an asset ID.</p>
 
 
     </div>
@@ -36450,7 +36459,7 @@ replaces the full set on each principal.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Build an entity identifier for a channel ID.</p>
+        <p>Build an identifier for a channel ID.</p>
 
 
     </div>
@@ -36479,7 +36488,7 @@ replaces the full set on each principal.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Build an entity identifier for a run ID.</p>
+        <p>Build an identifier for a run ID.</p>
 
 
     </div>
@@ -36511,7 +36520,7 @@ replaces the full set on each principal.</p>
 
 
 
-        <p>Kind of Sift entity a resource attribute can be assigned to.</p>
+        <p>Kind of Sift resource a resource attribute can be assigned to.</p>
 
 
 
@@ -37786,7 +37795,33 @@ reassigned to. If None, assignments using this value are archived.</p>
 
 
 <a href="#sift_client.sift_types.ResourceAttributeKey.assign_to" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">assign_to</span><span class="p">(</span><span class="n">entities</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttribute
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">assign_to</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">resources</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="channel/#sift_client.sift_types.channel.Channel">Channel</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="run/#sift_client.sift_types.run.Run">Run</a></span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">],</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttribute
 
 
   
@@ -37796,7 +37831,7 @@ reassigned to. If None, assignments using this value are archived.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Assign a value to one or more entities for this key.</p>
+        <p>Assign a value to one or more resources for this key.</p>
 
 
 <table>
@@ -37809,14 +37844,39 @@ reassigned to. If None, assignments using this value are archived.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>entities</code>
+                <code>resources</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Entities to assign to. Each may be a <code>ResourceAttributeEntity</code>
-or an <code>Asset</code>/<code>Channel</code>/<code>Run</code> instance.</p>
+                <p>Resources to assign to. For currently supported resource types, pass
+<code>Asset</code>, <code>Channel</code>, or <code>Run</code> objects directly, or use
+<code>ResourceAttributeEntity</code> when you only have an ID.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a> | <a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="asset/#sift_client.sift_types.asset.Asset">Asset</a> | <a class="autorefs autorefs-internal" title="            Channel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.channel.Channel)" href="channel/#sift_client.sift_types.channel.Channel">Channel</a> | <a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="run/#sift_client.sift_types.run.Run">Run</a>]</code>
+                  </span>
               </p>
             </td>
           </tr>
@@ -37829,9 +37889,13 @@ or an <code>Asset</code>/<code>Channel</code>/<code>Run</code> instance.</p>
                 <p>The value to assign. For <code>SET_OF_ENUM</code> keys, a list of enum values
 (or their IDs); for <code>ENUM</code> keys, a single enum value; for <code>BOOLEAN</code>
 keys, a bool; for <code>NUMBER</code> keys, an int. For <code>SET_OF_ENUM</code> this
-replaces the full set on each entity.</p>
+replaces the full set on each resource.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="typing.Any">Any</span></code>
+                  </span>
               </p>
             </td>
           </tr>

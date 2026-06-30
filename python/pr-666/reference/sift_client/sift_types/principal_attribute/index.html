@@ -3315,9 +3315,10 @@ You're not viewing the latest version.
 
     <div class="doc doc-contents first">
 
-        <p>Domain types for principal attributes (ABAC).</p>
-<p>Principal attributes assign attribute keys to principals (users or user groups) for
-attribute based access control. The model mirrors resource attributes with three tiers:</p>
+        <p>Domain types for principal attributes.</p>
+<p>Principal attributes describe the users or groups an access decision applies to. A
+principal is the "who" in an access decision, such as a user or user group. The
+model mirrors resource attributes with three tiers:</p>
 <ul>
 <li><code>PrincipalAttributeKey</code> defines an attribute and its value type.</li>
 <li><code>PrincipalAttributeEnumValue</code> is an allowed value for an <code>ENUM</code>/<code>SET_OF_ENUM</code> key.</li>
@@ -4487,9 +4488,9 @@ reassigned to. If None, assignments using this value are archived.</p>
 
 <a href="#sift_client.sift_types.principal_attribute.PrincipalAttributeKey.assign_to" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">assign_to</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">principals</span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">principals</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">value</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            USER
 
 
@@ -4524,10 +4525,14 @@ reassigned to. If None, assignments using this value are archived.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Principal IDs to assign to. For <code>USER</code> principals, an entry
-containing <code>@</code> is treated as an email and resolved to a user ID.</p>
+                <p>Principal IDs to assign to. For <code>USER</code> principals, entries
+containing <code>@</code> are treated as email addresses and resolved to user IDs.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<span title="str">str</span>]</code>
+                  </span>
               </p>
             </td>
           </tr>
@@ -4543,6 +4548,10 @@ keys, a bool; for <code>NUMBER</code> keys, an int. For <code>SET_OF_ENUM</code>
 replaces the full set on each principal.</p>
               </div>
               <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="typing.Any">Any</span></code>
+                  </span>
               </p>
             </td>
           </tr>
@@ -4552,7 +4561,8 @@ replaces the full set on each principal.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The kind of principal being assigned to. Defaults to <code>USER</code>.</p>
+                <p>The kind of principal being assigned to. Defaults to <code>USER</code>. Use
+<code>PrincipalType.USER_GROUP</code> when assigning to user groups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">

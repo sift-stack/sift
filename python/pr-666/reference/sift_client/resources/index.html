@@ -11629,7 +11629,7 @@ updating, and archiving resources.</p>
             <td><code><a class="autorefs autorefs-internal" title="            PrincipalAttributesAPIAsync (sift_client.resources.PrincipalAttributesAPIAsync)" href="#sift_client.resources.PrincipalAttributesAPIAsync">PrincipalAttributesAPIAsync</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>High-level API for principal attributes (ABAC).</p>
+                <p>High-level API for principal attributes.</p>
               </div>
             </td>
           </tr>
@@ -11661,7 +11661,7 @@ updating, and archiving resources.</p>
             <td><code><a class="autorefs autorefs-internal" title="            ResourceAttributesAPIAsync (sift_client.resources.ResourceAttributesAPIAsync)" href="#sift_client.resources.ResourceAttributesAPIAsync">ResourceAttributesAPIAsync</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>High-level API for resource attributes (ABAC).</p>
+                <p>High-level API for resource attributes.</p>
               </div>
             </td>
           </tr>
@@ -31983,10 +31983,12 @@ globally for sync.</p>
 
 
         <p>Sync counterpart to <code>PrincipalAttributesAPIAsync</code>.</p>
-<p>High-level API for principal attributes (ABAC).</p>
-<p>Principal attributes assign attribute keys to principals (users or user groups). The
-attribute key is the entry point: enum values and assignments are managed through
-methods on a key, or through the corresponding methods here.</p>
+<p>High-level API for principal attributes.</p>
+<p>Principal attributes describe the users or groups an access decision applies to.
+A principal is the "who" in an access decision, such as a user or user group.</p>
+<p>Create or fetch an attribute key, define enum values when the key uses them, then
+assign a value to principals. User principals accept either user IDs or email
+addresses; user-group principals use user-group IDs.</p>
 
         <p>Initialize the PrincipalAttributesAPI.</p>
 
@@ -32065,7 +32067,7 @@ methods on a key, or through the corresponding methods here.</p>
               <td><code><a class="autorefs autorefs-internal" title="            assign (sift_client.resources.PrincipalAttributesAPI.assign)" href="#sift_client.resources.PrincipalAttributesAPI.assign">assign</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Assign a value to principals for a key.</p>
+                  <p>Assign a key's value to principals.</p>
                 </div>
               </td>
             </tr>
@@ -32363,7 +32365,7 @@ methods on a key, or through the corresponding methods here.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Assign a value to principals for a key.</p>
+        <p>Assign a key's value to principals.</p>
 
 
 <table>
@@ -32401,8 +32403,8 @@ methods on a key, or through the corresponding methods here.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Principal IDs. For <code>USER</code> principals, an entry containing <code>@</code> is
-treated as an email and resolved to a user ID.</p>
+                <p>Principal IDs. For <code>USER</code> principals, entries containing <code>@</code> are
+treated as email addresses and resolved to user IDs.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -32436,7 +32438,8 @@ a bool; for <code>NUMBER</code>, an int.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The kind of principal being assigned to. Defaults to <code>USER</code>.</p>
+                <p>The kind of principal being assigned to. Defaults to <code>USER</code>. Use
+<code>PrincipalType.USER_GROUP</code> when assigning to user groups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -32821,7 +32824,8 @@ name, the first active match is returned.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to assignments for this principal (user ID, or email for users).</p>
+                <p>Filter to assignments for this principal. Use a user ID or email address
+for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for user groups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -33486,10 +33490,12 @@ no matching user are omitted.</p>
 
 
 
-        <p>High-level API for principal attributes (ABAC).</p>
-<p>Principal attributes assign attribute keys to principals (users or user groups). The
-attribute key is the entry point: enum values and assignments are managed through
-methods on a key, or through the corresponding methods here.</p>
+        <p>High-level API for principal attributes.</p>
+<p>Principal attributes describe the users or groups an access decision applies to.
+A principal is the "who" in an access decision, such as a user or user group.</p>
+<p>Create or fetch an attribute key, define enum values when the key uses them, then
+assign a value to principals. User principals accept either user IDs or email
+addresses; user-group principals use user-group IDs.</p>
 
         <p>Initialize the PrincipalAttributesAPI.</p>
 
@@ -33588,7 +33594,7 @@ methods on a key, or through the corresponding methods here.</p>
    (sift_client.resources.PrincipalAttributesAPIAsync.assign)" href="#sift_client.resources.PrincipalAttributesAPIAsync.assign">assign</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Assign a value to principals for a key.</p>
+                  <p>Assign a key's value to principals.</p>
                 </div>
               </td>
             </tr>
@@ -34122,7 +34128,7 @@ methods on a key, or through the corresponding methods here.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Assign a value to principals for a key.</p>
+        <p>Assign a key's value to principals.</p>
 
 
 <table>
@@ -34160,8 +34166,8 @@ methods on a key, or through the corresponding methods here.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Principal IDs. For <code>USER</code> principals, an entry containing <code>@</code> is
-treated as an email and resolved to a user ID.</p>
+                <p>Principal IDs. For <code>USER</code> principals, entries containing <code>@</code> are
+treated as email addresses and resolved to user IDs.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -34195,7 +34201,8 @@ a bool; for <code>NUMBER</code>, an int.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The kind of principal being assigned to. Defaults to <code>USER</code>.</p>
+                <p>The kind of principal being assigned to. Defaults to <code>USER</code>. Use
+<code>PrincipalType.USER_GROUP</code> when assigning to user groups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -34616,7 +34623,8 @@ name, the first active match is returned.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to assignments for this principal (user ID, or email for users).</p>
+                <p>Filter to assignments for this principal. Use a user ID or email address
+for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for user groups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -39803,10 +39811,12 @@ job is not a rule evaluation job.</p>
 
 
         <p>Sync counterpart to <code>ResourceAttributesAPIAsync</code>.</p>
-<p>High-level API for resource attributes (ABAC).</p>
-<p>Resource attributes assign attribute keys to Sift entities (assets, channels, runs).
-The attribute key is the entry point: enum values and assignments are managed through
-methods on a key, or through the corresponding methods here.</p>
+<p>High-level API for resource attributes.</p>
+<p>Resource attributes describe the Sift objects an access decision applies to. A
+resource is the "what" in an access decision.</p>
+<p>Create or fetch an attribute key, define enum values when the key uses them, then
+assign a value to resources. For currently supported resource types, you can pass
+existing <code>Asset</code>, <code>Channel</code>, and <code>Run</code> objects directly.</p>
 
         <p>Initialize the ResourceAttributesAPI.</p>
 
@@ -39885,7 +39895,7 @@ methods on a key, or through the corresponding methods here.</p>
               <td><code><a class="autorefs autorefs-internal" title="            assign (sift_client.resources.ResourceAttributesAPI.assign)" href="#sift_client.resources.ResourceAttributesAPI.assign">assign</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Assign a value to entities for a key.</p>
+                  <p>Assign a key's value to resources.</p>
                 </div>
               </td>
             </tr>
@@ -40139,7 +40149,7 @@ methods on a key, or through the corresponding methods here.</p>
   
       pydantic-model
    (sift_client.sift_types.resource_attribute.ResourceAttributeKey)" href="../sift_types/resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeKey">ResourceAttributeKey</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">entities</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">resources</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
 
 
@@ -40174,7 +40184,7 @@ methods on a key, or through the corresponding methods here.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Assign a value to entities for a key.</p>
+        <p>Assign a key's value to resources.</p>
 
 
 <table>
@@ -40208,11 +40218,13 @@ methods on a key, or through the corresponding methods here.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>entities</code>
+                <code>resources</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Entities to assign to (ResourceAttributeEntity, Asset, Channel, or Run).</p>
+                <p>Resources to assign to. For currently supported resource types, pass
+<code>Asset</code>, <code>Channel</code>, or <code>Run</code> objects directly, or use
+<code>ResourceAttributeEntity</code> when you only have an ID.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -40249,7 +40261,7 @@ methods on a key, or through the corresponding methods here.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>For <code>SET_OF_ENUM</code>, a list of enum values (or their IDs) that becomes the
-full set on each entity; for <code>ENUM</code>, a single enum value; for <code>BOOLEAN</code>, a
+full set on each resource; for <code>ENUM</code>, a single enum value; for <code>BOOLEAN</code>, a
 bool; for <code>NUMBER</code>, an int.</p>
               </div>
               <p>
@@ -40642,7 +40654,7 @@ name, the first active match is returned.</p>
   
       pydantic-model
    (sift_client.sift_types.resource_attribute.ResourceAttributeKey)" href="../sift_types/resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeKey">ResourceAttributeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">entity</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">resource</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
 
 
   
@@ -40720,11 +40732,11 @@ name, the first active match is returned.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>entity</code>
+                <code>resource</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to assignments on this entity. When set, other filters are ignored.</p>
+                <p>Filter to assignments on this resource. When set, other filters are ignored.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -41338,10 +41350,12 @@ name, the first active match is returned.</p>
 
 
 
-        <p>High-level API for resource attributes (ABAC).</p>
-<p>Resource attributes assign attribute keys to Sift entities (assets, channels, runs).
-The attribute key is the entry point: enum values and assignments are managed through
-methods on a key, or through the corresponding methods here.</p>
+        <p>High-level API for resource attributes.</p>
+<p>Resource attributes describe the Sift objects an access decision applies to. A
+resource is the "what" in an access decision.</p>
+<p>Create or fetch an attribute key, define enum values when the key uses them, then
+assign a value to resources. For currently supported resource types, you can pass
+existing <code>Asset</code>, <code>Channel</code>, and <code>Run</code> objects directly.</p>
 
         <p>Initialize the ResourceAttributesAPI.</p>
 
@@ -41440,7 +41454,7 @@ methods on a key, or through the corresponding methods here.</p>
    (sift_client.resources.ResourceAttributesAPIAsync.assign)" href="#sift_client.resources.ResourceAttributesAPIAsync.assign">assign</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Assign a value to entities for a key.</p>
+                  <p>Assign a key's value to resources.</p>
                 </div>
               </td>
             </tr>
@@ -41920,7 +41934,7 @@ methods on a key, or through the corresponding methods here.</p>
   
       pydantic-model
    (sift_client.sift_types.resource_attribute.ResourceAttributeKey)" href="../sift_types/resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeKey">ResourceAttributeKey</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">entities</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">resources</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
 
 
@@ -41955,7 +41969,7 @@ methods on a key, or through the corresponding methods here.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Assign a value to entities for a key.</p>
+        <p>Assign a key's value to resources.</p>
 
 
 <table>
@@ -41989,11 +42003,13 @@ methods on a key, or through the corresponding methods here.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>entities</code>
+                <code>resources</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Entities to assign to (ResourceAttributeEntity, Asset, Channel, or Run).</p>
+                <p>Resources to assign to. For currently supported resource types, pass
+<code>Asset</code>, <code>Channel</code>, or <code>Run</code> objects directly, or use
+<code>ResourceAttributeEntity</code> when you only have an ID.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -42030,7 +42046,7 @@ methods on a key, or through the corresponding methods here.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>For <code>SET_OF_ENUM</code>, a list of enum values (or their IDs) that becomes the
-full set on each entity; for <code>ENUM</code>, a single enum value; for <code>BOOLEAN</code>, a
+full set on each resource; for <code>ENUM</code>, a single enum value; for <code>BOOLEAN</code>, a
 bool; for <code>NUMBER</code>, an int.</p>
               </div>
               <p>
@@ -42459,7 +42475,7 @@ name, the first active match is returned.</p>
   
       pydantic-model
    (sift_client.sift_types.resource_attribute.ResourceAttributeKey)" href="../sift_types/resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeKey">ResourceAttributeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">entity</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">resource</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEntity
 
 
   
@@ -42537,11 +42553,11 @@ name, the first active match is returned.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>entity</code>
+                <code>resource</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to assignments on this entity. When set, other filters are ignored.</p>
+                <p>Filter to assignments on this resource. When set, other filters are ignored.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
