@@ -32,8 +32,6 @@ pub async fn serve(args: DocArgs) -> Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
-/// An unspecified bind address (`0.0.0.0` or `[::]`) isn't routable in a
-/// browser, so show `localhost`. An explicit address is shown as-is.
 fn doc_url(addr: SocketAddr) -> String {
     if addr.ip().is_unspecified() {
         format!("http://localhost:{}", addr.port())
