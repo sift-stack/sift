@@ -281,17 +281,11 @@ class TestSyncWrapperNestedResources:
         )
         return MockParentResource(mock_client), MockNestedResource
 
-    def test_nested_property_returns_sync_instance(self):
+    def test_nested_property_returns_cached_sync_wrapper_around_parent_impl(self):
         parent, MockNestedResource = self._make_parent_sync()  # noqa: N806
         assert isinstance(inspect.getattr_static(type(parent), "nested"), property)
         assert isinstance(parent.nested, MockNestedResource)
-
-    def test_nested_property_is_cached(self):
-        parent, _ = self._make_parent_sync()
         assert parent.nested is parent.nested
-
-    def test_nested_property_reuses_parent_async_instance(self):
-        parent, _ = self._make_parent_sync()
         assert parent.nested._async_impl is parent._async_impl.nested
         assert parent._async_impl.nested._is_sync is True
 

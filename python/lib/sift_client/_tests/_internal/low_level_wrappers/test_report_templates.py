@@ -28,7 +28,7 @@ def _template_proto(report_template_id: str = "template-1") -> rt.ReportTemplate
 
 class TestGetReportTemplate:
     @pytest.mark.asyncio
-    async def test_get_by_id(self):
+    async def test_get_by_id_or_client_key(self):
         stub = MagicMock()
         stub.GetReportTemplate = AsyncMock(
             return_value=rt.GetReportTemplateResponse(report_template=_template_proto())
@@ -41,14 +41,6 @@ class TestGetReportTemplate:
         assert request.report_template_id == "template-1"
         assert request.client_key == ""
         assert template.id_ == "template-1"
-
-    @pytest.mark.asyncio
-    async def test_get_by_client_key_with_organization(self):
-        stub = MagicMock()
-        stub.GetReportTemplate = AsyncMock(
-            return_value=rt.GetReportTemplateResponse(report_template=_template_proto())
-        )
-        client = _client_with_stub(stub)
 
         await client.get_report_template(client_key="template-key", organization_id="org-1")
 
@@ -111,7 +103,7 @@ class TestUpdateReportTemplate:
 
 class TestListAllReportTemplates:
     @pytest.mark.asyncio
-    async def test_follows_pagination(self):
+    async def test_paginates_and_passes_request_fields(self):
         stub = MagicMock()
         stub.ListReportTemplates = AsyncMock(
             side_effect=[
@@ -125,26 +117,15 @@ class TestListAllReportTemplates:
         )
         client = _client_with_stub(stub)
 
-        templates = await client.list_all_report_templates()
-
-        assert [template.id_ for template in templates] == ["template-1", "template-2"]
-        assert stub.ListReportTemplates.call_count == 2
-
-    @pytest.mark.asyncio
-    async def test_passes_filter_organization_and_order_by(self):
-        stub = MagicMock()
-        stub.ListReportTemplates = AsyncMock(
-            return_value=rt.ListReportTemplatesResponse(next_page_token="")
-        )
-        client = _client_with_stub(stub)
-
-        await client.list_all_report_templates(
+        templates = await client.list_all_report_templates(
             query_filter='name == "template"',
             organization_id="org-1",
             order_by="created_date desc",
         )
 
-        request = stub.ListReportTemplates.call_args[0][0]
+        assert [template.id_ for template in templates] == ["template-1", "template-2"]
+        assert stub.ListReportTemplates.call_count == 2
+        request = stub.ListReportTemplates.call_args_list[0][0][0]
         assert request.filter == 'name == "template"'
         assert request.organization_id == "org-1"
         assert request.order_by == "created_date desc"

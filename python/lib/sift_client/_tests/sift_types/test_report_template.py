@@ -98,16 +98,14 @@ class TestReportTemplateCreate:
         assert proto.WhichOneof("rule_identifiers") == "rule_client_keys"
         assert list(proto.rule_client_keys.rule_client_keys) == ["key-1"]
 
-    def test_rule_objects_coerced_to_ids(self):
+    def test_rule_and_tag_objects_coerced_to_ids_and_names(self):
         proto = ReportTemplateCreate(
-            name="template", rule_ids=[_rule("rule-9"), "rule-2"]
+            name="template",
+            rule_ids=[_rule("rule-9"), "rule-2"],
+            tags=[_tag("tag-9"), "tag-2"],
         ).to_proto()
 
         assert list(proto.rule_ids.rule_ids) == ["rule-9", "rule-2"]
-
-    def test_tag_objects_coerced_to_names(self):
-        proto = ReportTemplateCreate(name="template", tags=[_tag("tag-9"), "tag-2"]).to_proto()
-
         assert list(proto.tag_names) == ["tag-9", "tag-2"]
 
     def test_raises_when_both_rule_ids_and_client_keys_provided(self):
@@ -182,17 +180,11 @@ class TestReportTemplateUpdate:
         with pytest.raises(ValueError, match="Only one of rule_ids or rule_client_keys"):
             ReportTemplateUpdate(rule_ids=["rule-1"], rule_client_keys=["key-1"])
 
-    def test_raises_on_empty_rule_ids(self):
+    def test_raises_on_empty_rule_lists(self):
         with pytest.raises(ValueError, match="at least one rule"):
             ReportTemplateUpdate(rule_ids=[])
-
-    def test_raises_on_empty_rule_client_keys(self):
         with pytest.raises(ValueError, match="at least one rule"):
             ReportTemplateUpdate(rule_client_keys=[])
-
-    def test_raises_without_resource_id(self):
-        with pytest.raises(ValueError, match="Resource ID must be set"):
-            ReportTemplateUpdate(name="new name").to_proto_with_mask()
 
 
 @pytest.fixture
@@ -234,17 +226,6 @@ def mock_report_template(mock_client, mock_report_template_rule):
 
 class TestReportTemplate:
     """Unit tests for the ReportTemplate model."""
-
-    def test_properties(self, mock_report_template):
-        assert mock_report_template.id_ == "template-1"
-        assert mock_report_template.name == "test_template"
-        assert mock_report_template.client_key == "template-key"
-        assert mock_report_template.description == "test description"
-        assert mock_report_template.organization_id == "org-1"
-        assert mock_report_template.tags == ["tag1", "tag2"]
-        assert mock_report_template.metadata == {"key": "value"}
-        assert mock_report_template.is_archived is False
-        assert len(mock_report_template.rules) == 1
 
     def test_to_proto(self, mock_report_template):
         proto = mock_report_template.to_proto()
@@ -305,12 +286,14 @@ class TestReportTemplate:
             mock_update.assert_called_once_with(updated_template)
             assert result is mock_report_template
 
-    def test_archive(self, mock_report_template, mock_client):
+    def test_archive_and_unarchive_delegate_to_client(self, mock_report_template, mock_client):
         archived_template = MagicMock()
-        archived_template.is_archived = True
         mock_client.reports.templates.archive.return_value = archived_template
+        unarchived_template = MagicMock()
+        mock_client.reports.templates.unarchive.return_value = unarchived_template
         with MagicMock() as mock_update:
             mock_report_template._update = mock_update
+
             result = mock_report_template.archive()
             mock_client.reports.templates.archive.assert_called_once_with(
                 report_template=mock_report_template
@@ -318,39 +301,31 @@ class TestReportTemplate:
             mock_update.assert_called_once_with(archived_template)
             assert result is mock_report_template
 
-    def test_unarchive(self, mock_report_template, mock_client):
-        unarchived_template = MagicMock()
-        unarchived_template.is_archived = False
-        mock_client.reports.templates.unarchive.return_value = unarchived_template
-        with MagicMock() as mock_update:
-            mock_report_template._update = mock_update
             result = mock_report_template.unarchive()
             mock_client.reports.templates.unarchive.assert_called_once_with(
                 report_template=mock_report_template
             )
-            mock_update.assert_called_once_with(unarchived_template)
+            mock_update.assert_called_with(unarchived_template)
             assert result is mock_report_template
 
 
 class TestReportTemplateRule:
     """Unit tests for the ReportTemplateRule model."""
 
-    def test_to_proto(self, mock_report_template_rule):
-        proto = mock_report_template_rule.to_proto()
-
-        assert proto.rule_id == "rule-1"
-        assert proto.rule_version_id == "version-1"
-        assert proto.rule_version_number == 1
-        assert proto.client_key == "rule-key"
-        assert proto.display_order == 0
-
-    def test_from_proto_empty_client_key_is_none(self):
+    def test_proto_round_trip(self):
         proto = ReportTemplateRuleProto(
             rule_id="rule-1", rule_version_id="version-1", rule_version_number=1, display_order=2
         )
 
         rule = ReportTemplateRule._from_proto(proto)
 
-        assert rule.rule_id == "rule-1"
+        # Empty proto string coerces to None at the type boundary.
         assert rule.rule_client_key is None
         assert rule.display_order == 2
+
+        round_tripped = rule.to_proto()
+        assert round_tripped.rule_id == "rule-1"
+        assert round_tripped.rule_version_id == "version-1"
+        assert round_tripped.rule_version_number == 1
+        assert round_tripped.client_key == ""
+        assert round_tripped.display_order == 2

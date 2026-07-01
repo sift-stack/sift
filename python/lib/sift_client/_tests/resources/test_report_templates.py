@@ -110,7 +110,7 @@ class TestReportTemplatesList:
 
 class TestReportTemplatesCreate:
     @pytest.mark.asyncio
-    async def test_accepts_dict_and_validates(self, mock_client):
+    async def test_accepts_dict_or_model(self, mock_client):
         api = _api(mock_client)
         api._low_level_client.create_report_template = AsyncMock(return_value=_template())
 
@@ -122,15 +122,12 @@ class TestReportTemplatesCreate:
         assert create.rule_ids == ["rule-1"]
         assert template.id_ == "template-1"
 
-    @pytest.mark.asyncio
-    async def test_accepts_create_model(self, mock_client):
-        api = _api(mock_client)
-        api._low_level_client.create_report_template = AsyncMock(return_value=_template())
+        create_model = ReportTemplateCreate(name="template")
+        await api.create(create_model)
 
-        create = ReportTemplateCreate(name="template")
-        await api.create(create)
-
-        assert api._low_level_client.create_report_template.await_args.kwargs["create"] is create
+        assert (
+            api._low_level_client.create_report_template.await_args.kwargs["create"] is create_model
+        )
 
 
 class TestReportTemplatesUpdate:
@@ -147,7 +144,7 @@ class TestReportTemplatesUpdate:
         assert update.name == "renamed"
 
     @pytest.mark.asyncio
-    async def test_archive_sets_is_archived(self, mock_client):
+    async def test_archive_and_unarchive_toggle_is_archived(self, mock_client):
         api = _api(mock_client)
         api._low_level_client.update_report_template = AsyncMock(return_value=_template())
 
@@ -156,11 +153,6 @@ class TestReportTemplatesUpdate:
         update = api._low_level_client.update_report_template.await_args.kwargs["update"]
         assert update.resource_id == "template-1"
         assert update.is_archived is True
-
-    @pytest.mark.asyncio
-    async def test_unarchive_clears_is_archived(self, mock_client):
-        api = _api(mock_client)
-        api._low_level_client.update_report_template = AsyncMock(return_value=_template())
 
         await api.unarchive(report_template="template-1")
 
@@ -173,7 +165,7 @@ class TestReportsCreateFromTemplate:
     """Unit tests for ReportsAPIAsync.create_from_template argument coercion."""
 
     @pytest.mark.asyncio
-    async def test_accepts_template_and_run_objects(self, mock_client):
+    async def test_coerces_objects_and_forwards_args(self, mock_client):
         api = ReportsAPIAsync(mock_client)
         evaluate_rules = AsyncMock(return_value=(0, None, None))
         api._rules_low_level_client.evaluate_rules = evaluate_rules
@@ -183,12 +175,6 @@ class TestReportsCreateFromTemplate:
         kwargs = evaluate_rules.await_args.kwargs
         assert kwargs["report_template_id"] == "template-9"
         assert kwargs["run_id"] == "run-1"
-
-    @pytest.mark.asyncio
-    async def test_accepts_template_id_string(self, mock_client):
-        api = ReportsAPIAsync(mock_client)
-        evaluate_rules = AsyncMock(return_value=(0, None, None))
-        api._rules_low_level_client.evaluate_rules = evaluate_rules
 
         await api.create_from_template(report_template="template-1", run="run-1", name="my report")
 
