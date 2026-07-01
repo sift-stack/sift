@@ -1,3 +1,5 @@
+use std::{fs::File, io::Write, path::PathBuf};
+
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
@@ -44,6 +46,13 @@ pub struct AppendMeasurementsParams {
     pub(crate) test_report_id: String,
     pub(crate) test_step_id: String,
     pub(crate) measurements_json: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ExportTestReportParams {
+    pub(crate) test_report_id: String,
+    pub(crate) output: PathBuf,
+    pub(crate) include_measurements: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -515,6 +524,119 @@ impl SiftMcpServer {
             "test_report_id": test_report_id,
             "test_step_id": test_step_id,
             "measurements_created": created,
+            "report_url": report_url,
+            "next_step": next_step,
+        }));
+        result.content = vec![Content::text(next_step)];
+        Ok(result)
+    }
+
+    #[tool(
+        name = "export_test_report",
+        description = "
+            Snapshot a full test report tree (the report, its steps, and their measurements) to a JSON
+            file for audit and diffing. Reads only; writes a local file, never mutates Sift. The snapshot
+            omits server-managed fields (e.g. the report's derived `archived_date`) and orders everything
+            deterministically, so a diff between two snapshots shows only user-editable changes.
+
+            Use it to record a baseline before a batch of `update_test_*` edits, then re-export afterward
+            and diff to confirm the writes matched intent. To DRY-RUN a bulk edit without touching Sift:
+            export the baseline, apply the intended changes to a copy of the file, and diff the two — only
+            then run the write tools.
+
+            Output:
+              - Writes a JSON file at `output` (truncate mode). Shape: the report's user-editable fields,
+                then a nested `steps` array (children nested under parents, ordered by `step_path`), each
+                step carrying its `measurements`. Field names mirror the create/update tool inputs
+                (`numeric_bounds`, `string_expected`, `unit`), so a value can be copied straight into an
+                update call. Empty/defaulted fields are omitted.
+              - Tool result: `{ \"output\": \"<path>\", \"test_report_id\": \"...\", \"steps_exported\": N,
+                \"measurements_exported\": M, \"report_url\": string|null, \"next_step\": string }`.
+
+            Parameters:
+              - `test_report_id`: required; the report to snapshot.
+              - `output`: required filesystem path for the JSON file. Opened in truncate mode; an existing
+                file is overwritten.
+              - `include_measurements`: optional (default `true`). Set `false` for a structure-only snapshot
+                that skips the measurement fetch.
+
+            Errors:
+              - `INVALID_PARAMS` if `test_report_id` is empty.
+              - `RESOURCE_NOT_FOUND` if no report matches `test_report_id`.
+              - `INTERNAL_ERROR` if an upstream gRPC call fails or the file cannot be written.
+
+            Guidance:
+              - Snapshot into a version-controlled path (or two dated files) so `git diff` / `diff` gives a
+                clean before/after audit trail across a batch of edits.
+        ",
+        annotations(
+            title = "test_reports_router/export_test_report",
+            read_only_hint = true
+        )
+    )]
+    pub async fn export_test_report(
+        &self,
+        params: Parameters<ExportTestReportParams>,
+    ) -> error::McpResult {
+        let Parameters(ExportTestReportParams {
+            test_report_id,
+            output,
+            include_measurements,
+        }) = params;
+
+        if test_report_id.is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`test_report_id` must not be empty",
+                None,
+            ));
+        }
+        let include_measurements = include_measurements.unwrap_or(true);
+
+        let export = self
+            .test_report_service
+            .export_test_report(test_report_id.clone(), include_measurements)
+            .await
+            .map_err(from_anyhow)?
+            .ok_or_else(|| {
+                ErrorData::resource_not_found(
+                    format!("no test report matches `{test_report_id}`"),
+                    None,
+                )
+            })?;
+
+        let json = serde_json::to_string_pretty(&export.report).map_err(|e| {
+            ErrorData::internal_error(format!("failed to serialize export: {e}"), None)
+        })?;
+        let mut file = File::options()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&output)
+            .map_err(|e| {
+                ErrorData::internal_error(format!("failed to open output file: {e}"), None)
+            })?;
+        file.write_all(json.as_bytes()).map_err(|e| {
+            ErrorData::internal_error(format!("failed to write output file: {e}"), None)
+        })?;
+
+        let output_str = output.to_string_lossy().into_owned();
+        let report_url = self.url_service.build_test_report_url(&test_report_id).ok();
+        let next_step = format!(
+            "Wrote a canonical snapshot of test report `{}` ({} step(s), {} measurement(s)) to \
+             `{output_str}`. It omits server-managed fields so a diff shows only user-editable \
+             changes.{} To dry-run bulk edits: keep this file, apply the intended changes to a copy, \
+             diff the two, and only then run the `update_test_*` tools; re-export afterward to confirm.",
+            test_report_id,
+            export.steps_exported,
+            export.measurements_exported,
+            url_clause(report_url.as_deref()),
+        );
+
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "output": output_str,
+            "test_report_id": test_report_id,
+            "steps_exported": export.steps_exported,
+            "measurements_exported": export.measurements_exported,
             "report_url": report_url,
             "next_step": next_step,
         }));

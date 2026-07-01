@@ -14,6 +14,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::TestReportService;
+use super::export;
 use super::spec;
 use crate::policy::RetryPolicy;
 use crate::service::common::PAGE_SIZE;
@@ -970,4 +971,271 @@ async fn update_test_measurement_propagates_grpc_error() {
         err.to_string()
             .contains("failed to update test measurement")
     );
+}
+
+// --- export::build (pure tree assembly) ---
+
+#[test]
+fn export_build_nests_orders_and_attaches_measurements() {
+    let report = TestReport {
+        test_report_id: "r1".into(),
+        name: "nightly".into(),
+        status: TestStatus::Passed as i32,
+        test_system_name: "rig".into(),
+        test_case: "tc".into(),
+        ..Default::default()
+    };
+    let mk_step = |id: &str, parent: &str, path: &str, name: &str, ty: TestStepType| TestStep {
+        test_step_id: id.into(),
+        test_report_id: "r1".into(),
+        parent_step_id: parent.into(),
+        step_path: path.into(),
+        name: name.into(),
+        step_type: ty as i32,
+        status: TestStatus::Passed as i32,
+        ..Default::default()
+    };
+    // Deliberately out of order, with a two-digit path to exercise numeric sorting.
+    let steps = vec![
+        mk_step("s2", "", "2", "second", TestStepType::Action),
+        mk_step("s10", "", "10", "tenth", TestStepType::Action),
+        mk_step("s1", "", "1", "first", TestStepType::Sequence),
+        mk_step("s1c", "s1", "1.1", "child", TestStepType::Action),
+    ];
+    let mk_meas = |id: &str, name: &str| TestMeasurement {
+        measurement_id: id.into(),
+        test_step_id: "s1".into(),
+        test_report_id: "r1".into(),
+        name: name.into(),
+        measurement_type: TestMeasurementType::Double as i32,
+        value: Some(test_measurement::Value::NumericValue(1.0)),
+        passed: true,
+        ..Default::default()
+    };
+    let measurements = vec![mk_meas("m2", "bbb"), mk_meas("m1", "aaa")];
+
+    let export = export::build(report, steps, measurements);
+    assert_eq!(export.steps_exported, 4);
+    assert_eq!(export.measurements_exported, 2);
+
+    // Roots ordered numerically: 1, 2, 10 (not lexicographically 1, 10, 2).
+    let paths: Vec<&str> = export
+        .report
+        .steps
+        .iter()
+        .map(|s| s.step_path.as_str())
+        .collect();
+    assert_eq!(paths, vec!["1", "2", "10"]);
+
+    let first = &export.report.steps[0];
+    // Child nested under "1".
+    assert_eq!(first.steps.len(), 1);
+    assert_eq!(first.steps[0].step_path, "1.1");
+    // Measurements attached under "1", ordered by name.
+    let ms: Vec<&str> = first.measurements.iter().map(|m| m.name.as_str()).collect();
+    assert_eq!(ms, vec!["aaa", "bbb"]);
+    // Enum tags rendered as canonical names, not ints.
+    assert_eq!(first.status, "TEST_STATUS_PASSED");
+    assert_eq!(first.step_type, "TEST_STEP_TYPE_SEQUENCE");
+}
+
+#[test]
+fn export_omits_server_managed_fields_but_keeps_is_archived() {
+    let report = TestReport {
+        test_report_id: "r1".into(),
+        name: "n".into(),
+        status: TestStatus::Passed as i32,
+        test_system_name: "rig".into(),
+        test_case: "tc".into(),
+        is_archived: true,
+        archived_date: Some(Timestamp {
+            seconds: 100,
+            nanos: 0,
+        }),
+        ..Default::default()
+    };
+    let export = export::build(report, vec![], vec![]);
+    let json = serde_json::to_value(&export.report).expect("serialize");
+    let obj = json.as_object().unwrap();
+    assert!(
+        !obj.contains_key("archived_date"),
+        "server-managed archived_date must be omitted"
+    );
+    assert_eq!(obj.get("is_archived"), Some(&serde_json::Value::Bool(true)));
+}
+
+#[test]
+fn export_maps_measurement_value_and_bounds() {
+    let report = TestReport {
+        test_report_id: "r1".into(),
+        name: "n".into(),
+        status: TestStatus::Passed as i32,
+        test_system_name: "rig".into(),
+        test_case: "tc".into(),
+        ..Default::default()
+    };
+    let steps = vec![TestStep {
+        test_step_id: "s1".into(),
+        test_report_id: "r1".into(),
+        step_path: "1".into(),
+        name: "s".into(),
+        step_type: TestStepType::Action as i32,
+        status: TestStatus::Passed as i32,
+        ..Default::default()
+    }];
+    let measurements = vec![
+        TestMeasurement {
+            measurement_id: "m1".into(),
+            test_step_id: "s1".into(),
+            test_report_id: "r1".into(),
+            name: "num".into(),
+            measurement_type: TestMeasurementType::Double as i32,
+            value: Some(test_measurement::Value::NumericValue(3.3)),
+            bounds: Some(test_measurement::Bounds::NumericBounds(NumericBounds {
+                min: Some(3.0),
+                max: Some(3.6),
+            })),
+            passed: true,
+            ..Default::default()
+        },
+        TestMeasurement {
+            measurement_id: "m2".into(),
+            test_step_id: "s1".into(),
+            test_report_id: "r1".into(),
+            name: "str".into(),
+            measurement_type: TestMeasurementType::String as i32,
+            value: Some(test_measurement::Value::StringValue("ok".into())),
+            bounds: Some(test_measurement::Bounds::StringBounds(StringBounds {
+                expected_value: "ok".into(),
+            })),
+            passed: true,
+            ..Default::default()
+        },
+    ];
+
+    let export = export::build(report, steps, measurements);
+    let ms = &export.report.steps[0].measurements;
+    // Ordered by name: num, str.
+    assert_eq!(ms[0].numeric_value, Some(3.3));
+    let nb = ms[0].numeric_bounds.as_ref().unwrap();
+    assert_eq!((nb.min, nb.max), (Some(3.0), Some(3.6)));
+    assert_eq!(ms[1].string_value.as_deref(), Some("ok"));
+    assert_eq!(ms[1].string_expected.as_deref(), Some("ok"));
+    assert_eq!(ms[1].measurement_type, "TEST_MEASUREMENT_TYPE_STRING");
+}
+
+// --- export_test_report (composite against the mock) ---
+
+#[tokio::test]
+async fn export_test_report_assembles_from_lists() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_list_test_reports()
+        .withf(|req| req.get_ref().filter == "test_report_id == \"r1\"")
+        .returning(|_| {
+            Ok(Response::new(ListTestReportsResponse {
+                test_reports: vec![TestReport {
+                    test_report_id: "r1".into(),
+                    name: "n".into(),
+                    status: TestStatus::Passed as i32,
+                    test_system_name: "rig".into(),
+                    test_case: "tc".into(),
+                    ..Default::default()
+                }],
+                next_page_token: String::new(),
+            }))
+        });
+    mock.expect_list_test_steps().returning(|_| {
+        Ok(Response::new(ListTestStepsResponse {
+            test_steps: vec![TestStep {
+                test_step_id: "s1".into(),
+                test_report_id: "r1".into(),
+                step_path: "1".into(),
+                name: "s".into(),
+                step_type: TestStepType::Action as i32,
+                status: TestStatus::Passed as i32,
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_list_test_measurements().returning(|_| {
+        Ok(Response::new(ListTestMeasurementsResponse {
+            test_measurements: vec![TestMeasurement {
+                measurement_id: "m1".into(),
+                test_step_id: "s1".into(),
+                test_report_id: "r1".into(),
+                name: "v".into(),
+                measurement_type: TestMeasurementType::Double as i32,
+                value: Some(test_measurement::Value::NumericValue(1.0)),
+                passed: true,
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let export = service
+        .export_test_report("r1".to_string(), true)
+        .await
+        .expect("export_test_report failed")
+        .expect("report present");
+
+    assert_eq!(export.report.test_report_id, "r1");
+    assert_eq!(export.steps_exported, 1);
+    assert_eq!(export.measurements_exported, 1);
+    assert_eq!(export.report.steps[0].measurements[0].name, "v");
+}
+
+#[tokio::test]
+async fn export_test_report_returns_none_when_not_found() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_list_test_reports().returning(|_| {
+        Ok(Response::new(ListTestReportsResponse {
+            test_reports: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let export = service
+        .export_test_report("missing".to_string(), true)
+        .await
+        .expect("export_test_report failed");
+
+    assert!(export.is_none(), "missing report should return None");
+}
+
+#[tokio::test]
+async fn export_test_report_skips_measurements_when_disabled() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_list_test_reports().returning(|_| {
+        Ok(Response::new(ListTestReportsResponse {
+            test_reports: vec![TestReport {
+                test_report_id: "r1".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_list_test_steps().returning(|_| {
+        Ok(Response::new(ListTestStepsResponse {
+            test_steps: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+    // Measurements must not be fetched when the caller opts out.
+    mock.expect_list_test_measurements().never();
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let export = service
+        .export_test_report("r1".to_string(), false)
+        .await
+        .expect("export_test_report failed")
+        .expect("report present");
+
+    assert_eq!(export.measurements_exported, 0);
 }

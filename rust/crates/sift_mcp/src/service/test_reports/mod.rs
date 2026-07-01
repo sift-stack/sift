@@ -19,6 +19,7 @@ use sift_rs::{
     unit::v2::Unit,
 };
 
+pub mod export;
 pub mod spec;
 use spec::{BuiltReport, BuiltStep};
 
@@ -778,5 +779,34 @@ impl TestReportService {
 
         resp.test_measurement
             .ok_or_else(|| anyhow!("update_test_measurement response missing measurement"))
+    }
+
+    /// Fetch a full test report tree (report, its steps, and optionally its measurements) and
+    /// assemble it into a canonical, diff-stable snapshot. Reuses the list RPCs, filtering each by
+    /// `test_report_id`. Returns `Ok(None)` when no report matches, so the tool layer can classify
+    /// that as `RESOURCE_NOT_FOUND`.
+    pub async fn export_test_report(
+        &self,
+        test_report_id: String,
+        include_measurements: bool,
+    ) -> Result<Option<export::Export>> {
+        let id_filter = format!("test_report_id == \"{test_report_id}\"");
+
+        let mut reports = self
+            .list_test_reports(id_filter.clone(), None, Some(1))
+            .await?;
+        if reports.is_empty() {
+            return Ok(None);
+        }
+        let report = reports.remove(0);
+
+        let steps = self.list_test_steps(id_filter.clone(), None, None).await?;
+        let measurements = if include_measurements {
+            self.list_test_measurements(id_filter, None, None).await?
+        } else {
+            Vec::new()
+        };
+
+        Ok(Some(export::build(report, steps, measurements)))
     }
 }

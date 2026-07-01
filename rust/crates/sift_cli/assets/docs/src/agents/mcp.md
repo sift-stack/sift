@@ -51,6 +51,7 @@ not run interactively.
 | `count_test_measurements` | Count test measurements matching a filter, without fetching them.    |
 | `create_test_report` | Create a test report with its steps and measurements from a JSON document.  |
 | `append_test_measurements` | Append measurements to an existing test step.                          |
+| `export_test_report` | Snapshot a test report's full tree to a JSON file for audit/diff and dry-runs. |
 | `update_test_report` | Update a test report's fields (status, name, times, run link, archive).     |
 | `update_test_step` | Update a test step's fields (name, status, times, error info, metadata).      |
 | `update_test_measurement` | Update a test measurement's value, bounds, verdict, unit, or metadata. |

@@ -1,7 +1,8 @@
 use rmcp::handler::server::wrapper::Parameters;
 use sift_rs::test_reports::v1::{
-    CreateTestMeasurementsResponse, CreateTestReportResponse, TestMeasurement, TestReport,
-    TestStep, UpdateTestMeasurementResponse, UpdateTestReportResponse, UpdateTestStepResponse,
+    CreateTestMeasurementsResponse, CreateTestReportResponse, ListTestMeasurementsResponse,
+    ListTestReportsResponse, ListTestStepsResponse, TestMeasurement, TestReport, TestStep,
+    UpdateTestMeasurementResponse, UpdateTestReportResponse, UpdateTestStepResponse,
     test_report_service_server::TestReportServiceServer,
 };
 use sift_test_util::{
@@ -11,8 +12,8 @@ use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
 use super::{
-    AppendMeasurementsParams, CreateTestReportParams, UpdateTestMeasurementParams,
-    UpdateTestReportParams, UpdateTestStepParams,
+    AppendMeasurementsParams, CreateTestReportParams, ExportTestReportParams,
+    UpdateTestMeasurementParams, UpdateTestReportParams, UpdateTestStepParams,
 };
 use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
 
@@ -283,4 +284,52 @@ async fn append_test_measurements_surfaces_url() {
 
     let report_url = structured_field(resp, "report_url");
     assert_eq!(report_url, "https://app.test.local/test-results/tr1");
+}
+
+#[tokio::test]
+async fn export_test_report_writes_file_and_surfaces_url() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_list_test_reports().returning(|_| {
+        Ok(Response::new(ListTestReportsResponse {
+            test_reports: vec![TestReport {
+                test_report_id: "tr1".into(),
+                name: "nightly".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_list_test_steps().returning(|_| {
+        Ok(Response::new(ListTestStepsResponse {
+            test_steps: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_list_test_measurements().returning(|_| {
+        Ok(Response::new(ListTestMeasurementsResponse {
+            test_measurements: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let out = std::env::temp_dir().join("sift_mcp_export_test_report_test.json");
+    let params = ExportTestReportParams {
+        test_report_id: "tr1".into(),
+        output: out.clone(),
+        include_measurements: Some(true),
+    };
+    let resp = server
+        .export_test_report(Parameters(params))
+        .await
+        .expect("export_test_report failed");
+
+    let report_url = structured_field(resp, "report_url");
+    assert_eq!(report_url, "https://app.test.local/test-results/tr1");
+
+    let written = std::fs::read_to_string(&out).expect("snapshot file written");
+    assert!(written.contains("\"test_report_id\": \"tr1\""));
+    assert!(written.contains("\"name\": \"nightly\""));
+    let _ = std::fs::remove_file(&out);
 }
