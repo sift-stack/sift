@@ -94,11 +94,11 @@ class ChannelDataCache:
         KEY_PREFIX: Versioned namespace prefix for every key this
             adapter writes to the shared :class:`DiskCache`. Picked at
             class scope so adapters in other resources can pick
-            distinct prefixes without runtime negotiation. The ``v1``
-            suffix is the schema version: bump it (e.g. to
-            ``"channel:v2:"``) when either entry shape changes
-            incompatibly so old keys are silently unreachable rather
-            than mis-deserialized.
+            distinct prefixes without runtime negotiation. The trailing
+            ``v<N>`` component is the schema version: bump it (e.g.
+            from ``"channel:v2:"`` to ``"channel:v3:"``) when either
+            entry shape changes incompatibly so old keys are silently
+            unreachable rather than mis-deserialized.
         MAX_SEGMENTS_PER_BUCKET: Per-bucket cap on segment count
             before :meth:`_compact_bucket` folds them into one.
             Without compaction a long incrementally-pulled run grows
@@ -260,6 +260,8 @@ class ChannelDataCache:
             idx.segments.append(SegmentRef(seg_id=None, start_time=start_time, end_time=end_time))
             self._write_index(channel_id, run_id, idx)
         else:
+            if not data.index.is_monotonic_increasing:
+                data = data.sort_index()
             size_bytes = int(data.memory_usage(deep=True).sum())
             seg_id = idx.next_seg_id
 
@@ -612,9 +614,10 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Empty results are recorded as empty refs (no segment body) —
         one ref per fetched range — so a repeat of a known-empty range
         is a cache hit returning no rows instead of another wire call.
-        For run-scoped queries we claim only the exact fetched window:
-        absence outside it isn't assertable (the run may not have
-        started yet, may have ended early, etc.).
+        Only the **unscoped** path records empty refs: run-scoped
+        absence isn't assertable and would permanently mask data an
+        ongoing run ingests after the empty query (subsequent same-
+        range queries would hit the cache and never refetch).
 
         Args:
             channel_data: Merged per-name frames coming out of
@@ -691,6 +694,13 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # coverage claim matches what we actually asked the wire about
         # — overclaiming would let a future query for an adjacent
         # range hit the cache and miss data that actually exists.
+        #
+        # Skipped for run-scoped queries: absence at query time
+        # doesn't imply future absence (the run may still be
+        # ingesting), and an empty ref would permanently mask data
+        # that arrives later on the same window.
+        if run_id:
+            return
         empty_df = pd.DataFrame()
         for cid, ranges in fetched_ranges_per_channel.items():
             if cid in ids_with_data:
@@ -826,11 +836,13 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
     ) -> dict[str, pd.DataFrame]:
         """Flatten paged channel data + any cached slices into one DataFrame per channel.
 
-        ``initial`` carries any cached slices already populated by
-        ``_check_cache``. Cached entries are folded in as the first frame for
-        their channel so they participate in the same final concat;
-        ``groupby(level=0).last()`` preserves the previous behavior of letting
-        a later-positioned (fresher) value win on duplicate timestamps.
+        ``initial`` carries the cached slices ``get_channel_data``
+        stitched inline via :meth:`ChannelDataCache.get_range` before
+        dispatching wire fetches for the gaps. Cached entries are
+        folded in as the first frame for their channel so they
+        participate in the same final concat; ``groupby(level=0).last()``
+        preserves the previous behavior of letting a later-positioned
+        (fresher) value win on duplicate timestamps.
         """
         per_channel_frames: dict[str, list[pd.DataFrame]] = {}
         for page in pages:

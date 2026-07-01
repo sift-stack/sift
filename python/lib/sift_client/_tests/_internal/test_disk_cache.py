@@ -19,7 +19,9 @@ from __future__ import annotations
 import logging
 from contextlib import contextmanager
 from typing import Iterator
+from unittest.mock import patch
 
+import diskcache
 import pytest
 
 from sift_client._internal.disk_cache import DiskCache
@@ -159,6 +161,76 @@ class TestDiskCache:
             assert cache.get("k") is None
             cache.put("new", "x", size_bytes=4)  # silently dropped
             assert "new" not in cache
+        finally:
+            cache.close()
+
+    def test_del_releases_handle_when_close_not_called(self, tmp_path) -> None:
+        """Dropping a :class:`DiskCache` without :meth:`close` still releases its handle.
+
+        Guards against the specific leak pattern of transient callers
+        (short-lived :class:`SiftClient` instances in a service loop):
+        each unclosed cache holds a SQLite handle against the shared
+        directory. ``__del__`` calls into ``diskcache.Cache.close`` on
+        GC so the handle is returned even when the owner forgets.
+        Verified via ``mock.patch.object`` on ``diskcache.Cache.close``
+        so we're pinning the method call (not just an observable
+        side-effect that could pass for other reasons).
+        """
+        cache = DiskCache(disk_path=tmp_path / "gc")
+        cache.put("k", "v", size_bytes=4)
+        with patch.object(diskcache.Cache, "close", autospec=True) as mock_close:
+            # ``del`` on the sole reference triggers immediate collection
+            # under CPython's refcount; the safety net calls ``close``.
+            del cache
+            assert mock_close.called, (
+                "__del__ must call diskcache.Cache.close so the SQLite "
+                "handle isn't leaked when the owner is GC'd without an "
+                "explicit close()"
+            )
+
+    def test_reopen_preserves_persisted_size_limit(self, tmp_path) -> None:
+        """Reopening a cache without ``max_bytes`` honors its persisted cap.
+
+        The cache directory is shared across sessions, but historically
+        every open re-asserted the caller's ``max_bytes`` (defaulting
+        to 4 GiB), so one client's 4 GiB default would silently resize
+        another client's 2 GiB cache the next time they opened the
+        same path. ``diskcache`` already persists ``size_limit`` in its
+        Settings table; :meth:`_open_disk` now leans on that unless the
+        caller passes an explicit override.
+        """
+        path = tmp_path / "sticky-cap"
+        custom_cap = 2 * 1024 * 1024 * 1024  # 2 GiB
+        first = DiskCache(disk_path=path, disk_max_bytes=custom_cap)
+        try:
+            assert first.disk_max_bytes == custom_cap
+        finally:
+            first.close()
+
+        second = DiskCache(disk_path=path)
+        try:
+            assert second.disk_max_bytes == custom_cap, (
+                "reopen without max_bytes must reuse the persisted cap, "
+                "not silently reset to DEFAULT_DISK_MAX_BYTES"
+            )
+        finally:
+            second.close()
+
+        # Explicit override on a subsequent open still wins over the
+        # persisted value — otherwise callers couldn't ever shrink or
+        # grow an existing cache.
+        new_cap = custom_cap // 2
+        third = DiskCache(disk_path=path, disk_max_bytes=new_cap)
+        try:
+            assert third.disk_max_bytes == new_cap
+        finally:
+            third.close()
+
+    def test_fresh_cache_seeds_default_size_limit(self, tmp_path) -> None:
+        """A brand-new cache directory picks up ``DEFAULT_DISK_MAX_BYTES``."""
+        cache = DiskCache(disk_path=tmp_path / "fresh")
+        try:
+            assert cache.disk_max_bytes == DiskCache.DEFAULT_DISK_MAX_BYTES
         finally:
             cache.close()
 

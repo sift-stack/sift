@@ -296,7 +296,7 @@ class TestChannelDataCache:
         Pins the per-segment key shape: one index plus one segment key
         per fetch. Without the prefix, a second adapter that happens to
         share an id with the channel adapter would clobber the rows.
-        The ``v1`` is the schema version baked into the prefix so a
+        The ``v2`` is the schema version baked into the prefix so a
         bump silently retires the entire old keyspace.
         """
         store = DiskCache(disk_path=tmp_path / "ns")
@@ -512,6 +512,36 @@ class TestChannelDataCache:
             query_end = _NOW + timedelta(seconds=15)
             _, gaps = adapter.get_range("c1", None, _NOW, query_end)
             assert gaps == [(_NOW, seg_start), (seg_end, query_end)]
+        finally:
+            adapter.store.close()
+
+    def test_put_segment_normalizes_non_monotonic_index_before_write(self, tmp_path):
+        """A shuffled-index frame stored and re-read: no ``KeyError``, sorted result.
+
+        Pandas raises ``KeyError`` on value-based partial slicing of a
+        non-monotonic ``DatetimeIndex``, so :meth:`get_range`'s
+        ``frame[start:end]`` label slice crashes if a segment ever lands
+        on disk unsorted. The SDK can't request descending order today,
+        but the wire could theoretically return interleaved pages;
+        :meth:`put_segment` sorts on store so the read path is safe
+        without a per-slice ``try``/``except``.
+        """
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "unsorted"))
+        try:
+            sorted_frame = _frame("c1", rows=5, freq="s")
+            # Shuffle to a definitely non-monotonic order.
+            shuffled = sorted_frame.iloc[[2, 0, 4, 1, 3]]
+            assert not shuffled.index.is_monotonic_increasing
+
+            seg_start = sorted_frame.index[0].to_pydatetime()
+            seg_end = sorted_frame.index[-1].to_pydatetime()
+            adapter.put_segment("c1", None, shuffled, seg_start, seg_end)
+
+            data, gaps = adapter.get_range("c1", None, seg_start, seg_end)
+            assert data is not None
+            assert data.index.is_monotonic_increasing
+            pd.testing.assert_frame_equal(data, sorted_frame, check_freq=False)
+            assert gaps == []
         finally:
             adapter.store.close()
 
@@ -1331,6 +1361,51 @@ class TestGetChannelData:
                 )
             assert log2 == [], "second call should be a full cache hit"
             assert "c1" not in result2
+        finally:
+            client.channel_cache.store.close()
+
+    @pytest.mark.asyncio
+    async def test_run_scoped_empty_wire_response_does_not_mask_future_data(
+        self, tmp_path
+    ) -> None:
+        """Run-scoped empty responses must not cache; later ingest still shows up.
+
+        Absence at query time doesn't imply future absence for a run
+        that may still be ingesting. Caching an empty ref over the
+        queried window would permanently mask data the run writes
+        later — the same window becomes a full cache hit (gaps ==
+        ``[]``) and never refetches. This pins the run-scoped
+        exception to the empty-ref rule.
+        """
+        client = _client_with_cache(tmp_path)
+        df = _frame("c1", rows=4)
+        try:
+            with _fake_grpc(client, {"c1": []}) as log1:
+                result1 = await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    run_id="run-A",
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            assert log1, "first (empty) call should hit the wire"
+            assert "c1" not in result1
+            assert not client.channel_cache.has_any("c1", "run-A"), (
+                "run-scoped empty response must not land an empty ref "
+                "(would mask data the run ingests later)"
+            )
+
+            with _fake_grpc(client, {"c1": [df]}) as log2:
+                result2 = await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    run_id="run-A",
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            assert log2, (
+                "second call must refetch — the previous empty response "
+                "cannot become a cache hit for an ongoing run"
+            )
+            pd.testing.assert_frame_equal(result2["c1"].sort_index(), df.sort_index())
         finally:
             client.channel_cache.store.close()
 

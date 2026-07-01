@@ -64,19 +64,25 @@ class DiskCache:
             directory. The suffix is fixed so multiple ``SiftClient``
             instances naturally share the same store and pick up each
             other's prior sessions.
-        DEFAULT_DISK_MAX_BYTES: Default byte cap when :meth:`enable`
-            is called without an explicit ``max_bytes``. 4 GiB is generous
-            for the typical ``/tmp`` filesystem; ``diskcache`` enforces
-            the cap with its own SQLite-backed LRU eviction once the
-            bound is reached.
+        DEFAULT_DISK_MAX_BYTES: Byte cap seeded on **fresh** caches
+            when the caller doesn't pass ``disk_max_bytes``. 4 GiB is
+            generous for the typical ``/tmp`` filesystem; ``diskcache``
+            enforces the cap with its own SQLite-backed LRU eviction
+            once the bound is reached. An existing cache keeps its
+            previously-persisted cap on reopen — only an explicit
+            ``disk_max_bytes`` overrides it — so two clients pointing
+            at the same shared directory don't quietly resize each
+            other's stores.
 
     Args:
         disk_path: Directory to persist to. ``None`` keeps the store
             disabled. A previously-populated directory is reused, so a
             fresh process reading the same path sees existing entries.
-        disk_max_bytes: Byte cap on the store. ``None`` falls back to
-            :attr:`DEFAULT_DISK_MAX_BYTES`. Ignored when ``disk_path``
-            is ``None``.
+        disk_max_bytes: Byte cap on the store. ``None`` reuses the
+            cache's persisted cap when the directory already exists;
+            for a fresh directory it seeds :attr:`DEFAULT_DISK_MAX_BYTES`.
+            An explicit value always overrides any persisted setting.
+            Ignored when ``disk_path`` is ``None``.
     """
 
     DEFAULT_DISK_PATH: str = os.path.join(tempfile.gettempdir(), "sift-data-cache")
@@ -105,10 +111,7 @@ class DiskCache:
         self._disk_path: str | None = None
         self._disk_max_bytes: int | None = None
         if disk_path is not None:
-            self._open_disk(
-                str(disk_path),
-                disk_max_bytes if disk_max_bytes is not None else self.DEFAULT_DISK_MAX_BYTES,
-            )
+            self._open_disk(str(disk_path), disk_max_bytes)
 
     @classmethod
     def clear_disk(cls, path: str | os.PathLike[str] | None = None) -> None:
@@ -217,18 +220,21 @@ class DiskCache:
         Args:
             path: Directory to persist to. ``None`` uses
                 :attr:`DEFAULT_DISK_PATH`.
-            max_bytes: Byte cap (``None`` → :attr:`DEFAULT_DISK_MAX_BYTES`).
+            max_bytes: Byte cap. ``None`` keeps whatever the cache
+                already had — the persisted cap for an existing
+                directory, or :attr:`DEFAULT_DISK_MAX_BYTES` when the
+                directory is fresh. An explicit value always overrides
+                any persisted setting.
         """
         target_path = str(path) if path is not None else self.DEFAULT_DISK_PATH
-        target_max = max_bytes if max_bytes is not None else self.DEFAULT_DISK_MAX_BYTES
         if (
             self._disk is not None
             and self._disk_path == target_path
-            and self._disk_max_bytes == target_max
+            and (max_bytes is None or self._disk_max_bytes == max_bytes)
         ):
             return
         self._close_disk()
-        self._open_disk(target_path, target_max)
+        self._open_disk(target_path, max_bytes)
 
     def disable(self) -> None:
         """Close the disk handle (if open). Does not touch on-disk contents.
@@ -338,19 +344,58 @@ class DiskCache:
         """Release the disk file handle. Safe to call when disabled."""
         self._close_disk()
 
-    def _open_disk(self, path: str, max_bytes: int) -> None:
+    def __del__(self) -> None:
+        """Best-effort teardown for callers that don't call :meth:`close`.
+
+        ``diskcache.Cache`` holds a SQLite handle (plus a small
+        connection pool) that only closes on an explicit call. A
+        service that builds many transient :class:`~SiftClient`
+        instances would otherwise leak one handle per client against
+        the shared cache directory — enough of them, and SQLite's
+        connection-per-writer limits start to bite.
+
+        This ``__del__`` runs when the owning client is
+        garbage-collected. Explicit :meth:`close` (or
+        :meth:`CacheNamespace.disable`) remains the preferred
+        teardown; this is a safety net.
+
+        Guarded because ``__del__`` also runs during interpreter
+        shutdown, where module globals and attributes may already be
+        gone; a raised exception here becomes an unraisable-error
+        printout, not a real failure to fix.
+        """
+        try:
+            self._close_disk()
+        except Exception:
+            pass
+
+    def _open_disk(self, path: str, max_bytes: int | None) -> None:
         import diskcache
 
         os.makedirs(path, exist_ok=True)
-        self._disk = diskcache.Cache(
-            directory=path,
-            size_limit=max_bytes,
-            eviction_policy="least-recently-used",
-            statistics=0,
-            tag_index=0,
-        )
+        # Only assert ``size_limit`` when either (a) the caller gave an
+        # explicit override or (b) this is a brand-new cache directory
+        # (no diskcache marker yet) and we need to seed the default. On
+        # reopen without an explicit cap, we omit ``size_limit`` so
+        # ``diskcache`` reuses whatever it persisted in its Settings
+        # table — otherwise two clients pointing at the same shared
+        # path would silently resize each other's stores.
+        kwargs: dict[str, Any] = {
+            "directory": path,
+            "eviction_policy": "least-recently-used",
+            "statistics": 0,
+            "tag_index": 0,
+        }
+        if max_bytes is not None:
+            kwargs["size_limit"] = max_bytes
+        elif not (Path(path) / self._DISKCACHE_MARKER).exists():
+            kwargs["size_limit"] = self.DEFAULT_DISK_MAX_BYTES
+        self._disk = diskcache.Cache(**kwargs)
         self._disk_path = path
-        self._disk_max_bytes = max_bytes
+        # Read back the *effective* cap (persisted or newly set) so
+        # ``stats()`` and ``put``'s oversize guard reason about the
+        # real bound rather than what the caller wished for.
+        self._disk_max_bytes = int(self._disk.size_limit)
 
     def _close_disk(self) -> None:
         if self._disk is None:
