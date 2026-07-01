@@ -119,7 +119,7 @@ impl SiftMcpServer {
               - Narrow with `run_id == \"...\"` or `asset_id == \"...\"` when known — those are the most selective.
               - Use `is_archived == false` to exclude archived annotations unless they're explicitly needed.
         ",
-        annotations(title = "annotations_router/list_annotations", read_only_hint = true)
+        annotations(title = "annotations/list_annotations", read_only_hint = true)
     )]
     pub async fn list_annotations(
         &self,
@@ -188,7 +188,7 @@ impl SiftMcpServer {
               - This is a write. CONFIRM the time range, type, and associations with the user before invoking.
         ",
         annotations(
-            title = "annotations_router/create_annotation",
+            title = "annotations/create_annotation",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = false,
@@ -314,7 +314,7 @@ impl SiftMcpServer {
                 `annotation_id == \"<id>\"`, then send the union.
         ",
         annotations(
-            title = "annotations_router/update_annotation",
+            title = "annotations/update_annotation",
             read_only_hint = false,
             destructive_hint = true,
             idempotent_hint = true,

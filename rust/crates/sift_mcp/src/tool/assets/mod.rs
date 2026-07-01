@@ -56,7 +56,7 @@ impl SiftMcpServer {
               - Always prefer narrowing the filter over relying on `limit` — very large unfiltered listings can be slow.
               - Use `is_archived == false` to exclude archived assets unless they're explicitly needed.
         ",
-        annotations(title = "assets_router/list_assets", read_only_hint = true)
+        annotations(title = "assets/list_assets", read_only_hint = true)
     )]
     pub async fn list_assets(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -121,7 +121,7 @@ impl SiftMcpServer {
               - The asset proto has no `description` field — there is no equivalent to update.
         ",
         annotations(
-            title = "assets_router/update_asset",
+            title = "assets/update_asset",
             read_only_hint = false,
             destructive_hint = true,
             idempotent_hint = true,
