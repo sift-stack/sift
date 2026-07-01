@@ -24,7 +24,7 @@ template = client.reports.templates.create(
 )
 
 # Run the template against a run
-job = client.reports.create_from_template(report_template=template, run=run)
+job = template.create_report(run=run)
 ```
 
 Templates can be fetched by ID or client key, and rules can be attached by rule ID or rule client key. Updating `tags`, `rule_ids`, or `rule_client_keys` replaces the full list on the template.

@@ -286,6 +286,20 @@ class TestReportTemplate:
             mock_update.assert_called_once_with(updated_template)
             assert result is mock_report_template
 
+    def test_create_report_delegates_to_client(self, mock_report_template, mock_client):
+        job = MagicMock()
+        mock_client.reports.create_from_template.return_value = job
+
+        result = mock_report_template.create_report(run="run-1", name="my report")
+
+        mock_client.reports.create_from_template.assert_called_once_with(
+            report_template=mock_report_template,
+            run="run-1",
+            organization_id=None,
+            name="my report",
+        )
+        assert result is job
+
     def test_archive_and_unarchive_delegate_to_client(self, mock_report_template, mock_client):
         archived_template = MagicMock()
         mock_client.reports.templates.archive.return_value = archived_template

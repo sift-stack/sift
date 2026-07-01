@@ -34,6 +34,8 @@ if TYPE_CHECKING:
     from google.protobuf import field_mask_pb2
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.job import Job
+    from sift_client.sift_types.run import Run
 
 
 class ReportTemplateRule(BaseType[ReportTemplateRuleProto, "ReportTemplateRule"]):
@@ -159,6 +161,27 @@ class ReportTemplate(BaseType[ReportTemplateProto, "ReportTemplate"]):
         updated_template = self.client.reports.templates.unarchive(report_template=self)
         self._update(updated_template)
         return self
+
+    def create_report(
+        self,
+        *,
+        run: Run | str,
+        name: str | None = None,
+        organization_id: str | None = None,
+    ) -> Job | None:
+        """Create a report from this template.
+
+        Args:
+            run: The Run or run ID to associate with the report.
+            name: Optional name for the report.
+            organization_id: The organization ID.
+
+        Returns:
+            The Job for the pending report, or None if no report was created.
+        """
+        return self.client.reports.create_from_template(
+            report_template=self, run=run, organization_id=organization_id, name=name
+        )
 
 
 class ReportTemplateCreateUpdateBase(ModelCreateUpdateBase):
