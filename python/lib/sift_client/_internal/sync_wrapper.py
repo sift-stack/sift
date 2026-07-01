@@ -25,7 +25,11 @@ _registered: list[SyncAPIRegistration] = []
 S = TypeVar("S")
 
 
-def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
+def generate_sync_api(
+    cls: type[ResourceBase],
+    sync_name: str,
+    nested_resources: dict[str, type] | None = None,
+) -> type:
     """Generate a synchronous wrapper class for the given async API class.
 
     It creates a new class whose name is derived from the async class by
@@ -36,6 +40,14 @@ def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
     Usage:
         from sift_client._internal.sync_wrapper import generate_sync_api
         PingAPI = generate_sync_api(PingAPIAsync)
+
+    Args:
+        cls: The async API class to wrap.
+        sync_name: The name of the generated sync class.
+        nested_resources: Maps attribute names of nested resource APIs on the async
+            class to their already generated sync classes. Each entry becomes a
+            property on the sync class that returns a cached sync wrapper around
+            the async instance held by the parent (e.g. `client.reports.templates`).
 
     Returns:
         A new class that wraps the async class with synchronous methods.
@@ -149,6 +161,33 @@ def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
             continue
 
         namespace[name] = _wrap_sync(name)
+
+    # ───────── nested resource APIs ─────────
+    def _make_nested_resource_property(attr_name: str, nested_sync_cls: type) -> property:
+        cache_attr = f"_{attr_name}_sync"
+
+        def fget(self):
+            cached = self.__dict__.get(cache_attr)
+            if cached is None:
+                # Wrap the async instance the parent already holds so patches or
+                # state on it are visible through both the sync and async surfaces.
+                nested_async_impl = getattr(self._async_impl, attr_name)
+                wrapper = object.__new__(nested_sync_cls)
+                wrapper._async_impl = nested_async_impl
+                nested_async_impl._is_sync = True
+                # setdefault keeps a single winner if two threads race the first access.
+                cached = self.__dict__.setdefault(cache_attr, wrapper)
+            return cached
+
+        fget.__name__ = attr_name
+        fget.__qualname__ = f"{sync_name}.{attr_name}"
+        fget.__annotations__ = {"return": nested_sync_cls.__name__}
+        fget.__doc__ = f"Nested {nested_sync_cls.__name__} for making synchronous requests."
+        return property(fget)
+
+    if nested_resources:
+        for attr_name, nested_sync_cls in nested_resources.items():
+            namespace[attr_name] = _make_nested_resource_property(attr_name, nested_sync_cls)
 
     # Create the sync class
     sync_class = type(sync_name, (object,), namespace)

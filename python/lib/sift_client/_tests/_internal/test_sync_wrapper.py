@@ -239,6 +239,73 @@ class TestSyncWrapperEventLoopScenarios:
             loop.close()
 
 
+class MockNestedResourceAsync(ResourceBase):
+    """Mock nested async resource for testing nested_resources support."""
+
+    def __init__(self, client=None):
+        super().__init__(client)
+
+    async def nested_method(self) -> str:
+        """Test async method on the nested resource."""
+        await asyncio.sleep(0.01)
+        return "nested_result"
+
+
+class MockParentResourceAsync(ResourceBase):
+    """Mock parent async resource holding a nested resource instance."""
+
+    nested: MockNestedResourceAsync
+
+    def __init__(self, client=None):
+        super().__init__(client)
+        self.nested = MockNestedResourceAsync(client)
+
+    async def parent_method(self) -> str:
+        """Test async method on the parent resource."""
+        await asyncio.sleep(0.01)
+        return "parent_result"
+
+
+class TestSyncWrapperNestedResources:
+    """Tests for the nested_resources support in generate_sync_api."""
+
+    def _make_parent_sync(self):
+        mock_client = MockClient()
+        MockNestedResource = generate_sync_api(  # noqa: N806
+            MockNestedResourceAsync, "MockNestedResource"
+        )
+        MockParentResource = generate_sync_api(  # noqa: N806
+            MockParentResourceAsync,
+            "MockParentResource",
+            nested_resources={"nested": MockNestedResource},
+        )
+        return MockParentResource(mock_client), MockNestedResource
+
+    def test_nested_property_returns_sync_instance(self):
+        parent, MockNestedResource = self._make_parent_sync()  # noqa: N806
+        assert isinstance(inspect.getattr_static(type(parent), "nested"), property)
+        assert isinstance(parent.nested, MockNestedResource)
+
+    def test_nested_property_is_cached(self):
+        parent, _ = self._make_parent_sync()
+        assert parent.nested is parent.nested
+
+    def test_nested_property_reuses_parent_async_instance(self):
+        parent, _ = self._make_parent_sync()
+        assert parent.nested._async_impl is parent._async_impl.nested
+        assert parent._async_impl.nested._is_sync is True
+
+    def test_nested_async_method_runs_synchronously(self):
+        parent, _ = self._make_parent_sync()
+        assert parent.nested.nested_method() == "nested_result"
+        assert parent.parent_method() == "parent_result"
+
+    def test_nested_property_return_annotation_names_sync_class(self):
+        parent, _ = self._make_parent_sync()
+        prop = inspect.getattr_static(type(parent), "nested")
+        assert prop.fget.__annotations__["return"] == "MockNestedResource"
+
+
 class TestSyncWrapperShutdown:
     """Tests for the stopped-loop fail-fast guard."""
 

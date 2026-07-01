@@ -7,6 +7,30 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+#### Report templates
+
+Added a full report template API, available as a nested resource of reports at `client.reports.templates` (and asynchronously via `client.async_.reports.templates`). Report templates can now be created, fetched, listed, updated, archived, and unarchived directly from `sift_client`:
+
+```python
+from sift_client.sift_types import ReportTemplateCreate
+
+template = client.reports.templates.create(
+    ReportTemplateCreate(
+        name="Motor Checkout",
+        client_key="motor-checkout",
+        rule_ids=[rule.id_ for rule in rules],  # or rule_client_keys=[...]
+        tags=["motor"],
+    )
+)
+
+# Run the template against a run
+job = client.reports.create_from_template(report_template=template, run=run)
+```
+
+Templates can be fetched by ID or client key, and rules can be attached by rule ID or rule client key. Updating `tags`, `rule_ids`, or `rule_client_keys` replaces the full list on the template.
+
+Breaking change: `client.reports.create_from_template` now takes `report_template` (a `ReportTemplate` or ID string) and `run` (a `Run` or ID string) instead of `report_template_id` and `run_id`, matching the other `create_from_*` methods.
+
 #### Resource and principal attributes (ABAC)
 
 Added a public API for attribute based access control (ABAC) attributes. `client.resource_attributes` manages attribute keys assigned to entities (assets, channels, runs), and `client.principal_attributes` manages attribute keys assigned to principals (users and user groups). Both are available synchronously and asynchronously via `client.async_`.
