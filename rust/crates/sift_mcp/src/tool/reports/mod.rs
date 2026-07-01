@@ -145,10 +145,7 @@ impl SiftMcpServer {
               - Use this to drill into why a report passed or failed after locating it with `list_reports`.
               - Filter by `status` (e.g. `status == \"REPORT_RULE_STATUS_FAILED\"`) to surface only failing rules.
         ",
-        annotations(
-            title = "reports/list_report_rule_summaries",
-            read_only_hint = true
-        )
+        annotations(title = "reports/list_report_rule_summaries", read_only_hint = true)
     )]
     pub async fn list_report_rule_summaries(
         &self,
