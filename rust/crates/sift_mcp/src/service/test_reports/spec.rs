@@ -382,6 +382,34 @@ where
         .ok_or_else(|| anyhow!("unknown `{field}` value `{raw}`"))
 }
 
+/// Parse an optional `TestStatus` name (`"PASSED"` or `"TEST_STATUS_PASSED"`) to its `i32` tag.
+/// Shared with the update tools so create and update accept the same enum spellings.
+pub fn parse_status(raw: Option<&str>) -> Result<Option<i32>> {
+    parse_enum(raw, "TEST_STATUS_", "status", |n| {
+        TestStatus::from_str_name(n).map(|e| e as i32)
+    })
+}
+
+/// Parse an optional `TestStepType` name to its `i32` tag.
+pub fn parse_step_type(raw: Option<&str>) -> Result<Option<i32>> {
+    parse_enum(raw, "TEST_STEP_TYPE_", "step_type", |n| {
+        TestStepType::from_str_name(n).map(|e| e as i32)
+    })
+}
+
+/// Parse an optional `TestMeasurementType` name to its `i32` tag.
+pub fn parse_measurement_type(raw: Option<&str>) -> Result<Option<i32>> {
+    parse_enum(raw, "TEST_MEASUREMENT_TYPE_", "measurement_type", |n| {
+        TestMeasurementType::from_str_name(n).map(|e| e as i32)
+    })
+}
+
+/// Parse an optional RFC3339 timestamp string to a proto `Timestamp`. `field` names the
+/// parameter for the error message.
+pub fn parse_timestamp(raw: Option<&str>, field: &str) -> Result<Option<Timestamp>> {
+    parse_ts(raw, field)
+}
+
 fn parse_ts(raw: Option<&str>, field: &str) -> Result<Option<Timestamp>> {
     let Some(raw) = raw else {
         return Ok(None);
