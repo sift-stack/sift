@@ -47,11 +47,6 @@ pub struct SiftMcpServer {
 )]
 #[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {
-    // Override rmcp's default `list_tools` (which sorts by tool `name`) so
-    // tools group by domain in `tools/list`. Because our titles are
-    // `<domain>/<tool>`, sorting by title alphabetically clusters all tools
-    // of the same domain together. Falls back to `name` for any tool that
-    // omits a title.
     async fn list_tools(
         &self,
         _request: Option<PaginatedRequestParams>,
