@@ -18,7 +18,7 @@ template = client.reports.templates.create(
     ReportTemplateCreate(
         name="Motor Checkout",
         client_key="motor-checkout",
-        rule_ids=[rule.id_ for rule in rules],  # or rule_client_keys=[...]
+        rule_ids=rules,  # Rule objects or IDs; or rule_client_keys=[...]
         tags=["motor"],
     )
 )
@@ -27,7 +27,7 @@ template = client.reports.templates.create(
 job = template.create_report(run=run)
 ```
 
-Templates can be fetched by ID or client key, and rules can be attached by rule ID or rule client key. Updating `tags`, `rule_ids`, or `rule_client_keys` replaces the full list on the template.
+Templates can be fetched by ID or client key, and rules can be attached by rule ID or rule client key (`rule_ids` also accepts `Rule` objects, and `tags` accepts `Tag` objects or names). Updating `tags`, `rule_ids`, or `rule_client_keys` replaces the full list on the template.
 
 Breaking change: `client.reports.create_from_template` now takes `report_template` (a `ReportTemplate` or ID string) and `run` (a `Run` or ID string) instead of `report_template_id` and `run_id`, matching the other `create_from_*` methods.
 
