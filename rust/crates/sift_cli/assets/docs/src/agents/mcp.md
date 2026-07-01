@@ -51,6 +51,9 @@ not run interactively.
 | `count_test_measurements` | Count test measurements matching a filter, without fetching them.    |
 | `create_test_report` | Create a test report with its steps and measurements from a JSON document.  |
 | `append_test_measurements` | Append measurements to an existing test step.                          |
+| `update_test_report` | Update a test report's fields (status, name, times, run link, archive).     |
+| `update_test_step` | Update a test step's fields (name, status, times, error info, metadata).      |
+| `update_test_measurement` | Update a test measurement's value, bounds, verdict, unit, or metadata. |
 | `get_data`       | Download channel data for an asset/run to a Parquet file, with optional decimation. |
 | `sql`            | Run SQL over one or more Parquet files; chain after `get_data` for analysis.  |
 | `upload_dataset` | Stream a Parquet dataset into Sift.                                           |

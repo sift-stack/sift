@@ -4,15 +4,19 @@ use std::collections::HashMap;
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
+use pbjson_types::{FieldMask, Timestamp};
 use sift_rs::{
     SiftChannel,
+    metadata::v1::MetadataValue,
     test_reports::v1::{
         CountTestMeasurementsRequest, CountTestStepsRequest, CreateTestMeasurementsRequest,
-        CreateTestStepRequest, ListTestMeasurementsRequest, ListTestMeasurementsResponse,
-        ListTestReportsRequest, ListTestReportsResponse, ListTestStepsRequest,
-        ListTestStepsResponse, TestMeasurement, TestReport, TestStep,
-        test_report_service_client::TestReportServiceClient,
+        CreateTestStepRequest, ErrorInfo, ListTestMeasurementsRequest,
+        ListTestMeasurementsResponse, ListTestReportsRequest, ListTestReportsResponse,
+        ListTestStepsRequest, ListTestStepsResponse, TestMeasurement, TestReport, TestStep,
+        UpdateTestMeasurementRequest, UpdateTestReportRequest, UpdateTestStepRequest,
+        test_measurement, test_report_service_client::TestReportServiceClient,
     },
+    unit::v2::Unit,
 };
 
 pub mod spec;
@@ -483,5 +487,296 @@ impl TestReportService {
         .context("failed to append test measurements")?;
 
         Ok(resp.measurements_created_count as usize)
+    }
+
+    /// Update a subset of an existing test report's fields. Per
+    /// `protos/sift/test_reports/v1/test_reports.proto::UpdateTestReportRequest` the updatable
+    /// fields are `status`, `name`, `test_system_name`, `test_case`, `start_time`, `end_time`,
+    /// `serial_number`, `part_number`, `system_operator`, `run_id`, and `is_archived`. Only the
+    /// provided fields are written; the field mask always matches what was sent, so an omitted
+    /// field is left untouched.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_test_report(
+        &self,
+        test_report_id: String,
+        status: Option<i32>,
+        name: Option<String>,
+        test_system_name: Option<String>,
+        test_case: Option<String>,
+        start_time: Option<Timestamp>,
+        end_time: Option<Timestamp>,
+        serial_number: Option<String>,
+        part_number: Option<String>,
+        system_operator: Option<String>,
+        run_id: Option<String>,
+        is_archived: Option<bool>,
+    ) -> Result<TestReport> {
+        let mut report = TestReport {
+            test_report_id,
+            ..Default::default()
+        };
+        let mut paths = Vec::new();
+
+        if let Some(v) = status {
+            report.status = v;
+            paths.push("status".to_string());
+        }
+        if let Some(v) = name {
+            report.name = v;
+            paths.push("name".to_string());
+        }
+        if let Some(v) = test_system_name {
+            report.test_system_name = v;
+            paths.push("test_system_name".to_string());
+        }
+        if let Some(v) = test_case {
+            report.test_case = v;
+            paths.push("test_case".to_string());
+        }
+        if let Some(v) = start_time {
+            report.start_time = Some(v);
+            paths.push("start_time".to_string());
+        }
+        if let Some(v) = end_time {
+            report.end_time = Some(v);
+            paths.push("end_time".to_string());
+        }
+        if let Some(v) = serial_number {
+            report.serial_number = v;
+            paths.push("serial_number".to_string());
+        }
+        if let Some(v) = part_number {
+            report.part_number = v;
+            paths.push("part_number".to_string());
+        }
+        if let Some(v) = system_operator {
+            report.system_operator = v;
+            paths.push("system_operator".to_string());
+        }
+        if let Some(v) = run_id {
+            report.run_id = v;
+            paths.push("run_id".to_string());
+        }
+        if let Some(v) = is_archived {
+            report.is_archived = v;
+            paths.push("is_archived".to_string());
+        }
+
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let report = report.clone();
+            let paths = paths.clone();
+            async move {
+                let mut client = TestReportServiceClient::new(channel);
+                client
+                    .update_test_report(UpdateTestReportRequest {
+                        test_report: Some(report),
+                        update_mask: Some(FieldMask { paths }),
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to update test report")?;
+
+        resp.test_report
+            .ok_or_else(|| anyhow!("update_test_report response missing report"))
+    }
+
+    /// Update a subset of an existing test step's fields. Per
+    /// `protos/sift/test_reports/v1/test_reports.proto::UpdateTestStepRequest` the updatable
+    /// fields are `name`, `description`, `step_type`, `step_path`, `status`, `start_time`,
+    /// `end_time`, `error_info`, and `metadata`. `metadata` uses REPLACE semantics: the supplied
+    /// list replaces all existing entries, and `Some(vec![])` clears them. (The proto mask comment
+    /// also lists `test_case`, but `TestStep` has no such field, so it is not exposed.)
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_test_step(
+        &self,
+        test_step_id: String,
+        name: Option<String>,
+        description: Option<String>,
+        step_type: Option<i32>,
+        step_path: Option<String>,
+        status: Option<i32>,
+        start_time: Option<Timestamp>,
+        end_time: Option<Timestamp>,
+        error_info: Option<ErrorInfo>,
+        metadata: Option<Vec<MetadataValue>>,
+    ) -> Result<TestStep> {
+        let mut step = TestStep {
+            test_step_id,
+            ..Default::default()
+        };
+        let mut paths = Vec::new();
+
+        if let Some(v) = name {
+            step.name = v;
+            paths.push("name".to_string());
+        }
+        if let Some(v) = description {
+            step.description = v;
+            paths.push("description".to_string());
+        }
+        if let Some(v) = step_type {
+            step.step_type = v;
+            paths.push("step_type".to_string());
+        }
+        if let Some(v) = step_path {
+            step.step_path = v;
+            paths.push("step_path".to_string());
+        }
+        if let Some(v) = status {
+            step.status = v;
+            paths.push("status".to_string());
+        }
+        if let Some(v) = start_time {
+            step.start_time = Some(v);
+            paths.push("start_time".to_string());
+        }
+        if let Some(v) = end_time {
+            step.end_time = Some(v);
+            paths.push("end_time".to_string());
+        }
+        if let Some(v) = error_info {
+            step.error_info = Some(v);
+            paths.push("error_info".to_string());
+        }
+        if let Some(v) = metadata {
+            step.metadata = v;
+            paths.push("metadata".to_string());
+        }
+
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let step = step.clone();
+            let paths = paths.clone();
+            async move {
+                let mut client = TestReportServiceClient::new(channel);
+                client
+                    .update_test_step(UpdateTestStepRequest {
+                        test_step: Some(step),
+                        update_mask: Some(FieldMask { paths }),
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to update test step")?;
+
+        resp.test_step
+            .ok_or_else(|| anyhow!("update_test_step response missing step"))
+    }
+
+    /// Update a subset of an existing test measurement's fields. Per
+    /// `protos/sift/test_reports/v1/test_reports.proto::UpdateTestMeasurementRequest` the updatable
+    /// fields are `name`, `measurement_type`, the value (`numeric_value`/`string_value`/
+    /// `boolean_value`), `unit`, the bounds (`numeric_bounds`/`string_bounds`), `passed`,
+    /// `timestamp`, `description`, `channel_names`, and `metadata`. `value` and `bounds` are proto
+    /// oneofs; the mask names the specific arm that was set. `channel_names` and `metadata` use
+    /// REPLACE semantics.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_test_measurement(
+        &self,
+        measurement_id: String,
+        name: Option<String>,
+        measurement_type: Option<i32>,
+        value: Option<test_measurement::Value>,
+        unit: Option<String>,
+        bounds: Option<test_measurement::Bounds>,
+        passed: Option<bool>,
+        timestamp: Option<Timestamp>,
+        description: Option<String>,
+        channel_names: Option<Vec<String>>,
+        metadata: Option<Vec<MetadataValue>>,
+    ) -> Result<TestMeasurement> {
+        let mut measurement = TestMeasurement {
+            measurement_id,
+            ..Default::default()
+        };
+        let mut paths = Vec::new();
+
+        if let Some(v) = name {
+            measurement.name = v;
+            paths.push("name".to_string());
+        }
+        if let Some(v) = measurement_type {
+            measurement.measurement_type = v;
+            paths.push("measurement_type".to_string());
+        }
+        if let Some(v) = value {
+            // The mask names the specific oneof arm the caller set.
+            paths.push(
+                match v {
+                    test_measurement::Value::NumericValue(_) => "numeric_value",
+                    test_measurement::Value::StringValue(_) => "string_value",
+                    test_measurement::Value::BooleanValue(_) => "boolean_value",
+                }
+                .to_string(),
+            );
+            measurement.value = Some(v);
+        }
+        if let Some(v) = unit {
+            measurement.unit = Some(Unit {
+                abbreviated_name: v,
+                ..Default::default()
+            });
+            paths.push("unit".to_string());
+        }
+        if let Some(v) = bounds {
+            paths.push(
+                match v {
+                    test_measurement::Bounds::NumericBounds(_) => "numeric_bounds",
+                    test_measurement::Bounds::StringBounds(_) => "string_bounds",
+                }
+                .to_string(),
+            );
+            measurement.bounds = Some(v);
+        }
+        if let Some(v) = passed {
+            measurement.passed = v;
+            paths.push("passed".to_string());
+        }
+        if let Some(v) = timestamp {
+            measurement.timestamp = Some(v);
+            paths.push("timestamp".to_string());
+        }
+        if let Some(v) = description {
+            measurement.description = v;
+            paths.push("description".to_string());
+        }
+        if let Some(v) = channel_names {
+            measurement.channel_names = v;
+            paths.push("channel_names".to_string());
+        }
+        if let Some(v) = metadata {
+            measurement.metadata = v;
+            paths.push("metadata".to_string());
+        }
+
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let measurement = measurement.clone();
+            let paths = paths.clone();
+            async move {
+                let mut client = TestReportServiceClient::new(channel);
+                client
+                    .update_test_measurement(UpdateTestMeasurementRequest {
+                        test_measurement: Some(measurement),
+                        update_mask: Some(FieldMask { paths }),
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to update test measurement")?;
+
+        resp.test_measurement
+            .ok_or_else(|| anyhow!("update_test_measurement response missing measurement"))
     }
 }

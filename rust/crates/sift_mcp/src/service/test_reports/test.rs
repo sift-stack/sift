@@ -1,9 +1,11 @@
+use pbjson_types::Timestamp;
 use sift_rs::test_reports::v1::{
     CountTestMeasurementsResponse, CountTestStepsResponse, CreateTestMeasurementsResponse,
-    CreateTestReportResponse, CreateTestStepResponse, ListTestMeasurementsResponse,
-    ListTestReportsResponse, ListTestStepsResponse, TestMeasurement, TestMeasurementType,
-    TestReport, TestStatus, TestStep, TestStepType, test_measurement,
-    test_report_service_server::TestReportServiceServer,
+    CreateTestReportResponse, CreateTestStepResponse, ErrorInfo, ListTestMeasurementsResponse,
+    ListTestReportsResponse, ListTestStepsResponse, NumericBounds, StringBounds, TestMeasurement,
+    TestMeasurementType, TestReport, TestStatus, TestStep, TestStepType,
+    UpdateTestMeasurementResponse, UpdateTestReportResponse, UpdateTestStepResponse,
+    test_measurement, test_report_service_server::TestReportServiceServer,
 };
 use sift_test_util::{
     grpc::memory_sift_channel, mock::test_reports::v1::MockTestReportServiceImpl,
@@ -651,4 +653,321 @@ async fn count_test_steps_forwards_short_enum_form() {
         .expect("count_test_steps failed");
 
     assert_eq!(count, 7);
+}
+
+// --- update_test_report ---
+
+#[tokio::test]
+async fn update_test_report_builds_mask_from_provided_fields() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_update_test_report()
+        .withf(|req| {
+            let req = req.get_ref();
+            let report = req.test_report.as_ref().unwrap();
+            let paths = &req.update_mask.as_ref().unwrap().paths;
+            report.test_report_id == "r1"
+                && report.name == "renamed"
+                && report.status == TestStatus::Failed as i32
+                && report.is_archived
+                && report.start_time.as_ref().map(|t| t.seconds) == Some(1)
+                && paths
+                    == &vec![
+                        "status".to_string(),
+                        "name".to_string(),
+                        "start_time".to_string(),
+                        "is_archived".to_string(),
+                    ]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateTestReportResponse {
+                test_report: Some(TestReport {
+                    test_report_id: "r1".into(),
+                    name: "renamed".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let report = service
+        .update_test_report(
+            "r1".to_string(),
+            Some(TestStatus::Failed as i32),
+            Some("renamed".to_string()),
+            None,
+            None,
+            Some(Timestamp {
+                seconds: 1,
+                nanos: 0,
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(true),
+        )
+        .await
+        .expect("update_test_report failed");
+
+    assert_eq!(report.name, "renamed");
+}
+
+#[tokio::test]
+async fn update_test_report_propagates_grpc_error() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_update_test_report()
+        .returning(|_| Err(Status::not_found("no such report")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .update_test_report(
+            "r1".to_string(),
+            None,
+            Some("x".to_string()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect_err("expected error");
+
+    assert!(err.to_string().contains("failed to update test report"));
+}
+
+// --- update_test_step ---
+
+#[tokio::test]
+async fn update_test_step_builds_mask_with_error_info_and_metadata() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_update_test_step()
+        .withf(|req| {
+            let req = req.get_ref();
+            let step = req.test_step.as_ref().unwrap();
+            let paths = &req.update_mask.as_ref().unwrap().paths;
+            let error_ok = step
+                .error_info
+                .as_ref()
+                .map(|e| e.error_code == 7 && e.error_message == "boom")
+                .unwrap_or(false);
+            step.test_step_id == "s1"
+                && step.status == TestStatus::Failed as i32
+                && error_ok
+                // Empty metadata list still records the path (REPLACE → clear).
+                && step.metadata.is_empty()
+                && paths
+                    == &vec![
+                        "status".to_string(),
+                        "error_info".to_string(),
+                        "metadata".to_string(),
+                    ]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateTestStepResponse {
+                test_step: Some(TestStep {
+                    test_step_id: "s1".into(),
+                    test_report_id: "r1".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let step = service
+        .update_test_step(
+            "s1".to_string(),
+            None,
+            None,
+            None,
+            None,
+            Some(TestStatus::Failed as i32),
+            None,
+            None,
+            Some(ErrorInfo {
+                error_code: 7,
+                error_message: "boom".into(),
+            }),
+            Some(vec![]),
+        )
+        .await
+        .expect("update_test_step failed");
+
+    assert_eq!(step.test_report_id, "r1");
+}
+
+#[tokio::test]
+async fn update_test_step_propagates_grpc_error() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_update_test_step()
+        .returning(|_| Err(Status::not_found("no such step")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .update_test_step(
+            "s1".to_string(),
+            Some("x".to_string()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect_err("expected error");
+
+    assert!(err.to_string().contains("failed to update test step"));
+}
+
+// --- update_test_measurement ---
+
+#[tokio::test]
+async fn update_test_measurement_masks_value_and_numeric_bounds() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_update_test_measurement()
+        .withf(|req| {
+            let req = req.get_ref();
+            let m = req.test_measurement.as_ref().unwrap();
+            let paths = &req.update_mask.as_ref().unwrap().paths;
+            let value_ok = matches!(
+                m.value,
+                Some(test_measurement::Value::NumericValue(v)) if v == 3.3
+            );
+            let bounds_ok = matches!(
+                &m.bounds,
+                Some(test_measurement::Bounds::NumericBounds(b))
+                    if b.min == Some(3.0) && b.max == Some(3.6)
+            );
+            m.measurement_id == "m1"
+                && value_ok
+                && bounds_ok
+                && m.passed
+                && paths
+                    == &vec![
+                        "numeric_value".to_string(),
+                        "numeric_bounds".to_string(),
+                        "passed".to_string(),
+                    ]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateTestMeasurementResponse {
+                test_measurement: Some(TestMeasurement {
+                    measurement_id: "m1".into(),
+                    test_report_id: "r1".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let m = service
+        .update_test_measurement(
+            "m1".to_string(),
+            None,
+            None,
+            Some(test_measurement::Value::NumericValue(3.3)),
+            None,
+            Some(test_measurement::Bounds::NumericBounds(NumericBounds {
+                min: Some(3.0),
+                max: Some(3.6),
+            })),
+            Some(true),
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect("update_test_measurement failed");
+
+    assert_eq!(m.test_report_id, "r1");
+}
+
+#[tokio::test]
+async fn update_test_measurement_masks_string_bounds() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_update_test_measurement()
+        .withf(|req| {
+            let req = req.get_ref();
+            let m = req.test_measurement.as_ref().unwrap();
+            let paths = &req.update_mask.as_ref().unwrap().paths;
+            let bounds_ok = matches!(
+                &m.bounds,
+                Some(test_measurement::Bounds::StringBounds(b)) if b.expected_value == "ok"
+            );
+            bounds_ok && paths == &vec!["string_bounds".to_string()]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateTestMeasurementResponse {
+                test_measurement: Some(TestMeasurement {
+                    measurement_id: "m1".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    service
+        .update_test_measurement(
+            "m1".to_string(),
+            None,
+            None,
+            None,
+            None,
+            Some(test_measurement::Bounds::StringBounds(StringBounds {
+                expected_value: "ok".into(),
+            })),
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect("update_test_measurement failed");
+}
+
+#[tokio::test]
+async fn update_test_measurement_propagates_grpc_error() {
+    let mut mock = MockTestReportServiceImpl::new();
+    mock.expect_update_test_measurement()
+        .returning(|_| Err(Status::not_found("no such measurement")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .update_test_measurement(
+            "m1".to_string(),
+            Some("x".to_string()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect_err("expected error");
+
+    assert!(
+        err.to_string()
+            .contains("failed to update test measurement")
+    );
 }

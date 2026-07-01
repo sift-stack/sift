@@ -6,12 +6,16 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
+use sift_rs::{
+    metadata::v1::MetadataValue,
+    test_reports::v1::{ErrorInfo, NumericBounds, StringBounds, test_measurement},
+};
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::test_reports::spec::{self, ReportSpec},
-    tool::common::{ListParams, url_clause},
+    tool::common::{ListParams, MetadataEntry, url_clause},
 };
 
 #[cfg(test)]
@@ -40,6 +44,56 @@ pub struct AppendMeasurementsParams {
     pub(crate) test_report_id: String,
     pub(crate) test_step_id: String,
     pub(crate) measurements_json: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateTestReportParams {
+    pub(crate) test_report_id: String,
+    pub(crate) status: Option<String>,
+    pub(crate) name: Option<String>,
+    pub(crate) test_system_name: Option<String>,
+    pub(crate) test_case: Option<String>,
+    pub(crate) start_time: Option<String>,
+    pub(crate) end_time: Option<String>,
+    pub(crate) serial_number: Option<String>,
+    pub(crate) part_number: Option<String>,
+    pub(crate) system_operator: Option<String>,
+    pub(crate) run_id: Option<String>,
+    pub(crate) is_archived: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateTestStepParams {
+    pub(crate) test_step_id: String,
+    pub(crate) name: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) step_type: Option<String>,
+    pub(crate) step_path: Option<String>,
+    pub(crate) status: Option<String>,
+    pub(crate) start_time: Option<String>,
+    pub(crate) end_time: Option<String>,
+    pub(crate) error_code: Option<i32>,
+    pub(crate) error_message: Option<String>,
+    pub(crate) metadata: Option<Vec<MetadataEntry>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateTestMeasurementParams {
+    pub(crate) measurement_id: String,
+    pub(crate) name: Option<String>,
+    pub(crate) measurement_type: Option<String>,
+    pub(crate) numeric_value: Option<f64>,
+    pub(crate) string_value: Option<String>,
+    pub(crate) boolean_value: Option<bool>,
+    pub(crate) unit: Option<String>,
+    pub(crate) numeric_bounds_min: Option<f64>,
+    pub(crate) numeric_bounds_max: Option<f64>,
+    pub(crate) string_expected: Option<String>,
+    pub(crate) passed: Option<bool>,
+    pub(crate) timestamp: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) channel_names: Option<Vec<String>>,
+    pub(crate) metadata: Option<Vec<MetadataEntry>>,
 }
 
 #[tool_router(router = test_reports_router, vis = "pub(crate)")]
@@ -461,6 +515,465 @@ impl SiftMcpServer {
             "test_report_id": test_report_id,
             "test_step_id": test_step_id,
             "measurements_created": created,
+            "report_url": report_url,
+            "next_step": next_step,
+        }));
+        result.content = vec![Content::text(next_step)];
+        Ok(result)
+    }
+
+    #[tool(
+        name = "update_test_report",
+        description = "
+            Update specific fields of an existing test report, identified by `test_report_id`. This is a
+            WRITE. Only the fields you set are changed; every other field on the report is preserved.
+            Wraps `test_reports/v1 UpdateTestReport`.
+
+            Output:
+              - `{ \"test_report\": TestReport, \"report_url\": string|null, \"next_step\": string }`. The
+                returned `TestReport` is the post-update state from the server; `report_url` is its Sift
+                web link (`<host>/test-results/<id>`), or null when the host can't be derived.
+
+            Parameters:
+              - `test_report_id`: required; the id of the report to update.
+              - `status`: optional; one of `PASSED`, `FAILED`, `ABORTED`, `ERROR`, `IN_PROGRESS`,
+                `SKIPPED`, `DRAFT` (the `TEST_STATUS_` prefix is optional).
+              - `name`, `test_system_name`, `test_case`: optional new string values.
+              - `start_time` / `end_time`: optional RFC3339 timestamps, e.g. \"2026-06-24T10:00:00Z\".
+              - `serial_number`, `part_number`, `system_operator`: optional new string values.
+              - `run_id`: optional; links the report to a different Sift run (empty string to unlink).
+              - `is_archived`: optional; archive (`true`) or unarchive (`false`) the report.
+
+              At least one updatable field besides `test_report_id` must be set; otherwise the tool returns
+              `INVALID_PARAMS`.
+
+            Errors:
+              - `INVALID_PARAMS` if `test_report_id` is empty, no updatable field is provided, `status` is
+                an unknown enum value, or a timestamp is not RFC3339.
+              - `RESOURCE_NOT_FOUND` if no report matches `test_report_id`.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - CONFIRM the change with the user before invoking: read the current report first (via
+                `list_test_reports` filtered by `test_report_id == \"...\"`) and show them the current value
+                versus the proposed value for each field you intend to change.
+        ",
+        annotations(
+            title = "test_reports_router/update_test_report",
+            read_only_hint = false
+        )
+    )]
+    pub async fn update_test_report(
+        &self,
+        params: Parameters<UpdateTestReportParams>,
+    ) -> error::McpResult {
+        let Parameters(UpdateTestReportParams {
+            test_report_id,
+            status,
+            name,
+            test_system_name,
+            test_case,
+            start_time,
+            end_time,
+            serial_number,
+            part_number,
+            system_operator,
+            run_id,
+            is_archived,
+        }) = params;
+
+        if test_report_id.is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`test_report_id` must not be empty",
+                None,
+            ));
+        }
+
+        let has_update = status.is_some()
+            || name.is_some()
+            || test_system_name.is_some()
+            || test_case.is_some()
+            || start_time.is_some()
+            || end_time.is_some()
+            || serial_number.is_some()
+            || part_number.is_some()
+            || system_operator.is_some()
+            || run_id.is_some()
+            || is_archived.is_some();
+        if !has_update {
+            return Err(ErrorData::invalid_params(
+                "at least one updatable field besides `test_report_id` must be provided",
+                None,
+            ));
+        }
+
+        let status = spec::parse_status(status.as_deref())
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let start_time = spec::parse_timestamp(start_time.as_deref(), "start_time")
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let end_time = spec::parse_timestamp(end_time.as_deref(), "end_time")
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+
+        let report = self
+            .test_report_service
+            .update_test_report(
+                test_report_id,
+                status,
+                name,
+                test_system_name,
+                test_case,
+                start_time,
+                end_time,
+                serial_number,
+                part_number,
+                system_operator,
+                run_id,
+                is_archived,
+            )
+            .await
+            .map_err(from_anyhow)?;
+
+        let report_url = self
+            .url_service
+            .build_test_report_url(&report.test_report_id)
+            .ok();
+        let next_step = format!(
+            "Updated test report `{}` ({}).{} Surface the new state to the user and confirm the change \
+             matches their intent.",
+            report.name,
+            report.test_report_id,
+            url_clause(report_url.as_deref()),
+        );
+
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "test_report": report,
+            "report_url": report_url,
+            "next_step": next_step,
+        }));
+        result.content = vec![Content::text(next_step)];
+        Ok(result)
+    }
+
+    #[tool(
+        name = "update_test_step",
+        description = "
+            Update specific fields of an existing test step, identified by `test_step_id`. This is a WRITE.
+            Only the fields you set are changed; every other field on the step is preserved. Wraps
+            `test_reports/v1 UpdateTestStep`.
+
+            Output:
+              - `{ \"test_step\": TestStep, \"report_url\": string|null, \"next_step\": string }`. The
+                returned `TestStep` is the post-update state; `report_url` links the step's report in the
+                Sift web app, or null when the host can't be derived.
+
+            Parameters:
+              - `test_step_id`: required; the id of the step to update.
+              - `name`, `description`: optional new string values.
+              - `step_type`: optional; one of `SEQUENCE`, `GROUP`, `ACTION`, `FLOW_CONTROL` (the
+                `TEST_STEP_TYPE_` prefix is optional).
+              - `step_path`: optional new hierarchical path (e.g. \"1.2\"). Editing this can desync the step
+                tree — change it only when deliberately restructuring.
+              - `status`: optional; see `update_test_report` for the accepted values.
+              - `start_time` / `end_time`: optional RFC3339 timestamps.
+              - `error_code` / `error_message`: optional; MUST be provided together — they set the step's
+                `error_info`. `error_info` is diagnostic only and does not by itself mean the step failed.
+              - `metadata`: optional; REPLACES the full metadata list. Each entry is
+                `{ \"name\": \"<key>\", \"value\": <scalar> }`. Pass `[]` to clear.
+
+              At least one updatable field besides `test_step_id` must be set; otherwise the tool returns
+              `INVALID_PARAMS`.
+
+            Errors:
+              - `INVALID_PARAMS` if `test_step_id` is empty, no updatable field is provided, only one of
+                `error_code`/`error_message` is set, `step_type`/`status` is unknown, or a timestamp is not
+                RFC3339.
+              - `RESOURCE_NOT_FOUND` if no step matches `test_step_id`.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - CONFIRM before invoking: read the current step (via `list_test_steps` filtered by
+                `test_step_id == \"...\"`) and show the user current versus proposed values. `metadata` is a
+                REPLACE, so read-modify-write when appending.
+        ",
+        annotations(title = "test_reports_router/update_test_step", read_only_hint = false)
+    )]
+    pub async fn update_test_step(
+        &self,
+        params: Parameters<UpdateTestStepParams>,
+    ) -> error::McpResult {
+        let Parameters(UpdateTestStepParams {
+            test_step_id,
+            name,
+            description,
+            step_type,
+            step_path,
+            status,
+            start_time,
+            end_time,
+            error_code,
+            error_message,
+            metadata,
+        }) = params;
+
+        if test_step_id.is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`test_step_id` must not be empty",
+                None,
+            ));
+        }
+
+        let error_info = match (error_code, error_message) {
+            (Some(error_code), Some(error_message)) => Some(ErrorInfo {
+                error_code,
+                error_message,
+            }),
+            (None, None) => None,
+            _ => {
+                return Err(ErrorData::invalid_params(
+                    "`error_code` and `error_message` must be provided together",
+                    None,
+                ));
+            }
+        };
+
+        let has_update = name.is_some()
+            || description.is_some()
+            || step_type.is_some()
+            || step_path.is_some()
+            || status.is_some()
+            || start_time.is_some()
+            || end_time.is_some()
+            || error_info.is_some()
+            || metadata.is_some();
+        if !has_update {
+            return Err(ErrorData::invalid_params(
+                "at least one updatable field besides `test_step_id` must be provided",
+                None,
+            ));
+        }
+
+        let step_type = spec::parse_step_type(step_type.as_deref())
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let status = spec::parse_status(status.as_deref())
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let start_time = spec::parse_timestamp(start_time.as_deref(), "start_time")
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let end_time = spec::parse_timestamp(end_time.as_deref(), "end_time")
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
+
+        let step = self
+            .test_report_service
+            .update_test_step(
+                test_step_id,
+                name,
+                description,
+                step_type,
+                step_path,
+                status,
+                start_time,
+                end_time,
+                error_info,
+                metadata,
+            )
+            .await
+            .map_err(from_anyhow)?;
+
+        let report_url = self
+            .url_service
+            .build_test_report_url(&step.test_report_id)
+            .ok();
+        let next_step = format!(
+            "Updated test step `{}` ({}) in report `{}`.{} Surface the new state to the user and confirm \
+             it matches their intent. Remember: metadata is a REPLACE.",
+            step.name,
+            step.test_step_id,
+            step.test_report_id,
+            url_clause(report_url.as_deref()),
+        );
+
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "test_step": step,
+            "report_url": report_url,
+            "next_step": next_step,
+        }));
+        result.content = vec![Content::text(next_step)];
+        Ok(result)
+    }
+
+    #[tool(
+        name = "update_test_measurement",
+        description = "
+            Update specific fields of an existing test measurement, identified by `measurement_id`. This is
+            a WRITE. Only the fields you set are changed; every other field is preserved. Wraps
+            `test_reports/v1 UpdateTestMeasurement`.
+
+            Output:
+              - `{ \"test_measurement\": TestMeasurement, \"report_url\": string|null, \"next_step\": string }`.
+                The returned `TestMeasurement` is the post-update state; `report_url` links its report in
+                the Sift web app, or null when the host can't be derived.
+
+            Parameters:
+              - `measurement_id`: required; the id of the measurement to update.
+              - `name`, `description`: optional new string values.
+              - `measurement_type`: optional; one of `DOUBLE`, `STRING`, `BOOLEAN`, `LIMIT` (the
+                `TEST_MEASUREMENT_TYPE_` prefix is optional).
+              - `numeric_value` / `string_value` / `boolean_value`: optional new value. Set AT MOST ONE;
+                setting more than one returns `INVALID_PARAMS`. This does not auto-recompute `passed`.
+              - `unit`: optional unit abbreviation (e.g. \"V\").
+              - `numeric_bounds_min` / `numeric_bounds_max`: optional numeric bounds. Setting either sets
+                `numeric_bounds` (an unset side is unbounded).
+              - `string_expected`: optional expected string; sets `string_bounds`. Mutually exclusive with
+                the numeric bounds fields.
+              - `passed`: optional pass/fail verdict.
+              - `timestamp`: optional RFC3339 timestamp.
+              - `channel_names`: optional; REPLACES the full channel-name list. Pass `[]` to clear.
+              - `metadata`: optional; REPLACES the full metadata list (`{ \"name\": ..., \"value\": <scalar> }`).
+
+              At least one updatable field besides `measurement_id` must be set; otherwise the tool returns
+              `INVALID_PARAMS`.
+
+            Errors:
+              - `INVALID_PARAMS` if `measurement_id` is empty, no updatable field is provided, more than one
+                value field is set, both numeric and string bounds are set, an enum is unknown, or a
+                timestamp is not RFC3339.
+              - `RESOURCE_NOT_FOUND` if no measurement matches `measurement_id`.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - CONFIRM before invoking: read the current measurement (via `list_test_measurements` filtered
+                by `measurement_id == \"...\"`) and show the user current versus proposed values. Changing a
+                value does not recompute `passed` — set `passed` explicitly if the verdict should change.
+        ",
+        annotations(
+            title = "test_reports_router/update_test_measurement",
+            read_only_hint = false
+        )
+    )]
+    pub async fn update_test_measurement(
+        &self,
+        params: Parameters<UpdateTestMeasurementParams>,
+    ) -> error::McpResult {
+        let Parameters(UpdateTestMeasurementParams {
+            measurement_id,
+            name,
+            measurement_type,
+            numeric_value,
+            string_value,
+            boolean_value,
+            unit,
+            numeric_bounds_min,
+            numeric_bounds_max,
+            string_expected,
+            passed,
+            timestamp,
+            description,
+            channel_names,
+            metadata,
+        }) = params;
+
+        if measurement_id.is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`measurement_id` must not be empty",
+                None,
+            ));
+        }
+
+        // At most one value variant.
+        let value_count = numeric_value.is_some() as u8
+            + string_value.is_some() as u8
+            + boolean_value.is_some() as u8;
+        if value_count > 1 {
+            return Err(ErrorData::invalid_params(
+                "set at most one of `numeric_value`, `string_value`, or `boolean_value`",
+                None,
+            ));
+        }
+        let value = if let Some(v) = numeric_value {
+            Some(test_measurement::Value::NumericValue(v))
+        } else if let Some(v) = string_value {
+            Some(test_measurement::Value::StringValue(v))
+        } else {
+            boolean_value.map(test_measurement::Value::BooleanValue)
+        };
+
+        // At most one bounds kind.
+        let has_numeric_bounds = numeric_bounds_min.is_some() || numeric_bounds_max.is_some();
+        if has_numeric_bounds && string_expected.is_some() {
+            return Err(ErrorData::invalid_params(
+                "set either numeric bounds (`numeric_bounds_min`/`numeric_bounds_max`) or \
+                 `string_expected`, not both",
+                None,
+            ));
+        }
+        let bounds = if has_numeric_bounds {
+            Some(test_measurement::Bounds::NumericBounds(NumericBounds {
+                min: numeric_bounds_min,
+                max: numeric_bounds_max,
+            }))
+        } else {
+            string_expected.map(|expected_value| {
+                test_measurement::Bounds::StringBounds(StringBounds { expected_value })
+            })
+        };
+
+        let has_update = name.is_some()
+            || measurement_type.is_some()
+            || value.is_some()
+            || unit.is_some()
+            || bounds.is_some()
+            || passed.is_some()
+            || timestamp.is_some()
+            || description.is_some()
+            || channel_names.is_some()
+            || metadata.is_some();
+        if !has_update {
+            return Err(ErrorData::invalid_params(
+                "at least one updatable field besides `measurement_id` must be provided",
+                None,
+            ));
+        }
+
+        let measurement_type = spec::parse_measurement_type(measurement_type.as_deref())
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let timestamp = spec::parse_timestamp(timestamp.as_deref(), "timestamp")
+            .map_err(|e| ErrorData::invalid_params(format!("{e}"), None))?;
+        let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
+
+        let measurement = self
+            .test_report_service
+            .update_test_measurement(
+                measurement_id,
+                name,
+                measurement_type,
+                value,
+                unit,
+                bounds,
+                passed,
+                timestamp,
+                description,
+                channel_names,
+                metadata,
+            )
+            .await
+            .map_err(from_anyhow)?;
+
+        let report_url = self
+            .url_service
+            .build_test_report_url(&measurement.test_report_id)
+            .ok();
+        let next_step = format!(
+            "Updated test measurement `{}` ({}) in report `{}`.{} Surface the new state to the user and \
+             confirm it matches their intent. Remember: channel_names and metadata are REPLACE \
+             operations, and changing a value does not recompute `passed`.",
+            measurement.name,
+            measurement.measurement_id,
+            measurement.test_report_id,
+            url_clause(report_url.as_deref()),
+        );
+
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "test_measurement": measurement,
             "report_url": report_url,
             "next_step": next_step,
         }));

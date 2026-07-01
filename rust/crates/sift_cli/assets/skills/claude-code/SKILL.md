@@ -41,6 +41,10 @@ to combine them when working with Sift.
    - `create_test_report`, `append_test_measurements`: create a test report with
      its step/measurement tree, or add measurements to an existing step (writes —
      confirm with the user first).
+   - `update_test_report`, `update_test_step`, `update_test_measurement`: update
+     fields of an existing report, step, or measurement (writes — only the fields
+     you set change; metadata/channel_names use replace semantics; confirm current
+     versus proposed values with the user first).
    - `get_data`: download channel data for an asset/run to a Parquet file.
    - `sql`: run SQL over one or more Parquet files (chain after `get_data`).
    - `upload_dataset`: stream a Parquet dataset into Sift. Returns an
