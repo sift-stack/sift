@@ -1365,9 +1365,7 @@ class TestGetChannelData:
             client.channel_cache.store.close()
 
     @pytest.mark.asyncio
-    async def test_run_scoped_empty_wire_response_does_not_mask_future_data(
-        self, tmp_path
-    ) -> None:
+    async def test_run_scoped_empty_wire_response_does_not_mask_future_data(self, tmp_path) -> None:
         """Run-scoped empty responses must not cache; later ingest still shows up.
 
         Absence at query time doesn't imply future absence for a run
