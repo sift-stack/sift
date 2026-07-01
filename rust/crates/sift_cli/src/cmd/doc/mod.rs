@@ -1,7 +1,10 @@
+#[cfg(test)]
+mod tests;
+
 use anyhow::{Context, Result};
 use axum::Router;
 use include_dir::{Dir, include_dir};
-use std::process::ExitCode;
+use std::{net::SocketAddr, process::ExitCode};
 use tokio::net::TcpListener;
 use tower_serve_static::ServeDir;
 
@@ -20,11 +23,21 @@ pub async fn serve(args: DocArgs) -> Result<ExitCode> {
         .await
         .context("failed to bind socket address")?;
 
-    println!("documentation available at tcp://{addr}");
+    println!("documentation available at {}", doc_url(addr));
 
     axum::serve(ln, router)
         .await
         .context("server exited due to error")?;
 
     Ok(ExitCode::SUCCESS)
+}
+
+/// An unspecified bind address (`0.0.0.0` or `[::]`) isn't routable in a
+/// browser, so show `localhost`. An explicit address is shown as-is.
+fn doc_url(addr: SocketAddr) -> String {
+    if addr.ip().is_unspecified() {
+        format!("http://localhost:{}", addr.port())
+    } else {
+        format!("http://{addr}")
+    }
 }
