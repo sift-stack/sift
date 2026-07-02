@@ -30,6 +30,14 @@ pub struct DeriveAndUploadArgs {
     target_run: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct MaterializeExternalRulesArgs {
+    asset: String,
+    run: Option<String>,
+    archive_originals: Option<bool>,
+    dry_run: Option<bool>,
+}
+
 #[prompt_router(vis = "pub(crate)")]
 impl SiftMcpServer {
     #[prompt(
@@ -153,6 +161,91 @@ impl SiftMcpServer {
              5. Upload with `upload_dataset`, passing the `sql` output as `input`. After it returns, \
              tell the user where the data landed and offer to verify via `list_runs` or \
              `list_channels`."
+        );
+
+        vec![PromptMessage::new_text(PromptMessageRole::User, body)]
+    }
+
+    #[prompt(
+        name = "materialize_external_rules",
+        description = "Find external rules on an asset and clone them as internal rules so they appear in reports. Optionally archive the originals and attach the clones to a report on a given run."
+    )]
+    pub async fn materialize_external_rules(
+        &self,
+        params: Parameters<MaterializeExternalRulesArgs>,
+    ) -> Vec<PromptMessage> {
+        let Parameters(MaterializeExternalRulesArgs {
+            asset,
+            run,
+            archive_originals,
+            dry_run,
+        }) = params;
+
+        let archive_originals = archive_originals.unwrap_or(false);
+        let dry_run = dry_run.unwrap_or(false);
+
+        let run_line = match run.as_deref() {
+            Some(r) => {
+                format!("Target run for the final report: \"{r}\".\n")
+            }
+            None => "Target run: not provided - skip the final report step.\n".to_string(),
+        };
+
+        let mode_line = if dry_run {
+            "MODE: dry run. List what would be materialized. Do NOT call `create_rule` or \
+             `archive_rule`."
+                .to_string()
+        } else if archive_originals {
+            "MODE: materialize + archive originals. Confirm each write with the user before it \
+             runs."
+                .to_string()
+        } else {
+            "MODE: materialize only. Do NOT archive the external originals - the user can clean \
+             them up later."
+                .to_string()
+        };
+
+        let body = format!(
+            "Help the user materialize external Sift rules on an asset so they appear in reports. \
+             External rules (`is_external = true`) are excluded from report evaluation by default, \
+             so the fix is to clone each one as an internal rule that reports can see.\n\n\
+             Asset: \"{asset}\"\n{run_line}\
+             {mode_line}\n\n\
+             Steps:\n\
+             1. Resolve the asset. Use `list_assets` with `name == \"{asset}\"`. If nothing hits, \
+             fall back to a substring match (`name.matches(\"{asset}\")`). If several match, ask \
+             the user which one before continuing.\n\
+             2. List external rules on that asset. Call `list_rules` with the filter \
+             `is_external == true && asset_id == \"<resolved_id>\"`. Show the user the list \
+             (name, description, brief condition summary). If nothing comes back but the user \
+             believes external rules exist, warn that the current MCP `list_rules` may filter \
+             them out server-side and stop - the fix would need an `include_external` param on \
+             `list_rules`.\n\
+             3. Confirm with the user which rules to materialize. Default is all; the user can \
+             subset. Do not silently default.\n\
+             4. For each selected rule: extract its full definition (`name`, `description`, \
+             `conditions`, `actions`, `asset_configuration`, `tags`, `metadata`) and call \
+             `create_rule` with that content packed into `rule_json`. DROP the `client_key` from \
+             the clone to avoid uniqueness collisions. The new rule defaults to \
+             `is_external = false` because `create_rule` does not accept that flag. Collect the \
+             (old_external_id -> new_internal_id) mapping and surface it to the user.\n\
+             5. If archive-originals mode is on, confirm once more with the user, then call \
+             `archive_rule` on each original external `rule_id`. Warn the user that archiving \
+             stops live evaluation - if any external system references these rules by \
+             `client_key`, those references now hit an inactive rule.\n\
+             6. If a target run was provided, call `create_report` with `rule_ids` set to the \
+             new internal ids, `run_id` set to the resolved run, and a `name` that references \
+             the materialization (e.g. \"Materialized external rules for {asset}\"). Surface the \
+             `report_url` so the user can open the report and confirm the previously-invisible \
+             rules now show.\n\n\
+             Safety:\n\
+             - Every `create_rule`, `archive_rule`, and `create_report` is a write. Confirm the \
+             exact list with the user before each batch.\n\
+             - If any single `create_rule` fails, stop the batch, report which rule failed, and \
+             do NOT proceed to archive originals - a partial clone must not be paired with an \
+             archive.\n\
+             - In dry-run mode, execute steps 1-3 only; skip 4-6 entirely and tell the user what \
+             would happen."
         );
 
         vec![PromptMessage::new_text(PromptMessageRole::User, body)]

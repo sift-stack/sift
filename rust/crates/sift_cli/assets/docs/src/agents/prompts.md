@@ -117,3 +117,42 @@ The agent extracts the source data, applies the transform with `sql` (keeping
 `timestamp_unix_nanos` as the first column, as Sift requires), confirms the
 target asset, run, and any tags with you, then uploads the result with
 `upload_dataset`.
+
+## `materialize_external_rules`
+
+Finds external rules on an asset (rules with `is_external = true`, typically
+created by Python testing tools or external integrations) and clones them as
+internal rules so they show up in reports. External rules are filtered out of
+report evaluation by default, so materializing them is the fix when a rule
+exists but its results are missing from a report.
+
+| Argument            | Required | Description                                                                                              |
+| ------------------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| `asset`             | yes      | Asset to look up external rules on.                                                                      |
+| `run`               | no       | If provided, the agent creates a report on this run using the newly-materialized rules and returns its URL. |
+| `archive_originals` | no       | Boolean, default `false`. When `true`, the agent archives the external originals after cloning.          |
+| `dry_run`           | no       | Boolean, default `false`. When `true`, the agent lists what would be materialized but performs no writes. |
+
+Preview what would change on an asset without writing anything:
+
+```
+/mcp__sift__materialize_external_rules "Falcon 9 Booster" "" false true
+```
+
+Materialize on an asset and attach the clones to a report on a specific run:
+
+```
+/mcp__sift__materialize_external_rules "Falcon 9 Booster" "Static Fire 2024-05-01"
+```
+
+Materialize and archive the originals in the same pass:
+
+```
+/mcp__sift__materialize_external_rules "Falcon 9 Booster" "Static Fire 2024-05-01" true
+```
+
+The agent resolves the asset, lists external rules with
+`list_rules` filtered by `is_external == true`, confirms the subset to
+materialize with you, calls `create_rule` per rule (dropping any `client_key`
+to avoid collisions), optionally archives the originals, and — if a target run
+was given — creates a report on that run using the new internal rule ids.
