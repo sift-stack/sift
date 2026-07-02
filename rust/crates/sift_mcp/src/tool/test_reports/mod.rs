@@ -80,7 +80,7 @@ impl SiftMcpServer {
               - To audit a single run, resolve the report first (by `name`, `run_id`, or `test_case`), then pass
                 its `test_report_id` to the step and measurement tools.
         ",
-        annotations(title = "test_reports_router/list_test_reports", read_only_hint = true)
+        annotations(title = "test_reports/list_test_reports", read_only_hint = true)
     )]
     pub async fn list_test_reports(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -136,7 +136,7 @@ impl SiftMcpServer {
               - To find failures, filter `test_report_id == \"...\" && status == TEST_STATUS_FAILED`.
               - Order by `step_path` to reconstruct the execution tree; use `parent_step_id` to attach children.
         ",
-        annotations(title = "test_reports_router/list_test_steps", read_only_hint = true)
+        annotations(title = "test_reports/list_test_steps", read_only_hint = true)
     )]
     pub async fn list_test_steps(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -193,10 +193,7 @@ impl SiftMcpServer {
               - To audit limit checks, filter `passed == false` within a report and compare each value against its
                 `numeric_bounds`/`string_bounds`.
         ",
-        annotations(
-            title = "test_reports_router/list_test_measurements",
-            read_only_hint = true
-        )
+        annotations(title = "test_reports/list_test_measurements", read_only_hint = true)
     )]
     pub async fn list_test_measurements(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -235,7 +232,7 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
               - `INTERNAL_ERROR` for upstream gRPC failures.
         ",
-        annotations(title = "test_reports_router/count_test_steps", read_only_hint = true)
+        annotations(title = "test_reports/count_test_steps", read_only_hint = true)
     )]
     pub async fn count_test_steps(&self, params: Parameters<CountParams>) -> error::McpResult {
         let Parameters(CountParams { filter }) = params;
@@ -270,10 +267,7 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
               - `INTERNAL_ERROR` for upstream gRPC failures.
         ",
-        annotations(
-            title = "test_reports_router/count_test_measurements",
-            read_only_hint = true
-        )
+        annotations(title = "test_reports/count_test_measurements", read_only_hint = true)
     )]
     pub async fn count_test_measurements(
         &self,
@@ -339,7 +333,7 @@ impl SiftMcpServer {
                 `test_report_id`. Verify with `list_test_steps` (filter `test_report_id == \"...\"`).
         ",
         annotations(
-            title = "test_reports_router/create_test_report",
+            title = "test_reports/create_test_report",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = false,
@@ -416,7 +410,7 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream gRPC failures.
         ",
         annotations(
-            title = "test_reports_router/append_test_measurements",
+            title = "test_reports/append_test_measurements",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = false,
