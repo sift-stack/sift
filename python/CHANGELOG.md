@@ -43,7 +43,8 @@ config = client.data_import.detect_config("flight.ulg")
 # Import only the accelerometer channels
 config.data = [d for d in config.data if d.channel.startswith("sensor_accel_0.")]
 
-# Anchor the timeline for a log with no GPS fix, and import run metadata
+# Anchor the timeline at an explicit log start time; this takes precedence
+# over the log's GPS fix and is required for logs without one
 config.relative_start_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
 config.info_keys = ["ver_sw"]
 config.param_keys = ["BAT1_CAPACITY"]

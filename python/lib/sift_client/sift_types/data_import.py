@@ -896,9 +896,10 @@ class UlogImportConfig(ImportConfigBase):
         data: Channel selections. Empty imports all detected channels with
             default names and data types. If non-empty, only these channels are
             imported.
-        relative_start_time: Absolute log start time to use when the log does
-            not contain a GPS-derived UTC reference. ULog timestamps are
-            relative to boot time. Set this for logs without that reference.
+        relative_start_time: Absolute UTC time of log start. ULog timestamps
+            are relative to boot time. When set, this anchors the timeline and
+            takes precedence over the log's GPS fix; otherwise the GPS fix
+            anchors the timeline. The import fails if neither is available.
         info_keys: Info (``I``/``M``) message keys to import as run metadata,
             stored as ``info.<key>``. Requires ``run_name`` or ``run_id``.
         param_keys: Parameter (``P``) names to import as run metadata, stored
