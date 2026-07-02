@@ -46,7 +46,8 @@ Non-negotiables. These hold regardless of context pressure:
 3. Do not write retry logic anywhere except `policy::with_retry`. Call it; don't reinvent it.
 4. Set `read_only_hint` honestly. Read tools are `true`; anything that writes is `false`. Write
    tools must also set `destructive_hint` and `idempotent_hint` — see Step 4 for the mapping
-   (additive vs. update vs. state-flip).
+   (additive vs. update vs. state-flip). These fields follow the MCP tool annotations spec:
+   <https://modelcontextprotocol.io/specification/2025-11-25/server/tools>.
 5. Do not mirror the API one-to-one. Run Step 0 before writing anything.
 
 ---
