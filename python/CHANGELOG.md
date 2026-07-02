@@ -61,6 +61,27 @@ Templates can be fetched by ID or client key, and rules can be attached by rule 
 
 Breaking change: `client.reports.create_from_template` now takes `report_template` (a `ReportTemplate` or ID string) and `run` (a `Run` or ID string) instead of `report_template_id` and `run_id`, matching the other `create_from_*` methods.
 
+#### ULog imports
+
+Added PX4 ULog (`.ulg`) as a supported data import format. ULog files are self-describing, so `client.data_import.import_from_path("flight.ulg", asset=asset)` auto-detects every channel from the embedded schema with no column mapping. Detection runs client-side and requires the `ulog` extra (`pip install sift-stack-py[ulog]`).
+
+Call `detect_config` to inspect and patch the import before uploading, the same as the other formats:
+
+```python
+config = client.data_import.detect_config("flight.ulg")
+
+# Import only the accelerometer channels
+config.data = [d for d in config.data if d.channel.startswith("sensor_accel_0.")]
+
+# Anchor the timeline at an explicit log start time; this takes precedence
+# over the log's GPS fix and is required for logs without one
+config.relative_start_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+config.info_keys = ["ver_sw"]
+config.param_keys = ["BAT1_CAPACITY"]
+
+client.data_import.import_from_path("flight.ulg", asset=asset, config=config)
+```
+
 #### Resource and principal attributes (ABAC)
 
 Added a public API for attribute based access control (ABAC) attributes. `client.resource_attributes` manages attribute keys assigned to entities (assets, channels, runs), and `client.principal_attributes` manages attribute keys assigned to principals (users and user groups). Both are available synchronously and asynchronously via `client.async_`.

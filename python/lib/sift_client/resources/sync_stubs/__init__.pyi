@@ -696,12 +696,12 @@ class DataImportAPI:
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
-        Reads a sample of the file, sends it to the server's DetectConfig
-        endpoint, and returns the detected configuration. The file format
-        is inferred from the file extension when ``data_type`` is not
-        provided.
+        Returns the detected configuration, inferring the file format from the
+        extension when ``data_type`` is not provided. CSV and Parquet are
+        detected by sending a sample of the file to the server's DetectConfig
+        endpoint; TDMS, HDF5, and ULog are detected locally on the client.
 
-        CSV, Parquet, HDF5, and TDMS files are supported for
+        CSV, Parquet, HDF5, TDMS, and ULog files are supported for
         auto-detection.
 
         For CSV files, the server scans the first two rows for an optional
@@ -731,11 +731,11 @@ class DataImportAPI:
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous.
-            time_format: Time format override. When provided, takes
-                precedence over the format returned by detection. When
-                omitted, the returned config uses the detected format if
-                available, falling back to
-                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``.
+            time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
+                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+                detected format if available, otherwise
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
+                detected/default time handling.
 
         Returns:
             The detected import config.
@@ -788,7 +788,7 @@ class DataImportAPI:
         completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
-        ``detect_config`` (CSV, Parquet, HDF5, and TDMS).
+        ``detect_config`` (CSV, Parquet, HDF5, TDMS, and ULog).
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -833,12 +833,12 @@ class DataImportAPI:
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
                 not provided.
-            time_format: Time format override. When provided, takes
-                precedence over the format returned by detection. When
-                omitted, the returned config uses the detected format if
-                available, falling back to
-                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. Only used when
-                ``config`` is not provided.
+            time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
+                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+                detected format if available, otherwise
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
+                detected/default time handling. Only used when ``config`` is
+                not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
