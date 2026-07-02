@@ -14,6 +14,7 @@ from sift_client.resources import (
     PingAPIAsync,
     PrincipalAttributesAPIAsync,
     ReportsAPIAsync,
+    ReportTemplatesAPIAsync,
     ResourceAttributesAPIAsync,
     RulesAPIAsync,
     RunsAPIAsync,
@@ -29,7 +30,11 @@ FileAttachmentsAPI = generate_sync_api(FileAttachmentsAPIAsync, "FileAttachments
 JobsAPI = generate_sync_api(JobsAPIAsync, "JobsAPI")
 RulesAPI = generate_sync_api(RulesAPIAsync, "RulesAPI")
 RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
-ReportsAPI = generate_sync_api(ReportsAPIAsync, "ReportsAPI")
+# ReportTemplatesAPI must be generated before ReportsAPI so it can be nested under it.
+ReportTemplatesAPI = generate_sync_api(ReportTemplatesAPIAsync, "ReportTemplatesAPI")
+ReportsAPI = generate_sync_api(
+    ReportsAPIAsync, "ReportsAPI", nested_resources={"templates": ReportTemplatesAPI}
+)
 ResourceAttributesAPI = generate_sync_api(ResourceAttributesAPIAsync, "ResourceAttributesAPI")
 PrincipalAttributesAPI = generate_sync_api(PrincipalAttributesAPIAsync, "PrincipalAttributesAPI")
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
@@ -47,6 +52,7 @@ __all__ = [
     "JobsAPI",
     "PingAPI",
     "PrincipalAttributesAPI",
+    "ReportTemplatesAPI",
     "ReportsAPI",
     "ResourceAttributesAPI",
     "RulesAPI",

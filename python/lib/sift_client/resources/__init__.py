@@ -164,7 +164,7 @@ from sift_client.resources.ingestion import (
 from sift_client.resources.jobs import JobsAPIAsync
 from sift_client.resources.ping import PingAPIAsync
 from sift_client.resources.principal_attributes import PrincipalAttributesAPIAsync
-from sift_client.resources.reports import ReportsAPIAsync
+from sift_client.resources.reports import ReportsAPIAsync, ReportTemplatesAPIAsync
 from sift_client.resources.resource_attributes import ResourceAttributesAPIAsync
 from sift_client.resources.rules import RulesAPIAsync
 from sift_client.resources.runs import RunsAPIAsync
@@ -182,6 +182,7 @@ from sift_client.resources.sync_stubs import (
     PingAPI,
     PrincipalAttributesAPI,
     ReportsAPI,
+    ReportTemplatesAPI,
     ResourceAttributesAPI,
     RulesAPI,
     RunsAPI,
@@ -219,6 +220,8 @@ __all__ = [
     "PingAPIAsync",
     "PrincipalAttributesAPI",
     "PrincipalAttributesAPIAsync",
+    "ReportTemplatesAPI",
+    "ReportTemplatesAPIAsync",
     "ReportsAPI",
     "ReportsAPIAsync",
     "ResourceAttributesAPI",

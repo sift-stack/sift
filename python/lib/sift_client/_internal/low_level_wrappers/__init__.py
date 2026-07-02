@@ -10,6 +10,9 @@ from sift_client._internal.low_level_wrappers.principal_attributes import (
     PrincipalAttributesLowLevelClient,
 )
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
+from sift_client._internal.low_level_wrappers.report_templates import (
+    ReportTemplatesLowLevelClient,
+)
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.low_level_wrappers.resource_attributes import (
     ResourceAttributesLowLevelClient,
@@ -30,6 +33,7 @@ __all__ = [
     "PingLowLevelClient",
     "PrincipalAttributesLowLevelClient",
     "RemoteFilesLowLevelClient",
+    "ReportTemplatesLowLevelClient",
     "ReportsLowLevelClient",
     "ResourceAttributesLowLevelClient",
     "RulesLowLevelClient",
