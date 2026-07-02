@@ -63,7 +63,7 @@ sift-cli import tdms ./measurement.tdms \
 | ----------------------------- | ---------------------------------------------------------------- |
 | `--asset`, `-a`               | Asset the data belongs to (required).                            |
 | `--run`, `-r`                 | Run name to associate with the import.                           |
-| `--run-id`                    | Attach to an existing run by ID (takes precedence over `--run`). |
+| `--run-id`                    | Attach to an existing run by ID (mutually exclusive with `--run`). |
 | `--start-time-override`       | Override the start time.                                         |
 | `--fallback-method`, `-f`     | Handling for channels with missing timing (default `fail-on-error`). |
 | `--time-format`               | Time format for channels not using the TDMS timestamp type.      |

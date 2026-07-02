@@ -6,8 +6,8 @@ telemetry data.
 
 Use it to:
 
-- **Import** data into Sift from CSV, Parquet, TDMS, and HDF5 files, as well as
-  from `sift_stream` backups.
+- **Import** data into Sift from CSV, Parquet, TDMS, HDF5, and ULog files, as
+  well as from `sift_stream` backups.
 - **Export** asset and run data back out to CSV, Parquet, or SUN.
 - **Run the Sift MCP server** (in active development), which exposes Sift to
   agentic coding tools. Not built into default releases — see

@@ -12,6 +12,7 @@ named window of activity, such as a single test).
 | Parquet | `import parquet flat-dataset`    | [Parquet](./import-parquet.md)   |
 | TDMS    | `import tdms`                    | [TDMS](./import-tdms.md)         |
 | HDF5    | `import hdf5`                    | [HDF5](./import-hdf5.md)         |
+| ULog    | `import ulog`                    | [ULog](./import-ulog.md)         |
 | Backups | `import backups`                | [Backups](./import-backups.md)   |
 
 If your data is in a format not listed here, convert it to CSV or Parquet first
@@ -28,7 +29,7 @@ These flags and behaviors apply across import commands.
   asset if it does not exist.
 - `--run <name>` (optional): associate the data with a named run.
 - `--run-id <id>` (optional, where supported): attach to an existing run by ID.
-  Takes precedence over `--run`.
+  Mutually exclusive with `--run`.
 
 ### Preview before uploading
 
