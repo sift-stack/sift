@@ -3,6 +3,13 @@ All notable changes to `sift-cli` will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### What's New
+
+#### ULog imports
+PX4 ULog (`.ulg`) files can now be imported directly with `sift-cli import ulog`. Every logged topic is imported one channel per field, named `<message>_<multi_id>.<field>`, and logged status text becomes `log_messages` channels. `--preview` lists the detected channels client-side before any upload. Flags cover timestamp anchoring for logs without a GPS time fix (`--relative-start-time`), importing info and parameter values as run metadata (`--info-key`, `--param-key`), and recoverable-error handling (`--parse-error-policy`).
+
 ## [v0.3.0-alpha.1] - June 26, 2026
 
 ### What's New

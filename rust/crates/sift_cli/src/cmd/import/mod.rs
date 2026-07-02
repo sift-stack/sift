@@ -18,6 +18,7 @@ pub mod csv;
 pub mod hdf5;
 pub mod parquet;
 pub mod tdms;
+pub mod ulog;
 mod utils;
 
 const INDENT_1: &str = "  ";
