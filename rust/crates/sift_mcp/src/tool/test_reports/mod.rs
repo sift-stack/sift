@@ -193,10 +193,7 @@ impl SiftMcpServer {
               - To audit limit checks, filter `passed == false` within a report and compare each value against its
                 `numeric_bounds`/`string_bounds`.
         ",
-        annotations(
-            title = "test_reports/list_test_measurements",
-            read_only_hint = true
-        )
+        annotations(title = "test_reports/list_test_measurements", read_only_hint = true)
     )]
     pub async fn list_test_measurements(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -270,10 +267,7 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
               - `INTERNAL_ERROR` for upstream gRPC failures.
         ",
-        annotations(
-            title = "test_reports/count_test_measurements",
-            read_only_hint = true
-        )
+        annotations(title = "test_reports/count_test_measurements", read_only_hint = true)
     )]
     pub async fn count_test_measurements(
         &self,
