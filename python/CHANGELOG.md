@@ -17,8 +17,6 @@ Up to a ~80x speedup for some get_data calls.
 
 The cache lives on the `SiftClient` as a single shared store: every cache-aware resource writes to one global byte budget at one path, with one LRU policy. The default location is `<tempfile.gettempdir()>/sift-data-cache`, capped at 4 GiB with LRU eviction. If the default path can't be opened (read-only filesystem, restricted container, etc.), the client logs a warning and continues with caching disabled — `get_data` still works, it just always goes to the wire.
 
-The cap seeds on **fresh** directories only — an existing cache keeps its previously-persisted `max_bytes` when reopened without an explicit override. So two clients pointing at the same shared path don't quietly resize each other's stores; a cap only changes when a caller passes an explicit `client.cache.enable(max_bytes=...)`.
-
 `ignore_cache=True` on `client.channels.get_data(...)` now skips writing into the cache as well as reading from it. Previously a "non-caching" workload still appended to the shared cache on every call.
 
 Configuration lives on the new `client.cache` namespace — knobs are global because the store is shared:
