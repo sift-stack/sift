@@ -1,8 +1,6 @@
-//! Client-side channel detection for PX4 ULog (`.ulg`) files, used by
-//! `--preview`. Detection reads the definitions section and lightweight
-//! record framing to find logged topics, multi-instance IDs, and
-//! logged-string channels; it does not decode data records. Channel keys,
-//! flattened field names, and the type mapping match the server importer.
+//! Client-side PX4 ULog (`.ulg`) channel detection for `--preview`.
+//! Scans definitions and record framing, without decoding data records, to
+//! match the server importer's channel keys, flattening, and type mapping.
 
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
@@ -12,18 +10,16 @@ use std::{
 use anyhow::{Context as AnyhowContext, Result, anyhow, bail};
 use sift_rs::common::r#type::v1::{ChannelConfig, ChannelDataType};
 
-/// "ULog" plus the 0x01 0x12 0x35 version prefix.
+/// ULog magic plus the 0x01 0x12 0x35 version prefix.
 const ULOG_MAGIC: [u8; 7] = [0x55, 0x4c, 0x6f, 0x67, 0x01, 0x12, 0x35];
 const ULOG_HEADER_SIZE: usize = 16;
-/// Full sync message: 3-byte header (size=8, type 'S') plus the 8 sync magic bytes.
+/// Header plus sync bytes used to recover record framing.
 const SYNC_MESSAGE: [u8; 11] = [
     0x08, 0x00, b'S', 0x2f, 0x73, 0x13, 0x20, 0x25, 0x0c, 0xbb, 0x12,
 ];
 const KNOWN_MESSAGE_TYPES: &[u8] = b"BFIMPQARDLCSO";
-/// Base channel for ULog logged strings; tagged logs use `log_messages_<tag>`.
 const LOG_MESSAGES_CHANNEL: &str = "log_messages";
-/// The ULog spec forbids cyclic message definitions, so any format nested
-/// deeper than this is malformed; bail instead of overflowing the stack.
+/// ULog forbids cyclic definitions; cap recursion to avoid stack overflow.
 const MAX_NESTING_DEPTH: usize = 32;
 
 #[derive(Debug)]
@@ -34,8 +30,6 @@ pub struct Field {
     pub name: String,
 }
 
-/// Message formats, logged topics, and log-string markers found while
-/// scanning the file.
 #[derive(Debug)]
 pub struct ScanResult {
     pub formats: HashMap<String, Vec<Field>>,
@@ -58,10 +52,8 @@ pub fn detect_config(path: &Path) -> Result<Vec<ChannelConfig>> {
         .collect())
 }
 
-/// Collect message formats, logged topics, and log-string markers without
-/// decoding data records. Two passes mirror the server importer: formats
-/// come from the definitions section only, while subscriptions and logged
-/// strings are gathered across the whole file.
+/// Scan without decoding data records. Two passes mirror the server importer:
+/// definitions first, then subscriptions and logged strings across the file.
 pub fn scan_ulog(data: &[u8]) -> Result<ScanResult> {
     if data.len() < ULOG_HEADER_SIZE {
         bail!("not a ULog file (invalid size)");
@@ -80,10 +72,8 @@ pub fn scan_ulog(data: &[u8]) -> Result<ScanResult> {
     Ok(result)
 }
 
-/// Read 'F' (format) definitions. The definitions section ends at the first
-/// subscription or logged-string message; any other message type, including
-/// ones this parser doesn't know, is skipped by its size so later
-/// definitions are still found. Stops cleanly on a truncated tail.
+/// Collect `F` definitions until the definitions section ends.
+/// Unknown records are skipped by size; truncated tails stop the scan.
 fn collect_formats(data: &[u8]) -> HashMap<String, Vec<Field>> {
     let mut formats = HashMap::new();
     let mut pos = ULOG_HEADER_SIZE;
@@ -109,10 +99,8 @@ fn collect_formats(data: &[u8]) -> HashMap<String, Vec<Field>> {
     formats
 }
 
-/// Collect logged topics and log-string markers without decoding data
-/// records. The scan skips data records and stops cleanly on a truncated
-/// tail. If framing is lost, it resumes at the next sync marker so later
-/// channels can still be detected.
+/// Collect subscriptions and log-string channels, resyncing after lost
+/// framing when possible.
 fn collect_records(data: &[u8], result: &mut ScanResult) {
     let mut pos = ULOG_HEADER_SIZE;
 
@@ -121,7 +109,7 @@ fn collect_records(data: &[u8], result: &mut ScanResult) {
         let msg_type = data[pos + 2];
 
         if !KNOWN_MESSAGE_TYPES.contains(&msg_type) {
-            // Lost framing: reframe at the next sync marker.
+            // Resync at the next sync marker.
             let Some(idx) = find_subslice(&data[pos..], &SYNC_MESSAGE) else {
                 break;
             };
@@ -135,13 +123,13 @@ fn collect_records(data: &[u8], result: &mut ScanResult) {
         let payload = &data[pos + 3..pos + 3 + msg_size];
 
         match msg_type {
-            // 'A' (add subscription): multi_id[1], msg_id[2], message_name.
+            // Add subscription: multi_id[1], msg_id[2], message_name.
             b'A' if msg_size >= 4 => {
                 let name = String::from_utf8_lossy(&payload[3..]).into_owned();
                 result.subscriptions.push((name, payload[0]));
             }
             b'L' => result.has_untagged_logs = true,
-            // 'C' (tagged logged string): log_level[1], tag[2], ...
+            // Tagged log string: log_level[1], tag[2], ...
             b'C' if msg_size >= 3 => {
                 result
                     .log_tags
@@ -153,16 +141,15 @@ fn collect_records(data: &[u8], result: &mut ScanResult) {
     }
 }
 
-/// Return importable channels as `(channel_key, data_type)` pairs, in file
-/// order. Logged topics use `<message>_<multi_id>.<field>`. The timestamp
-/// axis and padding fields are excluded; logged strings become
-/// `log_messages` or `log_messages_<tag>`.
+/// Return importable `(channel_key, data_type)` pairs in file order.
+/// Topic channels use `<message>_<multi_id>.<field>`; logs use
+/// `log_messages[_<tag>]`.
 pub fn detect_ulog_channels(scan: &ScanResult) -> Result<Vec<(String, ChannelDataType)>> {
     let mut seen = HashSet::new();
     let mut channels = Vec::new();
 
     for (message_name, multi_id) in &scan.subscriptions {
-        // Truncated headers can leave a subscription without a format.
+        // Malformed definitions can leave a subscription without a format.
         let Some(fields) = scan.formats.get(message_name) else {
             continue;
         };
@@ -171,7 +158,7 @@ pub fn detect_ulog_channels(scan: &ScanResult) -> Result<Vec<(String, ChannelDat
             continue;
         }
         for (key, data_type) in expand_message_fields(&scan.formats, message_name)? {
-            // timestamp is the time axis; _padding fields are alignment bytes.
+            // `timestamp` is the time axis; `_padding` fields are alignment bytes.
             if key == "timestamp" || is_padding(&key) {
                 continue;
             }
@@ -261,12 +248,10 @@ pub fn ulog_to_sift_data_type(c_type: &str) -> Option<ChannelDataType> {
     }
 }
 
-/// Parse an 'F' (format) payload: `message_name:type field;type field;...`.
-/// Mirrors the server importer's tolerance for malformed definitions:
-/// invalid UTF-8 bytes are dropped, only the text between the first two
-/// colons is read, extra space-separated tokens in a field are ignored, a
-/// negative array size means a scalar, and a payload the server would drop
-/// yields `None` so the remaining definitions still parse.
+/// Parse an `F` payload: `message_name:type field;type field;...`.
+/// Matches the server importer: malformed payloads are skipped, invalid UTF-8
+/// bytes are dropped, only the first field segment is read, extra field tokens
+/// are ignored, and negative array sizes become scalars.
 fn parse_format(payload: &[u8]) -> Option<(String, Vec<Field>)> {
     let text = String::from_utf8_lossy(payload).replace('\u{fffd}', "");
     let mut parts = text.split(':');
@@ -294,7 +279,6 @@ fn parse_format(payload: &[u8]) -> Option<(String, Vec<Field>)> {
     Some((name.to_string(), fields))
 }
 
-/// Return whether a channel key contains a ULog padding (alignment) field.
 fn is_padding(channel_key: &str) -> bool {
     channel_key
         .split('.')

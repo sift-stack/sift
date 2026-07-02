@@ -27,7 +27,7 @@ fn make_args() -> ImportUlogArgs {
     }
 }
 
-/// A valid 16-byte ULog file header: magic, version, and boot timestamp.
+/// Valid 16-byte ULog header fixture.
 fn ulog_header() -> Vec<u8> {
     let mut data = vec![0x55, 0x4c, 0x6f, 0x67, 0x01, 0x12, 0x35, 0x01];
     data.extend_from_slice(&0u64.to_le_bytes());
@@ -475,7 +475,6 @@ fn detect_keeps_formats_after_a_stray_data_record() {
 fn detect_skips_unknown_message_types_in_definitions() {
     let mut data = ulog_header();
     push_format(&mut data, "first:uint64_t timestamp;float x;");
-    // A future message type with a valid size hides nothing that follows it.
     push_message(&mut data, b'Z', &[0xaa, 0xbb]);
     push_format(&mut data, "late:uint64_t timestamp;float y;");
     data.extend_from_slice(&[
@@ -518,7 +517,6 @@ fn detect_drops_invalid_utf8_bytes_in_formats() {
 #[test]
 fn detect_reads_only_the_first_format_segment() {
     let mut data = ulog_header();
-    // Only the text between the first two colons defines fields.
     push_format(&mut data, "m:uint64_t timestamp;float a:b;double y;");
     push_subscription(&mut data, 0, 1, "m");
 
@@ -566,7 +564,6 @@ fn detect_treats_negative_array_size_as_scalar() {
 fn detect_resyncs_after_garbage_bytes() {
     let mut data = ulog_header();
     push_format(&mut data, "sensor_accel:uint64_t timestamp;float x;");
-    // An unknown message type loses framing; the sync message recovers it.
     data.extend_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xff]);
     data.extend_from_slice(&[
         0x08, 0x00, b'S', 0x2f, 0x73, 0x13, 0x20, 0x25, 0x0c, 0xbb, 0x12,
@@ -582,7 +579,6 @@ fn detect_stops_cleanly_on_truncated_final_record() {
     let mut data = ulog_header();
     push_format(&mut data, "sensor_accel:uint64_t timestamp;float x;");
     push_subscription(&mut data, 0, 1, "sensor_accel");
-    // A record header promising more bytes than remain in the file.
     data.extend_from_slice(&100u16.to_le_bytes());
     data.push(b'D');
     data.extend_from_slice(&[0x01, 0x02]);

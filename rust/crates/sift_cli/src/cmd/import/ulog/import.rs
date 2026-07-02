@@ -85,9 +85,6 @@ pub async fn run(ctx: Context, args: ImportUlogArgs) -> Result<ExitCode> {
     .await
 }
 
-/// Build the on-wire config. `data` stays empty: the server imports every
-/// detected channel with its defaults, so client-side detection is only used
-/// for `--preview`.
 pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
     if (!args.info_key.is_empty() || !args.param_key.is_empty())
         && args.common.run.is_none()
@@ -105,8 +102,7 @@ pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
         None => None,
     };
 
-    // The ULog importer rejects configs that set both a run name and a run
-    // id, so apply the documented --run-id precedence client-side.
+    // Send only one run identifier; --run-id takes precedence over --run.
     let run_name = if args.common.run_id.is_some() {
         String::new()
     } else {
@@ -121,6 +117,7 @@ pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
         info_keys: args.info_key.clone(),
         param_keys: args.param_key.clone(),
         parse_error_policy: ProtoUlogParseErrorPolicy::from(args.parse_error_policy).into(),
+        // Empty `data` tells the server to import every detected channel.
         ..Default::default()
     })
 }
