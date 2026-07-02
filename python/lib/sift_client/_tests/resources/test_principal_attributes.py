@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sift.principal_attributes.v1 import principal_attributes_pb2 as pa
 
-from sift_client.resources.principal_attributes import PrincipalAttributesAPIAsync
+from sift_client.resources.access_control.principal_attributes import PrincipalAttributesAPIAsync
 from sift_client.sift_types.principal_attribute import (
     PrincipalAttributeKey,
     PrincipalType,
@@ -66,6 +66,20 @@ class TestResolveUserIds:
 
 
 class TestAssign:
+    @pytest.mark.asyncio
+    async def test_fetches_key_when_assigning_by_key_id(self):
+        api = _api()
+        api._low_level_client.get_key = AsyncMock(return_value=_key())
+        api._low_level_client.batch_create_values = AsyncMock(return_value=[])
+
+        await api.assign("pk1", ["u1"], value=["e_a"])
+
+        api._low_level_client.get_key.assert_awaited_once_with("pk1")
+        kwargs = api._low_level_client.batch_create_values.call_args.kwargs
+        assert kwargs["key_id"] == "pk1"
+        assert kwargs["principal_ids"] == ["u1"]
+        assert kwargs["enum_value_ids"] == ["e_a"]
+
     @pytest.mark.asyncio
     async def test_resolves_emails_and_keeps_raw_ids(self):
         api = _api()

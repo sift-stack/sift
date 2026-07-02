@@ -1,7 +1,8 @@
-"""Domain types for principal attributes (ABAC).
+"""Domain types for principal attributes.
 
-Principal attributes assign attribute keys to principals (users or user groups) for
-attribute based access control. The model mirrors resource attributes with three tiers:
+Principal attributes describe the users or groups an access decision applies to. A
+principal is the "who" in an access decision, such as a user or user group. The
+model mirrors resource attributes with three tiers:
 
 - ``PrincipalAttributeKey`` defines an attribute and its value type.
 - ``PrincipalAttributeEnumValue`` is an allowed value for an ``ENUM``/``SET_OF_ENUM`` key.
@@ -15,7 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sift.principal_attributes.v1 import principal_attributes_pb2 as pa_pb
 
@@ -95,11 +96,13 @@ class PrincipalAttributeEnumValue(
             Returns the migration count; it does not refresh this instance's
             ``is_archived``/``archived_date``. Re-fetch the enum value to observe those.
         """
-        return self.client.principal_attributes.archive_enum_value(self, replacement=replacement)
+        return self.client.access_control.principal_attributes.archive_enum_value(
+            self, replacement=replacement
+        )
 
     def unarchive(self) -> PrincipalAttributeEnumValue:
         """Unarchive this enum value."""
-        updated = self.client.principal_attributes.unarchive_enum_value(self)
+        updated = self.client.access_control.principal_attributes.unarchive_enum_value(self)
         self._update(updated)
         return self
 
@@ -178,11 +181,11 @@ class PrincipalAttributeValue(BaseType[pa_pb.PrincipalAttributeValue, "Principal
 
     def archive(self) -> PrincipalAttributeValue:
         """Archive this assignment."""
-        self.client.principal_attributes.archive_assignments(
+        self.client.access_control.principal_attributes.archive_assignments(
             [self], principal_type=self.principal_type
         )
         self._update(
-            self.client.principal_attributes.get_assignment(
+            self.client.access_control.principal_attributes.get_assignment(
                 assignment_id=self._id_or_error, principal_type=self.principal_type
             )
         )
@@ -190,11 +193,11 @@ class PrincipalAttributeValue(BaseType[pa_pb.PrincipalAttributeValue, "Principal
 
     def unarchive(self) -> PrincipalAttributeValue:
         """Unarchive this assignment."""
-        self.client.principal_attributes.unarchive_assignments(
+        self.client.access_control.principal_attributes.unarchive_assignments(
             [self], principal_type=self.principal_type
         )
         self._update(
-            self.client.principal_attributes.get_assignment(
+            self.client.access_control.principal_attributes.get_assignment(
                 assignment_id=self._id_or_error, principal_type=self.principal_type
             )
         )
@@ -243,40 +246,47 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
         self, display_name: str, *, description: str = ""
     ) -> PrincipalAttributeEnumValue:
         """Create a single enum value for this key."""
-        return self.client.principal_attributes.create_enum_value(
+        return self.client.access_control.principal_attributes.create_enum_value(
             self, display_name, description=description
         )
 
     def get_or_create_enum_values(self, names: list[str]) -> list[PrincipalAttributeEnumValue]:
         """Get existing enum values by name, creating any that don't exist."""
-        return self.client.principal_attributes.get_or_create_enum_values(self, names)
+        return self.client.access_control.principal_attributes.get_or_create_enum_values(
+            self, names
+        )
 
     def list_enum_values(
         self, *, include_archived: bool = False
     ) -> list[PrincipalAttributeEnumValue]:
         """List the enum values defined for this key."""
-        return self.client.principal_attributes.list_enum_values(
+        return self.client.access_control.principal_attributes.list_enum_values(
             self, include_archived=include_archived
         )
 
     def assign_to(
-        self, principals, *, value, principal_type: PrincipalType = PrincipalType.USER
+        self,
+        principals: list[str],
+        *,
+        value: Any,
+        principal_type: PrincipalType = PrincipalType.USER,
     ) -> list[PrincipalAttributeValue]:
         """Assign a value to one or more principals for this key.
 
         Args:
-            principals: Principal IDs to assign to. For ``USER`` principals, an entry
-                containing ``@`` is treated as an email and resolved to a user ID.
+            principals: Principal IDs to assign to. For ``USER`` principals, entries
+                containing ``@`` are treated as email addresses and resolved to user IDs.
             value: The value to assign. For ``SET_OF_ENUM`` keys, a list of enum values
                 (or their IDs); for ``ENUM`` keys, a single enum value; for ``BOOLEAN``
                 keys, a bool; for ``NUMBER`` keys, an int. For ``SET_OF_ENUM`` this
                 replaces the full set on each principal.
-            principal_type: The kind of principal being assigned to. Defaults to ``USER``.
+            principal_type: The kind of principal being assigned to. Defaults to ``USER``. Use
+                ``PrincipalType.USER_GROUP`` when assigning to user groups.
 
         Returns:
             The created assignments.
         """
-        return self.client.principal_attributes.assign(
+        return self.client.access_control.principal_attributes.assign(
             self, principals, value=value, principal_type=principal_type
         )
 
@@ -284,7 +294,7 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
         self, *, principal_type: PrincipalType = PrincipalType.USER, include_archived: bool = False
     ) -> list[PrincipalAttributeValue]:
         """List all assignments of this key for the given principal type."""
-        return self.client.principal_attributes.list_assignments(
+        return self.client.access_control.principal_attributes.list_assignments(
             key=self, principal_type=principal_type, include_archived=include_archived
         )
 
@@ -292,7 +302,7 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
         self, *, display_name: str | None = None, description: str | None = None
     ) -> PrincipalAttributeKey:
         """Update this key's display name or description."""
-        updated = self.client.principal_attributes.update_key(
+        updated = self.client.access_control.principal_attributes.update_key(
             self, display_name=display_name, description=description
         )
         self._update(updated)
@@ -300,19 +310,19 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
 
     def archive(self) -> PrincipalAttributeKey:
         """Archive this key. Cascades to its enum values and assignments."""
-        updated = self.client.principal_attributes.archive_key(self)
+        updated = self.client.access_control.principal_attributes.archive_key(self)
         self._update(updated)
         return self
 
     def unarchive(self) -> PrincipalAttributeKey:
         """Unarchive this key."""
-        updated = self.client.principal_attributes.unarchive_key(self)
+        updated = self.client.access_control.principal_attributes.unarchive_key(self)
         self._update(updated)
         return self
 
     def check_archive_impact(self) -> int:
         """Return the number of active assignments that archiving this key would affect."""
-        return self.client.principal_attributes.check_key_archive_impact(self)
+        return self.client.access_control.principal_attributes.check_key_archive_impact(self)
 
     def __str__(self) -> str:
         return self.display_name

@@ -1183,11 +1183,14 @@ class PingAPI:
 class PrincipalAttributesAPI:
     """Sync counterpart to `PrincipalAttributesAPIAsync`.
 
-    High-level API for principal attributes (ABAC).
+    High-level API for principal attributes.
 
-    Principal attributes assign attribute keys to principals (users or user groups). The
-    attribute key is the entry point: enum values and assignments are managed through
-    methods on a key, or through the corresponding methods here.
+    Principal attributes describe the users or groups an access decision applies to.
+    A principal is the "who" in an access decision, such as a user or user group.
+
+    Create or fetch an attribute key, define enum values when the key uses them, then
+    assign a value to principals. User principals accept either user IDs or email
+    addresses; user-group principals use user-group IDs.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -1226,22 +1229,23 @@ class PrincipalAttributesAPI:
 
     def assign(
         self,
-        key: PrincipalAttributeKey,
+        key: str | PrincipalAttributeKey,
         principals: list[str],
         *,
         value: Any,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> list[PrincipalAttributeValue]:
-        """Assign a value to principals for a key.
+        """Assign a key's value to principals.
 
         Args:
-            key: The key to assign. Its ``value_type`` determines how ``value`` is interpreted.
-            principals: Principal IDs. For ``USER`` principals, an entry containing ``@`` is
-                treated as an email and resolved to a user ID.
+            key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
+            principals: Principal IDs. For ``USER`` principals, entries containing ``@`` are
+                treated as email addresses and resolved to user IDs.
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
                 full set on each principal; for ``ENUM``, a single enum value; for ``BOOLEAN``,
                 a bool; for ``NUMBER``, an int.
-            principal_type: The kind of principal being assigned to. Defaults to ``USER``.
+            principal_type: The kind of principal being assigned to. Defaults to ``USER``. Use
+                ``PrincipalType.USER_GROUP`` when assigning to user groups.
 
         Returns:
             The created assignments.
@@ -1317,7 +1321,8 @@ class PrincipalAttributesAPI:
 
         Args:
             key: Filter to assignments of this key.
-            principal: Filter to assignments for this principal (user ID, or email for users).
+            principal: Filter to assignments for this principal. Use a user ID or email address
+                for users; use a user-group ID with ``PrincipalType.USER_GROUP`` for user groups.
             principal_type: The kind of principal to list assignments for. Defaults to ``USER``.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
@@ -1812,11 +1817,14 @@ class ReportsAPI:
 class ResourceAttributesAPI:
     """Sync counterpart to `ResourceAttributesAPIAsync`.
 
-    High-level API for resource attributes (ABAC).
+    High-level API for resource attributes.
 
-    Resource attributes assign attribute keys to Sift entities (assets, channels, runs).
-    The attribute key is the entry point: enum values and assignments are managed through
-    methods on a key, or through the corresponding methods here.
+    Resource attributes describe the Sift objects an access decision applies to. A
+    resource is the "what" in an access decision.
+
+    Create or fetch an attribute key, define enum values when the key uses them, then
+    assign a value to resources. For currently supported resource types, you can pass
+    existing ``Asset``, ``Channel``, and ``Run`` objects or their IDs directly.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -1850,18 +1858,20 @@ class ResourceAttributesAPI:
 
     def assign(
         self,
-        key: ResourceAttributeKey,
-        entities: list[ResourceAttributeEntity | Asset | Channel | Run],
+        key: str | ResourceAttributeKey,
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
         *,
         value: Any,
     ) -> list[ResourceAttribute]:
-        """Assign a value to entities for a key.
+        """Assign a key's value to resources.
 
         Args:
-            key: The key to assign. Its ``key_type`` determines how ``value`` is interpreted.
-            entities: Entities to assign to (ResourceAttributeEntity, Asset, Channel, or Run).
+            key: The key or key ID to assign. Its ``key_type`` determines how ``value`` is interpreted.
+            resources: Resources to assign to. For currently supported resource types, pass
+                ``Asset``, ``Channel``, or ``Run`` objects, their IDs, or
+                ``ResourceAttributeEntity`` when you already know the resource type.
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
-                full set on each entity; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
+                full set on each resource; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
                 bool; for ``NUMBER``, an int.
 
         Returns:
@@ -1930,7 +1940,7 @@ class ResourceAttributesAPI:
         self,
         *,
         key: str | ResourceAttributeKey | None = None,
-        entity: ResourceAttributeEntity | Asset | Channel | Run | None = None,
+        resource: ResourceAttributeEntity | Asset | Channel | Run | str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -1941,7 +1951,8 @@ class ResourceAttributesAPI:
 
         Args:
             key: Filter to assignments of this key.
-            entity: Filter to assignments on this entity. When set, other filters are ignored.
+            resource: Filter to assignments on this resource. When set, other filters are ignored.
+                Pass a resource object, resource ID, or ``ResourceAttributeEntity``.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.

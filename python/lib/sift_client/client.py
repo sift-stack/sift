@@ -40,6 +40,7 @@ from sift_client.resources import (
     TestResultsAPI,
     TestResultsAPIAsync,
 )
+from sift_client.resources.access_control import AccessControlAPI, AccessControlAPIAsync
 from sift_client.transport import (
     GrpcClient,
     GrpcConfig,
@@ -120,11 +121,8 @@ class SiftClient(
     runs: RunsAPI
     """Instance of the Runs API for making synchronous requests."""
 
-    resource_attributes: ResourceAttributesAPI
-    """Instance of the Resource Attributes API for making synchronous requests."""
-
-    principal_attributes: PrincipalAttributesAPI
-    """Instance of the Principal Attributes API for making synchronous requests."""
+    access_control: AccessControlAPI
+    """Access-control APIs for configuring who can access what in Sift."""
 
     tags: TagsAPI
     """Instance of the Tags API for making synchronous requests."""
@@ -212,8 +210,10 @@ class SiftClient(
         self.rules = RulesAPI(self)
         self.reports = ReportsAPI(self)
         self.runs = RunsAPI(self)
-        self.resource_attributes = ResourceAttributesAPI(self)
-        self.principal_attributes = PrincipalAttributesAPI(self)
+        self.access_control = AccessControlAPI(
+            resource_attributes=ResourceAttributesAPI(self),
+            principal_attributes=PrincipalAttributesAPI(self),
+        )
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
         self.data_export = DataExportAPI(self)
@@ -231,8 +231,10 @@ class SiftClient(
             reports=ReportsAPIAsync(self),
             rules=RulesAPIAsync(self),
             runs=RunsAPIAsync(self),
-            resource_attributes=ResourceAttributesAPIAsync(self),
-            principal_attributes=PrincipalAttributesAPIAsync(self),
+            access_control=AccessControlAPIAsync(
+                resource_attributes=ResourceAttributesAPIAsync(self),
+                principal_attributes=PrincipalAttributesAPIAsync(self),
+            ),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
             data_export=DataExportAPIAsync(self),

@@ -13,14 +13,13 @@ if TYPE_CHECKING:
         IngestionAPIAsync,
         JobsAPIAsync,
         PingAPIAsync,
-        PrincipalAttributesAPIAsync,
         ReportsAPIAsync,
-        ResourceAttributesAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
         TagsAPIAsync,
         TestResultsAPIAsync,
     )
+    from sift_client.resources.access_control import AccessControlAPIAsync
 
 
 class AsyncAPIs(NamedTuple):
@@ -56,11 +55,8 @@ class AsyncAPIs(NamedTuple):
     rules: RulesAPIAsync
     """Instance of the Rules API for making asynchronous requests."""
 
-    resource_attributes: ResourceAttributesAPIAsync
-    """Instance of the Resource Attributes API for making asynchronous requests."""
-
-    principal_attributes: PrincipalAttributesAPIAsync
-    """Instance of the Principal Attributes API for making asynchronous requests."""
+    access_control: AccessControlAPIAsync
+    """Async access-control APIs for configuring who can access what in Sift."""
 
     tags: TagsAPIAsync
     """Instance of the Tags API for making asynchronous requests."""

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, Union
 
 from sift_client._internal.low_level_wrappers.resource_attributes import (
@@ -11,6 +12,7 @@ from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.resource_attribute import (
     ResourceAttribute,
     ResourceAttributeEntity,
+    ResourceAttributeEntityType,
     ResourceAttributeEnumValue,
     ResourceAttributeKey,
     ResourceAttributeKeyType,
@@ -23,26 +25,34 @@ if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
 
-# Max entities per BatchCreateResourceAttributes call; keeps request bodies well under
-# gRPC message size limits when assigning to large entity sets.
+# Max resources per BatchCreateResourceAttributes call; keeps request bodies well under
+# gRPC message size limits when assigning to large resource sets.
 ASSIGN_BATCH_SIZE = 1000
 
-EntityLike = Union[ResourceAttributeEntity, Asset, Channel, Run]
+ResourceLike = Union[ResourceAttributeEntity, Asset, Channel, Run, str]
+SUPPORTED_RESOURCE_ENTITY_TYPES = {
+    ResourceAttributeEntityType.ASSET,
+    ResourceAttributeEntityType.CHANNEL,
+    ResourceAttributeEntityType.RUN,
+}
 
 
-def _resolve_entity(entity: EntityLike) -> ResourceAttributeEntity:
-    """Resolve an entity-like value to a ResourceAttributeEntity."""
-    if isinstance(entity, ResourceAttributeEntity):
-        return entity
-    if isinstance(entity, Asset):
-        return ResourceAttributeEntity.for_asset(entity._id_or_error)
-    if isinstance(entity, Channel):
-        return ResourceAttributeEntity.for_channel(entity._id_or_error)
-    if isinstance(entity, Run):
-        return ResourceAttributeEntity.for_run(entity._id_or_error)
+def _resolve_resource_object(resource: ResourceLike) -> ResourceAttributeEntity:
+    """Resolve a supported resource object to a ResourceAttributeEntity."""
+    if isinstance(resource, ResourceAttributeEntity):
+        if resource.entity_type not in SUPPORTED_RESOURCE_ENTITY_TYPES:
+            raise ValueError("Resource attributes currently support assets, channels, and runs.")
+        return resource
+    if isinstance(resource, Asset):
+        return ResourceAttributeEntity.for_asset(resource._id_or_error)
+    if isinstance(resource, Channel):
+        return ResourceAttributeEntity.for_channel(resource._id_or_error)
+    if isinstance(resource, Run):
+        return ResourceAttributeEntity.for_run(resource._id_or_error)
     raise TypeError(
-        f"Cannot resolve entity of type {type(entity).__name__}. Pass a ResourceAttributeEntity, "
-        "Asset, Channel, or Run."
+        f"Cannot resolve resource of type {type(resource).__name__}. Pass a supported resource "
+        "object, such as an Asset, Channel, or Run; a resource ID string; or a "
+        "ResourceAttributeEntity."
     )
 
 
@@ -56,11 +66,14 @@ def _chunks(items: list[Any], size: int):
 
 
 class ResourceAttributesAPIAsync(ResourceBase):
-    """High-level API for resource attributes (ABAC).
+    """High-level API for resource attributes.
 
-    Resource attributes assign attribute keys to Sift entities (assets, channels, runs).
-    The attribute key is the entry point: enum values and assignments are managed through
-    methods on a key, or through the corresponding methods here.
+    Resource attributes describe the Sift objects an access decision applies to. A
+    resource is the "what" in an access decision.
+
+    Create or fetch an attribute key, define enum values when the key uses them, then
+    assign a value to resources. For currently supported resource types, you can pass
+    existing ``Asset``, ``Channel``, and ``Run`` objects or their IDs directly.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -74,7 +87,99 @@ class ResourceAttributesAPIAsync(ResourceBase):
             grpc_client=self.client.grpc_client
         )
 
-    # ───────── Keys ─────────
+    async def _resolve_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
+        if isinstance(key, ResourceAttributeKey):
+            return key
+        if not isinstance(key, str):
+            raise TypeError("assign requires a ResourceAttributeKey or key ID string.")
+        if not key:
+            raise ValueError("Key ID cannot be empty.")
+        return await self.get_key(key_id=key)
+
+    async def _resolve_resource(self, resource: ResourceLike) -> ResourceAttributeEntity:
+        return (await self._resolve_resources([resource]))[0]
+
+    async def _resolve_resources(
+        self, resources: list[ResourceAttributeEntity | Asset | Channel | Run | str]
+    ) -> list[ResourceAttributeEntity]:
+        resolved: list[ResourceAttributeEntity | str] = []
+        resource_ids: list[str] = []
+        for resource in resources:
+            if isinstance(resource, str):
+                if not resource:
+                    raise ValueError("Resource ID cannot be empty.")
+                resolved.append(resource)
+                resource_ids.append(resource)
+            else:
+                resolved.append(_resolve_resource_object(resource))
+
+        if not resource_ids:
+            return [
+                resource for resource in resolved if isinstance(resource, ResourceAttributeEntity)
+            ]
+
+        resources_by_id = await self._resolve_resource_ids(resource_ids)
+        return [
+            resources_by_id[resource] if isinstance(resource, str) else resource
+            for resource in resolved
+        ]
+
+    async def _resolve_resource_ids(
+        self, resource_ids: list[str]
+    ) -> dict[str, ResourceAttributeEntity]:
+        unique_ids = list(dict.fromkeys(resource_ids))
+        matched_types: dict[str, set[ResourceAttributeEntityType]] = {}
+        for batch in _chunks(unique_ids, ASSIGN_BATCH_SIZE):
+            assets: list[Asset]
+            channels: list[Channel]
+            runs: list[Run]
+            assets, channels, runs = await asyncio.gather(
+                self.client.async_.assets.list_(asset_ids=batch, include_archived=True),
+                self.client.async_.channels.list_(channel_ids=batch),
+                self.client.async_.runs.list_(run_ids=batch, include_archived=True),
+            )
+            for asset in assets:
+                matched_types.setdefault(asset._id_or_error, set()).add(
+                    ResourceAttributeEntityType.ASSET
+                )
+            for channel in channels:
+                matched_types.setdefault(channel._id_or_error, set()).add(
+                    ResourceAttributeEntityType.CHANNEL
+                )
+            for run in runs:
+                matched_types.setdefault(run._id_or_error, set()).add(
+                    ResourceAttributeEntityType.RUN
+                )
+
+        ambiguous_ids = [
+            resource_id
+            for resource_id, entity_types in matched_types.items()
+            if len(entity_types) > 1
+        ]
+        if ambiguous_ids:
+            raise ValueError(
+                f"Resource ID {ambiguous_ids[0]!r} matched multiple currently supported "
+                "resource types."
+            )
+
+        missing_ids = [
+            resource_id for resource_id in unique_ids if resource_id not in matched_types
+        ]
+        if missing_ids:
+            preview = ", ".join(repr(resource_id) for resource_id in missing_ids[:3])
+            if len(missing_ids) > 3:
+                preview = f"{preview}, and {len(missing_ids) - 3} more"
+            raise ValueError(
+                f"Could not resolve resource ID(s) {preview} as currently supported resources "
+                "(asset, channel, or run)."
+            )
+
+        return {
+            resource_id: ResourceAttributeEntity(
+                entity_id=resource_id, entity_type=next(iter(entity_types))
+            )
+            for resource_id, entity_types in matched_types.items()
+        }
 
     async def get_key(self, *, key_id: str) -> ResourceAttributeKey:
         """Get a resource attribute key by ID."""
@@ -209,8 +314,6 @@ class ResourceAttributesAPIAsync(ResourceBase):
         key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
         return await self._low_level_client.check_key_archive_impact(key_id)
 
-    # ───────── Enum values ─────────
-
     async def create_enum_value(
         self,
         key: str | ResourceAttributeKey,
@@ -300,36 +403,35 @@ class ResourceAttributesAPIAsync(ResourceBase):
         value = await self._low_level_client.get_enum_value(enum_value_id)
         return self._apply_client_to_instance(value)
 
-    # ───────── Assignments ─────────
-
     async def assign(
         self,
-        key: ResourceAttributeKey,
-        entities: list[ResourceAttributeEntity | Asset | Channel | Run],
+        key: str | ResourceAttributeKey,
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
         *,
         value: Any,
     ) -> list[ResourceAttribute]:
-        """Assign a value to entities for a key.
+        """Assign a key's value to resources.
 
         Args:
-            key: The key to assign. Its ``key_type`` determines how ``value`` is interpreted.
-            entities: Entities to assign to (ResourceAttributeEntity, Asset, Channel, or Run).
+            key: The key or key ID to assign. Its ``key_type`` determines how ``value`` is interpreted.
+            resources: Resources to assign to. For currently supported resource types, pass
+                ``Asset``, ``Channel``, or ``Run`` objects, their IDs, or
+                ``ResourceAttributeEntity`` when you already know the resource type.
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
-                full set on each entity; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
+                full set on each resource; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
                 bool; for ``NUMBER``, an int.
 
         Returns:
             The created assignments.
         """
-        if not isinstance(key, ResourceAttributeKey):
-            raise TypeError("assign requires a ResourceAttributeKey (with a known key_type).")
-        resolved = [_resolve_entity(e) for e in entities]
-        create_kwargs = _resource_value_kwargs(key.key_type, value)
+        resolved_key = await self._resolve_key(key)
+        resolved = await self._resolve_resources(resources)
+        create_kwargs = _resource_value_kwargs(resolved_key.key_type, value)
 
         created: list[ResourceAttribute] = []
         for batch in _chunks(resolved, ASSIGN_BATCH_SIZE):
             attrs = await self._low_level_client.batch_create_resource_attributes(
-                key_id=key._id_or_error, entities=batch, **create_kwargs
+                key_id=resolved_key._id_or_error, entities=batch, **create_kwargs
             )
             created.extend(attrs)
         return self._apply_client_to_instances(created)
@@ -343,7 +445,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         self,
         *,
         key: str | ResourceAttributeKey | None = None,
-        entity: ResourceAttributeEntity | Asset | Channel | Run | None = None,
+        resource: ResourceAttributeEntity | Asset | Channel | Run | str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -354,15 +456,16 @@ class ResourceAttributesAPIAsync(ResourceBase):
 
         Args:
             key: Filter to assignments of this key.
-            entity: Filter to assignments on this entity. When set, other filters are ignored.
+            resource: Filter to assignments on this resource. When set, other filters are ignored.
+                Pass a resource object, resource ID, or ``ResourceAttributeEntity``.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
         """
-        if entity is not None:
-            resolved = _resolve_entity(entity)
+        if resource is not None:
+            resolved = await self._resolve_resource(resource)
             attrs = await self._low_level_client.list_all_resource_attributes_by_entity(
                 entity=resolved,
                 include_archived=include_archived,
