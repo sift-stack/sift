@@ -107,13 +107,15 @@ fn build_ulog_config_run_id_passes_through() {
 }
 
 #[test]
-fn build_ulog_config_run_id_takes_precedence_over_run_name() {
+fn build_ulog_config_rejects_both_run_name_and_run_id() {
     let mut args = make_args();
     args.common.run = Some("my-run".into());
     args.common.run_id = Some("run-abc-123".into());
-    let cfg = build_ulog_config(&args).expect("build");
-    assert_eq!(cfg.run_id, "run-abc-123");
-    assert_eq!(cfg.run_name, "");
+    let err = build_ulog_config(&args).unwrap_err();
+    assert!(
+        err.to_string().contains("mutually exclusive"),
+        "expected mutual exclusion error, got: {err:#}"
+    );
 }
 
 #[test]

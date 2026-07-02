@@ -72,7 +72,7 @@ sift-cli import ulog ./flight.ulg \
 | ----------------------------- | -------------------------------------------------------------------- |
 | `--asset`, `-a`               | Asset the data belongs to (required).                                |
 | `--run`, `-r`                 | Run name to associate with the import.                               |
-| `--run-id`                    | Attach to an existing run by ID (takes precedence over `--run`).     |
+| `--run-id`                    | Attach to an existing run by ID (mutually exclusive with `--run`).   |
 | `--relative-start-time`, `-s` | UTC time of log start; overrides the log's GPS time fix.             |
 | `--info-key`                  | Info key to import as run metadata; repeatable.                      |
 | `--param-key`                 | Parameter name to import as run metadata; repeatable.                |

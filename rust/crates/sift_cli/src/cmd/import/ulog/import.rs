@@ -86,6 +86,10 @@ pub async fn run(ctx: Context, args: ImportUlogArgs) -> Result<ExitCode> {
 }
 
 pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
+    if args.common.run.is_some() && args.common.run_id.is_some() {
+        anyhow::bail!("--run and --run-id are mutually exclusive");
+    }
+
     if (!args.info_key.is_empty() || !args.param_key.is_empty())
         && args.common.run.is_none()
         && args.common.run_id.is_none()
@@ -102,16 +106,9 @@ pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
         None => None,
     };
 
-    // Send only one run identifier; --run-id takes precedence over --run.
-    let run_name = if args.common.run_id.is_some() {
-        String::new()
-    } else {
-        args.common.run.clone().unwrap_or_default()
-    };
-
     Ok(UlogConfig {
         asset_name: args.common.asset.clone(),
-        run_name,
+        run_name: args.common.run.clone().unwrap_or_default(),
         run_id: args.common.run_id.clone().unwrap_or_default(),
         relative_start_time,
         info_keys: args.info_key.clone(),
