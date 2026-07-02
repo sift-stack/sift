@@ -98,7 +98,7 @@ impl SiftMcpServer {
               - After a successful call, if the user hasn't already indicated a next step, offer to run a SQL query
                 against the resulting Parquet file using the `sql` tool.
         ",
-        annotations(title = "data_router/get_data", read_only_hint = true)
+        annotations(title = "data/get_data", read_only_hint = true)
     )]
     pub async fn get_data(&self, params: Parameters<GetDataParams>) -> error::McpResult {
         let Parameters(GetDataParams {
@@ -290,7 +290,7 @@ impl SiftMcpServer {
                 `timestamp_unix_nanos` — bucket on it (e.g. group by a time expression derived from it) or pick a
                 representative via `MIN(timestamp_unix_nanos)`.
         ",
-        annotations(title = "data_router/sql", read_only_hint = true)
+        annotations(title = "data/sql", read_only_hint = true)
     )]
     pub async fn sql(&self, params: Parameters<SqlParams>) -> error::McpResult {
         let Parameters(SqlParams {
@@ -382,7 +382,12 @@ impl SiftMcpServer {
               - The tool does not return until the entire stream has been consumed by the server, so large
                 datasets translate to long-running calls.
         ",
-        annotations(title = "data_router/upload_dataset", read_only_hint = false)
+        annotations(
+            title = "data/upload_dataset",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+        )
     )]
     pub async fn upload_dataset(
         &self,

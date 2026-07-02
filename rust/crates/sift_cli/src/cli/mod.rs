@@ -21,10 +21,15 @@ use time::TimeFormat;
 #[command(
     version = crate_version!(),
     about = crate_description!(),
+    disable_version_flag = true,
 )]
 pub struct Args {
     #[command(subcommand)]
-    pub cmd: Cmd,
+    pub cmd: Option<Cmd>,
+
+    /// Print the installed CLI version and check for a newer release on GitHub
+    #[arg(short = 'V', long)]
+    pub version: bool,
 
     /// The profile to use
     #[arg(long, global = true)]

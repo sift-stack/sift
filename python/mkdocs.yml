@@ -101,6 +101,7 @@ plugins:
             show_submodules: false
             # Styling
             group_by_category: true
+            members_order: source
             docstring_section_style: spacy
             docstring_style: "google"
             heading_level: 1

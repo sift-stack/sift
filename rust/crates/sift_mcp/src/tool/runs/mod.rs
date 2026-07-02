@@ -69,7 +69,7 @@ impl SiftMcpServer {
                 pulling everything and filtering client-side.
               - Order by `start_time desc` when surfacing the most recent runs to a user.
         ",
-        annotations(title = "runs_router/list_runs", read_only_hint = true)
+        annotations(title = "runs/list_runs", read_only_hint = true)
     )]
     pub async fn list_runs(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -125,7 +125,12 @@ impl SiftMcpServer {
                 the user before invoking; for appends, read the run via `list_runs` and send the union.
               - Note: `start_time` may be overwritten automatically if data is later ingested for this run.
         ",
-        annotations(title = "runs_router/update_run", read_only_hint = false)
+        annotations(
+            title = "runs/update_run",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn update_run(&self, params: Parameters<UpdateRunParams>) -> error::McpResult {
         let Parameters(UpdateRunParams {

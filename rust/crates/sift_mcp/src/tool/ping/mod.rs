@@ -37,7 +37,7 @@ impl SiftMcpServer {
               - Useful as a connectivity smoke check. If `ping` fails, the broader Sift toolset is
                 likely also failing — surface that to the user instead of attempting other tools.
         ",
-        annotations(title = "ping_router/ping", read_only_hint = true)
+        annotations(title = "ping/ping", read_only_hint = true)
     )]
     pub async fn ping(&self, _params: Parameters<PingParams>) -> error::McpResult {
         let out = self

@@ -86,7 +86,7 @@ impl SiftMcpServer {
               - Use `is_archived == false` to exclude archived rules unless they're explicitly needed.
               - Use `is_live_evaluation_enabled == true` to find only rules that run against live data.
         ",
-        annotations(title = "rules_router/list_rules", read_only_hint = true)
+        annotations(title = "rules/list_rules", read_only_hint = true)
     )]
     pub async fn list_rules(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
@@ -136,7 +136,7 @@ impl SiftMcpServer {
                 inspecting or referencing that version. Resolve the `rule_id` with `list_rules` first if you only
                 have the rule name.
         ",
-        annotations(title = "rules_router/list_rule_versions", read_only_hint = true)
+        annotations(title = "rules/list_rule_versions", read_only_hint = true)
     )]
     pub async fn list_rule_versions(
         &self,
@@ -204,7 +204,12 @@ impl SiftMcpServer {
               - This creates a live resource. Confirm the rule's name, the target assets/tags, and the conditions
                 with the user before calling. Do not silently default them.
         ",
-        annotations(title = "rules_router/create_rule", read_only_hint = false)
+        annotations(
+            title = "rules/create_rule",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+        )
     )]
     pub async fn create_rule(&self, params: Parameters<RuleDefinitionParams>) -> error::McpResult {
         let Parameters(RuleDefinitionParams { rule_json }) = params;
@@ -270,7 +275,12 @@ impl SiftMcpServer {
                 conditions, metadata, and asset targeting are preserved automatically.
               - Confirm the intended changes with the user before calling.
         ",
-        annotations(title = "rules_router/update_rule", read_only_hint = false)
+        annotations(
+            title = "rules/update_rule",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn update_rule(&self, params: Parameters<UpdateRuleParams>) -> error::McpResult {
         let Parameters(UpdateRuleParams {
@@ -359,7 +369,12 @@ impl SiftMcpServer {
               - Archiving stops live evaluation but does not delete the rule; it can be restored with
                 `unarchive_rule`. Confirm the target rule with the user before calling.
         ",
-        annotations(title = "rules_router/archive_rule", read_only_hint = false)
+        annotations(
+            title = "rules/archive_rule",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn archive_rule(&self, params: Parameters<RuleArchiveParams>) -> error::McpResult {
         let Parameters(RuleArchiveParams {
@@ -413,7 +428,12 @@ impl SiftMcpServer {
             Guidance:
               - Confirm the target rule with the user before calling.
         ",
-        annotations(title = "rules_router/unarchive_rule", read_only_hint = false)
+        annotations(
+            title = "rules/unarchive_rule",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn unarchive_rule(&self, params: Parameters<RuleArchiveParams>) -> error::McpResult {
         let Parameters(RuleArchiveParams {

@@ -2,11 +2,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sift_client._internal.low_level_wrappers.report_templates import (
+    ReportTemplatesLowLevelClient,
+)
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.job import Job, RuleEvaluationDetails
 from sift_client.sift_types.report import Report, ReportUpdate
+from sift_client.sift_types.report_template import (
+    ReportTemplate,
+    ReportTemplateCreate,
+    ReportTemplateUpdate,
+)
 from sift_client.sift_types.rule import Rule, RuleVersion
 from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
@@ -22,6 +30,9 @@ if TYPE_CHECKING:
 class ReportsAPIAsync(ResourceBase):
     """High-level API for interacting with reports."""
 
+    templates: ReportTemplatesAPIAsync
+    """Nested Report Templates API. See `ReportTemplatesAPIAsync`."""
+
     def __init__(self, sift_client: SiftClient):
         """Initialize the ReportsAPI.
 
@@ -31,6 +42,7 @@ class ReportsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = ReportsLowLevelClient(grpc_client=self.client.grpc_client)
         self._rules_low_level_client = RulesLowLevelClient(grpc_client=self.client.grpc_client)
+        self.templates = ReportTemplatesAPIAsync(sift_client)
 
     async def get(
         self,
@@ -169,16 +181,16 @@ class ReportsAPIAsync(ResourceBase):
     async def create_from_template(
         self,
         *,
-        report_template_id: str,
-        run_id: str,
+        report_template: ReportTemplate | str,
+        run: Run | str,
         organization_id: str | None = None,
         name: str | None = None,
     ) -> Job | None:
         """Create a new report from a report template.
 
         Args:
-            report_template_id: The ID of the report template to use.
-            run_id: The run ID to associate with the report.
+            report_template: The ReportTemplate or report template ID to use.
+            run: The Run or run ID to associate with the report.
             organization_id: The organization ID.
             name: Optional name for the report.
 
@@ -186,8 +198,10 @@ class ReportsAPIAsync(ResourceBase):
             The Job for the pending report, or None if no report was created.
         """
         _annotation_count, _report_id, job = await self._rules_low_level_client.evaluate_rules(
-            report_template_id=report_template_id,
-            run_id=run_id,
+            report_template_id=report_template._id_or_error
+            if isinstance(report_template, ReportTemplate)
+            else report_template,
+            run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             report_name=name,
         )
@@ -443,3 +457,193 @@ class ReportsAPIAsync(ResourceBase):
             timeout_secs=timeout_secs,
         )
         return await self.get(report_id=report_id)
+
+
+class ReportTemplatesAPIAsync(ResourceBase):
+    """High-level API for interacting with report templates.
+
+    Accessed as a nested resource of the Reports API via `client.reports.templates`.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ReportTemplatesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        super().__init__(sift_client)
+        self._low_level_client = ReportTemplatesLowLevelClient(grpc_client=self.client.grpc_client)
+
+    async def get(
+        self,
+        *,
+        report_template_id: str | None = None,
+        client_key: str | None = None,
+        organization_id: str | None = None,
+    ) -> ReportTemplate:
+        """Get a ReportTemplate.
+
+        Args:
+            report_template_id: The ID of the report template.
+            client_key: The client key of the report template.
+            organization_id: The organization ID. Only required when getting by
+                client_key and the user belongs to multiple organizations.
+
+        Returns:
+            The ReportTemplate.
+        """
+        report_template = await self._low_level_client.get_report_template(
+            report_template_id=report_template_id,
+            client_key=client_key,
+            organization_id=organization_id,
+        )
+        return self._apply_client_to_instance(report_template)
+
+    async def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        names: list[str] | None = None,
+        report_template_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        organization_id: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        tag_names: list[str] | list[Tag] | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ReportTemplate]:
+        """List report templates with optional filtering.
+
+        The report template service only supports filtering on the fields below;
+        time and user based filters are not available for this resource.
+
+        Args:
+            name: Exact name of the report template.
+            name_contains: Partial name of the report template.
+            name_regex: Regular expression string to filter report templates by name.
+            names: List of report template names to filter by.
+            report_template_ids: List of report template IDs to filter by.
+            client_keys: List of report template client keys to filter by.
+            organization_id: Organization ID to filter by.
+            metadata: Metadata to filter by.
+            tag_names: List of tags or tag names to filter by.
+            include_archived: Whether to include archived report templates.
+            filter_query: Explicit CEL query to filter report templates.
+            order_by: How to order the retrieved report templates.
+            limit: How many report templates to retrieve. If None, retrieves all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
+
+        Returns:
+            A list of ReportTemplates that matches the filter.
+        """
+        # Build CEL filter
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name,
+                names=names,
+                name_contains=name_contains,
+                name_regex=name_regex,
+            ),
+            *self._build_tags_metadata_cel_filters(tag_names=tag_names, metadata=metadata),
+            *self._build_common_cel_filters(
+                include_archived=include_archived,
+                filter_query=filter_query,
+            ),
+        ]
+
+        if report_template_ids:
+            filter_parts.append(cel.in_("report_template_id", report_template_ids))
+
+        if client_keys:
+            filter_parts.append(cel.in_("client_key", client_keys))
+
+        query_filter = cel.and_(*filter_parts) if filter_parts else None
+
+        report_templates = await self._low_level_client.list_all_report_templates(
+            query_filter=query_filter,
+            organization_id=organization_id,
+            order_by=order_by,
+            max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
+        )
+        return self._apply_client_to_instances(report_templates)
+
+    async def find(self, **kwargs) -> ReportTemplate | None:
+        """Find a single report template matching the given query. Takes the same arguments as `list`.
+        If more than one report template is found, raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The ReportTemplate found or None.
+        """
+        report_templates = await self.list_(**kwargs)
+        if len(report_templates) > 1:
+            raise ValueError("Multiple report templates found for query")
+        elif len(report_templates) == 1:
+            return report_templates[0]
+        return None
+
+    async def create(self, create: ReportTemplateCreate | dict) -> ReportTemplate:
+        """Create a new report template.
+
+        Args:
+            create: A ReportTemplateCreate object or a dictionary with configuration for
+                the new report template.
+
+        Returns:
+            The created ReportTemplate.
+        """
+        if isinstance(create, dict):
+            create = ReportTemplateCreate.model_validate(create)
+        report_template = await self._low_level_client.create_report_template(create=create)
+        return self._apply_client_to_instance(report_template)
+
+    async def update(
+        self,
+        report_template: ReportTemplate | str,
+        update: ReportTemplateUpdate | dict,
+    ) -> ReportTemplate:
+        """Update a report template.
+
+        Args:
+            report_template: The ReportTemplate or report template ID to update.
+            update: The updates to apply.
+
+        Returns:
+            The updated ReportTemplate.
+        """
+        report_template_id = (
+            report_template._id_or_error
+            if isinstance(report_template, ReportTemplate)
+            else report_template
+        )
+
+        if isinstance(update, dict):
+            update = ReportTemplateUpdate.model_validate(update)
+        update.resource_id = report_template_id
+        updated_report_template = await self._low_level_client.update_report_template(update=update)
+        return self._apply_client_to_instance(updated_report_template)
+
+    async def archive(
+        self,
+        *,
+        report_template: ReportTemplate | str,
+    ) -> ReportTemplate:
+        """Archive a report template."""
+        return await self.update(report_template, ReportTemplateUpdate(is_archived=True))
+
+    async def unarchive(
+        self,
+        *,
+        report_template: ReportTemplate | str,
+    ) -> ReportTemplate:
+        """Unarchive a report template."""
+        return await self.update(report_template, ReportTemplateUpdate(is_archived=False))

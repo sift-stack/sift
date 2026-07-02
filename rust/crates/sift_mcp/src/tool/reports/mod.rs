@@ -90,7 +90,7 @@ impl SiftMcpServer {
               - Use `is_archived == false` to exclude archived reports unless they're explicitly needed.
               - Order by `created_date desc` when surfacing the most recent reports to a user.
         ",
-        annotations(title = "reports_router/list_reports", read_only_hint = true)
+        annotations(title = "reports/list_reports", read_only_hint = true)
     )]
     pub async fn list_reports(&self, params: Parameters<ReportListParams>) -> error::McpResult {
         let Parameters(ReportListParams {
@@ -145,10 +145,7 @@ impl SiftMcpServer {
               - Use this to drill into why a report passed or failed after locating it with `list_reports`.
               - Filter by `status` (e.g. `status == \"REPORT_RULE_STATUS_FAILED\"`) to surface only failing rules.
         ",
-        annotations(
-            title = "reports_router/list_report_rule_summaries",
-            read_only_hint = true
-        )
+        annotations(title = "reports/list_report_rule_summaries", read_only_hint = true)
     )]
     pub async fn list_report_rule_summaries(
         &self,
@@ -224,7 +221,12 @@ impl SiftMcpServer {
                 before invoking.
               - Use `list_report_rule_summaries` on the returned `report_id` to track per-rule progress.
         ",
-        annotations(title = "reports_router/create_report", read_only_hint = false)
+        annotations(
+            title = "reports/create_report",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+        )
     )]
     pub async fn create_report(&self, params: Parameters<CreateReportParams>) -> error::McpResult {
         let Parameters(CreateReportParams {
@@ -349,7 +351,12 @@ impl SiftMcpServer {
               - This is a write with REPLACE semantics. CONFIRM the full metadata list with the user — for appends,
                 read the current report via `list_reports` filtered by `report_id == \"<id>\"` and send the union.
         ",
-        annotations(title = "reports_router/update_report", read_only_hint = false)
+        annotations(
+            title = "reports/update_report",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn update_report(&self, params: Parameters<UpdateReportParams>) -> error::McpResult {
         let Parameters(UpdateReportParams {

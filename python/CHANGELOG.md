@@ -7,6 +7,60 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+#### Faster `get_data` pagination
+
+Up to a ~80x speedup for some get_data calls.
+
+#### Shared on-disk cache (opt-out, on by default)
+
+`client.channels.get_data(...)` now caches the channel windows it returns to disk by default. Subsequent calls covering the same channel/time range — including from a fresh process — read straight out of the cache instead of going to the wire. This also bounds memory: nothing is held in process after the call returns.
+
+The cache lives on the `SiftClient` as a single shared store: every cache-aware resource writes to one global byte budget at one path, with one LRU policy. The default location is `<tempfile.gettempdir()>/sift-data-cache`, capped at 4 GiB with LRU eviction. If the default path can't be opened (read-only filesystem, restricted container, etc.), the client logs a warning and continues with caching disabled — `get_data` still works, it just always goes to the wire.
+
+`ignore_cache=True` on `client.channels.get_data(...)` now skips writing into the cache as well as reading from it. Previously a "non-caching" workload still appended to the shared cache on every call.
+
+Configuration lives on the new `client.cache` namespace — knobs are global because the store is shared:
+
+```python
+# Opt out — no data persisted to disk; every get_data call goes to the wire.
+client.cache.disable()
+
+# Reconfigure the location or byte cap.
+client.cache.enable(path="/data/sift-cache", max_bytes=2 * 1024 ** 3)
+
+# Remove a stale or corrupted cache directory.
+client.cache.clear()                   # default tmp path
+client.cache.clear("/data/sift-cache") # custom path
+```
+
+`enable` is also the way to turn the cache back on after a prior `disable` call.
+
+The cache is powered by [`diskcache`](https://grantjenks.com/docs/diskcache/) (pure-Python, SQLite-backed) with LRU eviction.
+
+#### Report templates
+
+Added a full report template API, available as a nested resource of reports at `client.reports.templates` (and asynchronously via `client.async_.reports.templates`). Report templates can now be created, fetched, listed, updated, archived, and unarchived directly from `sift_client`:
+
+```python
+from sift_client.sift_types import ReportTemplateCreate
+
+template = client.reports.templates.create(
+    ReportTemplateCreate(
+        name="Motor Checkout",
+        client_key="motor-checkout",
+        rule_ids=rules,  # Rule objects or IDs; or rule_client_keys=[...]
+        tags=["motor"],
+    )
+)
+
+# Run the template against a run
+job = template.create_report(run=run)
+```
+
+Templates can be fetched by ID or client key, and rules can be attached by rule ID or rule client key (`rule_ids` also accepts `Rule` objects, and `tags` accepts `Tag` objects or names). Updating `tags`, `rule_ids`, or `rule_client_keys` replaces the full list on the template.
+
+Breaking change: `client.reports.create_from_template` now takes `report_template` (a `ReportTemplate` or ID string) and `run` (a `Run` or ID string) instead of `report_template_id` and `run_id`, matching the other `create_from_*` methods.
+
 #### Resource and principal attributes (ABAC)
 
 Added a public API for attribute-based access control (ABAC) attributes under `client.access_control`. Resource attributes describe the Sift objects an access decision applies to, such as assets, channels, and runs. Principal attributes describe the users or groups an access decision applies to. Async APIs are available under `client.async_.access_control`.

@@ -139,8 +139,11 @@ import logging
 from sift_client.client import SiftClient
 from sift_client.config import config
 from sift_client.transport import SiftConnectionConfig
+from sift_client.util.cache import CacheNamespace, CacheStats
 
 __all__ = [
+    "CacheNamespace",
+    "CacheStats",
     "SiftClient",
     "SiftConnectionConfig",
     "config",
