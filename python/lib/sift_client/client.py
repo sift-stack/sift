@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import logging
+import warnings
+from typing import TYPE_CHECKING
+
+from sift_client._internal.disk_cache_config import DiskCacheConfig
 from sift_client._internal.urls import frontend_origin_for_api
+from sift_client.errors import SiftWarning
 from sift_client.resources import (
     AssetsAPI,
     AssetsAPIAsync,
@@ -43,7 +49,13 @@ from sift_client.transport import (
     WithGrpcClient,
     WithRestClient,
 )
+from sift_client.util.cache import CacheNamespace
 from sift_client.util.util import AsyncAPIs
+
+if TYPE_CHECKING:
+    from sift_client._internal.disk_cache import DiskCache
+
+logger = logging.getLogger(__name__)
 
 
 class SiftClient(
@@ -126,6 +138,9 @@ class SiftClient(
     data_import: DataImportAPI
     """Instance of the Data Import API for making synchronous requests."""
 
+    cache: CacheNamespace
+    """Surface for the shared on-disk cache used by every cache-aware resource."""
+
     async_: AsyncAPIs
     """Accessor for the asynchronous APIs. All asynchronous APIs are available as attributes on this accessor."""
 
@@ -148,6 +163,7 @@ class SiftClient(
                 Set this for on-prem or custom deployments whose API host can't be
                 mapped to a frontend automatically; see the ``app_url`` property.
                 A value here takes precedence over ``connection_config.app_url``.
+
         """
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
@@ -178,6 +194,14 @@ class SiftClient(
         # contacting Sift. Read by `TestResultsAPIAsync._simulate`. Used by the
         # pytest plugin's ``--sift-disabled`` mode.
         self._simulate: bool = False
+
+        # Shared on-disk cache: user intent in ``_disk_cache_config`` (opt-out
+        # default), live handle in ``_disk_cache`` (lazy so importing this
+        # module doesn't pay the diskcache cost up front). The
+        # ``client.cache`` namespace mutates both.
+        self._disk_cache_config = DiskCacheConfig(enabled=True)
+        self._disk_cache: DiskCache | None = None
+        self.cache = CacheNamespace(self)
 
         self.ping = PingAPI(self)
         self.assets = AssetsAPI(self)
@@ -229,6 +253,52 @@ class SiftClient(
     def rest_client(self) -> RestClient:
         """The REST client used by the SiftClient for making REST API calls."""
         return self._rest_client
+
+    def _get_disk_cache(self) -> DiskCache:
+        """Lazy accessor for the shared on-disk cache. Internal to resources.
+
+        The cache is built on first use so that importing ``sift_client``
+        doesn't pay the ``diskcache``/``sqlite`` cost up front. The opt-out
+        default ("disk caching on at the temp-dir path") is applied here,
+        along with the silent-fallback-on-default-path failure: if the
+        user left :class:`DiskCacheConfig` at its defaults and opening
+        fails (read-only ``/tmp``, restricted container, ...), we log a
+        warning and return a disabled :class:`DiskCache` so resources can
+        still serve requests by going to the wire. An explicit user-
+        supplied path that can't be opened propagates so the caller knows
+        their request didn't take.
+
+        After the first call this just returns the memoized handle.
+        Subsequent ``client.cache.enable(...)`` calls mutate the
+        existing handle in place; this method is not re-entered.
+        """
+        if self._disk_cache is None:
+            from sift_client._internal.disk_cache import DiskCache
+
+            config = self._disk_cache_config
+            if not config.enabled:
+                self._disk_cache = DiskCache()
+                return self._disk_cache
+            target_path = config.path or DiskCache.DEFAULT_DISK_PATH
+            try:
+                self._disk_cache = DiskCache(
+                    disk_path=target_path,
+                    disk_max_bytes=config.max_bytes,
+                )
+            except Exception:
+                if not config.using_default_path:
+                    raise
+                warnings.warn(
+                    f"Could not open the default sift data cache at {target_path}; "
+                    "falling back to no caching. Call "
+                    "``client.cache.disable()`` to silence this "
+                    "warning, or pass an explicit path via "
+                    "``client.cache.enable(path=...)``.",
+                    SiftWarning,
+                    stacklevel=2,
+                )
+                self._disk_cache = DiskCache()
+        return self._disk_cache
 
     @property
     def app_url(self) -> str | None:

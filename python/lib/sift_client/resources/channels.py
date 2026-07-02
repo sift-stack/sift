@@ -242,9 +242,20 @@ class ChannelsAPIAsync(ResourceBase):
     def _ensure_data_low_level_client(self):
         """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""
         if self._data_low_level_client is None:
-            from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
+            from sift_client._internal.low_level_wrappers.data import (
+                ChannelDataCache,
+                DataLowLevelClient,
+            )
 
-            self._data_low_level_client = DataLowLevelClient(grpc_client=self.client.grpc_client)
+            # The shared on-disk store lives on the client; we just wrap it
+            # in the channel-side adapter. Cache configuration (enable /
+            # disable / clear / path / max_bytes) is owned by
+            # ``client.cache`` — there's no resource-level knob anymore.
+            store = self.client._get_disk_cache()
+            self._data_low_level_client = DataLowLevelClient(
+                grpc_client=self.client.grpc_client,
+                channel_cache=ChannelDataCache(store),
+            )
 
     async def get_data(
         self,
