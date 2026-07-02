@@ -125,7 +125,12 @@ impl SiftMcpServer {
                 the user before invoking; for appends, read the run via `list_runs` and send the union.
               - Note: `start_time` may be overwritten automatically if data is later ingested for this run.
         ",
-        annotations(title = "runs_router/update_run", read_only_hint = false)
+        annotations(
+            title = "runs_router/update_run",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
     )]
     pub async fn update_run(&self, params: Parameters<UpdateRunParams>) -> error::McpResult {
         let Parameters(UpdateRunParams {

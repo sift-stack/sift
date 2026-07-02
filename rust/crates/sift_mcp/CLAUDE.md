@@ -44,7 +44,10 @@ Non-negotiables. These hold regardless of context pressure:
    objects or enums. (See "Keep parameters flat" below for why.)
 2. Every service function gets a test. Testing tools and other code is encouraged.
 3. Do not write retry logic anywhere except `policy::with_retry`. Call it; don't reinvent it.
-4. Set `read_only_hint` honestly. Read tools are `true`; anything that writes is `false`.
+4. Set `read_only_hint` honestly. Read tools are `true`; anything that writes is `false`. Write
+   tools must also set `destructive_hint` and `idempotent_hint` — see Step 4 for the mapping
+   (additive vs. update vs. state-flip). These fields follow the MCP tool annotations spec:
+   <https://modelcontextprotocol.io/specification/2025-11-25/server/tools>.
 5. Do not mirror the API one-to-one. Run Step 0 before writing anything.
 
 ---
@@ -245,7 +248,15 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
 - Validate before calling the service. Return `ErrorData::invalid_params(...)` or
   `ErrorData::resource_not_found(...)` for bad input. `get_data` shows multi-field validation.
 - Always return `CallToolResult::structured(json!({ ... }))`.
-- Annotate: `annotations(title = "<domain>_router/<tool>", read_only_hint = <bool>)`.
+- Annotate: `annotations(title = "<domain>_router/<tool>", read_only_hint = <bool>, destructive_hint = <bool>, idempotent_hint = <bool>)`.
+  Read tools set `read_only_hint = true` and may omit the other two. Write tools set
+  `read_only_hint = false` and MUST set both `destructive_hint` and `idempotent_hint` honestly so
+  the calling client can render an accurate confirmation prompt:
+  - Additive writes (creates, ingest, append) → `destructive_hint = false`, `idempotent_hint = false`.
+  - Updates (mask-based or REPLACE-semantics) → `destructive_hint = true`, `idempotent_hint = true`.
+  - State flips (archive/unarchive) → `destructive_hint = true`, `idempotent_hint = true`.
+  The spec defaults `destructive_hint` to `true` when omitted, so being explicit on additive
+  writes is the only way to tell clients those are safe to surface with a softer prompt.
 - **`next_step`.** When the tool writes a file, opens a follow-on workflow, or performs a write,
   set both the structured `next_step` field and `result.content = vec![Content::text(next_step)]`
   so the calling agent sees it. `get_data` and `explore_url` are the reference patterns. Write
@@ -599,7 +610,8 @@ Run through this before declaring the tool done:
       services follow their own proto shape.
 - [ ] Description follows the five-section structure and the style rules. `list_*` descriptions
       match the current proto comments.
-- [ ] `read_only_hint` is correct. Write tools confirm the destination via `next_step`.
+- [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
+      per the Step 4 mapping. Write tools confirm the destination via `next_step`.
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
       was added to `sift_test_util` if one did not exist.

@@ -340,7 +340,9 @@ impl SiftMcpServer {
         ",
         annotations(
             title = "test_reports_router/create_test_report",
-            read_only_hint = false
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
         )
     )]
     pub async fn create_test_report(
@@ -415,7 +417,9 @@ impl SiftMcpServer {
         ",
         annotations(
             title = "test_reports_router/append_test_measurements",
-            read_only_hint = false
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
         )
     )]
     pub async fn append_test_measurements(
