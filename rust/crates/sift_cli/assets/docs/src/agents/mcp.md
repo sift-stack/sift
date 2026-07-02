@@ -36,15 +36,31 @@ not run interactively.
 | `list_runs`      | List runs, with filtering and ordering.                                       |
 | `list_channels`  | List channels for an asset.                                                   |
 | `list_reports`   | List reports, with filtering and ordering.                                    |
+| `list_report_rule_summaries` | List the per-rule pass/fail/open summaries for a single report.   |
+| `create_report`  | Create a report over a run, from a template or a set of rules.                |
+| `update_report`  | Update a report's metadata (replace semantics).                               |
+| `list_annotations` | List annotations, with filtering and ordering.                              |
+| `create_annotation` | Create a data-review or phase annotation over a time range.                |
+| `update_annotation` | Update an annotation's fields (replace semantics for collections).         |
 | `list_rules`     | List rules, with filtering and ordering.                                      |
 | `list_rule_versions` | List the version history of a single rule.                                |
+| `list_test_reports` | List test reports (test-results runs), with filtering and ordering.        |
+| `list_test_steps` | List test steps within a report, with filtering and ordering.                |
+| `list_test_measurements` | List test measurements, with filtering and ordering.                  |
+| `count_test_steps` | Count test steps matching a filter, without fetching them.                  |
+| `count_test_measurements` | Count test measurements matching a filter, without fetching them.    |
+| `create_test_report` | Create a test report with its steps and measurements from a JSON document.  |
+| `append_test_measurements` | Append measurements to an existing test step.                          |
 | `get_data`       | Download channel data for an asset/run to a Parquet file, with optional decimation. |
 | `sql`            | Run SQL over one or more Parquet files; chain after `get_data` for analysis.  |
 | `upload_dataset` | Stream a Parquet dataset into Sift.                                           |
+| `update_asset`   | Update an asset's tags and/or metadata (replace semantics).                   |
+| `update_run`     | Update a run's fields (name, time bounds, pin, tags, metadata).               |
 | `create_rule`    | Create a rule from a JSON definition.                                         |
 | `update_rule`    | Update specific fields of a rule; unspecified fields are preserved.          |
 | `archive_rule`   | Archive a rule so it stops evaluating.                                        |
 | `unarchive_rule` | Restore an archived rule.                                                     |
+| `search_docs`    | Search and read the Sift documentation and REST/gRPC API reference.           |
 
 A typical agent flow is `list_assets` → `list_channels` → `get_data` → `sql`,
 and `upload_dataset` to write results back.

@@ -32,16 +32,16 @@ pub struct ExploreUrlRequest {
 }
 
 #[derive(Clone)]
-pub struct ExploreService {
+pub struct UrlService {
     rest_uri: String,
 }
 
-impl ExploreService {
+impl UrlService {
     pub fn new(rest_uri: String) -> Self {
         Self { rest_uri }
     }
 
-    pub fn build_url(&self, request: ExploreUrlRequest) -> Result<String, ErrorData> {
+    pub fn build_explore_url(&self, request: ExploreUrlRequest) -> Result<String, ErrorData> {
         let ExploreUrlRequest {
             assets,
             runs,
@@ -89,7 +89,7 @@ impl ExploreService {
 
         let host = match explore_host {
             Some(h) => h,
-            None => derive_explore_host(&self.rest_uri)?,
+            None => derive_web_host(&self.rest_uri)?,
         };
 
         let mut query = String::from("method=single");
@@ -126,6 +126,60 @@ impl ExploreService {
 
         Ok(format!("{host}/explore?{query}"))
     }
+
+    /// Build the Sift web URL for a single report: `<host>/reports/<report_id>`.
+    /// The host is derived from `rest_uri`; there is no override for this URL
+    /// shape. Returns `INVALID_PARAMS` if the host cannot be derived (e.g. a
+    /// self-hosted `rest_uri` without an `api.` subdomain).
+    pub fn build_report_url(&self, report_id: &str) -> Result<String, ErrorData> {
+        let host = derive_web_host(&self.rest_uri)?;
+        Ok(format!("{host}/reports/{}", encode_value(report_id)))
+    }
+
+    /// Build the Sift web URL for a single test report:
+    /// `<host>/test-results/<test_report_id>`. The host is derived from
+    /// `rest_uri`. Returns `INVALID_PARAMS` if the host cannot be derived (e.g. a
+    /// self-hosted `rest_uri` without an `api.` subdomain).
+    pub fn build_test_report_url(&self, test_report_id: &str) -> Result<String, ErrorData> {
+        let host = derive_web_host(&self.rest_uri)?;
+        Ok(format!(
+            "{host}/test-results/{}",
+            encode_value(test_report_id)
+        ))
+    }
+
+    /// Build the Sift web URL for a single rule: `<host>/rules/<rule_id>`. The
+    /// host is derived from `rest_uri`. Returns `INVALID_PARAMS` if the host
+    /// cannot be derived (e.g. a self-hosted `rest_uri` without an `api.`
+    /// subdomain).
+    pub fn build_rule_url(&self, rule_id: &str) -> Result<String, ErrorData> {
+        let host = derive_web_host(&self.rest_uri)?;
+        Ok(format!("{host}/rules/{}", encode_value(rule_id)))
+    }
+
+    /// Build the Sift web URL for a single annotation:
+    /// `<host>/annotation/<annotation_id>`. The host is derived from `rest_uri`.
+    /// Returns `INVALID_PARAMS` if the host cannot be derived.
+    pub fn build_annotation_url(&self, annotation_id: &str) -> Result<String, ErrorData> {
+        let host = derive_web_host(&self.rest_uri)?;
+        Ok(format!("{host}/annotation/{}", encode_value(annotation_id)))
+    }
+
+    /// Build the Sift web URL for a single asset: `<host>/asset/<asset_id>`. The
+    /// host is derived from `rest_uri`. Returns `INVALID_PARAMS` if the host
+    /// cannot be derived.
+    pub fn build_asset_url(&self, asset_id: &str) -> Result<String, ErrorData> {
+        let host = derive_web_host(&self.rest_uri)?;
+        Ok(format!("{host}/asset/{}", encode_value(asset_id)))
+    }
+
+    /// Build the Sift web URL for a single run: `<host>/run/<run_id>`. The host
+    /// is derived from `rest_uri`. Returns `INVALID_PARAMS` if the host cannot be
+    /// derived.
+    pub fn build_run_url(&self, run_id: &str) -> Result<String, ErrorData> {
+        let host = derive_web_host(&self.rest_uri)?;
+        Ok(format!("{host}/run/{}", encode_value(run_id)))
+    }
 }
 
 fn encode_value(s: &str) -> String {
@@ -140,7 +194,7 @@ fn join_encoded(values: &[String]) -> String {
         .join(",")
 }
 
-fn derive_explore_host(rest_uri: &str) -> Result<String, ErrorData> {
+fn derive_web_host(rest_uri: &str) -> Result<String, ErrorData> {
     let swapped = rest_uri.replacen("://api.", "://app.", 1);
     if swapped == rest_uri {
         return Err(ErrorData::invalid_params(

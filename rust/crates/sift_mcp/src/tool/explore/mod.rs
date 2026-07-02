@@ -6,7 +6,7 @@ use rmcp::{
 };
 use serde::Deserialize;
 
-use crate::{error, server::SiftMcpServer, service::explore::ExploreUrlRequest};
+use crate::{error, server::SiftMcpServer, service::url::ExploreUrlRequest};
 
 #[cfg(test)]
 mod test;
@@ -74,7 +74,7 @@ impl SiftMcpServer {
             explore_host,
         }) = params;
 
-        let url = self.explore_service.build_url(ExploreUrlRequest {
+        let url = self.url_service.build_explore_url(ExploreUrlRequest {
             assets,
             runs,
             channels,

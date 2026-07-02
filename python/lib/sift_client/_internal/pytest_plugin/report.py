@@ -9,6 +9,7 @@ plugin's ``report_context`` fixture owns the module-level ``REPORT_CONTEXT``.
 
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 import warnings
@@ -568,8 +569,11 @@ def step_impl(
     # erroring out a perfectly valid test. ``getattr``'s default only
     # suppresses ``AttributeError``; the try/except catches everything else
     # (RuntimeError from a misbehaving ``__doc__`` descriptor, etc.).
+    # ``inspect.getdoc`` cleans the docstring (dedents interior lines, trims
+    # surrounding blank lines) and walks inheritance.
     try:
-        existing_docstring = getattr(getattr(node, "obj", None), "__doc__", None) or None
+        obj = getattr(node, "obj", None)
+        existing_docstring = (inspect.getdoc(obj) or None) if obj is not None else None
     except Exception:
         existing_docstring = None
     # Attach the leaf under the parent ``_sift_parents`` resolved for this item

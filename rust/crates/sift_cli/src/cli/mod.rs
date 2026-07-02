@@ -21,10 +21,15 @@ use time::TimeFormat;
 #[command(
     version = crate_version!(),
     about = crate_description!(),
+    disable_version_flag = true,
 )]
 pub struct Args {
     #[command(subcommand)]
-    pub cmd: Cmd,
+    pub cmd: Option<Cmd>,
+
+    /// Print the installed CLI version and check for a newer release on GitHub
+    #[arg(short = 'V', long)]
+    pub version: bool,
 
     /// The profile to use
     #[arg(long, global = true)]
@@ -55,7 +60,6 @@ pub enum Cmd {
     Import(ImportCmd),
 
     /// Start the Sift MCP server
-    #[cfg(feature = "mcp")]
     Mcp,
 
     /// Ping the Sift API to verify credentials and connectivity
@@ -73,6 +77,7 @@ pub struct DocArgs {
 /// Install optional Sift tooling such as autocompletions or Agent skills
 #[derive(Subcommand)]
 pub enum InstallCmd {
+    /// Install or print shell completions for sift-cli
     #[command(subcommand)]
     Completions(CompletionsCmd),
 
@@ -246,6 +251,12 @@ pub struct ConfigUpdateArgs {
     /// API key used for authentication
     #[arg(short = 'k', long)]
     pub api_key: Option<String>,
+
+    /// Sift web app URL (e.g. https://app.siftstack.com). Optional for standard
+    /// Sift hosts; required for custom or on-prem deployments to render Explore
+    /// links.
+    #[arg(long)]
+    pub app_uri: Option<String>,
 }
 
 #[derive(clap::Args)]

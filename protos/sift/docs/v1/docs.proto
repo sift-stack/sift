@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package sift.docs.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Docs Service"}
+};
+
+// DocsService exposes read-only access to Sift's bundled product documentation
+// (docs.siftstack.com). Tools such as the Sift MCP server can search and read the docs
+// over HTTP with the same bearer token / API key used for the rest of the Sift API.
+service DocsService {
+  // SearchDocs runs a keyword search across the bundled docs and returns ranked
+  // pages, each with the best-matching line and a line-numbered window of
+  // surrounding context. Follow up with ReadDoc on a promising hit.
+  rpc SearchDocs(SearchDocsRequest) returns (SearchDocsResponse) {
+    option (google.api.http) = {get: "/api/v1/docs:search"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "SearchDocs"
+      description: "Keyword search across Sift's product documentation."
+      operation_id: "DocsService_SearchDocsV1"
+    };
+  }
+
+  // ReadDoc returns the markdown for a single doc page by path, optionally
+  // sliced by 1-indexed offset/limit for long reference pages.
+  rpc ReadDoc(ReadDocRequest) returns (ReadDocResponse) {
+    option (google.api.http) = {get: "/api/v1/docs:read"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ReadDoc"
+      description: "Read the full markdown of a Sift documentation page by path."
+      operation_id: "DocsService_ReadDocV1"
+    };
+  }
+}
+
+message SearchDocsRequest {
+  // Keyword query, e.g. "asset channels CEL". Required.
+  string query = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Maximum hits to return. Defaults to 10; values above the hard cap of 25 are
+  // coerced to 25. Optional.
+  int32 max_results = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message SearchDocsResponse {
+  repeated DocHit hits = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Total number of doc pages scanned to produce these hits.
+  int32 total_scanned = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+message DocHit {
+  // Doc path, e.g. "documentation/ingest/asset-channels.mdx". Pass to ReadDoc.
+  string path = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string title = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Relevance score; higher is more relevant. Title matches weigh most, then
+  // headings, then body.
+  int32 score = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // 1-indexed line number of the best match, in the same coordinates as
+  // ReadDoc; pass to ReadDoc as offset to see more.
+  int32 match_line = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Total line count of the page.
+  int32 total_lines = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Window of the 10 lines above and below match_line, clamped to the page.
+  // Each line is prefixed with "<line_number>\t", aligned with ReadDoc.
+  string content = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+message ReadDocRequest {
+  // Doc path returned by SearchDocs, e.g.
+  // "documentation/ingest/asset-channels.mdx". Required.
+  string path = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // 1-indexed start line. Defaults to 1. Optional.
+  int32 offset = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Number of lines to return. Defaults to all remaining lines. Optional.
+  int32 limit = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ReadDocResponse {
+  string path = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string title = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Total line count of the page (independent of offset/limit).
+  int32 total_lines = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // 1-indexed line number of the first returned line.
+  int32 start_line = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Page markdown. Each line is prefixed with "<line_number>\t" so follow-up
+  // reads can target specific ranges. MDX/JSX tags are stripped; fenced code
+  // blocks are preserved.
+  string content = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+}

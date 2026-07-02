@@ -172,6 +172,12 @@ from sift_client.sift_types.principal_attribute import (
     PrincipalType,
 )
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
+from sift_client.sift_types.report_template import (
+    ReportTemplate,
+    ReportTemplateCreate,
+    ReportTemplateRule,
+    ReportTemplateUpdate,
+)
 from sift_client.sift_types.resource_attribute import (
     ResourceAttribute,
     ResourceAttributeEntity,
@@ -253,6 +259,10 @@ __all__ = [
     "Report",
     "ReportRuleStatus",
     "ReportRuleSummary",
+    "ReportTemplate",
+    "ReportTemplateCreate",
+    "ReportTemplateRule",
+    "ReportTemplateUpdate",
     "ReportUpdate",
     "ResourceAttribute",
     "ResourceAttributeEntity",

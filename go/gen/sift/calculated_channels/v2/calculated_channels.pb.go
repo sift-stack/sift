@@ -956,6 +956,10 @@ type ListCalculatedChannelsRequest struct {
 	// Available fields to filter by are `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`,
 	// `asset_id`, `asset_name`, `tag_id`, `tag_name`, `units`, `calculated_channel_version_id`,
 	// `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
+	// Folder membership is filterable via the `folders` and `activeFolders` fields. Both contain the ids of the folders
+	// the calculated channel belongs to; `activeFolders` excludes archived folders. Use `"<folder_id>" in folders` to
+	// return calculated channels in the given folder, and `size(activeFolders) == 0` to return uncategorized calculated
+	// channels (calculated channels whose only memberships are in archived folders count as uncategorized).
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`

@@ -1,7 +1,6 @@
 use std::{collections::HashSet, fs::File, io::Seek, process::ExitCode};
 
 use anyhow::{Context as AnyhowContext, Result, anyhow};
-use crossterm::style::Stylize;
 use parquet::file::reader::{ChunkReader, FileReader, SerializedFileReader};
 use parquet::record::Field;
 use parquet::schema::types::Type as ParquetSchemaType;
@@ -23,11 +22,11 @@ use crate::cmd::import::parquet::proto_time_format_display;
 use crate::cmd::{
     Context,
     import::{
-        TimePreview, parquet::FooterMetadata, preview_import_config, utils::upload_gzipped_file,
-        wait_for_job_completion,
+        TimePreview, finish_import, parquet::FooterMetadata, preview_import_config,
+        utils::upload_gzipped_file,
     },
 };
-use crate::util::{api::create_grpc_channel, tty::Output};
+use crate::util::api::create_grpc_channel;
 
 pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
@@ -125,22 +124,16 @@ pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     .await
     .context("failed to upload Parquet file")?;
 
-    let location = args.common.run.as_ref().map_or_else(
-        || format!("asset '{}'", args.common.asset.cyan()),
-        |r| format!("run '{}'", r.clone().cyan()),
-    );
-
-    if !args.common.wait {
-        Output::new()
-            .line(format!("{} file for processing", "Uploaded".green()))
-            .tip(format!(
-                "Once processing is complete the data will be available on the {location}."
-            ))
-            .print();
-        return Ok(ExitCode::SUCCESS);
-    }
-
-    wait_for_job_completion(grpc_channel, job_id, location).await
+    finish_import(
+        &ctx,
+        grpc_channel,
+        job_id,
+        &args.common.asset,
+        args.common.run.as_deref(),
+        args.common.run_id.as_deref(),
+        args.common.wait,
+    )
+    .await
 }
 
 fn create_data_import_request(

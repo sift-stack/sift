@@ -3,6 +3,47 @@ All notable changes to `sift-cli` will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0-alpha.1] - June 26, 2026
+
+### What's New
+
+#### MCP server is always bundled
+The `mcp` Cargo feature is gone. Every `sift-cli` build ships with the MCP server, so users register it with one line (`claude mcp add sift -- sift-cli mcp`) without rebuilding from source.
+
+#### Major MCP tool expansion
+The MCP surface grew substantially. New domain-oriented routers cover:
+- **Annotations:** `list_annotations`, `create_annotation`, `update_annotation`.
+- **Reports:** `list_reports`, `list_report_rule_summaries`, `create_report`, `update_report`.
+- **Rules:** `list_rules`, `list_rule_versions`, `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`.
+- **Test results:** `list_test_reports`, `create_test_report`, `list_test_steps`, `count_test_steps`, `list_test_measurements`, `count_test_measurements`, `append_test_measurements`.
+- **Docs:** `search_docs` searches and reads Sift's product documentation (`docs.siftstack.com`), including the REST/gRPC API reference, in a single tool with search and read modes.
+- **Assets:** `update_asset` joins the existing `list_assets`.
+- **Runs:** `update_run` joins the existing `list_runs`.
+
+#### MCP rate-limiting and retries
+Rate-limited responses from the Sift API are surfaced to the agent with structured guidance to back off, and a shared retry policy handles `Unavailable` errors with exponential backoff plus jitter across every service.
+
+#### Imports return an Explore URL
+Every `sift-cli import` subcommand now prints an Explore URL when the upload finishes, so users jump straight to the imported data. Configure the destination web app with the new `app_uri` field via `sift-cli config update --app-uri ...`.
+
+#### Tool recipe guide
+A new `rust/crates/sift_mcp/CLAUDE.md` documents the recipe for adding MCP tools end to end: anti-bloat gate, service/tool split, flat parameter rules, description structure, field-mask handling for updates, and the pre-merge checklist. The skill files (`SKILL.md` / `AGENTS.md`) were updated in lockstep.
+
+### Bug Fixes
+- Corrected wording on the `update_asset` tool description.
+
+### Full Changelog
+- [MCP rate-limiting](https://github.com/sift-stack/sift/commit/9eb9250a2)
+- [Tool recipe guide and domain router refactor](https://github.com/sift-stack/sift/commit/679ca6fa2)
+- [`update_asset` tool](https://github.com/sift-stack/sift/commit/2df0f1461)
+- [CLI guidance in agent skills](https://github.com/sift-stack/sift/commit/46599f164)
+- [Data review tools (annotations, reports, rules, runs)](https://github.com/sift-stack/sift/commit/5959d16ff)
+- [Fix wording on `update_asset`](https://github.com/sift-stack/sift/commit/55a15dc0d)
+- [Test results MCP tools](https://github.com/sift-stack/sift/commit/6945f8474)
+- [Return Explore URL after import](https://github.com/sift-stack/sift/commit/25259625f)
+- [Drop the `mcp` feature flag](https://github.com/sift-stack/sift/commit/09478bcd5)
+- [Docs search MCP tool](https://github.com/sift-stack/sift/commit/af2d878bf)
+
 ## [v0.2.0] - June 12, 2026
 
 ### What's New

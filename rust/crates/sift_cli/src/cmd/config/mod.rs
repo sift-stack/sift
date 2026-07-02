@@ -67,14 +67,26 @@ pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCod
                 Output::new().line("Nothing to update.").print();
                 return Ok(ExitCode::SUCCESS);
             }
-            get_updated_config(profile, args.grpc_uri, args.rest_uri, args.api_key)?
+            get_updated_config(
+                profile,
+                args.grpc_uri,
+                args.rest_uri,
+                args.api_key,
+                args.app_uri,
+            )?
         } else {
-            let [prof, grpc, rest, key]: [Option<String>; 4] = PromptUser::new()
+            let [prof, grpc, rest, key, app]: [Option<String>; 5] = PromptUser::new()
                 .header("Any blank values will be ignored preserving the original.")
                 .prompt("  Specify the profile to configure (leave blank for default profile): ")
                 .prompt("  Specify the gRPC API base URL: ")
                 .prompt("  Specify the REST API base URL: ")
                 .prompt("  Provide your Sift API key: ")
+                .prompt(
+                    "  Specify the Sift web app URL — the address you visit in your browser \
+                     when signed in to Sift (e.g. https://app.siftstack.com). Optional for \
+                     standard Sift hosts; set it for custom or on-prem deployments to enable \
+                     Explore links: ",
+                )
                 .run()?
                 .try_into()
                 .unwrap();
@@ -82,7 +94,7 @@ pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCod
             if let Some(p) = prof.as_ref() {
                 target = p.clone();
             }
-            let updated = get_updated_config(prof, grpc, rest, key)?;
+            let updated = get_updated_config(prof, grpc, rest, key, app)?;
             let divider = "-".repeat(40);
 
             let [confirmation]: [Option<String>; 1] = PromptUser::new()
@@ -155,6 +167,7 @@ fn get_updated_config(
     grpc_uri: Option<String>,
     rest_uri: Option<String>,
     api_key: Option<String>,
+    app_uri: Option<String>,
 ) -> Result<String> {
     let path = get_config_file_path()?;
 
@@ -184,6 +197,9 @@ fn get_updated_config(
     if let Some(token) = api_key {
         target.insert(String::from("apikey"), Value::String(token));
     }
+    if let Some(uri) = app_uri {
+        target.insert(String::from("app_uri"), Value::String(uri));
+    }
 
     Ok(config_toml.to_string())
 }
@@ -205,9 +221,11 @@ fn is_update_empty(args: &ConfigUpdateArgs) -> bool {
         grpc_uri,
         rest_uri,
         api_key,
+        app_uri,
         ..
     } = args;
     grpc_uri.as_ref().is_none_or(|s| s.is_empty())
         && rest_uri.as_ref().is_none_or(|s| s.is_empty())
         && api_key.as_ref().is_none_or(|s| s.is_empty())
+        && app_uri.as_ref().is_none_or(|s| s.is_empty())
 }

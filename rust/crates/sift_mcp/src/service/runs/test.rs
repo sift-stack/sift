@@ -1,4 +1,6 @@
-use sift_rs::runs::v2::{ListRunsResponse, Run, run_service_server::RunServiceServer};
+use sift_rs::runs::v2::{
+    ListRunsResponse, Run, UpdateRunResponse, run_service_server::RunServiceServer,
+};
 use sift_test_util::{grpc::memory_sift_channel, mock::runs::v2::MockRunServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -208,4 +210,79 @@ async fn list_runs_propagates_grpc_error() {
         .expect_err("expected error");
 
     assert!(err.to_string().contains("failed to query runs"));
+}
+
+#[tokio::test]
+async fn update_run_builds_mask_from_provided_fields() {
+    let mut mock = MockRunServiceImpl::new();
+    mock.expect_update_run()
+        .withf(|req| {
+            let req = req.get_ref();
+            let run = req.run.as_ref().unwrap();
+            let paths = &req.update_mask.as_ref().unwrap().paths;
+            run.run_id == "r1"
+                && run.name == "renamed"
+                && run.is_pinned
+                && run.start_time.as_ref().map(|t| t.seconds) == Some(1)
+                && paths
+                    == &vec![
+                        "name".to_string(),
+                        "start_time".to_string(),
+                        "is_pinned".to_string(),
+                    ]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRunResponse {
+                run: Some(Run {
+                    run_id: "r1".into(),
+                    name: "renamed".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let run = service
+        .update_run(
+            "r1".to_string(),
+            Some("renamed".to_string()),
+            None,
+            Some(1_000_000_000),
+            None,
+            Some(true),
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect("update_run failed");
+
+    assert_eq!(run.name, "renamed");
+}
+
+#[tokio::test]
+async fn update_run_propagates_grpc_error() {
+    let mut mock = MockRunServiceImpl::new();
+    mock.expect_update_run()
+        .returning(|_| Err(Status::not_found("no such run")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .update_run(
+            "r1".to_string(),
+            Some("x".to_string()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect_err("expected error");
+
+    assert!(err.to_string().contains("failed to update run"));
 }

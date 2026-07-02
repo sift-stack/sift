@@ -1,10 +1,21 @@
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
+use pbjson_types::{FieldMask, Timestamp};
 use sift_rs::{
     SiftChannel,
-    runs::v2::{ListRunsRequest, ListRunsResponse, Run, run_service_client::RunServiceClient},
+    metadata::v1::MetadataValue,
+    runs::v2::{
+        ListRunsRequest, ListRunsResponse, Run, UpdateRunRequest,
+        run_service_client::RunServiceClient,
+    },
 };
+
+/// Build a protobuf `Timestamp` from Unix nanoseconds via the shared helper.
+fn timestamp_from_unix_nanos(nanos: i64) -> Timestamp {
+    let (seconds, nanos) = common::unix_nanos_to_secs_and_subsec_nanos(nanos);
+    Timestamp { seconds, nanos }
+}
 
 #[cfg(test)]
 mod test;
@@ -78,5 +89,89 @@ impl RunService {
         results.truncate(record_limit);
 
         Ok(results)
+    }
+
+    /// Update a subset of an existing run's fields. Per
+    /// `protos/sift/runs/v2/runs.proto::UpdateRunRequest` the updatable fields are
+    /// `name`, `description`, `start_time`, `stop_time`, `is_pinned`, `client_key`,
+    /// `tags`, `is_archived`, and `metadata`. This service exposes all but
+    /// `is_archived` (archive flow is out of scope).
+    ///
+    /// Caveats from the proto: `start_time` may be overwritten by a later
+    /// ingestion, and `client_key` can be set only once — a second attempt errors.
+    /// `tags` and `metadata` use REPLACE semantics.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_run(
+        &self,
+        run_id: String,
+        name: Option<String>,
+        description: Option<String>,
+        start_time_unix_nanos: Option<i64>,
+        stop_time_unix_nanos: Option<i64>,
+        is_pinned: Option<bool>,
+        client_key: Option<String>,
+        tags: Option<Vec<String>>,
+        metadata: Option<Vec<MetadataValue>>,
+    ) -> Result<Run> {
+        let mut run = Run {
+            run_id,
+            ..Default::default()
+        };
+        let mut paths = Vec::new();
+
+        if let Some(v) = name {
+            run.name = v;
+            paths.push("name".to_string());
+        }
+        if let Some(v) = description {
+            run.description = v;
+            paths.push("description".to_string());
+        }
+        if let Some(v) = start_time_unix_nanos {
+            run.start_time = Some(timestamp_from_unix_nanos(v));
+            paths.push("start_time".to_string());
+        }
+        if let Some(v) = stop_time_unix_nanos {
+            run.stop_time = Some(timestamp_from_unix_nanos(v));
+            paths.push("stop_time".to_string());
+        }
+        if let Some(v) = is_pinned {
+            run.is_pinned = v;
+            paths.push("is_pinned".to_string());
+        }
+        if let Some(v) = client_key {
+            run.client_key = Some(v);
+            paths.push("client_key".to_string());
+        }
+        if let Some(v) = tags {
+            run.tags = v;
+            paths.push("tags".to_string());
+        }
+        if let Some(v) = metadata {
+            run.metadata = v;
+            paths.push("metadata".to_string());
+        }
+
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let run = run.clone();
+            let paths = paths.clone();
+            async move {
+                let mut client = RunServiceClient::new(channel);
+                client
+                    .update_run(UpdateRunRequest {
+                        run: Some(run),
+                        update_mask: Some(FieldMask { paths }),
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to update run")?;
+
+        resp.run
+            .ok_or_else(|| anyhow!("update_run response missing run"))
     }
 }

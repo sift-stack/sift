@@ -1,10 +1,25 @@
-use rmcp::{handler::server::wrapper::Parameters, model::CallToolResult, tool, tool_router};
+use rmcp::{
+    ErrorData,
+    handler::server::wrapper::Parameters,
+    model::{CallToolResult, Content},
+    schemars::{self, JsonSchema},
+    tool, tool_router,
+};
+use serde::Deserialize;
+use sift_rs::metadata::v1::MetadataValue;
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::ListParams,
+    tool::common::{ListParams, MetadataEntry, url_clause, with_urls},
 };
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateAssetParams {
+    asset_id: String,
+    tags: Option<Vec<String>>,
+    metadata: Option<Vec<MetadataEntry>>,
+}
 
 #[cfg(test)]
 mod test;
@@ -18,7 +33,9 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"assets\": [Asset, ...] }`. Each item is the full Sift `Asset` shape including `asset_id`, `name`,
-                tags, metadata, timestamps, and archive state.
+                tags, metadata, timestamps, and archive state, plus an added `url` field with the asset's Sift web
+                link (`<host>/asset/<asset_id>`). `url` is omitted when the host can't be derived. Surface these
+                links to the user when presenting assets.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -48,13 +65,107 @@ impl SiftMcpServer {
             order_by,
         }) = params;
 
-        let out = self
+        let assets = self
             .asset_service
             .list_assets(filter, order_by, limit)
             .await
-            .map(|assets| serde_json::json!({ "assets": assets }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let assets = with_urls(&assets, |a| {
+            self.url_service.build_asset_url(&a.asset_id).ok()
+        })?;
+
+        Ok(CallToolResult::structured(
+            serde_json::json!({ "assets": assets }),
+        ))
+    }
+
+    #[tool(
+        name = "update_asset",
+        description = "
+            Update an existing asset's tags and/or metadata. Wraps `assets/v1 UpdateAsset`.
+
+            Output:
+              - `{ \"asset\": Asset, \"asset_url\": string|null, \"next_step\": string }`. The returned `Asset` is
+                the post-update state from the server; `asset_url` is its Sift web link
+                (`<host>/asset/<asset_id>`), or null when the host can't be derived.
+
+            Parameters:
+              - `asset_id`: required; the id of the asset to update.
+              - `tags`: optional; REPLACES the asset's full tag list with this array. To add a
+                single tag, first read the current tags via `list_assets` filtered by
+                `asset_id == \"<id>\"` and send the union. Pass `[]` to clear all tags.
+              - `metadata`: optional; REPLACES the asset's full metadata list. Each entry is
+                `{ \"name\": \"<key>\", \"value\": <scalar> }` where `value` is a string,
+                number, or boolean. Pass `[]` to clear. A `name` that does not yet exist in
+                the organization's metadata schema is created on the fly with type inferred
+                from `value`; for an existing key, `value`'s type must match the key's
+                current type. Tag names that do not yet exist are likewise created.
+
+              At least one of `tags` or `metadata` must be set; otherwise the update is a no-op
+              and the tool returns `INVALID_PARAMS`.
+
+            Errors:
+              - `INVALID_PARAMS` if `asset_id` is empty, neither `tags` nor `metadata` is
+                provided, the `metadata` list contains duplicate key names, or a value's
+                type does not match an existing metadata key's type.
+              - `RESOURCE_NOT_FOUND` if no asset matches `asset_id`.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
+
+            Guidance:
+              - This is a write. CONFIRM the target asset and the full proposed `tags` /
+                `metadata` lists with the user before invoking — silent truncation is the most
+                common foot-gun because the operation is REPLACE, not merge.
+              - For appends, always read-modify-write: list the asset by id, append your new
+                entry to the existing collection, then call this tool with the union.
+              - The asset proto has no `description` field — there is no equivalent to update.
+        ",
+        annotations(title = "assets_router/update_asset", read_only_hint = false)
+    )]
+    pub async fn update_asset(&self, params: Parameters<UpdateAssetParams>) -> error::McpResult {
+        let Parameters(UpdateAssetParams {
+            asset_id,
+            tags,
+            metadata,
+        }) = params;
+
+        if asset_id.is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`asset_id` must not be empty",
+                None,
+            ));
+        }
+        if tags.is_none() && metadata.is_none() {
+            return Err(ErrorData::invalid_params(
+                "at least one of `tags` or `metadata` must be provided",
+                None,
+            ));
+        }
+
+        let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
+
+        let asset = self
+            .asset_service
+            .update_asset(asset_id, tags, metadata)
+            .await
+            .map_err(from_anyhow)?;
+
+        let asset_url = self.url_service.build_asset_url(&asset.asset_id).ok();
+        let next_step = format!(
+            "Updated asset `{}` ({}).{} Surface the new state to the user and confirm the change \
+             matches their intent. Remember: tags and metadata are REPLACE operations — verify \
+             nothing was unintentionally dropped.",
+            asset.name,
+            asset.asset_id,
+            url_clause(asset_url.as_deref()),
+        );
+
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "asset": asset,
+            "asset_url": asset_url,
+            "next_step": next_step,
+        }));
+        result.content = vec![Content::text(next_step)];
+        Ok(result)
     }
 }

@@ -183,15 +183,8 @@ enum ResourceAttributeKeyType {
 
 // A ResourceAttribute Key defines an attribute that can be assigned to Entities for the purpose of attribute based access control (ABAC).
 message ResourceAttributeKey {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string organization_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   string display_name = 3 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = IMMUTABLE
@@ -205,18 +198,12 @@ message ResourceAttributeKey {
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string created_by_user_id = 7 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp modified_date = 8 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string modified_by_user_id = 9 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string modified_by_user_id = 9 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp archived_date = 10 [
     (google.api.field_behavior) = OPTIONAL,
     (google.api.field_behavior) = OUTPUT_ONLY
@@ -231,15 +218,8 @@ message ResourceAttributeKey {
 // Represents a possible enumerable value for ENUM type resource_attribute keys.
 // Users can add new enum values as needed.
 message ResourceAttributeEnumValue {
-  string resource_attribute_enum_value_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string resource_attribute_key_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
+  string resource_attribute_key_id = 2 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   string display_name = 3 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = IMMUTABLE
@@ -249,18 +229,12 @@ message ResourceAttributeEnumValue {
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string created_by_user_id = 6 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string created_by_user_id = 6 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp modified_date = 7 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string modified_by_user_id = 8 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp archived_date = 9 [
     (google.api.field_behavior) = OPTIONAL,
     (google.api.field_behavior) = OUTPUT_ONLY
@@ -281,25 +255,14 @@ enum ResourceAttributeEntityType {
 
 // Represents the assignment of a resource_attribute key-value pair to an entity (asset or channel).
 message ResourceAttribute {
-  string resource_attribute_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
-  string organization_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   ResourceAttributeEntityIdentifier entity = 3 [
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = IMMUTABLE,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string resource_attribute_key_id = 4 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string resource_attribute_key_id = 4 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = IMMUTABLE, (google.api.field_behavior) = OUTPUT_ONLY];
   // Populated in responses with full key details.
   ResourceAttributeKey key = 5 [
     (google.api.field_behavior) = OPTIONAL,
@@ -320,10 +283,7 @@ message ResourceAttribute {
     (google.api.field_behavior) = REQUIRED,
     (google.api.field_behavior) = OUTPUT_ONLY
   ];
-  string created_by_user_id = 11 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = OUTPUT_ONLY
-  ];
+  string created_by_user_id = 11 [(google.api.field_behavior) = REQUIRED, (google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp archived_date = 12 [
     (google.api.field_behavior) = OPTIONAL,
     (google.api.field_behavior) = OUTPUT_ONLY
