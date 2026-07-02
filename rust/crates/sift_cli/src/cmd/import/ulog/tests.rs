@@ -107,18 +107,6 @@ fn build_ulog_config_run_id_passes_through() {
 }
 
 #[test]
-fn build_ulog_config_rejects_both_run_name_and_run_id() {
-    let mut args = make_args();
-    args.common.run = Some("my-run".into());
-    args.common.run_id = Some("run-abc-123".into());
-    let err = build_ulog_config(&args).unwrap_err();
-    assert!(
-        err.to_string().contains("mutually exclusive"),
-        "expected mutual exclusion error, got: {err:#}"
-    );
-}
-
-#[test]
 fn build_ulog_config_parse_error_policy_ignore_error() {
     let mut args = make_args();
     args.parse_error_policy = UlogParseErrorPolicy::IgnoreError;

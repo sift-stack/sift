@@ -76,7 +76,7 @@ sift-cli import hdf5 ./capture.h5 \
 | `--asset`, `-a`               | Asset the data belongs to (required).                                   |
 | `--schema`                    | `one-d`, `two-d`, or `compound` (required).                             |
 | `--run`, `-r`                 | Run name to associate with the import.                                  |
-| `--run-id`                    | Attach to an existing run by ID (takes precedence over `--run`).        |
+| `--run-id`                    | Attach to an existing run by ID (mutually exclusive with `--run`).      |
 | `--time-format`               | Time format used by the time dataset/column.                            |
 | `--relative-start-time`, `-s` | RFC 3339 start time for relative time formats.                          |
 | `--time-index`                | (two-d / compound) Index of the time column/field. Default `0`.         |

@@ -29,7 +29,7 @@ These flags and behaviors apply across import commands.
   asset if it does not exist.
 - `--run <name>` (optional): associate the data with a named run.
 - `--run-id <id>` (optional, where supported): attach to an existing run by ID.
-  Takes precedence over `--run`.
+  Mutually exclusive with `--run`.
 
 ### Preview before uploading
 

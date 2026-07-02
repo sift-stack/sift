@@ -86,10 +86,6 @@ pub async fn run(ctx: Context, args: ImportUlogArgs) -> Result<ExitCode> {
 }
 
 pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
-    if args.common.run.is_some() && args.common.run_id.is_some() {
-        anyhow::bail!("--run and --run-id are mutually exclusive");
-    }
-
     if (!args.info_key.is_empty() || !args.param_key.is_empty())
         && args.common.run.is_none()
         && args.common.run_id.is_none()
