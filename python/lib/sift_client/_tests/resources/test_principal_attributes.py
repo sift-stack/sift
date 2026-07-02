@@ -1,6 +1,6 @@
 """Unit tests for the principal attributes high-level API.
 
-These mock the low-level client and the REST client; they are not integration tests.
+These mock the low-level client and the users API; they are not integration tests.
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -11,6 +11,7 @@ from sift.principal_attributes.v1 import principal_attributes_pb2 as pa
 from sift_client.resources.access_control.principal_attributes import PrincipalAttributesAPIAsync
 from sift_client.sift_types.principal_attribute import (
     PrincipalAttributeKey,
+    PrincipalAttributeKeyUpdate,
     PrincipalType,
 )
 
@@ -32,39 +33,6 @@ def _key() -> PrincipalAttributeKey:
     )
 
 
-def _users_response(users):
-    response = MagicMock()
-    response.raise_for_status = MagicMock()
-    response.json = MagicMock(return_value={"users": users, "nextPageToken": ""})
-    return response
-
-
-class TestResolveUserIds:
-    @pytest.mark.asyncio
-    async def test_maps_email_to_user_id_via_rest(self):
-        api = _api()
-        api.client.rest_client.get = MagicMock(
-            return_value=_users_response(
-                [
-                    {"userName": "alice@x.com", "userId": "u1"},
-                    {"userName": "bob@x.com", "userId": "u2"},
-                ]
-            )
-        )
-
-        resolved = await api.resolve_user_ids(["alice@x.com"])
-
-        assert resolved == {"alice@x.com": "u1"}
-
-    @pytest.mark.asyncio
-    async def test_resolve_user_id_raises_when_missing(self):
-        api = _api()
-        api.client.rest_client.get = MagicMock(return_value=_users_response([]))
-
-        with pytest.raises(ValueError, match="No user found"):
-            await api.resolve_user_id("ghost@x.com")
-
-
 class TestAssign:
     @pytest.mark.asyncio
     async def test_fetches_key_when_assigning_by_key_id(self):
@@ -81,15 +49,14 @@ class TestAssign:
         assert kwargs["enum_value_ids"] == ["e_a"]
 
     @pytest.mark.asyncio
-    async def test_resolves_emails_and_keeps_raw_ids(self):
+    async def test_resolves_emails_via_users_api_and_keeps_raw_ids(self):
         api = _api()
-        api.client.rest_client.get = MagicMock(
-            return_value=_users_response([{"userName": "alice@x.com", "userId": "u1"}])
-        )
+        api.client.async_.users.resolve_ids = AsyncMock(return_value={"alice@x.com": "u1"})
         api._low_level_client.batch_create_values = AsyncMock(return_value=[])
 
         await api.assign(_key(), ["alice@x.com", "raw_id"], value=["e_a"])
 
+        api.client.async_.users.resolve_ids.assert_awaited_once_with(["alice@x.com"])
         kwargs = api._low_level_client.batch_create_values.call_args.kwargs
         assert kwargs["principal_ids"] == ["u1", "raw_id"]
         assert kwargs["principal_type"] == PrincipalType.USER.value
@@ -98,7 +65,7 @@ class TestAssign:
     @pytest.mark.asyncio
     async def test_unresolvable_email_raises(self):
         api = _api()
-        api.client.rest_client.get = MagicMock(return_value=_users_response([]))
+        api.client.async_.users.resolve_ids = AsyncMock(return_value={})
 
         with pytest.raises(ValueError, match="No user found"):
             await api.assign(_key(), ["ghost@x.com"], value=["e_a"])
@@ -133,3 +100,17 @@ class TestListAssignmentsRouting:
         await api.list_assignments()
 
         api._low_level_client.list_all_values.assert_awaited_once()
+
+
+class TestUpdateKey:
+    @pytest.mark.asyncio
+    async def test_dict_update_is_validated_and_carries_key_id(self):
+        api = _api()
+        api._low_level_client.update_key = AsyncMock(return_value=_key())
+
+        await api.update_key("pk1", {"display_name": "new name"})
+
+        update = api._low_level_client.update_key.call_args.kwargs["update"]
+        assert isinstance(update, PrincipalAttributeKeyUpdate)
+        assert update.display_name == "new name"
+        assert update.resource_id == "pk1"

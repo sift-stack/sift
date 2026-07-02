@@ -17,7 +17,8 @@ from sift_client.sift_types.resource_attribute import (
     ResourceAttributeEntityType,
     ResourceAttributeEnumValue,
     ResourceAttributeKey,
-    ResourceAttributeKeyType,
+    ResourceAttributeKeyUpdate,
+    ResourceAttributeValueType,
 )
 
 
@@ -28,10 +29,10 @@ def _api() -> ResourceAttributesAPIAsync:
     return api
 
 
-def _key(key_type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM) -> ResourceAttributeKey:
+def _key(value_type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM) -> ResourceAttributeKey:
     return ResourceAttributeKey._from_proto(
         ra.ResourceAttributeKey(
-            resource_attribute_key_id="k1", display_name="licenses", type=key_type
+            resource_attribute_key_id="k1", display_name="licenses", type=value_type
         )
     )
 
@@ -55,7 +56,7 @@ class TestGetOrCreateKey:
         api._low_level_client.list_all_keys = AsyncMock(return_value=[_key()])
         api._low_level_client.create_key = AsyncMock(side_effect=AssertionError("must not create"))
 
-        key = await api.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
+        key = await api.get_or_create_key("licenses", ResourceAttributeValueType.SET_OF_ENUM)
 
         assert key.id_ == "k1"
 
@@ -65,7 +66,7 @@ class TestGetOrCreateKey:
         api._low_level_client.list_all_keys = AsyncMock(return_value=[])
         api._low_level_client.create_key = AsyncMock(return_value=_key())
 
-        key = await api.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
+        key = await api.get_or_create_key("licenses", ResourceAttributeValueType.SET_OF_ENUM)
 
         api._low_level_client.create_key.assert_awaited_once()
         assert key.id_ == "k1"
@@ -218,3 +219,28 @@ def _asset_proto():
 
     proto = AssetProto(asset_id="a1", name="asset")
     return proto
+
+
+class TestUpdateKey:
+    @pytest.mark.asyncio
+    async def test_dict_update_is_validated_and_carries_key_id(self):
+        api = _api()
+        api._low_level_client.update_key = AsyncMock(return_value=_key())
+
+        await api.update_key("k1", {"display_name": "new name"})
+
+        update = api._low_level_client.update_key.call_args.kwargs["update"]
+        assert isinstance(update, ResourceAttributeKeyUpdate)
+        assert update.display_name == "new name"
+        assert update.resource_id == "k1"
+
+    @pytest.mark.asyncio
+    async def test_model_update_takes_id_from_key_object(self):
+        api = _api()
+        api._low_level_client.update_key = AsyncMock(return_value=_key())
+
+        await api.update_key(_key(), ResourceAttributeKeyUpdate(description="d"))
+
+        update = api._low_level_client.update_key.call_args.kwargs["update"]
+        assert update.resource_id == "k1"
+        assert update.description == "d"

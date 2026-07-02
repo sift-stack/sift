@@ -165,9 +165,11 @@ from sift_client.sift_types.job import (
     RuleEvaluationStatusDetails,
 )
 from sift_client.sift_types.principal_attribute import (
+    PrincipalAttributeAssignment,
     PrincipalAttributeEnumValue,
     PrincipalAttributeKey,
-    PrincipalAttributeValue,
+    PrincipalAttributeKeyUpdate,
+    PrincipalAttributeValueLike,
     PrincipalAttributeValueType,
     PrincipalType,
 )
@@ -179,12 +181,14 @@ from sift_client.sift_types.report_template import (
     ReportTemplateUpdate,
 )
 from sift_client.sift_types.resource_attribute import (
-    ResourceAttribute,
+    ResourceAttributeAssignment,
     ResourceAttributeEntity,
     ResourceAttributeEntityType,
     ResourceAttributeEnumValue,
     ResourceAttributeKey,
-    ResourceAttributeKeyType,
+    ResourceAttributeKeyUpdate,
+    ResourceAttributeValueLike,
+    ResourceAttributeValueType,
 )
 from sift_client.sift_types.rule import (
     Rule,
@@ -210,6 +214,7 @@ from sift_client.sift_types.test_report import (
     TestStepCreate,
     TestStepType,
 )
+from sift_client.sift_types.user import User, UserOrganization
 
 if "pytest" in sys.modules:
     # These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
@@ -251,9 +256,11 @@ __all__ = [
     "JobStatus",
     "JobStatusDetails",
     "JobType",
+    "PrincipalAttributeAssignment",
     "PrincipalAttributeEnumValue",
     "PrincipalAttributeKey",
-    "PrincipalAttributeValue",
+    "PrincipalAttributeKeyUpdate",
+    "PrincipalAttributeValueLike",
     "PrincipalAttributeValueType",
     "PrincipalType",
     "Report",
@@ -264,12 +271,14 @@ __all__ = [
     "ReportTemplateRule",
     "ReportTemplateUpdate",
     "ReportUpdate",
-    "ResourceAttribute",
+    "ResourceAttributeAssignment",
     "ResourceAttributeEntity",
     "ResourceAttributeEntityType",
     "ResourceAttributeEnumValue",
     "ResourceAttributeKey",
-    "ResourceAttributeKeyType",
+    "ResourceAttributeKeyUpdate",
+    "ResourceAttributeValueLike",
+    "ResourceAttributeValueType",
     "Rule",
     "RuleAction",
     "RuleActionType",
@@ -295,4 +304,6 @@ __all__ = [
     "TestStep",
     "TestStepCreate",
     "TestStepType",
+    "User",
+    "UserOrganization",
 ]

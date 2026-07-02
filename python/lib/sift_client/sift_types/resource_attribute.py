@@ -5,7 +5,7 @@ is the "what" in an access decision. The model has three tiers:
 
 - ``ResourceAttributeKey`` defines an attribute (e.g. ``licenses``) and its value type.
 - ``ResourceAttributeEnumValue`` is an allowed value for an ``ENUM``/``SET_OF_ENUM`` key.
-- ``ResourceAttribute`` is a single assignment of a value to one resource.
+- ``ResourceAttributeAssignment`` is a single assignment of a value to one resource.
 
 The ``ResourceAttributeKey`` acts as the entry point: enum values and assignments are
 managed through methods on a key instance.
@@ -15,12 +15,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Union
 
 from pydantic import BaseModel
 from sift.resource_attribute.v1 import resource_attribute_pb2 as ra_pb
 
-from sift_client.sift_types._base import BaseType
+from sift_client.sift_types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from sift_client.sift_types.run import Run
 
 
-class ResourceAttributeKeyType(Enum):
+class ResourceAttributeValueType(Enum):
     """Value type of a resource attribute key."""
 
     UNSPECIFIED = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_UNSPECIFIED
@@ -149,7 +149,15 @@ class ResourceAttributeEnumValue(
         return self.display_name
 
 
-class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
+# Accepted value shapes for assign: a list of enum values (or their IDs) for
+# SET_OF_ENUM keys, a single enum value (or its ID) for ENUM keys, a bool for
+# BOOLEAN keys, or an int for NUMBER keys.
+ResourceAttributeValueLike = Union[
+    bool, int, str, ResourceAttributeEnumValue, "list[ResourceAttributeEnumValue | str]"
+]
+
+
+class ResourceAttributeAssignment(BaseType[ra_pb.ResourceAttribute, "ResourceAttributeAssignment"]):
     """A single assignment of a resource attribute value to a supported resource."""
 
     organization_id: str
@@ -168,7 +176,7 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
     @classmethod
     def _from_proto(
         cls, proto: ra_pb.ResourceAttribute, sift_client: SiftClient | None = None
-    ) -> ResourceAttribute:
+    ) -> ResourceAttributeAssignment:
         which = proto.WhichOneof("value")
         return cls(
             proto=proto,
@@ -220,7 +228,20 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
         if self.enum_value is not None:
             self.enum_value._apply_client_to_instance(client)
 
-    def archive(self) -> ResourceAttribute:
+    @property
+    def value(self) -> ResourceAttributeEnumValue | str | bool | int | None:
+        """The assigned value.
+
+        The enum value for ``ENUM``/``SET_OF_ENUM`` keys (or its ID when details were
+        not returned), a bool for ``BOOLEAN`` keys, or an int for ``NUMBER`` keys.
+        """
+        if self.enum_value_id is not None:
+            return self.enum_value if self.enum_value is not None else self.enum_value_id
+        if self.boolean_value is not None:
+            return self.boolean_value
+        return self.number_value
+
+    def archive(self) -> ResourceAttributeAssignment:
         """Archive this assignment."""
         self.client.access_control.resource_attributes.archive_assignments([self])
         self._update(
@@ -230,7 +251,7 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
         )
         return self
 
-    def unarchive(self) -> ResourceAttribute:
+    def unarchive(self) -> ResourceAttributeAssignment:
         """Unarchive this assignment."""
         self.client.access_control.resource_attributes.unarchive_assignments([self])
         self._update(
@@ -247,7 +268,7 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
     organization_id: str
     display_name: str
     description: str
-    key_type: ResourceAttributeKeyType
+    value_type: ResourceAttributeValueType
     created_date: datetime
     created_by_user_id: str
     modified_date: datetime
@@ -265,7 +286,7 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
             organization_id=proto.organization_id,
             display_name=proto.display_name,
             description=proto.description,
-            key_type=ResourceAttributeKeyType(proto.type),
+            value_type=ResourceAttributeValueType(proto.type),
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
@@ -303,8 +324,8 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
         self,
         resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
         *,
-        value: Any,
-    ) -> list[ResourceAttribute]:
+        value: ResourceAttributeValueLike,
+    ) -> list[ResourceAttributeAssignment]:
         """Assign a value to one or more resources for this key.
 
         Args:
@@ -321,19 +342,21 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
         """
         return self.client.access_control.resource_attributes.assign(self, resources, value=value)
 
-    def list_assignments(self, *, include_archived: bool = False) -> list[ResourceAttribute]:
+    def list_assignments(
+        self, *, include_archived: bool = False
+    ) -> list[ResourceAttributeAssignment]:
         """List all assignments of this key."""
         return self.client.access_control.resource_attributes.list_assignments(
             key=self, include_archived=include_archived
         )
 
-    def update(
-        self, *, display_name: str | None = None, description: str | None = None
-    ) -> ResourceAttributeKey:
-        """Update this key's display name or description."""
-        updated = self.client.access_control.resource_attributes.update_key(
-            self, display_name=display_name, description=description
-        )
+    def update(self, update: ResourceAttributeKeyUpdate | dict) -> ResourceAttributeKey:
+        """Update this key.
+
+        Args:
+            update: Either a ResourceAttributeKeyUpdate instance or a dict of fields to update.
+        """
+        updated = self.client.access_control.resource_attributes.update_key(self, update=update)
         self._update(updated)
         return self
 
@@ -355,3 +378,18 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
 
     def __str__(self) -> str:
         return self.display_name
+
+
+class ResourceAttributeKeyUpdate(ModelUpdate[ra_pb.UpdateResourceAttributeKeyRequest]):
+    """Model of the ResourceAttributeKey fields that can be updated."""
+
+    display_name: str | None = None
+    description: str | None = None
+
+    def _get_proto_class(self) -> type[ra_pb.UpdateResourceAttributeKeyRequest]:
+        return ra_pb.UpdateResourceAttributeKeyRequest
+
+    def _add_resource_id_to_proto(self, proto_msg: ra_pb.UpdateResourceAttributeKeyRequest):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.resource_attribute_key_id = self._resource_id

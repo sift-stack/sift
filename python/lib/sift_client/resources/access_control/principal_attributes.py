@@ -1,16 +1,22 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.principal_attributes import (
     PrincipalAttributesLowLevelClient,
 )
-from sift_client._internal.util.executor import run_sync_function
 from sift_client.resources._base import ResourceBase
+from sift_client.resources.access_control._common import (
+    attribute_value_kwargs,
+    id_of,
+    resolve_key,
+)
 from sift_client.sift_types.principal_attribute import (
+    PrincipalAttributeAssignment,
     PrincipalAttributeEnumValue,
     PrincipalAttributeKey,
-    PrincipalAttributeValue,
+    PrincipalAttributeKeyUpdate,
+    PrincipalAttributeValueLike,
     PrincipalAttributeValueType,
     PrincipalType,
 )
@@ -20,28 +26,6 @@ if TYPE_CHECKING:
     import re
 
     from sift_client.client import SiftClient
-
-# Max principals per BatchCreatePrincipalAttributeValue call.
-ASSIGN_BATCH_SIZE = 1000
-# REST endpoint used to resolve a user's email (its user_name) to a user ID. The gRPC
-# UserService does not expose email, so resolution goes through REST.
-_USERS_ENDPOINT = "/api/v2/users"
-_USERS_PAGE_SIZE = 1000
-
-
-def _enum_value_id(value: PrincipalAttributeEnumValue | str) -> str:
-    return value._id_or_error if isinstance(value, PrincipalAttributeEnumValue) else value
-
-
-def _assignment_id(assignment: PrincipalAttributeValue | str) -> str:
-    return (
-        assignment._id_or_error if isinstance(assignment, PrincipalAttributeValue) else assignment
-    )
-
-
-def _chunks(items: list[Any], size: int):
-    for i in range(0, len(items), size):
-        yield items[i : i + size]
 
 
 class PrincipalAttributesAPIAsync(ResourceBase):
@@ -65,15 +49,6 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         self._low_level_client = PrincipalAttributesLowLevelClient(
             grpc_client=self.client.grpc_client
         )
-
-    async def _resolve_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        if isinstance(key, PrincipalAttributeKey):
-            return key
-        if not isinstance(key, str):
-            raise TypeError("assign requires a PrincipalAttributeKey or key ID string.")
-        if not key:
-            raise ValueError("Key ID cannot be empty.")
-        return await self.get_key(key_id=key)
 
     async def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
         """Get a principal attribute key by ID."""
@@ -109,8 +84,12 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             page_size: Results to fetch per request.
         """
         # The key list filter exposes the display name as the CEL field `display_name`.
-        filter_parts = _build_display_name_filters(
-            name=name, names=names, name_contains=name_contains, name_regex=name_regex
+        filter_parts = self._build_name_cel_filters(
+            name=name,
+            names=names,
+            name_contains=name_contains,
+            name_regex=name_regex,
+            field="display_name",
         )
         if value_type is not None:
             filter_parts.append(cel.equals("value_type", value_type.value))
@@ -168,26 +147,29 @@ class PrincipalAttributesAPIAsync(ResourceBase):
     async def update_key(
         self,
         key: str | PrincipalAttributeKey,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
+        update: PrincipalAttributeKeyUpdate | dict,
     ) -> PrincipalAttributeKey:
-        """Update a key's display name or description."""
-        key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
-        updated = await self._low_level_client.update_key(
-            key_id, display_name=display_name, description=description
-        )
+        """Update a key.
+
+        Args:
+            key: The key or key ID to update.
+            update: Updates to apply to the key.
+        """
+        if isinstance(update, dict):
+            update = PrincipalAttributeKeyUpdate.model_validate(update)
+        update.resource_id = id_of(key)
+        updated = await self._low_level_client.update_key(update=update)
         return self._apply_client_to_instance(updated)
 
     async def archive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Archive a key. Cascades to its enum values and assignments."""
-        key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
+        key_id = id_of(key)
         await self._low_level_client.archive_key(key_id)
         return await self.get_key(key_id=key_id)
 
     async def unarchive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
-        key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
+        key_id = id_of(key)
         await self._low_level_client.unarchive_key(key_id)
         return await self.get_key(key_id=key_id)
 
@@ -196,8 +178,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
 
         Counts both user and user-group assignments.
         """
-        key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
-        return await self._low_level_client.check_key_archive_impact(key_id)
+        return await self._low_level_client.check_key_archive_impact(id_of(key))
 
     async def create_enum_value(
         self,
@@ -207,7 +188,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         description: str = "",
     ) -> PrincipalAttributeEnumValue:
         """Create a single enum value for a key."""
-        key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
+        key_id = id_of(key)
         value = await self._low_level_client.create_enum_value(
             key_id=key_id, display_name=display_name, description=description
         )
@@ -228,7 +209,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         page_size: int | None = None,
     ) -> list[PrincipalAttributeEnumValue]:
         """List the enum values defined for a key."""
-        key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
+        key_id = id_of(key)
         filter_parts = self._build_name_cel_filters(
             name=name, names=names, name_contains=name_contains, name_regex=name_regex
         )
@@ -251,7 +232,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
 
         Returns the values in the same order as ``names``.
         """
-        key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
+        key_id = id_of(key)
         existing = await self.list_enum_values(key_id, include_archived=False)
         by_name = {v.display_name: v for v in existing}
         result: list[PrincipalAttributeEnumValue] = []
@@ -273,8 +254,8 @@ class PrincipalAttributesAPIAsync(ResourceBase):
 
         Returns the number of assignments migrated.
         """
-        enum_value_id = _enum_value_id(enum_value)
-        replacement_id = _enum_value_id(replacement) if replacement is not None else ""
+        enum_value_id = id_of(enum_value)
+        replacement_id = id_of(replacement) if replacement is not None else ""
         return await self._low_level_client.archive_enum_value(
             enum_value_id, replacement_enum_value_id=replacement_id
         )
@@ -283,7 +264,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         self, enum_value: str | PrincipalAttributeEnumValue
     ) -> PrincipalAttributeEnumValue:
         """Unarchive an enum value."""
-        enum_value_id = _enum_value_id(enum_value)
+        enum_value_id = id_of(enum_value)
         await self._low_level_client.unarchive_enum_value(enum_value_id)
         value = await self._low_level_client.get_enum_value(enum_value_id)
         return self._apply_client_to_instance(value)
@@ -293,9 +274,9 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         key: str | PrincipalAttributeKey,
         principals: list[str],
         *,
-        value: Any,
+        value: PrincipalAttributeValueLike,
         principal_type: PrincipalType = PrincipalType.USER,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         """Assign a key's value to principals.
 
         Args:
@@ -311,19 +292,18 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         Returns:
             The created assignments.
         """
-        resolved_key = await self._resolve_key(key)
+        resolved_key = await resolve_key(
+            key, key_cls=PrincipalAttributeKey, getter=lambda key_id: self.get_key(key_id=key_id)
+        )
         resolved_ids = await self._resolve_principal_ids(principals, principal_type=principal_type)
-        create_kwargs = _principal_value_kwargs(resolved_key.value_type, value)
+        create_kwargs = attribute_value_kwargs(resolved_key.value_type, value)
 
-        created: list[PrincipalAttributeValue] = []
-        for batch in _chunks(resolved_ids, ASSIGN_BATCH_SIZE):
-            values = await self._low_level_client.batch_create_values(
-                key_id=resolved_key._id_or_error,
-                principal_ids=batch,
-                principal_type=principal_type.value,
-                **create_kwargs,
-            )
-            created.extend(values)
+        created = await self._low_level_client.batch_create_values(
+            key_id=resolved_key._id_or_error,
+            principal_ids=resolved_ids,
+            principal_type=principal_type.value,
+            **create_kwargs,
+        )
         return self._apply_client_to_instances(created)
 
     async def get_assignment(
@@ -331,7 +311,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         *,
         assignment_id: str,
         principal_type: PrincipalType = PrincipalType.USER,
-    ) -> PrincipalAttributeValue:
+    ) -> PrincipalAttributeAssignment:
         """Get a single assignment by ID."""
         value = await self._low_level_client.get_value(
             assignment_id, principal_type=principal_type.value
@@ -349,7 +329,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         """List principal attribute assignments.
 
         Args:
@@ -374,9 +354,8 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         query_filter = cel.and_(*filter_parts) or None
 
         if key is not None:
-            key_id = key._id_or_error if isinstance(key, PrincipalAttributeKey) else key
             values = await self._low_level_client.list_all_key_values(
-                key_id=key_id,
+                key_id=id_of(key),
                 principal_type=principal_type.value,
                 query_filter=query_filter,
                 order_by=order_by,
@@ -397,53 +376,23 @@ class PrincipalAttributesAPIAsync(ResourceBase):
 
     async def archive_assignments(
         self,
-        assignments: list[str | PrincipalAttributeValue],
+        assignments: list[str | PrincipalAttributeAssignment],
         *,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> None:
         """Batch archive assignments."""
-        ids = [_assignment_id(a) for a in assignments]
-        for batch in _chunks(ids, ASSIGN_BATCH_SIZE):
-            await self._low_level_client.archive_values(batch, principal_type=principal_type.value)
+        ids = [id_of(a) for a in assignments]
+        await self._low_level_client.archive_values(ids, principal_type=principal_type.value)
 
     async def unarchive_assignments(
         self,
-        assignments: list[str | PrincipalAttributeValue],
+        assignments: list[str | PrincipalAttributeAssignment],
         *,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> None:
         """Batch unarchive assignments."""
-        ids = [_assignment_id(a) for a in assignments]
-        for batch in _chunks(ids, ASSIGN_BATCH_SIZE):
-            await self._low_level_client.unarchive_values(
-                batch, principal_type=principal_type.value
-            )
-
-    async def resolve_user_id(self, email: str) -> str:
-        """Resolve a user's email (its user name) to a user ID.
-
-        Raises:
-            ValueError: If no user with that email is found.
-        """
-        resolved = await self.resolve_user_ids([email])
-        if email not in resolved:
-            raise ValueError(f"No user found for email {email!r}")
-        return resolved[email]
-
-    async def resolve_user_ids(self, emails: list[str]) -> dict[str, str]:
-        """Resolve user emails (their user names) to user IDs.
-
-        Returns a mapping of email to user ID for the emails that were found. Emails with
-        no matching user are omitted.
-        """
-        wanted = set(emails)
-        if not wanted:
-            return {}
-        return {
-            user_name: user_id
-            for user_name, user_id in await self._list_users()
-            if user_name in wanted
-        }
+        ids = [id_of(a) for a in assignments]
+        await self._low_level_client.unarchive_values(ids, principal_type=principal_type.value)
 
     async def _resolve_principal_ids(
         self, principals: list[str], *, principal_type: PrincipalType
@@ -454,7 +403,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             for p in principals
             if principal_type == PrincipalType.USER and isinstance(p, str) and "@" in p
         ]
-        email_to_id = await self.resolve_user_ids(emails) if emails else {}
+        email_to_id = await self.client.async_.users.resolve_ids(emails) if emails else {}
         resolved: list[str] = []
         for principal in principals:
             if principal in email_to_id:
@@ -469,66 +418,3 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             else:
                 resolved.append(principal)
         return resolved
-
-    async def _list_users(self) -> list[tuple[str, str]]:
-        """Return (user_name, user_id) for all users, via the REST users endpoint."""
-        rest = self.rest_client
-        users: list[tuple[str, str]] = []
-        page_token = ""
-        while True:
-            params: dict[str, Any] = {"page_size": _USERS_PAGE_SIZE}
-            if page_token:
-                params["pageToken"] = page_token
-            response = await run_sync_function(lambda p=params: rest.get(_USERS_ENDPOINT, params=p))
-            response.raise_for_status()
-            data = response.json()
-            users.extend(
-                (user.get("userName", ""), user.get("userId", "")) for user in data.get("users", [])
-            )
-            page_token = data.get("nextPageToken", "")
-            if not page_token:
-                break
-        return users
-
-
-def _build_display_name_filters(
-    *,
-    name: str | None = None,
-    names: list[str] | None = None,
-    name_contains: str | None = None,
-    name_regex: Any | None = None,
-) -> list[str]:
-    """Build CEL filters against the `display_name` field (used by principal keys)."""
-    filter_parts = []
-    if name:
-        filter_parts.append(cel.equals("display_name", name))
-    if names:
-        filter_parts.append(cel.in_("display_name", names))
-    if name_contains:
-        filter_parts.append(cel.contains("display_name", name_contains))
-    if name_regex:
-        filter_parts.append(cel.match("display_name", name_regex))
-    return filter_parts
-
-
-def _principal_value_kwargs(value_type: PrincipalAttributeValueType, value: Any) -> dict[str, Any]:
-    """Map a user-supplied value to the BatchCreatePrincipalAttributeValue value kwargs."""
-    if value_type == PrincipalAttributeValueType.SET_OF_ENUM:
-        if not isinstance(value, (list, tuple)):
-            raise TypeError("SET_OF_ENUM keys require a list of enum values.")
-        return {"enum_value_ids": [_enum_value_id(v) for v in value]}
-    if value_type == PrincipalAttributeValueType.ENUM:
-        if isinstance(value, (list, tuple)):
-            if len(value) != 1:
-                raise ValueError("ENUM keys require exactly one enum value.")
-            value = value[0]
-        return {"enum_value_id": _enum_value_id(value)}
-    if value_type == PrincipalAttributeValueType.BOOLEAN:
-        if not isinstance(value, bool):
-            raise TypeError("BOOLEAN keys require a bool value.")
-        return {"boolean_value": value}
-    if value_type == PrincipalAttributeValueType.NUMBER:
-        if isinstance(value, bool) or not isinstance(value, int):
-            raise TypeError("NUMBER keys require an int value.")
-        return {"number_value": value}
-    raise ValueError(f"Cannot assign a value for value type {value_type}.")

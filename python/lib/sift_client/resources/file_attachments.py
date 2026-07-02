@@ -41,26 +41,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
         self._low_level_client = RemoteFilesLowLevelClient(grpc_client=self.client.grpc_client)
         self._upload_client = UploadLowLevelClient(rest_client=self.client.rest_client)
 
-    def _build_name_cel_filters(
-        self,
-        *,
-        name: str | None = None,
-        names: list[str] | None = None,
-        name_contains: str | None = None,
-        name_regex: str | re.Pattern | None = None,
-    ) -> list[str]:
-        """Override base implementation to use 'file_name' field instead of 'name'."""
-        filter_parts = []
-        if name:
-            filter_parts.append(cel.equals("file_name", name))
-        if names:
-            filter_parts.append(cel.in_("file_name", names))
-        if name_contains:
-            filter_parts.append(cel.contains("file_name", name_contains))
-        if name_regex:
-            filter_parts.append(cel.match("file_name", name_regex))
-        return filter_parts
-
     async def get(self, *, file_attachment_id: str) -> FileAttachment:
         """Get a file attachment by ID.
 
@@ -128,8 +108,13 @@ class FileAttachmentsAPIAsync(ResourceBase):
             A list of FileAttachment objects that match the filter criteria.
         """
         filter_parts = [
+            # The file attachment list filter exposes the name as the CEL field `file_name`.
             *self._build_name_cel_filters(
-                name=name, names=names, name_contains=name_contains, name_regex=name_regex
+                name=name,
+                names=names,
+                name_contains=name_contains,
+                name_regex=name_regex,
+                field="file_name",
             ),
             # *self._build_time_cel_filters(
             #     created_after=created_after,

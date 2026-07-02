@@ -108,3 +108,69 @@ class TestListAllKeyValues:
         request = stub.ListPrincipalAttributeKeyValues.call_args[0][0]
         assert request.principal_attribute_key_id == "pk1"
         assert request.principal_type == pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER
+
+
+class TestBatchCreateValuesChunking:
+    @pytest.mark.asyncio
+    async def test_splits_principal_ids_over_batch_size_into_multiple_rpcs(self):
+        stub = MagicMock()
+        stub.BatchCreatePrincipalAttributeValue = AsyncMock(
+            return_value=pa.BatchCreatePrincipalAttributeValueResponse(
+                principal_attribute_values=[
+                    pa.PrincipalAttributeValue(principal_attribute_value_id="v1")
+                ]
+            )
+        )
+        client = _client_with_stub(stub)
+
+        values = await client.batch_create_values(
+            key_id="pk1",
+            principal_ids=[f"u{i}" for i in range(1001)],
+            principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+            boolean_value=True,
+        )
+
+        assert stub.BatchCreatePrincipalAttributeValue.call_count == 2
+        first = stub.BatchCreatePrincipalAttributeValue.call_args_list[0][0][0]
+        second = stub.BatchCreatePrincipalAttributeValue.call_args_list[1][0][0]
+        assert len(first.principal_ids) == 1000
+        assert list(second.principal_ids) == ["u1000"]
+        # One value per RPC response, concatenated across chunks.
+        assert len(values) == 2
+
+
+class TestArchiveValuesChunking:
+    @pytest.mark.asyncio
+    async def test_splits_value_ids_over_batch_size_into_multiple_rpcs(self):
+        stub = MagicMock()
+        stub.ArchivePrincipalAttributeValues = AsyncMock(
+            return_value=pa.ArchivePrincipalAttributeValuesResponse()
+        )
+        client = _client_with_stub(stub)
+
+        await client.archive_values(
+            [f"v{i}" for i in range(1001)],
+            principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+        )
+
+        assert stub.ArchivePrincipalAttributeValues.call_count == 2
+        second = stub.ArchivePrincipalAttributeValues.call_args_list[1][0][0]
+        assert list(second.principal_attribute_value_ids) == ["v1000"]
+
+
+class TestBatchCreateValuesEmptyInput:
+    @pytest.mark.asyncio
+    async def test_empty_principal_ids_makes_no_rpc(self):
+        stub = MagicMock()
+        stub.BatchCreatePrincipalAttributeValue = AsyncMock()
+        client = _client_with_stub(stub)
+
+        values = await client.batch_create_values(
+            key_id="pk1",
+            principal_ids=[],
+            principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+            boolean_value=True,
+        )
+
+        assert values == []
+        stub.BatchCreatePrincipalAttributeValue.assert_not_called()

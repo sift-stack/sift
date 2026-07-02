@@ -41,9 +41,11 @@ if TYPE_CHECKING:
         JobType,
     )
     from sift_client.sift_types.principal_attribute import (
+        PrincipalAttributeAssignment,
         PrincipalAttributeEnumValue,
         PrincipalAttributeKey,
-        PrincipalAttributeValue,
+        PrincipalAttributeKeyUpdate,
+        PrincipalAttributeValueLike,
         PrincipalAttributeValueType,
         PrincipalType,
     )
@@ -54,11 +56,13 @@ if TYPE_CHECKING:
         ReportTemplateUpdate,
     )
     from sift_client.sift_types.resource_attribute import (
-        ResourceAttribute,
+        ResourceAttributeAssignment,
         ResourceAttributeEntity,
         ResourceAttributeEnumValue,
         ResourceAttributeKey,
-        ResourceAttributeKeyType,
+        ResourceAttributeKeyUpdate,
+        ResourceAttributeValueLike,
+        ResourceAttributeValueType,
     )
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate, RuleVersion
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -77,6 +81,7 @@ if TYPE_CHECKING:
         TestStepType,
         TestStepUpdate,
     )
+    from sift_client.sift_types.user import User
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
@@ -1204,7 +1209,7 @@ class PrincipalAttributesAPI:
     def _run(self, coro): ...
     def archive_assignments(
         self,
-        assignments: list[str | PrincipalAttributeValue],
+        assignments: list[str | PrincipalAttributeAssignment],
         *,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> None:
@@ -1232,9 +1237,9 @@ class PrincipalAttributesAPI:
         key: str | PrincipalAttributeKey,
         principals: list[str],
         *,
-        value: Any,
+        value: PrincipalAttributeValueLike,
         principal_type: PrincipalType = PrincipalType.USER,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         """Assign a key's value to principals.
 
         Args:
@@ -1277,7 +1282,7 @@ class PrincipalAttributesAPI:
 
     def get_assignment(
         self, *, assignment_id: str, principal_type: PrincipalType = PrincipalType.USER
-    ) -> PrincipalAttributeValue:
+    ) -> PrincipalAttributeAssignment:
         """Get a single assignment by ID."""
         ...
 
@@ -1316,7 +1321,7 @@ class PrincipalAttributesAPI:
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         """List principal attribute assignments.
 
         Args:
@@ -1379,25 +1384,9 @@ class PrincipalAttributesAPI:
         """
         ...
 
-    def resolve_user_id(self, email: str) -> str:
-        """Resolve a user's email (its user name) to a user ID.
-
-        Raises:
-            ValueError: If no user with that email is found.
-        """
-        ...
-
-    def resolve_user_ids(self, emails: list[str]) -> dict[str, str]:
-        """Resolve user emails (their user names) to user IDs.
-
-        Returns a mapping of email to user ID for the emails that were found. Emails with
-        no matching user are omitted.
-        """
-        ...
-
     def unarchive_assignments(
         self,
-        assignments: list[str | PrincipalAttributeValue],
+        assignments: list[str | PrincipalAttributeAssignment],
         *,
         principal_type: PrincipalType = PrincipalType.USER,
     ) -> None:
@@ -1415,13 +1404,14 @@ class PrincipalAttributesAPI:
         ...
 
     def update_key(
-        self,
-        key: str | PrincipalAttributeKey,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
+        self, key: str | PrincipalAttributeKey, update: PrincipalAttributeKeyUpdate | dict
     ) -> PrincipalAttributeKey:
-        """Update a key's display name or description."""
+        """Update a key.
+
+        Args:
+            key: The key or key ID to update.
+            update: Updates to apply to the key.
+        """
         ...
 
 class ReportTemplatesAPI:
@@ -1836,7 +1826,7 @@ class ResourceAttributesAPI:
         ...
 
     def _run(self, coro): ...
-    def archive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
+    def archive_assignments(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
         """Batch archive assignments."""
         ...
 
@@ -1861,12 +1851,12 @@ class ResourceAttributesAPI:
         key: str | ResourceAttributeKey,
         resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
         *,
-        value: Any,
-    ) -> list[ResourceAttribute]:
+        value: ResourceAttributeValueLike,
+    ) -> list[ResourceAttributeAssignment]:
         """Assign a key's value to resources.
 
         Args:
-            key: The key or key ID to assign. Its ``key_type`` determines how ``value`` is interpreted.
+            key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
             resources: Resources to assign to. For currently supported resource types, pass
                 ``Asset``, ``Channel``, or ``Run`` objects, their IDs, or
                 ``ResourceAttributeEntity`` when you already know the resource type.
@@ -1890,13 +1880,13 @@ class ResourceAttributesAPI:
         ...
 
     def create_key(
-        self, display_name: str, key_type: ResourceAttributeKeyType, *, description: str = ""
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
     ) -> ResourceAttributeKey:
         """Create a resource attribute key.
 
         Args:
             display_name: The human-readable name of the key.
-            key_type: The value type of the key.
+            value_type: The value type of the key.
             description: Optional description.
 
         Returns:
@@ -1908,7 +1898,7 @@ class ResourceAttributesAPI:
         """Find a single key matching the query. Raises if more than one matches."""
         ...
 
-    def get_assignment(self, *, assignment_id: str) -> ResourceAttribute:
+    def get_assignment(self, *, assignment_id: str) -> ResourceAttributeAssignment:
         """Get a single assignment by ID."""
         ...
 
@@ -1926,7 +1916,7 @@ class ResourceAttributesAPI:
         ...
 
     def get_or_create_key(
-        self, display_name: str, key_type: ResourceAttributeKeyType, *, description: str = ""
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
     ) -> ResourceAttributeKey:
         """Get a key by display name, creating it if it does not exist.
 
@@ -1946,7 +1936,7 @@ class ResourceAttributesAPI:
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
-    ) -> list[ResourceAttribute]:
+    ) -> list[ResourceAttributeAssignment]:
         """List resource attribute assignments.
 
         Args:
@@ -1985,7 +1975,7 @@ class ResourceAttributesAPI:
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        key_type: ResourceAttributeKeyType | None = None,
+        value_type: ResourceAttributeValueType | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -1999,7 +1989,7 @@ class ResourceAttributesAPI:
             names: Display names to filter by.
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
-            key_type: Filter to keys of this value type.
+            value_type: Filter to keys of this value type.
             include_archived: If True, include archived keys.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -2011,7 +2001,7 @@ class ResourceAttributesAPI:
         """
         ...
 
-    def unarchive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
+    def unarchive_assignments(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
         """Batch unarchive assignments."""
         ...
 
@@ -2026,13 +2016,14 @@ class ResourceAttributesAPI:
         ...
 
     def update_key(
-        self,
-        key: str | ResourceAttributeKey,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
+        self, key: str | ResourceAttributeKey, update: ResourceAttributeKeyUpdate | dict
     ) -> ResourceAttributeKey:
-        """Update a key's display name or description."""
+        """Update a key.
+
+        Args:
+            key: The key or key ID to update.
+            update: Updates to apply to the key.
+        """
         ...
 
 class RulesAPI:
@@ -2914,5 +2905,85 @@ class TestResultsAPI:
 
         Returns:
             The updated TestStep.
+        """
+        ...
+
+class UsersAPI:
+    """Sync counterpart to `UsersAPIAsync`.
+
+    High-level API for users.
+
+    A user's ``name`` is their login name, typically their email address.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the UsersAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def find(self, **kwargs) -> User | None:
+        """Find a single user matching the query. Raises if more than one matches.
+
+        Takes the same arguments as ``list_``.
+        """
+        ...
+
+    def get(self, *, user_id: str) -> User:
+        """Get a user by ID.
+
+        Args:
+            user_id: The ID of the user to retrieve.
+
+        Returns:
+            The User.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        include_inactive: bool = False,
+        organization_id: str | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[User]:
+        """List users with optional filtering.
+
+        Args:
+            name: Exact login name (typically the email address).
+            names: Login names to filter by.
+            name_contains: Substring match on the login name.
+            name_regex: Regex match on the login name.
+            include_inactive: If True, include inactive users.
+            organization_id: Scope the search to this organization. Only supported when
+                listing active users.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of users to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching users.
+        """
+        ...
+
+    def resolve_ids(self, emails: list[str]) -> dict[str, str]:
+        """Resolve user login emails (their user names) to user IDs.
+
+        Returns a mapping of email to user ID for the emails that were found. Emails
+        with no matching user are omitted.
+
+        Args:
+            emails: The login emails to resolve.
         """
         ...

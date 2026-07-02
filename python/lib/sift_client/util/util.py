@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         RunsAPIAsync,
         TagsAPIAsync,
         TestResultsAPIAsync,
+        UsersAPIAsync,
     )
     from sift_client.resources.access_control import AccessControlAPIAsync
 
@@ -63,6 +64,9 @@ class AsyncAPIs(NamedTuple):
 
     test_results: TestResultsAPIAsync
     """Instance of the Test Results API for making asynchronous requests."""
+
+    users: UsersAPIAsync
+    """Instance of the Users API for making asynchronous requests."""
 
     data_export: DataExportAPIAsync
     """Instance of the Data Export API for making asynchronous requests."""

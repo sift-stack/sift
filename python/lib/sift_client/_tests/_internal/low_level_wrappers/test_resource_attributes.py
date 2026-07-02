@@ -8,7 +8,10 @@ from sift.resource_attribute.v1 import resource_attribute_pb2 as ra
 from sift_client._internal.low_level_wrappers.resource_attributes import (
     ResourceAttributesLowLevelClient,
 )
-from sift_client.sift_types.resource_attribute import ResourceAttributeEntity
+from sift_client.sift_types.resource_attribute import (
+    ResourceAttributeEntity,
+    ResourceAttributeKeyUpdate,
+)
 
 
 def _client_with_stub(stub: MagicMock) -> ResourceAttributesLowLevelClient:
@@ -31,7 +34,7 @@ class TestCreateKey:
         client = _client_with_stub(stub)
 
         key = await client.create_key(
-            display_name="licenses", key_type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM
+            display_name="licenses", value_type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM
         )
 
         request = stub.CreateResourceAttributeKey.call_args[0][0]
@@ -51,11 +54,14 @@ class TestUpdateKey:
         )
         client = _client_with_stub(stub)
 
-        await client.update_key("k1", description="new desc")
+        update = ResourceAttributeKeyUpdate(description="new desc")
+        update.resource_id = "k1"
+        await client.update_key(update=update)
 
         request = stub.UpdateResourceAttributeKey.call_args[0][0]
         assert list(request.update_mask.paths) == ["description"]
         assert request.description == "new desc"
+        assert request.resource_attribute_key_id == "k1"
 
 
 class TestListAllKeys:
@@ -158,3 +164,60 @@ class TestBatchCreateResourceAttributes:
         request = stub.BatchCreateResourceAttributes.call_args[0][0]
         assert request.resource_attribute_enum_value_id == "ev1"
         assert not request.HasField("resource_attribute_enum_value_ids")
+
+
+class TestBatchCreateResourceAttributesChunking:
+    @pytest.mark.asyncio
+    async def test_splits_entities_over_batch_size_into_multiple_rpcs(self):
+        stub = MagicMock()
+        stub.BatchCreateResourceAttributes = AsyncMock(
+            return_value=ra.BatchCreateResourceAttributesResponse(
+                resource_attributes=[ra.ResourceAttribute(resource_attribute_id="a1")]
+            )
+        )
+        client = _client_with_stub(stub)
+
+        attrs = await client.batch_create_resource_attributes(
+            key_id="k1",
+            entities=[ResourceAttributeEntity.for_asset(f"ast{i}") for i in range(1001)],
+            boolean_value=True,
+        )
+
+        assert stub.BatchCreateResourceAttributes.call_count == 2
+        first = stub.BatchCreateResourceAttributes.call_args_list[0][0][0]
+        second = stub.BatchCreateResourceAttributes.call_args_list[1][0][0]
+        assert len(first.entities) == 1000
+        assert [e.entity_id for e in second.entities] == ["ast1000"]
+        # One attribute per RPC response, concatenated across chunks.
+        assert len(attrs) == 2
+
+
+class TestBatchArchiveResourceAttributesChunking:
+    @pytest.mark.asyncio
+    async def test_splits_ids_over_batch_size_into_multiple_rpcs(self):
+        stub = MagicMock()
+        stub.BatchArchiveResourceAttributes = AsyncMock(
+            return_value=ra.BatchArchiveResourceAttributesResponse()
+        )
+        client = _client_with_stub(stub)
+
+        await client.batch_archive_resource_attributes([f"a{i}" for i in range(1001)])
+
+        assert stub.BatchArchiveResourceAttributes.call_count == 2
+        second = stub.BatchArchiveResourceAttributes.call_args_list[1][0][0]
+        assert list(second.resource_attribute_ids) == ["a1000"]
+
+
+class TestBatchCreateResourceAttributesEmptyInput:
+    @pytest.mark.asyncio
+    async def test_empty_entities_makes_no_rpc(self):
+        stub = MagicMock()
+        stub.BatchCreateResourceAttributes = AsyncMock()
+        client = _client_with_stub(stub)
+
+        attrs = await client.batch_create_resource_attributes(
+            key_id="k1", entities=[], boolean_value=True
+        )
+
+        assert attrs == []
+        stub.BatchCreateResourceAttributes.assert_not_called()

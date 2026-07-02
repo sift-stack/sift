@@ -23,6 +23,7 @@ from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
 from sift_client._internal.low_level_wrappers.test_results import TestResultsLowLevelClient
 from sift_client._internal.low_level_wrappers.units import UnitsLowLevelClient
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
+from sift_client._internal.low_level_wrappers.users import UsersLowLevelClient
 
 __all__ = [
     "AssetsLowLevelClient",
@@ -42,4 +43,5 @@ __all__ = [
     "TestResultsLowLevelClient",
     "UnitsLowLevelClient",
     "UploadLowLevelClient",
+    "UsersLowLevelClient",
 ]

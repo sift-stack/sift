@@ -68,11 +68,11 @@ Added a public API for attribute-based access control (ABAC) attributes under `c
 An attribute key is the entry point. Create or fetch a key, define its enum values, then assign a value to a set of resources. Resource assignments accept supported resource objects or IDs:
 
 ```python
-from sift_client.sift_types import ResourceAttributeKeyType
+from sift_client.sift_types import ResourceAttributeValueType
 
 key = client.access_control.resource_attributes.get_or_create_key(
     "licenses",
-    ResourceAttributeKeyType.SET_OF_ENUM,
+    ResourceAttributeValueType.SET_OF_ENUM,
 )
 licenses = key.get_or_create_enum_values(["LICENSE_A", "LICENSE_B"])
 key.assign_to(["channel-id"], value=licenses)
@@ -92,6 +92,16 @@ key.assign_to(["user@example.com"], value=licenses)
 ```
 
 Keys, enum values, and assignments each support create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target.
+
+#### Users
+
+Added a users API at `client.users` (async: `client.async_.users`). A user's `name` is their login name, typically their email address:
+
+```python
+user = client.users.find(name="alice@example.com")
+users = client.users.list_(name_contains="@example.com")
+ids = client.users.resolve_ids(["alice@example.com", "bob@example.com"])
+```
 
 ## [v0.18.0] - June 19, 2026
 

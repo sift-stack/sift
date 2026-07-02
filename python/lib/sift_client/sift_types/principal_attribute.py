@@ -6,7 +6,7 @@ model mirrors resource attributes with three tiers:
 
 - ``PrincipalAttributeKey`` defines an attribute and its value type.
 - ``PrincipalAttributeEnumValue`` is an allowed value for an ``ENUM``/``SET_OF_ENUM`` key.
-- ``PrincipalAttributeValue`` is a single assignment of a value to one principal.
+- ``PrincipalAttributeAssignment`` is a single assignment of a value to one principal.
 
 The ``PrincipalAttributeKey`` acts as the entry point: enum values and assignments are
 managed through methods on a key instance.
@@ -16,11 +16,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Union
 
 from sift.principal_attributes.v1 import principal_attributes_pb2 as pa_pb
 
-from sift_client.sift_types._base import BaseType
+from sift_client.sift_types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -110,7 +110,17 @@ class PrincipalAttributeEnumValue(
         return self.display_name
 
 
-class PrincipalAttributeValue(BaseType[pa_pb.PrincipalAttributeValue, "PrincipalAttributeValue"]):
+# Accepted value shapes for assign: a list of enum values (or their IDs) for
+# SET_OF_ENUM keys, a single enum value (or its ID) for ENUM keys, a bool for
+# BOOLEAN keys, or an int for NUMBER keys.
+PrincipalAttributeValueLike = Union[
+    bool, int, str, PrincipalAttributeEnumValue, "list[PrincipalAttributeEnumValue | str]"
+]
+
+
+class PrincipalAttributeAssignment(
+    BaseType[pa_pb.PrincipalAttributeValue, "PrincipalAttributeAssignment"]
+):
     """A single assignment of a principal attribute value to a principal."""
 
     organization_id: str
@@ -130,7 +140,7 @@ class PrincipalAttributeValue(BaseType[pa_pb.PrincipalAttributeValue, "Principal
     @classmethod
     def _from_proto(
         cls, proto: pa_pb.PrincipalAttributeValue, sift_client: SiftClient | None = None
-    ) -> PrincipalAttributeValue:
+    ) -> PrincipalAttributeAssignment:
         which = proto.WhichOneof("value")
         return cls(
             proto=proto,
@@ -179,7 +189,20 @@ class PrincipalAttributeValue(BaseType[pa_pb.PrincipalAttributeValue, "Principal
         if self.enum_value is not None:
             self.enum_value._apply_client_to_instance(client)
 
-    def archive(self) -> PrincipalAttributeValue:
+    @property
+    def value(self) -> PrincipalAttributeEnumValue | str | bool | int | None:
+        """The assigned value.
+
+        The enum value for ``ENUM``/``SET_OF_ENUM`` keys (or its ID when details were
+        not returned), a bool for ``BOOLEAN`` keys, or an int for ``NUMBER`` keys.
+        """
+        if self.enum_value_id is not None:
+            return self.enum_value if self.enum_value is not None else self.enum_value_id
+        if self.boolean_value is not None:
+            return self.boolean_value
+        return self.number_value
+
+    def archive(self) -> PrincipalAttributeAssignment:
         """Archive this assignment."""
         self.client.access_control.principal_attributes.archive_assignments(
             [self], principal_type=self.principal_type
@@ -191,7 +214,7 @@ class PrincipalAttributeValue(BaseType[pa_pb.PrincipalAttributeValue, "Principal
         )
         return self
 
-    def unarchive(self) -> PrincipalAttributeValue:
+    def unarchive(self) -> PrincipalAttributeAssignment:
         """Unarchive this assignment."""
         self.client.access_control.principal_attributes.unarchive_assignments(
             [self], principal_type=self.principal_type
@@ -268,9 +291,9 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
         self,
         principals: list[str],
         *,
-        value: Any,
+        value: PrincipalAttributeValueLike,
         principal_type: PrincipalType = PrincipalType.USER,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         """Assign a value to one or more principals for this key.
 
         Args:
@@ -292,19 +315,19 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
 
     def list_assignments(
         self, *, principal_type: PrincipalType = PrincipalType.USER, include_archived: bool = False
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         """List all assignments of this key for the given principal type."""
         return self.client.access_control.principal_attributes.list_assignments(
             key=self, principal_type=principal_type, include_archived=include_archived
         )
 
-    def update(
-        self, *, display_name: str | None = None, description: str | None = None
-    ) -> PrincipalAttributeKey:
-        """Update this key's display name or description."""
-        updated = self.client.access_control.principal_attributes.update_key(
-            self, display_name=display_name, description=description
-        )
+    def update(self, update: PrincipalAttributeKeyUpdate | dict) -> PrincipalAttributeKey:
+        """Update this key.
+
+        Args:
+            update: Either a PrincipalAttributeKeyUpdate instance or a dict of fields to update.
+        """
+        updated = self.client.access_control.principal_attributes.update_key(self, update=update)
         self._update(updated)
         return self
 
@@ -326,3 +349,18 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
 
     def __str__(self) -> str:
         return self.display_name
+
+
+class PrincipalAttributeKeyUpdate(ModelUpdate[pa_pb.UpdatePrincipalAttributeKeyRequest]):
+    """Model of the PrincipalAttributeKey fields that can be updated."""
+
+    display_name: str | None = None
+    description: str | None = None
+
+    def _get_proto_class(self) -> type[pa_pb.UpdatePrincipalAttributeKeyRequest]:
+        return pa_pb.UpdatePrincipalAttributeKeyRequest
+
+    def _add_resource_id_to_proto(self, proto_msg: pa_pb.UpdatePrincipalAttributeKeyRequest):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.principal_attribute_key_id = self._resource_id

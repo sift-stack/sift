@@ -1,21 +1,29 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Union
 
 from sift_client._internal.low_level_wrappers.resource_attributes import (
     ResourceAttributesLowLevelClient,
 )
+from sift_client._internal.util.util import chunked
 from sift_client.resources._base import ResourceBase
+from sift_client.resources.access_control._common import (
+    attribute_value_kwargs,
+    id_of,
+    resolve_key,
+)
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.resource_attribute import (
-    ResourceAttribute,
+    ResourceAttributeAssignment,
     ResourceAttributeEntity,
     ResourceAttributeEntityType,
     ResourceAttributeEnumValue,
     ResourceAttributeKey,
-    ResourceAttributeKeyType,
+    ResourceAttributeKeyUpdate,
+    ResourceAttributeValueLike,
+    ResourceAttributeValueType,
 )
 from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
@@ -25,9 +33,9 @@ if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
 
-# Max resources per BatchCreateResourceAttributes call; keeps request bodies well under
-# gRPC message size limits when assigning to large resource sets.
-ASSIGN_BATCH_SIZE = 1000
+# Chunk size for the ID-resolution lookups that fan out to the assets/channels/runs
+# list APIs.
+_RESOLVE_BATCH_SIZE = 1000
 
 ResourceLike = Union[ResourceAttributeEntity, Asset, Channel, Run, str]
 SUPPORTED_RESOURCE_ENTITY_TYPES = {
@@ -56,15 +64,6 @@ def _resolve_resource_object(resource: ResourceLike) -> ResourceAttributeEntity:
     )
 
 
-def _enum_value_id(value: ResourceAttributeEnumValue | str) -> str:
-    return value._id_or_error if isinstance(value, ResourceAttributeEnumValue) else value
-
-
-def _chunks(items: list[Any], size: int):
-    for i in range(0, len(items), size):
-        yield items[i : i + size]
-
-
 class ResourceAttributesAPIAsync(ResourceBase):
     """High-level API for resource attributes.
 
@@ -86,15 +85,6 @@ class ResourceAttributesAPIAsync(ResourceBase):
         self._low_level_client = ResourceAttributesLowLevelClient(
             grpc_client=self.client.grpc_client
         )
-
-    async def _resolve_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        if isinstance(key, ResourceAttributeKey):
-            return key
-        if not isinstance(key, str):
-            raise TypeError("assign requires a ResourceAttributeKey or key ID string.")
-        if not key:
-            raise ValueError("Key ID cannot be empty.")
-        return await self.get_key(key_id=key)
 
     async def _resolve_resource(self, resource: ResourceLike) -> ResourceAttributeEntity:
         return (await self._resolve_resources([resource]))[0]
@@ -129,7 +119,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
     ) -> dict[str, ResourceAttributeEntity]:
         unique_ids = list(dict.fromkeys(resource_ids))
         matched_types: dict[str, set[ResourceAttributeEntityType]] = {}
-        for batch in _chunks(unique_ids, ASSIGN_BATCH_SIZE):
+        for batch in chunked(unique_ids, _RESOLVE_BATCH_SIZE):
             assets: list[Asset]
             channels: list[Channel]
             runs: list[Run]
@@ -193,7 +183,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        key_type: ResourceAttributeKeyType | None = None,
+        value_type: ResourceAttributeValueType | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -207,7 +197,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
             names: Display names to filter by.
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
-            key_type: Filter to keys of this value type.
+            value_type: Filter to keys of this value type.
             include_archived: If True, include archived keys.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -217,12 +207,13 @@ class ResourceAttributesAPIAsync(ResourceBase):
         Returns:
             The matching keys.
         """
-        # The key list filter exposes the display name as the CEL field `name`.
+        # The key list filter exposes the display name as the CEL field `name` and the
+        # value type as `key_type`.
         filter_parts = self._build_name_cel_filters(
             name=name, names=names, name_contains=name_contains, name_regex=name_regex
         )
-        if key_type is not None:
-            filter_parts.append(cel.equals("key_type", key_type.value))
+        if value_type is not None:
+            filter_parts.append(cel.equals("key_type", value_type.value))
         if filter_query:
             filter_parts.append(filter_query)
 
@@ -245,7 +236,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
     async def create_key(
         self,
         display_name: str,
-        key_type: ResourceAttributeKeyType,
+        value_type: ResourceAttributeValueType,
         *,
         description: str = "",
     ) -> ResourceAttributeKey:
@@ -253,21 +244,21 @@ class ResourceAttributesAPIAsync(ResourceBase):
 
         Args:
             display_name: The human-readable name of the key.
-            key_type: The value type of the key.
+            value_type: The value type of the key.
             description: Optional description.
 
         Returns:
             The created key.
         """
         key = await self._low_level_client.create_key(
-            display_name=display_name, key_type=key_type.value, description=description
+            display_name=display_name, value_type=value_type.value, description=description
         )
         return self._apply_client_to_instance(key)
 
     async def get_or_create_key(
         self,
         display_name: str,
-        key_type: ResourceAttributeKeyType,
+        value_type: ResourceAttributeValueType,
         *,
         description: str = "",
     ) -> ResourceAttributeKey:
@@ -281,38 +272,40 @@ class ResourceAttributesAPIAsync(ResourceBase):
         match = next((k for k in existing if k.display_name == display_name), None)
         if match is not None:
             return match
-        return await self.create_key(display_name, key_type, description=description)
+        return await self.create_key(display_name, value_type, description=description)
 
     async def update_key(
         self,
         key: str | ResourceAttributeKey,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
+        update: ResourceAttributeKeyUpdate | dict,
     ) -> ResourceAttributeKey:
-        """Update a key's display name or description."""
-        key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
-        updated = await self._low_level_client.update_key(
-            key_id, display_name=display_name, description=description
-        )
+        """Update a key.
+
+        Args:
+            key: The key or key ID to update.
+            update: Updates to apply to the key.
+        """
+        if isinstance(update, dict):
+            update = ResourceAttributeKeyUpdate.model_validate(update)
+        update.resource_id = id_of(key)
+        updated = await self._low_level_client.update_key(update=update)
         return self._apply_client_to_instance(updated)
 
     async def archive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
         """Archive a key. Cascades to its enum values and assignments."""
-        key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
+        key_id = id_of(key)
         await self._low_level_client.archive_key(key_id)
         return await self.get_key(key_id=key_id)
 
     async def unarchive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
-        key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
+        key_id = id_of(key)
         await self._low_level_client.unarchive_key(key_id)
         return await self.get_key(key_id=key_id)
 
     async def check_key_archive_impact(self, key: str | ResourceAttributeKey) -> int:
         """Return the number of active assignments archiving this key would affect."""
-        key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
-        return await self._low_level_client.check_key_archive_impact(key_id)
+        return await self._low_level_client.check_key_archive_impact(id_of(key))
 
     async def create_enum_value(
         self,
@@ -322,7 +315,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         description: str = "",
     ) -> ResourceAttributeEnumValue:
         """Create a single enum value for a key."""
-        key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
+        key_id = id_of(key)
         value = await self._low_level_client.create_enum_value(
             key_id=key_id, display_name=display_name, description=description
         )
@@ -343,7 +336,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         page_size: int | None = None,
     ) -> list[ResourceAttributeEnumValue]:
         """List the enum values defined for a key."""
-        key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
+        key_id = id_of(key)
         filter_parts = self._build_name_cel_filters(
             name=name, names=names, name_contains=name_contains, name_regex=name_regex
         )
@@ -366,7 +359,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
 
         Returns the values in the same order as ``names``.
         """
-        key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
+        key_id = id_of(key)
         existing = await self.list_enum_values(key_id, include_archived=False)
         by_name = {v.display_name: v for v in existing}
         result: list[ResourceAttributeEnumValue] = []
@@ -388,8 +381,8 @@ class ResourceAttributesAPIAsync(ResourceBase):
 
         Returns the number of assignments migrated.
         """
-        enum_value_id = _enum_value_id(enum_value)
-        replacement_id = _enum_value_id(replacement) if replacement is not None else ""
+        enum_value_id = id_of(enum_value)
+        replacement_id = id_of(replacement) if replacement is not None else ""
         return await self._low_level_client.archive_enum_value(
             enum_value_id, replacement_enum_value_id=replacement_id
         )
@@ -398,7 +391,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         self, enum_value: str | ResourceAttributeEnumValue
     ) -> ResourceAttributeEnumValue:
         """Unarchive an enum value."""
-        enum_value_id = _enum_value_id(enum_value)
+        enum_value_id = id_of(enum_value)
         await self._low_level_client.unarchive_enum_value(enum_value_id)
         value = await self._low_level_client.get_enum_value(enum_value_id)
         return self._apply_client_to_instance(value)
@@ -408,12 +401,12 @@ class ResourceAttributesAPIAsync(ResourceBase):
         key: str | ResourceAttributeKey,
         resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
         *,
-        value: Any,
-    ) -> list[ResourceAttribute]:
+        value: ResourceAttributeValueLike,
+    ) -> list[ResourceAttributeAssignment]:
         """Assign a key's value to resources.
 
         Args:
-            key: The key or key ID to assign. Its ``key_type`` determines how ``value`` is interpreted.
+            key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
             resources: Resources to assign to. For currently supported resource types, pass
                 ``Asset``, ``Channel``, or ``Run`` objects, their IDs, or
                 ``ResourceAttributeEntity`` when you already know the resource type.
@@ -424,19 +417,18 @@ class ResourceAttributesAPIAsync(ResourceBase):
         Returns:
             The created assignments.
         """
-        resolved_key = await self._resolve_key(key)
+        resolved_key = await resolve_key(
+            key, key_cls=ResourceAttributeKey, getter=lambda key_id: self.get_key(key_id=key_id)
+        )
         resolved = await self._resolve_resources(resources)
-        create_kwargs = _resource_value_kwargs(resolved_key.key_type, value)
+        create_kwargs = attribute_value_kwargs(resolved_key.value_type, value)
 
-        created: list[ResourceAttribute] = []
-        for batch in _chunks(resolved, ASSIGN_BATCH_SIZE):
-            attrs = await self._low_level_client.batch_create_resource_attributes(
-                key_id=resolved_key._id_or_error, entities=batch, **create_kwargs
-            )
-            created.extend(attrs)
+        created = await self._low_level_client.batch_create_resource_attributes(
+            key_id=resolved_key._id_or_error, entities=resolved, **create_kwargs
+        )
         return self._apply_client_to_instances(created)
 
-    async def get_assignment(self, *, assignment_id: str) -> ResourceAttribute:
+    async def get_assignment(self, *, assignment_id: str) -> ResourceAttributeAssignment:
         """Get a single assignment by ID."""
         attr = await self._low_level_client.get_resource_attribute(assignment_id)
         return self._apply_client_to_instance(attr)
@@ -451,7 +443,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
-    ) -> list[ResourceAttribute]:
+    ) -> list[ResourceAttributeAssignment]:
         """List resource attribute assignments.
 
         Args:
@@ -476,8 +468,7 @@ class ResourceAttributesAPIAsync(ResourceBase):
 
         filter_parts = []
         if key is not None:
-            key_id = key._id_or_error if isinstance(key, ResourceAttributeKey) else key
-            filter_parts.append(cel.equals("resource_attribute_key_id", key_id))
+            filter_parts.append(cel.equals("resource_attribute_key_id", id_of(key)))
         if filter_query:
             filter_parts.append(filter_query)
 
@@ -490,41 +481,16 @@ class ResourceAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(attrs)
 
-    async def archive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
+    async def archive_assignments(
+        self, assignments: list[str | ResourceAttributeAssignment]
+    ) -> None:
         """Batch archive assignments."""
-        ids = [_assignment_id(a) for a in assignments]
-        for batch in _chunks(ids, ASSIGN_BATCH_SIZE):
-            await self._low_level_client.batch_archive_resource_attributes(batch)
+        ids = [id_of(a) for a in assignments]
+        await self._low_level_client.batch_archive_resource_attributes(ids)
 
-    async def unarchive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
+    async def unarchive_assignments(
+        self, assignments: list[str | ResourceAttributeAssignment]
+    ) -> None:
         """Batch unarchive assignments."""
-        ids = [_assignment_id(a) for a in assignments]
-        for batch in _chunks(ids, ASSIGN_BATCH_SIZE):
-            await self._low_level_client.batch_unarchive_resource_attributes(batch)
-
-
-def _assignment_id(assignment: str | ResourceAttribute) -> str:
-    return assignment._id_or_error if isinstance(assignment, ResourceAttribute) else assignment
-
-
-def _resource_value_kwargs(key_type: ResourceAttributeKeyType, value: Any) -> dict[str, Any]:
-    """Map a user-supplied value to the BatchCreateResourceAttributes value kwargs."""
-    if key_type == ResourceAttributeKeyType.SET_OF_ENUM:
-        if not isinstance(value, (list, tuple)):
-            raise TypeError("SET_OF_ENUM keys require a list of enum values.")
-        return {"enum_value_ids": [_enum_value_id(v) for v in value]}
-    if key_type == ResourceAttributeKeyType.ENUM:
-        if isinstance(value, (list, tuple)):
-            if len(value) != 1:
-                raise ValueError("ENUM keys require exactly one enum value.")
-            value = value[0]
-        return {"enum_value_id": _enum_value_id(value)}
-    if key_type == ResourceAttributeKeyType.BOOLEAN:
-        if not isinstance(value, bool):
-            raise TypeError("BOOLEAN keys require a bool value.")
-        return {"boolean_value": value}
-    if key_type == ResourceAttributeKeyType.NUMBER:
-        if isinstance(value, bool) or not isinstance(value, int):
-            raise TypeError("NUMBER keys require an int value.")
-        return {"number_value": value}
-    raise ValueError(f"Cannot assign a value for key type {key_type}.")
+        ids = [id_of(a) for a in assignments]
+        await self._low_level_client.batch_unarchive_resource_attributes(ids)

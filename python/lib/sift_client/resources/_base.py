@@ -53,16 +53,17 @@ class ResourceBase(ABC):
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        field: str = "name",
     ) -> list[str]:
         filter_parts = []
         if name:
-            filter_parts.append(cel.equals("name", name))
+            filter_parts.append(cel.equals(field, name))
         if names:
-            filter_parts.append(cel.in_("name", names))
+            filter_parts.append(cel.in_(field, names))
         if name_contains:
-            filter_parts.append(cel.contains("name", name_contains))
+            filter_parts.append(cel.contains(field, name_contains))
         if name_regex:
-            filter_parts.append(cel.match("name", name_regex))
+            filter_parts.append(cel.match(field, name_regex))
         return filter_parts
 
     def _build_time_cel_filters(
@@ -90,7 +91,7 @@ class ResourceBase(ABC):
                 raise NotImplementedError
         if modified_by:
             if isinstance(modified_by, str):
-                filter_parts.append(cel.equals("modified_by_user_id", created_by))
+                filter_parts.append(cel.equals("modified_by_user_id", modified_by))
             else:
                 raise NotImplementedError
         return filter_parts
