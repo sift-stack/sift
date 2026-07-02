@@ -874,7 +874,6 @@ class UlogDataColumn(DataColumnBase):
     """
 
     channel: str
-    # Allow building a column from ``channel`` alone; the validator fills ``name``.
     name: str = ""
 
     @model_validator(mode="before")

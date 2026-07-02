@@ -4,7 +4,7 @@ ULog files are self-describing, so detection enumerates every channel from the
 embedded schema and you supply no column mapping. Channel names follow PX4's
 convention of message, multi-instance index, and field, e.g. "sensor_accel_0.x".
 
-Point ULOG_PATH at your own .ulg flight log.
+Swap sample_data.ulg for your own .ulg flight log.
 """
 
 import os
@@ -27,13 +27,11 @@ if __name__ == "__main__":
     asset_name = os.getenv("ASSET_NAME")
     assert asset_name, "expected 'ASSET_NAME' environment variable to be set"
 
-    ulog_path = os.getenv("ULOG_PATH", "sample_data.ulg")
-
     client = SiftClient(api_key=apikey, grpc_url=grpc_uri, rest_url=rest_uri)
 
     # Auto-detect the config and import the file.
     import_job = client.data_import.import_from_path(
-        ulog_path,
+        "sample_data.ulg",
         asset=asset_name,
     )
 
@@ -46,7 +44,7 @@ if __name__ == "__main__":
     #
     # from datetime import datetime, timezone
     #
-    # config = client.data_import.detect_config(ulog_path)
+    # config = client.data_import.detect_config("sample_data.ulg")
     # print(config)  # inspect every detected channel
     #
     # # Example: import only the accelerometer channels
@@ -61,7 +59,7 @@ if __name__ == "__main__":
     # config.param_keys = ["BAT1_CAPACITY"]
     #
     # import_job = client.data_import.import_from_path(
-    #     ulog_path,
+    #     "sample_data.ulg",
     #     asset=asset_name,
     #     config=config,
     # )
