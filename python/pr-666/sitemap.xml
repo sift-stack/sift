@@ -385,6 +385,10 @@
          <lastmod>2026-07-02</lastmod>
     </url>
     <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/resources/users/</loc>
+         <lastmod>2026-07-02</lastmod>
+    </url>
+    <url>
          <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/scripts/</loc>
          <lastmod>2026-07-02</lastmod>
     </url>
@@ -458,6 +462,10 @@
     </url>
     <url>
          <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/sift_types/test_report/</loc>
+         <lastmod>2026-07-02</lastmod>
+    </url>
+    <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-666/reference/sift_client/sift_types/user/</loc>
          <lastmod>2026-07-02</lastmod>
     </url>
     <url>
