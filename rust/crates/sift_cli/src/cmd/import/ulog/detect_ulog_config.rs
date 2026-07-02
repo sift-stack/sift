@@ -1,7 +1,3 @@
-//! Client-side PX4 ULog (`.ulg`) channel detection for `--preview`.
-//! Scans definitions and record framing, without decoding data records, to
-//! match the server importer's channel keys, flattening, and type mapping.
-
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     path::Path,
