@@ -117,7 +117,6 @@ pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
         info_keys: args.info_key.clone(),
         param_keys: args.param_key.clone(),
         parse_error_policy: ProtoUlogParseErrorPolicy::from(args.parse_error_policy).into(),
-        // Empty `data` tells the server to import every detected channel.
         ..Default::default()
     })
 }
