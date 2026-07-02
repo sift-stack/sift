@@ -251,7 +251,7 @@ class TestChannelDataCache:
     Five invariants get pinned across the per-segment shape:
 
     1. Every operation routes through the namespaced key
-       (``channel:v2:<run_id>:<id>:{idx,seg:N}``), so two adapters sharing
+       (``channel:v1:<run_id>:<id>:{idx,seg:N}``), so two adapters sharing
        one store don't collide on bare resource ids.
     2. Run id is part of the cache dimension: the same ``channel_id``
        under two different runs is two cache buckets, not one.
@@ -291,20 +291,20 @@ class TestChannelDataCache:
             adapter.store.close()
 
     def test_writes_use_namespaced_index_and_segment_keys(self, tmp_path):
-        """The raw store sees ``channel:v2:<run>:<id>:idx`` + ``...:seg:0``.
+        """The raw store sees ``channel:v1:<run>:<id>:idx`` + ``...:seg:0``.
 
         Pins the per-segment key shape: one index plus one segment key
         per fetch. Without the prefix, a second adapter that happens to
         share an id with the channel adapter would clobber the rows.
-        The ``v2`` is the schema version baked into the prefix so a
+        The ``v1`` is the schema version baked into the prefix so a
         bump silently retires the entire old keyspace.
         """
         store = DiskCache(disk_path=tmp_path / "ns")
         adapter = ChannelDataCache(store)
         try:
             _put(adapter, "c1", rows=4)
-            assert "channel:v2::c1:idx" in store
-            assert "channel:v2::c1:seg:0" in store
+            assert "channel:v1::c1:idx" in store
+            assert "channel:v1::c1:seg:0" in store
             assert "c1" not in store
             assert "channel:c1" not in store  # never the bare-id shape
             assert "channel::c1:idx" not in store  # never the unversioned shape
@@ -365,7 +365,7 @@ class TestChannelDataCache:
             # Overwrite the segment's payload with foreign data; the
             # index still claims it exists, so the read should treat
             # the segment range as a gap.
-            store.put("channel:v2::c1:seg:0", {"not": "an entry"}, size_bytes=64)
+            store.put("channel:v1::c1:seg:0", {"not": "an entry"}, size_bytes=64)
             data, gaps = adapter.get_range("c1", None, _NOW, _WINDOW_END)
             assert data is None
             # The whole query range is uncovered (one merged gap).
@@ -556,7 +556,7 @@ class TestChannelDataCache:
         adapter = ChannelDataCache(store)
         try:
             df = _put(adapter, "c1", rows=5)
-            store.invalidate("channel:v2::c1:seg:0")  # simulate eviction
+            store.invalidate("channel:v1::c1:seg:0")  # simulate eviction
             data, gaps = adapter.get_range("c1", None, df.index[0], df.index[-1])
             assert data is None
             assert gaps == [(df.index[0], df.index[-1])]
@@ -584,10 +584,10 @@ class TestChannelDataCache:
             # Expect: 1 index + 3 segments.
             channel_keys = sorted(k for k in store if k.startswith("channel:"))
             assert channel_keys == [
-                "channel:v2::c1:idx",
-                "channel:v2::c1:seg:0",
-                "channel:v2::c1:seg:1",
-                "channel:v2::c1:seg:2",
+                "channel:v1::c1:idx",
+                "channel:v1::c1:seg:0",
+                "channel:v1::c1:seg:1",
+                "channel:v1::c1:seg:2",
             ]
         finally:
             store.close()
@@ -619,7 +619,7 @@ class TestChannelDataCache:
             assert gaps == []
 
             channel_keys = sorted(k for k in store if k.startswith("channel:"))
-            assert channel_keys == ["channel:v2::c1:idx"]
+            assert channel_keys == ["channel:v1::c1:idx"]
         finally:
             store.close()
 
@@ -758,10 +758,10 @@ class TestCompaction:
 
             channel_keys = sorted(k for k in store if k.startswith("channel:"))
             assert channel_keys == [
-                "channel:v2::c1:idx",
-                "channel:v2::c1:seg:0",
-                "channel:v2::c1:seg:1",
-                "channel:v2::c1:seg:2",
+                "channel:v1::c1:idx",
+                "channel:v1::c1:seg:0",
+                "channel:v1::c1:seg:1",
+                "channel:v1::c1:seg:2",
             ]
         finally:
             store.close()
@@ -791,8 +791,8 @@ class TestCompaction:
 
             channel_keys = sorted(k for k in store if k.startswith("channel:"))
             assert channel_keys == [
-                "channel:v2::c1:idx",
-                f"channel:v2::c1:seg:{merged_id}",
+                "channel:v1::c1:idx",
+                f"channel:v1::c1:seg:{merged_id}",
             ]
         finally:
             store.close()

@@ -68,13 +68,13 @@ class ChannelDataCache:
     Each ``(channel_id, run_id)`` bucket is split across two key shapes
     in the underlying store:
 
-    * One **index** entry (``channel:v2:<run>:<id>:idx``) holding a
+    * One **index** entry (``channel:v1:<run>:<id>:idx``) holding a
       :class:`SegmentIndex` — a tiny list of :class:`SegmentRef` ptrs
       describing every segment that exists for the bucket. Some refs
       are *empty* (``seg_id is None``) — they record "we queried this
       range and the wire returned no data" without a backing segment.
     * One **segment** entry per fetch with data
-      (``channel:v2:<run>:<id>:seg:<n>``) holding the
+      (``channel:v1:<run>:<id>:seg:<n>``) holding the
       :class:`pandas.DataFrame` for that fetch's slice. The
       :class:`SegmentRef` on the index already carries the claimed
       time range and is the source of truth for coverage, so segment
@@ -96,7 +96,7 @@ class ChannelDataCache:
             class scope so adapters in other resources can pick
             distinct prefixes without runtime negotiation. The trailing
             ``v<N>`` component is the schema version: bump it (e.g.
-            from ``"channel:v2:"`` to ``"channel:v3:"``) when either
+            from ``"channel:v1:"`` to ``"channel:v2:"``) when either
             entry shape changes incompatibly so old keys are silently
             unreachable rather than mis-deserialized.
         MAX_SEGMENTS_PER_BUCKET: Per-bucket cap on segment count
@@ -109,7 +109,7 @@ class ChannelDataCache:
 
     """
 
-    KEY_PREFIX: str = "channel:v2:"
+    KEY_PREFIX: str = "channel:v1:"
     MAX_SEGMENTS_PER_BUCKET: int = 16
 
     def __init__(self, store: DiskCache):
