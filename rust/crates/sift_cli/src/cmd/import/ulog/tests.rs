@@ -51,6 +51,13 @@ fn push_subscription(data: &mut Vec<u8>, multi_id: u8, msg_id: u16, message_name
     push_message(data, b'A', &payload);
 }
 
+fn push_untagged_log(data: &mut Vec<u8>) {
+    let mut payload = vec![0u8];
+    payload.extend_from_slice(&0u64.to_le_bytes());
+    payload.extend_from_slice(b"a log line");
+    push_message(data, b'L', &payload);
+}
+
 fn push_tagged_log(data: &mut Vec<u8>, tag: u16) {
     let mut payload = vec![0u8];
     payload.extend_from_slice(&tag.to_le_bytes());
@@ -145,7 +152,7 @@ fn build_ulog_config_invalid_relative_start_time_errors() {
 }
 
 #[test]
-fn build_ulog_config_info_keys_require_run() {
+fn build_ulog_config_info_and_param_keys_require_run() {
     let mut args = make_args();
     args.info_key = vec!["sys_name".into()];
     let err = build_ulog_config(&args).unwrap_err();
@@ -153,10 +160,7 @@ fn build_ulog_config_info_keys_require_run() {
         err.to_string().contains("--run"),
         "expected run validation error, got: {err:#}"
     );
-}
 
-#[test]
-fn build_ulog_config_param_keys_require_run() {
     let mut args = make_args();
     args.param_key = vec!["MC_PITCH_P".into()];
     let err = build_ulog_config(&args).unwrap_err();
@@ -236,6 +240,7 @@ fn detect_lists_subscribed_topic_channels() {
     );
     push_subscription(&mut data, 0, 1, "sensor_accel");
 
+    // The exact match also pins that the timestamp axis is not a channel.
     let channels = detect(&data);
     assert_eq!(
         channels,
@@ -243,20 +248,6 @@ fn detect_lists_subscribed_topic_channels() {
             ("sensor_accel_0.x".to_string(), ChannelDataType::Float),
             ("sensor_accel_0.y".to_string(), ChannelDataType::Float),
         ]
-    );
-}
-
-#[test]
-fn detect_skips_timestamp_channel() {
-    let mut data = ulog_header();
-    push_format(&mut data, "sensor_accel:uint64_t timestamp;float x;");
-    push_subscription(&mut data, 0, 1, "sensor_accel");
-
-    let channels = detect(&data);
-    assert!(
-        channels
-            .iter()
-            .all(|(name, _)| !name.ends_with(".timestamp"))
     );
 }
 
@@ -389,10 +380,7 @@ fn detect_multi_instance_topics_get_distinct_channels() {
 #[test]
 fn detect_adds_untagged_log_messages_channel() {
     let mut data = ulog_header();
-    let mut payload = vec![0u8];
-    payload.extend_from_slice(&0u64.to_le_bytes());
-    payload.extend_from_slice(b"a log line");
-    push_message(&mut data, b'L', &payload);
+    push_untagged_log(&mut data);
 
     let channels = detect(&data);
     assert_eq!(
@@ -428,32 +416,24 @@ fn detect_ignores_formats_after_a_subscription() {
 }
 
 #[test]
-fn detect_ignores_formats_after_an_untagged_log_message() {
+fn detect_ignores_formats_after_logged_strings() {
+    // Untagged 'L' and tagged 'C' log messages both end the definitions
+    // section, so a format defined after either is never registered.
     let mut data = ulog_header();
-    let mut payload = vec![0u8];
-    payload.extend_from_slice(&0u64.to_le_bytes());
-    payload.extend_from_slice(b"boot");
-    push_message(&mut data, b'L', &payload);
+    push_untagged_log(&mut data);
     push_format(&mut data, "late_topic:uint64_t timestamp;float x;");
     push_subscription(&mut data, 0, 1, "late_topic");
-
-    let channels = detect(&data);
     assert_eq!(
-        channels,
+        detect(&data),
         vec![("log_messages".to_string(), ChannelDataType::String)]
     );
-}
 
-#[test]
-fn detect_ignores_formats_after_a_tagged_log_message() {
     let mut data = ulog_header();
     push_tagged_log(&mut data, 1);
     push_format(&mut data, "late_topic:uint64_t timestamp;float x;");
     push_subscription(&mut data, 0, 1, "late_topic");
-
-    let channels = detect(&data);
     assert_eq!(
-        channels,
+        detect(&data),
         vec![("log_messages_1".to_string(), ChannelDataType::String)]
     );
 }
@@ -529,20 +509,17 @@ fn detect_reads_only_the_first_format_segment() {
 
 #[test]
 fn detect_ignores_extra_field_tokens() {
+    // Only the first two space-separated tokens type and name a field, so
+    // neither an extra token nor a trailing space hides the timestamp axis.
     let mut data = ulog_header();
     push_format(&mut data, "m:uint64_t timestamp extra;float x;");
     push_subscription(&mut data, 0, 1, "m");
-
     let names: Vec<String> = detect(&data).into_iter().map(|(name, _)| name).collect();
     assert_eq!(names, vec!["m_0.x"]);
-}
 
-#[test]
-fn detect_keeps_topic_with_trailing_space_after_timestamp_field() {
     let mut data = ulog_header();
     push_format(&mut data, "m:uint64_t timestamp ;float x;");
     push_subscription(&mut data, 0, 1, "m");
-
     let names: Vec<String> = detect(&data).into_iter().map(|(name, _)| name).collect();
     assert_eq!(names, vec!["m_0.x"]);
 }
