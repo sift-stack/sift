@@ -300,48 +300,48 @@ pub struct ImportCsvArgs {
     pub run: Option<String>,
 
     /// Row number containing column headers (1-based)
-    #[arg(long, default_value_t = 1)]
+    #[arg(long, default_value_t = 1, hide_short_help = true)]
     pub header_row: usize,
 
     /// Row number where data starts (1-based)
-    #[arg(long, default_value_t = 2)]
+    #[arg(long, default_value_t = 2, hide_short_help = true)]
     pub first_data_row: usize,
 
     /// 1-based column indices to override; can appear multiple times
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub channel_column: Vec<usize>,
 
     /// Data type for each channel in `--channel-column`. Use `"infer"` to have the program infer
     /// the data type which is useful when wanting to just specify `--unit` and/or `--description`
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub data_type: Vec<DataType>,
 
     /// Unit for each channel in `--channel-column` (can be empty)
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub unit: Vec<String>,
 
     /// Description for each channel in `--channel-column` (can be empty)
-    #[arg(short = 'n', long)]
+    #[arg(short = 'n', long, hide_short_help = true)]
     pub description: Vec<String>,
 
     /// Enum configuration pairs `<key,name>` (e.g. `"0,start|1,stop"`) for enum-type channels
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub enum_config: Vec<String>,
 
     /// Bit-field configuration triplets `<name,index,length>` (e.g. `"12v,0,4|led,4,4"`)
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub bit_field_config: Vec<String>,
 
     /// 1-based index of the time column
-    #[arg(short, long, default_value_t = 1)]
+    #[arg(short, long, default_value_t = 1, hide_short_help = true)]
     pub time_column: usize,
 
     /// Time format used in the file
-    #[arg(short = 'f', long, default_value_t = TimeFormat::default(), hide_possible_values = true)]
+    #[arg(short = 'f', long, default_value_t = TimeFormat::default(), hide_possible_values = true, hide_short_help = true)]
     pub time_format: TimeFormat,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's', long)]
+    #[arg(short = 's', long, hide_short_help = true)]
     pub relative_start_time: Option<String>,
 
     /// Wait until the import finishes processing
@@ -437,44 +437,44 @@ pub struct FlatDatasetArgs {
     pub common: CommonImportArgs,
 
     /// Paths of data columns to import; can be specified multiple times
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub channel_path: Vec<String>,
 
     /// Data type for each channel in `--channel-path`. Use `"infer"` to have the program infer
     /// the data type which is useful when wanting to just specify `--unit` and/or `--description`
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub data_type: Vec<DataType>,
 
     /// Unit for each channel in `--channel-path` (can be empty)
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub unit: Vec<String>,
 
     /// Description for each channel in `--channel-path` (can be empty)
-    #[arg(short = 'n', long)]
+    #[arg(short = 'n', long, hide_short_help = true)]
     pub description: Vec<String>,
 
-    /// Enum configuration pairs `<key,name>` for enum-type channels
-    #[arg(short, long)]
+    /// Enum configuration pairs `<key,name>` (e.g. `"0,start|1,stop"`) for enum-type channels
+    #[arg(short, long, hide_short_help = true)]
     pub enum_config: Vec<String>,
 
-    /// Bit-field configuration triplets `<index,name,bit_count>` for bit-field channels
-    #[arg(short, long)]
+    /// Bit-field configuration triplets `<name,index,length>` (e.g. `"12v,0,4|led,4,4"`) for bit-field channels
+    #[arg(short, long, hide_short_help = true)]
     pub bit_field_config: Vec<String>,
 
     /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub time_path: Option<String>,
 
     /// Time format used in the file. Inferred from the time column's Arrow type if omitted
-    #[arg(short = 'f', long, hide_possible_values = true)]
+    #[arg(short = 'f', long, hide_possible_values = true, hide_short_help = true)]
     pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's', long)]
+    #[arg(short = 's', long, hide_short_help = true)]
     pub relative_start_time: Option<String>,
 
     /// Strategy for handling complex types (maps, lists, structs)
-    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
+    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default(), hide_short_help = true)]
     pub complex_types_mode: ComplexTypesMode,
 }
 
@@ -503,15 +503,15 @@ pub struct ChannelPerRowCommonArgs {
     pub common: CommonImportArgs,
 
     /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
-    #[arg(short, long)]
+    #[arg(short, long, hide_short_help = true)]
     pub time_path: Option<String>,
 
     /// Time format used in the time column. Inferred from the time column's Arrow type if omitted
-    #[arg(short = 'f', long, hide_possible_values = true)]
+    #[arg(short = 'f', long, hide_possible_values = true, hide_short_help = true)]
     pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's', long)]
+    #[arg(short = 's', long, hide_short_help = true)]
     pub relative_start_time: Option<String>,
 
     /// Path to the column holding values
@@ -519,7 +519,7 @@ pub struct ChannelPerRowCommonArgs {
     pub data_path: String,
 
     /// Strategy for handling complex types (maps, lists, structs)
-    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
+    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default(), hide_short_help = true)]
     pub complex_types_mode: ComplexTypesMode,
 }
 
@@ -534,15 +534,15 @@ pub struct ChannelPerRowSingleArgs {
 
     /// Data type for the channel. Use `"infer"` to have the program infer the
     /// data type from the parquet schema.
-    #[arg(long)]
+    #[arg(long, hide_short_help = true)]
     pub data_type: Option<DataType>,
 
     /// Channel units
-    #[arg(long)]
+    #[arg(long, hide_short_help = true)]
     pub unit: Option<String>,
 
     /// Channel description
-    #[arg(short = 'n', long)]
+    #[arg(short = 'n', long, hide_short_help = true)]
     pub description: Option<String>,
 }
 
@@ -615,23 +615,23 @@ pub struct ImportTdmsArgs {
     pub common: CommonImportArgs,
 
     /// Optional override on start time
-    #[arg(long)]
+    #[arg(long, hide_short_help = true)]
     pub start_time_override: Option<String>,
 
     /// Fallback method for channels with missing timing information
-    #[arg(short, long, default_value = "fail-on-error")]
+    #[arg(short, long, default_value = "fail-on-error", hide_short_help = true)]
     pub fallback_method: TdmsFallbackMethod,
 
     /// Time format for the channels not using the TDMS timestamp type
-    #[arg(long, hide_possible_values = true)]
+    #[arg(long, hide_possible_values = true, hide_short_help = true)]
     pub time_format: Option<TimeFormat>,
 
     /// Relative start time for channels using a non standard time channel
-    #[arg(short = 's', long)]
+    #[arg(short = 's', long, hide_short_help = true)]
     pub relative_start_time: Option<String>,
 
     /// Import TDMS file properties to the run as metadata
-    #[arg(long)]
+    #[arg(long, hide_short_help = true)]
     pub import_file_properties: bool,
 }
 
@@ -674,7 +674,7 @@ pub struct ImportHdf5CommonArgs {
     pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) if the time format is relative
-    #[arg(short = 's', long)]
+    #[arg(short = 's', long, hide_short_help = true)]
     pub relative_start_time: Option<String>,
 }
 
@@ -772,21 +772,21 @@ pub struct ImportUlogArgs {
 
     /// Log start time (RFC3339) for boot-relative timestamps. Overrides the
     /// log's GPS fix; required when no fix exists.
-    #[arg(short = 's', long)]
+    #[arg(short = 's', long, hide_short_help = true)]
     pub relative_start_time: Option<String>,
 
     /// Info key to import as run metadata (`info.<key>`); repeatable. Requires
     /// --run or --run-id.
-    #[arg(long)]
+    #[arg(long, hide_short_help = true)]
     pub info_key: Vec<String>,
 
     /// Parameter to import as run metadata (`param.<name>`); repeatable.
     /// Requires --run or --run-id.
-    #[arg(long)]
+    #[arg(long, hide_short_help = true)]
     pub param_key: Vec<String>,
 
     /// Handling for recoverable parse errors, such as truncated records.
-    #[arg(long, default_value = "fail-on-error")]
+    #[arg(long, default_value = "fail-on-error", hide_short_help = true)]
     pub parse_error_policy: UlogParseErrorPolicy,
 }
 

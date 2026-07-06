@@ -12,14 +12,41 @@ use cmd::Context;
 mod util;
 use util::tty::Output;
 
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, FromArgMatches};
 
 use crate::cli::InstallCmd;
 
 const BIN_NAME: &str = "sift-cli";
 
+/// Recursively override the help flag description so users see the -h vs --help distinction inline.
+fn customize_help(mut cmd: clap::Command) -> clap::Command {
+    cmd = cmd.disable_help_flag(true).arg(
+        clap::Arg::new("help")
+            .short('h')
+            .long("help")
+            .action(clap::ArgAction::Help)
+            .help("Show summary help. Use --help for full details and advanced options."),
+    );
+    let sub_names: Vec<String> = cmd
+        .get_subcommands()
+        .map(|s| s.get_name().to_string())
+        .collect();
+    for name in sub_names {
+        cmd = cmd.mut_subcommand(&name, customize_help);
+    }
+    cmd
+}
+
 fn main() -> ExitCode {
-    let args = cli::Args::parse();
+    let cmd = customize_help(cli::Args::command());
+    let matches = cmd.get_matches();
+    let args = match cli::Args::from_arg_matches(&matches) {
+        Ok(args) => args,
+        Err(err) => {
+            Output::new().line(format!("{err}")).eprint();
+            return ExitCode::FAILURE;
+        }
+    };
 
     match run(args) {
         Err(err) => {
