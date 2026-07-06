@@ -317,8 +317,9 @@ pub struct ImportCsvArgs {
     #[arg(short, long, hide_short_help = true)]
     pub channel_column: Vec<usize>,
 
-    /// Data type for each channel in `--channel-column`. Use `"infer"` to have the program infer
-    /// the data type which is useful when wanting to just specify `--unit` and/or `--description`
+    /// Data type for each channel in `--channel-column`. Use `"infer"` to auto-detect as double
+    /// or string based on the first non-empty value (useful when you only want to set `--unit`
+    /// or `--description`)
     #[arg(short, long, hide_short_help = true)]
     pub data_type: Vec<DataType>,
 
@@ -448,8 +449,8 @@ pub struct FlatDatasetArgs {
     #[arg(short, long, hide_short_help = true)]
     pub channel_path: Vec<String>,
 
-    /// Data type for each channel in `--channel-path`. Use `"infer"` to have the program infer
-    /// the data type which is useful when wanting to just specify `--unit` and/or `--description`
+    /// Data type for each channel in `--channel-path`. Use `"infer"` to derive the type from the
+    /// Parquet/Arrow schema (useful when you only want to set `--unit` or `--description`)
     #[arg(short, long, hide_short_help = true)]
     pub data_type: Vec<DataType>,
 
@@ -544,8 +545,7 @@ pub struct ChannelPerRowSingleArgs {
     #[arg(long)]
     pub channel_name: String,
 
-    /// Data type for the channel. Use `"infer"` to have the program infer the
-    /// data type from the parquet schema.
+    /// Data type for the channel. Use `"infer"` to derive the type from the Parquet/Arrow schema
     #[arg(long, hide_short_help = true)]
     pub data_type: Option<DataType>,
 
@@ -626,7 +626,7 @@ pub struct ImportTdmsArgs {
     #[command(flatten)]
     pub common: CommonImportArgs,
 
-    /// Optional override on start time
+    /// Override the start time (RFC3339)
     #[arg(long, hide_short_help = true)]
     pub start_time_override: Option<String>,
 
@@ -638,7 +638,7 @@ pub struct ImportTdmsArgs {
     #[arg(long, hide_possible_values = true, hide_short_help = true)]
     pub time_format: Option<TimeFormat>,
 
-    /// Relative start time for channels using a non standard time channel
+    /// Start time (RFC3339) to use if --time-format is relative
     #[arg(short = 's', long, hide_short_help = true)]
     pub relative_start_time: Option<String>,
 
