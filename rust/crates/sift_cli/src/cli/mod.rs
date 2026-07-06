@@ -206,6 +206,8 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import csv <PATH> --asset <ASSET> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import csv data.csv --asset engine"
     )]
     Csv(ImportCsvArgs),
@@ -218,6 +220,8 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import tdms <PATH> --asset <ASSET> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import tdms data.tdms --asset engine"
     )]
     Tdms(ImportTdmsArgs),
@@ -235,6 +239,8 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import ulog <PATH> --asset <ASSET> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import ulog data.ulg --asset engine"
     )]
     Ulog(ImportUlogArgs),
@@ -420,6 +426,8 @@ pub enum ImportParquetCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import parquet flat-dataset <PATH> --asset <ASSET> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import parquet flat-dataset data.parquet --asset engine"
     )]
     FlatDataset(FlatDatasetArgs),
@@ -484,6 +492,8 @@ pub enum ImportParquetCprCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import parquet cpr single <PATH> --asset <ASSET> --data-path <DATA_PATH> --channel-name <CHANNEL_NAME> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import parquet cpr single data.parquet --asset engine \\\n    --data-path value --channel-name temp"
     )]
     Single(ChannelPerRowSingleArgs),
@@ -492,6 +502,8 @@ pub enum ImportParquetCprCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import parquet cpr multi <PATH> --asset <ASSET> --data-path <DATA_PATH> --name-path <NAME_PATH> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import parquet cpr multi data.parquet --asset engine \\\n    --data-path value --name-path channel"
     )]
     Multi(ChannelPerRowMultiArgs),
@@ -637,28 +649,34 @@ pub struct ImportTdmsArgs {
 
 #[derive(Subcommand)]
 pub enum ImportHdf5Cmd {
-    /// One-dimensional datasets (each channel is its own dataset)
+    /// One channel per dataset
     #[command(
         name = "one-d",
         arg_required_else_help = true,
         override_usage = "sift-cli import hdf5 one-d <PATH> --asset <ASSET> --time-format <TIME_FORMAT> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import hdf5 one-d data.h5 --asset engine --time-format absolute-rfc3339"
     )]
     OneD(ImportHdf5OneDArgs),
 
-    /// Two-dimensional datasets (channels are columns of a 2-D dataset)
+    /// Channels are columns of a 2-D dataset
     #[command(
         name = "two-d",
         arg_required_else_help = true,
         override_usage = "sift-cli import hdf5 two-d <PATH> --asset <ASSET> --time-format <TIME_FORMAT> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import hdf5 two-d data.h5 --asset engine --time-format absolute-rfc3339"
     )]
     TwoD(ImportHdf5TwoDArgs),
 
-    /// Compound datasets (channels are named fields of a compound dataset)
+    /// Channels are named fields of a compound dataset
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import hdf5 compound <PATH> --asset <ASSET> --time-format <TIME_FORMAT> [OPTIONS]",
+        before_help = "[Reduced help — `--help` shows all options]",
+        before_long_help = "",
         after_help = "Example:\n  sift-cli import hdf5 compound data.h5 --asset engine \\\n    --time-format absolute-rfc3339 --time-field ts"
     )]
     Compound(ImportHdf5CompoundArgs),
@@ -683,8 +701,7 @@ pub struct ImportHdf5OneDArgs {
     #[command(flatten)]
     pub common: ImportHdf5CommonArgs,
 
-    /// Leaf name of the time dataset when it doesn't match the default
-    /// auto-detected names (time, timestamp, timestamps, ts)
+    /// Name of the time dataset. Overrides auto-detection (time, timestamp, timestamps, ts)
     #[arg(long)]
     pub time_name: Option<String>,
 }
