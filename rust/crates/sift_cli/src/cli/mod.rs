@@ -206,7 +206,7 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import csv <PATH> --asset <ASSET> [OPTIONS]",
-        after_help = "Example:\n  sift-cli import csv data.csv --asset engine",
+        after_help = "Example:\n  sift-cli import csv data.csv --asset engine"
     )]
     Csv(ImportCsvArgs),
 
@@ -218,7 +218,7 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import tdms <PATH> --asset <ASSET> [OPTIONS]",
-        after_help = "Example:\n  sift-cli import tdms data.tdms --asset engine",
+        after_help = "Example:\n  sift-cli import tdms data.tdms --asset engine"
     )]
     Tdms(ImportTdmsArgs),
 
@@ -235,7 +235,7 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import ulog <PATH> --asset <ASSET> [OPTIONS]",
-        after_help = "Example:\n  sift-cli import ulog data.ulg --asset engine",
+        after_help = "Example:\n  sift-cli import ulog data.ulg --asset engine"
     )]
     Ulog(ImportUlogArgs),
 
