@@ -126,6 +126,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                     run_future(cmd::import::hdf5::import::run(ctx, args.into()))
                 }
             },
+            cli::ImportCmd::Ulog(args) => run_future(cmd::import::ulog::import::run(ctx, args)),
             cli::ImportCmd::Backup(args) => match args.cmd {
                 Some(cli::BackupCmd::Ls(ls_args)) => {
                     run_future(cmd::import::backup::ls(ctx, ls_args))

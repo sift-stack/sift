@@ -1,8 +1,11 @@
 use rmcp::{
-    RoleServer, ServerHandler,
+    ErrorData, RoleServer, ServerHandler,
     handler::server::router::prompt::PromptRouter,
     handler::server::tool::ToolRouter,
-    model::{GetPromptRequestParams, GetPromptResult, ListPromptsResult, PaginatedRequestParams},
+    model::{
+        GetPromptRequestParams, GetPromptResult, ListPromptsResult, ListToolsResult,
+        PaginatedRequestParams,
+    },
     prompt_handler,
     service::RequestContext,
     tool_handler,
@@ -43,7 +46,33 @@ pub struct SiftMcpServer {
     instructions = "Sift MCP Server",
 )]
 #[prompt_handler(router = self.prompt_router)]
-impl ServerHandler for SiftMcpServer {}
+impl ServerHandler for SiftMcpServer {
+    async fn list_tools(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListToolsResult, ErrorData> {
+        let mut tools = self.tool_router.list_all();
+        tools.sort_by(|a, b| {
+            let a_key: &str = a
+                .annotations
+                .as_ref()
+                .and_then(|ann| ann.title.as_deref())
+                .unwrap_or(a.name.as_ref());
+            let b_key: &str = b
+                .annotations
+                .as_ref()
+                .and_then(|ann| ann.title.as_deref())
+                .unwrap_or(b.name.as_ref());
+            a_key.cmp(b_key)
+        });
+        Ok(ListToolsResult {
+            tools,
+            meta: None,
+            next_cursor: None,
+        })
+    }
+}
 
 impl SiftMcpServer {
     pub fn new(channel: SiftChannel, rest_uri: String) -> Self {

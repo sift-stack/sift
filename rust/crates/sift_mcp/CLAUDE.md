@@ -248,7 +248,7 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
 - Validate before calling the service. Return `ErrorData::invalid_params(...)` or
   `ErrorData::resource_not_found(...)` for bad input. `get_data` shows multi-field validation.
 - Always return `CallToolResult::structured(json!({ ... }))`.
-- Annotate: `annotations(title = "<domain>_router/<tool>", read_only_hint = <bool>, destructive_hint = <bool>, idempotent_hint = <bool>)`.
+- Annotate: `annotations(title = "<domain>/<tool>", read_only_hint = <bool>, destructive_hint = <bool>, idempotent_hint = <bool>)`.
   Read tools set `read_only_hint = true` and may omit the other two. Write tools set
   `read_only_hint = false` and MUST set both `destructive_hint` and `idempotent_hint` honestly so
   the calling client can render an accurate confirmation prompt:

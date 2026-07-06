@@ -3,9 +3,11 @@ use clap_complete::Shell;
 use parquet::{ChannelMode, ComplexTypesMode};
 pub mod hdf5;
 pub mod tdms;
+pub mod ulog;
 use hdf5::Hdf5Schema;
 use std::{net::SocketAddr, path::PathBuf};
 use tdms::TdmsFallbackMethod;
+use ulog::UlogParseErrorPolicy;
 
 pub mod channel;
 use channel::DataType;
@@ -225,6 +227,15 @@ pub enum ImportCmd {
     #[command(subcommand)]
     Hdf5(ImportHdf5Cmd),
 
+    /// PX4 ULog file
+    ///
+    /// Uses the log's GPS fix, or --relative-start-time when no fix exists.
+    #[command(
+        override_usage = "sift-cli import ulog <PATH> --asset <ASSET> [OPTIONS]",
+        after_help = "Example:\n  sift-cli import ulog data.ulg --asset engine",
+    )]
+    Ulog(ImportUlogArgs),
+
     /// Backup files from sift_stream
     ///
     /// Run without a subcommand to import; use `ls` to list files without importing.
@@ -384,8 +395,8 @@ pub struct CommonImportArgs {
     #[arg(short, long)]
     pub run: Option<String>,
 
-    /// The id of an existing run to add this data to. Takes precedence over --run
-    #[arg(long)]
+    /// The id of an existing run to add this data to. Mutually exclusive with --run
+    #[arg(long, conflicts_with = "run")]
     pub run_id: Option<String>,
 
     /// Wait until the import finishes processing
@@ -692,6 +703,31 @@ impl From<ImportHdf5CompoundArgs> for ImportHdf5Args {
             time_name: None,
         }
     }
+}
+
+#[derive(clap::Args)]
+pub struct ImportUlogArgs {
+    #[command(flatten)]
+    pub common: CommonImportArgs,
+
+    /// Log start time (RFC3339) for boot-relative timestamps. Overrides the
+    /// log's GPS fix; required when no fix exists.
+    #[arg(short = 's', long)]
+    pub relative_start_time: Option<String>,
+
+    /// Info key to import as run metadata (`info.<key>`); repeatable. Requires
+    /// --run or --run-id.
+    #[arg(long)]
+    pub info_key: Vec<String>,
+
+    /// Parameter to import as run metadata (`param.<name>`); repeatable.
+    /// Requires --run or --run-id.
+    #[arg(long)]
+    pub param_key: Vec<String>,
+
+    /// Handling for recoverable parse errors, such as truncated records.
+    #[arg(long, default_value = "fail-on-error")]
+    pub parse_error_policy: UlogParseErrorPolicy,
 }
 
 impl DocArgs {

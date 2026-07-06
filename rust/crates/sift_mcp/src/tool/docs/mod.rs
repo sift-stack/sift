@@ -64,7 +64,7 @@ impl SiftMcpServer {
                 service rejects the request.
               - `RESOURCE_NOT_FOUND` if `path` does not match a doc page.
         ",
-        annotations(title = "docs_router/search_docs", read_only_hint = true)
+        annotations(title = "docs/search_docs", read_only_hint = true)
     )]
     pub async fn search_docs(&self, params: Parameters<SearchDocsParams>) -> error::McpResult {
         let Parameters(SearchDocsParams {

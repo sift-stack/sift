@@ -61,7 +61,7 @@ impl SiftMcpServer {
               - The tool does not validate that the named asset/run/channel exists — Explore resolves at page
                 load. Use names you have already retrieved from `list_*` tools to avoid 404s on click.
         ",
-        annotations(title = "explore_router/explore_url", read_only_hint = true)
+        annotations(title = "explore/explore_url", read_only_hint = true)
     )]
     pub async fn explore_url(&self, params: Parameters<ExploreUrlParams>) -> error::McpResult {
         let Parameters(ExploreUrlParams {

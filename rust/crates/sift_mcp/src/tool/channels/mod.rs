@@ -40,7 +40,7 @@ impl SiftMcpServer {
                 and unscoped queries return cross-asset results.
               - To enumerate channels recorded by a specific run, filter on `run_id` rather than joining client-side.
         ",
-        annotations(title = "channels_router/list_channels", read_only_hint = true)
+        annotations(title = "channels/list_channels", read_only_hint = true)
     )]
     pub async fn list_channels(&self, params: Parameters<ListParams>) -> error::McpResult {
         let Parameters(ListParams {
