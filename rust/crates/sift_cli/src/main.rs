@@ -108,9 +108,14 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::ImportParquetCmd::FlatDataset(args) => {
                     run_future(cmd::import::parquet::flat_dataset::run(ctx, args))
                 }
-                cli::ImportParquetCmd::ChannelPerRow(args) => run_future(
-                    cmd::import::parquet::channel_per_row_dataset::run(ctx, args),
-                ),
+                cli::ImportParquetCmd::ChannelPerRow(cmd) => match cmd {
+                    cli::ImportParquetCprCmd::Single(args) => run_future(
+                        cmd::import::parquet::channel_per_row_dataset::run(ctx, args.into()),
+                    ),
+                    cli::ImportParquetCprCmd::Multi(args) => run_future(
+                        cmd::import::parquet::channel_per_row_dataset::run(ctx, args.into()),
+                    ),
+                },
             },
             cli::ImportCmd::Tdms(args) => {
                 run_future(cmd::import::tdms::detect_tdms_config::run(ctx, args))

@@ -424,17 +424,11 @@ pub enum ImportParquetCmd {
     )]
     FlatDataset(FlatDatasetArgs),
 
-    /// Channel-per-row layout (single or multi mode)
+    /// Channel-per-row layout
     ///
-    /// A parquet file laid out single-channel-per-row, either one channel for the whole file
-    /// (single mode) or with a name column identifying the channel for each row (multi mode).
-    #[command(
-        name = "cpr",
-        arg_required_else_help = true,
-        override_usage = "sift-cli import parquet cpr <PATH> --asset <ASSET> --mode <MODE> --data-path <DATA_PATH> [OPTIONS]",
-        after_help = "Examples:\n  # single mode\n  sift-cli import parquet cpr data.parquet --asset engine \\\n    --mode single --data-path value --channel-name temp\n\n  # multi mode\n  sift-cli import parquet cpr data.parquet --asset engine \\\n    --mode multi --data-path value --name-path channel"
-    )]
-    ChannelPerRow(ChannelPerRowArgs),
+    /// One channel for the whole file (single) or a name column identifying the channel per row (multi).
+    #[command(name = "cpr", subcommand)]
+    ChannelPerRow(ImportParquetCprCmd),
 }
 
 #[derive(clap::Args)]
@@ -484,14 +478,29 @@ pub struct FlatDatasetArgs {
     pub complex_types_mode: ComplexTypesMode,
 }
 
+#[derive(Subcommand)]
+pub enum ImportParquetCprCmd {
+    /// One channel for the whole file
+    #[command(
+        arg_required_else_help = true,
+        override_usage = "sift-cli import parquet cpr single <PATH> --asset <ASSET> --data-path <DATA_PATH> --channel-name <CHANNEL_NAME> [OPTIONS]",
+        after_help = "Example:\n  sift-cli import parquet cpr single data.parquet --asset engine \\\n    --data-path value --channel-name temp"
+    )]
+    Single(ChannelPerRowSingleArgs),
+
+    /// Name column identifies the channel per row
+    #[command(
+        arg_required_else_help = true,
+        override_usage = "sift-cli import parquet cpr multi <PATH> --asset <ASSET> --data-path <DATA_PATH> --name-path <NAME_PATH> [OPTIONS]",
+        after_help = "Example:\n  sift-cli import parquet cpr multi data.parquet --asset engine \\\n    --data-path value --name-path channel"
+    )]
+    Multi(ChannelPerRowMultiArgs),
+}
+
 #[derive(clap::Args)]
-pub struct ChannelPerRowArgs {
+pub struct ChannelPerRowCommonArgs {
     #[command(flatten)]
     pub common: CommonImportArgs,
-
-    /// Channel mode: single-channel or multi-channel
-    #[arg(long)]
-    pub mode: ChannelMode,
 
     /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
     #[arg(short, long)]
@@ -505,56 +514,99 @@ pub struct ChannelPerRowArgs {
     #[arg(short = 's', long)]
     pub relative_start_time: Option<String>,
 
-    /// Path to the column holding values (used in both modes)
+    /// Path to the column holding values
     #[arg(long)]
     pub data_path: String,
-
-    /// Channel name for every row in the file
-    #[arg(
-        long,
-        required_if_eq("mode", "single"),
-        conflicts_with = "name_path",
-        help_heading = "Single mode options"
-    )]
-    pub channel_name: Option<String>,
-
-    /// Data type for the channel. Use `"infer"` to have the program infer the
-    /// data type from the parquet schema.
-    #[arg(
-        long,
-        conflicts_with = "name_path",
-        help_heading = "Single mode options"
-    )]
-    pub data_type: Option<DataType>,
-
-    /// Channel units
-    #[arg(
-        long,
-        conflicts_with = "name_path",
-        help_heading = "Single mode options"
-    )]
-    pub unit: Option<String>,
-
-    /// Channel description
-    #[arg(
-        short = 'n',
-        long,
-        conflicts_with = "name_path",
-        help_heading = "Single mode options"
-    )]
-    pub description: Option<String>,
-
-    /// Path to the column holding channel names
-    #[arg(
-        long,
-        required_if_eq("mode", "multi"),
-        help_heading = "Multi mode options"
-    )]
-    pub name_path: Option<String>,
 
     /// Strategy for handling complex types (maps, lists, structs)
     #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
     pub complex_types_mode: ComplexTypesMode,
+}
+
+#[derive(clap::Args)]
+pub struct ChannelPerRowSingleArgs {
+    #[command(flatten)]
+    pub common: ChannelPerRowCommonArgs,
+
+    /// Channel name for every row in the file
+    #[arg(long)]
+    pub channel_name: String,
+
+    /// Data type for the channel. Use `"infer"` to have the program infer the
+    /// data type from the parquet schema.
+    #[arg(long)]
+    pub data_type: Option<DataType>,
+
+    /// Channel units
+    #[arg(long)]
+    pub unit: Option<String>,
+
+    /// Channel description
+    #[arg(short = 'n', long)]
+    pub description: Option<String>,
+}
+
+#[derive(clap::Args)]
+pub struct ChannelPerRowMultiArgs {
+    #[command(flatten)]
+    pub common: ChannelPerRowCommonArgs,
+
+    /// Path to the column holding channel names
+    #[arg(long)]
+    pub name_path: String,
+}
+
+pub struct ChannelPerRowArgs {
+    pub common: CommonImportArgs,
+    pub mode: ChannelMode,
+    pub time_path: Option<String>,
+    pub time_format: Option<TimeFormat>,
+    pub relative_start_time: Option<String>,
+    pub data_path: String,
+    pub channel_name: Option<String>,
+    pub data_type: Option<DataType>,
+    pub unit: Option<String>,
+    pub description: Option<String>,
+    pub name_path: Option<String>,
+    pub complex_types_mode: ComplexTypesMode,
+}
+
+impl From<ChannelPerRowSingleArgs> for ChannelPerRowArgs {
+    fn from(args: ChannelPerRowSingleArgs) -> Self {
+        Self {
+            common: args.common.common,
+            mode: ChannelMode::Single,
+            time_path: args.common.time_path,
+            time_format: args.common.time_format,
+            relative_start_time: args.common.relative_start_time,
+            data_path: args.common.data_path,
+            channel_name: Some(args.channel_name),
+            data_type: args.data_type,
+            unit: args.unit,
+            description: args.description,
+            name_path: None,
+            complex_types_mode: args.common.complex_types_mode,
+        }
+    }
+}
+
+impl From<ChannelPerRowMultiArgs> for ChannelPerRowArgs {
+    fn from(args: ChannelPerRowMultiArgs) -> Self {
+        Self {
+            common: args.common.common,
+            mode: ChannelMode::Multi,
+            time_path: args.common.time_path,
+            time_format: args.common.time_format,
+            relative_start_time: args.common.relative_start_time,
+            data_path: args.common.data_path,
+            channel_name: None,
+            data_type: None,
+            unit: None,
+            description: None,
+            name_path: Some(args.name_path),
+            complex_types_mode: args.common.complex_types_mode,
+        }
+    }
 }
 
 #[derive(clap::Args)]
