@@ -115,7 +115,17 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             cli::ImportCmd::Tdms(args) => {
                 run_future(cmd::import::tdms::detect_tdms_config::run(ctx, args))
             }
-            cli::ImportCmd::Hdf5(args) => run_future(cmd::import::hdf5::import::run(ctx, args)),
+            cli::ImportCmd::Hdf5(cmd) => match cmd {
+                cli::ImportHdf5Cmd::OneD(args) => {
+                    run_future(cmd::import::hdf5::import::run(ctx, args.into()))
+                }
+                cli::ImportHdf5Cmd::TwoD(args) => {
+                    run_future(cmd::import::hdf5::import::run(ctx, args.into()))
+                }
+                cli::ImportHdf5Cmd::Compound(args) => {
+                    run_future(cmd::import::hdf5::import::run(ctx, args.into()))
+                }
+            },
             cli::ImportCmd::Backup(args) => match args.cmd {
                 Some(cli::BackupCmd::Ls(ls_args)) => {
                     run_future(cmd::import::backup::ls(ctx, ls_args))
