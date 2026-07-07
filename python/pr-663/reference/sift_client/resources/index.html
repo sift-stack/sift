@@ -39868,9 +39868,10 @@ when <code>config</code> already has <code>asset_name</code> set.</p>
               <div class="doc-md-description">
                 <p>Import configuration describing the file format and column
 mapping. When provided, <code>data_type</code> is ignored. If omitted,
-the config is auto-detected via <code>detect_config</code>. You can
-call <code>detect_config</code> yourself to inspect and modify the
-config before passing it here.</p>
+the config is auto-detected via <code>detect_config</code> (for ULog
+the detected channel list is dropped so every channel in the
+file is imported). You can call <code>detect_config</code> yourself to
+inspect and modify the config before passing it here.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -40228,6 +40229,9 @@ config is set to the row after the metadata row.</p>
 <p>Enum type definitions and bit field elements can also be specified
 in the metadata row; they are applied server-side during import
 but are not included in the returned config.</p>
+<p>For ULog files, <code>data</code> lists the channels pyulog decodes from the
+file. When imported, a non-empty <code>data</code> list restricts the import
+to those channels; clear it to import every channel in the file.</p>
 <p>For file types with multiple supported layouts (Parquet, HDF5),
 <code>data_type</code> must be specified explicitly.</p>
 
@@ -62215,6 +62219,9 @@ config is set to the row after the metadata row.</p>
 <p>Enum type definitions and bit field elements can also be specified
 in the metadata row; they are applied server-side during import
 but are not included in the returned config.</p>
+<p>For ULog files, <code>data</code> lists the channels pyulog decodes from the
+file. When imported, a non-empty <code>data</code> list restricts the import
+to those channels; clear it to import every channel in the file.</p>
 <p>For file types with multiple supported layouts (Parquet, HDF5),
 <code>data_type</code> must be specified explicitly.</p>
 
@@ -62589,9 +62596,10 @@ when <code>config</code> already has <code>asset_name</code> set.</p>
               <div class="doc-md-description">
                 <p>Import configuration describing the file format and column
 mapping. When provided, <code>data_type</code> is ignored. If omitted,
-the config is auto-detected via <code>detect_config</code>. You can
-call <code>detect_config</code> yourself to inspect and modify the
-config before passing it here.</p>
+the config is auto-detected via <code>detect_config</code> (for ULog
+the detected channel list is dropped so every channel in the
+file is imported). You can call <code>detect_config</code> yourself to
+inspect and modify the config before passing it here.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
