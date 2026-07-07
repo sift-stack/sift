@@ -105,9 +105,10 @@ class DataImportAPIAsync(ResourceBase):
                 when ``config`` already has ``asset_name`` set.
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored. If omitted,
-                the config is auto-detected via ``detect_config``. You can
-                call ``detect_config`` yourself to inspect and modify the
-                config before passing it here.
+                the config is auto-detected via ``detect_config`` (for ULog
+                the detected channel list is dropped so every channel in the
+                file is imported). You can call ``detect_config`` yourself to
+                inspect and modify the config before passing it here.
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
@@ -141,6 +142,11 @@ class DataImportAPIAsync(ResourceBase):
                 data_type=data_type,
                 time_format=time_format,
             )
+            if isinstance(config, UlogImportConfig):
+                # ULog imports every channel without a channel list; a detected
+                # list would only filter that, and can be rejected on a damaged
+                # file where detection diverges.
+                config.data = []
 
         if asset is not None:
             config.asset_name = asset.name if isinstance(asset, Asset) else asset
@@ -236,6 +242,10 @@ class DataImportAPIAsync(ResourceBase):
         Enum type definitions and bit field elements can also be specified
         in the metadata row; they are applied server-side during import
         but are not included in the returned config.
+
+        For ULog files, ``data`` lists the channels pyulog decodes from the
+        file. When imported, a non-empty ``data`` list restricts the import
+        to those channels; clear it to import every channel in the file.
 
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.

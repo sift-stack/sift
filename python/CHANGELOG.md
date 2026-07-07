@@ -63,7 +63,7 @@ Breaking change: `client.reports.create_from_template` now takes `report_templat
 
 #### ULog imports
 
-Added PX4 ULog (`.ulg`) as a supported data import format. ULog files are self-describing, so `client.data_import.import_from_path("flight.ulg", asset=asset)` auto-detects every channel from the embedded schema with no column mapping. Detection runs client-side and requires the `ulog` extra (`pip install sift-stack-py[ulog]`).
+Added PX4 ULog (`.ulg`) as a supported data import format. ULog files are self-describing, so `client.data_import.import_from_path("flight.ulg", asset=asset)` imports every channel in the file with no column mapping. Detection runs client-side and requires the `ulog` extra (`pip install sift-stack-py[ulog]`).
 
 Call `detect_config` to inspect and patch the import before uploading, the same as the other formats:
 

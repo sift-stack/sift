@@ -7,11 +7,7 @@ import struct
 import pytest
 
 from sift_client._internal.util.ulog import (
-    ULOG_HEADER_SIZE,
-    ULOG_MAGIC,
     ULOG_TO_SIFT_TYPE,
-    _scan_subscriptions,
-    _ScanResult,
     detect_ulog_config,
     detect_ulog_fields,
     expand_message_fields,
@@ -26,22 +22,57 @@ class _FakeFormat:
         self.fields = fields
 
 
+class _FakeDataset:
+    """Stand-in for pyulog's Data: a decoded topic instance."""
+
+    def __init__(self, name, multi_id):
+        self.name = name
+        self.multi_id = multi_id
+
+
+class _FakeUlog:
+    """Stand-in for a parsed pyulog ULog: only the attributes detection reads."""
+
+    def __init__(
+        self,
+        message_formats=None,
+        data_list=None,
+        logged_messages=None,
+        logged_messages_tagged=None,
+    ):
+        self.message_formats = message_formats or {}
+        self.data_list = data_list or []
+        self.logged_messages = logged_messages or []
+        self.logged_messages_tagged = logged_messages_tagged or {}
+
+
+# Builders for real ULog bytes, parsed by pyulog in the end-to-end tests.
+
+
 def _header() -> bytes:
     # 7 magic bytes + 1 version byte + uint64 start timestamp.
-    return ULOG_MAGIC[:7] + b"\x00" + struct.pack("<Q", 0)
+    return b"\x55\x4c\x6f\x67\x01\x12\x35" + b"\x01" + struct.pack("<Q", 0)
 
 
 def _message(type_char: str, payload: bytes) -> bytes:
     return struct.pack("<HB", len(payload), ord(type_char)) + payload
 
 
+def _flag_bits() -> bytes:
+    # 'B': compat[8], incompat[8], appended offsets[24]; must follow the header.
+    return _message("B", b"\x00" * 40)
+
+
+def _format(definition: str) -> bytes:
+    return _message("F", definition.encode())
+
+
 def _add_logged(multi_id: int, msg_id: int, name: str) -> bytes:
-    payload = bytes([multi_id]) + struct.pack("<H", msg_id) + name.encode()
-    return _message("A", payload)
+    return _message("A", bytes([multi_id]) + struct.pack("<H", msg_id) + name.encode())
 
 
-def _data_record(msg_id: int, body: bytes = b"\x00\x00\x00\x00") -> bytes:
-    return _message("D", struct.pack("<H", msg_id) + body)
+def _data_record(msg_id: int, values: bytes) -> bytes:
+    return _message("D", struct.pack("<H", msg_id) + values)
 
 
 def _logged_string(text: str = "boot") -> bytes:
@@ -54,55 +85,8 @@ def _tagged_logged_string(tag: int, text: str = "tagged") -> bytes:
     return _message("C", b"\x06" + struct.pack("<H", tag) + struct.pack("<Q", 0) + text.encode())
 
 
-class TestScanSubscriptions:
-    def test_collects_subscriptions_in_order(self, tmp_path):
-        path = tmp_path / "log.ulg"
-        path.write_bytes(
-            _header()
-            + _add_logged(0, 10, "sensor_accel")
-            + _add_logged(1, 11, "sensor_accel")
-            + _data_record(10)
-            + _add_logged(0, 12, "vehicle_status")
-        )
-        scan = _scan_subscriptions(path)
-        assert scan.subscriptions == [
-            ("sensor_accel", 0),
-            ("sensor_accel", 1),
-            ("vehicle_status", 0),
-        ]
-
-    def test_collects_log_markers(self, tmp_path):
-        path = tmp_path / "log.ulg"
-        path.write_bytes(
-            _header()
-            + _add_logged(0, 10, "sensor_accel")
-            + _logged_string()
-            + _tagged_logged_string(2)
-            + _tagged_logged_string(5)
-        )
-        scan = _scan_subscriptions(path)
-        assert scan.has_untagged_logs is True
-        assert scan.log_tags == {2, 5}
-
-    def test_tolerates_truncated_final_record(self, tmp_path):
-        path = tmp_path / "log.ulg"
-        # A valid subscription, then a header that claims more bytes than remain.
-        truncated = struct.pack("<HB", 999, ord("D")) + b"\x0a\x00"
-        path.write_bytes(_header() + _add_logged(0, 10, "sensor_accel") + truncated)
-        scan = _scan_subscriptions(path)
-        assert scan.subscriptions == [("sensor_accel", 0)]
-
-    def test_rejects_bad_magic(self, tmp_path):
-        path = tmp_path / "log.ulg"
-        path.write_bytes(b"NOTULOG!" + b"\x00" * ULOG_HEADER_SIZE)
-        with pytest.raises(ValueError, match="bad magic bytes"):
-            _scan_subscriptions(path)
-
-    def test_rejects_too_small(self, tmp_path):
-        path = tmp_path / "log.ulg"
-        path.write_bytes(b"\x55\x4c")
-        with pytest.raises(ValueError, match="invalid size"):
-            _scan_subscriptions(path)
+ACCEL_FORMAT = _format("sensor_accel:uint64_t timestamp;float x;float y;float z;")
+ACCEL_RECORD = struct.pack("<Qfff", 100, 1.0, 2.0, 3.0)
 
 
 class TestExpandMessageFields:
@@ -153,47 +137,44 @@ class TestExpandMessageFields:
 
 class TestDetectUlogFields:
     def test_skips_timestamp_and_padding(self):
-        formats = {
-            "sensor_accel": _FakeFormat(
-                [
-                    ("uint64_t", 0, "timestamp"),
-                    ("float", 0, "x"),
-                    ("uint8_t", 0, "_padding0"),
-                ]
-            )
-        }
-        scan = _ScanResult()
-        scan.subscriptions = [("sensor_accel", 0)]
-        assert detect_ulog_fields(formats, scan) == {"sensor_accel_0.x": "float"}
+        ulog = _FakeUlog(
+            message_formats={
+                "sensor_accel": _FakeFormat(
+                    [
+                        ("uint64_t", 0, "timestamp"),
+                        ("float", 0, "x"),
+                        ("uint8_t", 0, "_padding0"),
+                    ]
+                )
+            },
+            data_list=[_FakeDataset("sensor_accel", 0)],
+        )
+        assert detect_ulog_fields(ulog) == {"sensor_accel_0.x": "float"}
 
     def test_multi_id_in_prefix(self):
-        formats = {"sensor_accel": _FakeFormat([("uint64_t", 0, "timestamp"), ("float", 0, "x")])}
-        scan = _ScanResult()
-        scan.subscriptions = [("sensor_accel", 0), ("sensor_accel", 1)]
-        detected = detect_ulog_fields(formats, scan)
-        assert set(detected) == {"sensor_accel_0.x", "sensor_accel_1.x"}
+        ulog = _FakeUlog(
+            message_formats={
+                "sensor_accel": _FakeFormat([("uint64_t", 0, "timestamp"), ("float", 0, "x")])
+            },
+            data_list=[_FakeDataset("sensor_accel", 0), _FakeDataset("sensor_accel", 1)],
+        )
+        assert set(detect_ulog_fields(ulog)) == {"sensor_accel_0.x", "sensor_accel_1.x"}
 
     def test_skips_message_without_timestamp(self):
-        formats = {"no_time": _FakeFormat([("float", 0, "x")])}
-        scan = _ScanResult()
-        scan.subscriptions = [("no_time", 0)]
-        assert detect_ulog_fields(formats, scan) == {}
+        ulog = _FakeUlog(
+            message_formats={"no_time": _FakeFormat([("float", 0, "x")])},
+            data_list=[_FakeDataset("no_time", 0)],
+        )
+        assert detect_ulog_fields(ulog) == {}
 
-    def test_skips_subscription_without_format(self):
-        scan = _ScanResult()
-        scan.subscriptions = [("missing", 0)]
-        assert detect_ulog_fields({}, scan) == {}
-
-    def test_log_message_channels(self):
-        scan = _ScanResult()
-        scan.has_untagged_logs = True
-        scan.log_tags = {5, 2}
-        detected = detect_ulog_fields({}, scan)
-        assert detected == {
-            "log_messages": "char",
-            "log_messages_2": "char",
-            "log_messages_5": "char",
-        }
+    def test_log_message_channels_sorted_by_tag(self):
+        ulog = _FakeUlog(logged_messages=["boot"], logged_messages_tagged={2: [], 9: [], 5: []})
+        assert list(detect_ulog_fields(ulog).items()) == [
+            ("log_messages", "char"),
+            ("log_messages_2", "char"),
+            ("log_messages_5", "char"),
+            ("log_messages_9", "char"),
+        ]
 
 
 class TestTypeMapping:
@@ -208,15 +189,14 @@ class TestTypeMapping:
 
 
 class TestDetectUlogConfig:
-    def test_end_to_end_minimal_log(self, tmp_path):
-        """A minimal .ulg with one format and one subscription yields one
-        channel per non-timestamp field, mapped to the right type.
-        """
-        flag_bits = _message("B", b"\x00" * 40)
-        fmt = _message("F", b"sensor_accel:uint64_t timestamp;float x;float y;float z;")
+    def test_detects_channel_per_field(self, tmp_path):
         path = tmp_path / "log.ulg"
         path.write_bytes(
-            _header() + flag_bits + fmt + _add_logged(0, 0, "sensor_accel") + _data_record(0)
+            _header()
+            + _flag_bits()
+            + ACCEL_FORMAT
+            + _add_logged(0, 0, "sensor_accel")
+            + _data_record(0, ACCEL_RECORD)
         )
 
         config = detect_ulog_config(path, asset_name="drone")
@@ -227,3 +207,121 @@ class TestDetectUlogConfig:
             ("sensor_accel_0.y", "sensor_accel_0.y", ChannelDataType.FLOAT),
             ("sensor_accel_0.z", "sensor_accel_0.z", ChannelDataType.FLOAT),
         }
+
+    def test_multi_instance_topics_stay_separate(self, tmp_path):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(
+            _header()
+            + _flag_bits()
+            + ACCEL_FORMAT
+            + _add_logged(0, 0, "sensor_accel")
+            + _add_logged(1, 1, "sensor_accel")
+            + _data_record(0, ACCEL_RECORD)
+            + _data_record(1, ACCEL_RECORD)
+        )
+
+        config = detect_ulog_config(path)
+        assert {d.channel for d in config.data} == {
+            "sensor_accel_0.x",
+            "sensor_accel_0.y",
+            "sensor_accel_0.z",
+            "sensor_accel_1.x",
+            "sensor_accel_1.y",
+            "sensor_accel_1.z",
+        }
+
+    def test_log_message_channels(self, tmp_path):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(_header() + _flag_bits() + _logged_string() + _tagged_logged_string(5))
+
+        config = detect_ulog_config(path)
+        channels = {(d.channel, d.data_type) for d in config.data}
+        assert channels == {
+            ("log_messages", ChannelDataType.STRING),
+            ("log_messages_5", ChannelDataType.STRING),
+        }
+
+    def test_bool_and_char_fields(self, tmp_path):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(
+            _header()
+            + _flag_bits()
+            + _format("status:uint64_t timestamp;bool armed;char[4] name;")
+            + _add_logged(0, 0, "status")
+            + _data_record(0, struct.pack("<Q?", 100, True) + b"abcd")
+        )
+
+        config = detect_ulog_config(path)
+        assert {(d.channel, d.data_type) for d in config.data} == {
+            ("status_0.armed", ChannelDataType.BOOL),
+            ("status_0.name", ChannelDataType.STRING),
+        }
+
+    def test_clean_file_does_not_warn(self, tmp_path, recwarn):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(
+            _header()
+            + _flag_bits()
+            + ACCEL_FORMAT
+            + _add_logged(0, 0, "sensor_accel")
+            + _data_record(0, ACCEL_RECORD)
+        )
+
+        detect_ulog_config(path)
+        assert not [w for w in recwarn.list if issubclass(w.category, UserWarning)]
+
+    def test_topic_without_records_is_dropped(self, tmp_path):
+        # pyulog only lists topics with decoded records, so a subscription
+        # that never logged data yields no channels.
+        path = tmp_path / "log.ulg"
+        path.write_bytes(
+            _header() + _flag_bits() + ACCEL_FORMAT + _add_logged(0, 0, "sensor_accel")
+        )
+
+        config = detect_ulog_config(path)
+        assert config.data == []
+
+    def test_undersized_record_warns_and_is_dropped(self, tmp_path):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(
+            _header()
+            + _flag_bits()
+            + ACCEL_FORMAT
+            + _add_logged(0, 0, "sensor_accel")
+            + _data_record(0, ACCEL_RECORD[:4])
+        )
+
+        with pytest.warns(UserWarning, match="could not decode"):
+            config = detect_ulog_config(path)
+        assert config.data == []
+
+    def test_unknown_msg_id_warns_but_keeps_valid_channels(self, tmp_path):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(
+            _header()
+            + _flag_bits()
+            + ACCEL_FORMAT
+            + _add_logged(0, 0, "sensor_accel")
+            + _data_record(0, ACCEL_RECORD)
+            + _data_record(99, ACCEL_RECORD)
+        )
+
+        with pytest.warns(UserWarning, match="could not decode"):
+            config = detect_ulog_config(path)
+        assert {d.channel for d in config.data} == {
+            "sensor_accel_0.x",
+            "sensor_accel_0.y",
+            "sensor_accel_0.z",
+        }
+
+    def test_rejects_non_ulog_file(self, tmp_path):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(b"NOTULOG!" + b"\x00" * 8)
+        with pytest.raises(ValueError, match="could not be parsed as ULog"):
+            detect_ulog_config(path)
+
+    def test_rejects_too_small_file(self, tmp_path):
+        path = tmp_path / "log.ulg"
+        path.write_bytes(b"\x55\x4c")
+        with pytest.raises(ValueError, match="could not be parsed as ULog"):
+            detect_ulog_config(path)

@@ -1,26 +1,25 @@
 """Detect channels in PX4 ULog (``.ulg``) files.
 
-Detection reads the ULog definitions and lightweight message records to find
-logged topics, multi-instance IDs, and logged-string channels. It does not
-decode data records. Channel keys, type mapping, and flattened field names
-match the server importer.
+Detection parses the file with pyulog and enumerates the decoded topics,
+multi-instance IDs, and logged-string channels.
+
+Warning: pyulog silently drops what it cannot decode, so malformed records
+and topics that never logged a decodable record are missing from the detected
+channels. An import config with an empty ``data`` list still imports every
+channel in the file.
 """
 
 from __future__ import annotations
 
 import contextlib
-import struct
 import sys
+import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from pyulog import ULog
 
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import UlogDataColumn, UlogImportConfig
-
-if TYPE_CHECKING:
-    from typing import BinaryIO
 
 # Map ULog C scalars to Sift channel types. Smaller ints widen to 32-bit, and
 # char fields import as strings.
@@ -42,106 +41,10 @@ ULOG_TO_SIFT_TYPE: dict[str, ChannelDataType] = {
 # Base channel for ULog logged strings; tagged logs use ``log_messages_<tag>``.
 LOG_MESSAGES_CHANNEL = "log_messages"
 
-ULOG_MAGIC = b"\x55\x4c\x6f\x67\x01\x12\x35"
-ULOG_HEADER_SIZE = 16
-# Full sync message: 3-byte header (size=8, type 'S') + the 8 sync magic bytes.
-SYNC_MESSAGE = struct.pack("<HB", 8, ord("S")) + bytes(
-    [0x2F, 0x73, 0x13, 0x20, 0x25, 0x0C, 0xBB, 0x12]
-)
-KNOWN_MESSAGE_TYPES = frozenset(b"BFIMPQARDLCSO")
-
 
 def _is_padding(channel_key: str) -> bool:
     """Return whether a channel key contains a ULog padding field."""
     return any(seg.startswith("_padding") for seg in channel_key.split("."))
-
-
-def _find_next_sync(f: BinaryIO, start: int) -> int:
-    """Return the next sync marker offset at or after ``start``, or -1."""
-    chunk_size = 1 << 16
-    overlap = len(SYNC_MESSAGE) - 1
-    f.seek(start)
-    chunk_start = start
-    carry = b""
-    while True:
-        chunk = f.read(chunk_size)
-        if not chunk:
-            return -1
-        buf = carry + chunk
-        idx = buf.find(SYNC_MESSAGE)
-        if idx != -1:
-            return chunk_start - len(carry) + idx
-        chunk_start += len(chunk)
-        carry = buf[-overlap:]
-
-
-class _ScanResult:
-    """Logged topics and log-string markers found while scanning records."""
-
-    def __init__(self) -> None:
-        self.subscriptions: list[tuple[str, int]] = []
-        self.has_untagged_logs = False
-        self.log_tags: set[int] = set()
-
-
-def _scan_subscriptions(path: Path) -> _ScanResult:
-    """Collect logged topics and log-string markers without decoding data.
-
-    The scan skips data records and stops cleanly on a truncated tail. If
-    framing is lost, it resumes at the next sync marker so later channels can
-    still be detected.
-    """
-    result = _ScanResult()
-    size = path.stat().st_size
-    if size < ULOG_HEADER_SIZE:
-        raise ValueError(f"'{path.name}' is not a ULog file (invalid size).")
-
-    with open(path, "rb") as f:
-        if f.read(7) != ULOG_MAGIC[:7]:
-            raise ValueError(f"'{path.name}' is not a ULog file (bad magic bytes).")
-
-        pos = ULOG_HEADER_SIZE
-        f.seek(pos)
-        while pos < size:
-            if pos + 3 > size:
-                break  # truncated message header
-            msg_size, msg_type = struct.unpack("<HB", f.read(3))
-
-            if msg_type not in KNOWN_MESSAGE_TYPES:
-                # Lost framing: reframe at the next sync marker.
-                next_sync = _find_next_sync(f, pos)
-                if next_sync == -1:
-                    break
-                pos = next_sync
-                f.seek(pos)
-                continue
-
-            if pos + 3 + msg_size > size:
-                break  # truncated final record
-
-            consumed = 0
-            if msg_type == ord("A"):
-                # 'A' (add subscription): multi_id[1], msg_id[2], message_name.
-                if msg_size >= 4:
-                    payload = f.read(msg_size)
-                    consumed = msg_size
-                    multi_id = payload[0]
-                    name = payload[3:msg_size].decode("utf-8", errors="replace")
-                    result.subscriptions.append((name, multi_id))
-            elif msg_type == ord("L"):
-                result.has_untagged_logs = True
-            elif msg_type == ord("C"):
-                # 'C' (tagged logged string): log_level[1], tag[2], ...
-                if msg_size >= 3:
-                    (tag,) = struct.unpack_from("<H", f.read(3), 1)
-                    consumed = 3
-                    result.log_tags.add(tag)
-
-            if consumed < msg_size:
-                f.seek(msg_size - consumed, 1)
-            pos += 3 + msg_size
-
-    return result
 
 
 def expand_message_fields(message_formats: dict, message_name: str) -> list[tuple[str, str]]:
@@ -175,43 +78,49 @@ def expand_message_fields(message_formats: dict, message_name: str) -> list[tupl
     return flattened
 
 
-def detect_ulog_fields(message_formats: dict, scan: _ScanResult) -> dict[str, str]:
+def detect_ulog_fields(ulog: ULog) -> dict[str, str]:
     """Return importable channels as ``{channel_key: c_type}``.
 
-    Logged topics use ``<message>_<multi_id>.<field>``. The timestamp axis and
-    padding fields are excluded; logged strings become ``log_messages`` or
-    ``log_messages_<tag>``.
+    Decoded topics use ``<message>_<multi_id>.<field>``. The timestamp axis
+    and padding fields are excluded; logged strings become ``log_messages``
+    or ``log_messages_<tag>``.
     """
     fields: dict[str, str] = {}
-    for message_name, multi_id in scan.subscriptions:
-        # Truncated headers can leave a subscription without a format.
-        if message_name not in message_formats:
-            continue
+    for dataset in ulog.data_list:
         # No top-level timestamp means no usable time axis.
-        if not any(f[2] == "timestamp" for f in message_formats[message_name].fields):
+        if not any(f[2] == "timestamp" for f in ulog.message_formats[dataset.name].fields):
             continue
-        prefix = f"{message_name}_{multi_id}"
-        for key, type_str in expand_message_fields(message_formats, message_name):
+        prefix = f"{dataset.name}_{dataset.multi_id}"
+        for key, type_str in expand_message_fields(ulog.message_formats, dataset.name):
             # timestamp is the time axis; _padding fields are alignment bytes.
             if key == "timestamp" or _is_padding(key):
                 continue
             fields[f"{prefix}.{key}"] = type_str
-    if scan.has_untagged_logs:
+    if ulog.logged_messages:
         fields[LOG_MESSAGES_CHANNEL] = "char"
-    for tag in sorted(scan.log_tags):
+    for tag in sorted(ulog.logged_messages_tagged):
         fields[f"{LOG_MESSAGES_CHANNEL}_{tag}"] = "char"
     return fields
 
 
-def _parse_header(path: Path) -> ULog:
-    """Parse only the ULog Definitions section (no data records)."""
-    # pyulog logs format notes to stdout; keep the client's stdout clean.
+def _parse_ulog(path: Path) -> ULog:
+    """Fully parse the file with pyulog, data records included."""
+    # pyulog logs parse notes to stdout; keep the client's stdout clean.
     with contextlib.redirect_stdout(sys.stderr):
-        return ULog(str(path), parse_header_only=True)
+        try:
+            return ULog(str(path))
+        except Exception as e:
+            raise ValueError(f"'{path.name}' could not be parsed as ULog: {e}") from e
 
 
 def detect_ulog_config(file_path: str | Path, asset_name: str = "") -> UlogImportConfig:
     """Detect a ULog import config by enumerating the file's channels.
+
+    Channels come from what pyulog decodes, so malformed records and topics
+    without decodable records are missing from the result; a warning is
+    emitted when pyulog reports corruption. On files with parse errors the
+    result can also differ from the channels the import finds; if the import
+    rejects the returned channel list, clear ``data`` to import all channels.
 
     Args:
         file_path: Path to the ``.ulg`` file.
@@ -220,13 +129,18 @@ def detect_ulog_config(file_path: str | Path, asset_name: str = "") -> UlogImpor
     Returns:
         A config whose ``data`` lists detected channels with default Sift names
         and data types. Remove entries to skip channels, or edit entries before
-        importing. Leaving ``data`` empty lets the server import all channels
-        with the same defaults.
+        importing. Leaving ``data`` empty imports all channels with the same
+        defaults.
     """
     path = Path(file_path)
-    scan = _scan_subscriptions(path)
-    header = _parse_header(path)
-    detected = detect_ulog_fields(header.message_formats, scan)
+    ulog = _parse_ulog(path)
+    if ulog.file_corruption:
+        warnings.warn(
+            f"'{path.name}' has records pyulog could not decode and dropped; "
+            "the detected channels may be incomplete.",
+            stacklevel=2,
+        )
+    detected = detect_ulog_fields(ulog)
     data = [
         UlogDataColumn(channel=key, name=key, data_type=ULOG_TO_SIFT_TYPE[c_type])
         for key, c_type in detected.items()
