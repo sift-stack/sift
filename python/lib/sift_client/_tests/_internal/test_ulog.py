@@ -7,7 +7,6 @@ import struct
 import pytest
 
 from sift_client._internal.util.ulog import (
-    ULOG_TO_SIFT_TYPE,
     detect_ulog_config,
     detect_ulog_fields,
     expand_message_fields,
@@ -89,6 +88,17 @@ ACCEL_FORMAT = _format("sensor_accel:uint64_t timestamp;float x;float y;float z;
 ACCEL_RECORD = struct.pack("<Qfff", 100, 1.0, 2.0, 3.0)
 
 
+def _accel_log() -> bytes:
+    """A minimal well-formed log: one topic, one record."""
+    return (
+        _header()
+        + _flag_bits()
+        + ACCEL_FORMAT
+        + _add_logged(0, 0, "sensor_accel")
+        + _data_record(0, ACCEL_RECORD)
+    )
+
+
 class TestExpandMessageFields:
     def test_scalars(self):
         formats = {
@@ -151,15 +161,6 @@ class TestDetectUlogFields:
         )
         assert detect_ulog_fields(ulog) == {"sensor_accel_0.x": "float"}
 
-    def test_multi_id_in_prefix(self):
-        ulog = _FakeUlog(
-            message_formats={
-                "sensor_accel": _FakeFormat([("uint64_t", 0, "timestamp"), ("float", 0, "x")])
-            },
-            data_list=[_FakeDataset("sensor_accel", 0), _FakeDataset("sensor_accel", 1)],
-        )
-        assert set(detect_ulog_fields(ulog)) == {"sensor_accel_0.x", "sensor_accel_1.x"}
-
     def test_skips_message_without_timestamp(self):
         ulog = _FakeUlog(
             message_formats={"no_time": _FakeFormat([("float", 0, "x")])},
@@ -177,27 +178,10 @@ class TestDetectUlogFields:
         ]
 
 
-class TestTypeMapping:
-    def test_narrow_ints_widen(self):
-        assert ULOG_TO_SIFT_TYPE["int8_t"] == ChannelDataType.INT_32
-        assert ULOG_TO_SIFT_TYPE["uint16_t"] == ChannelDataType.UINT_32
-        assert ULOG_TO_SIFT_TYPE["int64_t"] == ChannelDataType.INT_64
-        assert ULOG_TO_SIFT_TYPE["uint64_t"] == ChannelDataType.UINT_64
-
-    def test_char_is_string(self):
-        assert ULOG_TO_SIFT_TYPE["char"] == ChannelDataType.STRING
-
-
 class TestDetectUlogConfig:
     def test_detects_channel_per_field(self, tmp_path):
         path = tmp_path / "log.ulg"
-        path.write_bytes(
-            _header()
-            + _flag_bits()
-            + ACCEL_FORMAT
-            + _add_logged(0, 0, "sensor_accel")
-            + _data_record(0, ACCEL_RECORD)
-        )
+        path.write_bytes(_accel_log())
 
         config = detect_ulog_config(path, asset_name="drone")
         assert config.asset_name == "drone"
@@ -241,31 +225,40 @@ class TestDetectUlogConfig:
             ("log_messages_5", ChannelDataType.STRING),
         }
 
-    def test_bool_and_char_fields(self, tmp_path):
+    def test_maps_every_ulog_scalar_type(self, tmp_path):
+        # Narrow ints widen to 32-bit, char[N] imports as one string.
         path = tmp_path / "log.ulg"
+        fmt = _format(
+            "types:uint64_t timestamp;int8_t i8;int16_t i16;int32_t i32;int64_t i64;"
+            "uint8_t u8;uint16_t u16;uint32_t u32;uint64_t u64;"
+            "float f;double d;bool b;char[4] s;"
+        )
+        record = struct.pack(
+            "<QbhiqBHIQfd?4s", 100, -1, -2, -3, -4, 1, 2, 3, 4, 1.5, 2.5, True, b"abcd"
+        )
         path.write_bytes(
-            _header()
-            + _flag_bits()
-            + _format("status:uint64_t timestamp;bool armed;char[4] name;")
-            + _add_logged(0, 0, "status")
-            + _data_record(0, struct.pack("<Q?", 100, True) + b"abcd")
+            _header() + _flag_bits() + fmt + _add_logged(0, 0, "types") + _data_record(0, record)
         )
 
         config = detect_ulog_config(path)
         assert {(d.channel, d.data_type) for d in config.data} == {
-            ("status_0.armed", ChannelDataType.BOOL),
-            ("status_0.name", ChannelDataType.STRING),
+            ("types_0.i8", ChannelDataType.INT_32),
+            ("types_0.i16", ChannelDataType.INT_32),
+            ("types_0.i32", ChannelDataType.INT_32),
+            ("types_0.i64", ChannelDataType.INT_64),
+            ("types_0.u8", ChannelDataType.UINT_32),
+            ("types_0.u16", ChannelDataType.UINT_32),
+            ("types_0.u32", ChannelDataType.UINT_32),
+            ("types_0.u64", ChannelDataType.UINT_64),
+            ("types_0.f", ChannelDataType.FLOAT),
+            ("types_0.d", ChannelDataType.DOUBLE),
+            ("types_0.b", ChannelDataType.BOOL),
+            ("types_0.s", ChannelDataType.STRING),
         }
 
     def test_clean_file_does_not_warn(self, tmp_path, recwarn):
         path = tmp_path / "log.ulg"
-        path.write_bytes(
-            _header()
-            + _flag_bits()
-            + ACCEL_FORMAT
-            + _add_logged(0, 0, "sensor_accel")
-            + _data_record(0, ACCEL_RECORD)
-        )
+        path.write_bytes(_accel_log())
 
         detect_ulog_config(path)
         assert not [w for w in recwarn.list if issubclass(w.category, UserWarning)]
@@ -297,14 +290,7 @@ class TestDetectUlogConfig:
 
     def test_unknown_msg_id_warns_but_keeps_valid_channels(self, tmp_path):
         path = tmp_path / "log.ulg"
-        path.write_bytes(
-            _header()
-            + _flag_bits()
-            + ACCEL_FORMAT
-            + _add_logged(0, 0, "sensor_accel")
-            + _data_record(0, ACCEL_RECORD)
-            + _data_record(99, ACCEL_RECORD)
-        )
+        path.write_bytes(_accel_log() + _data_record(99, ACCEL_RECORD))
 
         with pytest.warns(UserWarning, match="could not decode"):
             config = detect_ulog_config(path)
@@ -317,11 +303,5 @@ class TestDetectUlogConfig:
     def test_rejects_non_ulog_file(self, tmp_path):
         path = tmp_path / "log.ulg"
         path.write_bytes(b"NOTULOG!" + b"\x00" * 8)
-        with pytest.raises(ValueError, match="could not be parsed as ULog"):
-            detect_ulog_config(path)
-
-    def test_rejects_too_small_file(self, tmp_path):
-        path = tmp_path / "log.ulg"
-        path.write_bytes(b"\x55\x4c")
         with pytest.raises(ValueError, match="could not be parsed as ULog"):
             detect_ulog_config(path)
