@@ -1185,21 +1185,17 @@ class PingAPI:
         """
         ...
 
-class PrincipalAttributesAPI:
-    """Sync counterpart to `PrincipalAttributesAPIAsync`.
+class PrincipalAttributeAssignmentsAPI:
+    """Sync counterpart to `PrincipalAttributeAssignmentsAPIAsync`.
 
-    High-level API for principal attributes.
+    High-level API for principal attribute assignments.
 
-    Principal attributes describe the users or groups an access decision applies to.
-    A principal is the "who" in an access decision, such as a user or user group.
-
-    Create or fetch an attribute key, define enum values when the key uses them, then
-    assign a value to principals. User principals accept either user IDs or email
-    addresses; user-group principals use user-group IDs.
+    Accessed as a nested resource via
+    ``client.access_control.principal_attributes.assignments``.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the PrincipalAttributesAPI.
+        """Initialize the PrincipalAttributeAssignmentsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -1207,7 +1203,7 @@ class PrincipalAttributesAPI:
         ...
 
     def _run(self, coro): ...
-    def archive_assignments(
+    def archive(
         self,
         assignments: list[str | PrincipalAttributeAssignment],
         *,
@@ -1216,23 +1212,7 @@ class PrincipalAttributesAPI:
         """Batch archive assignments."""
         ...
 
-    def archive_enum_value(
-        self,
-        enum_value: str | PrincipalAttributeEnumValue,
-        *,
-        replacement: str | PrincipalAttributeEnumValue | None = None,
-    ) -> int:
-        """Archive an enum value, migrating existing assignments to a replacement.
-
-        Returns the number of assignments migrated.
-        """
-        ...
-
-    def archive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        """Archive a key. Cascades to its enum values and assignments."""
-        ...
-
-    def assign(
+    def create(
         self,
         key: str | PrincipalAttributeKey,
         principals: list[str],
@@ -1257,60 +1237,13 @@ class PrincipalAttributesAPI:
         """
         ...
 
-    def check_key_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
-        """Return the number of active assignments archiving this key would affect.
-
-        Counts both user and user-group assignments.
-        """
-        ...
-
-    def create_enum_value(
-        self, key: str | PrincipalAttributeKey, display_name: str, *, description: str = ""
-    ) -> PrincipalAttributeEnumValue:
-        """Create a single enum value for a key."""
-        ...
-
-    def create_key(
-        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
-    ) -> PrincipalAttributeKey:
-        """Create a principal attribute key."""
-        ...
-
-    def find_key(self, **kwargs) -> PrincipalAttributeKey | None:
-        """Find a single key matching the query. Raises if more than one matches."""
-        ...
-
-    def get_assignment(
+    def get(
         self, *, assignment_id: str, principal_type: PrincipalType = PrincipalType.USER
     ) -> PrincipalAttributeAssignment:
         """Get a single assignment by ID."""
         ...
 
-    def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
-        """Get a principal attribute key by ID."""
-        ...
-
-    def get_or_create_enum_values(
-        self, key: str | PrincipalAttributeKey, names: list[str]
-    ) -> list[PrincipalAttributeEnumValue]:
-        """Get enum values for a key by name, creating any that don't exist.
-
-        Returns the values in the same order as ``names``.
-        """
-        ...
-
-    def get_or_create_key(
-        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
-    ) -> PrincipalAttributeKey:
-        """Get a key by display name, creating it if it does not exist.
-
-        Note:
-            Display names are not guaranteed unique. If multiple keys share the display
-            name, the first active match is returned.
-        """
-        ...
-
-    def list_assignments(
+    def list_(
         self,
         *,
         key: str | PrincipalAttributeKey | None = None,
@@ -1337,7 +1270,61 @@ class PrincipalAttributesAPI:
         """
         ...
 
-    def list_enum_values(
+    def unarchive(
+        self,
+        assignments: list[str | PrincipalAttributeAssignment],
+        *,
+        principal_type: PrincipalType = PrincipalType.USER,
+    ) -> None:
+        """Batch unarchive assignments."""
+        ...
+
+class PrincipalAttributeEnumValuesAPI:
+    """Sync counterpart to `PrincipalAttributeEnumValuesAPIAsync`.
+
+    High-level API for the enum values defined on principal attribute keys.
+
+    Accessed as a nested resource via
+    ``client.access_control.principal_attributes.enum_values``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributeEnumValuesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(
+        self,
+        enum_value: str | PrincipalAttributeEnumValue,
+        *,
+        replacement: str | PrincipalAttributeEnumValue | None = None,
+    ) -> int:
+        """Archive an enum value, migrating existing assignments to a replacement.
+
+        Returns the number of assignments migrated.
+        """
+        ...
+
+    def create(
+        self, key: str | PrincipalAttributeKey, display_name: str, *, description: str = ""
+    ) -> PrincipalAttributeEnumValue:
+        """Create a single enum value for a key."""
+        ...
+
+    def get_or_create(
+        self, key: str | PrincipalAttributeKey, names: list[str]
+    ) -> list[PrincipalAttributeEnumValue]:
+        """Get enum values for a key by name, creating any that don't exist.
+
+        Returns the values in the same order as ``names``.
+        """
+        ...
+
+    def list_(
         self,
         key: str | PrincipalAttributeKey,
         *,
@@ -1354,7 +1341,66 @@ class PrincipalAttributesAPI:
         """List the enum values defined for a key."""
         ...
 
-    def list_keys(
+    def unarchive(
+        self, enum_value: str | PrincipalAttributeEnumValue
+    ) -> PrincipalAttributeEnumValue:
+        """Unarchive an enum value."""
+        ...
+
+class PrincipalAttributeKeysAPI:
+    """Sync counterpart to `PrincipalAttributeKeysAPIAsync`.
+
+    High-level API for principal attribute keys.
+
+    Accessed as a nested resource via ``client.access_control.principal_attributes.keys``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributeKeysAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+        """Archive a key. Cascades to its enum values and assignments."""
+        ...
+
+    def check_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
+        """Return the number of active assignments archiving this key would affect.
+
+        Counts both user and user-group assignments.
+        """
+        ...
+
+    def create(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Create a principal attribute key."""
+        ...
+
+    def find(self, **kwargs) -> PrincipalAttributeKey | None:
+        """Find a single key matching the query. Raises if more than one matches."""
+        ...
+
+    def get(self, *, key_id: str) -> PrincipalAttributeKey:
+        """Get a principal attribute key by ID."""
+        ...
+
+    def get_or_create(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
+        Note:
+            Display names are not guaranteed unique. If multiple keys share the display
+            name, the first active match is returned.
+        """
+        ...
+
+    def list_(
         self,
         *,
         name: str | None = None,
@@ -1384,26 +1430,11 @@ class PrincipalAttributesAPI:
         """
         ...
 
-    def unarchive_assignments(
-        self,
-        assignments: list[str | PrincipalAttributeAssignment],
-        *,
-        principal_type: PrincipalType = PrincipalType.USER,
-    ) -> None:
-        """Batch unarchive assignments."""
-        ...
-
-    def unarchive_enum_value(
-        self, enum_value: str | PrincipalAttributeEnumValue
-    ) -> PrincipalAttributeEnumValue:
-        """Unarchive an enum value."""
-        ...
-
-    def unarchive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+    def unarchive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
         ...
 
-    def update_key(
+    def update(
         self, key: str | PrincipalAttributeKey, update: PrincipalAttributeKeyUpdate | dict
     ) -> PrincipalAttributeKey:
         """Update a key.
@@ -1412,6 +1443,42 @@ class PrincipalAttributesAPI:
             key: The key or key ID to update.
             update: Updates to apply to the key.
         """
+        ...
+
+class PrincipalAttributesAPI:
+    """Sync counterpart to `PrincipalAttributesAPIAsync`.
+
+    High-level API for principal attributes.
+
+    Principal attributes describe the users or groups an access decision applies to.
+    A principal is the "who" in an access decision, such as a user or user group.
+
+    Create or fetch an attribute key via `keys`, define enum values via `enum_values`
+    when the key uses them, then assign a value to principals via `assignments`. User
+    principals accept either user IDs or email addresses; user-group principals use
+    user-group IDs.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    @property
+    def assignments(self) -> PrincipalAttributeAssignmentsAPI:
+        """Nested PrincipalAttributeAssignmentsAPI for making synchronous requests."""
+        ...
+    @property
+    def enum_values(self) -> PrincipalAttributeEnumValuesAPI:
+        """Nested PrincipalAttributeEnumValuesAPI for making synchronous requests."""
+        ...
+    @property
+    def keys(self) -> PrincipalAttributeKeysAPI:
+        """Nested PrincipalAttributeKeysAPI for making synchronous requests."""
         ...
 
 class ReportTemplatesAPI:
@@ -1804,21 +1871,17 @@ class ReportsAPI:
         """Nested ReportTemplatesAPI for making synchronous requests."""
         ...
 
-class ResourceAttributesAPI:
-    """Sync counterpart to `ResourceAttributesAPIAsync`.
+class ResourceAttributeAssignmentsAPI:
+    """Sync counterpart to `ResourceAttributeAssignmentsAPIAsync`.
 
-    High-level API for resource attributes.
+    High-level API for resource attribute assignments.
 
-    Resource attributes describe the Sift objects an access decision applies to. A
-    resource is the "what" in an access decision.
-
-    Create or fetch an attribute key, define enum values when the key uses them, then
-    assign a value to resources. For currently supported resource types, you can pass
-    existing ``Asset``, ``Channel``, and ``Run`` objects or their IDs directly.
+    Accessed as a nested resource via
+    ``client.access_control.resource_attributes.assignments``.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the ResourceAttributesAPI.
+        """Initialize the ResourceAttributeAssignmentsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -1826,27 +1889,11 @@ class ResourceAttributesAPI:
         ...
 
     def _run(self, coro): ...
-    def archive_assignments(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
+    def archive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
         """Batch archive assignments."""
         ...
 
-    def archive_enum_value(
-        self,
-        enum_value: str | ResourceAttributeEnumValue,
-        *,
-        replacement: str | ResourceAttributeEnumValue | None = None,
-    ) -> int:
-        """Archive an enum value, migrating existing assignments to a replacement.
-
-        Returns the number of assignments migrated.
-        """
-        ...
-
-    def archive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """Archive a key. Cascades to its enum values and assignments."""
-        ...
-
-    def assign(
+    def create(
         self,
         key: str | ResourceAttributeKey,
         resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
@@ -1869,64 +1916,11 @@ class ResourceAttributesAPI:
         """
         ...
 
-    def check_key_archive_impact(self, key: str | ResourceAttributeKey) -> int:
-        """Return the number of active assignments archiving this key would affect."""
-        ...
-
-    def create_enum_value(
-        self, key: str | ResourceAttributeKey, display_name: str, *, description: str = ""
-    ) -> ResourceAttributeEnumValue:
-        """Create a single enum value for a key."""
-        ...
-
-    def create_key(
-        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
-    ) -> ResourceAttributeKey:
-        """Create a resource attribute key.
-
-        Args:
-            display_name: The human-readable name of the key.
-            value_type: The value type of the key.
-            description: Optional description.
-
-        Returns:
-            The created key.
-        """
-        ...
-
-    def find_key(self, **kwargs) -> ResourceAttributeKey | None:
-        """Find a single key matching the query. Raises if more than one matches."""
-        ...
-
-    def get_assignment(self, *, assignment_id: str) -> ResourceAttributeAssignment:
+    def get(self, *, assignment_id: str) -> ResourceAttributeAssignment:
         """Get a single assignment by ID."""
         ...
 
-    def get_key(self, *, key_id: str) -> ResourceAttributeKey:
-        """Get a resource attribute key by ID."""
-        ...
-
-    def get_or_create_enum_values(
-        self, key: str | ResourceAttributeKey, names: list[str]
-    ) -> list[ResourceAttributeEnumValue]:
-        """Get enum values for a key by name, creating any that don't exist.
-
-        Returns the values in the same order as ``names``.
-        """
-        ...
-
-    def get_or_create_key(
-        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
-    ) -> ResourceAttributeKey:
-        """Get a key by display name, creating it if it does not exist.
-
-        Note:
-            Display names are not guaranteed unique. If multiple keys share the display
-            name, the first active match is returned.
-        """
-        ...
-
-    def list_assignments(
+    def list_(
         self,
         *,
         key: str | ResourceAttributeKey | None = None,
@@ -1951,7 +1945,56 @@ class ResourceAttributesAPI:
         """
         ...
 
-    def list_enum_values(
+    def unarchive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
+        """Batch unarchive assignments."""
+        ...
+
+class ResourceAttributeEnumValuesAPI:
+    """Sync counterpart to `ResourceAttributeEnumValuesAPIAsync`.
+
+    High-level API for the enum values defined on resource attribute keys.
+
+    Accessed as a nested resource via
+    ``client.access_control.resource_attributes.enum_values``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributeEnumValuesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(
+        self,
+        enum_value: str | ResourceAttributeEnumValue,
+        *,
+        replacement: str | ResourceAttributeEnumValue | None = None,
+    ) -> int:
+        """Archive an enum value, migrating existing assignments to a replacement.
+
+        Returns the number of assignments migrated.
+        """
+        ...
+
+    def create(
+        self, key: str | ResourceAttributeKey, display_name: str, *, description: str = ""
+    ) -> ResourceAttributeEnumValue:
+        """Create a single enum value for a key."""
+        ...
+
+    def get_or_create(
+        self, key: str | ResourceAttributeKey, names: list[str]
+    ) -> list[ResourceAttributeEnumValue]:
+        """Get enum values for a key by name, creating any that don't exist.
+
+        Returns the values in the same order as ``names``.
+        """
+        ...
+
+    def list_(
         self,
         key: str | ResourceAttributeKey,
         *,
@@ -1968,7 +2011,70 @@ class ResourceAttributesAPI:
         """List the enum values defined for a key."""
         ...
 
-    def list_keys(
+    def unarchive(self, enum_value: str | ResourceAttributeEnumValue) -> ResourceAttributeEnumValue:
+        """Unarchive an enum value."""
+        ...
+
+class ResourceAttributeKeysAPI:
+    """Sync counterpart to `ResourceAttributeKeysAPIAsync`.
+
+    High-level API for resource attribute keys.
+
+    Accessed as a nested resource via ``client.access_control.resource_attributes.keys``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributeKeysAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
+        """Archive a key. Cascades to its enum values and assignments."""
+        ...
+
+    def check_archive_impact(self, key: str | ResourceAttributeKey) -> int:
+        """Return the number of active assignments archiving this key would affect."""
+        ...
+
+    def create(
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Create a resource attribute key.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type of the key.
+            description: Optional description.
+
+        Returns:
+            The created key.
+        """
+        ...
+
+    def find(self, **kwargs) -> ResourceAttributeKey | None:
+        """Find a single key matching the query. Raises if more than one matches."""
+        ...
+
+    def get(self, *, key_id: str) -> ResourceAttributeKey:
+        """Get a resource attribute key by ID."""
+        ...
+
+    def get_or_create(
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
+        Note:
+            Display names are not guaranteed unique. If multiple keys share the display
+            name, the first active match is returned.
+        """
+        ...
+
+    def list_(
         self,
         *,
         name: str | None = None,
@@ -2001,21 +2107,11 @@ class ResourceAttributesAPI:
         """
         ...
 
-    def unarchive_assignments(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
-        """Batch unarchive assignments."""
-        ...
-
-    def unarchive_enum_value(
-        self, enum_value: str | ResourceAttributeEnumValue
-    ) -> ResourceAttributeEnumValue:
-        """Unarchive an enum value."""
-        ...
-
-    def unarchive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
+    def unarchive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
         ...
 
-    def update_key(
+    def update(
         self, key: str | ResourceAttributeKey, update: ResourceAttributeKeyUpdate | dict
     ) -> ResourceAttributeKey:
         """Update a key.
@@ -2024,6 +2120,42 @@ class ResourceAttributesAPI:
             key: The key or key ID to update.
             update: Updates to apply to the key.
         """
+        ...
+
+class ResourceAttributesAPI:
+    """Sync counterpart to `ResourceAttributesAPIAsync`.
+
+    High-level API for resource attributes.
+
+    Resource attributes describe the Sift objects an access decision applies to. A
+    resource is the "what" in an access decision.
+
+    Create or fetch an attribute key via `keys`, define enum values via `enum_values`
+    when the key uses them, then assign a value to resources via `assignments`. For
+    currently supported resource types, you can pass existing ``Asset``, ``Channel``,
+    and ``Run`` objects or their IDs directly.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    @property
+    def assignments(self) -> ResourceAttributeAssignmentsAPI:
+        """Nested ResourceAttributeAssignmentsAPI for making synchronous requests."""
+        ...
+    @property
+    def enum_values(self) -> ResourceAttributeEnumValuesAPI:
+        """Nested ResourceAttributeEnumValuesAPI for making synchronous requests."""
+        ...
+    @property
+    def keys(self) -> ResourceAttributeKeysAPI:
+        """Nested ResourceAttributeKeysAPI for making synchronous requests."""
         ...
 
 class RulesAPI:

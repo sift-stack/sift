@@ -70,7 +70,7 @@ An attribute key is the entry point. Create or fetch a key, define its enum valu
 ```python
 from sift_client.sift_types import ResourceAttributeValueType
 
-key = client.access_control.resource_attributes.get_or_create_key(
+key = client.access_control.resource_attributes.keys.get_or_create(
     "licenses",
     ResourceAttributeValueType.SET_OF_ENUM,
 )
@@ -83,7 +83,7 @@ Principal attributes accept user IDs or email addresses, resolving emails to use
 ```python
 from sift_client.sift_types import PrincipalAttributeValueType
 
-key = client.access_control.principal_attributes.get_or_create_key(
+key = client.access_control.principal_attributes.keys.get_or_create(
     "licenses",
     PrincipalAttributeValueType.SET_OF_ENUM,
 )
@@ -91,7 +91,7 @@ licenses = key.get_or_create_enum_values(["LICENSE_A"])
 key.assign_to(["user@example.com"], value=licenses)
 ```
 
-Keys, enum values, and assignments each support create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target.
+Keys, enum values, and assignments are managed through the nested `keys`, `enum_values`, and `assignments` APIs on each side (for example `client.access_control.resource_attributes.assignments.list_()`), each supporting the standard create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target.
 
 #### Users
 

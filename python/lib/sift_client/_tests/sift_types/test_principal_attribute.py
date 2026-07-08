@@ -68,13 +68,13 @@ class TestPrincipalAttributeAssignment:
             boolean_value=True,
             is_archived=True,
         )
-        mock_client.access_control.principal_attributes.get_assignment.return_value = (
+        mock_client.access_control.principal_attributes.assignments.get.return_value = (
             PrincipalAttributeAssignment._from_proto(archived_proto)
         )
 
         result = value.archive()
 
-        mock_client.access_control.principal_attributes.archive_assignments.assert_called_once_with(
+        mock_client.access_control.principal_attributes.assignments.archive.assert_called_once_with(
             [value], principal_type=PrincipalType.USER
         )
         assert result is value
@@ -106,11 +106,11 @@ class TestPrincipalAttributeKeyConvenience:
     def test_assign_to_defaults_to_user(self, mock_client):
         key = PrincipalAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
-        mock_client.access_control.principal_attributes.assign.return_value = []
+        mock_client.access_control.principal_attributes.assignments.create.return_value = []
 
         key.assign_to(["u1"], value=["LIC_A"])
 
-        mock_client.access_control.principal_attributes.assign.assert_called_once_with(
+        mock_client.access_control.principal_attributes.assignments.create.assert_called_once_with(
             key, ["u1"], value=["LIC_A"], principal_type=PrincipalType.USER
         )
 

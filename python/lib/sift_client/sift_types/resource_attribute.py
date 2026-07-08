@@ -135,13 +135,13 @@ class ResourceAttributeEnumValue(
             Returns the migration count; it does not refresh this instance's
             ``is_archived``/``archived_date``. Re-fetch the enum value to observe those.
         """
-        return self.client.access_control.resource_attributes.archive_enum_value(
+        return self.client.access_control.resource_attributes.enum_values.archive(
             self, replacement=replacement
         )
 
     def unarchive(self) -> ResourceAttributeEnumValue:
         """Unarchive this enum value."""
-        updated = self.client.access_control.resource_attributes.unarchive_enum_value(self)
+        updated = self.client.access_control.resource_attributes.enum_values.unarchive(self)
         self._update(updated)
         return self
 
@@ -243,9 +243,9 @@ class ResourceAttributeAssignment(BaseType[ra_pb.ResourceAttribute, "ResourceAtt
 
     def archive(self) -> ResourceAttributeAssignment:
         """Archive this assignment."""
-        self.client.access_control.resource_attributes.archive_assignments([self])
+        self.client.access_control.resource_attributes.assignments.archive([self])
         self._update(
-            self.client.access_control.resource_attributes.get_assignment(
+            self.client.access_control.resource_attributes.assignments.get(
                 assignment_id=self._id_or_error
             )
         )
@@ -253,9 +253,9 @@ class ResourceAttributeAssignment(BaseType[ra_pb.ResourceAttribute, "ResourceAtt
 
     def unarchive(self) -> ResourceAttributeAssignment:
         """Unarchive this assignment."""
-        self.client.access_control.resource_attributes.unarchive_assignments([self])
+        self.client.access_control.resource_attributes.assignments.unarchive([self])
         self._update(
-            self.client.access_control.resource_attributes.get_assignment(
+            self.client.access_control.resource_attributes.assignments.get(
                 assignment_id=self._id_or_error
             )
         )
@@ -304,19 +304,19 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
         self, display_name: str, *, description: str = ""
     ) -> ResourceAttributeEnumValue:
         """Create a single enum value for this key."""
-        return self.client.access_control.resource_attributes.create_enum_value(
+        return self.client.access_control.resource_attributes.enum_values.create(
             self, display_name, description=description
         )
 
     def get_or_create_enum_values(self, names: list[str]) -> list[ResourceAttributeEnumValue]:
         """Get existing enum values by name, creating any that don't exist."""
-        return self.client.access_control.resource_attributes.get_or_create_enum_values(self, names)
+        return self.client.access_control.resource_attributes.enum_values.get_or_create(self, names)
 
     def list_enum_values(
         self, *, include_archived: bool = False
     ) -> list[ResourceAttributeEnumValue]:
         """List the enum values defined for this key."""
-        return self.client.access_control.resource_attributes.list_enum_values(
+        return self.client.access_control.resource_attributes.enum_values.list_(
             self, include_archived=include_archived
         )
 
@@ -340,13 +340,15 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
         Returns:
             The created assignments.
         """
-        return self.client.access_control.resource_attributes.assign(self, resources, value=value)
+        return self.client.access_control.resource_attributes.assignments.create(
+            self, resources, value=value
+        )
 
     def list_assignments(
         self, *, include_archived: bool = False
     ) -> list[ResourceAttributeAssignment]:
         """List all assignments of this key."""
-        return self.client.access_control.resource_attributes.list_assignments(
+        return self.client.access_control.resource_attributes.assignments.list_(
             key=self, include_archived=include_archived
         )
 
@@ -356,25 +358,25 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
         Args:
             update: Either a ResourceAttributeKeyUpdate instance or a dict of fields to update.
         """
-        updated = self.client.access_control.resource_attributes.update_key(self, update=update)
+        updated = self.client.access_control.resource_attributes.keys.update(self, update=update)
         self._update(updated)
         return self
 
     def archive(self) -> ResourceAttributeKey:
         """Archive this key. Cascades to its enum values and assignments."""
-        updated = self.client.access_control.resource_attributes.archive_key(self)
+        updated = self.client.access_control.resource_attributes.keys.archive(self)
         self._update(updated)
         return self
 
     def unarchive(self) -> ResourceAttributeKey:
         """Unarchive this key."""
-        updated = self.client.access_control.resource_attributes.unarchive_key(self)
+        updated = self.client.access_control.resource_attributes.keys.unarchive(self)
         self._update(updated)
         return self
 
     def check_archive_impact(self) -> int:
         """Return the number of active assignments that archiving this key would affect."""
-        return self.client.access_control.resource_attributes.check_key_archive_impact(self)
+        return self.client.access_control.resource_attributes.keys.check_archive_impact(self)
 
     def __str__(self) -> str:
         return self.display_name

@@ -34,13 +34,41 @@ class PrincipalAttributesAPIAsync(ResourceBase):
     Principal attributes describe the users or groups an access decision applies to.
     A principal is the "who" in an access decision, such as a user or user group.
 
-    Create or fetch an attribute key, define enum values when the key uses them, then
-    assign a value to principals. User principals accept either user IDs or email
-    addresses; user-group principals use user-group IDs.
+    Create or fetch an attribute key via `keys`, define enum values via `enum_values`
+    when the key uses them, then assign a value to principals via `assignments`. User
+    principals accept either user IDs or email addresses; user-group principals use
+    user-group IDs.
     """
+
+    keys: PrincipalAttributeKeysAPIAsync
+    """Nested keys API. See `PrincipalAttributeKeysAPIAsync`."""
+
+    enum_values: PrincipalAttributeEnumValuesAPIAsync
+    """Nested enum values API. See `PrincipalAttributeEnumValuesAPIAsync`."""
+
+    assignments: PrincipalAttributeAssignmentsAPIAsync
+    """Nested assignments API. See `PrincipalAttributeAssignmentsAPIAsync`."""
 
     def __init__(self, sift_client: SiftClient):
         """Initialize the PrincipalAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        super().__init__(sift_client)
+        self.keys = PrincipalAttributeKeysAPIAsync(sift_client)
+        self.enum_values = PrincipalAttributeEnumValuesAPIAsync(sift_client)
+        self.assignments = PrincipalAttributeAssignmentsAPIAsync(sift_client)
+
+
+class PrincipalAttributeKeysAPIAsync(ResourceBase):
+    """High-level API for principal attribute keys.
+
+    Accessed as a nested resource via ``client.access_control.principal_attributes.keys``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributeKeysAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -50,12 +78,12 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             grpc_client=self.client.grpc_client
         )
 
-    async def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
+    async def get(self, *, key_id: str) -> PrincipalAttributeKey:
         """Get a principal attribute key by ID."""
         key = await self._low_level_client.get_key(key_id)
         return self._apply_client_to_instance(key)
 
-    async def list_keys(
+    async def list_(
         self,
         *,
         name: str | None = None,
@@ -105,14 +133,14 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(keys)
 
-    async def find_key(self, **kwargs) -> PrincipalAttributeKey | None:
+    async def find(self, **kwargs) -> PrincipalAttributeKey | None:
         """Find a single key matching the query. Raises if more than one matches."""
-        keys = await self.list_keys(**kwargs)
+        keys = await self.list_(**kwargs)
         if len(keys) > 1:
             raise ValueError(f"Multiple ({len(keys)}) principal attribute keys found for query")
         return keys[0] if keys else None
 
-    async def create_key(
+    async def create(
         self,
         display_name: str,
         value_type: PrincipalAttributeValueType,
@@ -125,7 +153,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(key)
 
-    async def get_or_create_key(
+    async def get_or_create(
         self,
         display_name: str,
         value_type: PrincipalAttributeValueType,
@@ -138,13 +166,13 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             Display names are not guaranteed unique. If multiple keys share the display
             name, the first active match is returned.
         """
-        existing = await self.list_keys(name=display_name, include_archived=False)
+        existing = await self.list_(name=display_name, include_archived=False)
         match = next((k for k in existing if k.display_name == display_name), None)
         if match is not None:
             return match
-        return await self.create_key(display_name, value_type, description=description)
+        return await self.create(display_name, value_type, description=description)
 
-    async def update_key(
+    async def update(
         self,
         key: str | PrincipalAttributeKey,
         update: PrincipalAttributeKeyUpdate | dict,
@@ -161,26 +189,45 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         updated = await self._low_level_client.update_key(update=update)
         return self._apply_client_to_instance(updated)
 
-    async def archive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+    async def archive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Archive a key. Cascades to its enum values and assignments."""
         key_id = id_of(key)
         await self._low_level_client.archive_key(key_id)
-        return await self.get_key(key_id=key_id)
+        return await self.get(key_id=key_id)
 
-    async def unarchive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+    async def unarchive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
         """Unarchive a key. Does not restore its cascaded enum values or assignments."""
         key_id = id_of(key)
         await self._low_level_client.unarchive_key(key_id)
-        return await self.get_key(key_id=key_id)
+        return await self.get(key_id=key_id)
 
-    async def check_key_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
+    async def check_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
         """Return the number of active assignments archiving this key would affect.
 
         Counts both user and user-group assignments.
         """
         return await self._low_level_client.check_key_archive_impact(id_of(key))
 
-    async def create_enum_value(
+
+class PrincipalAttributeEnumValuesAPIAsync(ResourceBase):
+    """High-level API for the enum values defined on principal attribute keys.
+
+    Accessed as a nested resource via
+    ``client.access_control.principal_attributes.enum_values``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributeEnumValuesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        super().__init__(sift_client)
+        self._low_level_client = PrincipalAttributesLowLevelClient(
+            grpc_client=self.client.grpc_client
+        )
+
+    async def create(
         self,
         key: str | PrincipalAttributeKey,
         display_name: str,
@@ -194,7 +241,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(value)
 
-    async def list_enum_values(
+    async def list_(
         self,
         key: str | PrincipalAttributeKey,
         *,
@@ -225,7 +272,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(values)
 
-    async def get_or_create_enum_values(
+    async def get_or_create(
         self, key: str | PrincipalAttributeKey, names: list[str]
     ) -> list[PrincipalAttributeEnumValue]:
         """Get enum values for a key by name, creating any that don't exist.
@@ -233,18 +280,18 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         Returns the values in the same order as ``names``.
         """
         key_id = id_of(key)
-        existing = await self.list_enum_values(key_id, include_archived=False)
+        existing = await self.list_(key_id, include_archived=False)
         by_name = {v.display_name: v for v in existing}
         result: list[PrincipalAttributeEnumValue] = []
         for name in names:
             value = by_name.get(name)
             if value is None:
-                value = await self.create_enum_value(key_id, name)
+                value = await self.create(key_id, name)
                 by_name[name] = value
             result.append(value)
         return result
 
-    async def archive_enum_value(
+    async def archive(
         self,
         enum_value: str | PrincipalAttributeEnumValue,
         *,
@@ -260,7 +307,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             enum_value_id, replacement_enum_value_id=replacement_id
         )
 
-    async def unarchive_enum_value(
+    async def unarchive(
         self, enum_value: str | PrincipalAttributeEnumValue
     ) -> PrincipalAttributeEnumValue:
         """Unarchive an enum value."""
@@ -269,7 +316,26 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         value = await self._low_level_client.get_enum_value(enum_value_id)
         return self._apply_client_to_instance(value)
 
-    async def assign(
+
+class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
+    """High-level API for principal attribute assignments.
+
+    Accessed as a nested resource via
+    ``client.access_control.principal_attributes.assignments``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributeAssignmentsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        super().__init__(sift_client)
+        self._low_level_client = PrincipalAttributesLowLevelClient(
+            grpc_client=self.client.grpc_client
+        )
+
+    async def create(
         self,
         key: str | PrincipalAttributeKey,
         principals: list[str],
@@ -293,7 +359,9 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             The created assignments.
         """
         resolved_key = await resolve_key(
-            key, key_cls=PrincipalAttributeKey, getter=lambda key_id: self.get_key(key_id=key_id)
+            key,
+            key_cls=PrincipalAttributeKey,
+            getter=lambda key_id: self._low_level_client.get_key(key_id),
         )
         resolved_ids = await self._resolve_principal_ids(principals, principal_type=principal_type)
         create_kwargs = attribute_value_kwargs(resolved_key.value_type, value)
@@ -306,7 +374,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(created)
 
-    async def get_assignment(
+    async def get(
         self,
         *,
         assignment_id: str,
@@ -318,7 +386,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(value)
 
-    async def list_assignments(
+    async def list_(
         self,
         *,
         key: str | PrincipalAttributeKey | None = None,
@@ -374,7 +442,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
             )
         return self._apply_client_to_instances(values)
 
-    async def archive_assignments(
+    async def archive(
         self,
         assignments: list[str | PrincipalAttributeAssignment],
         *,
@@ -384,7 +452,7 @@ class PrincipalAttributesAPIAsync(ResourceBase):
         ids = [id_of(a) for a in assignments]
         await self._low_level_client.archive_values(ids, principal_type=principal_type.value)
 
-    async def unarchive_assignments(
+    async def unarchive(
         self,
         assignments: list[str | PrincipalAttributeAssignment],
         *,
