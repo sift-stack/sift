@@ -1935,13 +1935,18 @@ class ResourceAttributeAssignmentsAPI:
 
         Args:
             key: Filter to assignments of this key.
-            resource: Filter to assignments on this resource. When set, other filters are ignored.
-                Pass a resource object, resource ID, or ``ResourceAttributeEntity``.
+            resource: Filter to assignments on this resource. Cannot be combined with
+                ``key``, ``filter_query``, or ``order_by``. Pass a resource object,
+                resource ID, or ``ResourceAttributeEntity``.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
+
+        Raises:
+            ValueError: If ``resource`` is combined with ``key``, ``filter_query``, or
+                ``order_by``, which the by-resource listing does not support.
         """
         ...
 

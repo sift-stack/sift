@@ -239,6 +239,50 @@ class TestAssignmentsCreateValueResolution:
         api.assignments._low_level_client.list_all_resource_attributes_by_entity.assert_not_called()
 
 
+class TestAssignmentsListResourceFilter:
+    @pytest.mark.asyncio
+    async def test_resource_alone_uses_by_entity_rpc(self):
+        api = _api()
+        api.assignments._low_level_client.list_all_resource_attributes_by_entity = AsyncMock(
+            return_value=[]
+        )
+
+        await api.assignments.list_(resource=ResourceAttributeEntity.for_channel("ch1"))
+
+        api.assignments._low_level_client.list_all_resource_attributes_by_entity.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_resource_with_key_raises(self):
+        api = _api()
+        api.assignments._low_level_client.list_all_resource_attributes_by_entity = AsyncMock()
+
+        with pytest.raises(ValueError, match="cannot be combined"):
+            await api.assignments.list_(
+                resource=ResourceAttributeEntity.for_channel("ch1"), key=_key()
+            )
+
+        api.assignments._low_level_client.list_all_resource_attributes_by_entity.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_resource_with_filter_query_raises(self):
+        api = _api()
+
+        with pytest.raises(ValueError, match="cannot be combined"):
+            await api.assignments.list_(
+                resource=ResourceAttributeEntity.for_channel("ch1"),
+                filter_query="is_archived == false",
+            )
+
+    @pytest.mark.asyncio
+    async def test_resource_with_order_by_raises(self):
+        api = _api()
+
+        with pytest.raises(ValueError, match="cannot be combined"):
+            await api.assignments.list_(
+                resource=ResourceAttributeEntity.for_channel("ch1"), order_by="created_date"
+            )
+
+
 def _asset_proto():
     from sift.assets.v1.assets_pb2 import Asset as AssetProto
 

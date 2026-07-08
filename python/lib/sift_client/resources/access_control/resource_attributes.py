@@ -431,15 +431,25 @@ class ResourceAttributeAssignmentsAPIAsync(ResourceBase):
 
         Args:
             key: Filter to assignments of this key.
-            resource: Filter to assignments on this resource. When set, other filters are ignored.
-                Pass a resource object, resource ID, or ``ResourceAttributeEntity``.
+            resource: Filter to assignments on this resource. Cannot be combined with
+                ``key``, ``filter_query``, or ``order_by``. Pass a resource object,
+                resource ID, or ``ResourceAttributeEntity``.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
+
+        Raises:
+            ValueError: If ``resource`` is combined with ``key``, ``filter_query``, or
+                ``order_by``, which the by-resource listing does not support.
         """
         if resource is not None:
+            if key is not None or filter_query is not None or order_by is not None:
+                raise ValueError(
+                    "resource cannot be combined with key, filter_query, or order_by; "
+                    "the by-resource listing does not support additional filters."
+                )
             resolved = await self._resolve_resource(resource)
             attrs = await self._low_level_client.list_all_resource_attributes_by_entity(
                 entity=resolved,
