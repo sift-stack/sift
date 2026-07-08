@@ -115,7 +115,14 @@ class ResourceAttributeKeysAPIAsync(ResourceBase):
         )
 
     async def get(self, *, key_id: str) -> ResourceAttributeKey:
-        """Get a resource attribute key by ID."""
+        """Get a resource attribute key by ID.
+
+        Args:
+            key_id: The ID of the key.
+
+        Returns:
+            The key.
+        """
         key = await self._low_level_client.get_key(key_id)
         return self._apply_client_to_instance(key)
 
@@ -170,7 +177,17 @@ class ResourceAttributeKeysAPIAsync(ResourceBase):
         return self._apply_client_to_instances(keys)
 
     async def find(self, **kwargs) -> ResourceAttributeKey | None:
-        """Find a single key matching the query. Raises if more than one matches."""
+        """Find a single key matching the query. Takes the same arguments as `list_`.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The key found, or None if no key matches.
+
+        Raises:
+            ValueError: If more than one key matches.
+        """
         keys = await self.list_(**kwargs)
         if len(keys) > 1:
             raise ValueError(f"Multiple ({len(keys)}) resource attribute keys found for query")
@@ -207,6 +224,14 @@ class ResourceAttributeKeysAPIAsync(ResourceBase):
     ) -> ResourceAttributeKey:
         """Get a key by display name, creating it if it does not exist.
 
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type used if the key is created.
+            description: Optional description used if the key is created.
+
+        Returns:
+            The existing or newly created key.
+
         Note:
             Display names are not guaranteed unique. If multiple keys share the display
             name, the first active match is returned.
@@ -227,6 +252,9 @@ class ResourceAttributeKeysAPIAsync(ResourceBase):
         Args:
             key: The key or key ID to update.
             update: Updates to apply to the key.
+
+        Returns:
+            The updated key.
         """
         if isinstance(update, dict):
             update = ResourceAttributeKeyUpdate.model_validate(update)
@@ -235,19 +263,40 @@ class ResourceAttributeKeysAPIAsync(ResourceBase):
         return self._apply_client_to_instance(updated)
 
     async def archive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """Archive a key. Cascades to its enum values and assignments."""
+        """Archive a key. Cascades to its enum values and assignments.
+
+        Args:
+            key: The key or key ID to archive.
+
+        Returns:
+            The archived key.
+        """
         key_id = id_of(key)
         await self._low_level_client.archive_key(key_id)
         return await self.get(key_id=key_id)
 
     async def unarchive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """Unarchive a key. Does not restore its cascaded enum values or assignments."""
+        """Unarchive a key. Does not restore its cascaded enum values or assignments.
+
+        Args:
+            key: The key or key ID to unarchive.
+
+        Returns:
+            The unarchived key.
+        """
         key_id = id_of(key)
         await self._low_level_client.unarchive_key(key_id)
         return await self.get(key_id=key_id)
 
     async def check_archive_impact(self, key: str | ResourceAttributeKey) -> int:
-        """Return the number of active assignments archiving this key would affect."""
+        """Check how many assignments archiving a key would affect.
+
+        Args:
+            key: The key or key ID to check.
+
+        Returns:
+            The number of active assignments archiving this key would affect.
+        """
         return await self._low_level_client.check_key_archive_impact(id_of(key))
 
 
@@ -276,7 +325,16 @@ class ResourceAttributeEnumValuesAPIAsync(ResourceBase):
         *,
         description: str = "",
     ) -> ResourceAttributeEnumValue:
-        """Create a single enum value for a key."""
+        """Create a single enum value for a key.
+
+        Args:
+            key: The key or key ID the enum value belongs to.
+            display_name: The human-readable name of the enum value.
+            description: Optional description.
+
+        Returns:
+            The created enum value.
+        """
         key_id = id_of(key)
         value = await self._low_level_client.create_enum_value(
             key_id=key_id, display_name=display_name, description=description
@@ -297,7 +355,23 @@ class ResourceAttributeEnumValuesAPIAsync(ResourceBase):
         limit: int | None = None,
         page_size: int | None = None,
     ) -> list[ResourceAttributeEnumValue]:
-        """List the enum values defined for a key."""
+        """List the enum values defined for a key.
+
+        Args:
+            key: The key or key ID to list enum values for.
+            name: Exact display name of the enum value.
+            names: Display names to filter by.
+            name_contains: Substring match on the display name.
+            name_regex: Regex match on the display name.
+            include_archived: If True, include archived enum values.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of enum values to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching enum values.
+        """
         key_id = id_of(key)
         filter_parts = self._build_name_cel_filters(
             name=name, names=names, name_contains=name_contains, name_regex=name_regex
@@ -319,7 +393,12 @@ class ResourceAttributeEnumValuesAPIAsync(ResourceBase):
     ) -> list[ResourceAttributeEnumValue]:
         """Get enum values for a key by name, creating any that don't exist.
 
-        Returns the values in the same order as ``names``.
+        Args:
+            key: The key or key ID the enum values belong to.
+            names: Display names of the enum values to get or create.
+
+        Returns:
+            The enum values, in the same order as ``names``.
         """
         key_id = id_of(key)
         existing = await self.list_(key_id, include_archived=False)
@@ -341,7 +420,13 @@ class ResourceAttributeEnumValuesAPIAsync(ResourceBase):
     ) -> int:
         """Archive an enum value, migrating existing assignments to a replacement.
 
-        Returns the number of assignments migrated.
+        Args:
+            enum_value: The enum value or enum value ID to archive.
+            replacement: Optional enum value or enum value ID that existing
+                assignments are migrated to.
+
+        Returns:
+            The number of assignments migrated.
         """
         enum_value_id = id_of(enum_value)
         replacement_id = id_of(replacement) if replacement is not None else ""
@@ -352,7 +437,14 @@ class ResourceAttributeEnumValuesAPIAsync(ResourceBase):
     async def unarchive(
         self, enum_value: str | ResourceAttributeEnumValue
     ) -> ResourceAttributeEnumValue:
-        """Unarchive an enum value."""
+        """Unarchive an enum value.
+
+        Args:
+            enum_value: The enum value or enum value ID to unarchive.
+
+        Returns:
+            The unarchived enum value.
+        """
         enum_value_id = id_of(enum_value)
         await self._low_level_client.unarchive_enum_value(enum_value_id)
         value = await self._low_level_client.get_enum_value(enum_value_id)
@@ -412,7 +504,14 @@ class ResourceAttributeAssignmentsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(created)
 
     async def get(self, *, assignment_id: str) -> ResourceAttributeAssignment:
-        """Get a single assignment by ID."""
+        """Get a single assignment by ID.
+
+        Args:
+            assignment_id: The ID of the assignment.
+
+        Returns:
+            The assignment.
+        """
         attr = await self._low_level_client.get_resource_attribute(assignment_id)
         return self._apply_client_to_instance(attr)
 
@@ -439,6 +538,9 @@ class ResourceAttributeAssignmentsAPIAsync(ResourceBase):
             order_by: Field and direction to order by.
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
+
+        Returns:
+            The matching assignments.
 
         Raises:
             ValueError: If ``resource`` is combined with ``key``, ``filter_query``, or
@@ -475,12 +577,20 @@ class ResourceAttributeAssignmentsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(attrs)
 
     async def archive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
-        """Batch archive assignments."""
+        """Batch archive assignments.
+
+        Args:
+            assignments: The assignments or assignment IDs to archive.
+        """
         ids = [id_of(a) for a in assignments]
         await self._low_level_client.batch_archive_resource_attributes(ids)
 
     async def unarchive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
-        """Batch unarchive assignments."""
+        """Batch unarchive assignments.
+
+        Args:
+            assignments: The assignments or assignment IDs to unarchive.
+        """
         ids = [id_of(a) for a in assignments]
         await self._low_level_client.batch_unarchive_resource_attributes(ids)
 

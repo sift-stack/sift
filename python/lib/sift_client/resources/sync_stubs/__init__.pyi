@@ -1207,9 +1207,14 @@ class PrincipalAttributeAssignmentsAPI:
         self,
         assignments: list[str | PrincipalAttributeAssignment],
         *,
-        principal_type: PrincipalType = PrincipalType.USER,
+        principal_type: PrincipalType,
     ) -> None:
-        """Batch archive assignments."""
+        """Batch archive assignments of the given principal type.
+
+        Args:
+            assignments: The assignments or assignment IDs to archive.
+            principal_type: The kind of principal the assignments apply to.
+        """
         ...
 
     def create(
@@ -1238,9 +1243,17 @@ class PrincipalAttributeAssignmentsAPI:
         ...
 
     def get(
-        self, *, assignment_id: str, principal_type: PrincipalType = PrincipalType.USER
+        self, *, assignment_id: str, principal_type: PrincipalType
     ) -> PrincipalAttributeAssignment:
-        """Get a single assignment by ID."""
+        """Get a single assignment by ID and principal type.
+
+        Args:
+            assignment_id: The ID of the assignment.
+            principal_type: The kind of principal the assignment applies to.
+
+        Returns:
+            The assignment.
+        """
         ...
 
     def list_(
@@ -1267,6 +1280,9 @@ class PrincipalAttributeAssignmentsAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
+
+        Returns:
+            The matching assignments.
         """
         ...
 
@@ -1274,9 +1290,14 @@ class PrincipalAttributeAssignmentsAPI:
         self,
         assignments: list[str | PrincipalAttributeAssignment],
         *,
-        principal_type: PrincipalType = PrincipalType.USER,
+        principal_type: PrincipalType,
     ) -> None:
-        """Batch unarchive assignments."""
+        """Batch unarchive assignments of the given principal type.
+
+        Args:
+            assignments: The assignments or assignment IDs to unarchive.
+            principal_type: The kind of principal the assignments apply to.
+        """
         ...
 
 class PrincipalAttributeEnumValuesAPI:
@@ -1305,14 +1326,29 @@ class PrincipalAttributeEnumValuesAPI:
     ) -> int:
         """Archive an enum value, migrating existing assignments to a replacement.
 
-        Returns the number of assignments migrated.
+        Args:
+            enum_value: The enum value or enum value ID to archive.
+            replacement: Optional enum value or enum value ID that existing
+                assignments are migrated to.
+
+        Returns:
+            The number of assignments migrated.
         """
         ...
 
     def create(
         self, key: str | PrincipalAttributeKey, display_name: str, *, description: str = ""
     ) -> PrincipalAttributeEnumValue:
-        """Create a single enum value for a key."""
+        """Create a single enum value for a key.
+
+        Args:
+            key: The key or key ID the enum value belongs to.
+            display_name: The human-readable name of the enum value.
+            description: Optional description.
+
+        Returns:
+            The created enum value.
+        """
         ...
 
     def get_or_create(
@@ -1320,7 +1356,12 @@ class PrincipalAttributeEnumValuesAPI:
     ) -> list[PrincipalAttributeEnumValue]:
         """Get enum values for a key by name, creating any that don't exist.
 
-        Returns the values in the same order as ``names``.
+        Args:
+            key: The key or key ID the enum values belong to.
+            names: Display names of the enum values to get or create.
+
+        Returns:
+            The enum values, in the same order as ``names``.
         """
         ...
 
@@ -1338,13 +1379,36 @@ class PrincipalAttributeEnumValuesAPI:
         limit: int | None = None,
         page_size: int | None = None,
     ) -> list[PrincipalAttributeEnumValue]:
-        """List the enum values defined for a key."""
+        """List the enum values defined for a key.
+
+        Args:
+            key: The key or key ID to list enum values for.
+            name: Exact display name of the enum value.
+            names: Display names to filter by.
+            name_contains: Substring match on the display name.
+            name_regex: Regex match on the display name.
+            include_archived: If True, include archived enum values.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of enum values to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching enum values.
+        """
         ...
 
     def unarchive(
         self, enum_value: str | PrincipalAttributeEnumValue
     ) -> PrincipalAttributeEnumValue:
-        """Unarchive an enum value."""
+        """Unarchive an enum value.
+
+        Args:
+            enum_value: The enum value or enum value ID to unarchive.
+
+        Returns:
+            The unarchived enum value.
+        """
         ...
 
 class PrincipalAttributeKeysAPI:
@@ -1365,34 +1429,81 @@ class PrincipalAttributeKeysAPI:
 
     def _run(self, coro): ...
     def archive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        """Archive a key. Cascades to its enum values and assignments."""
+        """Archive a key. Cascades to its enum values and assignments.
+
+        Args:
+            key: The key or key ID to archive.
+
+        Returns:
+            The archived key.
+        """
         ...
 
     def check_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
-        """Return the number of active assignments archiving this key would affect.
+        """Check how many assignments archiving a key would affect.
 
         Counts both user and user-group assignments.
+
+        Args:
+            key: The key or key ID to check.
+
+        Returns:
+            The number of active assignments archiving this key would affect.
         """
         ...
 
     def create(
         self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
     ) -> PrincipalAttributeKey:
-        """Create a principal attribute key."""
+        """Create a principal attribute key.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type of the key.
+            description: Optional description.
+
+        Returns:
+            The created key.
+        """
         ...
 
     def find(self, **kwargs) -> PrincipalAttributeKey | None:
-        """Find a single key matching the query. Raises if more than one matches."""
+        """Find a single key matching the query. Takes the same arguments as `list_`.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The key found, or None if no key matches.
+
+        Raises:
+            ValueError: If more than one key matches.
+        """
         ...
 
     def get(self, *, key_id: str) -> PrincipalAttributeKey:
-        """Get a principal attribute key by ID."""
+        """Get a principal attribute key by ID.
+
+        Args:
+            key_id: The ID of the key.
+
+        Returns:
+            The key.
+        """
         ...
 
     def get_or_create(
         self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
     ) -> PrincipalAttributeKey:
         """Get a key by display name, creating it if it does not exist.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type used if the key is created.
+            description: Optional description used if the key is created.
+
+        Returns:
+            The existing or newly created key.
 
         Note:
             Display names are not guaranteed unique. If multiple keys share the display
@@ -1427,11 +1538,21 @@ class PrincipalAttributeKeysAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of keys to return.
             page_size: Results to fetch per request.
+
+        Returns:
+            The matching keys.
         """
         ...
 
     def unarchive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        """Unarchive a key. Does not restore its cascaded enum values or assignments."""
+        """Unarchive a key. Does not restore its cascaded enum values or assignments.
+
+        Args:
+            key: The key or key ID to unarchive.
+
+        Returns:
+            The unarchived key.
+        """
         ...
 
     def update(
@@ -1442,6 +1563,9 @@ class PrincipalAttributeKeysAPI:
         Args:
             key: The key or key ID to update.
             update: Updates to apply to the key.
+
+        Returns:
+            The updated key.
         """
         ...
 
@@ -1890,7 +2014,11 @@ class ResourceAttributeAssignmentsAPI:
 
     def _run(self, coro): ...
     def archive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
-        """Batch archive assignments."""
+        """Batch archive assignments.
+
+        Args:
+            assignments: The assignments or assignment IDs to archive.
+        """
         ...
 
     def create(
@@ -1917,7 +2045,14 @@ class ResourceAttributeAssignmentsAPI:
         ...
 
     def get(self, *, assignment_id: str) -> ResourceAttributeAssignment:
-        """Get a single assignment by ID."""
+        """Get a single assignment by ID.
+
+        Args:
+            assignment_id: The ID of the assignment.
+
+        Returns:
+            The assignment.
+        """
         ...
 
     def list_(
@@ -1944,6 +2079,9 @@ class ResourceAttributeAssignmentsAPI:
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
 
+        Returns:
+            The matching assignments.
+
         Raises:
             ValueError: If ``resource`` is combined with ``key``, ``filter_query``, or
                 ``order_by``, which the by-resource listing does not support.
@@ -1951,7 +2089,11 @@ class ResourceAttributeAssignmentsAPI:
         ...
 
     def unarchive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
-        """Batch unarchive assignments."""
+        """Batch unarchive assignments.
+
+        Args:
+            assignments: The assignments or assignment IDs to unarchive.
+        """
         ...
 
 class ResourceAttributeEnumValuesAPI:
@@ -1980,14 +2122,29 @@ class ResourceAttributeEnumValuesAPI:
     ) -> int:
         """Archive an enum value, migrating existing assignments to a replacement.
 
-        Returns the number of assignments migrated.
+        Args:
+            enum_value: The enum value or enum value ID to archive.
+            replacement: Optional enum value or enum value ID that existing
+                assignments are migrated to.
+
+        Returns:
+            The number of assignments migrated.
         """
         ...
 
     def create(
         self, key: str | ResourceAttributeKey, display_name: str, *, description: str = ""
     ) -> ResourceAttributeEnumValue:
-        """Create a single enum value for a key."""
+        """Create a single enum value for a key.
+
+        Args:
+            key: The key or key ID the enum value belongs to.
+            display_name: The human-readable name of the enum value.
+            description: Optional description.
+
+        Returns:
+            The created enum value.
+        """
         ...
 
     def get_or_create(
@@ -1995,7 +2152,12 @@ class ResourceAttributeEnumValuesAPI:
     ) -> list[ResourceAttributeEnumValue]:
         """Get enum values for a key by name, creating any that don't exist.
 
-        Returns the values in the same order as ``names``.
+        Args:
+            key: The key or key ID the enum values belong to.
+            names: Display names of the enum values to get or create.
+
+        Returns:
+            The enum values, in the same order as ``names``.
         """
         ...
 
@@ -2013,11 +2175,34 @@ class ResourceAttributeEnumValuesAPI:
         limit: int | None = None,
         page_size: int | None = None,
     ) -> list[ResourceAttributeEnumValue]:
-        """List the enum values defined for a key."""
+        """List the enum values defined for a key.
+
+        Args:
+            key: The key or key ID to list enum values for.
+            name: Exact display name of the enum value.
+            names: Display names to filter by.
+            name_contains: Substring match on the display name.
+            name_regex: Regex match on the display name.
+            include_archived: If True, include archived enum values.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of enum values to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching enum values.
+        """
         ...
 
     def unarchive(self, enum_value: str | ResourceAttributeEnumValue) -> ResourceAttributeEnumValue:
-        """Unarchive an enum value."""
+        """Unarchive an enum value.
+
+        Args:
+            enum_value: The enum value or enum value ID to unarchive.
+
+        Returns:
+            The unarchived enum value.
+        """
         ...
 
 class ResourceAttributeKeysAPI:
@@ -2038,11 +2223,25 @@ class ResourceAttributeKeysAPI:
 
     def _run(self, coro): ...
     def archive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """Archive a key. Cascades to its enum values and assignments."""
+        """Archive a key. Cascades to its enum values and assignments.
+
+        Args:
+            key: The key or key ID to archive.
+
+        Returns:
+            The archived key.
+        """
         ...
 
     def check_archive_impact(self, key: str | ResourceAttributeKey) -> int:
-        """Return the number of active assignments archiving this key would affect."""
+        """Check how many assignments archiving a key would affect.
+
+        Args:
+            key: The key or key ID to check.
+
+        Returns:
+            The number of active assignments archiving this key would affect.
+        """
         ...
 
     def create(
@@ -2061,17 +2260,42 @@ class ResourceAttributeKeysAPI:
         ...
 
     def find(self, **kwargs) -> ResourceAttributeKey | None:
-        """Find a single key matching the query. Raises if more than one matches."""
+        """Find a single key matching the query. Takes the same arguments as `list_`.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The key found, or None if no key matches.
+
+        Raises:
+            ValueError: If more than one key matches.
+        """
         ...
 
     def get(self, *, key_id: str) -> ResourceAttributeKey:
-        """Get a resource attribute key by ID."""
+        """Get a resource attribute key by ID.
+
+        Args:
+            key_id: The ID of the key.
+
+        Returns:
+            The key.
+        """
         ...
 
     def get_or_create(
         self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
     ) -> ResourceAttributeKey:
         """Get a key by display name, creating it if it does not exist.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type used if the key is created.
+            description: Optional description used if the key is created.
+
+        Returns:
+            The existing or newly created key.
 
         Note:
             Display names are not guaranteed unique. If multiple keys share the display
@@ -2113,7 +2337,14 @@ class ResourceAttributeKeysAPI:
         ...
 
     def unarchive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """Unarchive a key. Does not restore its cascaded enum values or assignments."""
+        """Unarchive a key. Does not restore its cascaded enum values or assignments.
+
+        Args:
+            key: The key or key ID to unarchive.
+
+        Returns:
+            The unarchived key.
+        """
         ...
 
     def update(
@@ -2124,6 +2355,9 @@ class ResourceAttributeKeysAPI:
         Args:
             key: The key or key ID to update.
             update: Updates to apply to the key.
+
+        Returns:
+            The updated key.
         """
         ...
 
