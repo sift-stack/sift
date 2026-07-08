@@ -28432,8 +28432,9 @@ bool; for <code>NUMBER</code>, an int.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to assignments on this resource. When set, other filters are ignored.
-Pass a resource object, resource ID, or <code>ResourceAttributeEntity</code>.</p>
+                <p>Filter to assignments on this resource. Cannot be combined with
+<code>key</code>, <code>filter_query</code>, or <code>order_by</code>. Pass a resource object,
+resource ID, or <code>ResourceAttributeEntity</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -28565,6 +28566,31 @@ Pass a resource object, resource ID, or <code>ResourceAttributeEntity</code>.</p
                       <code>None</code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If <code>resource</code> is combined with <code>key</code>, <code>filter_query</code>, or
+<code>order_by</code>, which the by-resource listing does not support.</p>
+              </div>
             </td>
           </tr>
       </tbody>
@@ -56173,8 +56199,9 @@ bool; for <code>NUMBER</code>, an int.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to assignments on this resource. When set, other filters are ignored.
-Pass a resource object, resource ID, or <code>ResourceAttributeEntity</code>.</p>
+                <p>Filter to assignments on this resource. Cannot be combined with
+<code>key</code>, <code>filter_query</code>, or <code>order_by</code>. Pass a resource object,
+resource ID, or <code>ResourceAttributeEntity</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -56306,6 +56333,31 @@ Pass a resource object, resource ID, or <code>ResourceAttributeEntity</code>.</p
                       <code>None</code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If <code>resource</code> is combined with <code>key</code>, <code>filter_query</code>, or
+<code>order_by</code>, which the by-resource listing does not support.</p>
+              </div>
             </td>
           </tr>
       </tbody>
