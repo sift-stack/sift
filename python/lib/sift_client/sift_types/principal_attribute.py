@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 class PrincipalAttributeValueType(Enum):
     """Value type of a principal attribute key."""
 
-    UNSPECIFIED = pa_pb.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_UNSPECIFIED
     ENUM = pa_pb.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_ENUM
     BOOLEAN = pa_pb.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_BOOLEAN
     NUMBER = pa_pb.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_NUMBER
@@ -39,7 +38,6 @@ class PrincipalAttributeValueType(Enum):
 class PrincipalType(Enum):
     """Kind of principal a principal attribute can be assigned to."""
 
-    UNSPECIFIED = pa_pb.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED
     USER = pa_pb.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER
     USER_GROUP = pa_pb.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP
 

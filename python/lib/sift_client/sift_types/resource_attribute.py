@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 class ResourceAttributeValueType(Enum):
     """Value type of a resource attribute key."""
 
-    UNSPECIFIED = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_UNSPECIFIED
     ENUM = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM
     BOOLEAN = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN
     NUMBER = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER
@@ -42,7 +41,6 @@ class ResourceAttributeValueType(Enum):
 class ResourceAttributeEntityType(Enum):
     """Kind of Sift resource a resource attribute can be assigned to."""
 
-    UNSPECIFIED = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_UNSPECIFIED
     ASSET = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
     CHANNEL = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL
     RUN = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_RUN

@@ -206,38 +206,6 @@ class TestAssignmentsCreateValueResolution:
 
         api.assignments._low_level_client.batch_create_resource_attributes.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_rejects_resource_entity_types_outside_current_supported_targets(self):
-        api = _api()
-        api.assignments._low_level_client.batch_create_resource_attributes = AsyncMock(
-            return_value=[]
-        )
-        unsupported = ResourceAttributeEntity(
-            entity_id="unknown",
-            entity_type=ResourceAttributeEntityType.UNSPECIFIED,
-        )
-
-        with pytest.raises(ValueError, match="currently support assets, channels, and runs"):
-            await api.assignments.create(_key(), [unsupported], value=["e_a"])
-
-        api.assignments._low_level_client.batch_create_resource_attributes.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_rejects_resource_assignment_filters_outside_current_supported_targets(self):
-        api = _api()
-        api.assignments._low_level_client.list_all_resource_attributes_by_entity = AsyncMock(
-            return_value=[]
-        )
-        unsupported = ResourceAttributeEntity(
-            entity_id="unknown",
-            entity_type=ResourceAttributeEntityType.UNSPECIFIED,
-        )
-
-        with pytest.raises(ValueError, match="currently support assets, channels, and runs"):
-            await api.assignments.list_(resource=unsupported)
-
-        api.assignments._low_level_client.list_all_resource_attributes_by_entity.assert_not_called()
-
 
 class TestAssignmentsListResourceFilter:
     @pytest.mark.asyncio

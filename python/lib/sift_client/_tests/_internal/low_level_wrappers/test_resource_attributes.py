@@ -27,7 +27,9 @@ class TestCreateKey:
         stub.CreateResourceAttributeKey = AsyncMock(
             return_value=ra.CreateResourceAttributeKeyResponse(
                 resource_attribute_key=ra.ResourceAttributeKey(
-                    resource_attribute_key_id="k1", display_name="licenses"
+                    resource_attribute_key_id="k1",
+                    display_name="licenses",
+                    type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM,
                 )
             )
         )
@@ -49,7 +51,10 @@ class TestUpdateKey:
         stub = MagicMock()
         stub.UpdateResourceAttributeKey = AsyncMock(
             return_value=ra.UpdateResourceAttributeKeyResponse(
-                resource_attribute_key=ra.ResourceAttributeKey(resource_attribute_key_id="k1")
+                resource_attribute_key=ra.ResourceAttributeKey(
+                    resource_attribute_key_id="k1",
+                    type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM,
+                )
             )
         )
         client = _client_with_stub(stub)
@@ -72,13 +77,19 @@ class TestListAllKeys:
             side_effect=[
                 ra.ListResourceAttributeKeysResponse(
                     resource_attribute_keys=[
-                        ra.ResourceAttributeKey(resource_attribute_key_id="k1")
+                        ra.ResourceAttributeKey(
+                            resource_attribute_key_id="k1",
+                            type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM,
+                        )
                     ],
                     next_page_token="tok",
                 ),
                 ra.ListResourceAttributeKeysResponse(
                     resource_attribute_keys=[
-                        ra.ResourceAttributeKey(resource_attribute_key_id="k2")
+                        ra.ResourceAttributeKey(
+                            resource_attribute_key_id="k2",
+                            type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM,
+                        )
                     ],
                     next_page_token="",
                 ),

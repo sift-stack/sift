@@ -87,7 +87,11 @@ class TestPrincipalAttributeAssignment:
             principal_id="u1",
             principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
             principal_attribute_enum_value_id="ev1",
-            key=pa.PrincipalAttributeKey(principal_attribute_key_id="pk1", display_name="licenses"),
+            key=pa.PrincipalAttributeKey(
+                principal_attribute_key_id="pk1",
+                display_name="licenses",
+                type=pa.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM,
+            ),
             enum_value_details=pa.PrincipalAttributeEnumValue(
                 principal_attribute_enum_value_id="ev1", display_name="LIC_A"
             ),

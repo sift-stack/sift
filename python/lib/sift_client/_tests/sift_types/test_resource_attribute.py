@@ -98,7 +98,11 @@ class TestResourceAttributeAssignment:
             resource_attribute_id="a1",
             resource_attribute_key_id="k1",
             resource_attribute_enum_value_id="ev1",
-            key=ra.ResourceAttributeKey(resource_attribute_key_id="k1", display_name="licenses"),
+            key=ra.ResourceAttributeKey(
+                resource_attribute_key_id="k1",
+                display_name="licenses",
+                type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM,
+            ),
             enum_value_details=ra.ResourceAttributeEnumValue(
                 resource_attribute_enum_value_id="ev1", display_name="LIC_A"
             ),

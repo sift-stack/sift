@@ -54,7 +54,10 @@ class TestBatchCreateValues:
         stub.BatchCreatePrincipalAttributeValue = AsyncMock(
             return_value=pa.BatchCreatePrincipalAttributeValueResponse(
                 principal_attribute_values=[
-                    pa.PrincipalAttributeValue(principal_attribute_value_id="v1")
+                    pa.PrincipalAttributeValue(
+                        principal_attribute_value_id="v1",
+                        principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+                    )
                 ]
             )
         )
@@ -117,7 +120,10 @@ class TestBatchCreateValuesChunking:
         stub.BatchCreatePrincipalAttributeValue = AsyncMock(
             return_value=pa.BatchCreatePrincipalAttributeValueResponse(
                 principal_attribute_values=[
-                    pa.PrincipalAttributeValue(principal_attribute_value_id="v1")
+                    pa.PrincipalAttributeValue(
+                        principal_attribute_value_id="v1",
+                        principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+                    )
                 ]
             )
         )

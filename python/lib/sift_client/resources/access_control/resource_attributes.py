@@ -38,18 +38,11 @@ if TYPE_CHECKING:
 _RESOLVE_BATCH_SIZE = 1000
 
 ResourceLike = Union[ResourceAttributeEntity, Asset, Channel, Run, str]
-SUPPORTED_RESOURCE_ENTITY_TYPES = {
-    ResourceAttributeEntityType.ASSET,
-    ResourceAttributeEntityType.CHANNEL,
-    ResourceAttributeEntityType.RUN,
-}
 
 
 def _resolve_resource_object(resource: ResourceLike) -> ResourceAttributeEntity:
     """Resolve a supported resource object to a ResourceAttributeEntity."""
     if isinstance(resource, ResourceAttributeEntity):
-        if resource.entity_type not in SUPPORTED_RESOURCE_ENTITY_TYPES:
-            raise ValueError("Resource attributes currently support assets, channels, and runs.")
         return resource
     if isinstance(resource, Asset):
         return ResourceAttributeEntity.for_asset(resource._id_or_error)
