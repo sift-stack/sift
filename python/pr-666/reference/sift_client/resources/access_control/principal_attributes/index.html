@@ -3308,7 +3308,7 @@ user-group IDs.</p>
    (sift_client.resources.access_control.principal_attributes.PrincipalAttributeKeysAPIAsync.find)" href="#sift_client.resources.access_control.principal_attributes.PrincipalAttributeKeysAPIAsync.find">find</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Find a single key matching the query. Raises if more than one matches.</p>
+                  <p>Find a single key matching the query. Takes the same arguments as <code>list_</code>.</p>
                 </div>
               </td>
             </tr>
@@ -3386,7 +3386,7 @@ user-group IDs.</p>
    (sift_client.resources.access_control.principal_attributes.PrincipalAttributeKeysAPIAsync.check_archive_impact)" href="#sift_client.resources.access_control.principal_attributes.PrincipalAttributeKeysAPIAsync.check_archive_impact">check_archive_impact</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Return the number of active assignments archiving this key would affect.</p>
+                  <p>Check how many assignments archiving a key would affect.</p>
                 </div>
               </td>
             </tr>
@@ -3567,6 +3567,63 @@ user-group IDs.</p>
     <div class="doc doc-contents ">
 
         <p>Get a principal attribute key by ID.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>key_id</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The ID of the key.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The key.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -3822,6 +3879,35 @@ user-group IDs.</p>
     </table>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The matching keys.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -3848,7 +3934,88 @@ user-group IDs.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Find a single key matching the query. Raises if more than one matches.</p>
+        <p>Find a single key matching the query. Takes the same arguments as <code>list_</code>.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Keyword arguments to pass to <code>list_</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>{}</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a> | None</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The key found, or None if no key matches.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If more than one key matches.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -3885,6 +4052,99 @@ user-group IDs.</p>
         <p>Create a principal attribute key.</p>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>display_name</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The human-readable name of the key.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>value_type</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The value type of the key.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeValueType (sift_client.sift_types.principal_attribute.PrincipalAttributeValueType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeValueType">PrincipalAttributeValueType</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>description</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Optional description.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>&#39;&#39;</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The created key.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -3917,6 +4177,99 @@ user-group IDs.</p>
     <div class="doc doc-contents ">
 
         <p>Get a key by display name, creating it if it does not exist.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>display_name</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The human-readable name of the key.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>value_type</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The value type used if the key is created.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeValueType (sift_client.sift_types.principal_attribute.PrincipalAttributeValueType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeValueType">PrincipalAttributeValueType</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>description</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Optional description used if the key is created.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>&#39;&#39;</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The existing or newly created key.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
 <details class="note" open>
@@ -4021,6 +4374,35 @@ name, the first active match is returned.</p>
     </table>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The updated key.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -4055,6 +4437,68 @@ name, the first active match is returned.</p>
     <div class="doc doc-contents ">
 
         <p>Archive a key. Cascades to its enum values and assignments.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The key or key ID to archive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The archived key.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4093,6 +4537,68 @@ name, the first active match is returned.</p>
         <p>Unarchive a key. Does not restore its cascaded enum values or assignments.</p>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The key or key ID to unarchive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The unarchived key.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -4121,8 +4627,65 @@ name, the first active match is returned.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Return the number of active assignments archiving this key would affect.</p>
+        <p>Check how many assignments archiving a key would affect.</p>
 <p>Counts both user and user-group assignments.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The key or key ID to check.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="int">int</span></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The number of active assignments archiving this key would affect.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4464,6 +5027,104 @@ name, the first active match is returned.</p>
         <p>Create a single enum value for a key.</p>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The key or key ID the enum value belongs to.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>display_name</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The human-readable name of the enum value.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>description</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Optional description.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>&#39;&#39;</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The created enum value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -4510,6 +5171,248 @@ name, the first active match is returned.</p>
         <p>List the enum values defined for a key.</p>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The key or key ID to list enum values for.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Exact display name of the enum value.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>names</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Display names to filter by.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name_contains</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Substring match on the display name.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name_regex</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Regex match on the display name.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <span title="re.Pattern">Pattern</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_archived</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If True, include archived enum values.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filter_query</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Explicit CEL query.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>order_by</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Field and direction to order by.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>limit</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Maximum number of enum values to return.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>page_size</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Results to fetch per request.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The matching enum values.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -4544,7 +5447,84 @@ name, the first active match is returned.</p>
     <div class="doc doc-contents ">
 
         <p>Get enum values for a key by name, creating any that don't exist.</p>
-<p>Returns the values in the same order as <code>names</code>.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The key or key ID the enum values belong to.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeKey
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>names</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Display names of the enum values to get or create.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<span title="str">str</span>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The enum values, in the same order as <code>names</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4585,7 +5565,89 @@ name, the first active match is returned.</p>
     <div class="doc doc-contents ">
 
         <p>Archive an enum value, migrating existing assignments to a replacement.</p>
-<p>Returns the number of assignments migrated.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>enum_value</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The enum value or enum value ID to archive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>replacement</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Optional enum value or enum value ID that existing
+assignments are migrated to.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="int">int</span></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The number of assignments migrated.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4622,6 +5684,68 @@ name, the first active match is returned.</p>
     <div class="doc doc-contents ">
 
         <p>Unarchive an enum value.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>enum_value</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The enum value or enum value ID to unarchive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The unarchived enum value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4731,7 +5855,7 @@ name, the first active match is returned.</p>
    (sift_client.resources.access_control.principal_attributes.PrincipalAttributeAssignmentsAPIAsync.get)" href="#sift_client.resources.access_control.principal_attributes.PrincipalAttributeAssignmentsAPIAsync.get">get</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Get a single assignment by ID.</p>
+                  <p>Get a single assignment by ID and principal type.</p>
                 </div>
               </td>
             </tr>
@@ -4757,7 +5881,7 @@ name, the first active match is returned.</p>
    (sift_client.resources.access_control.principal_attributes.PrincipalAttributeAssignmentsAPIAsync.archive)" href="#sift_client.resources.access_control.principal_attributes.PrincipalAttributeAssignmentsAPIAsync.archive">archive</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Batch archive assignments.</p>
+                  <p>Batch archive assignments of the given principal type.</p>
                 </div>
               </td>
             </tr>
@@ -4770,7 +5894,7 @@ name, the first active match is returned.</p>
    (sift_client.resources.access_control.principal_attributes.PrincipalAttributeAssignmentsAPIAsync.unarchive)" href="#sift_client.resources.access_control.principal_attributes.PrincipalAttributeAssignmentsAPIAsync.unarchive">unarchive</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Batch unarchive assignments.</p>
+                  <p>Batch unarchive assignments of the given principal type.</p>
                 </div>
               </td>
             </tr>
@@ -5121,16 +6245,8 @@ a bool; for <code>NUMBER</code>, an int.</p>
 
 <a href="#sift_client.resources.access_control.principal_attributes.PrincipalAttributeAssignmentsAPIAsync.get" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">assignment_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            USER
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.principal_attribute.PrincipalType.USER)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType.USER">USER</a></span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
 
 
   
@@ -5140,7 +6256,80 @@ a bool; for <code>NUMBER</code>, an int.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Get a single assignment by ID.</p>
+        <p>Get a single assignment by ID and principal type.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>assignment_id</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The ID of the assignment.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>principal_type</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The kind of principal the assignment applies to.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment">PrincipalAttributeAssignment</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The assignment.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -5377,6 +6566,35 @@ for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for us
     </table>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment">PrincipalAttributeAssignment</a>]</code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The matching assignments.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -5401,19 +6619,62 @@ for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for us
       pydantic-model
    (sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment">PrincipalAttributeAssignment</a></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            USER
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.principal_attribute.PrincipalType.USER)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType.USER">USER</a></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Batch archive assignments.</p>
+        <p>Batch archive assignments of the given principal type.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>assignments</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The assignments or assignment IDs to archive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment">PrincipalAttributeAssignment</a>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>principal_type</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The kind of principal the assignments apply to.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -5440,19 +6701,62 @@ for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for us
       pydantic-model
    (sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment">PrincipalAttributeAssignment</a></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            USER
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.principal_attribute.PrincipalType.USER)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType.USER">USER</a></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Batch unarchive assignments.</p>
+        <p>Batch unarchive assignments of the given principal type.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>assignments</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The assignments or assignment IDs to unarchive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<span title="str">str</span> | <a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeAssignment">PrincipalAttributeAssignment</a>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>principal_type</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The kind of principal the assignments apply to.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
