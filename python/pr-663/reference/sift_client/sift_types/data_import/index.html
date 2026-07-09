@@ -5886,7 +5886,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            UlogParseErrorPolicy (sift_client.sift_types.data_import.UlogParseErrorPolicy)" href="#sift_client.sift_types.data_import.UlogParseErrorPolicy">UlogParseErrorPolicy</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Controls how ULog import handles records the parser can skip.</p>
+                <p>Controls how ULog import handles recoverable parse errors.</p>
               </div>
             </td>
           </tr>
@@ -12654,9 +12654,10 @@ raises <code>ValueError</code>.</p>
 
 
 
-        <p>Controls how ULog import handles records the parser can skip.</p>
+        <p>Controls how ULog import handles recoverable parse errors.</p>
 <p>Recoverable errors include a truncated final record or bytes skipped while
-resynchronizing the log. The policy is enforced server-side at import time.</p>
+resynchronizing the log. The policy applies when the file is imported, not
+during <code>detect_config</code>.</p>
 
 
 
@@ -12813,8 +12814,8 @@ resynchronizing the log. The policy is enforced server-side at import time.</p>
         <p>A single ULog channel selection.</p>
 <p>Channels are selected by message name, instance, and field, as returned
 by <code>detect_config</code>. Log-message channels (<code>"log_messages"</code>,
-<code>"log_messages_&lt;tag&gt;"</code>) set <code>message_name</code> to the channel name and
-leave <code>field_name</code> empty.</p>
+<code>"log_messages_&lt;tag&gt;"</code>) set <code>message_name</code> to the channel name, with
+<code>instance</code> 0 and an empty <code>field_name</code>.</p>
 
 
 <table>
@@ -12892,7 +12893,8 @@ Empty for log-message channels.</p>
    (sift_client.sift_types.data_import.UlogDataColumn.name)" href="#sift_client.sift_types.data_import.UlogDataColumn.name">name</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Sift channel name to create. Defaults to <code>channel</code>.</p>
+                <p>Sift channel name to create. Defaults to the full channel name
+(the <code>channel</code> property), e.g. <code>"sensor_accel_0.x"</code>.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">

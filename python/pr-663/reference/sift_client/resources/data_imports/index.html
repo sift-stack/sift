@@ -2725,7 +2725,8 @@ in the metadata row; they are applied server-side during import
 but are not included in the returned config.</p>
 <p>For ULog files, <code>data</code> lists the channels pyulog decodes from the
 file. When imported, a non-empty <code>data</code> list restricts the import
-to those channels; clear it to import every channel in the file.</p>
+to exactly those channels; the import fails if a listed channel is
+not in the file. Clear <code>data</code> to import every channel.</p>
 <p>For file types with multiple supported layouts (Parquet, HDF5),
 <code>data_type</code> must be specified explicitly.</p>
 
