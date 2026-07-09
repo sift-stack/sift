@@ -48,9 +48,7 @@ class TestDownloadFileExtraHeaders:
     """
 
     def test_no_extra_headers_strips_only_authorization(self, tmp_path):
-        rest_client, captured = _install_rest_client_stub(
-            _FakeResponse([b"hello ", b"world"])
-        )
+        rest_client, captured = _install_rest_client_stub(_FakeResponse([b"hello ", b"world"]))
         target = tmp_path / "out.bin"
 
         download_file(
@@ -63,9 +61,7 @@ class TestDownloadFileExtraHeaders:
         assert target.read_bytes() == b"hello world"
 
     def test_extra_headers_are_forwarded(self, tmp_path):
-        rest_client, captured = _install_rest_client_stub(
-            _FakeResponse([b"payload"])
-        )
+        rest_client, captured = _install_rest_client_stub(_FakeResponse([b"payload"]))
         target = tmp_path / "out.bin"
 
         download_file(
@@ -86,9 +82,7 @@ class TestDownloadFileExtraHeaders:
         # The strip is a default, not a hard invariant -- if a caller has a
         # concrete reason to pass an Authorization on the download request
         # (e.g. a proxy-scoped bearer), let their value win.
-        rest_client, captured = _install_rest_client_stub(
-            _FakeResponse([b"payload"])
-        )
+        rest_client, captured = _install_rest_client_stub(_FakeResponse([b"payload"]))
         target = tmp_path / "out.bin"
 
         download_file(
