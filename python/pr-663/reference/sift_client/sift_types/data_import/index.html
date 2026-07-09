@@ -2782,10 +2782,32 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="md-nav__link">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.message_name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;message_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.field_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;field_name
       
     </span>
   </a>
@@ -2797,6 +2819,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel
       
     </span>
   </a>
@@ -5355,10 +5388,32 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="md-nav__link">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.message_name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;message_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.field_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;field_name
       
     </span>
   </a>
@@ -5370,6 +5425,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel
       
     </span>
   </a>
@@ -12745,6 +12811,10 @@ resynchronizing the log. The policy is enforced server-side at import time.</p>
    (sift_client.sift_types.data_import.DataColumnBase)" href="#sift_client.sift_types.data_import.DataColumnBase">DataColumnBase</a></code></p>
 
         <p>A single ULog channel selection.</p>
+<p>Channels are selected by message name, instance, and field, as returned
+by <code>detect_config</code>. Log-message channels (<code>"log_messages"</code>,
+<code>"log_messages_&lt;tag&gt;"</code>) set <code>message_name</code> to the channel name and
+leave <code>field_name</code> empty.</p>
 
 
 <table>
@@ -12756,17 +12826,54 @@ resynchronizing the log. The policy is enforced server-side at import time.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            channel
+            <td><code><a class="autorefs autorefs-internal" title="            message_name
 
 
   
       pydantic-field
-   (sift_client.sift_types.data_import.UlogDataColumn.channel)" href="#sift_client.sift_types.data_import.UlogDataColumn.channel">channel</a></code></td>
+   (sift_client.sift_types.data_import.UlogDataColumn.message_name)" href="#sift_client.sift_types.data_import.UlogDataColumn.message_name">message_name</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Source channel key, such as <code>"sensor_accel_0.x"</code>. The key is
-<code>&lt;message&gt;_&lt;instance&gt;.&lt;field&gt;</code> and is returned by
-<code>detect_config</code>.</p>
+                <p>The ULog message name (e.g. <code>"sensor_accel"</code>).</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            instance
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.data_import.UlogDataColumn.instance)" href="#sift_client.sift_types.data_import.UlogDataColumn.instance">instance</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The message instance for multi-instance topics. Defaults to 0.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="int">int</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            field_name
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.data_import.UlogDataColumn.field_name)" href="#sift_client.sift_types.data_import.UlogDataColumn.field_name">field_name</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The flattened ULog field name (e.g. <code>"x"</code>, <code>"esc[0].v"</code>).
+Empty for log-message channels.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -12830,12 +12937,30 @@ resynchronizing the log. The policy is enforced server-side at import time.</p>
                 (<code><span title="str">str</span></code>)
             </li>
             <li>
-              <code><a class="autorefs autorefs-internal" title="            channel
+              <code><a class="autorefs autorefs-internal" title="            message_name
 
 
   
       pydantic-field
-   (sift_client.sift_types.data_import.UlogDataColumn.channel)" href="#sift_client.sift_types.data_import.UlogDataColumn.channel">channel</a></code>
+   (sift_client.sift_types.data_import.UlogDataColumn.message_name)" href="#sift_client.sift_types.data_import.UlogDataColumn.message_name">message_name</a></code>
+                (<code><span title="str">str</span></code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            instance
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.data_import.UlogDataColumn.instance)" href="#sift_client.sift_types.data_import.UlogDataColumn.instance">instance</a></code>
+                (<code><span title="int">int</span></code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            field_name
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.data_import.UlogDataColumn.field_name)" href="#sift_client.sift_types.data_import.UlogDataColumn.field_name">field_name</a></code>
                 (<code><span title="str">str</span></code>)
             </li>
             <li>
@@ -12870,16 +12995,60 @@ resynchronizing the log. The policy is enforced server-side at import time.</p>
 
 
 
-<h3 id="sift_client.sift_types.data_import.UlogDataColumn.channel" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel</span>
+<h3 id="sift_client.sift_types.data_import.UlogDataColumn.message_name" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">message_name</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
   </span>
 
-<a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
+<a href="#sift_client.sift_types.data_import.UlogDataColumn.message_name" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">message_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.data_import.UlogDataColumn.instance" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">instance</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.data_import.UlogDataColumn.instance" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">instance</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">0</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.data_import.UlogDataColumn.field_name" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">field_name</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.data_import.UlogDataColumn.field_name" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">field_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -12905,6 +13074,30 @@ resynchronizing the log. The policy is enforced server-side at import time.</p>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.data_import.UlogDataColumn.channel" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The full channel name this selection maps to, e.g. <code>"sensor_accel_0.x"</code>.</p>
 
     </div>
 
