@@ -20,8 +20,8 @@ enum FilterFieldType {
 message FilterField {
   // The field name to use in CEL filter expressions (e.g., "run_id", "created_date").
   string field_name = 1;
-  // The data type of the field. UUID and ENUM are first-class types --
-  // no need for separate boolean flags.
+  // The data type of the field. UUID and ENUM are first-class types, so no
+  // separate boolean flags are needed.
   FilterFieldType type = 2;
   // If type is FILTER_FIELD_TYPE_ENUM, these are the valid string values.
   repeated string enum_values = 3;
@@ -29,4 +29,18 @@ message FilterField {
   string description = 4;
   // Human-friendly display name (e.g., "Asset Name" for field_name "asset_name").
   string display_name = 5;
+  // CEL infix operator tokens valid for this field, e.g. "==", "in". Usually the
+  // default set for the field's type, but narrower when the field restricts it.
+  // Display copy for each token comes from FilterGrammarService.
+  repeated string operators = 6;
+  // CEL member function names valid for this field, e.g. "contains", "getFullYear".
+  // Display copy for each name comes from FilterGrammarService.
+  repeated string functions = 7;
+  // Whether the field can compare against null. For a metadata key this is true:
+  // a key that is not set on an entity reads as null, so `field == null` matches
+  // entities missing the key and `field != null` matches those that have it.
+  // (There is no separate "set but null" state, since an assigned metadata value
+  // always holds a concrete value.) Optional so that an unset value means
+  // "unknown" rather than implicitly "not nullable".
+  optional bool nullable = 8;
 }

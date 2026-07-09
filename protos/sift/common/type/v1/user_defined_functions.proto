@@ -38,7 +38,9 @@ message UserDefinedFunction {
 }
 
 message FunctionDependency {
-  string user_defined_function_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_defined_function_version_id = 1 [
+    (google.api.field_behavior) = REQUIRED
+  ];
 }
 
 message FunctionInput {

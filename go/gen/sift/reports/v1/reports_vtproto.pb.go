@@ -45,6 +45,7 @@ func (m *Report) CloneVT() *Report {
 	r.ModifiedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ModifiedDate).CloneVT())
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsArchived = m.IsArchived
+	r.ReportType = m.ReportType
 	if rhs := m.Description; rhs != nil {
 		tmpVal := *rhs
 		r.Description = &tmpVal
@@ -110,6 +111,7 @@ func (m *ReportWithCumulativeSummary) CloneVT() *ReportWithCumulativeSummary {
 	r.CumulativeSummary = m.CumulativeSummary.CloneVT()
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsArchived = m.IsArchived
+	r.ReportType = m.ReportType
 	if rhs := m.Description; rhs != nil {
 		tmpVal := *rhs
 		r.Description = &tmpVal
@@ -1054,6 +1056,9 @@ func (this *Report) EqualVT(that *Report) bool {
 	if this.IsArchived != that.IsArchived {
 		return false
 	}
+	if this.ReportType != that.ReportType {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1130,6 +1135,9 @@ func (this *ReportWithCumulativeSummary) EqualVT(that *ReportWithCumulativeSumma
 		return false
 	}
 	if this.IsArchived != that.IsArchived {
+		return false
+	}
+	if this.ReportType != that.ReportType {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2770,6 +2778,13 @@ func (m *Report) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ReportType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -2964,6 +2979,13 @@ func (m *ReportWithCumulativeSummary) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ReportType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
 	}
 	if m.IsArchived {
 		i--
@@ -5089,6 +5111,13 @@ func (m *Report) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ReportType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -5283,6 +5312,13 @@ func (m *ReportWithCumulativeSummary) MarshalToSizedBufferVTStrict(dAtA []byte) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ReportType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
 	}
 	if m.IsArchived {
 		i--
@@ -7513,6 +7549,9 @@ func (m *Report) SizeVT() (n int) {
 	if m.IsArchived {
 		n += 3
 	}
+	if m.ReportType != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.ReportType))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -7587,6 +7626,9 @@ func (m *ReportWithCumulativeSummary) SizeVT() (n int) {
 	}
 	if m.IsArchived {
 		n += 3
+	}
+	if m.ReportType != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.ReportType))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -8999,6 +9041,25 @@ func (m *Report) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportType", wireType)
+			}
+			m.ReportType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ReportType |= ReportType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -9571,6 +9632,25 @@ func (m *ReportWithCumulativeSummary) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportType", wireType)
+			}
+			m.ReportType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ReportType |= ReportType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -14833,6 +14913,25 @@ func (m *Report) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportType", wireType)
+			}
+			m.ReportType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ReportType |= ReportType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -15445,6 +15544,25 @@ func (m *ReportWithCumulativeSummary) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportType", wireType)
+			}
+			m.ReportType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ReportType |= ReportType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

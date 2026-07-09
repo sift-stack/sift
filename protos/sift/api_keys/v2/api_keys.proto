@@ -118,12 +118,16 @@ message CreateApiKeyRequest {
   // longer supported and the service will return INVALID_ARGUMENT if the
   // values differ. The field is retained for backwards compatibility with
   // existing clients and may be marked deprecated in a future revision.
-  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [
+    (google.api.field_behavior) = REQUIRED
+  ];
 }
 
 // The request for a call to ApiKeyService.DeleteApiKey.
 message DeleteApiKeyRequest {
-  string api_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string api_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED
+  ];
 }
 
 message DeleteApiKeyResponse {}

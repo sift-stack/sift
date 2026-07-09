@@ -359,10 +359,16 @@ enum UlogParseErrorPolicy {
 }
 
 message UlogDataConfig {
-  // The full ULog channel name (e.g. "sensor_accel_0.x").
-  string channel = 1;
+  // The ULog message name (e.g. "sensor_accel").
+  string message_name = 1;
+  // The message instance (e.g. 0).
+  int64 instance = 2;
+  // The full ULog field name (e.g. "x", "esc[0].v"). Empty for log-message
+  // channels ("log_messages", "log_messages_<tag>"), which set message_name
+  // to the channel name and instance to 0.
+  string field_name = 3;
   // The Sift channel config the channel is imported with.
-  sift.common.type.v1.ChannelConfig channel_config = 2;
+  sift.common.type.v1.ChannelConfig channel_config = 4;
 }
 
 message UlogConfig {

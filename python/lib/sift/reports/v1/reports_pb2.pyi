@@ -22,6 +22,25 @@ else:
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
+class _ReportType:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _ReportTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ReportType.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    REPORT_TYPE_UNSPECIFIED: _ReportType.ValueType  # 0
+    REPORT_TYPE_RULE_EVALUATION: _ReportType.ValueType  # 1
+
+class ReportType(_ReportType, metaclass=_ReportTypeEnumTypeWrapper):
+    """ReportType discriminates the two kinds of report rows that share the unified
+    `reports` surface. Rule-evaluation reports are tied to a run; canvas
+    reports are tied to a published canvas_execution.
+    """
+
+REPORT_TYPE_UNSPECIFIED: ReportType.ValueType  # 0
+REPORT_TYPE_RULE_EVALUATION: ReportType.ValueType  # 1
+global___ReportType = ReportType
+
 class _ReportRuleStatus:
     ValueType = typing.NewType("ValueType", builtins.int)
     V: typing_extensions.TypeAlias = ValueType
@@ -68,9 +87,15 @@ class Report(google.protobuf.message.Message):
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    REPORT_TYPE_FIELD_NUMBER: builtins.int
     report_id: builtins.str
     report_template_id: builtins.str
     run_id: builtins.str
+    """Populated for RULE_EVALUATION reports (which are tied to a run).
+    Empty string for CANVAS reports. Kept REQUIRED (rather than a wrapped
+    optional) to mirror ReportWithCumulativeSummary and avoid rippling
+    optionality through existing rule-report clients.
+    """
     organization_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -79,6 +104,15 @@ class Report(google.protobuf.message.Message):
     rerun_from_report_id: builtins.str
     job_id: builtins.str
     is_archived: builtins.bool
+    report_type: global___ReportType.ValueType
+    """Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows.
+    For CANVAS reports, the id of the published canvas_execution this report row
+    is linked to (read-through from canvas_executions.canvas_execution_id). Empty
+    for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
+    For CANVAS reports, the execution status read through from the linked
+    canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
+    conveyed via the per-rule `summaries` instead).
+    """
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -115,9 +149,10 @@ class Report(google.protobuf.message.Message):
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         is_archived: builtins.bool = ...,
+        report_type: global___ReportType.ValueType = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_date", b"created_date", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "report_type", b"report_type", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -154,6 +189,7 @@ class ReportWithCumulativeSummary(google.protobuf.message.Message):
     JOB_ID_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    REPORT_TYPE_FIELD_NUMBER: builtins.int
     report_id: builtins.str
     """The unique identifier of the report."""
     report_template_id: builtins.str
@@ -176,6 +212,15 @@ class ReportWithCumulativeSummary(google.protobuf.message.Message):
     """The identifier of the job that produced this report, if any."""
     is_archived: builtins.bool
     """Whether the report has been archived."""
+    report_type: global___ReportType.ValueType
+    """Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows.
+    For CANVAS reports, the id of the published canvas_execution this report row
+    is linked to (read-through from canvas_executions.canvas_execution_id). Empty
+    for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
+    For CANVAS reports, the execution status read through from the linked
+    canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
+    conveyed via the `cumulative_summary` instead).
+    """
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """When the report was created."""
@@ -215,9 +260,10 @@ class ReportWithCumulativeSummary(google.protobuf.message.Message):
         job_id: builtins.str | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
+        report_type: global___ReportType.ValueType = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "report_type", b"report_type", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -769,7 +815,7 @@ class ListReportsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`, `created_date`,
+    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`, `archived_date`, `created_date`,
     `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
@@ -841,7 +887,7 @@ class ListReportsWithCumulativeSummaryRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`, `created_date`,
+    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`, `archived_date`, `created_date`,
     `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
@@ -961,7 +1007,10 @@ class UpdateReportRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `archived_date`, `is_archived`, and `metadata`."""
+        """The list of fields to be updated. The fields available to be updated are `name`, `description`, `archived_date`,
+        `is_archived`, and `metadata`. An empty `name` is ignored and the existing name is preserved. Including
+        `description` in the mask with the field unset clears the description.
+        """
 
     def __init__(
         self,

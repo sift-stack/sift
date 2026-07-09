@@ -913,10 +913,19 @@ global___Hdf5Config = Hdf5Config
 class UlogDataConfig(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    CHANNEL_FIELD_NUMBER: builtins.int
+    MESSAGE_NAME_FIELD_NUMBER: builtins.int
+    INSTANCE_FIELD_NUMBER: builtins.int
+    FIELD_NAME_FIELD_NUMBER: builtins.int
     CHANNEL_CONFIG_FIELD_NUMBER: builtins.int
-    channel: builtins.str
-    """The full ULog channel name (e.g. "sensor_accel_0.x")."""
+    message_name: builtins.str
+    """The ULog message name (e.g. "sensor_accel")."""
+    instance: builtins.int
+    """The message instance (e.g. 0)."""
+    field_name: builtins.str
+    """The full ULog field name (e.g. "x", "esc[0].v"). Empty for log-message
+    channels ("log_messages", "log_messages_<tag>"), which set message_name
+    to the channel name and instance to 0.
+    """
     @property
     def channel_config(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig:
         """The Sift channel config the channel is imported with."""
@@ -924,11 +933,13 @@ class UlogDataConfig(google.protobuf.message.Message):
     def __init__(
         self,
         *,
-        channel: builtins.str = ...,
+        message_name: builtins.str = ...,
+        instance: builtins.int = ...,
+        field_name: builtins.str = ...,
         channel_config: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["channel_config", b"channel_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["channel", b"channel", "channel_config", b"channel_config"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channel_config", b"channel_config", "field_name", b"field_name", "instance", b"instance", "message_name", b"message_name"]) -> None: ...
 
 global___UlogDataConfig = UlogDataConfig
 

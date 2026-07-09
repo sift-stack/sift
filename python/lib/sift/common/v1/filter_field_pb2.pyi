@@ -60,19 +60,43 @@ class FilterField(google.protobuf.message.Message):
     ENUM_VALUES_FIELD_NUMBER: builtins.int
     DESCRIPTION_FIELD_NUMBER: builtins.int
     DISPLAY_NAME_FIELD_NUMBER: builtins.int
+    OPERATORS_FIELD_NUMBER: builtins.int
+    FUNCTIONS_FIELD_NUMBER: builtins.int
+    NULLABLE_FIELD_NUMBER: builtins.int
     field_name: builtins.str
     """The field name to use in CEL filter expressions (e.g., "run_id", "created_date")."""
     type: global___FilterFieldType.ValueType
-    """The data type of the field. UUID and ENUM are first-class types --
-    no need for separate boolean flags.
+    """The data type of the field. UUID and ENUM are first-class types, so no
+    separate boolean flags are needed.
     """
     description: builtins.str
     """Human-readable description of the field (e.g., "When the run was created")."""
     display_name: builtins.str
     """Human-friendly display name (e.g., "Asset Name" for field_name "asset_name")."""
+    nullable: builtins.bool
+    """Whether the field can compare against null. For a metadata key this is true:
+    a key that is not set on an entity reads as null, so `field == null` matches
+    entities missing the key and `field != null` matches those that have it.
+    (There is no separate "set but null" state, since an assigned metadata value
+    always holds a concrete value.) Optional so that an unset value means
+    "unknown" rather than implicitly "not nullable".
+    """
     @property
     def enum_values(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
         """If type is FILTER_FIELD_TYPE_ENUM, these are the valid string values."""
+
+    @property
+    def operators(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """CEL infix operator tokens valid for this field, e.g. "==", "in". Usually the
+        default set for the field's type, but narrower when the field restricts it.
+        Display copy for each token comes from FilterGrammarService.
+        """
+
+    @property
+    def functions(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """CEL member function names valid for this field, e.g. "contains", "getFullYear".
+        Display copy for each name comes from FilterGrammarService.
+        """
 
     def __init__(
         self,
@@ -82,7 +106,12 @@ class FilterField(google.protobuf.message.Message):
         enum_values: collections.abc.Iterable[builtins.str] | None = ...,
         description: builtins.str = ...,
         display_name: builtins.str = ...,
+        operators: collections.abc.Iterable[builtins.str] | None = ...,
+        functions: collections.abc.Iterable[builtins.str] | None = ...,
+        nullable: builtins.bool | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["description", b"description", "display_name", b"display_name", "enum_values", b"enum_values", "field_name", b"field_name", "type", b"type"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_nullable", b"_nullable", "nullable", b"nullable"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_nullable", b"_nullable", "description", b"description", "display_name", b"display_name", "enum_values", b"enum_values", "field_name", b"field_name", "functions", b"functions", "nullable", b"nullable", "operators", b"operators", "type", b"type"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_nullable", b"_nullable"]) -> typing.Literal["nullable"] | None: ...
 
 global___FilterField = FilterField

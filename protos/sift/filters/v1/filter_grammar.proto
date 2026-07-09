@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package sift.filters.v1;
+
+import "google/api/annotations.proto";
+import "sift/common/v1/filter_field.proto";
+
+
+// FilterGrammarService describes the CEL filter capabilities shared by every
+// resource: the operators and member functions available for each built-in
+// field type, plus the functions usable anywhere in an expression. It does not
+// vary by resource, org, or user, so a client fetches it once and caches it,
+// then uses it to render and label the per-field tokens returned in FilterField.
+service FilterGrammarService {
+  rpc GetFilterGrammar(GetFilterGrammarRequest) returns (GetFilterGrammarResponse) {
+    option (google.api.http) = {get: "/api/v1/filter:grammar"};
+  }
+}
+
+// The request for a call to `FilterGrammarService_GetFilterGrammar`.
+message GetFilterGrammarRequest {}
+
+// The response of a call to `FilterGrammarService_GetFilterGrammar`.
+message GetFilterGrammarResponse {
+  // Operators and member functions available for each built-in field type.
+  repeated FilterTypeGrammar types = 1;
+  // Functions usable anywhere in an expression rather than bound to a field,
+  // e.g. now(), duration(...), timestamp(...).
+  repeated FilterFunction global_functions = 2;
+}
+
+// FilterTypeGrammar lists the operators and member functions valid for one
+// built-in field type.
+message FilterTypeGrammar {
+  sift.common.v1.FilterFieldType type = 1;
+  repeated FilterOperator operators = 2;
+  repeated FilterFunction functions = 3;
+}
+
+// A CEL infix operator, with display copy for a UI.
+message FilterOperator {
+  // The literal CEL token, e.g. "==", "!=", "<", "in".
+  string token = 1;
+  // Short label for a UI control, e.g. "Equals", "In".
+  string display_name = 2;
+  // Optional longer explanation of what the operator matches.
+  string description = 3;
+}
+
+// A CEL function, with display copy for a UI.
+message FilterFunction {
+  // The CEL function name, e.g. "contains", "getFullYear", "now".
+  string name = 1;
+  // Short label for a UI control, e.g. "Contains", "Year".
+  string display_name = 2;
+  // Optional longer explanation of what the function does.
+  string description = 3;
+}

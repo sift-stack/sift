@@ -139,6 +139,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.external_sync.v1)
         }
     }
+    pub mod filters {
+        // @@protoc_insertion_point(attribute:sift.filters.v1)
+        pub mod v1 {
+            include!("sift/filters/v1/sift.filters.v1.rs");
+            // @@protoc_insertion_point(sift.filters.v1)
+        }
+    }
     pub mod ingest {
         // @@protoc_insertion_point(attribute:sift.ingest.v1)
         pub mod v1 {
