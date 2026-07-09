@@ -109,9 +109,21 @@ service ReportService {
   }
 }
 
+// ReportType discriminates the two kinds of report rows that share the unified
+// `reports` surface. Rule-evaluation reports are tied to a run; canvas
+// reports are tied to a published canvas_execution.
+enum ReportType {
+  REPORT_TYPE_UNSPECIFIED = 0;
+  REPORT_TYPE_RULE_EVALUATION = 1;
+}
+
 message Report {
   string report_id = 1 [(google.api.field_behavior) = REQUIRED];
   string report_template_id = 2 [(google.api.field_behavior) = OPTIONAL];
+  // Populated for RULE_EVALUATION reports (which are tied to a run).
+  // Empty string for CANVAS reports. Kept REQUIRED (rather than a wrapped
+  // optional) to mirror ReportWithCumulativeSummary and avoid rippling
+  // optionality through existing rule-report clients.
   string run_id = 3 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 4 [(google.api.field_behavior) = REQUIRED];
   string name = 5 [(google.api.field_behavior) = REQUIRED];
@@ -129,6 +141,14 @@ message Report {
   optional google.protobuf.Timestamp archived_date = 15 [(google.api.field_behavior) = OPTIONAL];
   repeated sift.metadata.v1.MetadataValue metadata = 16 [(google.api.field_behavior) = REQUIRED];
   bool is_archived = 17 [(google.api.field_behavior) = OPTIONAL];
+  // Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows.
+  ReportType report_type = 18 [(google.api.field_behavior) = REQUIRED];
+  // For CANVAS reports, the id of the published canvas_execution this report row
+  // is linked to (read-through from canvas_executions.canvas_execution_id). Empty
+  // for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
+  // For CANVAS reports, the execution status read through from the linked
+  // canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
+  // conveyed via the per-rule `summaries` instead).
 }
 
 // ReportWithCumulativeSummary is a projection of `Report` that replaces the per-rule `summaries`
@@ -167,6 +187,14 @@ message ReportWithCumulativeSummary {
   optional google.protobuf.Timestamp archived_date = 15 [(google.api.field_behavior) = OPTIONAL];
   // Whether the report has been archived.
   bool is_archived = 16 [(google.api.field_behavior) = OPTIONAL];
+  // Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows.
+  ReportType report_type = 17 [(google.api.field_behavior) = REQUIRED];
+  // For CANVAS reports, the id of the published canvas_execution this report row
+  // is linked to (read-through from canvas_executions.canvas_execution_id). Empty
+  // for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
+  // For CANVAS reports, the execution status read through from the linked
+  // canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
+  // conveyed via the `cumulative_summary` instead).
 }
 
 message ReportRuleSummary {
@@ -348,7 +376,7 @@ message ListReportsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`, `created_date`,
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`, `archived_date`, `created_date`,
   // `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
@@ -385,7 +413,7 @@ message ListReportsWithCumulativeSummaryRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`, `created_date`,
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`, `archived_date`, `created_date`,
   // `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
@@ -429,7 +457,9 @@ message UpdateReportRequest {
   // The report to update.
   Report report = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The fields available to be updated are `archived_date`, `is_archived`, and `metadata`.
+  // The list of fields to be updated. The fields available to be updated are `name`, `description`, `archived_date`,
+  // `is_archived`, and `metadata`. An empty `name` is ignored and the existing name is preserved. Including
+  // `description` in the mask with the field unset clears the description.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

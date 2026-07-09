@@ -356,6 +356,12 @@ type ListRunsRequest struct {
 	// If left empty, items are ordered by `created_date` in descending order (newest-first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
 	// Example: "created_date desc,modified_date"
+	//
+	// Results can also be ordered by the value of a single metadata key, using the same bracket
+	// syntax as `filter`: `metadata["<key name>"][ desc]`. Metadata ordering cannot be combined
+	// with other order_by fields, and runs without the key sort last in both directions. Keys
+	// with relation-typed values cannot be ordered by.
+	// Example: `metadata["test_scenario"] desc`
 	OrderBy string `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 }
 

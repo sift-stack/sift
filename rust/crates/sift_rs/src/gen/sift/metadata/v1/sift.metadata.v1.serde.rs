@@ -1828,6 +1828,9 @@ impl serde::Serialize for MetadataKey {
         if self.is_archived {
             len += 1;
         }
+        if self.filter_field_type != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.metadata.v1.MetadataKey", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -1842,6 +1845,11 @@ impl serde::Serialize for MetadataKey {
         }
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
+        if self.filter_field_type != 0 {
+            let v = super::super::common::v1::FilterFieldType::try_from(self.filter_field_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.filter_field_type)))?;
+            struct_ser.serialize_field("filterFieldType", &v)?;
         }
         struct_ser.end()
     }
@@ -1859,6 +1867,8 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
             "archivedDate",
             "is_archived",
             "isArchived",
+            "filter_field_type",
+            "filterFieldType",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1867,6 +1877,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
             Type,
             ArchivedDate,
             IsArchived,
+            FilterFieldType,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1892,6 +1903,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
                             "type" => Ok(GeneratedField::Type),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "filterFieldType" | "filter_field_type" => Ok(GeneratedField::FilterFieldType),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1915,6 +1927,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
                 let mut r#type__ = None;
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
+                let mut filter_field_type__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -1941,6 +1954,12 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::FilterFieldType => {
+                            if filter_field_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filterFieldType"));
+                            }
+                            filter_field_type__ = Some(map_.next_value::<super::super::common::v1::FilterFieldType>()? as i32);
+                        }
                     }
                 }
                 Ok(MetadataKey {
@@ -1948,6 +1967,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
                     r#type: r#type__.unwrap_or_default(),
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
+                    filter_field_type: filter_field_type__.unwrap_or_default(),
                 })
             }
         }

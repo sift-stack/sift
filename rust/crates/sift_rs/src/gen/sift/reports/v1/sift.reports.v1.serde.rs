@@ -2301,6 +2301,9 @@ impl serde::Serialize for Report {
         if self.is_archived {
             len += 1;
         }
+        if self.report_type != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.Report", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -2353,6 +2356,11 @@ impl serde::Serialize for Report {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if self.report_type != 0 {
+            let v = ReportType::try_from(self.report_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.report_type)))?;
+            struct_ser.serialize_field("reportType", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2392,6 +2400,8 @@ impl<'de> serde::Deserialize<'de> for Report {
             "metadata",
             "is_archived",
             "isArchived",
+            "report_type",
+            "reportType",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2413,6 +2423,7 @@ impl<'de> serde::Deserialize<'de> for Report {
             ArchivedDate,
             Metadata,
             IsArchived,
+            ReportType,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2451,6 +2462,7 @@ impl<'de> serde::Deserialize<'de> for Report {
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "reportType" | "report_type" => Ok(GeneratedField::ReportType),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2487,6 +2499,7 @@ impl<'de> serde::Deserialize<'de> for Report {
                 let mut archived_date__ = None;
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
+                let mut report_type__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -2591,6 +2604,12 @@ impl<'de> serde::Deserialize<'de> for Report {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ReportType => {
+                            if report_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportType"));
+                            }
+                            report_type__ = Some(map_.next_value::<ReportType>()? as i32);
+                        }
                     }
                 }
                 Ok(Report {
@@ -2611,6 +2630,7 @@ impl<'de> serde::Deserialize<'de> for Report {
                     archived_date: archived_date__,
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
+                    report_type: report_type__.unwrap_or_default(),
                 })
             }
         }
@@ -4238,6 +4258,77 @@ impl<'de> serde::Deserialize<'de> for ReportTag {
         deserializer.deserialize_struct("sift.reports.v1.ReportTag", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ReportType {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "REPORT_TYPE_UNSPECIFIED",
+            Self::RuleEvaluation => "REPORT_TYPE_RULE_EVALUATION",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ReportType {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "REPORT_TYPE_UNSPECIFIED",
+            "REPORT_TYPE_RULE_EVALUATION",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ReportType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "REPORT_TYPE_UNSPECIFIED" => Ok(ReportType::Unspecified),
+                    "REPORT_TYPE_RULE_EVALUATION" => Ok(ReportType::RuleEvaluation),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ReportWithCumulativeSummary {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -4294,6 +4385,9 @@ impl serde::Serialize for ReportWithCumulativeSummary {
         if self.is_archived {
             len += 1;
         }
+        if self.report_type != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportWithCumulativeSummary", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -4343,6 +4437,11 @@ impl serde::Serialize for ReportWithCumulativeSummary {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if self.report_type != 0 {
+            let v = ReportType::try_from(self.report_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.report_type)))?;
+            struct_ser.serialize_field("reportType", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4382,6 +4481,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             "archivedDate",
             "is_archived",
             "isArchived",
+            "report_type",
+            "reportType",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4402,6 +4503,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             JobId,
             ArchivedDate,
             IsArchived,
+            ReportType,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4439,6 +4541,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             "jobId" | "job_id" => Ok(GeneratedField::JobId),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "reportType" | "report_type" => Ok(GeneratedField::ReportType),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4474,6 +4577,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                 let mut job_id__ = None;
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
+                let mut report_type__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -4572,6 +4676,12 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ReportType => {
+                            if report_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportType"));
+                            }
+                            report_type__ = Some(map_.next_value::<ReportType>()? as i32);
+                        }
                     }
                 }
                 Ok(ReportWithCumulativeSummary {
@@ -4591,6 +4701,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                     job_id: job_id__,
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
+                    report_type: report_type__.unwrap_or_default(),
                 })
             }
         }

@@ -117,6 +117,15 @@ impl serde::Serialize for FilterField {
         if !self.display_name.is_empty() {
             len += 1;
         }
+        if !self.operators.is_empty() {
+            len += 1;
+        }
+        if !self.functions.is_empty() {
+            len += 1;
+        }
+        if self.nullable.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.common.v1.FilterField", len)?;
         if !self.field_name.is_empty() {
             struct_ser.serialize_field("fieldName", &self.field_name)?;
@@ -134,6 +143,15 @@ impl serde::Serialize for FilterField {
         }
         if !self.display_name.is_empty() {
             struct_ser.serialize_field("displayName", &self.display_name)?;
+        }
+        if !self.operators.is_empty() {
+            struct_ser.serialize_field("operators", &self.operators)?;
+        }
+        if !self.functions.is_empty() {
+            struct_ser.serialize_field("functions", &self.functions)?;
+        }
+        if let Some(v) = self.nullable.as_ref() {
+            struct_ser.serialize_field("nullable", v)?;
         }
         struct_ser.end()
     }
@@ -153,6 +171,9 @@ impl<'de> serde::Deserialize<'de> for FilterField {
             "description",
             "display_name",
             "displayName",
+            "operators",
+            "functions",
+            "nullable",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -162,6 +183,9 @@ impl<'de> serde::Deserialize<'de> for FilterField {
             EnumValues,
             Description,
             DisplayName,
+            Operators,
+            Functions,
+            Nullable,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -188,6 +212,9 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                             "enumValues" | "enum_values" => Ok(GeneratedField::EnumValues),
                             "description" => Ok(GeneratedField::Description),
                             "displayName" | "display_name" => Ok(GeneratedField::DisplayName),
+                            "operators" => Ok(GeneratedField::Operators),
+                            "functions" => Ok(GeneratedField::Functions),
+                            "nullable" => Ok(GeneratedField::Nullable),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -212,6 +239,9 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                 let mut enum_values__ = None;
                 let mut description__ = None;
                 let mut display_name__ = None;
+                let mut operators__ = None;
+                let mut functions__ = None;
+                let mut nullable__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FieldName => {
@@ -244,6 +274,24 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                             }
                             display_name__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Operators => {
+                            if operators__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("operators"));
+                            }
+                            operators__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Functions => {
+                            if functions__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("functions"));
+                            }
+                            functions__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Nullable => {
+                            if nullable__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullable"));
+                            }
+                            nullable__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(FilterField {
@@ -252,6 +300,9 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                     enum_values: enum_values__.unwrap_or_default(),
                     description: description__.unwrap_or_default(),
                     display_name: display_name__.unwrap_or_default(),
+                    operators: operators__.unwrap_or_default(),
+                    functions: functions__.unwrap_or_default(),
+                    nullable: nullable__,
                 })
             }
         }

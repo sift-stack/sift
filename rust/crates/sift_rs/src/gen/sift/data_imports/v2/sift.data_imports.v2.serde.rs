@@ -5370,15 +5370,29 @@ impl serde::Serialize for UlogDataConfig {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
-        if !self.channel.is_empty() {
+        if !self.message_name.is_empty() {
+            len += 1;
+        }
+        if self.instance != 0 {
+            len += 1;
+        }
+        if !self.field_name.is_empty() {
             len += 1;
         }
         if self.channel_config.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.UlogDataConfig", len)?;
-        if !self.channel.is_empty() {
-            struct_ser.serialize_field("channel", &self.channel)?;
+        if !self.message_name.is_empty() {
+            struct_ser.serialize_field("messageName", &self.message_name)?;
+        }
+        if self.instance != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("instance", ToString::to_string(&self.instance).as_str())?;
+        }
+        if !self.field_name.is_empty() {
+            struct_ser.serialize_field("fieldName", &self.field_name)?;
         }
         if let Some(v) = self.channel_config.as_ref() {
             struct_ser.serialize_field("channelConfig", v)?;
@@ -5393,14 +5407,20 @@ impl<'de> serde::Deserialize<'de> for UlogDataConfig {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "channel",
+            "message_name",
+            "messageName",
+            "instance",
+            "field_name",
+            "fieldName",
             "channel_config",
             "channelConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            Channel,
+            MessageName,
+            Instance,
+            FieldName,
             ChannelConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -5423,7 +5443,9 @@ impl<'de> serde::Deserialize<'de> for UlogDataConfig {
                         E: serde::de::Error,
                     {
                         match value {
-                            "channel" => Ok(GeneratedField::Channel),
+                            "messageName" | "message_name" => Ok(GeneratedField::MessageName),
+                            "instance" => Ok(GeneratedField::Instance),
+                            "fieldName" | "field_name" => Ok(GeneratedField::FieldName),
                             "channelConfig" | "channel_config" => Ok(GeneratedField::ChannelConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
@@ -5444,15 +5466,31 @@ impl<'de> serde::Deserialize<'de> for UlogDataConfig {
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                let mut channel__ = None;
+                let mut message_name__ = None;
+                let mut instance__ = None;
+                let mut field_name__ = None;
                 let mut channel_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::Channel => {
-                            if channel__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("channel"));
+                        GeneratedField::MessageName => {
+                            if message_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("messageName"));
                             }
-                            channel__ = Some(map_.next_value()?);
+                            message_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Instance => {
+                            if instance__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("instance"));
+                            }
+                            instance__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::FieldName => {
+                            if field_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fieldName"));
+                            }
+                            field_name__ = Some(map_.next_value()?);
                         }
                         GeneratedField::ChannelConfig => {
                             if channel_config__.is_some() {
@@ -5463,7 +5501,9 @@ impl<'de> serde::Deserialize<'de> for UlogDataConfig {
                     }
                 }
                 Ok(UlogDataConfig {
-                    channel: channel__.unwrap_or_default(),
+                    message_name: message_name__.unwrap_or_default(),
+                    instance: instance__.unwrap_or_default(),
+                    field_name: field_name__.unwrap_or_default(),
                     channel_config: channel_config__,
                 })
             }
