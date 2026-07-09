@@ -7,6 +7,7 @@ import struct
 import pytest
 
 from sift_client._internal.util.ulog import (
+    DetectedUlogChannel,
     detect_ulog_config,
     detect_ulog_fields,
     expand_message_fields,
@@ -159,7 +160,9 @@ class TestDetectUlogFields:
             },
             data_list=[_FakeDataset("sensor_accel", 0)],
         )
-        assert detect_ulog_fields(ulog) == {"sensor_accel_0.x": "float"}
+        assert detect_ulog_fields(ulog) == {
+            "sensor_accel_0.x": DetectedUlogChannel("sensor_accel", 0, "x", "float")
+        }
 
     def test_skips_message_without_timestamp(self):
         ulog = _FakeUlog(
@@ -171,10 +174,10 @@ class TestDetectUlogFields:
     def test_log_message_channels_sorted_by_tag(self):
         ulog = _FakeUlog(logged_messages=["boot"], logged_messages_tagged={2: [], 9: [], 5: []})
         assert list(detect_ulog_fields(ulog).items()) == [
-            ("log_messages", "char"),
-            ("log_messages_2", "char"),
-            ("log_messages_5", "char"),
-            ("log_messages_9", "char"),
+            ("log_messages", DetectedUlogChannel("log_messages", 0, "", "char")),
+            ("log_messages_2", DetectedUlogChannel("log_messages_2", 0, "", "char")),
+            ("log_messages_5", DetectedUlogChannel("log_messages_5", 0, "", "char")),
+            ("log_messages_9", DetectedUlogChannel("log_messages_9", 0, "", "char")),
         ]
 
 
@@ -185,11 +188,13 @@ class TestDetectUlogConfig:
 
         config = detect_ulog_config(path, asset_name="drone")
         assert config.asset_name == "drone"
-        channels = {(d.channel, d.name, d.data_type) for d in config.data}
+        channels = {
+            (d.message_name, d.instance, d.field_name, d.name, d.data_type) for d in config.data
+        }
         assert channels == {
-            ("sensor_accel_0.x", "sensor_accel_0.x", ChannelDataType.FLOAT),
-            ("sensor_accel_0.y", "sensor_accel_0.y", ChannelDataType.FLOAT),
-            ("sensor_accel_0.z", "sensor_accel_0.z", ChannelDataType.FLOAT),
+            ("sensor_accel", 0, "x", "sensor_accel_0.x", ChannelDataType.FLOAT),
+            ("sensor_accel", 0, "y", "sensor_accel_0.y", ChannelDataType.FLOAT),
+            ("sensor_accel", 0, "z", "sensor_accel_0.z", ChannelDataType.FLOAT),
         }
 
     def test_multi_instance_topics_stay_separate(self, tmp_path):
@@ -205,24 +210,27 @@ class TestDetectUlogConfig:
         )
 
         config = detect_ulog_config(path)
-        assert {d.channel for d in config.data} == {
-            "sensor_accel_0.x",
-            "sensor_accel_0.y",
-            "sensor_accel_0.z",
-            "sensor_accel_1.x",
-            "sensor_accel_1.y",
-            "sensor_accel_1.z",
+        assert all(d.message_name == "sensor_accel" for d in config.data)
+        assert {(d.instance, d.field_name) for d in config.data} == {
+            (0, "x"),
+            (0, "y"),
+            (0, "z"),
+            (1, "x"),
+            (1, "y"),
+            (1, "z"),
         }
 
-    def test_log_message_channels(self, tmp_path):
+    def test_log_message_channels_select_by_name_with_empty_field(self, tmp_path):
         path = tmp_path / "log.ulg"
         path.write_bytes(_header() + _flag_bits() + _logged_string() + _tagged_logged_string(5))
 
         config = detect_ulog_config(path)
-        channels = {(d.channel, d.data_type) for d in config.data}
+        channels = {
+            (d.message_name, d.instance, d.field_name, d.name, d.data_type) for d in config.data
+        }
         assert channels == {
-            ("log_messages", ChannelDataType.STRING),
-            ("log_messages_5", ChannelDataType.STRING),
+            ("log_messages", 0, "", "log_messages", ChannelDataType.STRING),
+            ("log_messages_5", 0, "", "log_messages_5", ChannelDataType.STRING),
         }
 
     def test_maps_every_ulog_scalar_type(self, tmp_path):
@@ -241,19 +249,19 @@ class TestDetectUlogConfig:
         )
 
         config = detect_ulog_config(path)
-        assert {(d.channel, d.data_type) for d in config.data} == {
-            ("types_0.i8", ChannelDataType.INT_32),
-            ("types_0.i16", ChannelDataType.INT_32),
-            ("types_0.i32", ChannelDataType.INT_32),
-            ("types_0.i64", ChannelDataType.INT_64),
-            ("types_0.u8", ChannelDataType.UINT_32),
-            ("types_0.u16", ChannelDataType.UINT_32),
-            ("types_0.u32", ChannelDataType.UINT_32),
-            ("types_0.u64", ChannelDataType.UINT_64),
-            ("types_0.f", ChannelDataType.FLOAT),
-            ("types_0.d", ChannelDataType.DOUBLE),
-            ("types_0.b", ChannelDataType.BOOL),
-            ("types_0.s", ChannelDataType.STRING),
+        assert {(d.field_name, d.data_type) for d in config.data} == {
+            ("i8", ChannelDataType.INT_32),
+            ("i16", ChannelDataType.INT_32),
+            ("i32", ChannelDataType.INT_32),
+            ("i64", ChannelDataType.INT_64),
+            ("u8", ChannelDataType.UINT_32),
+            ("u16", ChannelDataType.UINT_32),
+            ("u32", ChannelDataType.UINT_32),
+            ("u64", ChannelDataType.UINT_64),
+            ("f", ChannelDataType.FLOAT),
+            ("d", ChannelDataType.DOUBLE),
+            ("b", ChannelDataType.BOOL),
+            ("s", ChannelDataType.STRING),
         }
 
     def test_clean_file_does_not_warn(self, tmp_path, recwarn):

@@ -866,22 +866,36 @@ class UlogParseErrorPolicy(Enum):
 class UlogDataColumn(DataColumnBase):
     """A single ULog channel selection.
 
+    Channels are selected by message name, instance, and field, as returned
+    by ``detect_config``. Log-message channels (``"log_messages"``,
+    ``"log_messages_<tag>"``) set ``message_name`` to the channel name and
+    leave ``field_name`` empty.
+
     Attributes:
-        channel: Source channel key, such as ``"sensor_accel_0.x"``. The key is
-            ``<message>_<instance>.<field>`` and is returned by
-            ``detect_config``.
+        message_name: The ULog message name (e.g. ``"sensor_accel"``).
+        instance: The message instance for multi-instance topics. Defaults to 0.
+        field_name: The flattened ULog field name (e.g. ``"x"``, ``"esc[0].v"``).
+            Empty for log-message channels.
         name: Sift channel name to create. Defaults to ``channel``.
     """
 
-    channel: str
+    message_name: str
+    instance: int = 0
+    field_name: str = ""
     name: str = ""
 
-    @model_validator(mode="before")
-    @classmethod
-    def _default_name_to_channel(cls, data: object) -> object:
-        if isinstance(data, dict) and not data.get("name") and data.get("channel"):
-            data["name"] = data["channel"]
-        return data
+    @property
+    def channel(self) -> str:
+        """The full channel name this selection maps to, e.g. ``"sensor_accel_0.x"``."""
+        if not self.field_name:
+            return self.message_name
+        return f"{self.message_name}_{self.instance}.{self.field_name}"
+
+    @model_validator(mode="after")
+    def _default_name_to_channel(self) -> UlogDataColumn:
+        if not self.name:
+            self.name = self.channel
+        return self
 
 
 class UlogImportConfig(ImportConfigBase):
@@ -939,7 +953,9 @@ class UlogImportConfig(ImportConfigBase):
         for dc in self.data:
             proto.data.append(
                 UlogDataConfigProto(
-                    channel=dc.channel,
+                    message_name=dc.message_name,
+                    instance=dc.instance,
+                    field_name=dc.field_name,
                     channel_config=ChannelConfigProto(
                         name=dc.name,
                         data_type=dc.data_type.value,
@@ -965,7 +981,9 @@ class UlogImportConfig(ImportConfigBase):
 
         data = [
             UlogDataColumn(
-                channel=d.channel,
+                message_name=d.message_name,
+                instance=d.instance,
+                field_name=d.field_name,
                 name=d.channel_config.name,
                 data_type=ChannelDataType(d.channel_config.data_type),
                 units=d.channel_config.units,

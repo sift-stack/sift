@@ -48,7 +48,7 @@ if __name__ == "__main__":
     # print(config)  # inspect every detected channel
     #
     # # Example: import only the accelerometer channels
-    # config.data = [d for d in config.data if d.channel.startswith("sensor_accel_0.")]
+    # config.data = [d for d in config.data if d.message_name == "sensor_accel"]
     #
     # # Example: anchor the timeline at an explicit log start time; this takes
     # # precedence over the log's GPS fix and is required for logs without one

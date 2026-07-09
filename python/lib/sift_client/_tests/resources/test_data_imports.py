@@ -321,12 +321,14 @@ class TestUlogConfig:
             run_name="run1",
             data=[
                 UlogDataColumn(
-                    channel="sensor_accel_0.x",
+                    message_name="sensor_accel",
+                    field_name="x",
                     name="sensor_accel_0.x",
                     data_type=ChannelDataType.FLOAT,
                 ),
                 UlogDataColumn(
-                    channel="vehicle_status_0.nav_state",
+                    message_name="vehicle_status",
+                    field_name="nav_state",
                     name="nav_state",
                     data_type=ChannelDataType.UINT_32,
                     units="enum",
@@ -343,9 +345,12 @@ class TestUlogConfig:
         assert proto.asset_name == "my_asset"
         assert proto.run_name == "run1"
         assert len(proto.data) == 2
-        assert proto.data[0].channel == "sensor_accel_0.x"
+        assert proto.data[0].message_name == "sensor_accel"
+        assert proto.data[0].instance == 0
+        assert proto.data[0].field_name == "x"
         assert proto.data[0].channel_config.name == "sensor_accel_0.x"
-        assert proto.data[1].channel == "vehicle_status_0.nav_state"
+        assert proto.data[1].message_name == "vehicle_status"
+        assert proto.data[1].field_name == "nav_state"
         assert proto.data[1].channel_config.name == "nav_state"
         assert proto.data[1].channel_config.units == "enum"
         assert list(proto.info_keys) == ["ver_sw"]
@@ -382,7 +387,9 @@ class TestUlogConfig:
         assert restored.param_keys == config.param_keys
         assert restored.parse_error_policy == UlogParseErrorPolicy.IGNORE_ERROR
         assert len(restored.data) == 2
-        assert restored.data[1].channel == "vehicle_status_0.nav_state"
+        assert restored.data[1].message_name == "vehicle_status"
+        assert restored.data[1].instance == 0
+        assert restored.data[1].field_name == "nav_state"
         assert restored.data[1].name == "nav_state"
         assert restored.data[1].data_type == ChannelDataType.UINT_32
         assert restored.data[1].units == "enum"
@@ -391,13 +398,52 @@ class TestUlogConfig:
         proto = UlogImportConfig(asset_name="a", run_name="ignored", run_id="run_123")._to_proto()
         assert proto.run_id == "run_123"
 
+    def test_channel_derived_from_selector(self):
+        col = UlogDataColumn(
+            message_name="sensor_accel",
+            instance=1,
+            field_name="x",
+            data_type=ChannelDataType.FLOAT,
+        )
+        assert col.channel == "sensor_accel_1.x"
+
+    def test_nonzero_instance_round_trips_through_proto(self):
+        config = UlogImportConfig(
+            asset_name="a",
+            data=[
+                UlogDataColumn(
+                    message_name="sensor_accel",
+                    instance=1,
+                    field_name="x",
+                    data_type=ChannelDataType.FLOAT,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert proto.data[0].instance == 1
+        restored = UlogImportConfig._from_proto(proto)
+        assert restored.data[0].instance == 1
+        assert restored.data[0].name == "sensor_accel_1.x"
+
+    def test_log_message_channel_is_message_name(self):
+        col = UlogDataColumn(message_name="log_messages_5", data_type=ChannelDataType.STRING)
+        assert col.channel == "log_messages_5"
+        assert col.name == "log_messages_5"
+        proto_data = UlogImportConfig(asset_name="a", data=[col])._to_proto().data[0]
+        assert proto_data.message_name == "log_messages_5"
+        assert proto_data.instance == 0
+        assert proto_data.field_name == ""
+
     def test_name_defaults_to_channel(self):
-        col = UlogDataColumn(channel="sensor_accel_0.x", data_type=ChannelDataType.FLOAT)
+        col = UlogDataColumn(
+            message_name="sensor_accel", field_name="x", data_type=ChannelDataType.FLOAT
+        )
         assert col.name == "sensor_accel_0.x"
 
     def test_explicit_name_overrides_channel(self):
         col = UlogDataColumn(
-            channel="vehicle_status_0.nav_state",
+            message_name="vehicle_status",
+            field_name="nav_state",
             name="nav_state",
             data_type=ChannelDataType.UINT_32,
         )

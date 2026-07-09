@@ -71,7 +71,7 @@ Call `detect_config` to inspect and patch the import before uploading, the same 
 config = client.data_import.detect_config("flight.ulg")
 
 # Import only the accelerometer channels
-config.data = [d for d in config.data if d.channel.startswith("sensor_accel_0.")]
+config.data = [d for d in config.data if d.message_name == "sensor_accel"]
 
 # Anchor the timeline at an explicit log start time; this takes precedence
 # over the log's GPS fix and is required for logs without one
