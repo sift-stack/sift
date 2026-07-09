@@ -143,9 +143,10 @@ class DataImportAPIAsync(ResourceBase):
                 time_format=time_format,
             )
             if isinstance(config, UlogImportConfig):
-                # ULog imports every channel without a channel list; a detected
-                # list would only filter that, and can be rejected on a damaged
-                # file where detection diverges.
+                # An empty channel list imports every channel. Keeping the
+                # detected list adds nothing and can fail the import when
+                # detection misreads a damaged file and lists channels the
+                # file does not contain.
                 config.data = []
 
         if asset is not None:
@@ -245,7 +246,8 @@ class DataImportAPIAsync(ResourceBase):
 
         For ULog files, ``data`` lists the channels pyulog decodes from the
         file. When imported, a non-empty ``data`` list restricts the import
-        to those channels; clear it to import every channel in the file.
+        to exactly those channels; the import fails if a listed channel is
+        not in the file. Clear ``data`` to import every channel.
 
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.

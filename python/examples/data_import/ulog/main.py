@@ -1,8 +1,8 @@
 """Import a PX4 ULog (.ulg) file into Sift.
 
 ULog files are self-describing, so the import needs no column mapping: every
-channel in the file is imported. Channel names follow PX4's
-convention of message, multi-instance index, and field, e.g. "sensor_accel_0.x".
+channel in the file is imported. Channel names combine the ULog message,
+multi-instance index, and field, e.g. "sensor_accel_0.x".
 
 Swap sample_data.ulg for your own .ulg flight log.
 """

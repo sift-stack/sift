@@ -850,10 +850,11 @@ class Hdf5ImportConfig(ImportConfigBase):
 
 
 class UlogParseErrorPolicy(Enum):
-    """Controls how ULog import handles records the parser can skip.
+    """Controls how ULog import handles recoverable parse errors.
 
     Recoverable errors include a truncated final record or bytes skipped while
-    resynchronizing the log. The policy is enforced server-side at import time.
+    resynchronizing the log. The policy applies when the file is imported, not
+    during ``detect_config``.
     """
 
     FAIL_ON_ERROR = ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR
@@ -868,15 +869,16 @@ class UlogDataColumn(DataColumnBase):
 
     Channels are selected by message name, instance, and field, as returned
     by ``detect_config``. Log-message channels (``"log_messages"``,
-    ``"log_messages_<tag>"``) set ``message_name`` to the channel name and
-    leave ``field_name`` empty.
+    ``"log_messages_<tag>"``) set ``message_name`` to the channel name, with
+    ``instance`` 0 and an empty ``field_name``.
 
     Attributes:
         message_name: The ULog message name (e.g. ``"sensor_accel"``).
         instance: The message instance for multi-instance topics. Defaults to 0.
         field_name: The flattened ULog field name (e.g. ``"x"``, ``"esc[0].v"``).
             Empty for log-message channels.
-        name: Sift channel name to create. Defaults to ``channel``.
+        name: Sift channel name to create. Defaults to the full channel name
+            (the ``channel`` property), e.g. ``"sensor_accel_0.x"``.
     """
 
     message_name: str

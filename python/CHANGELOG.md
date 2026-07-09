@@ -76,6 +76,8 @@ config.data = [d for d in config.data if d.message_name == "sensor_accel"]
 # Anchor the timeline at an explicit log start time; this takes precedence
 # over the log's GPS fix and is required for logs without one
 config.relative_start_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+# Import firmware version and a parameter as run metadata
 config.info_keys = ["ver_sw"]
 config.param_keys = ["BAT1_CAPACITY"]
 

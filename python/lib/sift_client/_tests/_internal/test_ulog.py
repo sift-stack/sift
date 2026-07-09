@@ -16,7 +16,7 @@ from sift_client.sift_types.channel import ChannelDataType
 
 
 class _FakeFormat:
-    """Stand-in for pyulog's MessageFormat: a list of (type, array_size, name)."""
+    """Stand-in for pyulog's MessageFormat: `fields` is a list of (type, array_size, name)."""
 
     def __init__(self, fields):
         self.fields = fields
@@ -46,7 +46,7 @@ class _FakeUlog:
         self.logged_messages_tagged = logged_messages_tagged or {}
 
 
-# Builders for real ULog bytes, parsed by pyulog in the end-to-end tests.
+# Builders for real ULog bytes; the TestDetectUlogConfig cases parse these with pyulog.
 
 
 def _header() -> bytes:

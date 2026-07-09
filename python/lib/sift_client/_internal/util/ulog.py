@@ -3,10 +3,8 @@
 Detection parses the file with pyulog and enumerates the decoded topics,
 multi-instance IDs, and logged-string channels.
 
-Warning: pyulog silently drops what it cannot decode, so malformed records
-and topics that never logged a decodable record are missing from the detected
-channels. An import config with an empty ``data`` list still imports every
-channel in the file.
+See ``detect_ulog_config`` for caveats on malformed files and empty
+``data`` behavior.
 """
 
 from __future__ import annotations
@@ -60,7 +58,7 @@ def _is_padding(field_name: str) -> bool:
 
 
 def expand_message_fields(message_formats: dict, message_name: str) -> list[tuple[str, str]]:
-    """Flatten a message format into ``(field_key, c_type)`` leaf entries.
+    """Flatten a message format into ``(field_name, c_type)`` leaf entries.
 
     Arrays expand to ``field[i]``, nested messages use dotted paths, and
     ``char[N]`` stays one string field.
@@ -119,7 +117,7 @@ def detect_ulog_fields(ulog: ULog) -> dict[str, DetectedUlogChannel]:
 
 
 def _parse_ulog(path: Path) -> ULog:
-    """Fully parse the file with pyulog, data records included."""
+    """Fully parse the file with pyulog, raising ValueError if parsing fails."""
     # pyulog logs parse notes to stdout; keep the client's stdout clean.
     with contextlib.redirect_stdout(sys.stderr):
         try:
