@@ -725,7 +725,8 @@ class DataImportAPI:
 
         For ULog files, ``data`` lists the channels pyulog decodes from the
         file. When imported, a non-empty ``data`` list restricts the import
-        to those channels; clear it to import every channel in the file.
+        to exactly those channels; the import fails if a listed channel is
+        not in the file. Clear ``data`` to import every channel.
 
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.
