@@ -1617,3 +1617,67 @@ class TestBitFieldChannels:
             )
         finally:
             client.channel_cache.store.close()
+
+
+@contextmanager
+def _capture_bar_total() -> Iterator[list[int | None]]:
+    """Patch ``alive_bar`` in the data module and capture each ``total`` arg.
+
+    ``get_channel_data`` opens exactly one bar per call whose ``total`` is
+    the number of dispatched wire-fetch tasks, so the captured value is the
+    task count.
+    """
+    totals: list[int | None] = []
+
+    @contextmanager
+    def _fake_alive_bar(total: int | None = None, *_args: Any, **_kwargs: Any) -> Iterator[Any]:
+        totals.append(total)
+        yield MagicMock()
+
+    with patch(
+        "sift_client._internal.low_level_wrappers.data.alive_bar",
+        _fake_alive_bar,
+    ):
+        yield totals
+
+
+class TestGetChannelDataProgress:
+    """The progress bar's ``total`` reflects the number of dispatched fetches."""
+
+    @pytest.mark.asyncio
+    async def test_bar_total_equals_dispatched_task_count(self) -> None:
+        """One task per uncached channel → bar total matches the channel count."""
+        client = DataLowLevelClient(MagicMock())
+        with _capture_bar_total() as totals:
+            with _fake_grpc(client, {"c1": [_frame("c1")], "c2": [_frame("c2", offset=100)]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1"), _channel("c2")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                    ignore_cache=True,
+                    show_progress=True,
+                )
+        assert totals == [2]
+
+    @pytest.mark.asyncio
+    async def test_fully_cached_call_dispatches_no_tasks(self, tmp_path) -> None:
+        """A cache hit fetches nothing, so the bar total is zero."""
+        client = _client_with_cache(tmp_path)
+        try:
+            with _fake_grpc(client, {"c1": [_frame("c1")]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            with _capture_bar_total() as totals:
+                with _fake_grpc(client, {"c1": []}):
+                    await client.get_channel_data(
+                        channels=[_channel("c1")],
+                        start_time=_NOW,
+                        end_time=_WINDOW_END,
+                        show_progress=True,
+                    )
+            assert totals == [0]
+        finally:
+            client.channel_cache.store.close()

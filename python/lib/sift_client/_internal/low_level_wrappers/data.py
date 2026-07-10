@@ -19,6 +19,7 @@ from sift.data.v2.data_pb2_grpc import DataServiceStub
 from sift_client._internal.disk_cache import DiskCache
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.time import to_timestamp_nanos
+from sift_client._internal.util.progress import alive_bar
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.transport import WithGrpcClient
 
@@ -724,6 +725,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         max_results: int | None = None,
         page_size: int | None = None,
         ignore_cache: bool = False,
+        show_progress: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get the data for a channel during a run."""
         ret_data: dict[str, pd.DataFrame] = {}
@@ -771,6 +773,10 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 partial_gaps.append((cid, gaps))
 
         tasks = []
+        # Human-readable label per task, kept in lockstep with ``tasks``
+        # so the progress bar can name each channel/gap as it lands.
+        labels: list[str] = []
+        id_to_name = {channel.id_: channel.name for channel in channels}
         # Batch fully-uncached channels (sharing the full requested
         # range) into one wire call each.
         batch_size = REQUEST_BATCH_SIZE
@@ -790,6 +796,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 )
             )
             tasks.append(task)
+            labels.append(", ".join(id_to_name.get(cid, cid) for cid in batch))
 
         # Partial gaps: one fetch per (channel, gap).
         for cid, gaps in partial_gaps:
@@ -808,8 +815,26 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     )
                 )
                 tasks.append(task)
+                labels.append(
+                    f"{id_to_name.get(cid, cid)} [{gap_start:%H:%M:%S}-{gap_end:%H:%M:%S}]"
+                )
 
-        pages = await asyncio.gather(*tasks)
+        with alive_bar(
+            len(tasks),
+            title="Fetching channel data",
+            disable=not show_progress,
+        ) as bar:
+
+            async def _tick(task: asyncio.Task, label: str) -> Any:
+                result = await task
+                bar.text(label)
+                bar()
+                return result
+
+            # Keep ``gather`` (not ``as_completed``) so pages stay in
+            # submission order: ``_merge_pages`` lets later-positioned
+            # pages win on duplicate timestamps.
+            pages = await asyncio.gather(*[_tick(t, lbl) for t, lbl in zip(tasks, labels)])
         ret_data = self._merge_pages(pages, initial=ret_data)
 
         # Pure cache hits never reach ``_update_cache`` because nothing
