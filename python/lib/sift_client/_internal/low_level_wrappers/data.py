@@ -599,25 +599,12 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         max_points: int | None,
         on_page: Callable[[int], None] | None = None,
     ) -> list[dict[str, pd.DataFrame]]:
-        """Page one ``GetData`` query, bounding the result by *points*.
+        """Page one ``GetData`` query up to a point budget.
 
-        ``GetData`` returns one ``ChannelData`` proto per page holding up
-        to ``page_size`` points, and keeps issuing a ``next_page_token``
-        while more data exists. ``max_points`` (the caller's ``limit``) is
-        a data-point budget, but a page is one proto regardless of how
-        many points it carries, so the budget drives ``page_size`` and
-        the number of pages, not a proto count. Sizing each page to the
-        budget means it is met in a single round-trip.
-
-        Each page advances every channel in ``kwargs["channel_ids"]`` by
-        the same ``page_size`` points, so the page count covers the
-        per-channel budget for batched queries too.
-
-        Each proto is deserialized here, once, into ``{name: frame}``
-        dicts that :meth:`_merge_pages` consumes directly, so the wire
-        payload is parsed a single time. ``on_page`` receives the point
-        count of each page as it arrives, counted from the frames just
-        built, for live progress reporting.
+        ``max_points`` (the caller's ``limit``) caps points, but each page
+        is one proto holding up to ``page_size`` points, so the budget
+        drives ``page_size`` and the page count rather than a proto count.
+        Deserialized once here so :meth:`_merge_pages` needn't parse again.
         """
         if max_points == 0:
             return []
