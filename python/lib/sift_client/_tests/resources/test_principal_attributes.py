@@ -13,8 +13,10 @@ from sift_client.resources.access_control.principal_attributes import PrincipalA
 from sift_client.sift_types.principal_attribute import (
     PrincipalAttributeKey,
     PrincipalAttributeKeyUpdate,
+    PrincipalRef,
     PrincipalType,
 )
+from sift_client.util import cel_utils as cel
 
 
 def _api() -> PrincipalAttributesAPIAsync:
@@ -43,12 +45,13 @@ class TestAssignmentsCreate:
         api.assignments._low_level_client.get_key = AsyncMock(return_value=_key())
         api.assignments._low_level_client.batch_create_values = AsyncMock(return_value=[])
 
-        await api.assignments.create("pk1", ["u1"], value=["e_a"])
+        await api.assignments.create("pk1", [PrincipalRef.user("u1")], value=["e_a"])
 
         api.assignments._low_level_client.get_key.assert_awaited_once_with("pk1")
         kwargs = api.assignments._low_level_client.batch_create_values.call_args.kwargs
         assert kwargs["key_id"] == "pk1"
         assert kwargs["principal_ids"] == ["u1"]
+        assert kwargs["principal_type"] == PrincipalType.USER.value
         assert kwargs["enum_value_ids"] == ["e_a"]
 
     @pytest.mark.asyncio
@@ -57,7 +60,9 @@ class TestAssignmentsCreate:
         api.client.async_.users.resolve_ids = AsyncMock(return_value={"alice@x.com": "u1"})
         api.assignments._low_level_client.batch_create_values = AsyncMock(return_value=[])
 
-        await api.assignments.create(_key(), ["alice@x.com", "raw_id"], value=["e_a"])
+        await api.assignments.create(
+            _key(), ["alice@x.com", PrincipalRef.user("raw_id")], value=["e_a"]
+        )
 
         api.client.async_.users.resolve_ids.assert_awaited_once_with(["alice@x.com"])
         kwargs = api.assignments._low_level_client.batch_create_values.call_args.kwargs
@@ -74,12 +79,40 @@ class TestAssignmentsCreate:
             await api.assignments.create(_key(), ["ghost@x.com"], value=["e_a"])
 
     @pytest.mark.asyncio
-    async def test_email_with_non_user_principal_type_raises(self):
+    async def test_email_in_user_group_ref_raises(self):
         api = _api()
         with pytest.raises(ValueError, match="only supported for USER"):
             await api.assignments.create(
-                _key(), ["group@x.com"], value=["e_a"], principal_type=PrincipalType.USER_GROUP
+                _key(), [PrincipalRef.user_group("group@x.com")], value=["e_a"]
             )
+
+    @pytest.mark.asyncio
+    async def test_bare_principal_id_raises_type_error(self):
+        api = _api()
+        api.assignments._low_level_client.batch_create_values = AsyncMock()
+
+        with pytest.raises(TypeError, match="Cannot resolve principal"):
+            await api.assignments.create(_key(), ["u1"], value=["e_a"])
+
+        api.assignments._low_level_client.batch_create_values.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_mixed_principal_types_split_into_one_rpc_per_type(self):
+        api = _api()
+        api.assignments._low_level_client.batch_create_values = AsyncMock(return_value=[])
+
+        await api.assignments.create(
+            _key(),
+            [PrincipalRef.user("u1"), PrincipalRef.user_group("g1"), PrincipalRef.user("u2")],
+            value=["e_a"],
+        )
+
+        calls = api.assignments._low_level_client.batch_create_values.call_args_list
+        assert len(calls) == 2
+        assert calls[0].kwargs["principal_ids"] == ["u1", "u2"]
+        assert calls[0].kwargs["principal_type"] == PrincipalType.USER.value
+        assert calls[1].kwargs["principal_ids"] == ["g1"]
+        assert calls[1].kwargs["principal_type"] == PrincipalType.USER_GROUP.value
 
 
 class TestAssignmentsListRouting:
@@ -103,6 +136,31 @@ class TestAssignmentsListRouting:
         await api.assignments.list_()
 
         api.assignments._low_level_client.list_all_values.assert_awaited_once()
+        kwargs = api.assignments._low_level_client.list_all_values.call_args.kwargs
+        assert kwargs["principal_type"] == PrincipalType.USER.value
+
+    @pytest.mark.asyncio
+    async def test_typed_principal_scopes_rpc_to_its_type(self):
+        api = _api()
+        api.assignments._low_level_client.list_all_values = AsyncMock(return_value=[])
+
+        await api.assignments.list_(principal=PrincipalRef.user_group("g1"))
+
+        kwargs = api.assignments._low_level_client.list_all_values.call_args.kwargs
+        assert kwargs["principal_type"] == PrincipalType.USER_GROUP.value
+        assert kwargs["query_filter"] == cel.equals("principal_id", "g1")
+
+    @pytest.mark.asyncio
+    async def test_conflicting_principal_type_raises(self):
+        api = _api()
+        api.assignments._low_level_client.list_all_values = AsyncMock(return_value=[])
+
+        with pytest.raises(ValueError, match="conflicts"):
+            await api.assignments.list_(
+                principal=PrincipalRef.user("u1"), principal_type=PrincipalType.USER_GROUP
+            )
+
+        api.assignments._low_level_client.list_all_values.assert_not_called()
 
 
 class TestKeysUpdate:

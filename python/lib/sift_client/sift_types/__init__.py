@@ -171,6 +171,7 @@ from sift_client.sift_types.principal_attribute import (
     PrincipalAttributeKeyUpdate,
     PrincipalAttributeValueLike,
     PrincipalAttributeValueType,
+    PrincipalRef,
     PrincipalType,
 )
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
@@ -262,6 +263,7 @@ __all__ = [
     "PrincipalAttributeKeyUpdate",
     "PrincipalAttributeValueLike",
     "PrincipalAttributeValueType",
+    "PrincipalRef",
     "PrincipalType",
     "Report",
     "ReportRuleStatus",

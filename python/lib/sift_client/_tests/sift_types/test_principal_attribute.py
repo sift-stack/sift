@@ -1,6 +1,7 @@
 """Tests for sift_types principal attribute models."""
 
 import pytest
+from sift.common.type.v1.user_pb2 import User as UserProto
 from sift.principal_attributes.v1 import principal_attributes_pb2 as pa
 
 from sift_client.sift_types.principal_attribute import (
@@ -9,8 +10,10 @@ from sift_client.sift_types.principal_attribute import (
     PrincipalAttributeKey,
     PrincipalAttributeKeyUpdate,
     PrincipalAttributeValueType,
+    PrincipalRef,
     PrincipalType,
 )
+from sift_client.sift_types.user import User
 
 
 def _key_proto() -> pa.PrincipalAttributeKey:
@@ -106,16 +109,40 @@ class TestPrincipalAttributeAssignment:
         assert value.enum_value.client is mock_client
 
 
+class TestPrincipalRef:
+    def test_user_from_id(self):
+        ref = PrincipalRef.user("u1")
+        assert ref.principal_id == "u1"
+        assert ref.principal_type == PrincipalType.USER
+
+    def test_user_from_email(self):
+        ref = PrincipalRef.user("alice@x.com")
+        assert ref.principal_id == "alice@x.com"
+        assert ref.principal_type == PrincipalType.USER
+
+    def test_user_from_user_object(self):
+        user = User._from_proto(UserProto(user_id="u1", user_name="alice@x.com"))
+        ref = PrincipalRef.user(user)
+        assert ref.principal_id == "u1"
+        assert ref.principal_type == PrincipalType.USER
+
+    def test_user_group_from_id(self):
+        ref = PrincipalRef.user_group("g1")
+        assert ref.principal_id == "g1"
+        assert ref.principal_type == PrincipalType.USER_GROUP
+
+
 class TestPrincipalAttributeKeyConvenience:
-    def test_assign_to_defaults_to_user(self, mock_client):
+    def test_assign_to_forwards_to_assignments_create(self, mock_client):
         key = PrincipalAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
         mock_client.access_control.principal_attributes.assignments.create.return_value = []
+        principals = [PrincipalRef.user("u1")]
 
-        key.assign_to(["u1"], value=["LIC_A"])
+        key.assign_to(principals, value=["LIC_A"])
 
         mock_client.access_control.principal_attributes.assignments.create.assert_called_once_with(
-            key, ["u1"], value=["LIC_A"], principal_type=PrincipalType.USER
+            key, principals, value=["LIC_A"]
         )
 
     def test_client_required(self):

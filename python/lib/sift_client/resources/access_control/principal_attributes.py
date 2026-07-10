@@ -18,14 +18,32 @@ from sift_client.sift_types.principal_attribute import (
     PrincipalAttributeKeyUpdate,
     PrincipalAttributeValueLike,
     PrincipalAttributeValueType,
+    PrincipalRef,
     PrincipalType,
 )
+from sift_client.sift_types.user import User
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
 
     from sift_client.client import SiftClient
+
+
+def _as_principal_ref(principal: PrincipalRef | User | str) -> PrincipalRef:
+    """Resolve a principal input to a typed reference; bare IDs are rejected."""
+    if isinstance(principal, PrincipalRef):
+        return principal
+    if isinstance(principal, User):
+        return PrincipalRef.user(principal)
+    if isinstance(principal, str) and "@" in principal:
+        # An email names its own type: only user principals have emails.
+        return PrincipalRef.user(principal)
+    raise TypeError(
+        f"Cannot resolve principal {principal!r}. Pass PrincipalRef.user(...) or "
+        "PrincipalRef.user_group(...), a User object, or a user email address; a bare ID "
+        "does not say which kind of principal it refers to."
+    )
 
 
 class PrincipalAttributesAPIAsync(ResourceBase):
@@ -35,9 +53,9 @@ class PrincipalAttributesAPIAsync(ResourceBase):
     A principal is the "who" in an access decision, such as a user or user group.
 
     Create or fetch an attribute key via `keys`, define enum values via `enum_values`
-    when the key uses them, then assign a value to principals via `assignments`. User
-    principals accept either user IDs or email addresses; user-group principals use
-    user-group IDs.
+    when the key uses them, then assign a value to principals via `assignments`. Pass
+    ``User`` objects, ``PrincipalRef`` references, or user email addresses; use
+    ``PrincipalRef.user_group(...)`` for user groups.
     """
 
     keys: PrincipalAttributeKeysAPIAsync
@@ -441,22 +459,21 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
     async def create(
         self,
         key: str | PrincipalAttributeKey,
-        principals: list[str],
+        principals: list[PrincipalRef | User | str],
         *,
         value: PrincipalAttributeValueLike,
-        principal_type: PrincipalType = PrincipalType.USER,
     ) -> list[PrincipalAttributeAssignment]:
         """Assign a key's value to principals.
 
         Args:
             key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
-            principals: Principal IDs. For ``USER`` principals, entries containing ``@`` are
-                treated as email addresses and resolved to user IDs.
+            principals: Principals to assign to. Pass ``PrincipalRef.user(...)`` /
+                ``PrincipalRef.user_group(...)`` references, ``User`` objects, or user
+                email addresses (resolved to user IDs automatically). Bare IDs are
+                rejected because they do not say which kind of principal they refer to.
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
                 full set on each principal; for ``ENUM``, a single enum value; for ``BOOLEAN``,
                 a bool; for ``NUMBER``, an int.
-            principal_type: The kind of principal being assigned to. Defaults to ``USER``. Use
-                ``PrincipalType.USER_GROUP`` when assigning to user groups.
 
         Returns:
             The created assignments.
@@ -466,15 +483,23 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
             key_cls=PrincipalAttributeKey,
             getter=lambda key_id: self._low_level_client.get_key(key_id),
         )
-        resolved_ids = await self._resolve_principal_ids(principals, principal_type=principal_type)
+        refs = await self._resolve_email_refs([_as_principal_ref(p) for p in principals])
         create_kwargs = attribute_value_kwargs(resolved_key.value_type, value)
 
-        created = await self._low_level_client.batch_create_values(
-            key_id=resolved_key._id_or_error,
-            principal_ids=resolved_ids,
-            principal_type=principal_type.value,
-            **create_kwargs,
-        )
+        grouped: dict[PrincipalType, list[str]] = {}
+        for ref in refs:
+            grouped.setdefault(ref.principal_type, []).append(ref.principal_id)
+
+        created: list[PrincipalAttributeAssignment] = []
+        for principal_type, principal_ids in grouped.items():
+            created.extend(
+                await self._low_level_client.batch_create_values(
+                    key_id=resolved_key._id_or_error,
+                    principal_ids=principal_ids,
+                    principal_type=principal_type.value,
+                    **create_kwargs,
+                )
+            )
         return self._apply_client_to_instances(created)
 
     async def get(
@@ -501,8 +526,8 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
         self,
         *,
         key: str | PrincipalAttributeKey | None = None,
-        principal: str | None = None,
-        principal_type: PrincipalType = PrincipalType.USER,
+        principal: PrincipalRef | User | str | None = None,
+        principal_type: PrincipalType | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -513,9 +538,11 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
 
         Args:
             key: Filter to assignments of this key.
-            principal: Filter to assignments for this principal. Use a user ID or email address
-                for users; use a user-group ID with ``PrincipalType.USER_GROUP`` for user groups.
-            principal_type: The kind of principal to list assignments for. Defaults to ``USER``.
+            principal: Filter to assignments for this principal. Pass a ``PrincipalRef``,
+                a ``User`` object, or a user email address.
+            principal_type: The kind of principal to list assignments for when
+                ``principal`` is not given. Defaults to ``USER``. When ``principal`` is
+                given, its own type is used and this must match it if set.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -524,13 +551,22 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
 
         Returns:
             The matching assignments.
+
+        Raises:
+            ValueError: If ``principal_type`` conflicts with the type of ``principal``.
         """
         filter_parts = []
         if principal is not None:
-            (resolved,) = await self._resolve_principal_ids(
-                [principal], principal_type=principal_type
-            )
-            filter_parts.append(cel.equals("principal_id", resolved))
+            (ref,) = await self._resolve_email_refs([_as_principal_ref(principal)])
+            if principal_type is not None and principal_type != ref.principal_type:
+                raise ValueError(
+                    f"principal_type {principal_type.name} conflicts with the principal's "
+                    f"own type {ref.principal_type.name}."
+                )
+            principal_type = ref.principal_type
+            filter_parts.append(cel.equals("principal_id", ref.principal_id))
+        elif principal_type is None:
+            principal_type = PrincipalType.USER
         if filter_query:
             filter_parts.append(filter_query)
         query_filter = cel.and_(*filter_parts) or None
@@ -586,27 +622,26 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
         ids = [id_of(a) for a in assignments]
         await self._low_level_client.unarchive_values(ids, principal_type=principal_type.value)
 
-    async def _resolve_principal_ids(
-        self, principals: list[str], *, principal_type: PrincipalType
-    ) -> list[str]:
-        """Resolve a list of principals to IDs, treating user emails (``@``) as lookups."""
+    async def _resolve_email_refs(self, refs: list[PrincipalRef]) -> list[PrincipalRef]:
+        """Resolve user emails (``@``) in principal references to user IDs."""
         emails = [
-            p
-            for p in principals
-            if principal_type == PrincipalType.USER and isinstance(p, str) and "@" in p
+            ref.principal_id
+            for ref in refs
+            if ref.principal_type == PrincipalType.USER and "@" in ref.principal_id
         ]
         email_to_id = await self.client.async_.users.resolve_ids(emails) if emails else {}
-        resolved: list[str] = []
-        for principal in principals:
-            if principal in email_to_id:
-                resolved.append(email_to_id[principal])
-            elif "@" in principal and principal_type != PrincipalType.USER:
+        resolved: list[PrincipalRef] = []
+        for ref in refs:
+            if "@" not in ref.principal_id:
+                resolved.append(ref)
+            elif ref.principal_type != PrincipalType.USER:
                 raise ValueError(
-                    f"Email resolution is only supported for USER principals; got {principal!r} "
-                    f"for principal_type {principal_type.name}. Pass a principal ID instead."
+                    f"Email resolution is only supported for USER principals; got "
+                    f"{ref.principal_id!r} for principal_type {ref.principal_type.name}. "
+                    "Pass a principal ID instead."
                 )
-            elif principal_type == PrincipalType.USER and "@" in principal:
-                raise ValueError(f"No user found for email {principal!r}")
+            elif ref.principal_id not in email_to_id:
+                raise ValueError(f"No user found for email {ref.principal_id!r}")
             else:
-                resolved.append(principal)
+                resolved.append(PrincipalRef.user(email_to_id[ref.principal_id]))
         return resolved

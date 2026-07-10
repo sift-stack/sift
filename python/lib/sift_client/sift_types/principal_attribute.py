@@ -18,9 +18,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Union
 
+from pydantic import BaseModel
 from sift.principal_attributes.v1 import principal_attributes_pb2 as pa_pb
 
 from sift_client.sift_types._base import BaseType, ModelUpdate
+from sift_client.sift_types.user import User
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -40,6 +42,25 @@ class PrincipalType(Enum):
 
     USER = pa_pb.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER
     USER_GROUP = pa_pb.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP
+
+
+class PrincipalRef(BaseModel):
+    """Typed reference to a principal, naming both the ID and the kind of principal."""
+
+    principal_id: str
+    principal_type: PrincipalType
+
+    @classmethod
+    def user(cls, user: str | User) -> PrincipalRef:
+        """Reference a user by ID, email address, or ``User`` object."""
+        if isinstance(user, User):
+            return cls(principal_id=user._id_or_error, principal_type=PrincipalType.USER)
+        return cls(principal_id=user, principal_type=PrincipalType.USER)
+
+    @classmethod
+    def user_group(cls, user_group_id: str) -> PrincipalRef:
+        """Reference a user group by ID."""
+        return cls(principal_id=user_group_id, principal_type=PrincipalType.USER_GROUP)
 
 
 class PrincipalAttributeEnumValue(
@@ -287,28 +308,26 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
 
     def assign_to(
         self,
-        principals: list[str],
+        principals: list[PrincipalRef | User | str],
         *,
         value: PrincipalAttributeValueLike,
-        principal_type: PrincipalType = PrincipalType.USER,
     ) -> list[PrincipalAttributeAssignment]:
         """Assign a value to one or more principals for this key.
 
         Args:
-            principals: Principal IDs to assign to. For ``USER`` principals, entries
-                containing ``@`` are treated as email addresses and resolved to user IDs.
+            principals: Principals to assign to. Pass ``PrincipalRef.user(...)`` /
+                ``PrincipalRef.user_group(...)`` references, ``User`` objects, or user
+                email addresses (resolved to user IDs automatically).
             value: The value to assign. For ``SET_OF_ENUM`` keys, a list of enum values
                 (or their IDs); for ``ENUM`` keys, a single enum value; for ``BOOLEAN``
                 keys, a bool; for ``NUMBER`` keys, an int. For ``SET_OF_ENUM`` this
                 replaces the full set on each principal.
-            principal_type: The kind of principal being assigned to. Defaults to ``USER``. Use
-                ``PrincipalType.USER_GROUP`` when assigning to user groups.
 
         Returns:
             The created assignments.
         """
         return self.client.access_control.principal_attributes.assignments.create(
-            self, principals, value=value, principal_type=principal_type
+            self, principals, value=value
         )
 
     def list_assignments(

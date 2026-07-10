@@ -78,7 +78,7 @@ licenses = key.get_or_create_enum_values(["LICENSE_A", "LICENSE_B"])
 key.assign_to([ResourceAttributeEntity.for_channel("channel-id")], value=licenses)
 ```
 
-Principal attributes accept user IDs or email addresses, resolving emails to user IDs automatically:
+Principal attributes accept `User` objects, typed `PrincipalRef` references, or user email addresses (resolved to user IDs automatically). Use `PrincipalRef.user_group(...)` for user groups:
 
 ```python
 from sift_client.sift_types import PrincipalAttributeValueType
