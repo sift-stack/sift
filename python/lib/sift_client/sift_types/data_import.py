@@ -890,7 +890,8 @@ class UlogDataColumn(DataColumnBase):
     def default_channel_name(self) -> str:
         """The default Sift channel name for this selection,
         ``<message_name>_<instance>.<field_name>`` (e.g. ``"sensor_accel_0.x"``),
-        or just ``message_name`` for log-message channels."""
+        or just ``message_name`` for log-message channels.
+        """
         if not self.field_name:
             return self.message_name
         return f"{self.message_name}_{self.instance}.{self.field_name}"
