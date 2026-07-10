@@ -35,7 +35,7 @@ the entire accumulated frame).
 
 from __future__ import annotations
 
-from contextlib import ExitStack, contextmanager
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, cast
 from unittest.mock import MagicMock, patch
@@ -131,34 +131,18 @@ def _client_with_cache(tmp_path, subdir: str = "cache") -> DataLowLevelClient:
     return DataLowLevelClient(MagicMock(), channel_cache=ChannelDataCache(store))
 
 
-@contextmanager
-def _patch_deserializer(
-    sentinel_to_frames: dict[str, dict[str, pd.DataFrame]],
-) -> Iterator[None]:
-    """Patch the proto readers to translate string sentinels.
+def _patch_deserializer(sentinel_to_frames: dict[str, dict[str, pd.DataFrame]]) -> Any:
+    """Patch ``try_deserialize_channel_data`` to translate string sentinels.
 
-    Lets tests pass strings in lieu of protos. Patches both
-    ``try_deserialize_channel_data`` (sentinel -> frames) and
-    ``_count_channel_data_points`` (sentinel -> point count), so the
-    progress path's point counting works on sentinels too. Callers use
-    ``with _patch_deserializer(...):``.
+    Lets ``_fake_grpc`` pass strings in lieu of protos; the paginator
+    deserializes each page through this patched reader. Returned object is
+    a context manager; callers use ``with _patch_deserializer(...):``.
     """
-    with ExitStack() as stack:
-        stack.enter_context(
-            patch.object(
-                DataLowLevelClient,
-                "try_deserialize_channel_data",
-                staticmethod(lambda s: sentinel_to_frames[s]),
-            )
-        )
-        stack.enter_context(
-            patch.object(
-                DataLowLevelClient,
-                "_count_channel_data_points",
-                staticmethod(lambda s: sum(len(df) for df in sentinel_to_frames[s].values())),
-            )
-        )
-        yield
+    return patch.object(
+        DataLowLevelClient,
+        "try_deserialize_channel_data",
+        staticmethod(lambda s: sentinel_to_frames[s]),
+    )
 
 
 @contextmanager
@@ -974,16 +958,14 @@ class TestMergePages:
         """No fresh pages → initial dict passes through by identity."""
         client = DataLowLevelClient(MagicMock())
         initial_df = _frame("chan", rows=5)
-        with _patch_deserializer({}):
-            result = client._merge_pages(pages=pages, initial={"chan": initial_df})
+        result = client._merge_pages(pages=pages, initial={"chan": initial_df})
         assert result["chan"] is initial_df
 
     def test_single_frame_skips_concat(self) -> None:
         """One frame for a channel → returned by identity, no concat call."""
         only_df = _frame("chan", rows=5)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": only_df}}):
-            result = client._merge_pages(pages=[["p1"]], initial={})
+        result = client._merge_pages(pages=[[{"chan": only_df}]], initial={})
         assert result["chan"] is only_df
 
     def test_disjoint_pages_concat_in_order(self) -> None:
@@ -992,9 +974,9 @@ class TestMergePages:
         df2 = _frame("chan", rows=10, start=_NOW + timedelta(minutes=1), offset=10, freq="s")
         df3 = _frame("chan", rows=10, start=_NOW + timedelta(minutes=2), offset=20, freq="s")
         client = DataLowLevelClient(MagicMock())
-        sentinels = {"p1": {"chan": df1}, "p2": {"chan": df2}, "p3": {"chan": df3}}
-        with _patch_deserializer(sentinels):
-            result = client._merge_pages(pages=[["p1", "p2"], ["p3"]], initial={})
+        result = client._merge_pages(
+            pages=[[{"chan": df1}, {"chan": df2}], [{"chan": df3}]], initial={}
+        )
         expected = pd.concat([df1, df2, df3]).groupby(level=0).last()
         pd.testing.assert_frame_equal(result["chan"].sort_index(), expected.sort_index())
         assert len(result["chan"]) == 30
@@ -1009,8 +991,7 @@ class TestMergePages:
         df_first = pd.DataFrame({"chan": [0] * 5}, index=index)
         df_second = pd.DataFrame({"chan": [99] * 5}, index=index)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": df_first}, "p2": {"chan": df_second}}):
-            result = client._merge_pages(pages=[["p1", "p2"]], initial={})
+        result = client._merge_pages(pages=[[{"chan": df_first}, {"chan": df_second}]], initial={})
         assert (result["chan"]["chan"] == 99).all()
 
     def test_cached_slice_folded_in_first_and_loses_on_overlap(self) -> None:
@@ -1023,8 +1004,7 @@ class TestMergePages:
         cached = pd.DataFrame({"chan": [-1] * 5}, index=index)
         fresh = pd.DataFrame({"chan": [42] * 5}, index=index)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": fresh}}):
-            result = client._merge_pages(pages=[["p1"]], initial={"chan": cached})
+        result = client._merge_pages(pages=[[{"chan": fresh}]], initial={"chan": cached})
         assert (result["chan"]["chan"] == 42).all()
 
     def test_multiple_channels_independent(self) -> None:
@@ -1033,9 +1013,7 @@ class TestMergePages:
         a2 = _frame("a", rows=5, start=_NOW + timedelta(minutes=1), offset=5, freq="s")
         b1 = _frame("b", rows=5, start=_NOW, offset=100, freq="s")
         client = DataLowLevelClient(MagicMock())
-        sentinels = {"p_a1": {"a": a1}, "p_a2": {"a": a2}, "p_b1": {"b": b1}}
-        with _patch_deserializer(sentinels):
-            result = client._merge_pages(pages=[["p_a1", "p_b1"], ["p_a2"]], initial={})
+        result = client._merge_pages(pages=[[{"a": a1}, {"b": b1}], [{"a": a2}]], initial={})
         assert len(result["a"]) == 10
         assert len(result["b"]) == 5
         assert (result["b"]["b"] >= 100).all()
@@ -1046,8 +1024,7 @@ class TestMergePages:
         initial = {"chan": cached}
         fresh = _frame("chan", rows=5, start=_NOW + timedelta(seconds=1), offset=10)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": fresh}}):
-            client._merge_pages(pages=[["p1"]], initial=initial)
+        client._merge_pages(pages=[[{"chan": fresh}]], initial=initial)
         assert initial["chan"] is cached
 
 

@@ -598,7 +598,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None,
         max_points: int | None,
         on_page: Callable[[int], None] | None = None,
-    ) -> list[Any]:
+    ) -> list[dict[str, pd.DataFrame]]:
         """Page one ``GetData`` query, bounding the result by *points*.
 
         ``GetData`` returns one ``ChannelData`` proto per page holding up
@@ -613,12 +613,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         the same ``page_size`` points, so the page count covers the
         per-channel budget for batched queries too.
 
-        ``on_page`` receives the point count of each page as it arrives,
-        for live progress reporting. The count parses the page but only
-        reads the repeated field length (see
-        :meth:`_count_channel_data_points`); ``_merge_pages`` parses again
-        downstream. The parse is unavoidable (values are packed bytes) but
-        cheap; carry frames forward to parse once if it ever shows up.
+        Each proto is deserialized here, once, into ``{name: frame}``
+        dicts that :meth:`_merge_pages` consumes directly, so the wire
+        payload is parsed a single time. ``on_page`` receives the point
+        count of each page as it arrives, counted from the frames just
+        built, for live progress reporting.
         """
         if max_points == 0:
             return []
@@ -633,22 +632,23 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size = page_size or CHANNELS_DEFAULT_PAGE_SIZE
             pages_remaining = None  # exhaust via the page token
 
-        protos: list[Any] = []
+        deserialized: list[dict[str, pd.DataFrame]] = []
         page_token = ""
         while True:
             page, page_token = await self._get_data_impl(
                 page_size=page_size, page_token=page_token, **kwargs
             )
-            protos.extend(page)
+            frames = [self.try_deserialize_channel_data(d) for d in page]
+            deserialized.extend(frames)
             if on_page is not None:
-                on_page(sum(self._count_channel_data_points(d) for d in page))
+                on_page(sum(len(df) for frame in frames for df in frame.values()))
             if pages_remaining is not None:
                 pages_remaining -= 1
                 if pages_remaining <= 0:
                     break
             if not page_token:
                 break
-        return protos
+        return deserialized
 
     def _update_cache(
         self,
@@ -985,11 +985,16 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     def _merge_pages(
         self,
-        pages: list[list[Any]],
+        pages: list[list[dict[str, pd.DataFrame]]],
         *,
         initial: dict[str, pd.DataFrame],
     ) -> dict[str, pd.DataFrame]:
         """Flatten paged channel data + any cached slices into one DataFrame per channel.
+
+        ``pages`` is already deserialized: one entry per fetch task, each
+        a list of per-page ``{name: frame}`` dicts from
+        :meth:`_paginate_channel_data`. Parsing happens there so the wire
+        payload is read once.
 
         ``initial`` carries the cached slices ``get_channel_data``
         stitched inline via :meth:`ChannelDataCache.get_range` before
@@ -1001,8 +1006,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         per_channel_frames: dict[str, list[pd.DataFrame]] = {}
         for page in pages:
-            for data in page:
-                for name, df in self.try_deserialize_channel_data(data).items():
+            for frame in page:
+                for name, df in frame.items():
                     per_channel_frames.setdefault(name, []).append(df)
 
         ret_data: dict[str, pd.DataFrame] = dict(initial)
@@ -1016,26 +1021,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             else:
                 ret_data[name] = pd.concat(frames).groupby(level=0).last()
         return ret_data
-
-    @staticmethod
-    def _count_channel_data_points(channel_data: Any) -> int:
-        """Point count of one ``ChannelData`` page without building frames.
-
-        The values are packed bytes inside the ``Any``-style wrapper, so
-        the typed message still has to be parsed, but the repeated field's
-        length is O(1) from there: no per-point Python loop and no
-        DataFrame, unlike :meth:`try_deserialize_channel_data`. Bitfields
-        are counted per element to match how the deserializer and the
-        cache tally points.
-        """
-        data_type = ChannelDataType.from_str(channel_data.type_url)
-        if data_type is None:
-            raise ValueError(f"Unknown data type: {channel_data.type_url}")
-        proto_data_class = ChannelDataType.proto_data_class(data_type)
-        proto_data_value = proto_data_class.FromString(channel_data.value)
-        if proto_data_class is BitFieldValues:
-            return sum(len(component.values) for component in proto_data_value.values)
-        return len(proto_data_value.values)
 
     @staticmethod
     def try_deserialize_channel_data(channel_data: Any) -> dict[str, pd.DataFrame]:
