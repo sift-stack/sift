@@ -28,7 +28,7 @@ generate_python_extras() {
     # Idempotent: fast on a warm cache, recreates .venv on a cold checkout.
     uv sync --extra dev-all --quiet
 
-    bash ./scripts/dev gen-extras
+    just gen-extras
     check_extras_changes
 }
 

@@ -10,4 +10,4 @@
    a. Ensure that your local Sift instance contains data for the asset NostromoLV426
    b. If it doesn't them export data for NostromoLV426 from development
 4. Run tests
-   a. Run tests using /python/scripts/dev {test, test-integration, test-all}
+   a. From /python, run tests using `just {test, test-integration, test-all}`

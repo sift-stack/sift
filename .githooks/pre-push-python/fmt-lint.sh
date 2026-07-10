@@ -19,11 +19,11 @@ uv sync --extra dev-all --quiet
 
 # Run ruff format (formatter)
 echo "     → Running ruff format..."
-bash ./scripts/dev fmt
+just fmt
 
 # Run ruff check with --fix (linter)
 echo "     → Running ruff check --fix..."
-bash ./scripts/dev lint-fix
+just lint-fix
 
 # Check if any files were modified by formatting/linting
 cd "$REPO_ROOT"

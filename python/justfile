@@ -1,0 +1,126 @@
+# Development tasks for the sift-stack-py package.
+#
+# Requires `just` (https://github.com/casey/just) and `uv`
+# (https://docs.astral.sh/uv/#installation). Install just with one of:
+#   uv tool install rust-just      # via uv
+#   cargo install just             # via cargo
+#   brew install just              # via Homebrew
+#
+# Run `just` (or `just --list`) to see all recipes. Every recipe runs against
+# the project's uv-managed environment. Bootstrap a fresh checkout with
+# `just bootstrap`.
+
+# List available recipes
+default:
+    @just --list
+
+# Create .venv and install all dev dependencies via uv
+bootstrap:
+    # Sweep any stale venv from the legacy pip-based setup so editor configs
+    # don't keep pointing at it.
+    rm -rf venv build lib/sift_stack_py.egg-info
+    uv sync --extra dev-all
+
+# Re-install project dependencies
+pip-install:
+    uv sync --extra dev-all
+
+# Run 'ruff format'
+fmt:
+    uv run ruff format
+
+# Run 'ruff format --check' (no writes; used by CI)
+fmt-check:
+    uv run ruff format --check
+
+# Run 'ruff check'
+lint:
+    uv run ruff check
+
+# Run 'ruff check --fix'
+lint-fix:
+    uv run ruff check --fix
+
+# Run 'mypy lib' for static analysis
+mypy:
+    uv run mypy lib
+
+# Run 'mypy --platform=win32 lib' (Windows compat check)
+mypy-win:
+    # Re-run mypy with --platform=win32 so typeshed evaluates platform-gated
+    # stubs (e.g. fcntl) as if we were on Windows. Catches imports that would
+    # only fail at runtime on Windows.
+    uv run mypy --platform=win32 lib
+
+# Run 'pyright lib' for type checking
+pyright:
+    uv run pyright lib
+
+# Run lint-fix, fmt, mypy, mypy-win, pyright sequentially
+check: lint-fix fmt mypy mypy-win pyright
+
+# Execute non-integration tests against the project's Python
+test:
+    uv run pytest -m "not integration"
+
+# Execute non-integration tests against the floor Python (3.8)
+test-floor:
+    # uv auto-downloads a managed Python 3.8 on first run. --no-project
+    # --with-editable '.[dev-all]' resolves the project + dev-all extra ad hoc
+    # under 3.8, installing the project editable so pytest collects from the
+    # working tree.
+    uv run --python 3.8 --no-project --with-editable '.[dev-all]' pytest -m "not integration"
+
+# Execute non-integration tests against the ceiling Python (3.14)
+test-ceiling:
+    # Symmetric to test-floor: runs against the highest officially supported
+    # Python version (per the `Programming Language :: Python :: 3.14`
+    # classifier in pyproject.toml). Catches forward-compat issues.
+    uv run --python 3.14 --no-project --with-editable '.[dev-all]' pytest -m "not integration"
+
+# Run the pytest-plugin test subset against pytest 7/8/9
+test-pytest-compat:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Each cell pairs a pytest line with a compatible Python and pytest-randomly
+    # pin. Fork support keeps the grpc the plugin imports from aborting in the
+    # parent when runpytest_subprocess forks (mirrors the CI job env).
+    export GRPC_ENABLE_FORK_SUPPORT=1
+    for cell in "3.8 ~=7.4 3.15.0" "3.9 ~=8.4 3.16.0" "3.10 ~=9.0 4.1.0"; do
+      read -r py spec randomly <<< "$cell"
+      echo "=== Python $py, pytest $spec, pytest-randomly $randomly ==="
+      uv run --python "$py" --no-project --with-editable '.' \
+        --with "pytest$spec" \
+        --with "pytest-randomly==$randomly" \
+        pytest lib/sift_client/_tests/pytest_plugin -m "plugin_compat"
+    done
+
+# Execute integration tests
+test-integration:
+    uv run pytest -m "integration"
+
+# Execute all tests
+test-all:
+    uv run pytest
+
+# Generate pyi stubs for sift_client synchronous wrappers
+gen-stubs:
+    cd lib && uv run python sift_client/_internal/gen_pyi.py sift_client/resources/sync_stubs
+    uv run ruff format ./lib/sift_client/resources/sync_stubs/*.pyi -q
+    uv run ruff check ./lib/sift_client/resources/sync_stubs/*.pyi --fix --unsafe-fixes -q
+
+# Run stubtest (mypy) on the generated pyi stubs
+mypy-stubs:
+    cd lib && uv run stubtest sift_client.resources.sync_stubs
+
+# Generate [project.optional-dependencies]
+gen-extras:
+    cd scripts && uv run python generate_extras.py
+
+# Boot up the documentation server
+docs:
+    uv run mkdocs serve
+
+# Build docs
+docs-build:
+    uv run mkdocs build

@@ -54,6 +54,9 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Set up just
+        uses: extractions/setup-just@v4
+
       - name: Verify lockfile is up to date
         run: uv lock --check
 
@@ -61,22 +64,22 @@ jobs:
         run: uv sync --extra dev-all
 
       - name: Lint
-        run: uv run ruff check
+        run: just lint
 
       - name: Format
-        run: uv run ruff format --check
+        run: just fmt-check
 
       - name: MyPy
-        run: uv run mypy lib
+        run: just mypy
 
       # Re-run mypy with --platform=win32 so typeshed evaluates platform-gated
       # stubs (e.g. fcntl) as if we were on Windows. Catches imports that
       # would only fail at runtime on Windows.
       - name: MyPy (Windows platform)
-        run: uv run mypy --platform=win32 lib
+        run: just mypy-win
 
       - name: Pyright
-        run: uv run pyright lib
+        run: just pyright
 
       - name: Check Stubs Generation
         working-directory: .
@@ -110,7 +113,7 @@ jobs:
         # code that runs on 3.8). Ceiling testing is rarely useful in
         # practice — Python's deprecation cycle is long and the project's
         # stdlib usage is conservative — so it stays available locally as
-        # `./scripts/dev test-ceiling` rather than running on every PR.
+        # `just test-ceiling` rather than running on every PR.
         # The full 3.8-3.14 install matrix lives in `python_build.yaml`.
         python-version: ["3.8"]
     steps:
@@ -124,11 +127,16 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Set up just
+        uses: extractions/setup-just@v4
+
       - name: Install dependencies (Python ${{ matrix.python-version }})
         run: uv sync --python ${{ matrix.python-version }} --extra dev-all
 
+      # The venv is synced to the matrix Python above, so `just test`
+      # (uv run pytest) collects against that interpreter.
       - name: Pytest Unit Tests (Python ${{ matrix.python-version }})
-        run: uv run --python ${{ matrix.python-version }} pytest -m "not integration"
+        run: just test
 
       # Disabling integration tests that interact with Sift until a better solution is implemented
       # - name: Pytest Integration Tests

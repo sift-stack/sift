@@ -29,7 +29,7 @@ generate_python_stubs() {
     # Idempotent: fast on a warm cache, recreates .venv on a cold checkout.
     uv sync --extra dev-all --quiet
 
-    bash ./scripts/dev gen-stubs
+    just gen-stubs
     check_stub_changes "$STUBS_DIR"
 }
 
