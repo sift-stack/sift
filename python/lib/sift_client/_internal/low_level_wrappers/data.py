@@ -620,7 +620,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             pages_remaining = None  # exhaust via the page token
 
         deserialized: list[dict[str, pd.DataFrame]] = []
-        page_token = ""
+        page_token: str | None = ""
         while True:
             page, page_token = await self._get_data_impl(
                 page_size=page_size, page_token=page_token, **kwargs

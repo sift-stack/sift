@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterator, cast
+from typing import Any, Iterator, Mapping, Sequence, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -148,7 +148,7 @@ def _patch_deserializer(sentinel_to_frames: dict[str, dict[str, pd.DataFrame]]) 
 @contextmanager
 def _fake_grpc(
     client: DataLowLevelClient,
-    channel_to_pages: dict[str, list[pd.DataFrame | dict[str, pd.DataFrame]]],
+    channel_to_pages: Mapping[str, Sequence[pd.DataFrame | dict[str, pd.DataFrame]]],
 ) -> Iterator[list[dict[str, Any]]]:
     """Mock the gRPC boundary so each "page" is a sentinel string.
 
