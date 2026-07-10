@@ -590,6 +590,55 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
+    async def _paginate_channel_data(
+        self,
+        *,
+        kwargs: dict[str, Any],
+        page_size: int | None,
+        max_points: int | None,
+    ) -> list[Any]:
+        """Page one ``GetData`` query, bounding the result by *points*.
+
+        ``GetData`` returns one ``ChannelData`` proto per page holding up
+        to ``page_size`` points, and keeps issuing a ``next_page_token``
+        while more data exists. ``max_points`` (the caller's ``limit``) is
+        a data-point budget, but a page is one proto regardless of how
+        many points it carries, so the budget drives ``page_size`` and
+        the number of pages, not a proto count. Sizing each page to the
+        budget means it is met in a single round-trip.
+
+        Each page advances every channel in ``kwargs["channel_ids"]`` by
+        the same ``page_size`` points, so the page count covers the
+        per-channel budget for batched queries too.
+        """
+        if max_points == 0:
+            return []
+
+        if max_points is not None:
+            # Never pull a larger page than the whole budget; then cover
+            # the budget in ceil(budget / page_size) equal pages.
+            if page_size is None or page_size > max_points:
+                page_size = max_points
+            pages_remaining: int | None = -(-max_points // page_size)  # ceil div
+        else:
+            page_size = page_size or CHANNELS_DEFAULT_PAGE_SIZE
+            pages_remaining = None  # exhaust via the page token
+
+        protos: list[Any] = []
+        page_token = ""
+        while True:
+            page, page_token = await self._get_data_impl(
+                page_size=page_size, page_token=page_token, **kwargs
+            )
+            protos.extend(page)
+            if pages_remaining is not None:
+                pages_remaining -= 1
+                if pages_remaining <= 0:
+                    break
+            if not page_token:
+                break
+        return protos
+
     def _update_cache(
         self,
         *,
@@ -783,8 +832,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for i in range(0, len(fully_uncached), batch_size):
             batch = fully_uncached[i : i + batch_size]
             task = asyncio.create_task(
-                self._handle_pagination(
-                    self._get_data_impl,
+                self._paginate_channel_data(
                     kwargs={
                         "channel_ids": batch,
                         "run_id": run_id,
@@ -792,7 +840,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                         "end_time": end_time,
                     },
                     page_size=page_size,
-                    max_results=max_results,
+                    max_points=max_results,
                 )
             )
             tasks.append(task)
@@ -802,8 +850,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for cid, gaps in partial_gaps:
             for gap_start, gap_end in gaps:
                 task = asyncio.create_task(
-                    self._handle_pagination(
-                        self._get_data_impl,
+                    self._paginate_channel_data(
                         kwargs={
                             "channel_ids": [cid],
                             "run_id": run_id,
@@ -811,7 +858,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                             "end_time": gap_end,
                         },
                         page_size=page_size,
-                        max_results=max_results,
+                        max_points=max_results,
                     )
                 )
                 tasks.append(task)

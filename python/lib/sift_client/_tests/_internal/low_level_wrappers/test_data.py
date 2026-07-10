@@ -1131,6 +1131,89 @@ class TestGetChannelData:
         pd.testing.assert_frame_equal(result["c1"].sort_index(), expected.sort_index())
 
     @pytest.mark.asyncio
+    async def test_limit_bounds_round_trips_to_one_page(self) -> None:
+        """A point budget met by a single page stops after one wire call.
+
+        Guards the pagination fix: ``limit`` is a data-point budget that
+        sizes ``page_size`` and the page count, not a proto count. With
+        the pre-fix proto-counting loop this paged until the token
+        emptied (3 calls here) even though one page covers the budget.
+        """
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=10, start=_NOW + timedelta(seconds=i)) for i in range(3)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=100,
+                page_size=100,
+                ignore_cache=True,
+            )
+        assert len(call_log) == 1, "budget covered by one page must not keep paging"
+
+    @pytest.mark.asyncio
+    async def test_limit_pages_ceil_of_budget_over_page_size(self) -> None:
+        """Round-trips equal ceil(limit / page_size) when the page is smaller."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=25, start=_NOW + timedelta(seconds=i)) for i in range(6)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=100,
+                page_size=25,  # ceil(100 / 25) == 4 pages
+                ignore_cache=True,
+            )
+        assert len(call_log) == 4
+
+    @pytest.mark.asyncio
+    async def test_no_limit_exhausts_all_pages(self) -> None:
+        """Without a limit, paging follows the token to exhaustion."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=10, start=_NOW + timedelta(seconds=i)) for i in range(3)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                ignore_cache=True,
+            )
+        assert len(call_log) == 3
+
+    @pytest.mark.asyncio
+    async def test_limit_above_available_terminates_on_token(self) -> None:
+        """A budget larger than the data stops when the token empties, not before."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=500, start=_NOW + timedelta(seconds=i)) for i in range(2)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=100_000,  # ceil would ask for more pages than exist
+                page_size=500,
+                ignore_cache=True,
+            )
+        assert len(call_log) == 2
+
+    @pytest.mark.asyncio
+    async def test_limit_zero_returns_empty_without_wire_calls(self) -> None:
+        """A zero budget short-circuits before touching the wire."""
+        client = DataLowLevelClient(MagicMock())
+        with _fake_grpc(client, {"c1": [_frame("c1")]}) as call_log:
+            result = await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=0,
+                ignore_cache=True,
+            )
+        assert call_log == []
+        assert result == {}
+
+    @pytest.mark.asyncio
     async def test_cache_hit_short_circuits_grpc(self, tmp_path) -> None:
         """Second request for the same channel + window skips ``_get_data_impl``.
 
