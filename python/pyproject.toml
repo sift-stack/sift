@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=64", "setuptools-scm>=8,<10"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.18.0"
+dynamic = ["version"]
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -373,6 +373,22 @@ ignore_errors = true
 module = "alive_progress"
 follow_imports = "skip"
 ignore_errors = true
+
+# Version is derived from git tags by setuptools-scm. This repo is a polyglot
+# monorepo, so the version is scoped to Python release tags of the form
+# `python/vX.Y.Z` (optionally with a pre-release suffix, e.g. python/v0.16.2-rc1).
+[tool.setuptools_scm]
+# pyproject.toml lives in python/; the .git directory is one level up at the
+# repo root (root is resolved relative to this config file). When building from
+# an sdist (no .git present), setuptools-scm reads the version stamped into
+# PKG-INFO instead.
+root = ".."
+# Restrict `git describe` to Python tags. Without --match, describe would latch
+# onto Rust/Go tags in the monorepo and compute a wrong version.
+git_describe_command = "git describe --dirty --tags --long --match python/v*"
+# Strip the `python/v` prefix and capture the PEP 440 version. A pre-release
+# suffix like -rc1 is normalized to rc1 by packaging.
+tag_regex = '^python/v(?P<version>\d+\.\d+\.\d+(?:[-.].+)?)$'
 
 [tool.setuptools.packages.find]
 where = ["lib"]

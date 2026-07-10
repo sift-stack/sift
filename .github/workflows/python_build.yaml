@@ -19,7 +19,16 @@ jobs:
       platforms: ${{ steps.set-matrix.outputs.matrix }}
       sift_package_version: ${{ steps.get-sift-version.outputs.version }}
     steps:
+      # fetch-depth: 0 so setuptools-scm can see tags/history to derive the
+      # version (see the get-sift-version step below).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: Get supported Python versions from pyproject.toml
         id: get-python-versions
@@ -27,10 +36,14 @@ jobs:
           versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
           echo "versions=$versions" >> $GITHUB_OUTPUT
 
-      - name: Get sift-stack-py package version from pyproject.toml
+      # The version is dynamic (setuptools-scm derives it from the git tag), so
+      # it can no longer be grepped from pyproject.toml. Compute it with
+      # setuptools-scm, which honors the [tool.setuptools_scm] config.
+      - name: Get sift-stack-py package version
         id: get-sift-version
+        working-directory: python
         run: |
-          version=$(grep '^version = ' python/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          version=$(uv run --no-project --with 'setuptools-scm>=8,<10' python -m setuptools_scm)
           echo "version=$version" >> $GITHUB_OUTPUT
 
       # We define the platforms here so we can reuse the matrix in multiple jobs
@@ -53,7 +66,11 @@ jobs:
     name: Build sift-stack-py distributions
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 so setuptools-scm can derive the version from the git
+      # tag when `python -m build` runs below.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
