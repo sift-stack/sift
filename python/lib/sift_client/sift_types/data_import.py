@@ -877,8 +877,8 @@ class UlogDataColumn(DataColumnBase):
         instance: The message instance for multi-instance topics. Defaults to 0.
         field_name: The flattened ULog field name (e.g. ``"x"``, ``"esc[0].v"``).
             Empty for log-message channels.
-        name: Sift channel name to create. Defaults to the full channel name
-            (the ``channel`` property), e.g. ``"sensor_accel_0.x"``.
+        name: Sift channel name to create. Defaults to ``default_channel_name``,
+            e.g. ``"sensor_accel_0.x"``.
     """
 
     message_name: str
@@ -887,16 +887,18 @@ class UlogDataColumn(DataColumnBase):
     name: str = ""
 
     @property
-    def channel(self) -> str:
-        """The full channel name this selection maps to, e.g. ``"sensor_accel_0.x"``."""
+    def default_channel_name(self) -> str:
+        """The default Sift channel name for this selection,
+        ``<message_name>_<instance>.<field_name>`` (e.g. ``"sensor_accel_0.x"``),
+        or just ``message_name`` for log-message channels."""
         if not self.field_name:
             return self.message_name
         return f"{self.message_name}_{self.instance}.{self.field_name}"
 
     @model_validator(mode="after")
-    def _default_name_to_channel(self) -> UlogDataColumn:
+    def _apply_default_name(self) -> UlogDataColumn:
         if not self.name:
-            self.name = self.channel
+            self.name = self.default_channel_name
         return self
 
 

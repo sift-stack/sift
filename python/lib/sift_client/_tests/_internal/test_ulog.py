@@ -302,7 +302,7 @@ class TestDetectUlogConfig:
 
         with pytest.warns(UserWarning, match="could not decode"):
             config = detect_ulog_config(path)
-        assert {d.channel for d in config.data} == {
+        assert {d.default_channel_name for d in config.data} == {
             "sensor_accel_0.x",
             "sensor_accel_0.y",
             "sensor_accel_0.z",

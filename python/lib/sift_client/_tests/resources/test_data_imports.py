@@ -405,7 +405,7 @@ class TestUlogConfig:
             field_name="x",
             data_type=ChannelDataType.FLOAT,
         )
-        assert col.channel == "sensor_accel_1.x"
+        assert col.default_channel_name == "sensor_accel_1.x"
 
     def test_nonzero_instance_round_trips_through_proto(self):
         config = UlogImportConfig(
@@ -427,7 +427,7 @@ class TestUlogConfig:
 
     def test_log_message_channel_is_message_name(self):
         col = UlogDataColumn(message_name="log_messages_5", data_type=ChannelDataType.STRING)
-        assert col.channel == "log_messages_5"
+        assert col.default_channel_name == "log_messages_5"
         assert col.name == "log_messages_5"
         proto_data = UlogImportConfig(asset_name="a", data=[col])._to_proto().data[0]
         assert proto_data.message_name == "log_messages_5"
@@ -451,7 +451,7 @@ class TestUlogConfig:
 
     def test_getitem(self):
         col = self._config()["nav_state"]
-        assert col.channel == "vehicle_status_0.nav_state"
+        assert col.default_channel_name == "vehicle_status_0.nav_state"
 
     def test_getitem_not_found(self):
         with pytest.raises(KeyError, match="nonexistent"):
