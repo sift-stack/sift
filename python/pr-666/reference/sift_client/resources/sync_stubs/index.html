@@ -14485,7 +14485,17 @@ globally for sync.</p>
   
       pydantic-model
    (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">principals</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">principals</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            PrincipalRef
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalRef)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalRef">PrincipalRef</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            User
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.user.User)" href="../../sift_types/user/#sift_client.sift_types.user.User">User</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">],</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalAttributeValueLike
 
@@ -14493,14 +14503,7 @@ globally for sync.</p>
   
       module-attribute
    (sift_client.sift_types.principal_attribute.PrincipalAttributeValueLike)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeValueLike">PrincipalAttributeValueLike</a></span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            USER
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.principal_attribute.PrincipalType.USER)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType.USER">USER</a></span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            PrincipalAttributeAssignment
 
 
   
@@ -14548,13 +14551,25 @@ globally for sync.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Principal IDs. For <code>USER</code> principals, entries containing <code>@</code> are
-treated as email addresses and resolved to user IDs.</p>
+                <p>Principals to assign to. Pass <code>PrincipalRef.user(...)</code> /
+<code>PrincipalRef.user_group(...)</code> references, <code>User</code> objects, or user
+email addresses (resolved to user IDs automatically). Bare IDs are
+rejected because they do not say which kind of principal they refer to.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="list">list</span>[<span title="str">str</span>]</code>
+                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            PrincipalRef
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalRef)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalRef">PrincipalRef</a> | <a class="autorefs autorefs-internal" title="            User
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.user.User)" href="../../sift_types/user/#sift_client.sift_types.user.User">User</a> | <span title="str">str</span>]</code>
                   </span>
               </p>
             </td>
@@ -14578,33 +14593,6 @@ a bool; for <code>NUMBER</code>, an int.</p>
   
       module-attribute
    (sift_client.sift_types.principal_attribute.PrincipalAttributeValueLike)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeValueLike">PrincipalAttributeValueLike</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>principal_type</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The kind of principal being assigned to. Defaults to <code>USER</code>. Use
-<code>PrincipalType.USER_GROUP</code> when assigning to user groups.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code><a class="autorefs autorefs-internal" title="            USER
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.principal_attribute.PrincipalType.USER)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType.USER">USER</a></code>
                   </span>
               </p>
             </td>
@@ -14762,14 +14750,18 @@ a bool; for <code>NUMBER</code>, an int.</p>
   
       pydantic-model
    (sift_client.sift_types.principal_attribute.PrincipalAttributeKey)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeKey">PrincipalAttributeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">principal</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            USER
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">principal</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalRef
 
 
   
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.principal_attribute.PrincipalType.USER)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType.USER">USER</a></span><span class="p">,</span>
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalRef)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalRef">PrincipalRef</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            User
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.user.User)" href="../../sift_types/user/#sift_client.sift_types.user.User">User</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">principal_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -14827,13 +14819,23 @@ a bool; for <code>NUMBER</code>, an int.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to assignments for this principal. Use a user ID or email address
-for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for user groups.</p>
+                <p>Filter to assignments for this principal. Pass a <code>PrincipalRef</code>,
+a <code>User</code> object, or a user email address.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | None</code>
+                      <code><a class="autorefs autorefs-internal" title="            PrincipalRef
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.principal_attribute.PrincipalRef)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalRef">PrincipalRef</a> | <a class="autorefs autorefs-internal" title="            User
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.user.User)" href="../../sift_types/user/#sift_client.sift_types.user.User">User</a> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -14848,22 +14850,18 @@ for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for us
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The kind of principal to list assignments for. Defaults to <code>USER</code>.</p>
+                <p>The kind of principal to list assignments for when
+<code>principal</code> is not given. Defaults to <code>USER</code>. When <code>principal</code> is
+given, its own type is used and this must match it if set.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            PrincipalType (sift_client.sift_types.principal_attribute.PrincipalType)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType">PrincipalType</a> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code><a class="autorefs autorefs-internal" title="            USER
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.sift_types.principal_attribute.PrincipalType.USER)" href="../../sift_types/principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalType.USER">USER</a></code>
+                      <code>None</code>
                   </span>
               </p>
             </td>
@@ -14994,6 +14992,30 @@ for users; use a user-group ID with <code>PrincipalType.USER_GROUP</code> for us
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>The matching assignments.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If <code>principal_type</code> conflicts with the type of <code>principal</code>.</p>
               </div>
             </td>
           </tr>
@@ -17269,9 +17291,9 @@ name, the first active match is returned.</p>
 <p>Principal attributes describe the users or groups an access decision applies to.
 A principal is the "who" in an access decision, such as a user or user group.</p>
 <p>Create or fetch an attribute key via <code>keys</code>, define enum values via <code>enum_values</code>
-when the key uses them, then assign a value to principals via <code>assignments</code>. User
-principals accept either user IDs or email addresses; user-group principals use
-user-group IDs.</p>
+when the key uses them, then assign a value to principals via <code>assignments</code>. Pass
+<code>User</code> objects, <code>PrincipalRef</code> references, or user email addresses; use
+<code>PrincipalRef.user_group(...)</code> for user groups.</p>
 
         <p>Initialize the PrincipalAttributesAPI.</p>
 
