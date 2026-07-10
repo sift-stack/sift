@@ -13,7 +13,6 @@ import contextlib
 import sys
 import warnings
 from pathlib import Path
-from typing import NamedTuple
 
 from pyulog import ULog
 
@@ -39,17 +38,6 @@ ULOG_TO_SIFT_TYPE: dict[str, ChannelDataType] = {
 
 # Base channel for ULog logged strings; tagged logs use ``log_messages_<tag>``.
 LOG_MESSAGES_CHANNEL = "log_messages"
-
-
-class DetectedUlogChannel(NamedTuple):
-    """The (message_name, instance, field_name) selector of a detected channel,
-    plus its ULog C type. Log-message channels select by channel name with an
-    empty field."""
-
-    message_name: str
-    instance: int
-    field_name: str
-    c_type: str
 
 
 def _is_padding(field_name: str) -> bool:
@@ -88,31 +76,41 @@ def expand_message_fields(message_formats: dict, message_name: str) -> list[tupl
     return flattened
 
 
-def detect_ulog_fields(ulog: ULog) -> dict[str, DetectedUlogChannel]:
-    """Return importable channels as ``{channel_name: DetectedUlogChannel}``.
+def detect_ulog_fields(ulog: ULog) -> list[UlogDataColumn]:
+    """Return importable channels as ``UlogDataColumn``s with default names
+    and data types.
 
-    Decoded topics use ``<message>_<multi_id>.<field>``. The timestamp axis
+    Decoded topics become ``<message>_<multi_id>.<field>``. The timestamp axis
     and padding fields are excluded; logged strings become ``log_messages``
     or ``log_messages_<tag>``.
     """
-    channels: dict[str, DetectedUlogChannel] = {}
+    channels: list[UlogDataColumn] = []
     for dataset in ulog.data_list:
         # No top-level timestamp means no usable time axis.
         if not any(f[2] == "timestamp" for f in ulog.message_formats[dataset.name].fields):
             continue
-        prefix = f"{dataset.name}_{dataset.multi_id}"
         for field_name, type_str in expand_message_fields(ulog.message_formats, dataset.name):
             # timestamp is the time axis; _padding fields are alignment bytes.
             if field_name == "timestamp" or _is_padding(field_name):
                 continue
-            channels[f"{prefix}.{field_name}"] = DetectedUlogChannel(
-                dataset.name, dataset.multi_id, field_name, type_str
+            channels.append(
+                UlogDataColumn(
+                    message_name=dataset.name,
+                    instance=dataset.multi_id,
+                    field_name=field_name,
+                    data_type=ULOG_TO_SIFT_TYPE[type_str],
+                )
             )
     if ulog.logged_messages:
-        channels[LOG_MESSAGES_CHANNEL] = DetectedUlogChannel(LOG_MESSAGES_CHANNEL, 0, "", "char")
-    for tag in sorted(ulog.logged_messages_tagged):
-        name = f"{LOG_MESSAGES_CHANNEL}_{tag}"
-        channels[name] = DetectedUlogChannel(name, 0, "", "char")
+        channels.append(
+            UlogDataColumn(message_name=LOG_MESSAGES_CHANNEL, data_type=ChannelDataType.STRING)
+        )
+    channels.extend(
+        UlogDataColumn(
+            message_name=f"{LOG_MESSAGES_CHANNEL}_{tag}", data_type=ChannelDataType.STRING
+        )
+        for tag in sorted(ulog.logged_messages_tagged)
+    )
     return channels
 
 
@@ -153,15 +151,4 @@ def detect_ulog_config(file_path: str | Path, asset_name: str = "") -> UlogImpor
             "the detected channels may be incomplete.",
             stacklevel=2,
         )
-    detected = detect_ulog_fields(ulog)
-    data = [
-        UlogDataColumn(
-            message_name=ch.message_name,
-            instance=ch.instance,
-            field_name=ch.field_name,
-            name=name,
-            data_type=ULOG_TO_SIFT_TYPE[ch.c_type],
-        )
-        for name, ch in detected.items()
-    ]
-    return UlogImportConfig(asset_name=asset_name, data=data)
+    return UlogImportConfig(asset_name=asset_name, data=detect_ulog_fields(ulog))

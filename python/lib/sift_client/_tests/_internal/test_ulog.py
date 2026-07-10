@@ -7,12 +7,12 @@ import struct
 import pytest
 
 from sift_client._internal.util.ulog import (
-    DetectedUlogChannel,
     detect_ulog_config,
     detect_ulog_fields,
     expand_message_fields,
 )
 from sift_client.sift_types.channel import ChannelDataType
+from sift_client.sift_types.data_import import UlogDataColumn
 
 
 class _FakeFormat:
@@ -160,24 +160,29 @@ class TestDetectUlogFields:
             },
             data_list=[_FakeDataset("sensor_accel", 0)],
         )
-        assert detect_ulog_fields(ulog) == {
-            "sensor_accel_0.x": DetectedUlogChannel("sensor_accel", 0, "x", "float")
-        }
+        assert detect_ulog_fields(ulog) == [
+            UlogDataColumn(
+                message_name="sensor_accel",
+                instance=0,
+                field_name="x",
+                data_type=ChannelDataType.FLOAT,
+            )
+        ]
 
     def test_skips_message_without_timestamp(self):
         ulog = _FakeUlog(
             message_formats={"no_time": _FakeFormat([("float", 0, "x")])},
             data_list=[_FakeDataset("no_time", 0)],
         )
-        assert detect_ulog_fields(ulog) == {}
+        assert detect_ulog_fields(ulog) == []
 
     def test_log_message_channels_sorted_by_tag(self):
         ulog = _FakeUlog(logged_messages=["boot"], logged_messages_tagged={2: [], 9: [], 5: []})
-        assert list(detect_ulog_fields(ulog).items()) == [
-            ("log_messages", DetectedUlogChannel("log_messages", 0, "", "char")),
-            ("log_messages_2", DetectedUlogChannel("log_messages_2", 0, "", "char")),
-            ("log_messages_5", DetectedUlogChannel("log_messages_5", 0, "", "char")),
-            ("log_messages_9", DetectedUlogChannel("log_messages_9", 0, "", "char")),
+        assert detect_ulog_fields(ulog) == [
+            UlogDataColumn(message_name="log_messages", data_type=ChannelDataType.STRING),
+            UlogDataColumn(message_name="log_messages_2", data_type=ChannelDataType.STRING),
+            UlogDataColumn(message_name="log_messages_5", data_type=ChannelDataType.STRING),
+            UlogDataColumn(message_name="log_messages_9", data_type=ChannelDataType.STRING),
         ]
 
 
