@@ -150,7 +150,9 @@ class PrincipalAttributeAssignment(
     boolean_value: bool | None
     number_value: int | None
     key: PrincipalAttributeKey | None
+    """Full key details. Always set in responses."""
     enum_value: PrincipalAttributeEnumValue | None
+    """Full enum value details. Only set for enum values; ``value`` falls back to ``enum_value_id``."""
     created_date: datetime | None
     created_by_user_id: str
     archived_date: datetime | None

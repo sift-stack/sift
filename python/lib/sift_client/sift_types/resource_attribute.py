@@ -161,11 +161,14 @@ class ResourceAttributeAssignment(BaseType[ra_pb.ResourceAttribute, "ResourceAtt
     organization_id: str
     key_id: str
     entity: ResourceAttributeEntity | None
+    """The resource this value is assigned to. Always set in responses."""
     enum_value_id: str | None
     boolean_value: bool | None
     number_value: int | None
     key: ResourceAttributeKey | None
+    """Full key details. Only set when the server includes them; use ``key_id`` otherwise."""
     enum_value: ResourceAttributeEnumValue | None
+    """Full enum value details. Only set for enum values; ``value`` falls back to ``enum_value_id``."""
     created_date: datetime | None
     created_by_user_id: str
     archived_date: datetime | None
