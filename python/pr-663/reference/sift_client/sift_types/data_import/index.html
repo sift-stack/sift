@@ -2826,10 +2826,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="md-nav__link">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.default_channel_name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;default_channel_name
       
     </span>
   </a>
@@ -5432,10 +5432,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="md-nav__link">
+  <a href="#sift_client.sift_types.data_import.UlogDataColumn.default_channel_name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;default_channel_name
       
     </span>
   </a>
@@ -12893,8 +12893,8 @@ Empty for log-message channels.</p>
    (sift_client.sift_types.data_import.UlogDataColumn.name)" href="#sift_client.sift_types.data_import.UlogDataColumn.name">name</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Sift channel name to create. Defaults to the full channel name
-(the <code>channel</code> property), e.g. <code>"sensor_accel_0.x"</code>.</p>
+                <p>Sift channel name to create. Defaults to <code>default_channel_name</code>,
+e.g. <code>"sensor_accel_0.x"</code>.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -12979,7 +12979,7 @@ Empty for log-message channels.</p>
         <p>Validators:</p>
         <ul>
             <li>
-              <code><span title="sift_client.sift_types.data_import.UlogDataColumn._default_name_to_channel">_default_name_to_channel</span></code>
+              <code><span title="sift_client.sift_types.data_import.UlogDataColumn._apply_default_name">_apply_default_name</span></code>
             </li>
         </ul>
 
@@ -13085,21 +13085,23 @@ Empty for log-message channels.</p>
 
 
 
-<h3 id="sift_client.sift_types.data_import.UlogDataColumn.channel" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel</span>
+<h3 id="sift_client.sift_types.data_import.UlogDataColumn.default_channel_name" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">default_channel_name</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-<a href="#sift_client.sift_types.data_import.UlogDataColumn.channel" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
+<a href="#sift_client.sift_types.data_import.UlogDataColumn.default_channel_name" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">default_channel_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>The full channel name this selection maps to, e.g. <code>"sensor_accel_0.x"</code>.</p>
+        <p>The default Sift channel name for this selection,
+<code>&lt;message_name&gt;_&lt;instance&gt;.&lt;field_name&gt;</code> (e.g. <code>"sensor_accel_0.x"</code>),
+or just <code>message_name</code> for log-message channels.</p>
 
     </div>
 
