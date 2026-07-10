@@ -3,6 +3,9 @@
 Access-control APIs configure who can access what in Sift. In these APIs, a
 principal is the "who" and a resource is the "what" that access applies to.
 
+This namespace currently covers attribute management. Policies and roles will
+join it as they are added to the client.
+
 Use ``client.access_control`` for synchronous APIs and
 ``client.async_.access_control`` for asynchronous APIs.
 """
