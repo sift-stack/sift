@@ -911,9 +911,9 @@ class UlogImportConfig(ImportConfigBase):
     list to skip, rename, retype, or annotate channels before importing.
 
     Attributes:
-        data: Channel selections. Empty imports all detected channels with
-            default names and data types. If non-empty, only these channels are
-            imported.
+        data: Channel selections. If empty, imports all detected channels with
+            default names and data types. If non-empty, imports only these
+            channels.
         relative_start_time: Absolute UTC time of log start. ULog timestamps
             are relative to boot time. When set, this anchors the timeline and
             takes precedence over the log's GPS fix; otherwise the GPS fix
