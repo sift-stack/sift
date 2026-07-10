@@ -4,6 +4,7 @@ These mock the low-level client and the users API, and exercise the nested
 keys/enum_values/assignments sub-resources. They are not integration tests.
 """
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -161,6 +162,44 @@ class TestAssignmentsListRouting:
             )
 
         api.assignments._low_level_client.list_all_values.assert_not_called()
+
+
+class TestListCommonFilters:
+    @pytest.mark.asyncio
+    async def test_keys_time_and_user_filters_compose(self):
+        api = _api()
+        api.keys._low_level_client.list_all_keys = AsyncMock(return_value=[])
+        before = datetime(2026, 2, 1, tzinfo=timezone.utc)
+
+        await api.keys.list_(modified_before=before, created_by="u1", description_contains="lic")
+
+        query = api.keys._low_level_client.list_all_keys.call_args.kwargs["query_filter"]
+        assert cel.less_than("modified_date", before) in query
+        assert cel.equals("created_by_user_id", "u1") in query
+        assert cel.contains("description", "lic") in query
+
+    @pytest.mark.asyncio
+    async def test_enum_values_description_filter_composes(self):
+        api = _api()
+        api.enum_values._low_level_client.list_all_enum_values = AsyncMock(return_value=[])
+
+        await api.enum_values.list_(_key(), description_contains="lic")
+
+        query = api.enum_values._low_level_client.list_all_enum_values.call_args.kwargs[
+            "query_filter"
+        ]
+        assert cel.contains("description", "lic") in query
+
+    @pytest.mark.asyncio
+    async def test_assignments_created_filter_composes(self):
+        api = _api()
+        api.assignments._low_level_client.list_all_values = AsyncMock(return_value=[])
+        after = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+        await api.assignments.list_(created_after=after)
+
+        kwargs = api.assignments._low_level_client.list_all_values.call_args.kwargs
+        assert cel.greater_than("created_date", after) in kwargs["query_filter"]
 
 
 class TestKeysUpdate:

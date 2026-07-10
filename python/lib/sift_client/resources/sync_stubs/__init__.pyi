@@ -1263,6 +1263,9 @@ class PrincipalAttributeAssignmentsAPI:
         key: str | PrincipalAttributeKey | None = None,
         principal: PrincipalRef | User | str | None = None,
         principal_type: PrincipalType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -1280,6 +1283,9 @@ class PrincipalAttributeAssignmentsAPI:
             principal_type: The kind of principal to list assignments for when
                 ``principal`` is not given. Defaults to ``USER``. When ``principal`` is
                 given, its own type is used and this must match it if set.
+            created_after: Filter to assignments created after this datetime.
+            created_before: Filter to assignments created before this datetime.
+            created_by: Filter to assignments created by this user ID.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -1381,6 +1387,13 @@ class PrincipalAttributeEnumValuesAPI:
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -1395,6 +1408,13 @@ class PrincipalAttributeEnumValuesAPI:
             names: Display names to filter by.
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
+            created_after: Filter to enum values created after this datetime.
+            created_before: Filter to enum values created before this datetime.
+            modified_after: Filter to enum values modified after this datetime.
+            modified_before: Filter to enum values modified before this datetime.
+            created_by: Filter to enum values created by this user ID.
+            modified_by: Filter to enum values last modified by this user ID.
+            description_contains: Substring match on the description.
             include_archived: If True, include archived enum values.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -1527,6 +1547,13 @@ class PrincipalAttributeKeysAPI:
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         value_type: PrincipalAttributeValueType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -1541,6 +1568,13 @@ class PrincipalAttributeKeysAPI:
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
             value_type: Filter to keys of this value type.
+            created_after: Filter to keys created after this datetime.
+            created_before: Filter to keys created before this datetime.
+            modified_after: Filter to keys modified after this datetime.
+            modified_before: Filter to keys modified before this datetime.
+            created_by: Filter to keys created by this user ID.
+            modified_by: Filter to keys last modified by this user ID.
+            description_contains: Substring match on the description.
             include_archived: If True, include archived keys.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -2069,6 +2103,9 @@ class ResourceAttributeAssignmentsAPI:
         *,
         key: str | ResourceAttributeKey | None = None,
         resource: ResourceAttributeEntity | Asset | Channel | Run | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -2082,8 +2119,11 @@ class ResourceAttributeAssignmentsAPI:
         Args:
             key: Filter to assignments of this key.
             resource: Filter to assignments on this resource. Cannot be combined with
-                ``key``, ``filter_query``, or ``order_by``. Pass a resource object or
+                the other filter arguments. Pass a resource object or
                 ``ResourceAttributeEntity``.
+            created_after: Filter to assignments created after this datetime.
+            created_before: Filter to assignments created before this datetime.
+            created_by: Filter to assignments created by this user ID.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -2094,8 +2134,8 @@ class ResourceAttributeAssignmentsAPI:
             The matching assignments.
 
         Raises:
-            ValueError: If ``resource`` is combined with ``key``, ``filter_query``, or
-                ``order_by``, which the by-resource listing does not support.
+            ValueError: If ``resource`` is combined with other filter arguments, which
+                the by-resource listing does not support.
         """
         ...
 
@@ -2180,6 +2220,8 @@ class ResourceAttributeEnumValuesAPI:
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -2188,12 +2230,17 @@ class ResourceAttributeEnumValuesAPI:
     ) -> list[ResourceAttributeEnumValue]:
         """List the enum values defined for a key.
 
+        The service does not yet support filtering enum values by description,
+        modified date, or user.
+
         Args:
             key: The key or key ID to list enum values for.
             name: Exact display name of the enum value.
             names: Display names to filter by.
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
+            created_after: Filter to enum values created after this datetime.
+            created_before: Filter to enum values created before this datetime.
             include_archived: If True, include archived enum values.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -2322,6 +2369,9 @@ class ResourceAttributeKeysAPI:
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         value_type: ResourceAttributeValueType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -2330,12 +2380,17 @@ class ResourceAttributeKeysAPI:
     ) -> list[ResourceAttributeKey]:
         """List resource attribute keys with optional filtering.
 
+        The service does not yet support filtering keys by modified date or user.
+
         Args:
             name: Exact display name of the key.
             names: Display names to filter by.
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
             value_type: Filter to keys of this value type.
+            created_after: Filter to keys created after this datetime.
+            created_before: Filter to keys created before this datetime.
+            description_contains: Substring match on the description.
             include_archived: If True, include archived keys.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.

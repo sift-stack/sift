@@ -6,6 +6,7 @@ nested keys/enum_values/assignments sub-resources. They are not integration
 tests and run without a backend.
 """
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -19,6 +20,7 @@ from sift_client.sift_types.resource_attribute import (
     ResourceAttributeKeyUpdate,
     ResourceAttributeValueType,
 )
+from sift_client.util import cel_utils as cel
 
 
 def _api() -> ResourceAttributesAPIAsync:
@@ -219,6 +221,59 @@ def _asset_proto():
 
     proto = AssetProto(asset_id="a1", name="asset")
     return proto
+
+
+class TestListCommonFilters:
+    @pytest.mark.asyncio
+    async def test_keys_created_and_description_filters_compose(self):
+        api = _api()
+        api.keys._low_level_client.list_all_keys = AsyncMock(return_value=[])
+        after = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+        await api.keys.list_(created_after=after, description_contains="lic")
+
+        query = api.keys._low_level_client.list_all_keys.call_args.kwargs["query_filter"]
+        assert cel.greater_than("created_date", after) in query
+        assert cel.contains("description", "lic") in query
+
+    @pytest.mark.asyncio
+    async def test_enum_values_created_filter_composes(self):
+        api = _api()
+        api.enum_values._low_level_client.list_all_enum_values = AsyncMock(return_value=[])
+        after = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+        await api.enum_values.list_(_key(), created_after=after)
+
+        query = api.enum_values._low_level_client.list_all_enum_values.call_args.kwargs[
+            "query_filter"
+        ]
+        assert cel.greater_than("created_date", after) in query
+
+    @pytest.mark.asyncio
+    async def test_assignments_created_filters_compose(self):
+        api = _api()
+        api.assignments._low_level_client.list_all_resource_attributes = AsyncMock(return_value=[])
+        before = datetime(2026, 2, 1, tzinfo=timezone.utc)
+
+        await api.assignments.list_(created_before=before, created_by="u1")
+
+        query = api.assignments._low_level_client.list_all_resource_attributes.call_args.kwargs[
+            "query_filter"
+        ]
+        assert cel.less_than("created_date", before) in query
+        assert cel.equals("created_by_user_id", "u1") in query
+
+    @pytest.mark.asyncio
+    async def test_resource_with_created_filter_raises(self):
+        api = _api()
+        api.assignments._low_level_client.list_all_resource_attributes_by_entity = AsyncMock()
+
+        with pytest.raises(ValueError, match="cannot be combined"):
+            await api.assignments.list_(
+                resource=ResourceAttributeEntity.for_channel("ch1"), created_by="u1"
+            )
+
+        api.assignments._low_level_client.list_all_resource_attributes_by_entity.assert_not_called()
 
 
 class TestKeysUpdate:

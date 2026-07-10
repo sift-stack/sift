@@ -26,6 +26,7 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from datetime import datetime
 
     from sift_client.client import SiftClient
 
@@ -116,6 +117,13 @@ class PrincipalAttributeKeysAPIAsync(ResourceBase):
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         value_type: PrincipalAttributeValueType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -130,6 +138,13 @@ class PrincipalAttributeKeysAPIAsync(ResourceBase):
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
             value_type: Filter to keys of this value type.
+            created_after: Filter to keys created after this datetime.
+            created_before: Filter to keys created before this datetime.
+            modified_after: Filter to keys modified after this datetime.
+            modified_before: Filter to keys modified before this datetime.
+            created_by: Filter to keys created by this user ID.
+            modified_by: Filter to keys last modified by this user ID.
+            description_contains: Substring match on the description.
             include_archived: If True, include archived keys.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -149,6 +164,18 @@ class PrincipalAttributeKeysAPIAsync(ResourceBase):
         )
         if value_type is not None:
             filter_parts.append(cel.equals("value_type", value_type.value))
+        filter_parts.extend(
+            self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by,
+            )
+        )
+        if description_contains:
+            filter_parts.append(cel.contains("description", description_contains))
         if filter_query:
             filter_parts.append(filter_query)
 
@@ -336,6 +363,13 @@ class PrincipalAttributeEnumValuesAPIAsync(ResourceBase):
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -350,6 +384,13 @@ class PrincipalAttributeEnumValuesAPIAsync(ResourceBase):
             names: Display names to filter by.
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
+            created_after: Filter to enum values created after this datetime.
+            created_before: Filter to enum values created before this datetime.
+            modified_after: Filter to enum values modified after this datetime.
+            modified_before: Filter to enum values modified before this datetime.
+            created_by: Filter to enum values created by this user ID.
+            modified_by: Filter to enum values last modified by this user ID.
+            description_contains: Substring match on the description.
             include_archived: If True, include archived enum values.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -363,6 +404,18 @@ class PrincipalAttributeEnumValuesAPIAsync(ResourceBase):
         filter_parts = self._build_name_cel_filters(
             name=name, names=names, name_contains=name_contains, name_regex=name_regex
         )
+        filter_parts.extend(
+            self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by,
+            )
+        )
+        if description_contains:
+            filter_parts.append(cel.contains("description", description_contains))
         if filter_query:
             filter_parts.append(filter_query)
         values = await self._low_level_client.list_all_enum_values(
@@ -529,6 +582,9 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
         key: str | PrincipalAttributeKey | None = None,
         principal: PrincipalRef | User | str | None = None,
         principal_type: PrincipalType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -546,6 +602,9 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
             principal_type: The kind of principal to list assignments for when
                 ``principal`` is not given. Defaults to ``USER``. When ``principal`` is
                 given, its own type is used and this must match it if set.
+            created_after: Filter to assignments created after this datetime.
+            created_before: Filter to assignments created before this datetime.
+            created_by: Filter to assignments created by this user ID.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -570,6 +629,11 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
             filter_parts.append(cel.equals("principal_id", ref.principal_id))
         elif principal_type is None:
             principal_type = PrincipalType.USER
+        filter_parts.extend(
+            self._build_time_cel_filters(
+                created_after=created_after, created_before=created_before, created_by=created_by
+            )
+        )
         if filter_query:
             filter_parts.append(filter_query)
         query_filter = cel.and_(*filter_parts) or None
