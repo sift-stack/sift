@@ -320,16 +320,16 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
 
     def assign_to(
         self,
-        resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run],
         *,
         value: ResourceAttributeValueLike,
     ) -> list[ResourceAttributeAssignment]:
         """Assign a value to one or more resources for this key.
 
         Args:
-            resources: Resources to assign to. For currently supported resource types, pass
-                ``Asset``, ``Channel``, or ``Run`` objects, their IDs, or
-                ``ResourceAttributeEntity`` when you already know the resource type.
+            resources: Resources to assign to. Pass ``Asset``, ``Channel``, or ``Run``
+                objects, or ``ResourceAttributeEntity`` (via ``for_asset`` /
+                ``for_channel`` / ``for_run``) when you only have a resource ID.
             value: The value to assign. For ``SET_OF_ENUM`` keys, a list of enum values
                 (or their IDs); for ``ENUM`` keys, a single enum value; for ``BOOLEAN``
                 keys, a bool; for ``NUMBER`` keys, an int. For ``SET_OF_ENUM`` this

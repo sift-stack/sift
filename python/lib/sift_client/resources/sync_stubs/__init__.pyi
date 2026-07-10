@@ -2024,7 +2024,7 @@ class ResourceAttributeAssignmentsAPI:
     def create(
         self,
         key: str | ResourceAttributeKey,
-        resources: list[ResourceAttributeEntity | Asset | Channel | Run | str],
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run],
         *,
         value: ResourceAttributeValueLike,
     ) -> list[ResourceAttributeAssignment]:
@@ -2032,9 +2032,9 @@ class ResourceAttributeAssignmentsAPI:
 
         Args:
             key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
-            resources: Resources to assign to. For currently supported resource types, pass
-                ``Asset``, ``Channel``, or ``Run`` objects, their IDs, or
-                ``ResourceAttributeEntity`` when you already know the resource type.
+            resources: Resources to assign to. Pass ``Asset``, ``Channel``, or ``Run``
+                objects, or ``ResourceAttributeEntity`` (via ``for_asset`` /
+                ``for_channel`` / ``for_run``) when you only have a resource ID.
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
                 full set on each resource; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
                 bool; for ``NUMBER``, an int.
@@ -2059,7 +2059,7 @@ class ResourceAttributeAssignmentsAPI:
         self,
         *,
         key: str | ResourceAttributeKey | None = None,
-        resource: ResourceAttributeEntity | Asset | Channel | Run | str | None = None,
+        resource: ResourceAttributeEntity | Asset | Channel | Run | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -2071,8 +2071,8 @@ class ResourceAttributeAssignmentsAPI:
         Args:
             key: Filter to assignments of this key.
             resource: Filter to assignments on this resource. Cannot be combined with
-                ``key``, ``filter_query``, or ``order_by``. Pass a resource object,
-                resource ID, or ``ResourceAttributeEntity``.
+                ``key``, ``filter_query``, or ``order_by``. Pass a resource object or
+                ``ResourceAttributeEntity``.
             include_archived: If True, include archived assignments.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -2370,9 +2370,9 @@ class ResourceAttributesAPI:
     resource is the "what" in an access decision.
 
     Create or fetch an attribute key via `keys`, define enum values via `enum_values`
-    when the key uses them, then assign a value to resources via `assignments`. For
-    currently supported resource types, you can pass existing ``Asset``, ``Channel``,
-    and ``Run`` objects or their IDs directly.
+    when the key uses them, then assign a value to resources via `assignments`. Pass
+    existing ``Asset``, ``Channel``, and ``Run`` objects directly, or build a
+    ``ResourceAttributeEntity`` from a resource ID.
     """
 
     def __init__(self, sift_client: SiftClient):
