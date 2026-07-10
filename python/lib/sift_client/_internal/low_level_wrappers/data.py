@@ -824,12 +824,31 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             title="Fetching channel data",
             disable=not show_progress,
         ) as bar:
+            # Fetches run concurrently, so there is no single "current"
+            # channel. Track the set in flight and name them as a group,
+            # dropping each as it returns.
+            in_flight: list[str] = []
+
+            def _render() -> None:
+                if not in_flight:
+                    bar.text("")
+                    return
+                shown = in_flight[:3]
+                extra = len(in_flight) - len(shown)
+                text = ", ".join(shown)
+                if extra:
+                    text += f" (+{extra} more)"
+                bar.text(text)
 
             async def _tick(task: asyncio.Task, label: str) -> Any:
-                result = await task
-                bar.text(label)
-                bar()
-                return result
+                in_flight.append(label)
+                _render()
+                try:
+                    return await task
+                finally:
+                    in_flight.remove(label)
+                    _render()
+                    bar()
 
             # Keep ``gather`` (not ``as_completed``) so pages stay in
             # submission order: ``_merge_pages`` lets later-positioned
