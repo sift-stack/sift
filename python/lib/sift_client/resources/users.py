@@ -112,14 +112,37 @@ class UsersAPIAsync(ResourceBase):
     async def resolve_ids(self, emails: list[str]) -> dict[str, str]:
         """Resolve user login emails (their user names) to user IDs.
 
-        Returns a mapping of email to user ID for the emails that were found. Emails
-        with no matching user are omitted.
+        Matching is case-insensitive. Login names are stored and compared
+        case-sensitively, so emails that miss on exact casing fall back to a
+        case-insensitive match against the full user list.
+
+        Returns a mapping of email (as passed) to user ID for the emails that were
+        found. Emails with no matching user are omitted.
 
         Args:
             emails: The login emails to resolve.
+
+        Raises:
+            ValueError: If an email matches multiple users case-insensitively.
         """
         wanted = list(dict.fromkeys(email for email in emails if email))
         if not wanted:
             return {}
         users = await self.list_(names=wanted)
-        return {user.name: user._id_or_error for user in users}
+        by_name = {user.name: user._id_or_error for user in users}
+        resolved = {email: by_name[email] for email in wanted if email in by_name}
+
+        missing = [email for email in wanted if email not in resolved]
+        if missing:
+            folded_to_email = {email.casefold(): email for email in missing}
+            matches: dict[str, list[str]] = {}
+            for user in await self.list_():
+                email = folded_to_email.get(user.name.casefold())
+                if email is not None:
+                    matches.setdefault(email, []).append(user._id_or_error)
+            for email, user_ids in matches.items():
+                if len(set(user_ids)) > 1:
+                    raise ValueError(f"Multiple users match email {email!r} case-insensitively.")
+                resolved[email] = user_ids[0]
+
+        return {email: resolved[email] for email in wanted if email in resolved}
