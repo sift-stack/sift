@@ -2323,7 +2323,7 @@ server-side and typically completes shortly after upload. Use
 <code>job.wait_until_complete()</code> only if you need to confirm
 completion before proceeding.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-<code>detect_config</code> (CSV, Parquet, HDF5, and TDMS).
+<code>detect_config</code> (CSV, Parquet, HDF5, TDMS, and ULog).
 When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
@@ -2388,9 +2388,10 @@ when <code>config</code> already has <code>asset_name</code> set.</p>
               <div class="doc-md-description">
                 <p>Import configuration describing the file format and column
 mapping. When provided, <code>data_type</code> is ignored. If omitted,
-the config is auto-detected via <code>detect_config</code>. You can
-call <code>detect_config</code> yourself to inspect and modify the
-config before passing it here.</p>
+the config is auto-detected via <code>detect_config</code> (for ULog
+the detected channel list is dropped so every channel in the
+file is imported). You can call <code>detect_config</code> yourself to
+inspect and modify the config before passing it here.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2438,12 +2439,12 @@ not provided.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. Only used when
-<code>config</code> is not provided.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling. Only used when <code>config</code> is
+not provided.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2727,11 +2728,11 @@ which calls this method internally.</p>
     <div class="doc doc-contents ">
 
         <p>Auto-detect import configuration from a file.</p>
-<p>Reads a sample of the file, sends it to the server's DetectConfig
-endpoint, and returns the detected configuration. The file format
-is inferred from the file extension when <code>data_type</code> is not
-provided.</p>
-<p>CSV, Parquet, HDF5, and TDMS files are supported for
+<p>Returns the detected configuration, inferring the file format from the
+extension when <code>data_type</code> is not provided. CSV and Parquet are
+detected by sending a sample of the file to the server's DetectConfig
+endpoint; TDMS, HDF5, and ULog are detected locally on the client.</p>
+<p>CSV, Parquet, HDF5, TDMS, and ULog files are supported for
 auto-detection.</p>
 <p>For CSV files, the server scans the first two rows for an optional
 JSON metadata row. Row 1 is checked first; row 2 is checked only
@@ -2748,6 +2749,10 @@ config is set to the row after the metadata row.</p>
 <p>Enum type definitions and bit field elements can also be specified
 in the metadata row; they are applied server-side during import
 but are not included in the returned config.</p>
+<p>For ULog files, <code>data</code> lists the channels pyulog decodes from the
+file. When imported, a non-empty <code>data</code> list restricts the import
+to exactly those channels; the import fails if a listed channel is
+not in the file. Clear <code>data</code> to import every channel.</p>
 <p>For file types with multiple supported layouts (Parquet, HDF5),
 <code>data_type</code> must be specified explicitly.</p>
 
@@ -2804,11 +2809,11 @@ extension alone is ambiguous.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">

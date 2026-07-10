@@ -9611,7 +9611,8 @@ raises an error.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">end_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">ignore_cache</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="pandas.DataFrame">DataFrame</span></span><span class="p">]</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="pandas.DataFrame">DataFrame</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9753,6 +9754,28 @@ raises an error.</p>
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>show_progress</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If True, display a progress bar naming each channel as
+its data is fetched. Defaults to True for sync, False for async.
+Use <code>sift_client.config.show_progress = False</code> to disable globally.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -9811,7 +9834,8 @@ raises an error.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">end_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">ignore_cache</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="pyarrow.Table">Table</span></span><span class="p">]</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="pyarrow.Table">Table</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -11108,11 +11132,11 @@ name removed from channel name display.</p>
     <div class="doc doc-contents ">
 
         <p>Auto-detect import configuration from a file.</p>
-<p>Reads a sample of the file, sends it to the server's DetectConfig
-endpoint, and returns the detected configuration. The file format
-is inferred from the file extension when <code>data_type</code> is not
-provided.</p>
-<p>CSV, Parquet, HDF5, and TDMS files are supported for
+<p>Returns the detected configuration, inferring the file format from the
+extension when <code>data_type</code> is not provided. CSV and Parquet are
+detected by sending a sample of the file to the server's DetectConfig
+endpoint; TDMS, HDF5, and ULog are detected locally on the client.</p>
+<p>CSV, Parquet, HDF5, TDMS, and ULog files are supported for
 auto-detection.</p>
 <p>For CSV files, the server scans the first two rows for an optional
 JSON metadata row. Row 1 is checked first; row 2 is checked only
@@ -11129,6 +11153,10 @@ config is set to the row after the metadata row.</p>
 <p>Enum type definitions and bit field elements can also be specified
 in the metadata row; they are applied server-side during import
 but are not included in the returned config.</p>
+<p>For ULog files, <code>data</code> lists the channels pyulog decodes from the
+file. When imported, a non-empty <code>data</code> list restricts the import
+to exactly those channels; the import fails if a listed channel is
+not in the file. Clear <code>data</code> to import every channel.</p>
 <p>For file types with multiple supported layouts (Parquet, HDF5),
 <code>data_type</code> must be specified explicitly.</p>
 
@@ -11185,11 +11213,11 @@ extension alone is ambiguous.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -11438,7 +11466,7 @@ server-side and typically completes shortly after upload. Use
 <code>job.wait_until_complete()</code> only if you need to confirm
 completion before proceeding.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
-<code>detect_config</code> (CSV, Parquet, HDF5, and TDMS).
+<code>detect_config</code> (CSV, Parquet, HDF5, TDMS, and ULog).
 When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
@@ -11503,9 +11531,10 @@ when <code>config</code> already has <code>asset_name</code> set.</p>
               <div class="doc-md-description">
                 <p>Import configuration describing the file format and column
 mapping. When provided, <code>data_type</code> is ignored. If omitted,
-the config is auto-detected via <code>detect_config</code>. You can
-call <code>detect_config</code> yourself to inspect and modify the
-config before passing it here.</p>
+the config is auto-detected via <code>detect_config</code> (for ULog
+the detected channel list is dropped so every channel in the
+file is imported). You can call <code>detect_config</code> yourself to
+inspect and modify the config before passing it here.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -11553,12 +11582,12 @@ not provided.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Time format override. When provided, takes
-precedence over the format returned by detection. When
-omitted, the returned config uses the detected format if
-available, falling back to
-<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. Only used when
-<code>config</code> is not provided.</p>
+                <p>Time format override for CSV, Parquet, HDF5, and TDMS.
+Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+detected format if available, otherwise
+<code>TimeFormat.ABSOLUTE_UNIX_NANOSECONDS</code>. TDMS keeps its
+detected/default time handling. Only used when <code>config</code> is
+not provided.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -20875,35 +20904,31 @@ job is not a rule evaluation job.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="../../sift_types/resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a></span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+   (sift_client.sift_types.resource_attribute.ResourceAttributeEntity)" href="../../sift_types/resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeEntity">ResourceAttributeEntity</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
 
 
   
       pydantic-model
-   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Channel
 
 
   
       pydantic-model
-   (sift_client.sift_types.channel.Channel)" href="../../sift_types/channel/#sift_client.sift_types.channel.Channel">Channel</a></span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+   (sift_client.sift_types.channel.Channel)" href="../../sift_types/channel/#sift_client.sift_types.channel.Channel">Channel</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="o">|</span> <span class="n"><span title="str">str</span></span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">],</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeValueLike
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">],</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeValueLike
 
 
   
       module-attribute
    (sift_client.sift_types.resource_attribute.ResourceAttributeValueLike)" href="../../sift_types/resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeValueLike">ResourceAttributeValueLike</a></span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeAssignment
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeAssignment
 
 
   
@@ -20951,9 +20976,9 @@ job is not a rule evaluation job.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Resources to assign to. For currently supported resource types, pass
-<code>Asset</code>, <code>Channel</code>, or <code>Run</code> objects, their IDs, or
-<code>ResourceAttributeEntity</code> when you already know the resource type.</p>
+                <p>Resources to assign to. Pass <code>Asset</code>, <code>Channel</code>, or <code>Run</code>
+objects, or <code>ResourceAttributeEntity</code> (via <code>for_asset</code> /
+<code>for_channel</code> / <code>for_run</code>) when you only have a resource ID.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -20978,7 +21003,7 @@ job is not a rule evaluation job.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <span title="str">str</span>]</code>
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a>]</code>
                   </span>
               </p>
             </td>
@@ -21165,14 +21190,13 @@ bool; for <code>NUMBER</code>, an int.</p>
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="o">|</span> <span class="n"><span title="str">str</span></span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">page_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeAssignment
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">page_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeAssignment
 
 
   
@@ -21225,8 +21249,8 @@ bool; for <code>NUMBER</code>, an int.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Filter to assignments on this resource. Cannot be combined with
-<code>key</code>, <code>filter_query</code>, or <code>order_by</code>. Pass a resource object,
-resource ID, or <code>ResourceAttributeEntity</code>.</p>
+<code>key</code>, <code>filter_query</code>, or <code>order_by</code>. Pass a resource object or
+<code>ResourceAttributeEntity</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -21251,7 +21275,7 @@ resource ID, or <code>ResourceAttributeEntity</code>.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <span title="str">str</span> | None</code>
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -23667,9 +23691,9 @@ name, the first active match is returned.</p>
 <p>Resource attributes describe the Sift objects an access decision applies to. A
 resource is the "what" in an access decision.</p>
 <p>Create or fetch an attribute key via <code>keys</code>, define enum values via <code>enum_values</code>
-when the key uses them, then assign a value to resources via <code>assignments</code>. For
-currently supported resource types, you can pass existing <code>Asset</code>, <code>Channel</code>,
-and <code>Run</code> objects or their IDs directly.</p>
+when the key uses them, then assign a value to resources via <code>assignments</code>. Pass
+existing <code>Asset</code>, <code>Channel</code>, and <code>Run</code> objects directly, or build a
+<code>ResourceAttributeEntity</code> from a resource ID.</p>
 
         <p>Initialize the ResourceAttributesAPI.</p>
 
