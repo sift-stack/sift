@@ -2722,8 +2722,11 @@ listing active users.</p>
     <div class="doc doc-contents ">
 
         <p>Resolve user login emails (their user names) to user IDs.</p>
-<p>Returns a mapping of email to user ID for the emails that were found. Emails
-with no matching user are omitted.</p>
+<p>Matching is case-insensitive. Login names are stored and compared
+case-sensitively, so emails that miss on exact casing fall back to a
+case-insensitive match against the full user list.</p>
+<p>Returns a mapping of email (as passed) to user ID for the emails that were
+found. Emails with no matching user are omitted.</p>
 
 
 <table>
@@ -2748,6 +2751,30 @@ with no matching user are omitted.</p>
                       <code><span title="list">list</span>[<span title="str">str</span>]</code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If an email matches multiple users case-insensitively.</p>
+              </div>
             </td>
           </tr>
       </tbody>
