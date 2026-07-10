@@ -156,7 +156,11 @@ ResourceAttributeValueLike = Union[
 
 
 class ResourceAttributeAssignment(BaseType[ra_pb.ResourceAttribute, "ResourceAttributeAssignment"]):
-    """A single assignment of a resource attribute value to a supported resource."""
+    """A single assignment of a resource attribute value to a supported resource.
+
+    For ``SET_OF_ENUM`` keys, each assignment holds one enum value: a set of N values
+    on one resource is stored and returned as N assignments.
+    """
 
     organization_id: str
     key_id: str
@@ -339,7 +343,7 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
                 replaces the full set on each resource.
 
         Returns:
-            The created assignments.
+            The created assignments, one per enum value for ``SET_OF_ENUM`` keys.
         """
         return self.client.access_control.resource_attributes.assignments.create(
             self, resources, value=value

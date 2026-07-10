@@ -1238,7 +1238,8 @@ class PrincipalAttributeAssignmentsAPI:
                 a bool; for ``NUMBER``, an int.
 
         Returns:
-            The created assignments.
+            The created assignments, one per enum value per principal for
+            ``SET_OF_ENUM`` keys.
         """
         ...
 
@@ -1269,6 +1270,8 @@ class PrincipalAttributeAssignmentsAPI:
         page_size: int | None = None,
     ) -> list[PrincipalAttributeAssignment]:
         """List principal attribute assignments.
+
+        For ``SET_OF_ENUM`` keys, each enum value is returned as its own assignment.
 
         Args:
             key: Filter to assignments of this key.
@@ -2045,7 +2048,8 @@ class ResourceAttributeAssignmentsAPI:
                 bool; for ``NUMBER``, an int.
 
         Returns:
-            The created assignments.
+            The created assignments, one per enum value per resource for
+            ``SET_OF_ENUM`` keys.
         """
         ...
 
@@ -2072,6 +2076,8 @@ class ResourceAttributeAssignmentsAPI:
         page_size: int | None = None,
     ) -> list[ResourceAttributeAssignment]:
         """List resource attribute assignments.
+
+        For ``SET_OF_ENUM`` keys, each enum value is returned as its own assignment.
 
         Args:
             key: Filter to assignments of this key.

@@ -91,7 +91,7 @@ licenses = key.get_or_create_enum_values(["LICENSE_A"])
 key.assign_to(["user@example.com"], value=licenses)
 ```
 
-Keys, enum values, and assignments are managed through the nested `keys`, `enum_values`, and `assignments` APIs on each side (for example `client.access_control.resource_attributes.assignments.list_()`), each supporting the standard create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target.
+Keys, enum values, and assignments are managed through the nested `keys`, `enum_values`, and `assignments` APIs on each side (for example `client.access_control.resource_attributes.assignments.list_()`), each supporting the standard create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target, and each enum value in the set is returned as its own assignment.
 
 #### Users
 

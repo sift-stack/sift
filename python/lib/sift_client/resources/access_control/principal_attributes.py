@@ -476,7 +476,8 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
                 a bool; for ``NUMBER``, an int.
 
         Returns:
-            The created assignments.
+            The created assignments, one per enum value per principal for
+            ``SET_OF_ENUM`` keys.
         """
         resolved_key = await resolve_key(
             key,
@@ -535,6 +536,8 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
         page_size: int | None = None,
     ) -> list[PrincipalAttributeAssignment]:
         """List principal attribute assignments.
+
+        For ``SET_OF_ENUM`` keys, each enum value is returned as its own assignment.
 
         Args:
             key: Filter to assignments of this key.

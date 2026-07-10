@@ -140,7 +140,11 @@ PrincipalAttributeValueLike = Union[
 class PrincipalAttributeAssignment(
     BaseType[pa_pb.PrincipalAttributeValue, "PrincipalAttributeAssignment"]
 ):
-    """A single assignment of a principal attribute value to a principal."""
+    """A single assignment of a principal attribute value to a principal.
+
+    For ``SET_OF_ENUM`` keys, each assignment holds one enum value: a set of N values
+    on one principal is stored and returned as N assignments.
+    """
 
     organization_id: str
     key_id: str
@@ -326,7 +330,7 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
                 replaces the full set on each principal.
 
         Returns:
-            The created assignments.
+            The created assignments, one per enum value for ``SET_OF_ENUM`` keys.
         """
         return self.client.access_control.principal_attributes.assignments.create(
             self, principals, value=value
