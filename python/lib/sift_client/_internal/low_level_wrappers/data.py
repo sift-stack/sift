@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Tuple, cast
+from typing import TYPE_CHECKING, Any, Callable, Tuple, cast
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -19,6 +20,7 @@ from sift.data.v2.data_pb2_grpc import DataServiceStub
 from sift_client._internal.disk_cache import DiskCache
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.time import to_timestamp_nanos
+from sift_client._internal.util.progress import alive_bar
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.transport import WithGrpcClient
 
@@ -589,6 +591,52 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
+    async def _paginate_channel_data(
+        self,
+        *,
+        kwargs: dict[str, Any],
+        page_size: int | None,
+        max_points: int | None,
+        on_page: Callable[[int], None] | None = None,
+    ) -> list[dict[str, pd.DataFrame]]:
+        """Page one ``GetData`` query up to a point budget.
+
+        ``max_points`` (the caller's ``limit``) caps points, but each page
+        is one proto holding up to ``page_size`` points, so the budget
+        drives ``page_size`` and the page count rather than a proto count.
+        Deserialized once here so :meth:`_merge_pages` needn't parse again.
+        """
+        if max_points == 0:
+            return []
+
+        if max_points is not None:
+            # Never pull a larger page than the whole budget; then cover
+            # the budget in ceil(budget / page_size) equal pages.
+            if page_size is None or page_size > max_points:
+                page_size = max_points
+            pages_remaining: int | None = -(-max_points // page_size)  # ceil div
+        else:
+            page_size = page_size or CHANNELS_DEFAULT_PAGE_SIZE
+            pages_remaining = None  # exhaust via the page token
+
+        deserialized: list[dict[str, pd.DataFrame]] = []
+        page_token: str | None = ""
+        while True:
+            page, page_token = await self._get_data_impl(
+                page_size=page_size, page_token=page_token, **kwargs
+            )
+            frames = [self.try_deserialize_channel_data(d) for d in page]
+            deserialized.extend(frames)
+            if on_page is not None:
+                on_page(sum(len(df) for frame in frames for df in frame.values()))
+            if pages_remaining is not None:
+                pages_remaining -= 1
+                if pages_remaining <= 0:
+                    break
+            if not page_token:
+                break
+        return deserialized
+
     def _update_cache(
         self,
         *,
@@ -724,6 +772,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         max_results: int | None = None,
         page_size: int | None = None,
         ignore_cache: bool = False,
+        show_progress: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get the data for a channel during a run."""
         ret_data: dict[str, pd.DataFrame] = {}
@@ -743,6 +792,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         fully_uncached: list[str] = []
         partial_gaps: list[tuple[str, list[TimeRange]]] = []
         fetched_ranges_per_channel: dict[str, list[TimeRange]] = {}
+        # Points served from cache, counted the same way wire pages are
+        # (per element frame, so ``.size`` covers bitfield columns). Seeds
+        # the progress total so the receipt reflects the full result, but
+        # stays out of the fetched-throughput rate.
+        cached_points = 0
 
         for channel in channels:
             cid = channel.id_
@@ -754,6 +808,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 cached_data, gaps = self.channel_cache.get_range(cid, run_id, start_time, end_time)
 
             if cached_data is not None:
+                cached_points += int(cached_data.size)
                 # Slice per column so each result key carries only its
                 # own element frame (matches the per-element shape
                 # ``try_deserialize_channel_data`` produces; without
@@ -770,46 +825,133 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             else:
                 partial_gaps.append((cid, gaps))
 
-        tasks = []
+        # One spec per wire query: the fetch kwargs plus a human-readable
+        # label for the progress bar. Built before the bar so its total
+        # is the dispatched-query count, then turned into coroutines
+        # inside the bar block where the ``on_page`` callback exists.
+        specs: list[tuple[dict[str, Any], str]] = []
+        id_to_name = {channel.id_: channel.name for channel in channels}
         # Batch fully-uncached channels (sharing the full requested
         # range) into one wire call each.
         batch_size = REQUEST_BATCH_SIZE
         for i in range(0, len(fully_uncached), batch_size):
             batch = fully_uncached[i : i + batch_size]
-            task = asyncio.create_task(
-                self._handle_pagination(
-                    self._get_data_impl,
-                    kwargs={
+            specs.append(
+                (
+                    {
                         "channel_ids": batch,
                         "run_id": run_id,
                         "start_time": start_time,
                         "end_time": end_time,
                     },
-                    page_size=page_size,
-                    max_results=max_results,
+                    ", ".join(id_to_name.get(cid, cid) for cid in batch),
                 )
             )
-            tasks.append(task)
 
         # Partial gaps: one fetch per (channel, gap).
         for cid, gaps in partial_gaps:
             for gap_start, gap_end in gaps:
-                task = asyncio.create_task(
-                    self._handle_pagination(
-                        self._get_data_impl,
-                        kwargs={
+                specs.append(
+                    (
+                        {
                             "channel_ids": [cid],
                             "run_id": run_id,
                             "start_time": gap_start,
                             "end_time": gap_end,
                         },
-                        page_size=page_size,
-                        max_results=max_results,
+                        f"{id_to_name.get(cid, cid)} [{gap_start:%H:%M:%S}-{gap_end:%H:%M:%S}]",
                     )
                 )
-                tasks.append(task)
 
-        pages = await asyncio.gather(*tasks)
+        with alive_bar(
+            len(specs),
+            title="Fetching channel data",
+            stats=False,  # hide the built-in channels/s rate; we show points/s below
+            dual_line=True,  # channel fill on line one, points + rate on line two
+            receipt_text=True,  # keep the final points + rate line as a receipt
+            disable=not show_progress,
+        ) as bar:
+            # The fill tracks channels done; points and throughput are
+            # tracked here and rendered on the second line, since points
+            # have no clean total to fill against. Fetches run
+            # concurrently, so name the set in flight as a group rather
+            # than a single "current" channel. Total points include the
+            # cache; the rate is fetched-only, since cache reads have no
+            # meaningful throughput and would distort pts/s.
+            in_flight: list[str] = []
+            fetched_points = 0
+            start = time.monotonic()
+
+            def _render() -> None:
+                total = cached_points + fetched_points
+                parts = [f"{total:,} pts"]
+                # Key the split on points actually returned from the wire,
+                # not on whether a fetch was dispatched: a warm call can
+                # still issue an empty leading-gap query, which should
+                # read as "all cached", not "0 fetched".
+                if fetched_points and cached_points:
+                    parts[0] += f" ({fetched_points:,} fetched · {cached_points:,} cached)"
+                elif cached_points:
+                    parts[0] += " (all cached)"
+                if fetched_points:
+                    elapsed = time.monotonic() - start
+                    rate = fetched_points / elapsed if elapsed > 0 else 0.0
+                    parts.append(f"{rate:,.0f} pts/s")
+                if in_flight:
+                    shown = in_flight[:3]
+                    names = ", ".join(shown)
+                    extra = len(in_flight) - len(shown)
+                    if extra:
+                        names += f" (+{extra} more)"
+                    parts.append(names)
+                bar.text(" · ".join(parts))
+
+            def on_page(points: int) -> None:
+                nonlocal fetched_points
+                fetched_points += points
+                _render()
+
+            async def _tick(kwargs: dict[str, Any], label: str) -> Any:
+                in_flight.append(label)
+                _render()
+                try:
+                    return await self._paginate_channel_data(
+                        kwargs=kwargs,
+                        page_size=page_size,
+                        max_points=max_results,
+                        on_page=on_page,
+                    )
+                finally:
+                    in_flight.remove(label)
+                    _render()
+                    bar()
+
+            # Seed the line up front so a fully-cached call (no fetch
+            # tasks) still shows its cached-point summary in the receipt.
+            _render()
+            # Keep ``gather`` (not ``as_completed``) so pages stay in
+            # submission order: ``_merge_pages`` lets later-positioned
+            # pages win on duplicate timestamps.
+            pages = await asyncio.gather(*[_tick(kw, lbl) for kw, lbl in specs])
+
+            # Replace the live line with a past-tense summary so the
+            # receipt reads as a result, not a mid-flight tick. The rate
+            # is labelled as an average and covers only fetched points.
+            total = cached_points + fetched_points
+            elapsed = time.monotonic() - start
+            avg = fetched_points / elapsed if elapsed > 0 else 0.0
+            if fetched_points and cached_points:
+                summary = (
+                    f"Loaded {total:,} points: {fetched_points:,} fetched "
+                    f"(avg {avg:,.0f}/s), {cached_points:,} cached"
+                )
+            elif fetched_points:
+                summary = f"Loaded {total:,} points (avg {avg:,.0f}/s)"
+            elif cached_points:
+                summary = f"Loaded {total:,} points from cache"
+            else:
+                summary = f"Loaded {total:,} points"
+            bar.text(summary)
         ret_data = self._merge_pages(pages, initial=ret_data)
 
         # Pure cache hits never reach ``_update_cache`` because nothing
@@ -830,11 +972,16 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     def _merge_pages(
         self,
-        pages: list[list[Any]],
+        pages: list[list[dict[str, pd.DataFrame]]],
         *,
         initial: dict[str, pd.DataFrame],
     ) -> dict[str, pd.DataFrame]:
         """Flatten paged channel data + any cached slices into one DataFrame per channel.
+
+        ``pages`` is already deserialized: one entry per fetch task, each
+        a list of per-page ``{name: frame}`` dicts from
+        :meth:`_paginate_channel_data`. Parsing happens there so the wire
+        payload is read once.
 
         ``initial`` carries the cached slices ``get_channel_data``
         stitched inline via :meth:`ChannelDataCache.get_range` before
@@ -846,8 +993,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         per_channel_frames: dict[str, list[pd.DataFrame]] = {}
         for page in pages:
-            for data in page:
-                for name, df in self.try_deserialize_channel_data(data).items():
+            for frame in page:
+                for name, df in frame.items():
                     per_channel_frames.setdefault(name, []).append(df)
 
         ret_data: dict[str, pd.DataFrame] = dict(initial)

@@ -145,13 +145,21 @@ def download_file(
     return output_path
 
 
-def extract_zip(zip_path: Path, output_dir: Path, *, delete_zip: bool = True) -> list[Path]:
+def extract_zip(
+    zip_path: Path,
+    output_dir: Path,
+    *,
+    delete_zip: bool = True,
+    show_progress: bool = False,
+) -> list[Path]:
     """Extract a zip file to a directory.
 
     Args:
         zip_path: Path to the zip file.
         output_dir: Directory to extract contents into. Created if it doesn't exist.
         delete_zip: If True (default), delete the zip file after extraction.
+        show_progress: If True, display a progress bar naming each file as it is
+            extracted. Defaults to False.
 
     Returns:
         List of paths to the extracted files (excludes directories).
@@ -162,7 +170,11 @@ def extract_zip(zip_path: Path, output_dir: Path, *, delete_zip: bool = True) ->
     output_dir.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path, "r") as zip_file:
         names = zip_file.namelist()
-        zip_file.extractall(output_dir)
+        with alive_bar(len(names), title="Extracting", disable=not show_progress) as bar:
+            for name in names:
+                bar.text(name)
+                zip_file.extract(name, output_dir)
+                bar()
     if delete_zip:
         try:
             zip_path.unlink()

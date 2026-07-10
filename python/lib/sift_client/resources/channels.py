@@ -266,6 +266,7 @@ class ChannelsAPIAsync(ResourceBase):
         end_time: datetime | None = None,
         limit: int | None = None,
         ignore_cache: bool = False,
+        show_progress: bool | None = None,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -276,11 +277,17 @@ class ChannelsAPIAsync(ResourceBase):
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
             ignore_cache: Whether to ignore cached data and fetch fresh data from the server.
+            show_progress: If True, display a progress bar naming each channel as
+                its data is fetched. Defaults to True for sync, False for async.
+                Use ``sift_client.config.show_progress = False`` to disable globally.
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
         self._ensure_data_low_level_client()
+
+        if show_progress is None:
+            show_progress = self._show_progress()
 
         run_id = run._id_or_error if isinstance(run, Run) else run
         return await self._data_low_level_client.get_channel_data(  # type: ignore
@@ -290,6 +297,7 @@ class ChannelsAPIAsync(ResourceBase):
             end_time=end_time,
             max_results=limit,
             ignore_cache=ignore_cache,
+            show_progress=show_progress,
         )
 
     async def get_data_as_arrow(
@@ -301,6 +309,7 @@ class ChannelsAPIAsync(ResourceBase):
         end_time: datetime | None = None,
         limit: int | None = None,
         ignore_cache: bool = False,
+        show_progress: bool | None = None,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
         from pyarrow import Table as ArrowTable
@@ -313,5 +322,6 @@ class ChannelsAPIAsync(ResourceBase):
             end_time=end_time,
             limit=limit,
             ignore_cache=ignore_cache,
+            show_progress=show_progress,
         )
         return {k: ArrowTable.from_pandas(v) for k, v in data.items()}
