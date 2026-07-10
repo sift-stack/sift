@@ -4978,6 +4978,8 @@ reassigned to. If None, assignments using this value are archived.</p>
               Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.principal_attributes.v1.principal_attributes_pb2.PrincipalAttributeValue">PrincipalAttributeValue</span>, &#39;PrincipalAttributeAssignment&#39;]</code></p>
 
         <p>A single assignment of a principal attribute value to a principal.</p>
+<p>For <code>SET_OF_ENUM</code> keys, each assignment holds one enum value: a set of N values
+on one principal is stored and returned as N assignments.</p>
 
     
 
@@ -6306,7 +6308,7 @@ replaces the full set on each principal.</p>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>The created assignments.</p>
+                <p>The created assignments, one per enum value for <code>SET_OF_ENUM</code> keys.</p>
               </div>
             </td>
           </tr>

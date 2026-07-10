@@ -5058,6 +5058,8 @@ reassigned to. If None, assignments using this value are archived.</p>
               Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.resource_attribute.v1.resource_attribute_pb2.ResourceAttribute">ResourceAttribute</span>, &#39;ResourceAttributeAssignment&#39;]</code></p>
 
         <p>A single assignment of a resource attribute value to a supported resource.</p>
+<p>For <code>SET_OF_ENUM</code> keys, each assignment holds one enum value: a set of N values
+on one resource is stored and returned as N assignments.</p>
 
     
 
@@ -6389,7 +6391,7 @@ replaces the full set on each resource.</p>
             </td>
             <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>The created assignments.</p>
+                <p>The created assignments, one per enum value for <code>SET_OF_ENUM</code> keys.</p>
               </div>
             </td>
           </tr>
