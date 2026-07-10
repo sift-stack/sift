@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Tuple, cast
+from typing import TYPE_CHECKING, Any, Callable, Tuple, cast
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -596,6 +597,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         kwargs: dict[str, Any],
         page_size: int | None,
         max_points: int | None,
+        on_page: Callable[[int], None] | None = None,
     ) -> list[Any]:
         """Page one ``GetData`` query, bounding the result by *points*.
 
@@ -610,6 +612,13 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Each page advances every channel in ``kwargs["channel_ids"]`` by
         the same ``page_size`` points, so the page count covers the
         per-channel budget for batched queries too.
+
+        ``on_page`` receives the point count of each page as it arrives,
+        for live progress reporting. The count parses the page but only
+        reads the repeated field length (see
+        :meth:`_count_channel_data_points`); ``_merge_pages`` parses again
+        downstream. The parse is unavoidable (values are packed bytes) but
+        cheap; carry frames forward to parse once if it ever shows up.
         """
         if max_points == 0:
             return []
@@ -631,6 +640,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 page_size=page_size, page_token=page_token, **kwargs
             )
             protos.extend(page)
+            if on_page is not None:
+                on_page(sum(self._count_channel_data_points(d) for d in page))
             if pages_remaining is not None:
                 pages_remaining -= 1
                 if pages_remaining <= 0:
@@ -794,6 +805,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         fully_uncached: list[str] = []
         partial_gaps: list[tuple[str, list[TimeRange]]] = []
         fetched_ranges_per_channel: dict[str, list[TimeRange]] = {}
+        # Points served from cache, counted the same way wire pages are
+        # (per element frame, so ``.size`` covers bitfield columns). Seeds
+        # the progress total so the receipt reflects the full result, but
+        # stays out of the fetched-throughput rate.
+        cached_points = 0
 
         for channel in channels:
             cid = channel.id_
@@ -805,6 +821,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 cached_data, gaps = self.channel_cache.get_range(cid, run_id, start_time, end_time)
 
             if cached_data is not None:
+                cached_points += int(cached_data.size)
                 # Slice per column so each result key carries only its
                 # own element frame (matches the per-element shape
                 # ``try_deserialize_channel_data`` produces; without
@@ -821,86 +838,133 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             else:
                 partial_gaps.append((cid, gaps))
 
-        tasks = []
-        # Human-readable label per task, kept in lockstep with ``tasks``
-        # so the progress bar can name each channel/gap as it lands.
-        labels: list[str] = []
+        # One spec per wire query: the fetch kwargs plus a human-readable
+        # label for the progress bar. Built before the bar so its total
+        # is the dispatched-query count, then turned into coroutines
+        # inside the bar block where the ``on_page`` callback exists.
+        specs: list[tuple[dict[str, Any], str]] = []
         id_to_name = {channel.id_: channel.name for channel in channels}
         # Batch fully-uncached channels (sharing the full requested
         # range) into one wire call each.
         batch_size = REQUEST_BATCH_SIZE
         for i in range(0, len(fully_uncached), batch_size):
             batch = fully_uncached[i : i + batch_size]
-            task = asyncio.create_task(
-                self._paginate_channel_data(
-                    kwargs={
+            specs.append(
+                (
+                    {
                         "channel_ids": batch,
                         "run_id": run_id,
                         "start_time": start_time,
                         "end_time": end_time,
                     },
-                    page_size=page_size,
-                    max_points=max_results,
+                    ", ".join(id_to_name.get(cid, cid) for cid in batch),
                 )
             )
-            tasks.append(task)
-            labels.append(", ".join(id_to_name.get(cid, cid) for cid in batch))
 
         # Partial gaps: one fetch per (channel, gap).
         for cid, gaps in partial_gaps:
             for gap_start, gap_end in gaps:
-                task = asyncio.create_task(
-                    self._paginate_channel_data(
-                        kwargs={
+                specs.append(
+                    (
+                        {
                             "channel_ids": [cid],
                             "run_id": run_id,
                             "start_time": gap_start,
                             "end_time": gap_end,
                         },
-                        page_size=page_size,
-                        max_points=max_results,
+                        f"{id_to_name.get(cid, cid)} [{gap_start:%H:%M:%S}-{gap_end:%H:%M:%S}]",
                     )
-                )
-                tasks.append(task)
-                labels.append(
-                    f"{id_to_name.get(cid, cid)} [{gap_start:%H:%M:%S}-{gap_end:%H:%M:%S}]"
                 )
 
         with alive_bar(
-            len(tasks),
+            len(specs),
             title="Fetching channel data",
+            stats=False,  # hide the built-in channels/s rate; we show points/s below
+            dual_line=True,  # channel fill on line one, points + rate on line two
+            receipt_text=True,  # keep the final points + rate line as a receipt
             disable=not show_progress,
         ) as bar:
-            # Fetches run concurrently, so there is no single "current"
-            # channel. Track the set in flight and name them as a group,
-            # dropping each as it returns.
+            # The fill tracks channels done; points and throughput are
+            # tracked here and rendered on the second line, since points
+            # have no clean total to fill against. Fetches run
+            # concurrently, so name the set in flight as a group rather
+            # than a single "current" channel. Total points include the
+            # cache; the rate is fetched-only, since cache reads have no
+            # meaningful throughput and would distort pts/s.
             in_flight: list[str] = []
+            fetched_points = 0
+            start = time.monotonic()
 
             def _render() -> None:
-                if not in_flight:
-                    bar.text("")
-                    return
-                shown = in_flight[:3]
-                extra = len(in_flight) - len(shown)
-                text = ", ".join(shown)
-                if extra:
-                    text += f" (+{extra} more)"
-                bar.text(text)
+                total = cached_points + fetched_points
+                parts = [f"{total:,} pts"]
+                # Key the split on points actually returned from the wire,
+                # not on whether a fetch was dispatched: a warm call can
+                # still issue an empty leading-gap query, which should
+                # read as "all cached", not "0 fetched".
+                if fetched_points and cached_points:
+                    parts[0] += f" ({fetched_points:,} fetched · {cached_points:,} cached)"
+                elif cached_points:
+                    parts[0] += " (all cached)"
+                if fetched_points:
+                    elapsed = time.monotonic() - start
+                    rate = fetched_points / elapsed if elapsed > 0 else 0.0
+                    parts.append(f"{rate:,.0f} pts/s")
+                if in_flight:
+                    shown = in_flight[:3]
+                    names = ", ".join(shown)
+                    extra = len(in_flight) - len(shown)
+                    if extra:
+                        names += f" (+{extra} more)"
+                    parts.append(names)
+                bar.text(" · ".join(parts))
 
-            async def _tick(task: asyncio.Task, label: str) -> Any:
+            def on_page(points: int) -> None:
+                nonlocal fetched_points
+                fetched_points += points
+                _render()
+
+            async def _tick(kwargs: dict[str, Any], label: str) -> Any:
                 in_flight.append(label)
                 _render()
                 try:
-                    return await task
+                    return await self._paginate_channel_data(
+                        kwargs=kwargs,
+                        page_size=page_size,
+                        max_points=max_results,
+                        on_page=on_page,
+                    )
                 finally:
                     in_flight.remove(label)
                     _render()
                     bar()
 
+            # Seed the line up front so a fully-cached call (no fetch
+            # tasks) still shows its cached-point summary in the receipt.
+            _render()
             # Keep ``gather`` (not ``as_completed``) so pages stay in
             # submission order: ``_merge_pages`` lets later-positioned
             # pages win on duplicate timestamps.
-            pages = await asyncio.gather(*[_tick(t, lbl) for t, lbl in zip(tasks, labels)])
+            pages = await asyncio.gather(*[_tick(kw, lbl) for kw, lbl in specs])
+
+            # Replace the live line with a past-tense summary so the
+            # receipt reads as a result, not a mid-flight tick. The rate
+            # is labelled as an average and covers only fetched points.
+            total = cached_points + fetched_points
+            elapsed = time.monotonic() - start
+            avg = fetched_points / elapsed if elapsed > 0 else 0.0
+            if fetched_points and cached_points:
+                summary = (
+                    f"Loaded {total:,} points: {fetched_points:,} fetched "
+                    f"(avg {avg:,.0f}/s), {cached_points:,} cached"
+                )
+            elif fetched_points:
+                summary = f"Loaded {total:,} points (avg {avg:,.0f}/s)"
+            elif cached_points:
+                summary = f"Loaded {total:,} points from cache"
+            else:
+                summary = f"Loaded {total:,} points"
+            bar.text(summary)
         ret_data = self._merge_pages(pages, initial=ret_data)
 
         # Pure cache hits never reach ``_update_cache`` because nothing
@@ -952,6 +1016,26 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             else:
                 ret_data[name] = pd.concat(frames).groupby(level=0).last()
         return ret_data
+
+    @staticmethod
+    def _count_channel_data_points(channel_data: Any) -> int:
+        """Point count of one ``ChannelData`` page without building frames.
+
+        The values are packed bytes inside the ``Any``-style wrapper, so
+        the typed message still has to be parsed, but the repeated field's
+        length is O(1) from there: no per-point Python loop and no
+        DataFrame, unlike :meth:`try_deserialize_channel_data`. Bitfields
+        are counted per element to match how the deserializer and the
+        cache tally points.
+        """
+        data_type = ChannelDataType.from_str(channel_data.type_url)
+        if data_type is None:
+            raise ValueError(f"Unknown data type: {channel_data.type_url}")
+        proto_data_class = ChannelDataType.proto_data_class(data_type)
+        proto_data_value = proto_data_class.FromString(channel_data.value)
+        if proto_data_class is BitFieldValues:
+            return sum(len(component.values) for component in proto_data_value.values)
+        return len(proto_data_value.values)
 
     @staticmethod
     def try_deserialize_channel_data(channel_data: Any) -> dict[str, pd.DataFrame]:

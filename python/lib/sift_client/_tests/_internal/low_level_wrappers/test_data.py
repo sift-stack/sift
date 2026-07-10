@@ -35,7 +35,7 @@ the entire accumulated frame).
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, cast
 from unittest.mock import MagicMock, patch
@@ -131,17 +131,34 @@ def _client_with_cache(tmp_path, subdir: str = "cache") -> DataLowLevelClient:
     return DataLowLevelClient(MagicMock(), channel_cache=ChannelDataCache(store))
 
 
-def _patch_deserializer(sentinel_to_frames: dict[str, dict[str, pd.DataFrame]]) -> Any:
-    """Patch ``try_deserialize_channel_data`` to translate string sentinels.
+@contextmanager
+def _patch_deserializer(
+    sentinel_to_frames: dict[str, dict[str, pd.DataFrame]],
+) -> Iterator[None]:
+    """Patch the proto readers to translate string sentinels.
 
-    Lets tests pass strings in lieu of protos. Returned object is a context
-    manager; callers use ``with _patch_deserializer(...):``.
+    Lets tests pass strings in lieu of protos. Patches both
+    ``try_deserialize_channel_data`` (sentinel -> frames) and
+    ``_count_channel_data_points`` (sentinel -> point count), so the
+    progress path's point counting works on sentinels too. Callers use
+    ``with _patch_deserializer(...):``.
     """
-    return patch.object(
-        DataLowLevelClient,
-        "try_deserialize_channel_data",
-        staticmethod(lambda s: sentinel_to_frames[s]),
-    )
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(
+                DataLowLevelClient,
+                "try_deserialize_channel_data",
+                staticmethod(lambda s: sentinel_to_frames[s]),
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                DataLowLevelClient,
+                "_count_channel_data_points",
+                staticmethod(lambda s: sum(len(df) for df in sentinel_to_frames[s].values())),
+            )
+        )
+        yield
 
 
 @contextmanager
@@ -1724,6 +1741,28 @@ def _capture_bar_total() -> Iterator[list[int | None]]:
         yield totals
 
 
+@contextmanager
+def _capture_bar_text() -> Iterator[list[str]]:
+    """Patch ``alive_bar`` and capture every ``bar.text(...)`` string.
+
+    The bar's fill tracks channels; points loaded and throughput are
+    rendered into the situational text, one update per page.
+    """
+    texts: list[str] = []
+
+    @contextmanager
+    def _fake_alive_bar(total: int | None = None, *_args: Any, **_kwargs: Any) -> Iterator[Any]:
+        bar = MagicMock()
+        bar.text.side_effect = lambda s="": texts.append(s)
+        yield bar
+
+    with patch(
+        "sift_client._internal.low_level_wrappers.data.alive_bar",
+        _fake_alive_bar,
+    ):
+        yield texts
+
+
 class TestGetChannelDataProgress:
     """The progress bar's ``total`` reflects the number of dispatched fetches."""
 
@@ -1762,5 +1801,83 @@ class TestGetChannelDataProgress:
                         show_progress=True,
                     )
             assert totals == [0]
+        finally:
+            client.channel_cache.store.close()
+
+    @pytest.mark.asyncio
+    async def test_progress_text_reports_points_loaded(self) -> None:
+        """The situational text accumulates the point count across pages."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [
+            _frame("c1", rows=10, start=_NOW),
+            _frame("c1", rows=10, start=_NOW + timedelta(seconds=1)),
+        ]
+        with _capture_bar_text() as texts:
+            with _fake_grpc(client, {"c1": pages}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                    ignore_cache=True,
+                    show_progress=True,
+                )
+        assert any("10 pts" in t for t in texts), texts  # live line after the first page
+        assert any("20 pts" in t for t in texts), texts  # live line after both pages
+        # Final receipt is a past-tense summary with an average rate.
+        assert texts[-1].startswith("Loaded 20 points"), texts
+        assert "/s" in texts[-1], texts
+
+    @pytest.mark.asyncio
+    async def test_progress_text_splits_fetched_and_cached(self, tmp_path) -> None:
+        """A mixed call reports the fetched/cached split and a fetched-only rate."""
+        client = _client_with_cache(tmp_path)
+        try:
+            # Warm the cache for c1 (outside the capture block).
+            with _fake_grpc(client, {"c1": [_frame("c1", rows=5)]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            # c1 is now cached; c2 is fresh, so the call mixes both.
+            with _capture_bar_text() as texts:
+                with _fake_grpc(client, {"c1": [], "c2": [_frame("c2", rows=5, offset=100)]}):
+                    await client.get_channel_data(
+                        channels=[_channel("c1"), _channel("c2")],
+                        start_time=_NOW,
+                        end_time=_WINDOW_END,
+                        show_progress=True,
+                    )
+            final = texts[-1]
+            assert final.startswith("Loaded 10 points"), texts  # total spans both sources
+            assert "5 fetched" in final, texts
+            assert "5 cached" in final, texts
+            assert "/s" in final, texts  # a fetch happened, so an average rate shows
+        finally:
+            client.channel_cache.store.close()
+
+    @pytest.mark.asyncio
+    async def test_progress_text_all_cached_shows_no_rate(self, tmp_path) -> None:
+        """A fully-cached call labels the total 'all cached' and omits the rate."""
+        client = _client_with_cache(tmp_path)
+        try:
+            with _fake_grpc(client, {"c1": [_frame("c1", rows=5)]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            with _capture_bar_text() as texts:
+                with _fake_grpc(client, {"c1": []}):
+                    await client.get_channel_data(
+                        channels=[_channel("c1")],
+                        start_time=_NOW,
+                        end_time=_WINDOW_END,
+                        show_progress=True,
+                    )
+            assert texts, "fully-cached call should still render a summary line"
+            final = texts[-1]
+            assert final == "Loaded 5 points from cache", texts
+            assert "/s" not in final, texts  # nothing fetched, so no rate
         finally:
             client.channel_cache.store.close()
