@@ -83,11 +83,11 @@ jobs:
 
       - name: Check Stubs Generation
         working-directory: .
-        run: bash .githooks/pre-push-python/stubs.sh
+        run: just python::stubs-check
 
       - name: Check Extras Generation
         working-directory: .
-        run: bash .githooks/pre-push-python/extras.sh
+        run: just python::extras-check
 
       - name: Sync Stubs Mypy
         working-directory: python/lib

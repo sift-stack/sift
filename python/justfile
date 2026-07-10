@@ -124,3 +124,51 @@ docs:
 # Build docs
 docs-build:
     uv run mkdocs build
+
+# --- Pre-push hook checks (verify committed output is up to date) ---
+
+# Verify ruff format + lint leave no changes
+fmt-lint-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    uv sync --extra dev-all --quiet
+    uv run ruff format
+    uv run ruff check --fix
+    changed=$(git status --porcelain lib/sift_client/ | grep -E '\.py$' || true)
+    if [[ -n "$changed" ]]; then
+      echo "ERROR: formatting/linting made changes:"
+      echo "$changed" | sed 's/^/  /'
+      echo "Commit these changes before pushing."
+      exit 1
+    fi
+
+# Verify the generated sync stubs are up to date
+stubs-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    uv sync --extra dev-all --quiet
+    just gen-stubs
+    changed=$(git status --porcelain lib/sift_client/resources/sync_stubs | grep -E '\.pyi$' || true)
+    if [[ -n "$changed" ]]; then
+      echo "ERROR: generated stubs are not up to date:"
+      echo "$changed" | sed 's/^/  /'
+      echo "Run 'just gen-stubs' and commit the result before pushing."
+      exit 1
+    fi
+
+# Verify [project.optional-dependencies] is up to date
+extras-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    uv sync --extra dev-all --quiet
+    just gen-extras
+    changed=$(git status --porcelain pyproject.toml || true)
+    if [[ -n "$changed" ]]; then
+      echo "ERROR: extras are not up to date (pyproject.toml changed)."
+      echo "Run 'just gen-extras' and commit the result before pushing."
+      exit 1
+    fi
+
+# Verify uv.lock is in sync with pyproject.toml
+lock-check:
+    uv lock --check
