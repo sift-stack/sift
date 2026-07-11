@@ -5,11 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.19.0] - July 10, 2026
+
 ### What's New
 
 #### Faster `get_data` pagination
 
-Up to a ~80x speedup for some get_data calls.
+Up to a ~80x speedup for some `get_data` calls. `get_data` now also displays a progress bar while paging through results.
 
 #### Shared on-disk cache (opt-out, on by default)
 
@@ -125,6 +127,20 @@ user = client.users.find(name="alice@example.com")
 users = client.users.list_(name_contains="@example.com")
 ids = client.users.resolve_ids(["alice@example.com", "bob@example.com"])
 ```
+
+### Bugfixes
+- Fix `get_data` pagination returning incorrect results in some windows. ([#678](https://github.com/sift-stack/sift/pull/678))
+- Strip docstrings captured by the pytest plugin so they no longer leak into report step names and descriptions. ([#658](https://github.com/sift-stack/sift/pull/658))
+
+### Full Changelog
+- [Add ABAC resource and principal attributes](https://github.com/sift-stack/sift/pull/646)
+- [Get data cache improvements](https://github.com/sift-stack/sift/pull/650)
+- [Clean docstrings captured in pytest](https://github.com/sift-stack/sift/pull/658)
+- [ULog data imports](https://github.com/sift-stack/sift/pull/663)
+- [Group access control APIs under client.access_control](https://github.com/sift-stack/sift/pull/666)
+- [Report templates API resource](https://github.com/sift-stack/sift/pull/672)
+- [Let download_file forward extra headers to rest_client.get](https://github.com/sift-stack/sift/pull/677)
+- [Fix get_data pagination and add progress bars](https://github.com/sift-stack/sift/pull/678)
 
 ## [v0.18.0] - June 19, 2026
 
