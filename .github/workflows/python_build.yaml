@@ -123,15 +123,12 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          # Generate requirements file with all extras
+          # Generate requirements file with all extras. The "all" extra is
+          # auto-generated from [tool.sift.extras] and is a superset of every
+          # runtime extra, so new extras are picked up without editing this list.
           pip-compile pyproject.toml \
+          --extra all \
           --extra build \
-          --extra data_review \
-          --extra tdms \
-          --extra hdf5 \
-          --extra sift-stream \
-          --extra rosbags \
-          --extra openssl \
           -o requirements-all.txt
 
       - name: Build dependency wheels
