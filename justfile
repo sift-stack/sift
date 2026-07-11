@@ -12,6 +12,8 @@
 # Run `just` (or `just --list`) to see all recipes.
 
 mod python
+mod rust
+mod go
 
 # List available recipes
 default:
@@ -35,17 +37,3 @@ serve-cli-docs:
 # Build the CLI mdBook docs
 build-cli-docs:
     mdbook build ./rust/crates/sift_cli/assets/docs -d ./rust/crates/sift_cli/assets/docs/book-dev
-
-# Verify sift_stream_bindings' generated .pyi stub is up to date (pre-push hook)
-bindings-stubs-check:
-    #!/usr/bin/env bash
-    set -uo pipefail
-    cd rust/crates/sift_stream_bindings
-    cargo run --bin stub_gen
-    changed=$(git status --porcelain sift_stream_bindings.pyi | grep -E '\.pyi$' || true)
-    if [[ -n "$changed" ]]; then
-      echo "ERROR: generated stubs are not up to date:"
-      echo "$changed" | sed 's/^/  /'
-      echo "Commit these changes before pushing."
-      exit 1
-    fi

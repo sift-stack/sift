@@ -54,6 +54,18 @@ repos:
         language: system
         files: ^protos/.*\.proto$
         pass_filenames: false
+      - id: rust-fmt
+        name: cargo fmt --check
+        entry: just rust::fmt-check
+        language: system
+        files: ^rust/.*\.rs$
+        pass_filenames: false
+      - id: go-fmt
+        name: gofmt
+        entry: just go::fmt-check
+        language: system
+        files: ^go/.*\.go$
+        pass_filenames: false
 
       # --- push stage (thorough) ---
       - id: python-check
@@ -87,7 +99,7 @@ repos:
         stages: [pre-push]
       - id: bindings-stubs-check
         name: rust binding stubs up to date
-        entry: just bindings-stubs-check
+        entry: just rust::bindings-stubs-check
         language: system
         files: ^rust/crates/sift_stream_bindings/src/
         pass_filenames: false
