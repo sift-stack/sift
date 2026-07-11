@@ -154,7 +154,7 @@ class PrincipalAttributeAssignment(
     boolean_value: bool | None
     number_value: int | None
     key: PrincipalAttributeKey | None
-    """Full key details. Always set in responses."""
+    """Full key details. Only set when the server includes them; use ``key_id`` otherwise."""
     enum_value: PrincipalAttributeEnumValue | None
     """Full enum value details. Only set for enum values; ``value`` falls back to ``enum_value_id``."""
     created_date: datetime | None
@@ -323,7 +323,8 @@ class PrincipalAttributeKey(BaseType[pa_pb.PrincipalAttributeKey, "PrincipalAttr
         Args:
             principals: Principals to assign to. Pass ``PrincipalRef.user(...)`` /
                 ``PrincipalRef.user_group(...)`` references, ``User`` objects, or user
-                email addresses (resolved to user IDs automatically).
+                email addresses (resolved to user IDs automatically). Bare IDs are
+                rejected because they do not say which kind of principal they refer to.
             value: The value to assign. For ``SET_OF_ENUM`` keys, a list of enum values
                 (or their IDs); for ``ENUM`` keys, a single enum value; for ``BOOLEAN``
                 keys, a bool; for ``NUMBER`` keys, an int. For ``SET_OF_ENUM`` this

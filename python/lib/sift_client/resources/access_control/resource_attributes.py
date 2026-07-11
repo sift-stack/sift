@@ -507,6 +507,9 @@ class ResourceAttributeAssignmentsAPIAsync(ResourceBase):
             getter=lambda key_id: self._low_level_client.get_key(key_id),
         )
         resolved = [_resolve_resource_object(resource) for resource in resources]
+        resolved = list(
+            {(entity.entity_type, entity.entity_id): entity for entity in resolved}.values()
+        )
         create_kwargs = attribute_value_kwargs(resolved_key.value_type, value)
 
         created = await self._low_level_client.batch_create_resource_attributes(

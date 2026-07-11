@@ -1239,7 +1239,7 @@ class PrincipalAttributeAssignmentsAPI:
 
         Returns:
             The created assignments, one per enum value per principal for
-            ``SET_OF_ENUM`` keys.
+            ``SET_OF_ENUM`` keys. Order is not guaranteed to match the input order.
         """
         ...
 
@@ -3417,10 +3417,18 @@ class UsersAPI:
     def resolve_ids(self, emails: list[str]) -> dict[str, str]:
         """Resolve user login emails (their user names) to user IDs.
 
-        Returns a mapping of email to user ID for the emails that were found. Emails
-        with no matching user are omitted.
+        Matching is case-insensitive. Login names are stored and compared
+        case-sensitively, so emails that miss on exact casing fall back to a
+        case-insensitive match against the full user list. Inactive users are
+        resolved too.
+
+        Returns a mapping of email (as passed) to user ID for the emails that were
+        found. Emails with no matching user are omitted.
 
         Args:
             emails: The login emails to resolve.
+
+        Raises:
+            ValueError: If an email matches multiple users case-insensitively.
         """
         ...

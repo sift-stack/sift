@@ -162,6 +162,37 @@ class TestAssignmentsCreateValueResolution:
         assert kwargs["enum_value_ids"] == ["e_a"]
 
     @pytest.mark.asyncio
+    async def test_set_of_enum_rejects_empty_value_list(self):
+        api = _api()
+        api.assignments._low_level_client.batch_create_resource_attributes = AsyncMock()
+
+        with pytest.raises(ValueError, match="at least one enum value"):
+            await api.assignments.create(
+                _key(), [ResourceAttributeEntity.for_channel("ch1")], value=[]
+            )
+
+        api.assignments._low_level_client.batch_create_resource_attributes.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_duplicate_resources_are_deduped(self):
+        api = _api()
+        api.assignments._low_level_client.batch_create_resource_attributes = AsyncMock(
+            return_value=[]
+        )
+
+        await api.assignments.create(
+            _key(),
+            [
+                ResourceAttributeEntity.for_channel("ch1"),
+                ResourceAttributeEntity.for_channel("ch1"),
+            ],
+            value=["e_a"],
+        )
+
+        kwargs = api.assignments._low_level_client.batch_create_resource_attributes.call_args.kwargs
+        assert len(kwargs["entities"]) == 1
+
+    @pytest.mark.asyncio
     async def test_bare_string_resource_raises_type_error(self):
         api = _api()
         api.assignments._low_level_client.batch_create_resource_attributes = AsyncMock()

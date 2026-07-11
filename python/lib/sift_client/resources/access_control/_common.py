@@ -44,6 +44,11 @@ def attribute_value_kwargs(value_type: Enum, value: Any) -> dict[str, Any]:
     if value_type.name == "SET_OF_ENUM":
         if not isinstance(value, (list, tuple)):
             raise TypeError("SET_OF_ENUM keys require a list of enum values.")
+        if not value:
+            raise ValueError(
+                "SET_OF_ENUM keys require at least one enum value; archive the existing "
+                "assignments to clear a set."
+            )
         return {"enum_value_ids": [id_of(v) for v in value]}
     if value_type.name == "ENUM":
         if isinstance(value, (list, tuple)):

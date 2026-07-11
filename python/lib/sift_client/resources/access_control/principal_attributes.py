@@ -530,7 +530,7 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
 
         Returns:
             The created assignments, one per enum value per principal for
-            ``SET_OF_ENUM`` keys.
+            ``SET_OF_ENUM`` keys. Order is not guaranteed to match the input order.
         """
         resolved_key = await resolve_key(
             key,
@@ -538,6 +538,7 @@ class PrincipalAttributeAssignmentsAPIAsync(ResourceBase):
             getter=lambda key_id: self._low_level_client.get_key(key_id),
         )
         refs = await self._resolve_email_refs([_as_principal_ref(p) for p in principals])
+        refs = list({(ref.principal_type, ref.principal_id): ref for ref in refs}.values())
         create_kwargs = attribute_value_kwargs(resolved_key.value_type, value)
 
         grouped: dict[PrincipalType, list[str]] = {}

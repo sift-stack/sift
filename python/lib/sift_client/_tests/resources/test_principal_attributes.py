@@ -88,6 +88,19 @@ class TestAssignmentsCreate:
             )
 
     @pytest.mark.asyncio
+    async def test_duplicate_principals_are_deduped(self):
+        api = _api()
+        api.client.async_.users.resolve_ids = AsyncMock(return_value={"alice@x.com": "u1"})
+        api.assignments._low_level_client.batch_create_values = AsyncMock(return_value=[])
+
+        await api.assignments.create(
+            _key(), ["alice@x.com", PrincipalRef.user("u1")], value=["e_a"]
+        )
+
+        kwargs = api.assignments._low_level_client.batch_create_values.call_args.kwargs
+        assert kwargs["principal_ids"] == ["u1"]
+
+    @pytest.mark.asyncio
     async def test_bare_principal_id_raises_type_error(self):
         api = _api()
         api.assignments._low_level_client.batch_create_values = AsyncMock()
