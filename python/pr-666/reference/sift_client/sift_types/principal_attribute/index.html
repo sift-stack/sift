@@ -5330,7 +5330,7 @@ on one principal is stored and returned as N assignments.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Full key details. Always set in responses.</p>
+        <p>Full key details. Only set when the server includes them; use <code>key_id</code> otherwise.</p>
 
     </div>
 
@@ -6239,7 +6239,8 @@ not returned), a bool for <code>BOOLEAN</code> keys, or an int for <code>NUMBER<
               <div class="doc-md-description">
                 <p>Principals to assign to. Pass <code>PrincipalRef.user(...)</code> /
 <code>PrincipalRef.user_group(...)</code> references, <code>User</code> objects, or user
-email addresses (resolved to user IDs automatically).</p>
+email addresses (resolved to user IDs automatically). Bare IDs are
+rejected because they do not say which kind of principal they refer to.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
