@@ -114,7 +114,8 @@ class UsersAPIAsync(ResourceBase):
 
         Matching is case-insensitive. Login names are stored and compared
         case-sensitively, so emails that miss on exact casing fall back to a
-        case-insensitive match against the full user list.
+        case-insensitive match against the full user list. Inactive users are
+        resolved too.
 
         Returns a mapping of email (as passed) to user ID for the emails that were
         found. Emails with no matching user are omitted.
@@ -128,7 +129,7 @@ class UsersAPIAsync(ResourceBase):
         wanted = list(dict.fromkeys(email for email in emails if email))
         if not wanted:
             return {}
-        users = await self.list_(names=wanted)
+        users = await self.list_(names=wanted, include_inactive=True)
         by_name = {user.name: user._id_or_error for user in users}
         resolved = {email: by_name[email] for email in wanted if email in by_name}
 
@@ -136,7 +137,7 @@ class UsersAPIAsync(ResourceBase):
         if missing:
             folded_to_email = {email.casefold(): email for email in missing}
             matches: dict[str, list[str]] = {}
-            for user in await self.list_():
+            for user in await self.list_(include_inactive=True):
                 email = folded_to_email.get(user.name.casefold())
                 if email is not None:
                     matches.setdefault(email, []).append(user._id_or_error)

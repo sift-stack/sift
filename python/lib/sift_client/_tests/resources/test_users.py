@@ -81,9 +81,7 @@ class TestResolveIds:
     @pytest.mark.asyncio
     async def test_maps_emails_and_omits_missing(self):
         api = _api()
-        api._low_level_client.list_all_active_users = AsyncMock(
-            return_value=[_user("u1", "alice@x.com")]
-        )
+        api._low_level_client.list_all_users = AsyncMock(return_value=[_user("u1", "alice@x.com")])
 
         resolved = await api.resolve_ids(["alice@x.com", "ghost@x.com"])
 
@@ -92,40 +90,36 @@ class TestResolveIds:
     @pytest.mark.asyncio
     async def test_empty_input_makes_no_call(self):
         api = _api()
-        api._low_level_client.list_all_active_users = AsyncMock()
+        api._low_level_client.list_all_users = AsyncMock()
 
         assert await api.resolve_ids([]) == {}
-        api._low_level_client.list_all_active_users.assert_not_called()
+        api._low_level_client.list_all_users.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_deduplicates_emails(self):
         api = _api()
-        api._low_level_client.list_all_active_users = AsyncMock(
-            return_value=[_user("u1", "alice@x.com")]
-        )
+        api._low_level_client.list_all_users = AsyncMock(return_value=[_user("u1", "alice@x.com")])
 
         await api.resolve_ids(["alice@x.com", "alice@x.com"])
 
-        kwargs = api._low_level_client.list_all_active_users.call_args.kwargs
+        kwargs = api._low_level_client.list_all_users.call_args.kwargs
         assert kwargs["query_filter"] == cel.in_("name", ["alice@x.com"])
 
     @pytest.mark.asyncio
     async def test_no_fallback_call_when_all_emails_match_exactly(self):
         api = _api()
-        api._low_level_client.list_all_active_users = AsyncMock(
-            return_value=[_user("u1", "alice@x.com")]
-        )
+        api._low_level_client.list_all_users = AsyncMock(return_value=[_user("u1", "alice@x.com")])
 
         await api.resolve_ids(["alice@x.com"])
 
-        assert api._low_level_client.list_all_active_users.await_count == 1
+        assert api._low_level_client.list_all_users.await_count == 1
 
     @pytest.mark.asyncio
     async def test_resolves_case_insensitively_when_exact_match_misses(self):
         api = _api()
         # First call is the exact name filter (misses); the second lists all users
         # for the case-insensitive fallback.
-        api._low_level_client.list_all_active_users = AsyncMock(
+        api._low_level_client.list_all_users = AsyncMock(
             side_effect=[[], [_user("u1", "alice@x.com")]]
         )
 
@@ -136,7 +130,7 @@ class TestResolveIds:
     @pytest.mark.asyncio
     async def test_ambiguous_case_insensitive_match_raises(self):
         api = _api()
-        api._low_level_client.list_all_active_users = AsyncMock(
+        api._low_level_client.list_all_users = AsyncMock(
             side_effect=[[], [_user("u1", "alice@x.com"), _user("u2", "Alice@x.com")]]
         )
 
