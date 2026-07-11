@@ -128,10 +128,6 @@ users = client.users.list_(name_contains="@example.com")
 ids = client.users.resolve_ids(["alice@example.com", "bob@example.com"])
 ```
 
-#### Extra headers on file downloads
-
-`download_file` now accepts an optional `extra_headers` argument that is merged onto the request. This supports presigned URLs whose signature covers a specific `Host` header that differs from the URL's netloc, such as an S3 endpoint reached through a container-internal alias.
-
 ### Bugfixes
 - Fix `get_data` pagination returning incorrect results in some windows. ([#678](https://github.com/sift-stack/sift/pull/678))
 - Strip docstrings captured by the pytest plugin so they no longer leak into report step names and descriptions. ([#658](https://github.com/sift-stack/sift/pull/658))
