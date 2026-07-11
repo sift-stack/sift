@@ -12,14 +12,21 @@ from sift_client.resources import (
     FileAttachmentsAPIAsync,
     JobsAPIAsync,
     PingAPIAsync,
+    PrincipalAttributeAssignmentsAPIAsync,
+    PrincipalAttributeEnumValuesAPIAsync,
+    PrincipalAttributeKeysAPIAsync,
     PrincipalAttributesAPIAsync,
     ReportsAPIAsync,
     ReportTemplatesAPIAsync,
+    ResourceAttributeAssignmentsAPIAsync,
+    ResourceAttributeEnumValuesAPIAsync,
+    ResourceAttributeKeysAPIAsync,
     ResourceAttributesAPIAsync,
     RulesAPIAsync,
     RunsAPIAsync,
     TagsAPIAsync,
     TestResultsAPIAsync,
+    UsersAPIAsync,
 )
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
@@ -35,10 +42,47 @@ ReportTemplatesAPI = generate_sync_api(ReportTemplatesAPIAsync, "ReportTemplates
 ReportsAPI = generate_sync_api(
     ReportsAPIAsync, "ReportsAPI", nested_resources={"templates": ReportTemplatesAPI}
 )
-ResourceAttributesAPI = generate_sync_api(ResourceAttributesAPIAsync, "ResourceAttributesAPI")
-PrincipalAttributesAPI = generate_sync_api(PrincipalAttributesAPIAsync, "PrincipalAttributesAPI")
+# The attribute sub-resource APIs must be generated before their parents so they
+# can be nested under them.
+ResourceAttributeKeysAPI = generate_sync_api(
+    ResourceAttributeKeysAPIAsync, "ResourceAttributeKeysAPI"
+)
+ResourceAttributeEnumValuesAPI = generate_sync_api(
+    ResourceAttributeEnumValuesAPIAsync, "ResourceAttributeEnumValuesAPI"
+)
+ResourceAttributeAssignmentsAPI = generate_sync_api(
+    ResourceAttributeAssignmentsAPIAsync, "ResourceAttributeAssignmentsAPI"
+)
+ResourceAttributesAPI = generate_sync_api(
+    ResourceAttributesAPIAsync,
+    "ResourceAttributesAPI",
+    nested_resources={
+        "keys": ResourceAttributeKeysAPI,
+        "enum_values": ResourceAttributeEnumValuesAPI,
+        "assignments": ResourceAttributeAssignmentsAPI,
+    },
+)
+PrincipalAttributeKeysAPI = generate_sync_api(
+    PrincipalAttributeKeysAPIAsync, "PrincipalAttributeKeysAPI"
+)
+PrincipalAttributeEnumValuesAPI = generate_sync_api(
+    PrincipalAttributeEnumValuesAPIAsync, "PrincipalAttributeEnumValuesAPI"
+)
+PrincipalAttributeAssignmentsAPI = generate_sync_api(
+    PrincipalAttributeAssignmentsAPIAsync, "PrincipalAttributeAssignmentsAPI"
+)
+PrincipalAttributesAPI = generate_sync_api(
+    PrincipalAttributesAPIAsync,
+    "PrincipalAttributesAPI",
+    nested_resources={
+        "keys": PrincipalAttributeKeysAPI,
+        "enum_values": PrincipalAttributeEnumValuesAPI,
+        "assignments": PrincipalAttributeAssignmentsAPI,
+    },
+)
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
+UsersAPI = generate_sync_api(UsersAPIAsync, "UsersAPI")
 DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
 DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
 
@@ -51,12 +95,19 @@ __all__ = [
     "FileAttachmentsAPI",
     "JobsAPI",
     "PingAPI",
+    "PrincipalAttributeAssignmentsAPI",
+    "PrincipalAttributeEnumValuesAPI",
+    "PrincipalAttributeKeysAPI",
     "PrincipalAttributesAPI",
     "ReportTemplatesAPI",
     "ReportsAPI",
+    "ResourceAttributeAssignmentsAPI",
+    "ResourceAttributeEnumValuesAPI",
+    "ResourceAttributeKeysAPI",
     "ResourceAttributesAPI",
     "RulesAPI",
     "RunsAPI",
     "TagsAPI",
     "TestResultsAPI",
+    "UsersAPI",
 ]

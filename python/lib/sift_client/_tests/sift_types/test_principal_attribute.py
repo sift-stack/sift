@@ -1,14 +1,19 @@
 """Tests for sift_types principal attribute models."""
 
 import pytest
+from sift.common.type.v1.user_pb2 import User as UserProto
 from sift.principal_attributes.v1 import principal_attributes_pb2 as pa
 
 from sift_client.sift_types.principal_attribute import (
+    PrincipalAttributeAssignment,
+    PrincipalAttributeEnumValue,
     PrincipalAttributeKey,
-    PrincipalAttributeValue,
+    PrincipalAttributeKeyUpdate,
     PrincipalAttributeValueType,
+    PrincipalRef,
     PrincipalType,
 )
+from sift_client.sift_types.user import User
 
 
 def _key_proto() -> pa.PrincipalAttributeKey:
@@ -33,7 +38,7 @@ class TestPrincipalAttributeKey:
         assert str(PrincipalAttributeKey._from_proto(_key_proto())) == "licenses"
 
 
-class TestPrincipalAttributeValue:
+class TestPrincipalAttributeAssignment:
     def test_from_proto_maps_principal_and_flattens_oneof(self):
         proto = pa.PrincipalAttributeValue(
             principal_attribute_value_id="v1",
@@ -42,7 +47,7 @@ class TestPrincipalAttributeValue:
             principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
             principal_attribute_enum_value_id="ev1",
         )
-        value = PrincipalAttributeValue._from_proto(proto)
+        value = PrincipalAttributeAssignment._from_proto(proto)
         assert value.principal_id == "u1"
         assert value.principal_type == PrincipalType.USER
         assert value.enum_value_id == "ev1"
@@ -56,7 +61,7 @@ class TestPrincipalAttributeValue:
             principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
             boolean_value=True,
         )
-        value = PrincipalAttributeValue._from_proto(proto)
+        value = PrincipalAttributeAssignment._from_proto(proto)
         value._apply_client_to_instance(mock_client)
         archived_proto = pa.PrincipalAttributeValue(
             principal_attribute_value_id="v1",
@@ -66,13 +71,13 @@ class TestPrincipalAttributeValue:
             boolean_value=True,
             is_archived=True,
         )
-        mock_client.principal_attributes.get_assignment.return_value = (
-            PrincipalAttributeValue._from_proto(archived_proto)
+        mock_client.access_control.principal_attributes.assignments.get.return_value = (
+            PrincipalAttributeAssignment._from_proto(archived_proto)
         )
 
         result = value.archive()
 
-        mock_client.principal_attributes.archive_assignments.assert_called_once_with(
+        mock_client.access_control.principal_attributes.assignments.archive.assert_called_once_with(
             [value], principal_type=PrincipalType.USER
         )
         assert result is value
@@ -85,12 +90,16 @@ class TestPrincipalAttributeValue:
             principal_id="u1",
             principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
             principal_attribute_enum_value_id="ev1",
-            key=pa.PrincipalAttributeKey(principal_attribute_key_id="pk1", display_name="licenses"),
+            key=pa.PrincipalAttributeKey(
+                principal_attribute_key_id="pk1",
+                display_name="licenses",
+                type=pa.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM,
+            ),
             enum_value_details=pa.PrincipalAttributeEnumValue(
                 principal_attribute_enum_value_id="ev1", display_name="LIC_A"
             ),
         )
-        value = PrincipalAttributeValue._from_proto(proto)
+        value = PrincipalAttributeAssignment._from_proto(proto)
         value._apply_client_to_instance(mock_client)
 
         # Nested objects must also carry the client so their convenience methods work.
@@ -100,19 +109,106 @@ class TestPrincipalAttributeValue:
         assert value.enum_value.client is mock_client
 
 
+class TestPrincipalRef:
+    def test_user_from_id(self):
+        ref = PrincipalRef.user("u1")
+        assert ref.principal_id == "u1"
+        assert ref.principal_type == PrincipalType.USER
+
+    def test_user_from_email(self):
+        ref = PrincipalRef.user("alice@x.com")
+        assert ref.principal_id == "alice@x.com"
+        assert ref.principal_type == PrincipalType.USER
+
+    def test_user_from_user_object(self):
+        user = User._from_proto(UserProto(user_id="u1", user_name="alice@x.com"))
+        ref = PrincipalRef.user(user)
+        assert ref.principal_id == "u1"
+        assert ref.principal_type == PrincipalType.USER
+
+    def test_user_group_from_id(self):
+        ref = PrincipalRef.user_group("g1")
+        assert ref.principal_id == "g1"
+        assert ref.principal_type == PrincipalType.USER_GROUP
+
+
 class TestPrincipalAttributeKeyConvenience:
-    def test_assign_to_defaults_to_user(self, mock_client):
+    def test_assign_to_forwards_to_assignments_create(self, mock_client):
         key = PrincipalAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
-        mock_client.principal_attributes.assign.return_value = []
+        mock_client.access_control.principal_attributes.assignments.create.return_value = []
+        principals = [PrincipalRef.user("u1")]
 
-        key.assign_to(["u1"], value=["LIC_A"])
+        key.assign_to(principals, value=["LIC_A"])
 
-        mock_client.principal_attributes.assign.assert_called_once_with(
-            key, ["u1"], value=["LIC_A"], principal_type=PrincipalType.USER
+        mock_client.access_control.principal_attributes.assignments.create.assert_called_once_with(
+            key, principals, value=["LIC_A"]
         )
 
     def test_client_required(self):
         key = PrincipalAttributeKey._from_proto(_key_proto())
         with pytest.raises(AttributeError, match="Sift client not set"):
             key.check_archive_impact()
+
+
+class TestPrincipalAttributeAssignmentValueProperty:
+    def test_value_returns_enum_value_id_when_details_missing(self):
+        proto = pa.PrincipalAttributeValue(
+            principal_attribute_value_id="v1",
+            principal_attribute_key_id="pk1",
+            principal_id="u1",
+            principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+            principal_attribute_enum_value_id="ev1",
+        )
+        assert PrincipalAttributeAssignment._from_proto(proto).value == "ev1"
+
+    def test_value_preserves_false_boolean(self):
+        proto = pa.PrincipalAttributeValue(
+            principal_attribute_value_id="v1",
+            principal_attribute_key_id="pk1",
+            principal_id="u1",
+            principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+            boolean_value=False,
+        )
+        assert PrincipalAttributeAssignment._from_proto(proto).value is False
+
+
+class TestPrincipalAttributeKeyUpdate:
+    def test_mask_includes_only_set_fields(self):
+        update = PrincipalAttributeKeyUpdate(description="new desc")
+        update.resource_id = "pk1"
+
+        request, mask = update.to_proto_with_mask()
+
+        assert list(mask.paths) == ["description"]
+        assert request.description == "new desc"
+        assert request.principal_attribute_key_id == "pk1"
+
+
+class TestPrincipalAttributeAssignmentValuePropertyEnumDetails:
+    def test_value_returns_enum_value_object_when_details_present(self):
+        proto = pa.PrincipalAttributeValue(
+            principal_attribute_value_id="v1",
+            principal_attribute_key_id="pk1",
+            principal_id="u1",
+            principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+            principal_attribute_enum_value_id="ev1",
+            enum_value_details=pa.PrincipalAttributeEnumValue(
+                principal_attribute_enum_value_id="ev1",
+                principal_attribute_key_id="pk1",
+                display_name="LICENSE_A",
+            ),
+        )
+        value = PrincipalAttributeAssignment._from_proto(proto).value
+        assert isinstance(value, PrincipalAttributeEnumValue)
+        assert value.display_name == "LICENSE_A"
+
+    def test_value_returns_number(self):
+        proto = pa.PrincipalAttributeValue(
+            principal_attribute_value_id="v1",
+            principal_attribute_key_id="pk1",
+            principal_id="u1",
+            principal_type=pa.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER,
+            number_value=5,
+        )
+        assert PrincipalAttributeAssignment._from_proto(proto).value == 5

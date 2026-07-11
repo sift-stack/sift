@@ -86,29 +86,45 @@ client.data_import.import_from_path("flight.ulg", asset=asset, config=config)
 
 #### Resource and principal attributes (ABAC)
 
-Added a public API for attribute based access control (ABAC) attributes. `client.resource_attributes` manages attribute keys assigned to entities (assets, channels, runs), and `client.principal_attributes` manages attribute keys assigned to principals (users and user groups). Both are available synchronously and asynchronously via `client.async_`.
+Added a public API for attribute-based access control (ABAC) attributes under `client.access_control`. Resource attributes describe the Sift objects an access decision applies to, such as assets, channels, and runs. Principal attributes describe the users or groups an access decision applies to. Async APIs are available under `client.async_.access_control`.
 
-An attribute key is the entry point. Create or fetch a key, define its enum values, then assign a value to a set of entities:
+An attribute key is the entry point. Create or fetch a key, define its enum values, then assign a value to a set of resources. Resource assignments accept supported resource objects, or a typed `ResourceAttributeEntity` when you only have an ID:
 
 ```python
-from sift_client.sift_types import ResourceAttributeKeyType
+from sift_client.sift_types import ResourceAttributeEntity, ResourceAttributeValueType
 
-key = client.resource_attributes.get_or_create_key("licenses", ResourceAttributeKeyType.SET_OF_ENUM)
+key = client.access_control.resource_attributes.keys.get_or_create(
+    "licenses",
+    ResourceAttributeValueType.SET_OF_ENUM,
+)
 licenses = key.get_or_create_enum_values(["LICENSE_A", "LICENSE_B"])
-key.assign_to(channels, value=licenses)
+key.assign_to([ResourceAttributeEntity.for_channel("channel-id")], value=licenses)
 ```
 
-Principal attributes accept user IDs or email addresses, resolving emails to user IDs automatically:
+Principal attributes accept `User` objects, typed `PrincipalRef` references, or user email addresses (resolved to user IDs automatically). Use `PrincipalRef.user_group(...)` for user groups:
 
 ```python
 from sift_client.sift_types import PrincipalAttributeValueType
 
-key = client.principal_attributes.get_or_create_key("licenses", PrincipalAttributeValueType.SET_OF_ENUM)
+key = client.access_control.principal_attributes.keys.get_or_create(
+    "licenses",
+    PrincipalAttributeValueType.SET_OF_ENUM,
+)
 licenses = key.get_or_create_enum_values(["LICENSE_A"])
 key.assign_to(["user@example.com"], value=licenses)
 ```
 
-Keys, enum values, and assignments each support create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target.
+Keys, enum values, and assignments are managed through the nested `keys`, `enum_values`, and `assignments` APIs on each side (for example `client.access_control.resource_attributes.assignments.list_()`), each supporting the relevant create, get, list, update, and archive operations. For `SET_OF_ENUM` keys, an assignment replaces the full value set on each target, and each enum value in the set is returned as its own assignment.
+
+#### Users
+
+Added a users API at `client.users` (async: `client.async_.users`). A user's `name` is their login name, typically their email address:
+
+```python
+user = client.users.find(name="alice@example.com")
+users = client.users.list_(name_contains="@example.com")
+ids = client.users.resolve_ids(["alice@example.com", "bob@example.com"])
+```
 
 ## [v0.18.0] - June 19, 2026
 

@@ -1,11 +1,11 @@
-"""Domain types for resource attributes (ABAC).
+"""Domain types for resource attributes.
 
-Resource attributes assign attribute keys to Sift entities (assets, channels, runs)
-for attribute based access control. The model has three tiers:
+Resource attributes describe the Sift objects an access decision applies to. A resource
+is the "what" in an access decision. The model has three tiers:
 
 - ``ResourceAttributeKey`` defines an attribute (e.g. ``licenses``) and its value type.
 - ``ResourceAttributeEnumValue`` is an allowed value for an ``ENUM``/``SET_OF_ENUM`` key.
-- ``ResourceAttribute`` is a single assignment of a value to one entity.
+- ``ResourceAttributeAssignment`` is a single assignment of a value to one resource.
 
 The ``ResourceAttributeKey`` acts as the entry point: enum values and assignments are
 managed through methods on a key instance.
@@ -15,21 +15,23 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from pydantic import BaseModel
 from sift.resource_attribute.v1 import resource_attribute_pb2 as ra_pb
 
-from sift_client.sift_types._base import BaseType
+from sift_client.sift_types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.run import Run
 
 
-class ResourceAttributeKeyType(Enum):
+class ResourceAttributeValueType(Enum):
     """Value type of a resource attribute key."""
 
-    UNSPECIFIED = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_UNSPECIFIED
     ENUM = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM
     BOOLEAN = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN
     NUMBER = ra_pb.RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER
@@ -37,33 +39,32 @@ class ResourceAttributeKeyType(Enum):
 
 
 class ResourceAttributeEntityType(Enum):
-    """Kind of Sift entity a resource attribute can be assigned to."""
+    """Kind of Sift resource a resource attribute can be assigned to."""
 
-    UNSPECIFIED = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_UNSPECIFIED
     ASSET = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET
     CHANNEL = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL
     RUN = ra_pb.RESOURCE_ATTRIBUTE_ENTITY_TYPE_RUN
 
 
 class ResourceAttributeEntity(BaseModel):
-    """Identifies the entity a resource attribute is assigned to."""
+    """Identifies the supported resource a resource attribute is assigned to."""
 
     entity_id: str
     entity_type: ResourceAttributeEntityType
 
     @classmethod
     def for_asset(cls, entity_id: str) -> ResourceAttributeEntity:
-        """Build an entity identifier for an asset ID."""
+        """Build an identifier for an asset ID."""
         return cls(entity_id=entity_id, entity_type=ResourceAttributeEntityType.ASSET)
 
     @classmethod
     def for_channel(cls, entity_id: str) -> ResourceAttributeEntity:
-        """Build an entity identifier for a channel ID."""
+        """Build an identifier for a channel ID."""
         return cls(entity_id=entity_id, entity_type=ResourceAttributeEntityType.CHANNEL)
 
     @classmethod
     def for_run(cls, entity_id: str) -> ResourceAttributeEntity:
-        """Build an entity identifier for a run ID."""
+        """Build an identifier for a run ID."""
         return cls(entity_id=entity_id, entity_type=ResourceAttributeEntityType.RUN)
 
     @classmethod
@@ -132,11 +133,13 @@ class ResourceAttributeEnumValue(
             Returns the migration count; it does not refresh this instance's
             ``is_archived``/``archived_date``. Re-fetch the enum value to observe those.
         """
-        return self.client.resource_attributes.archive_enum_value(self, replacement=replacement)
+        return self.client.access_control.resource_attributes.enum_values.archive(
+            self, replacement=replacement
+        )
 
     def unarchive(self) -> ResourceAttributeEnumValue:
         """Unarchive this enum value."""
-        updated = self.client.resource_attributes.unarchive_enum_value(self)
+        updated = self.client.access_control.resource_attributes.enum_values.unarchive(self)
         self._update(updated)
         return self
 
@@ -144,17 +147,32 @@ class ResourceAttributeEnumValue(
         return self.display_name
 
 
-class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
-    """A single assignment of a resource attribute value to an entity."""
+# Accepted value shapes for assign: a list of enum values (or their IDs) for
+# SET_OF_ENUM keys, a single enum value (or its ID) for ENUM keys, a bool for
+# BOOLEAN keys, or an int for NUMBER keys.
+ResourceAttributeValueLike = Union[
+    bool, int, str, ResourceAttributeEnumValue, "list[ResourceAttributeEnumValue | str]"
+]
+
+
+class ResourceAttributeAssignment(BaseType[ra_pb.ResourceAttribute, "ResourceAttributeAssignment"]):
+    """A single assignment of a resource attribute value to a supported resource.
+
+    For ``SET_OF_ENUM`` keys, each assignment holds one enum value: a set of N values
+    on one resource is stored and returned as N assignments.
+    """
 
     organization_id: str
     key_id: str
     entity: ResourceAttributeEntity | None
+    """The resource this value is assigned to. Always set in responses."""
     enum_value_id: str | None
     boolean_value: bool | None
     number_value: int | None
     key: ResourceAttributeKey | None
+    """Full key details. Only set when the server includes them; use ``key_id`` otherwise."""
     enum_value: ResourceAttributeEnumValue | None
+    """Full enum value details. Only set for enum values; ``value`` falls back to ``enum_value_id``."""
     created_date: datetime | None
     created_by_user_id: str
     archived_date: datetime | None
@@ -163,7 +181,7 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
     @classmethod
     def _from_proto(
         cls, proto: ra_pb.ResourceAttribute, sift_client: SiftClient | None = None
-    ) -> ResourceAttribute:
+    ) -> ResourceAttributeAssignment:
         which = proto.WhichOneof("value")
         return cls(
             proto=proto,
@@ -215,19 +233,36 @@ class ResourceAttribute(BaseType[ra_pb.ResourceAttribute, "ResourceAttribute"]):
         if self.enum_value is not None:
             self.enum_value._apply_client_to_instance(client)
 
-    def archive(self) -> ResourceAttribute:
+    @property
+    def value(self) -> ResourceAttributeEnumValue | str | bool | int | None:
+        """The assigned value.
+
+        The enum value for ``ENUM``/``SET_OF_ENUM`` keys (or its ID when details were
+        not returned), a bool for ``BOOLEAN`` keys, or an int for ``NUMBER`` keys.
+        """
+        if self.enum_value_id is not None:
+            return self.enum_value if self.enum_value is not None else self.enum_value_id
+        if self.boolean_value is not None:
+            return self.boolean_value
+        return self.number_value
+
+    def archive(self) -> ResourceAttributeAssignment:
         """Archive this assignment."""
-        self.client.resource_attributes.archive_assignments([self])
+        self.client.access_control.resource_attributes.assignments.archive([self])
         self._update(
-            self.client.resource_attributes.get_assignment(assignment_id=self._id_or_error)
+            self.client.access_control.resource_attributes.assignments.get(
+                assignment_id=self._id_or_error
+            )
         )
         return self
 
-    def unarchive(self) -> ResourceAttribute:
+    def unarchive(self) -> ResourceAttributeAssignment:
         """Unarchive this assignment."""
-        self.client.resource_attributes.unarchive_assignments([self])
+        self.client.access_control.resource_attributes.assignments.unarchive([self])
         self._update(
-            self.client.resource_attributes.get_assignment(assignment_id=self._id_or_error)
+            self.client.access_control.resource_attributes.assignments.get(
+                assignment_id=self._id_or_error
+            )
         )
         return self
 
@@ -238,7 +273,7 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
     organization_id: str
     display_name: str
     description: str
-    key_type: ResourceAttributeKeyType
+    value_type: ResourceAttributeValueType
     created_date: datetime
     created_by_user_id: str
     modified_date: datetime
@@ -256,7 +291,7 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
             organization_id=proto.organization_id,
             display_name=proto.display_name,
             description=proto.description,
-            key_type=ResourceAttributeKeyType(proto.type),
+            value_type=ResourceAttributeValueType(proto.type),
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
@@ -274,69 +309,94 @@ class ResourceAttributeKey(BaseType[ra_pb.ResourceAttributeKey, "ResourceAttribu
         self, display_name: str, *, description: str = ""
     ) -> ResourceAttributeEnumValue:
         """Create a single enum value for this key."""
-        return self.client.resource_attributes.create_enum_value(
+        return self.client.access_control.resource_attributes.enum_values.create(
             self, display_name, description=description
         )
 
     def get_or_create_enum_values(self, names: list[str]) -> list[ResourceAttributeEnumValue]:
         """Get existing enum values by name, creating any that don't exist."""
-        return self.client.resource_attributes.get_or_create_enum_values(self, names)
+        return self.client.access_control.resource_attributes.enum_values.get_or_create(self, names)
 
     def list_enum_values(
         self, *, include_archived: bool = False
     ) -> list[ResourceAttributeEnumValue]:
         """List the enum values defined for this key."""
-        return self.client.resource_attributes.list_enum_values(
+        return self.client.access_control.resource_attributes.enum_values.list_(
             self, include_archived=include_archived
         )
 
-    def assign_to(self, entities, *, value) -> list[ResourceAttribute]:
-        """Assign a value to one or more entities for this key.
+    def assign_to(
+        self,
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run],
+        *,
+        value: ResourceAttributeValueLike,
+    ) -> list[ResourceAttributeAssignment]:
+        """Assign a value to one or more resources for this key.
 
         Args:
-            entities: Entities to assign to. Each may be a ``ResourceAttributeEntity``
-                or an ``Asset``/``Channel``/``Run`` instance.
+            resources: Resources to assign to. Pass ``Asset``, ``Channel``, or ``Run``
+                objects, or ``ResourceAttributeEntity`` (via ``for_asset`` /
+                ``for_channel`` / ``for_run``) when you only have a resource ID.
             value: The value to assign. For ``SET_OF_ENUM`` keys, a list of enum values
                 (or their IDs); for ``ENUM`` keys, a single enum value; for ``BOOLEAN``
                 keys, a bool; for ``NUMBER`` keys, an int. For ``SET_OF_ENUM`` this
-                replaces the full set on each entity.
+                replaces the full set on each resource.
 
         Returns:
-            The created assignments.
+            The created assignments, one per enum value for ``SET_OF_ENUM`` keys.
         """
-        return self.client.resource_attributes.assign(self, entities, value=value)
+        return self.client.access_control.resource_attributes.assignments.create(
+            self, resources, value=value
+        )
 
-    def list_assignments(self, *, include_archived: bool = False) -> list[ResourceAttribute]:
+    def list_assignments(
+        self, *, include_archived: bool = False
+    ) -> list[ResourceAttributeAssignment]:
         """List all assignments of this key."""
-        return self.client.resource_attributes.list_assignments(
+        return self.client.access_control.resource_attributes.assignments.list_(
             key=self, include_archived=include_archived
         )
 
-    def update(
-        self, *, display_name: str | None = None, description: str | None = None
-    ) -> ResourceAttributeKey:
-        """Update this key's display name or description."""
-        updated = self.client.resource_attributes.update_key(
-            self, display_name=display_name, description=description
-        )
+    def update(self, update: ResourceAttributeKeyUpdate | dict) -> ResourceAttributeKey:
+        """Update this key.
+
+        Args:
+            update: Either a ResourceAttributeKeyUpdate instance or a dict of fields to update.
+        """
+        updated = self.client.access_control.resource_attributes.keys.update(self, update=update)
         self._update(updated)
         return self
 
     def archive(self) -> ResourceAttributeKey:
         """Archive this key. Cascades to its enum values and assignments."""
-        updated = self.client.resource_attributes.archive_key(self)
+        updated = self.client.access_control.resource_attributes.keys.archive(self)
         self._update(updated)
         return self
 
     def unarchive(self) -> ResourceAttributeKey:
         """Unarchive this key."""
-        updated = self.client.resource_attributes.unarchive_key(self)
+        updated = self.client.access_control.resource_attributes.keys.unarchive(self)
         self._update(updated)
         return self
 
     def check_archive_impact(self) -> int:
         """Return the number of active assignments that archiving this key would affect."""
-        return self.client.resource_attributes.check_key_archive_impact(self)
+        return self.client.access_control.resource_attributes.keys.check_archive_impact(self)
 
     def __str__(self) -> str:
         return self.display_name
+
+
+class ResourceAttributeKeyUpdate(ModelUpdate[ra_pb.UpdateResourceAttributeKeyRequest]):
+    """Model of the ResourceAttributeKey fields that can be updated."""
+
+    display_name: str | None = None
+    description: str | None = None
+
+    def _get_proto_class(self) -> type[ra_pb.UpdateResourceAttributeKeyRequest]:
+        return ra_pb.UpdateResourceAttributeKeyRequest
+
+    def _add_resource_id_to_proto(self, proto_msg: ra_pb.UpdateResourceAttributeKeyRequest):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.resource_attribute_key_id = self._resource_id

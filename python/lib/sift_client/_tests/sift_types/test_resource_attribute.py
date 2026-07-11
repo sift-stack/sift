@@ -6,12 +6,13 @@ import pytest
 from sift.resource_attribute.v1 import resource_attribute_pb2 as ra
 
 from sift_client.sift_types.resource_attribute import (
-    ResourceAttribute,
+    ResourceAttributeAssignment,
     ResourceAttributeEntity,
     ResourceAttributeEntityType,
     ResourceAttributeEnumValue,
     ResourceAttributeKey,
-    ResourceAttributeKeyType,
+    ResourceAttributeKeyUpdate,
+    ResourceAttributeValueType,
 )
 
 
@@ -47,7 +48,7 @@ class TestResourceAttributeKey:
         key = ResourceAttributeKey._from_proto(_key_proto())
         assert key.id_ == "k1"
         assert key.display_name == "licenses"
-        assert key.key_type == ResourceAttributeKeyType.SET_OF_ENUM
+        assert key.value_type == ResourceAttributeValueType.SET_OF_ENUM
         assert key.is_archived is False
         assert key.archived_date is None
 
@@ -62,7 +63,7 @@ class TestResourceAttributeKey:
         assert str(ResourceAttributeKey._from_proto(_key_proto())) == "licenses"
 
 
-class TestResourceAttribute:
+class TestResourceAttributeAssignment:
     def test_from_proto_flattens_enum_value_oneof(self):
         proto = ra.ResourceAttribute(
             resource_attribute_id="a1",
@@ -72,7 +73,7 @@ class TestResourceAttribute:
                 entity_id="ch1", entity_type=ra.RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL
             ),
         )
-        attr = ResourceAttribute._from_proto(proto)
+        attr = ResourceAttributeAssignment._from_proto(proto)
         assert attr.enum_value_id == "ev1"
         assert attr.boolean_value is None
         assert attr.number_value is None
@@ -83,13 +84,13 @@ class TestResourceAttribute:
         proto = ra.ResourceAttribute(
             resource_attribute_id="a1", resource_attribute_key_id="k1", boolean_value=True
         )
-        attr = ResourceAttribute._from_proto(proto)
+        attr = ResourceAttributeAssignment._from_proto(proto)
         assert attr.boolean_value is True
         assert attr.enum_value_id is None
 
     def test_from_proto_without_entity_is_none(self):
         proto = ra.ResourceAttribute(resource_attribute_id="a1", resource_attribute_key_id="k1")
-        attr = ResourceAttribute._from_proto(proto)
+        attr = ResourceAttributeAssignment._from_proto(proto)
         assert attr.entity is None
 
     def test_apply_client_cascades_to_nested_key_and_enum_value(self, mock_client):
@@ -97,12 +98,16 @@ class TestResourceAttribute:
             resource_attribute_id="a1",
             resource_attribute_key_id="k1",
             resource_attribute_enum_value_id="ev1",
-            key=ra.ResourceAttributeKey(resource_attribute_key_id="k1", display_name="licenses"),
+            key=ra.ResourceAttributeKey(
+                resource_attribute_key_id="k1",
+                display_name="licenses",
+                type=ra.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM,
+            ),
             enum_value_details=ra.ResourceAttributeEnumValue(
                 resource_attribute_enum_value_id="ev1", display_name="LIC_A"
             ),
         )
-        attr = ResourceAttribute._from_proto(proto)
+        attr = ResourceAttributeAssignment._from_proto(proto)
         attr._apply_client_to_instance(mock_client)
 
         # Nested objects must also carry the client so their convenience methods work.
@@ -113,18 +118,20 @@ class TestResourceAttribute:
 
     def test_archive_refreshes_and_returns_self(self, mock_client):
         proto = ra.ResourceAttribute(resource_attribute_id="a1", resource_attribute_key_id="k1")
-        attr = ResourceAttribute._from_proto(proto)
+        attr = ResourceAttributeAssignment._from_proto(proto)
         attr._apply_client_to_instance(mock_client)
         archived = ra.ResourceAttribute(
             resource_attribute_id="a1", resource_attribute_key_id="k1", is_archived=True
         )
-        mock_client.resource_attributes.get_assignment.return_value = ResourceAttribute._from_proto(
-            archived
+        mock_client.access_control.resource_attributes.assignments.get.return_value = (
+            ResourceAttributeAssignment._from_proto(archived)
         )
 
         result = attr.archive()
 
-        mock_client.resource_attributes.archive_assignments.assert_called_once_with([attr])
+        mock_client.access_control.resource_attributes.assignments.archive.assert_called_once_with(
+            [attr]
+        )
         assert result is attr
         assert attr.is_archived is True
 
@@ -134,22 +141,24 @@ class TestResourceAttributeKeyConvenience:
         key = ResourceAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
         archived = ResourceAttributeKey._from_proto(_key_proto(is_archived=True))
-        mock_client.resource_attributes.archive_key.return_value = archived
+        mock_client.access_control.resource_attributes.keys.archive.return_value = archived
 
         result = key.archive()
 
-        mock_client.resource_attributes.archive_key.assert_called_once_with(key)
+        mock_client.access_control.resource_attributes.keys.archive.assert_called_once_with(key)
         assert result is key
         assert key.is_archived is True
 
     def test_assign_to_delegates(self, mock_client):
         key = ResourceAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
-        mock_client.resource_attributes.assign.return_value = ["sentinel"]
+        mock_client.access_control.resource_attributes.assignments.create.return_value = [
+            "sentinel"
+        ]
 
         result = key.assign_to(["ch1"], value=["LIC_A"])
 
-        mock_client.resource_attributes.assign.assert_called_once_with(
+        mock_client.access_control.resource_attributes.assignments.create.assert_called_once_with(
             key, ["ch1"], value=["LIC_A"]
         )
         assert result == ["sentinel"]
@@ -157,7 +166,7 @@ class TestResourceAttributeKeyConvenience:
     def test_check_archive_impact_delegates(self, mock_client):
         key = ResourceAttributeKey._from_proto(_key_proto())
         key._apply_client_to_instance(mock_client)
-        mock_client.resource_attributes.check_key_archive_impact.return_value = 7
+        mock_client.access_control.resource_attributes.keys.check_archive_impact.return_value = 7
 
         assert key.check_archive_impact() == 7
 
@@ -176,11 +185,64 @@ class TestResourceAttributeEnumValue:
         )
         value = ResourceAttributeEnumValue._from_proto(proto)
         value._apply_client_to_instance(mock_client)
-        mock_client.resource_attributes.archive_enum_value.return_value = 3
+        mock_client.access_control.resource_attributes.enum_values.archive.return_value = 3
 
         migrated = value.archive(replacement="ev2")
 
-        mock_client.resource_attributes.archive_enum_value.assert_called_once_with(
+        mock_client.access_control.resource_attributes.enum_values.archive.assert_called_once_with(
             value, replacement="ev2"
         )
         assert migrated == 3
+
+
+class TestResourceAttributeAssignmentValueProperty:
+    def test_value_returns_enum_value_id_when_details_missing(self):
+        proto = ra.ResourceAttribute(
+            resource_attribute_id="a1",
+            resource_attribute_key_id="k1",
+            resource_attribute_enum_value_id="ev1",
+        )
+        assert ResourceAttributeAssignment._from_proto(proto).value == "ev1"
+
+    def test_value_returns_enum_value_object_when_details_present(self):
+        proto = ra.ResourceAttribute(
+            resource_attribute_id="a1",
+            resource_attribute_key_id="k1",
+            resource_attribute_enum_value_id="ev1",
+            enum_value_details=ra.ResourceAttributeEnumValue(
+                resource_attribute_enum_value_id="ev1",
+                resource_attribute_key_id="k1",
+                display_name="LICENSE_A",
+            ),
+        )
+        value = ResourceAttributeAssignment._from_proto(proto).value
+        assert isinstance(value, ResourceAttributeEnumValue)
+        assert value.display_name == "LICENSE_A"
+
+    def test_value_preserves_false_boolean(self):
+        proto = ra.ResourceAttribute(
+            resource_attribute_id="a1", resource_attribute_key_id="k1", boolean_value=False
+        )
+        assert ResourceAttributeAssignment._from_proto(proto).value is False
+
+    def test_value_returns_number(self):
+        proto = ra.ResourceAttribute(
+            resource_attribute_id="a1", resource_attribute_key_id="k1", number_value=5
+        )
+        assert ResourceAttributeAssignment._from_proto(proto).value == 5
+
+
+class TestResourceAttributeKeyUpdate:
+    def test_mask_includes_only_set_fields(self):
+        update = ResourceAttributeKeyUpdate(display_name="new name")
+        update.resource_id = "k1"
+
+        request, mask = update.to_proto_with_mask()
+
+        assert list(mask.paths) == ["display_name"]
+        assert request.display_name == "new name"
+        assert request.resource_attribute_key_id == "k1"
+
+    def test_resource_id_required(self):
+        with pytest.raises(ValueError, match="Resource ID"):
+            ResourceAttributeKeyUpdate(display_name="x").to_proto_with_mask()
