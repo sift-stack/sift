@@ -127,21 +127,6 @@ docs-build:
 
 # --- Pre-push hook checks (verify committed output is up to date) ---
 
-# Verify ruff format + lint leave no changes
-fmt-lint-check:
-    #!/usr/bin/env bash
-    set -uo pipefail
-    uv sync --extra dev-all --quiet
-    uv run ruff format
-    uv run ruff check --fix
-    changed=$(git status --porcelain lib/sift_client/ | grep -E '\.py$' || true)
-    if [[ -n "$changed" ]]; then
-      echo "ERROR: formatting/linting made changes:"
-      echo "$changed" | sed 's/^/  /'
-      echo "Commit these changes before pushing."
-      exit 1
-    fi
-
 # Verify the generated sync stubs are up to date
 stubs-check:
     #!/usr/bin/env bash

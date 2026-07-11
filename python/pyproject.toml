@@ -81,6 +81,7 @@ data-review = [
 dev = [
     'grpcio-testing~=1.13',
     'mypy==1.10.0',
+    "pre-commit~=4.0 ; python_version >= '3.9'",
     'pyright==1.1.386',
     'pytest-asyncio==0.23.7',
     'pytest-benchmark==4.0.0',
@@ -100,6 +101,7 @@ dev-all = [
     'npTDMS~=1.9',
     'pdoc==14.5.0',
     'polars~=1.8',
+    "pre-commit~=4.0 ; python_version >= '3.9'",
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
     'pyright==1.1.386',
@@ -118,6 +120,7 @@ dev-all = [
 development = [
     'grpcio-testing~=1.13',
     'mypy==1.10.0',
+    "pre-commit~=4.0 ; python_version >= '3.9'",
     'pyright==1.1.386',
     'pytest-asyncio==0.23.7',
     'pytest-benchmark==4.0.0',
@@ -155,6 +158,7 @@ docs-build = [
     'npTDMS~=1.9',
     'pdoc==14.5.0',
     'polars~=1.8',
+    "pre-commit~=4.0 ; python_version >= '3.9'",
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
     'pyright==1.1.386',
@@ -215,7 +219,11 @@ development = [
     # which needs 3.10+) so randomization is active on the 3.8 CI test job too.
     "pytest-randomly==3.15.0",
     "ruff~=0.12.10",
-    "tomlkit~=0.13.3"
+    "tomlkit~=0.13.3",
+    # Drives the git hooks (.pre-commit-config.yaml). pre-commit 4.x needs
+    # Python 3.9+, so it is skipped on the 3.8 floor; hooks are used on 3.9+
+    # dev machines and CI invokes the underlying just recipes directly.
+    "pre-commit~=4.0 ; python_version >= '3.9'"
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 docs = [

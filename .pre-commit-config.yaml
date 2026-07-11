@@ -1,0 +1,94 @@
+# Local git hooks, managed by pre-commit. Install with `just install-hooks`
+# (sets up both the commit and push stages).
+#
+# Two layers, fast -> thorough:
+#   - commit stage: file hygiene, ruff lint+format, and buf lint/format for protos.
+#   - push stage:   the full `just python::check` gate plus the generated-artifact,
+#                   lockfile, and rust-binding-stub checks.
+#
+# Python tooling runs through `just` recipes (which invoke `uv run` inside
+# python/) so hooks use the exact tool versions pinned in the project env --
+# no second, drifting ruff/mypy. That also handles the monorepo layout: uv and
+# the tools must run from python/, not the repo root.
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+        # --unsafe checks YAML syntax without resolving custom tags; mkdocs.yml uses `!ENV`.
+        args: [--unsafe]
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      # --- commit stage (fast): ruff + protos ---
+      - id: ruff-check
+        name: ruff check --fix
+        entry: just python::lint-fix
+        language: system
+        files: ^python/.*\.pyi?$
+        pass_filenames: false
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: just python::fmt
+        language: system
+        files: ^python/.*\.pyi?$
+        pass_filenames: false
+        require_serial: true
+      - id: buf-lint
+        name: buf lint protos
+        entry: buf lint protos
+        language: system
+        files: ^protos/.*\.proto$
+        pass_filenames: false
+      - id: buf-format
+        name: buf format protos
+        entry: buf format protos -w --exit-code
+        language: system
+        files: ^protos/.*\.proto$
+        pass_filenames: false
+
+      # --- push stage (thorough) ---
+      - id: python-check
+        name: just python::check (lint + types)
+        entry: just python::check
+        language: system
+        files: ^python/
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: python-stubs-check
+        name: sync stubs up to date
+        entry: just python::stubs-check
+        language: system
+        files: ^python/
+        pass_filenames: false
+        stages: [pre-push]
+      - id: python-extras-check
+        name: extras up to date
+        entry: just python::extras-check
+        language: system
+        files: ^python/
+        pass_filenames: false
+        stages: [pre-push]
+      - id: python-lock-check
+        name: uv.lock up to date
+        entry: just python::lock-check
+        language: system
+        files: ^python/
+        pass_filenames: false
+        stages: [pre-push]
+      - id: bindings-stubs-check
+        name: rust binding stubs up to date
+        entry: just bindings-stubs-check
+        language: system
+        files: ^rust/crates/sift_stream_bindings/src/
+        pass_filenames: false
+        stages: [pre-push]

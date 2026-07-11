@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-# Thin shim: the logic lives in the `pre-push` recipe of the root justfile.
-# Clear the git env vars set for hooks so nested git commands (in the check
-# recipes) resolve the work tree normally.
-unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
-exec just pre-push

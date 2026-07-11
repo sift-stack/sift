@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# Thin shim: the logic lives in the `pre-commit` recipe of the root justfile.
-exec just pre-commit
