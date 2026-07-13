@@ -206,8 +206,6 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import csv <PATH> --asset <ASSET> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import csv data.csv --asset engine"
     )]
     Csv(ImportCsvArgs),
@@ -220,8 +218,6 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import tdms <PATH> --asset <ASSET> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import tdms data.tdms --asset engine"
     )]
     Tdms(ImportTdmsArgs),
@@ -239,8 +235,6 @@ pub enum ImportCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import ulog <PATH> --asset <ASSET> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import ulog data.ulg --asset engine"
     )]
     Ulog(ImportUlogArgs),
@@ -306,49 +300,49 @@ pub struct ImportCsvArgs {
     pub run: Option<String>,
 
     /// Row number containing column headers (1-based)
-    #[arg(long, default_value_t = 1, hide_short_help = true)]
+    #[arg(long, default_value_t = 1, help_heading = "Layout")]
     pub header_row: usize,
 
     /// Row number where data starts (1-based)
-    #[arg(long, default_value_t = 2, hide_short_help = true)]
+    #[arg(long, default_value_t = 2, help_heading = "Layout")]
     pub first_data_row: usize,
 
+    /// 1-based index of the time column
+    #[arg(short, long, default_value_t = 1, help_heading = "Layout")]
+    pub time_column: usize,
+
     /// 1-based column indices to override; can appear multiple times
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub channel_column: Vec<usize>,
 
     /// Data type for each channel in `--channel-column`. Use `"infer"` to auto-detect as double
     /// or string based on the first non-empty value (useful when you only want to set `--unit`
     /// or `--description`)
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub data_type: Vec<DataType>,
 
     /// Unit for each channel in `--channel-column` (can be empty)
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub unit: Vec<String>,
 
     /// Description for each channel in `--channel-column` (can be empty)
-    #[arg(short = 'n', long, hide_short_help = true)]
+    #[arg(short = 'n', long, help_heading = "Channels")]
     pub description: Vec<String>,
 
     /// Enum configuration pairs `<key,name>` (e.g. `"0,start|1,stop"`) for enum-type channels
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub enum_config: Vec<String>,
 
     /// Bit-field configuration triplets `<name,index,length>` (e.g. `"12v,0,4|led,4,4"`)
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub bit_field_config: Vec<String>,
 
-    /// 1-based index of the time column
-    #[arg(short, long, default_value_t = 1, hide_short_help = true)]
-    pub time_column: usize,
-
     /// Time format used in the file
-    #[arg(short = 'f', long, default_value_t = TimeFormat::default(), hide_possible_values = true, hide_short_help = true)]
+    #[arg(short = 'f', long, default_value_t = TimeFormat::default(), hide_possible_values = true, help_heading = "Time")]
     pub time_format: TimeFormat,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's', long, hide_short_help = true)]
+    #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
 
     /// Wait until the import finishes processing
@@ -427,8 +421,6 @@ pub enum ImportParquetCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import parquet flat-dataset <PATH> --asset <ASSET> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import parquet flat-dataset data.parquet --asset engine"
     )]
     FlatDataset(FlatDatasetArgs),
@@ -446,44 +438,44 @@ pub struct FlatDatasetArgs {
     pub common: CommonImportArgs,
 
     /// Paths of data columns to import; can be specified multiple times
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub channel_path: Vec<String>,
 
     /// Data type for each channel in `--channel-path`. Use `"infer"` to derive the type from the
     /// Parquet/Arrow schema (useful when you only want to set `--unit` or `--description`)
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub data_type: Vec<DataType>,
 
     /// Unit for each channel in `--channel-path` (can be empty)
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub unit: Vec<String>,
 
     /// Description for each channel in `--channel-path` (can be empty)
-    #[arg(short = 'n', long, hide_short_help = true)]
+    #[arg(short = 'n', long, help_heading = "Channels")]
     pub description: Vec<String>,
 
     /// Enum configuration pairs `<key,name>` (e.g. `"0,start|1,stop"`) for enum-type channels
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub enum_config: Vec<String>,
 
     /// Bit-field configuration triplets `<name,index,length>` (e.g. `"12v,0,4|led,4,4"`) for bit-field channels
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Channels")]
     pub bit_field_config: Vec<String>,
 
     /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Time")]
     pub time_path: Option<String>,
 
     /// Time format used in the file. Inferred from the time column's Arrow type if omitted
-    #[arg(short = 'f', long, hide_possible_values = true, hide_short_help = true)]
+    #[arg(short = 'f', long, hide_possible_values = true, help_heading = "Time")]
     pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's', long, hide_short_help = true)]
+    #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
 
     /// Strategy for handling complex types (maps, lists, structs)
-    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default(), hide_short_help = true)]
+    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default(), help_heading = "Advanced")]
     pub complex_types_mode: ComplexTypesMode,
 }
 
@@ -493,8 +485,6 @@ pub enum ImportParquetCprCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import parquet cpr single <PATH> --asset <ASSET> --data-path <DATA_PATH> --channel-name <CHANNEL_NAME> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import parquet cpr single data.parquet --asset engine \\\n    --data-path value --channel-name temp"
     )]
     Single(ChannelPerRowSingleArgs),
@@ -503,8 +493,6 @@ pub enum ImportParquetCprCmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import parquet cpr multi <PATH> --asset <ASSET> --data-path <DATA_PATH> --name-path <NAME_PATH> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import parquet cpr multi data.parquet --asset engine \\\n    --data-path value --name-path channel"
     )]
     Multi(ChannelPerRowMultiArgs),
@@ -516,15 +504,15 @@ pub struct ChannelPerRowCommonArgs {
     pub common: CommonImportArgs,
 
     /// Path to the time column. Auto-detected from common names (time, timestamp, timestamps, ts) if omitted
-    #[arg(short, long, hide_short_help = true)]
+    #[arg(short, long, help_heading = "Time")]
     pub time_path: Option<String>,
 
     /// Time format used in the time column. Inferred from the time column's Arrow type if omitted
-    #[arg(short = 'f', long, hide_possible_values = true, hide_short_help = true)]
+    #[arg(short = 'f', long, hide_possible_values = true, help_heading = "Time")]
     pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) to use if time format is relative
-    #[arg(short = 's', long, hide_short_help = true)]
+    #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
 
     /// Path to the column holding values
@@ -532,7 +520,7 @@ pub struct ChannelPerRowCommonArgs {
     pub data_path: String,
 
     /// Strategy for handling complex types (maps, lists, structs)
-    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default(), hide_short_help = true)]
+    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default(), help_heading = "Advanced")]
     pub complex_types_mode: ComplexTypesMode,
 }
 
@@ -546,15 +534,15 @@ pub struct ChannelPerRowSingleArgs {
     pub channel_name: String,
 
     /// Data type for the channel. Use `"infer"` to derive the type from the Parquet/Arrow schema
-    #[arg(long, hide_short_help = true)]
+    #[arg(long, help_heading = "Channels")]
     pub data_type: Option<DataType>,
 
     /// Channel units
-    #[arg(long, hide_short_help = true)]
+    #[arg(long, help_heading = "Channels")]
     pub unit: Option<String>,
 
     /// Channel description
-    #[arg(short = 'n', long, hide_short_help = true)]
+    #[arg(short = 'n', long, help_heading = "Channels")]
     pub description: Option<String>,
 }
 
@@ -627,23 +615,28 @@ pub struct ImportTdmsArgs {
     pub common: CommonImportArgs,
 
     /// Override the start time (RFC3339)
-    #[arg(long, hide_short_help = true)]
+    #[arg(long, help_heading = "Time")]
     pub start_time_override: Option<String>,
 
     /// Fallback method for channels with missing timing information
-    #[arg(short, long, default_value = "fail-on-error", hide_short_help = true)]
+    #[arg(
+        short,
+        long,
+        default_value = "fail-on-error",
+        help_heading = "Advanced"
+    )]
     pub fallback_method: TdmsFallbackMethod,
 
     /// Time format for the channels not using the TDMS timestamp type
-    #[arg(long, hide_possible_values = true, hide_short_help = true)]
+    #[arg(long, hide_possible_values = true, help_heading = "Time")]
     pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) to use if --time-format is relative
-    #[arg(short = 's', long, hide_short_help = true)]
+    #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
 
     /// Import TDMS file properties to the run as metadata
-    #[arg(long, hide_short_help = true)]
+    #[arg(long, help_heading = "Advanced")]
     pub import_file_properties: bool,
 }
 
@@ -654,8 +647,6 @@ pub enum ImportHdf5Cmd {
         name = "one-d",
         arg_required_else_help = true,
         override_usage = "sift-cli import hdf5 one-d <PATH> --asset <ASSET> --time-format <TIME_FORMAT> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import hdf5 one-d data.h5 --asset engine --time-format absolute-rfc3339"
     )]
     OneD(ImportHdf5OneDArgs),
@@ -665,8 +656,6 @@ pub enum ImportHdf5Cmd {
         name = "two-d",
         arg_required_else_help = true,
         override_usage = "sift-cli import hdf5 two-d <PATH> --asset <ASSET> --time-format <TIME_FORMAT> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import hdf5 two-d data.h5 --asset engine --time-format absolute-rfc3339"
     )]
     TwoD(ImportHdf5TwoDArgs),
@@ -675,8 +664,6 @@ pub enum ImportHdf5Cmd {
     #[command(
         arg_required_else_help = true,
         override_usage = "sift-cli import hdf5 compound <PATH> --asset <ASSET> --time-format <TIME_FORMAT> [OPTIONS]",
-        before_help = "[Reduced help — `--help` shows all options]",
-        before_long_help = "",
         after_help = "Example:\n  sift-cli import hdf5 compound data.h5 --asset engine \\\n    --time-format absolute-rfc3339 --time-field ts"
     )]
     Compound(ImportHdf5CompoundArgs),
@@ -688,11 +675,16 @@ pub struct ImportHdf5CommonArgs {
     pub common: CommonImportArgs,
 
     /// Time format used in the time dataset/column
-    #[arg(long, required = true, hide_possible_values = true)]
+    #[arg(
+        long,
+        required = true,
+        hide_possible_values = true,
+        help_heading = "Time"
+    )]
     pub time_format: Option<TimeFormat>,
 
     /// Start time (RFC3339) if the time format is relative
-    #[arg(short = 's', long, hide_short_help = true)]
+    #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
 }
 
@@ -702,7 +694,7 @@ pub struct ImportHdf5OneDArgs {
     pub common: ImportHdf5CommonArgs,
 
     /// Name of the time dataset. Overrides auto-detection (time, timestamp, timestamps, ts)
-    #[arg(long)]
+    #[arg(long, help_heading = "Time")]
     pub time_name: Option<String>,
 }
 
@@ -712,7 +704,7 @@ pub struct ImportHdf5TwoDArgs {
     pub common: ImportHdf5CommonArgs,
 
     /// Index of the time column. Defaults to 0
-    #[arg(long)]
+    #[arg(long, help_heading = "Time")]
     pub time_index: Option<u64>,
 }
 
@@ -722,11 +714,11 @@ pub struct ImportHdf5CompoundArgs {
     pub common: ImportHdf5CommonArgs,
 
     /// Name of the time field. Mutually exclusive with --time-index
-    #[arg(long, conflicts_with = "time_index")]
+    #[arg(long, conflicts_with = "time_index", help_heading = "Time")]
     pub time_field: Option<String>,
 
     /// Index of the time field. Defaults to 0. Mutually exclusive with --time-field
-    #[arg(long)]
+    #[arg(long, help_heading = "Time")]
     pub time_index: Option<u64>,
 }
 
@@ -789,21 +781,21 @@ pub struct ImportUlogArgs {
 
     /// Log start time (RFC3339) for boot-relative timestamps. Overrides the
     /// log's GPS fix; required when no fix exists.
-    #[arg(short = 's', long, hide_short_help = true)]
+    #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
 
     /// Info key to import as run metadata (`info.<key>`); repeatable. Requires
     /// --run or --run-id.
-    #[arg(long, hide_short_help = true)]
+    #[arg(long, help_heading = "Metadata")]
     pub info_key: Vec<String>,
 
     /// Parameter to import as run metadata (`param.<name>`); repeatable.
     /// Requires --run or --run-id.
-    #[arg(long, hide_short_help = true)]
+    #[arg(long, help_heading = "Metadata")]
     pub param_key: Vec<String>,
 
     /// Handling for recoverable parse errors, such as truncated records.
-    #[arg(long, default_value = "fail-on-error", hide_short_help = true)]
+    #[arg(long, default_value = "fail-on-error", help_heading = "Advanced")]
     pub parse_error_policy: UlogParseErrorPolicy,
 }
 
