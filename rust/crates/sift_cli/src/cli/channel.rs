@@ -3,8 +3,7 @@ use sift_rs::common::r#type::v1::ChannelDataType;
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum DataType {
-    /// Asks the program to infer the type so user can just focus on setting things like unit,
-    /// description, etc.
+    /// Infer the type from the file (see the --data-type flag description for what each format infers)
     Infer,
     Double,
     String,
