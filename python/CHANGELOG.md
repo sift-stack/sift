@@ -5,16 +5,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-## [v0.20.0] - July 14, 2026
-
-### What's New
-
-#### Public `sift.canvas.v1` package
-
-Added a new `sift.canvas.v1` proto package that hosts `CanvasCellExecutionStatus` -- the canvas cell execution status enum previously only reachable via the internal `sift_internal.canvas.v1` package. This lets public callers (e.g. reports) reference the enum without pulling `sift_internal` into their type graph. Wire values are stable across the split, so consumers that previously decoded `sift_internal.canvas.v1.CanvasCellExecutionStatus` off the wire keep working against this enum.
-
-Python bindings ship under `sift.canvas.v1.canvas_pb2`.
-
 ## [v0.19.0] - July 10, 2026
 
 ### What's New
