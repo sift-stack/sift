@@ -74,7 +74,6 @@ repos:
         language: system
         files: ^python/
         pass_filenames: false
-        always_run: true
         stages: [pre-push]
       - id: python-stubs-check
         name: sync stubs up to date
