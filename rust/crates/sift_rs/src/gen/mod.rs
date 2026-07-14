@@ -47,6 +47,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.campaigns.v1)
         }
     }
+    pub mod canvas {
+        // @@protoc_insertion_point(attribute:sift.canvas.v1)
+        pub mod v1 {
+            include!("sift/canvas/v1/sift.canvas.v1.rs");
+            // @@protoc_insertion_point(sift.canvas.v1)
+        }
+    }
     pub mod channel_schemas {
         // @@protoc_insertion_point(attribute:sift.channel_schemas.v1)
         pub mod v1 {
