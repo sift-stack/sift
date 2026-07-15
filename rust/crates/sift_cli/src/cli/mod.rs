@@ -64,6 +64,7 @@ pub enum Cmd {
     Install(InstallCmd),
 
     /// Start the Sift MCP server
+    #[cfg(feature = "mcp")]
     #[command(hide = true)]
     Mcp,
 }

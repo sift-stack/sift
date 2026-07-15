@@ -9,6 +9,7 @@ pub mod doc;
 pub mod export;
 pub mod import;
 pub mod install;
+#[cfg(feature = "mcp")]
 pub mod mcp;
 pub mod ping;
 pub mod version;
