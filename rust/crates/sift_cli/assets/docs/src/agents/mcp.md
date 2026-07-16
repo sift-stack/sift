@@ -28,6 +28,22 @@ sift-cli --profile mission mcp
 The server communicates over stdio and is meant to be launched by an MCP client,
 not run interactively.
 
+## Destructive tools
+
+Tools that modify existing state (`update_asset`, `update_run`, `update_report`,
+`update_annotation`, `update_rule`, `archive_rule`, `unarchive_rule`) are
+disabled by default. Calling one returns an error telling the agent that the
+server must be relaunched with `--allow-destructive`:
+
+```sh
+sift-cli mcp --allow-destructive
+```
+
+Additive writes (`create_annotation`, `create_report`, `create_rule`,
+`create_test_report`, `append_test_measurements`, `upload_dataset`) remain
+available without the flag. Update your MCP client config to include the flag
+if you want the agent to be able to modify or archive existing resources.
+
 ## Available tools
 
 | Tool             | Purpose                                                                       |

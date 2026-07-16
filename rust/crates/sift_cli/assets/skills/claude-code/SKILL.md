@@ -57,6 +57,10 @@ to combine them when working with Sift.
    - `create_annotation`, `update_annotation`: manage annotations (writes —
      collections use replace semantics, so confirm the change first).
    - `create_report`, `update_report`: manage reports (writes — confirm first).
+   - Destructive tools (`update_*`, `archive_*`, `unarchive_*`) are gated on
+     `--allow-destructive`. If one errors with a message about the flag, tell
+     the user to relaunch the server with `sift-cli mcp --allow-destructive`
+     (and update their MCP client config) before retrying.
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
      selection, with an optional panel/chart pre-defined. Surface the URL to
      the user as plain text, in full, so the user can open the view. Do not

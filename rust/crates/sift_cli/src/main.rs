@@ -88,8 +88,8 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
 
     // Mcp Server
     #[cfg(feature = "mcp")]
-    if let Cmd::Mcp = cmd {
-        return run_future_mt(cmd::mcp::run(ctx));
+    if let Cmd::Mcp(args) = cmd {
+        return run_future_mt(cmd::mcp::run(ctx, args));
     }
 
     let profile = clargs
