@@ -48,7 +48,11 @@ Non-negotiables. These hold regardless of context pressure:
    tools must also set `destructive_hint` and `idempotent_hint` — see Step 4 for the mapping
    (additive vs. update vs. state-flip). These fields follow the MCP tool annotations spec:
    <https://modelcontextprotocol.io/specification/2025-11-25/server/tools>.
-5. Do not mirror the API one-to-one. Run Step 0 before writing anything.
+5. Every tool with `destructive_hint = true` MUST call `self.require_destructive()?` as the
+   first line of its handler. The server is launched without destructive tools by default; the
+   gate returns an `INVALID_REQUEST` telling the caller to relaunch with `--allow-destructive`.
+   Skipping this call ships a destructive tool that is always on and bypasses the flag.
+6. Do not mirror the API one-to-one. Run Step 0 before writing anything.
 
 ---
 
@@ -247,6 +251,11 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
 
 - Validate before calling the service. Return `ErrorData::invalid_params(...)` or
   `ErrorData::resource_not_found(...)` for bad input. `get_data` shows multi-field validation.
+- **Gate destructive handlers.** If the tool sets `destructive_hint = true`, call
+  `self.require_destructive()?` as the FIRST line of the handler — before parameter
+  destructuring, validation, or any service call. The gate returns an `INVALID_REQUEST` when
+  the server was launched without `--allow-destructive`, so no gRPC traffic and no partial
+  work occurs when the flag is off. `tool/assets/mod.rs::update_asset` is the reference.
 - Always return `CallToolResult::structured(json!({ ... }))`.
 - Annotate: `annotations(title = "<domain>/<tool>", read_only_hint = <bool>, destructive_hint = <bool>, idempotent_hint = <bool>)`.
   Read tools set `read_only_hint = true` and may omit the other two. Write tools set
@@ -612,6 +621,10 @@ Run through this before declaring the tool done:
       match the current proto comments.
 - [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
       per the Step 4 mapping. Write tools confirm the destination via `next_step`.
+- [ ] Every handler with `destructive_hint = true` calls `self.require_destructive()?` as its
+      first line, and has a test that asserts the gate returns `INVALID_REQUEST` when the
+      server is constructed with `allow_destructive = false`. See
+      `tool/assets/test.rs::update_asset_blocked_without_allow_destructive`.
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
       was added to `sift_test_util` if one did not exist.
