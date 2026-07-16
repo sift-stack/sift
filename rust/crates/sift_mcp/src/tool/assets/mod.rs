@@ -128,6 +128,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn update_asset(&self, params: Parameters<UpdateAssetParams>) -> error::McpResult {
+        self.require_destructive()?;
+
         let Parameters(UpdateAssetParams {
             asset_id,
             tags,

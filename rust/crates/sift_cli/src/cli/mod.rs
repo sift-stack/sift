@@ -66,7 +66,17 @@ pub enum Cmd {
     /// Start the Sift MCP server
     #[cfg(feature = "mcp")]
     #[command(hide = true)]
-    Mcp,
+    Mcp(McpArgs),
+}
+
+#[cfg(feature = "mcp")]
+#[derive(clap::Args)]
+pub struct McpArgs {
+    /// Expose destructive tools (updates, archives, restores). When omitted,
+    /// destructive tool calls return an error instructing the caller to
+    /// relaunch the server with this flag.
+    #[arg(long)]
+    pub allow_destructive: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.

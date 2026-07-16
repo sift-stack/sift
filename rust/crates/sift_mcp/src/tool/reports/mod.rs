@@ -359,6 +359,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn update_report(&self, params: Parameters<UpdateReportParams>) -> error::McpResult {
+        self.require_destructive()?;
+
         let Parameters(UpdateReportParams {
             report_id,
             metadata,

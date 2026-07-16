@@ -283,6 +283,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn update_rule(&self, params: Parameters<UpdateRuleParams>) -> error::McpResult {
+        self.require_destructive()?;
+
         let Parameters(UpdateRuleParams {
             rule_id,
             name,
@@ -377,6 +379,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn archive_rule(&self, params: Parameters<RuleArchiveParams>) -> error::McpResult {
+        self.require_destructive()?;
+
         let Parameters(RuleArchiveParams {
             rule_id,
             client_key,
@@ -436,6 +440,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn unarchive_rule(&self, params: Parameters<RuleArchiveParams>) -> error::McpResult {
+        self.require_destructive()?;
+
         let Parameters(RuleArchiveParams {
             rule_id,
             client_key,
