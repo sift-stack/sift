@@ -7,8 +7,6 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/resource_identifier.proto";
-import "sift/families/v1/families.proto";
-import "sift/reports/v1/reports.proto";
 import "sift/rules/v1/rules.proto";
 
 option go_package = "azimuth/gen/protos/go/sift/rule_evaluation/v1;rule_evaluationv1pb";
