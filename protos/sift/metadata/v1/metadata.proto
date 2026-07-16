@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/v1/filter_field.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/metadata/v1;metadatav1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Metadata service"}
 };

@@ -14,6 +14,7 @@ import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
 import "sift/rules/v1/rules.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/calculated_channels/v2;calculatedchannelsv2pb";
 
 service CalculatedChannelService {
   // Retrieve the latest version of a calculated channel

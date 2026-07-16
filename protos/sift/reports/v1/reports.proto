@@ -7,8 +7,11 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/canvas/v1/canvas.proto";
+import "sift/families/v1/families.proto";
 import "sift/metadata/v1/metadata.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/reports/v1;reportsv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Report service"}
 };
@@ -115,6 +118,7 @@ service ReportService {
 enum ReportType {
   REPORT_TYPE_UNSPECIFIED = 0;
   REPORT_TYPE_RULE_EVALUATION = 1;
+  REPORT_TYPE_CANVAS = 2;
 }
 
 message Report {
@@ -146,9 +150,11 @@ message Report {
   // For CANVAS reports, the id of the published canvas_execution this report row
   // is linked to (read-through from canvas_executions.canvas_execution_id). Empty
   // for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
+  optional string canvas_execution_id = 19 [(google.api.field_behavior) = OPTIONAL];
   // For CANVAS reports, the execution status read through from the linked
   // canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
   // conveyed via the per-rule `summaries` instead).
+  optional sift.canvas.v1.CanvasCellExecutionStatus canvas_status = 20 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // ReportWithCumulativeSummary is a projection of `Report` that replaces the per-rule `summaries`
@@ -192,9 +198,11 @@ message ReportWithCumulativeSummary {
   // For CANVAS reports, the id of the published canvas_execution this report row
   // is linked to (read-through from canvas_executions.canvas_execution_id). Empty
   // for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
+  optional string canvas_execution_id = 18 [(google.api.field_behavior) = OPTIONAL];
   // For CANVAS reports, the execution status read through from the linked
   // canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
   // conveyed via the `cumulative_summary` instead).
+  optional sift.canvas.v1.CanvasCellExecutionStatus canvas_status = 19 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ReportRuleSummary {
@@ -252,9 +260,6 @@ message ReportCumulativeRuleSummary {
   // Number of finished rule versions that produced no annotations.
   uint32 num_of_rules_without_annotations = 12 [(google.api.field_behavior) = REQUIRED];
 }
-
-
-
 
 enum ReportRuleStatus {
   REPORT_RULE_STATUS_UNSPECIFIED = 0;

@@ -10,6 +10,7 @@ import (
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	fieldmaskpb1 "github.com/planetscale/vtprotobuf/types/known/fieldmaskpb"
 	timestamppb1 "github.com/planetscale/vtprotobuf/types/known/timestamppb"
+	v11 "github.com/sift-stack/sift/go/gen/sift/canvas/v1"
 	v1 "github.com/sift-stack/sift/go/gen/sift/metadata/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -83,6 +84,14 @@ func (m *Report) CloneVT() *Report {
 		}
 		r.Metadata = tmpContainer
 	}
+	if rhs := m.CanvasExecutionId; rhs != nil {
+		tmpVal := *rhs
+		r.CanvasExecutionId = &tmpVal
+	}
+	if rhs := m.CanvasStatus; rhs != nil {
+		tmpVal := *rhs
+		r.CanvasStatus = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -130,6 +139,14 @@ func (m *ReportWithCumulativeSummary) CloneVT() *ReportWithCumulativeSummary {
 	if rhs := m.JobId; rhs != nil {
 		tmpVal := *rhs
 		r.JobId = &tmpVal
+	}
+	if rhs := m.CanvasExecutionId; rhs != nil {
+		tmpVal := *rhs
+		r.CanvasExecutionId = &tmpVal
+	}
+	if rhs := m.CanvasStatus; rhs != nil {
+		tmpVal := *rhs
+		r.CanvasStatus = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -1059,6 +1076,12 @@ func (this *Report) EqualVT(that *Report) bool {
 	if this.ReportType != that.ReportType {
 		return false
 	}
+	if p, q := this.CanvasExecutionId, that.CanvasExecutionId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.CanvasStatus, that.CanvasStatus; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1138,6 +1161,12 @@ func (this *ReportWithCumulativeSummary) EqualVT(that *ReportWithCumulativeSumma
 		return false
 	}
 	if this.ReportType != that.ReportType {
+		return false
+	}
+	if p, q := this.CanvasExecutionId, that.CanvasExecutionId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.CanvasStatus, that.CanvasStatus; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2778,6 +2807,22 @@ func (m *Report) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CanvasStatus != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.CanvasStatus))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if m.CanvasExecutionId != nil {
+		i -= len(*m.CanvasExecutionId)
+		copy(dAtA[i:], *m.CanvasExecutionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CanvasExecutionId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
 	if m.ReportType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
 		i--
@@ -2979,6 +3024,22 @@ func (m *ReportWithCumulativeSummary) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CanvasStatus != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.CanvasStatus))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if m.CanvasExecutionId != nil {
+		i -= len(*m.CanvasExecutionId)
+		copy(dAtA[i:], *m.CanvasExecutionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CanvasExecutionId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
 	}
 	if m.ReportType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
@@ -5111,6 +5172,22 @@ func (m *Report) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CanvasStatus != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.CanvasStatus))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if m.CanvasExecutionId != nil {
+		i -= len(*m.CanvasExecutionId)
+		copy(dAtA[i:], *m.CanvasExecutionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CanvasExecutionId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
 	if m.ReportType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
 		i--
@@ -5312,6 +5389,22 @@ func (m *ReportWithCumulativeSummary) MarshalToSizedBufferVTStrict(dAtA []byte) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CanvasStatus != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.CanvasStatus))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if m.CanvasExecutionId != nil {
+		i -= len(*m.CanvasExecutionId)
+		copy(dAtA[i:], *m.CanvasExecutionId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CanvasExecutionId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
 	}
 	if m.ReportType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ReportType))
@@ -7552,6 +7645,13 @@ func (m *Report) SizeVT() (n int) {
 	if m.ReportType != 0 {
 		n += 2 + protohelpers.SizeOfVarint(uint64(m.ReportType))
 	}
+	if m.CanvasExecutionId != nil {
+		l = len(*m.CanvasExecutionId)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.CanvasStatus != nil {
+		n += 2 + protohelpers.SizeOfVarint(uint64(*m.CanvasStatus))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -7629,6 +7729,13 @@ func (m *ReportWithCumulativeSummary) SizeVT() (n int) {
 	}
 	if m.ReportType != 0 {
 		n += 2 + protohelpers.SizeOfVarint(uint64(m.ReportType))
+	}
+	if m.CanvasExecutionId != nil {
+		l = len(*m.CanvasExecutionId)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.CanvasStatus != nil {
+		n += 2 + protohelpers.SizeOfVarint(uint64(*m.CanvasStatus))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -9060,6 +9167,59 @@ func (m *Report) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasExecutionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.CanvasExecutionId = &s
+			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasStatus", wireType)
+			}
+			var v v11.CanvasCellExecutionStatus
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= v11.CanvasCellExecutionStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanvasStatus = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -9651,6 +9811,59 @@ func (m *ReportWithCumulativeSummary) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasExecutionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.CanvasExecutionId = &s
+			iNdEx = postIndex
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasStatus", wireType)
+			}
+			var v v11.CanvasCellExecutionStatus
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= v11.CanvasCellExecutionStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanvasStatus = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -14932,6 +15145,63 @@ func (m *Report) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasExecutionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.CanvasExecutionId = &s
+			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasStatus", wireType)
+			}
+			var v v11.CanvasCellExecutionStatus
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= v11.CanvasCellExecutionStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanvasStatus = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -15563,6 +15833,63 @@ func (m *ReportWithCumulativeSummary) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasExecutionId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.CanvasExecutionId = &s
+			iNdEx = postIndex
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanvasStatus", wireType)
+			}
+			var v v11.CanvasCellExecutionStatus
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= v11.CanvasCellExecutionStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanvasStatus = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

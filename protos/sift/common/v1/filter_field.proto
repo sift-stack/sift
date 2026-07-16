@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package sift.common.v1;
 
+option go_package = "azimuth/gen/protos/go/sift/common/v1;commonv1pb";
 
 // Describes the type of a filter field.
 enum FilterFieldType {
@@ -14,6 +15,28 @@ enum FilterFieldType {
   FILTER_FIELD_TYPE_DOUBLE = 6;
   FILTER_FIELD_TYPE_ENUM = 7;
   FILTER_FIELD_TYPE_UUID = 8;
+}
+
+// Describes the structural shape of a filter field: how a client builds a
+// predicate for it. This is orthogonal to FilterFieldType (the value's data
+// type) and to the entity/name/key identity (which field it is).
+enum FilterFieldKind {
+  // Unset. Treated as FILTER_FIELD_KIND_SCALAR for backward compatibility.
+  FILTER_FIELD_KIND_UNSPECIFIED = 0;
+  // A typed column: one operator plus one value editor. `type` is the value
+  // type and the grammar resolves operators/functions from it.
+  FILTER_FIELD_KIND_SCALAR = 1;
+  // A dynamic key/value family (e.g. metadata). `name` is the map namespace and
+  // `key` the chosen index. `type` is UNSPECIFIED because the value type is the
+  // chosen key's type, resolved per key via the grammar.
+  FILTER_FIELD_KIND_MAP = 2;
+  // A has-many collection filtered by a CEL comprehension
+  // (e.g. measurements.exists(m, m.name == "humidity" && m.numeric_value > 50)).
+  // See the recursive `fields` and `quantifiers` below.
+  FILTER_FIELD_KIND_RELATION = 3;
+  // A pseudo-field (e.g. include_archived) that resolves to query shape rather
+  // than a column.
+  FILTER_FIELD_KIND_DIRECTIVE = 4;
 }
 
 // Describes a single field available for CEL filtering on a resource.
@@ -43,4 +66,31 @@ message FilterField {
   // always holds a concrete value.) Optional so that an unset value means
   // "unknown" rather than implicitly "not nullable".
   optional bool nullable = 8;
+  // The owning scope of the field (e.g. "report", "test_step"). Together with
+  // `name` and `key` this is the structured identity of the field; `field_name`
+  // is its deterministic CEL serialization, so the client never assembles or
+  // parses it. Optional; empty when the field carries no structured identity.
+  string entity = 9;
+  // The fixed field on the entity: a column, a map namespace (e.g. "metadata"),
+  // or a relation (e.g. "measurements"). Optional.
+  //
+  // When the field corresponds to a field on the resource's own message, `name`
+  // matches that field's name (e.g. `run_id` or `is_archived` on a run), so it
+  // maps directly to the resource schema you already know. Fields that are
+  // derived or computed and have no direct counterpart on the message
+  // (e.g. `duration_string`) carry a descriptive name instead.
+  string name = 10;
+  // The dynamic map index when `name` is a map (e.g. the metadata key). Empty
+  // when `name` is not a map. Optional.
+  string key = 11;
+  // The structural shape of the field. Unset is treated as SCALAR.
+  FilterFieldKind field_kind = 12;
+  // For a RELATION field, the relation's filterable columns, each a full
+  // FilterField (e.g. "name", "numeric_value", "passed" for measurements).
+  // Empty for non-relation kinds.
+  repeated FilterField fields = 13;
+  // For a RELATION field, the comprehension macros that apply
+  // (e.g. "exists", "all", "exists_one"). The client picks one, then composes
+  // inner predicates over `fields`. Empty for non-relation kinds.
+  repeated string quantifiers = 14;
 }

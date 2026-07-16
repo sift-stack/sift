@@ -8,6 +8,7 @@ package sift.protobuf_descriptors.v2;
 
 import "google/protobuf/descriptor.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/protobuf_descriptors/v2;protobufdescriptorsv2pb";
 
 // Enum for different types of tag sources
 enum TagSourceType {

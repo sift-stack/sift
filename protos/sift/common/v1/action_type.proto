@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package sift.common.v1;
 
+option go_package = "azimuth/gen/protos/go/sift/common/v1;commonv1pb";
 
 // ActionType represents the type of action being performed on a resource
 // Granular ABAC actions, broken up by CRUD.

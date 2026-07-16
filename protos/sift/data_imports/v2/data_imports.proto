@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/channel_config.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/data_imports/v2;dataimportsv2pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Data import service"}
 };
@@ -145,6 +146,11 @@ message CsvConfig {
   map<uint32, sift.common.type.v1.ChannelConfig> data_columns = 6;
   // This will be read on upload from the file if not set.
   optional uint64 num_rows = 7 [(google.api.field_behavior) = OPTIONAL];
+  // If true, the time and data column configuration is read from a config
+  // embedded in the file (written when the file was exported with
+  // embed_channel_configs). Any time_column/data_columns supplied here are
+  // ignored and replaced by the embedded config.
+  bool use_embedded_config = 10;
 }
 
 message CsvTimeColumn {
@@ -153,8 +159,6 @@ message CsvTimeColumn {
   TimeFormat format = 2;
   optional google.protobuf.Timestamp relative_start_time = 3;
 }
-
-
 
 enum DataTypeKey {
   DATA_TYPE_KEY_UNSPECIFIED = 0 [deprecated = true];
@@ -276,6 +280,11 @@ message ParquetColumn {
 message ParquetFlatDatasetConfig {
   ParquetTimeColumn time_column = 1;
   repeated ParquetDataColumn data_columns = 2;
+  // If true, the time and data column configuration is read from the config
+  // embedded in the file's Arrow field metadata (written when the file was
+  // exported with embed_channel_configs). Any time_column/data_columns supplied
+  // here are ignored and replaced by the embedded config.
+  bool use_embedded_config = 3;
 }
 
 message ParquetSingleChannelPerRowMultiChannelConfig {
@@ -481,7 +490,7 @@ message ListDataImportsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `data_import_id`, `source_url`, `status`.
+  // Available fields to filter by are `data_import_id`, `source_url`, `status`, `run_id`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 

@@ -12,6 +12,7 @@ import "sift/common/type/v1/channel_bit_field_element.proto";
 import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/data/v2;datav2pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Data Service"}
 };
@@ -267,9 +268,6 @@ message Uint64Values {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated Uint64Value values = 2 [(google.api.field_behavior) = REQUIRED];
 }
-
-
-
 
 message BytesValue {
   google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];

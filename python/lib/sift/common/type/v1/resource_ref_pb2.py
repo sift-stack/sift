@@ -15,14 +15,14 @@ _sym_db = _symbol_database.Default()
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&sift/common/type/v1/resource_ref.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\"\xb6\x01\n\x0bResourceRef\x12\x13\n\x02id\x18\x01 \x01(\tB\x03\xe0\x41\x03R\x02id\x12\'\n\nclient_key\x18\x02 \x01(\tB\x03\xe0\x41\x03H\x00R\tclientKey\x88\x01\x01\x12\x17\n\x04name\x18\x03 \x01(\tB\x03\xe0\x41\x03R\x04name\x12\x41\n\x07\x66ind_by\x18\x04 \x01(\x0b\x32#.sift.common.type.v1.FindResourceByB\x03\xe0\x41\x04R\x06\x66indByB\r\n\x0b_client_key\"\x95\x01\n\x0e\x46indResourceBy\x12\x10\n\x02id\x18\x01 \x01(\tH\x00R\x02id\x12\x1f\n\nclient_key\x18\x02 \x01(\tH\x00R\tclientKey\x12\x14\n\x04name\x18\x03 \x01(\tH\x00R\x04name\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationIdB\x0c\n\nidentifierB\x9a\x01\n\x17\x63om.sift.common.type.v1B\x10ResourceRefProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&sift/common/type/v1/resource_ref.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\"\xb6\x01\n\x0bResourceRef\x12\x13\n\x02id\x18\x01 \x01(\tB\x03\xe0\x41\x03R\x02id\x12\'\n\nclient_key\x18\x02 \x01(\tB\x03\xe0\x41\x03H\x00R\tclientKey\x88\x01\x01\x12\x17\n\x04name\x18\x03 \x01(\tB\x03\xe0\x41\x03R\x04name\x12\x41\n\x07\x66ind_by\x18\x04 \x01(\x0b\x32#.sift.common.type.v1.FindResourceByB\x03\xe0\x41\x04R\x06\x66indByB\r\n\x0b_client_key\"\x95\x01\n\x0e\x46indResourceBy\x12\x10\n\x02id\x18\x01 \x01(\tH\x00R\x02id\x12\x1f\n\nclient_key\x18\x02 \x01(\tH\x00R\tclientKey\x12\x14\n\x04name\x18\x03 \x01(\tH\x00R\x04name\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationIdB\x0c\n\nidentifierB\xce\x01\n\x17\x63om.sift.common.type.v1B\x10ResourceRefProtoP\x01Z2azimuth/gen/protos/go/sift/common/type/v1;typev1pb\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'sift.common.type.v1.resource_ref_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'\n\027com.sift.common.type.v1B\020ResourceRefProtoP\001\242\002\003SCT\252\002\023Sift.Common.Type.V1\312\002\023Sift\\Common\\Type\\V1\342\002\037Sift\\Common\\Type\\V1\\GPBMetadata\352\002\026Sift::Common::Type::V1'
+  _globals['DESCRIPTOR']._serialized_options = b'\n\027com.sift.common.type.v1B\020ResourceRefProtoP\001Z2azimuth/gen/protos/go/sift/common/type/v1;typev1pb\242\002\003SCT\252\002\023Sift.Common.Type.V1\312\002\023Sift\\Common\\Type\\V1\342\002\037Sift\\Common\\Type\\V1\\GPBMetadata\352\002\026Sift::Common::Type::V1'
   _globals['_RESOURCEREF'].fields_by_name['id']._loaded_options = None
   _globals['_RESOURCEREF'].fields_by_name['id']._serialized_options = b'\340A\003'
   _globals['_RESOURCEREF'].fields_by_name['client_key']._loaded_options = None

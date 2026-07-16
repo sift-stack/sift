@@ -49,6 +49,61 @@ FILTER_FIELD_TYPE_ENUM: FilterFieldType.ValueType  # 7
 FILTER_FIELD_TYPE_UUID: FilterFieldType.ValueType  # 8
 global___FilterFieldType = FilterFieldType
 
+class _FilterFieldKind:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _FilterFieldKindEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_FilterFieldKind.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    FILTER_FIELD_KIND_UNSPECIFIED: _FilterFieldKind.ValueType  # 0
+    """Unset. Treated as FILTER_FIELD_KIND_SCALAR for backward compatibility."""
+    FILTER_FIELD_KIND_SCALAR: _FilterFieldKind.ValueType  # 1
+    """A typed column: one operator plus one value editor. `type` is the value
+    type and the grammar resolves operators/functions from it.
+    """
+    FILTER_FIELD_KIND_MAP: _FilterFieldKind.ValueType  # 2
+    """A dynamic key/value family (e.g. metadata). `name` is the map namespace and
+    `key` the chosen index. `type` is UNSPECIFIED because the value type is the
+    chosen key's type, resolved per key via the grammar.
+    """
+    FILTER_FIELD_KIND_RELATION: _FilterFieldKind.ValueType  # 3
+    """A has-many collection filtered by a CEL comprehension
+    (e.g. measurements.exists(m, m.name == "humidity" && m.numeric_value > 50)).
+    See the recursive `fields` and `quantifiers` below.
+    """
+    FILTER_FIELD_KIND_DIRECTIVE: _FilterFieldKind.ValueType  # 4
+    """A pseudo-field (e.g. include_archived) that resolves to query shape rather
+    than a column.
+    """
+
+class FilterFieldKind(_FilterFieldKind, metaclass=_FilterFieldKindEnumTypeWrapper):
+    """Describes the structural shape of a filter field: how a client builds a
+    predicate for it. This is orthogonal to FilterFieldType (the value's data
+    type) and to the entity/name/key identity (which field it is).
+    """
+
+FILTER_FIELD_KIND_UNSPECIFIED: FilterFieldKind.ValueType  # 0
+"""Unset. Treated as FILTER_FIELD_KIND_SCALAR for backward compatibility."""
+FILTER_FIELD_KIND_SCALAR: FilterFieldKind.ValueType  # 1
+"""A typed column: one operator plus one value editor. `type` is the value
+type and the grammar resolves operators/functions from it.
+"""
+FILTER_FIELD_KIND_MAP: FilterFieldKind.ValueType  # 2
+"""A dynamic key/value family (e.g. metadata). `name` is the map namespace and
+`key` the chosen index. `type` is UNSPECIFIED because the value type is the
+chosen key's type, resolved per key via the grammar.
+"""
+FILTER_FIELD_KIND_RELATION: FilterFieldKind.ValueType  # 3
+"""A has-many collection filtered by a CEL comprehension
+(e.g. measurements.exists(m, m.name == "humidity" && m.numeric_value > 50)).
+See the recursive `fields` and `quantifiers` below.
+"""
+FILTER_FIELD_KIND_DIRECTIVE: FilterFieldKind.ValueType  # 4
+"""A pseudo-field (e.g. include_archived) that resolves to query shape rather
+than a column.
+"""
+global___FilterFieldKind = FilterFieldKind
+
 @typing.final
 class FilterField(google.protobuf.message.Message):
     """Describes a single field available for CEL filtering on a resource."""
@@ -63,6 +118,12 @@ class FilterField(google.protobuf.message.Message):
     OPERATORS_FIELD_NUMBER: builtins.int
     FUNCTIONS_FIELD_NUMBER: builtins.int
     NULLABLE_FIELD_NUMBER: builtins.int
+    ENTITY_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    KEY_FIELD_NUMBER: builtins.int
+    FIELD_KIND_FIELD_NUMBER: builtins.int
+    FIELDS_FIELD_NUMBER: builtins.int
+    QUANTIFIERS_FIELD_NUMBER: builtins.int
     field_name: builtins.str
     """The field name to use in CEL filter expressions (e.g., "run_id", "created_date")."""
     type: global___FilterFieldType.ValueType
@@ -81,6 +142,28 @@ class FilterField(google.protobuf.message.Message):
     always holds a concrete value.) Optional so that an unset value means
     "unknown" rather than implicitly "not nullable".
     """
+    entity: builtins.str
+    """The owning scope of the field (e.g. "report", "test_step"). Together with
+    `name` and `key` this is the structured identity of the field; `field_name`
+    is its deterministic CEL serialization, so the client never assembles or
+    parses it. Optional; empty when the field carries no structured identity.
+    """
+    name: builtins.str
+    """The fixed field on the entity: a column, a map namespace (e.g. "metadata"),
+    or a relation (e.g. "measurements"). Optional.
+
+    When the field corresponds to a field on the resource's own message, `name`
+    matches that field's name (e.g. `run_id` or `is_archived` on a run), so it
+    maps directly to the resource schema you already know. Fields that are
+    derived or computed and have no direct counterpart on the message
+    (e.g. `duration_string`) carry a descriptive name instead.
+    """
+    key: builtins.str
+    """The dynamic map index when `name` is a map (e.g. the metadata key). Empty
+    when `name` is not a map. Optional.
+    """
+    field_kind: global___FilterFieldKind.ValueType
+    """The structural shape of the field. Unset is treated as SCALAR."""
     @property
     def enum_values(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
         """If type is FILTER_FIELD_TYPE_ENUM, these are the valid string values."""
@@ -98,6 +181,20 @@ class FilterField(google.protobuf.message.Message):
         Display copy for each name comes from FilterGrammarService.
         """
 
+    @property
+    def fields(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___FilterField]:
+        """For a RELATION field, the relation's filterable columns, each a full
+        FilterField (e.g. "name", "numeric_value", "passed" for measurements).
+        Empty for non-relation kinds.
+        """
+
+    @property
+    def quantifiers(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """For a RELATION field, the comprehension macros that apply
+        (e.g. "exists", "all", "exists_one"). The client picks one, then composes
+        inner predicates over `fields`. Empty for non-relation kinds.
+        """
+
     def __init__(
         self,
         *,
@@ -109,9 +206,15 @@ class FilterField(google.protobuf.message.Message):
         operators: collections.abc.Iterable[builtins.str] | None = ...,
         functions: collections.abc.Iterable[builtins.str] | None = ...,
         nullable: builtins.bool | None = ...,
+        entity: builtins.str = ...,
+        name: builtins.str = ...,
+        key: builtins.str = ...,
+        field_kind: global___FilterFieldKind.ValueType = ...,
+        fields: collections.abc.Iterable[global___FilterField] | None = ...,
+        quantifiers: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_nullable", b"_nullable", "nullable", b"nullable"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_nullable", b"_nullable", "description", b"description", "display_name", b"display_name", "enum_values", b"enum_values", "field_name", b"field_name", "functions", b"functions", "nullable", b"nullable", "operators", b"operators", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_nullable", b"_nullable", "description", b"description", "display_name", b"display_name", "entity", b"entity", "enum_values", b"enum_values", "field_kind", b"field_kind", "field_name", b"field_name", "fields", b"fields", "functions", b"functions", "key", b"key", "name", b"name", "nullable", b"nullable", "operators", b"operators", "quantifiers", b"quantifiers", "type", b"type"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_nullable", b"_nullable"]) -> typing.Literal["nullable"] | None: ...
 
 global___FilterField = FilterField

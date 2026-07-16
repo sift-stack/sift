@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package sift.canvas.v1;
+
+option go_package = "azimuth/gen/protos/go/sift/canvas/v1;canvasv1pb";
+
+// Status of a single canvas cell execution. Also used as the status of the
+// parent CanvasExecution: the parent rolls up its cells' statuses into a
+// single value (e.g. any AUTO_FAILED cell yields an AUTO_FAILED execution).
+enum CanvasCellExecutionStatus {
+  CANVAS_CELL_EXECUTION_STATUS_UNSPECIFIED = 0;
+  CANVAS_CELL_EXECUTION_STATUS_IN_PROGRESS = 1;
+  CANVAS_CELL_EXECUTION_STATUS_AUTO_PASSED = 2;
+  CANVAS_CELL_EXECUTION_STATUS_AUTO_FAILED = 3;
+  CANVAS_CELL_EXECUTION_STATUS_MANUAL_PASSED = 4;
+  CANVAS_CELL_EXECUTION_STATUS_MANUAL_FAILED = 5;
+  CANVAS_CELL_EXECUTION_STATUS_ERROR = 6;
+  CANVAS_CELL_EXECUTION_STATUS_SKIPPED = 7;
+  CANVAS_CELL_EXECUTION_STATUS_OPEN = 8;
+  CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED = 9;
+}

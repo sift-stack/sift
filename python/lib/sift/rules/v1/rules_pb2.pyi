@@ -1782,6 +1782,37 @@ class AnnotationActionConfiguration(google.protobuf.message.Message):
 global___AnnotationActionConfiguration = AnnotationActionConfiguration
 
 @typing.final
+class FamilyStatReference(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REFERENCE_FIELD_NUMBER: builtins.int
+    FAMILY_ID_FIELD_NUMBER: builtins.int
+    FAMILY_STAT_NAME_FIELD_NUMBER: builtins.int
+    FAMILY_STAT_EXPRESSION_FIELD_NUMBER: builtins.int
+    FAMILY_STAT_RANGE_NAME_FIELD_NUMBER: builtins.int
+    reference: builtins.str
+    """How to refer to the family stat in the expression, e.g. $A"""
+    family_id: builtins.str
+    """Choose the family, e.g. Sift Rocket Engine"""
+    family_stat_name: builtins.str
+    """Choose the stat, e.g. TC-TURB.avg"""
+    family_stat_expression: builtins.str
+    family_stat_range_name: builtins.str
+    """Choose the range by name, which will be used to resolve the alignment and range, e.g. Startup +/- 5s"""
+    def __init__(
+        self,
+        *,
+        reference: builtins.str = ...,
+        family_id: builtins.str = ...,
+        family_stat_name: builtins.str = ...,
+        family_stat_expression: builtins.str = ...,
+        family_stat_range_name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["family_id", b"family_id", "family_stat_expression", b"family_stat_expression", "family_stat_name", b"family_stat_name", "family_stat_range_name", b"family_stat_range_name", "reference", b"reference"]) -> None: ...
+
+global___FamilyStatReference = FamilyStatReference
+
+@typing.final
 class EvaluateRulesRequest(google.protobuf.message.Message):
     """Deprecated - use RuleEvaluationService instead."""
 

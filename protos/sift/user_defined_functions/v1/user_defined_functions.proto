@@ -11,6 +11,7 @@ import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
 import "sift/rules/v1/rules.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/user_defined_functions/v1;userdefinedfunctionsv1pb";
 
 service UserDefinedFunctionService {
   // Retrieve the latest version of a user defined function
@@ -117,9 +118,7 @@ service UserDefinedFunctionService {
 // If `user_defined_function_id` is provided then all other arguments will be ignored. The argument `user_defined_function_id`
 // should not be used together with `name`.
 message GetUserDefinedFunctionRequest {
-  string user_defined_function_id = 1 [
-    (google.api.field_behavior) = OPTIONAL
-  ];
+  string user_defined_function_id = 1 [(google.api.field_behavior) = OPTIONAL];
   string name = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
@@ -129,9 +128,7 @@ message GetUserDefinedFunctionResponse {
 
 // The request for a call to `UserDefinedFunctionService_GetUserDefinedFunctionVersion` to retrieve a specific version of a user defined function.
 message GetUserDefinedFunctionVersionRequest {
-  string user_defined_function_version_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string user_defined_function_version_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetUserDefinedFunctionVersionResponse {
@@ -142,13 +139,9 @@ message GetUserDefinedFunctionVersionResponse {
 message GetUserDefinedFunctionDependentsRequest {
   uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
   oneof user_defined_function {
-    string user_defined_function_id = 2 [
-      (google.api.field_behavior) = OPTIONAL
-    ];
+    string user_defined_function_id = 2 [(google.api.field_behavior) = OPTIONAL];
     string user_defined_function_name = 3 [(google.api.field_behavior) = OPTIONAL];
-    string user_defined_function_version_id = 4 [
-      (google.api.field_behavior) = OPTIONAL
-    ];
+    string user_defined_function_version_id = 4 [(google.api.field_behavior) = OPTIONAL];
   }
 }
 
@@ -163,9 +156,7 @@ message GetUserDefinedFunctionDependentsResponse {
 
 // The request for a call to `UserDefinedFunctionService_GetUserDefinedFunctionVersions` to retrieve versions of user defined functions.
 message GetUserDefinedFunctionVersionsRequest {
-  repeated string user_defined_function_version_ids = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string user_defined_function_version_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetUserDefinedFunctionVersionsResponse {
@@ -173,9 +164,7 @@ message GetUserDefinedFunctionVersionsResponse {
 }
 
 message CreateUserDefinedFunctionRequest {
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
   optional string description = 2 [(google.api.field_behavior) = OPTIONAL];
   string expression = 3 [(google.api.field_behavior) = REQUIRED];
   repeated sift.common.type.v1.FunctionInput function_inputs = 4 [(google.api.field_behavior) = REQUIRED];

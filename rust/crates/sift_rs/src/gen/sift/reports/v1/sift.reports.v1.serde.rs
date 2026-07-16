@@ -2304,6 +2304,12 @@ impl serde::Serialize for Report {
         if self.report_type != 0 {
             len += 1;
         }
+        if self.canvas_execution_id.is_some() {
+            len += 1;
+        }
+        if self.canvas_status.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.Report", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -2361,6 +2367,14 @@ impl serde::Serialize for Report {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.report_type)))?;
             struct_ser.serialize_field("reportType", &v)?;
         }
+        if let Some(v) = self.canvas_execution_id.as_ref() {
+            struct_ser.serialize_field("canvasExecutionId", v)?;
+        }
+        if let Some(v) = self.canvas_status.as_ref() {
+            let v = super::super::canvas::v1::CanvasCellExecutionStatus::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("canvasStatus", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2402,6 +2416,10 @@ impl<'de> serde::Deserialize<'de> for Report {
             "isArchived",
             "report_type",
             "reportType",
+            "canvas_execution_id",
+            "canvasExecutionId",
+            "canvas_status",
+            "canvasStatus",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2424,6 +2442,8 @@ impl<'de> serde::Deserialize<'de> for Report {
             Metadata,
             IsArchived,
             ReportType,
+            CanvasExecutionId,
+            CanvasStatus,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2463,6 +2483,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "reportType" | "report_type" => Ok(GeneratedField::ReportType),
+                            "canvasExecutionId" | "canvas_execution_id" => Ok(GeneratedField::CanvasExecutionId),
+                            "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2500,6 +2522,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
                 let mut report_type__ = None;
+                let mut canvas_execution_id__ = None;
+                let mut canvas_status__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -2610,6 +2634,18 @@ impl<'de> serde::Deserialize<'de> for Report {
                             }
                             report_type__ = Some(map_.next_value::<ReportType>()? as i32);
                         }
+                        GeneratedField::CanvasExecutionId => {
+                            if canvas_execution_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasExecutionId"));
+                            }
+                            canvas_execution_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::CanvasStatus => {
+                            if canvas_status__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasStatus"));
+                            }
+                            canvas_status__ = map_.next_value::<::std::option::Option<super::super::canvas::v1::CanvasCellExecutionStatus>>()?.map(|x| x as i32);
+                        }
                     }
                 }
                 Ok(Report {
@@ -2631,6 +2667,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
                     report_type: report_type__.unwrap_or_default(),
+                    canvas_execution_id: canvas_execution_id__,
+                    canvas_status: canvas_status__,
                 })
             }
         }
@@ -4267,6 +4305,7 @@ impl serde::Serialize for ReportType {
         let variant = match self {
             Self::Unspecified => "REPORT_TYPE_UNSPECIFIED",
             Self::RuleEvaluation => "REPORT_TYPE_RULE_EVALUATION",
+            Self::Canvas => "REPORT_TYPE_CANVAS",
         };
         serializer.serialize_str(variant)
     }
@@ -4280,6 +4319,7 @@ impl<'de> serde::Deserialize<'de> for ReportType {
         const FIELDS: &[&str] = &[
             "REPORT_TYPE_UNSPECIFIED",
             "REPORT_TYPE_RULE_EVALUATION",
+            "REPORT_TYPE_CANVAS",
         ];
 
         struct GeneratedVisitor;
@@ -4322,6 +4362,7 @@ impl<'de> serde::Deserialize<'de> for ReportType {
                 match value {
                     "REPORT_TYPE_UNSPECIFIED" => Ok(ReportType::Unspecified),
                     "REPORT_TYPE_RULE_EVALUATION" => Ok(ReportType::RuleEvaluation),
+                    "REPORT_TYPE_CANVAS" => Ok(ReportType::Canvas),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -4388,6 +4429,12 @@ impl serde::Serialize for ReportWithCumulativeSummary {
         if self.report_type != 0 {
             len += 1;
         }
+        if self.canvas_execution_id.is_some() {
+            len += 1;
+        }
+        if self.canvas_status.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportWithCumulativeSummary", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -4442,6 +4489,14 @@ impl serde::Serialize for ReportWithCumulativeSummary {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.report_type)))?;
             struct_ser.serialize_field("reportType", &v)?;
         }
+        if let Some(v) = self.canvas_execution_id.as_ref() {
+            struct_ser.serialize_field("canvasExecutionId", v)?;
+        }
+        if let Some(v) = self.canvas_status.as_ref() {
+            let v = super::super::canvas::v1::CanvasCellExecutionStatus::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("canvasStatus", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4483,6 +4538,10 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             "isArchived",
             "report_type",
             "reportType",
+            "canvas_execution_id",
+            "canvasExecutionId",
+            "canvas_status",
+            "canvasStatus",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4504,6 +4563,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             ArchivedDate,
             IsArchived,
             ReportType,
+            CanvasExecutionId,
+            CanvasStatus,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4542,6 +4603,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "reportType" | "report_type" => Ok(GeneratedField::ReportType),
+                            "canvasExecutionId" | "canvas_execution_id" => Ok(GeneratedField::CanvasExecutionId),
+                            "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4578,6 +4641,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
                 let mut report_type__ = None;
+                let mut canvas_execution_id__ = None;
+                let mut canvas_status__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -4682,6 +4747,18 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             }
                             report_type__ = Some(map_.next_value::<ReportType>()? as i32);
                         }
+                        GeneratedField::CanvasExecutionId => {
+                            if canvas_execution_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasExecutionId"));
+                            }
+                            canvas_execution_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::CanvasStatus => {
+                            if canvas_status__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasStatus"));
+                            }
+                            canvas_status__ = map_.next_value::<::std::option::Option<super::super::canvas::v1::CanvasCellExecutionStatus>>()?.map(|x| x as i32);
+                        }
                     }
                 }
                 Ok(ReportWithCumulativeSummary {
@@ -4702,6 +4779,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
                     report_type: report_type__.unwrap_or_default(),
+                    canvas_execution_id: canvas_execution_id__,
+                    canvas_status: canvas_status__,
                 })
             }
         }

@@ -7,6 +7,7 @@ import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
 import "sift/metadata/v1/metadata.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/common/type/v1;typev1pb";
 
 message ChannelConfig {
   string name = 1;

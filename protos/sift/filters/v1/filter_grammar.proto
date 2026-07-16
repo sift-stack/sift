@@ -5,6 +5,7 @@ package sift.filters.v1;
 import "google/api/annotations.proto";
 import "sift/common/v1/filter_field.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/filters/v1;filtersv1pb";
 
 // FilterGrammarService describes the CEL filter capabilities shared by every
 // resource: the operators and member functions available for each built-in

@@ -9,6 +9,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/user.proto";
 import "sift/user_groups/v2/user_groups.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/external_sync/v1;externalsyncv1pb";
 
 service ExternalSyncService {
   rpc SyncOrganization(SyncOrganizationRequest) returns (SyncOrganizationResponse) {
@@ -115,8 +116,7 @@ message GenerateTokenResponse {
   string token = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
-message GetExternalSyncRequest {
-}
+message GetExternalSyncRequest {}
 
 message GetExternalSyncResponse {
   bool success = 1 [(google.api.field_behavior) = REQUIRED];
@@ -233,8 +233,7 @@ message GetExternalSyncRunResponse {
   ExternalSyncRun external_sync_run = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
-message GetIsOrgExternallyProvisionedRequest {
-}
+message GetIsOrgExternallyProvisionedRequest {}
 
 message GetIsOrgExternallyProvisionedResponse {
   bool is_externally_provisioned = 1 [(google.api.field_behavior) = REQUIRED];

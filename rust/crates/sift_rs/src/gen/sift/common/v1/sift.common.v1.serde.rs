@@ -126,6 +126,24 @@ impl serde::Serialize for FilterField {
         if self.nullable.is_some() {
             len += 1;
         }
+        if !self.entity.is_empty() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if !self.key.is_empty() {
+            len += 1;
+        }
+        if self.field_kind != 0 {
+            len += 1;
+        }
+        if !self.fields.is_empty() {
+            len += 1;
+        }
+        if !self.quantifiers.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.common.v1.FilterField", len)?;
         if !self.field_name.is_empty() {
             struct_ser.serialize_field("fieldName", &self.field_name)?;
@@ -153,6 +171,26 @@ impl serde::Serialize for FilterField {
         if let Some(v) = self.nullable.as_ref() {
             struct_ser.serialize_field("nullable", v)?;
         }
+        if !self.entity.is_empty() {
+            struct_ser.serialize_field("entity", &self.entity)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if !self.key.is_empty() {
+            struct_ser.serialize_field("key", &self.key)?;
+        }
+        if self.field_kind != 0 {
+            let v = FilterFieldKind::try_from(self.field_kind)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.field_kind)))?;
+            struct_ser.serialize_field("fieldKind", &v)?;
+        }
+        if !self.fields.is_empty() {
+            struct_ser.serialize_field("fields", &self.fields)?;
+        }
+        if !self.quantifiers.is_empty() {
+            struct_ser.serialize_field("quantifiers", &self.quantifiers)?;
+        }
         struct_ser.end()
     }
 }
@@ -174,6 +212,13 @@ impl<'de> serde::Deserialize<'de> for FilterField {
             "operators",
             "functions",
             "nullable",
+            "entity",
+            "name",
+            "key",
+            "field_kind",
+            "fieldKind",
+            "fields",
+            "quantifiers",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -186,6 +231,12 @@ impl<'de> serde::Deserialize<'de> for FilterField {
             Operators,
             Functions,
             Nullable,
+            Entity,
+            Name,
+            Key,
+            FieldKind,
+            Fields,
+            Quantifiers,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -215,6 +266,12 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                             "operators" => Ok(GeneratedField::Operators),
                             "functions" => Ok(GeneratedField::Functions),
                             "nullable" => Ok(GeneratedField::Nullable),
+                            "entity" => Ok(GeneratedField::Entity),
+                            "name" => Ok(GeneratedField::Name),
+                            "key" => Ok(GeneratedField::Key),
+                            "fieldKind" | "field_kind" => Ok(GeneratedField::FieldKind),
+                            "fields" => Ok(GeneratedField::Fields),
+                            "quantifiers" => Ok(GeneratedField::Quantifiers),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -242,6 +299,12 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                 let mut operators__ = None;
                 let mut functions__ = None;
                 let mut nullable__ = None;
+                let mut entity__ = None;
+                let mut name__ = None;
+                let mut key__ = None;
+                let mut field_kind__ = None;
+                let mut fields__ = None;
+                let mut quantifiers__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::FieldName => {
@@ -292,6 +355,42 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                             }
                             nullable__ = map_.next_value()?;
                         }
+                        GeneratedField::Entity => {
+                            if entity__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("entity"));
+                            }
+                            entity__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Key => {
+                            if key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("key"));
+                            }
+                            key__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FieldKind => {
+                            if field_kind__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fieldKind"));
+                            }
+                            field_kind__ = Some(map_.next_value::<FilterFieldKind>()? as i32);
+                        }
+                        GeneratedField::Fields => {
+                            if fields__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fields"));
+                            }
+                            fields__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Quantifiers => {
+                            if quantifiers__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("quantifiers"));
+                            }
+                            quantifiers__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(FilterField {
@@ -303,10 +402,96 @@ impl<'de> serde::Deserialize<'de> for FilterField {
                     operators: operators__.unwrap_or_default(),
                     functions: functions__.unwrap_or_default(),
                     nullable: nullable__,
+                    entity: entity__.unwrap_or_default(),
+                    name: name__.unwrap_or_default(),
+                    key: key__.unwrap_or_default(),
+                    field_kind: field_kind__.unwrap_or_default(),
+                    fields: fields__.unwrap_or_default(),
+                    quantifiers: quantifiers__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("sift.common.v1.FilterField", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FilterFieldKind {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "FILTER_FIELD_KIND_UNSPECIFIED",
+            Self::Scalar => "FILTER_FIELD_KIND_SCALAR",
+            Self::Map => "FILTER_FIELD_KIND_MAP",
+            Self::Relation => "FILTER_FIELD_KIND_RELATION",
+            Self::Directive => "FILTER_FIELD_KIND_DIRECTIVE",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for FilterFieldKind {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "FILTER_FIELD_KIND_UNSPECIFIED",
+            "FILTER_FIELD_KIND_SCALAR",
+            "FILTER_FIELD_KIND_MAP",
+            "FILTER_FIELD_KIND_RELATION",
+            "FILTER_FIELD_KIND_DIRECTIVE",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FilterFieldKind;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "FILTER_FIELD_KIND_UNSPECIFIED" => Ok(FilterFieldKind::Unspecified),
+                    "FILTER_FIELD_KIND_SCALAR" => Ok(FilterFieldKind::Scalar),
+                    "FILTER_FIELD_KIND_MAP" => Ok(FilterFieldKind::Map),
+                    "FILTER_FIELD_KIND_RELATION" => Ok(FilterFieldKind::Relation),
+                    "FILTER_FIELD_KIND_DIRECTIVE" => Ok(FilterFieldKind::Directive),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for FilterFieldType {

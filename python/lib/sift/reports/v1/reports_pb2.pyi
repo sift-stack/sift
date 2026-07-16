@@ -11,6 +11,7 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.canvas.v1.canvas_pb2
 import sift.metadata.v1.metadata_pb2
 import sys
 import typing
@@ -30,6 +31,7 @@ class _ReportTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enu
     DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
     REPORT_TYPE_UNSPECIFIED: _ReportType.ValueType  # 0
     REPORT_TYPE_RULE_EVALUATION: _ReportType.ValueType  # 1
+    REPORT_TYPE_CANVAS: _ReportType.ValueType  # 2
 
 class ReportType(_ReportType, metaclass=_ReportTypeEnumTypeWrapper):
     """ReportType discriminates the two kinds of report rows that share the unified
@@ -39,6 +41,7 @@ class ReportType(_ReportType, metaclass=_ReportTypeEnumTypeWrapper):
 
 REPORT_TYPE_UNSPECIFIED: ReportType.ValueType  # 0
 REPORT_TYPE_RULE_EVALUATION: ReportType.ValueType  # 1
+REPORT_TYPE_CANVAS: ReportType.ValueType  # 2
 global___ReportType = ReportType
 
 class _ReportRuleStatus:
@@ -88,6 +91,8 @@ class Report(google.protobuf.message.Message):
     METADATA_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     REPORT_TYPE_FIELD_NUMBER: builtins.int
+    CANVAS_EXECUTION_ID_FIELD_NUMBER: builtins.int
+    CANVAS_STATUS_FIELD_NUMBER: builtins.int
     report_id: builtins.str
     report_template_id: builtins.str
     run_id: builtins.str
@@ -105,11 +110,14 @@ class Report(google.protobuf.message.Message):
     job_id: builtins.str
     is_archived: builtins.bool
     report_type: global___ReportType.ValueType
-    """Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows.
-    For CANVAS reports, the id of the published canvas_execution this report row
+    """Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows."""
+    canvas_execution_id: builtins.str
+    """For CANVAS reports, the id of the published canvas_execution this report row
     is linked to (read-through from canvas_executions.canvas_execution_id). Empty
     for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
-    For CANVAS reports, the execution status read through from the linked
+    """
+    canvas_status: sift.canvas.v1.canvas_pb2.CanvasCellExecutionStatus.ValueType
+    """For CANVAS reports, the execution status read through from the linked
     canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
     conveyed via the per-rule `summaries` instead).
     """
@@ -150,11 +158,17 @@ class Report(google.protobuf.message.Message):
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         is_archived: builtins.bool = ...,
         report_type: global___ReportType.ValueType = ...,
+        canvas_execution_id: builtins.str | None = ...,
+        canvas_status: sift.canvas.v1.canvas_pb2.CanvasCellExecutionStatus.ValueType | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_date", b"created_date", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "report_type", b"report_type", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_canvas_execution_id", b"_canvas_execution_id", "_canvas_status", b"_canvas_status", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "canvas_execution_id", b"canvas_execution_id", "canvas_status", b"canvas_status", "created_date", b"created_date", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_canvas_execution_id", b"_canvas_execution_id", "_canvas_status", b"_canvas_status", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "canvas_execution_id", b"canvas_execution_id", "canvas_status", b"canvas_status", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "report_type", b"report_type", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_canvas_execution_id", b"_canvas_execution_id"]) -> typing.Literal["canvas_execution_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_canvas_status", b"_canvas_status"]) -> typing.Literal["canvas_status"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
     @typing.overload
@@ -190,6 +204,8 @@ class ReportWithCumulativeSummary(google.protobuf.message.Message):
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     REPORT_TYPE_FIELD_NUMBER: builtins.int
+    CANVAS_EXECUTION_ID_FIELD_NUMBER: builtins.int
+    CANVAS_STATUS_FIELD_NUMBER: builtins.int
     report_id: builtins.str
     """The unique identifier of the report."""
     report_template_id: builtins.str
@@ -213,11 +229,14 @@ class ReportWithCumulativeSummary(google.protobuf.message.Message):
     is_archived: builtins.bool
     """Whether the report has been archived."""
     report_type: global___ReportType.ValueType
-    """Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows.
-    For CANVAS reports, the id of the published canvas_execution this report row
+    """Discriminates the report kind. Defaults to RULE_EVALUATION for existing rows."""
+    canvas_execution_id: builtins.str
+    """For CANVAS reports, the id of the published canvas_execution this report row
     is linked to (read-through from canvas_executions.canvas_execution_id). Empty
     for RULE_EVALUATION reports. Used by clients to route to the canvas detail page.
-    For CANVAS reports, the execution status read through from the linked
+    """
+    canvas_status: sift.canvas.v1.canvas_pb2.CanvasCellExecutionStatus.ValueType
+    """For CANVAS reports, the execution status read through from the linked
     canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
     conveyed via the `cumulative_summary` instead).
     """
@@ -261,11 +280,17 @@ class ReportWithCumulativeSummary(google.protobuf.message.Message):
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
         report_type: global___ReportType.ValueType = ...,
+        canvas_execution_id: builtins.str | None = ...,
+        canvas_status: sift.canvas.v1.canvas_pb2.CanvasCellExecutionStatus.ValueType | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "report_type", b"report_type", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_canvas_execution_id", b"_canvas_execution_id", "_canvas_status", b"_canvas_status", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "canvas_execution_id", b"canvas_execution_id", "canvas_status", b"canvas_status", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_canvas_execution_id", b"_canvas_execution_id", "_canvas_status", b"_canvas_status", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "canvas_execution_id", b"canvas_execution_id", "canvas_status", b"canvas_status", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "cumulative_summary", b"cumulative_summary", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "report_type", b"report_type", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_canvas_execution_id", b"_canvas_execution_id"]) -> typing.Literal["canvas_execution_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_canvas_status", b"_canvas_status"]) -> typing.Literal["canvas_status"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
     @typing.overload

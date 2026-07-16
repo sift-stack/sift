@@ -19,6 +19,7 @@ import "sift/common/type/v1/resource_identifier.proto";
 import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/rules/v1;rulesv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Rule Service"}
 };
@@ -887,6 +888,17 @@ message AnnotationActionConfiguration {
   repeated sift.metadata.v1.MetadataValue metadata = 4;
 }
 
+message FamilyStatReference {
+  // How to refer to the family stat in the expression, e.g. $A
+  string reference = 1 [(google.api.field_behavior) = REQUIRED];
+  // Choose the family, e.g. Sift Rocket Engine
+  string family_id = 2 [(google.api.field_behavior) = REQUIRED];
+  // Choose the stat, e.g. TC-TURB.avg
+  string family_stat_name = 3 [(google.api.field_behavior) = REQUIRED];
+  string family_stat_expression = 4 [(google.api.field_behavior) = REQUIRED];
+  // Choose the range by name, which will be used to resolve the alignment and range, e.g. Startup +/- 5s
+  string family_stat_range_name = 5 [(google.api.field_behavior) = REQUIRED];
+}
 
 // Deprecated - use RuleEvaluationService instead.
 message EvaluateRulesRequest {

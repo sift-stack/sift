@@ -1,0 +1,1044 @@
+syntax = "proto3";
+
+package sift.families.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/v1/filter_field.proto";
+import "sift/metadata/v1/metadata.proto";
+import "sift/rules/v1/rules.proto";
+import "sift/runs/v2/runs.proto";
+
+option go_package = "azimuth/gen/protos/go/sift/families/v1;familiesv1pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Family Service"}
+};
+
+service FamilyService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to programmatically interact with family configurations."};
+
+  rpc GetFamily(GetFamilyRequest) returns (GetFamilyResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/families/{family_id}"
+      additional_bindings: {get: "/api/v1/families/client_key/{client_key}"}
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamily"
+      description: "Retrieves the latest version of a family."
+    };
+  }
+
+  rpc GetFamilies(GetFamiliesRequest) returns (GetFamiliesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/families:batchGet"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilies"
+      description: "Retrieves the latest versions of multiple families."
+    };
+  }
+
+  rpc GetFamilyVersion(GetFamilyVersionRequest) returns (GetFamilyVersionResponse) {
+    option (google.api.http) = {get: "/api/v1/families/versions/{family_version_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilyVersion"
+      description: "Retrieves a specific version of a family."
+    };
+  }
+
+  rpc CreateFamily(CreateFamilyRequest) returns (CreateFamilyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/families"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateFamily"
+      description: "Creates a new family."
+    };
+  }
+
+  rpc UpdateFamily(UpdateFamilyRequest) returns (UpdateFamilyResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/families/{family_id}"
+      body: "*"
+      additional_bindings: {
+        patch: "/api/v1/families/client_key/{client_key}"
+        body: "*"
+      }
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateFamily"
+      description: "Updates an existing family using the list of fields specified in `update_mask`."
+    };
+  }
+
+  rpc GetFamilyCandidateRuns(GetFamilyCandidateRunsRequest) returns (GetFamilyCandidateRunsResponse) {
+    option (google.api.http) = {get: "/api/v1/families/versions/{family_version_id}/candidate-runs"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilyCandidateRuns"
+      description: "Retrieves the candidate runs for a family version based on the run query stored in the family version."
+    };
+  }
+
+  rpc GetFamilyCandidateRunCount(GetFamilyCandidateRunCountRequest) returns (GetFamilyCandidateRunCountResponse) {
+    option (google.api.http) = {get: "/api/v1/families/versions/{family_version_id}/candidate-run-count"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilyCandidateRunCount"
+      description: "Returns the count of candidate runs for a family version that are not already included or excluded."
+    };
+  }
+
+  rpc ListFamilyCandidateRuns(ListFamilyCandidateRunsRequest) returns (ListFamilyCandidateRunsResponse) {
+    option (google.api.http) = {get: "/api/v1/families/candidate-runs"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListFamilyCandidateRuns"
+      description: "Lists runs that match a candidate-run CEL filter. Supports `include_archived` as a CEL directive (archived runs are excluded by default; pass `include_archived == true` in the filter to include them). When `family_id` is provided, runs already on that family's persisted membership (both included and excluded) are filtered out so the response only contains runs not yet on the family."
+    };
+  }
+
+  rpc GetFamilyCandidateRunFilterFields(GetFamilyCandidateRunFilterFieldsRequest) returns (GetFamilyCandidateRunFilterFieldsResponse) {
+    option (google.api.http) = {get: "/api/v1/families/candidate-runs:filterFields"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilyCandidateRunFilterFields"
+      description: "Returns the filter fields available to candidate-run CEL queries (the standard run filter fields plus the `include_archived` directive)."
+    };
+  }
+
+  rpc ListFamilies(ListFamiliesRequest) returns (ListFamiliesResponse) {
+    option (google.api.http) = {get: "/api/v1/families"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListFamilies"
+      description: "Retrieves families using an optional filter."
+    };
+  }
+
+  rpc ListFamilyVersions(ListFamilyVersionsRequest) returns (ListFamilyVersionsResponse) {
+    option (google.api.http) = {get: "/api/v1/families/versions"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListFamilyVersions"
+      description: "Lists all versions of a family."
+    };
+  }
+
+  rpc ListFamilyMembers(ListFamilyMembersRequest) returns (ListFamilyMembersResponse) {
+    option (google.api.http) = {get: "/api/v1/families/versions/{family_version_id}/members"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListFamilyMembers"
+      description: "Lists all members of a family version."
+    };
+  }
+
+  rpc ListFamilyAlignments(ListFamilyAlignmentsRequest) returns (ListFamilyAlignmentsResponse) {
+    option (google.api.http) = {get: "/api/v1/families/versions/{family_version_id}/alignments"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListFamilyAlignments"
+      description: "Lists all alignments for a specific family version."
+    };
+  }
+
+  rpc ListFamilyAlignmentPoints(ListFamilyAlignmentPointsRequest) returns (ListFamilyAlignmentPointsResponse) {
+    option (google.api.http) = {get: "/api/v1/families/alignments/{family_alignment_id}/points"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListFamilyAlignmentPoints"
+      description: "Lists all alignment points for a specific family version alignment."
+    };
+  }
+
+  rpc ImportFamily(ImportFamilyRequest) returns (ImportFamilyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/families:import"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ImportFamily"
+      description: "Imports a new family from YAML."
+    };
+  }
+
+  rpc ImportUpdateFamily(ImportUpdateFamilyRequest) returns (ImportUpdateFamilyResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/families/{family_id}/import-update"
+      body: "*"
+      additional_bindings: {
+        patch: "/api/v1/families/client_key/{client_key}/import-update"
+        body: "*"
+      }
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ImportUpdateFamily"
+      description: "Updates an existing family from YAML."
+    };
+  }
+
+  rpc ExportFamily(ExportFamilyRequest) returns (ExportFamilyResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/families/{family_id}/export"
+      additional_bindings: {get: "/api/v1/families/client_key/{client_key}/export"}
+      additional_bindings: {get: "/api/v1/families/versions/{family_version_id}/export"}
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ExportFamily"
+      description: "Exports a family to YAML."
+    };
+  }
+
+  rpc ValidateFamilyName(ValidateFamilyNameRequest) returns (ValidateFamilyNameResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/families:validateFamilyName"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ValidateFamilyName"
+      description: "Used to validate whether or not a family name is valid."
+    };
+  }
+
+  rpc ValidateFamilyClientKey(ValidateFamilyClientKeyRequest) returns (ValidateFamilyClientKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/families:validateClientKey"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ValidateFamilyClientKey"
+      description: "Used to validate whether or not a client key is valid."
+    };
+  }
+
+  rpc GetFamilyStat(GetFamilyStatRequest) returns (GetFamilyStatResponse) {
+    option (google.api.http) = {get: "/api/v1/family_stats/{family_stat_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilyStat"
+      description: "Retrieves a family stat configuration."
+    };
+  }
+
+  rpc GetFamilyStats(GetFamilyStatsRequest) returns (GetFamilyStatsResponse) {
+    option (google.api.http) = {get: "/api/v1/family_stats/{family_version_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilyStats"
+      description: "Retrieves family stats configurations for a family version."
+    };
+  }
+
+  rpc CreateFamilyStatRanges(CreateFamilyStatRangesRequest) returns (CreateFamilyStatRangesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family_stats/create-ranges"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateFamilyStatRanges"
+      description: "Creates family stat ranges for existing family stats (within a given family)."
+    };
+  }
+
+  rpc GetFamilyRuleDependencies(GetFamilyRuleDependenciesRequest) returns (GetFamilyRuleDependenciesResponse) {
+    option (google.api.http) = {get: "/api/v1/families/{family_id}/rule-dependencies"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetFamilyRuleDependencies"
+      description: "Retrieves all rules that reference the specified family across any of its stats."
+    };
+  }
+
+  rpc GenerateFamilyStatRangeName(GenerateFamilyStatRangeNameRequest) returns (GenerateFamilyStatRangeNameResponse) {
+    option (google.api.http) = {post: "/api/v1/families/stat-range/name"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GenerateFamilyStatRangeName"
+      description: "Derives a name for a family range based on the range configuration. Nothing is persisted to the database."
+    };
+  }
+}
+
+enum TimeRangeBound {
+  TIME_RANGE_BOUND_UNSPECIFIED = 0 [deprecated = true];
+  TIME_RANGE_BOUND_START = 1;
+  TIME_RANGE_BOUND_END = 2;
+}
+
+enum AnnotationOccurrence {
+  ANNOTATION_OCCURRENCE_UNSPECIFIED = 0 [deprecated = true];
+  ANNOTATION_OCCURRENCE_FIRST = 1;
+  ANNOTATION_OCCURRENCE_LAST = 2;
+  ANNOTATION_OCCURRENCE_EVERY = 3;
+  ANNOTATION_OCCURRENCE_NTH = 4;
+}
+
+message Family {
+  string family_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // Client key is a user-provided unique identifier for the family
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+  // The latest family_version_id for the family.
+  string current_version_id = 3 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // Whether the family is archived.
+  bool is_archived = 4 [(google.api.field_behavior) = REQUIRED];
+
+  google.protobuf.Timestamp created_date = 5 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp modified_date = 6 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp archived_date = 7 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = OPTIONAL
+  ];
+  string created_by_user_id = 8 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string modified_by_user_id = 9 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string organization_id = 10 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+}
+
+message FamilyVersion {
+  string family_version_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string family_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  uint32 version = 3 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The name of the family. Must be unique within the organization for the latest family versions.
+  string name = 4 [(google.api.field_behavior) = REQUIRED];
+  string description = 5 [(google.api.field_behavior) = OPTIONAL];
+  // An optional query to track a CEL expression against the ListRuns endpoint. This query is only for reference,
+  // and does not affect the runs that are included in the family. To specify which runs are included in the family,
+  // use the `runs` field.
+  string run_query = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // Notes provided by the user to describe the family version changes
+  string user_notes = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // Family Service provided message describing the changes made to the family version.
+  string change_message = 8 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // Metadata associated with the family version.
+  repeated sift.metadata.v1.MetadataValue metadata = 9 [(google.api.field_behavior) = OPTIONAL];
+
+  // User-configurable default sigma multiplier values, e.g. [1, 2, 3].
+  // If not provided, the default values [-1, 1, -2, 2, -3, 3] will be used.
+  repeated double sigma_default_values = 10 [(google.api.field_behavior) = OPTIONAL];
+
+  google.protobuf.Timestamp created_date = 11 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp modified_date = 12 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string created_by_user_id = 13 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string modified_by_user_id = 14 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string organization_id = 15 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+}
+
+// FamilyRun represents a run which is either included in the family or explicitly excluded.
+message FamilyRun {
+  string family_run_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string family_version_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string run_id = 3 [(google.api.field_behavior) = REQUIRED];
+  // Whether the run is excluded from the family. If `true` the run is explicitly excluded, otherwise it is included.
+  bool is_exclusion = 4 [(google.api.field_behavior) = OPTIONAL];
+  // User rationale for the inclusion or exclusion.
+  string rationale = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Date when the run was included or excluded from the family.
+  google.protobuf.Timestamp added_date = 6 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // User id of the user who included or excluded the run from the family.
+  string added_by_user_id = 7 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // Version id of the version in which the run was included or excluded from the family.
+  string added_in_version_id = 8 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+}
+
+// FamilyAlignment represents a family-level time-alignment for naming and resolving run relative times.
+message FamilyAlignment {
+  // When creating a family, this field can contain a temporary identifier
+  // provided by the client for referencing this alignment in family_stats. The temporary ID
+  // must be unique within the CreateFamilyRequest and is required when this alignment is
+  // referenced in family_stats. The service will resolve it to the actual alignment ID.
+  // When updating a family, this field must contain the actual family_alignment_id.
+  // In responses, this field contains the actual family_alignment_id.
+  string family_alignment_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string family_version_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The name of the alignment. Must be unique within the family.
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  // The default alignment defines the behavior to look up alignment points when adding a new run to the family.
+  oneof default_alignment {
+    RunAlignment run = 5;
+    DefaultAnnotationAlignment annotation = 6;
+    TimestampAlignment timestamp = 7;
+  }
+  // Specific alignment points for each family member for the alignment. If not provided for a family member, the member does not implement this alignment.
+  repeated FamilyAlignmentPoint family_alignment_points = 8 [(google.api.field_behavior) = REQUIRED];
+}
+
+// FamilyAlignmentPoint represents a member specific time-alignment for the FamilyAlignment.
+message FamilyAlignmentPoint {
+  // When creating a family, this field can contain a temporary identifier
+  // provided by the client for referencing this alignment point in family_stats. The temporary ID
+  // must be unique within the CreateFamilyRequest and is required when this alignment point is
+  // referenced in family_stats. The service will resolve it to the actual alignment_point_id.
+  // When updating a family, this field must contain the actual family_alignment_point_id.
+  // In responses, this field contains the actual family_alignment_point_id.
+  // Can be empty string if not referenced in family_stats.
+  string family_alignment_point_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string family_run_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string run_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string family_alignment_id = 4 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The alignment configuration for the family member.
+  oneof alignment {
+    RunAlignment run = 5;
+    AnnotationAlignment annotation = 6;
+    TimestampAlignment timestamp = 7;
+  }
+}
+
+message RunAlignment {
+  TimeRangeBound bound = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DefaultAnnotationAlignment {
+  string annotation_name = 1 [(google.api.field_behavior) = REQUIRED];
+  TimeRangeBound bound = 2 [(google.api.field_behavior) = REQUIRED];
+  AnnotationOccurrence occurrence = 3 [(google.api.field_behavior) = REQUIRED];
+  // Index of the annotation to use when occurrence is "nth". Positive indices start from the beginning, negative from the end.
+  int32 occurrence_index = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message TimestampAlignment {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message AnnotationAlignment {
+  string annotation_id = 1 [(google.api.field_behavior) = REQUIRED];
+  TimeRangeBound bound = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// FamilyDetails provides the entire family configuration including version, members, and alignments
+
+message FamilyDetails {
+  Family family = 1 [(google.api.field_behavior) = REQUIRED];
+  // The requested FamilyVersion for the family. Matches the current version unless a specific version is requested.
+  FamilyVersion family_version = 2 [(google.api.field_behavior) = REQUIRED];
+  // The family members associated with the FamilyVersion.
+  repeated FamilyRun family_runs = 3 [(google.api.field_behavior) = REQUIRED];
+  // The alignments associated with the FamilyVersion.
+  repeated FamilyAlignment family_alignments = 4 [(google.api.field_behavior) = REQUIRED];
+  // The family stats associated with the FamilyVersion.
+  repeated FamilyStatDetails family_stats = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GetFamilyRequest {
+  oneof family_identifier {
+    string family_id = 1;
+    string client_key = 2;
+  }
+}
+
+message GetFamilyResponse {
+  FamilyDetails family = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamiliesRequest {
+  repeated string family_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+  repeated string client_keys = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GetFamiliesResponse {
+  repeated FamilyDetails families = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyVersionRequest {
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyVersionResponse {
+  FamilyDetails family = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListFamiliesRequest {
+  // The maximum number of families to return. The service may return fewer than this value, even if
+  // there are additional pages. If unspecified, the limit defaults to 50. The maximum value is 100.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListFamilies` call. Provide this to retrieve the
+  // subsequent page. When paginating, all other parameters provided to `ListFamilies` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are: `family_id`, `client_key`, `organization_id`, `archived_date`, `is_archived`, `created_by_user_id`, `created_date`, `modified_by_user_id`, `modified_date`, `name`, `description`, `run_query`, `run_id_includes`, `run_id_excludes`, `alignment_name`, `alignment_description`, `metadata`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved families. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are: `created_date`, `modified_date`, `archived_date`.
+  // If left empty, items are ordered by `created_date` in descending order.
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamiliesResponse {
+  repeated ListFamily families = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A token, which can be sent as `page_token` to retrieve the next page. If this field is omitted, there are no subsequent pages.
+  string next_page_token = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListFamily {
+  Family family = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The latest family version associated with the Family.
+  FamilyVersion family_version = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+}
+
+message CreateFamilyRequest {
+  // Family level information about the family such as archival status and client_key are set in the Family.
+  Family family = 1 [(google.api.field_behavior) = REQUIRED];
+  // Version specific information about the family such as name, description, metadata, etc. are set in the FamilyVersion.
+  FamilyVersion family_version = 2 [(google.api.field_behavior) = REQUIRED];
+  // The runs to include in the family. At least one run must be specified.
+  repeated FamilyRun family_runs = 3 [(google.api.field_behavior) = REQUIRED];
+  // The alignments to apply to the family. If not provided, a default alignment will be created for the Family.
+  repeated FamilyAlignment family_alignments = 4 [(google.api.field_behavior) = OPTIONAL];
+  // The family stats to create for the family. If not provided, no family stats will be created.
+  repeated FamilyStatDetails family_stats = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message CreateFamilyResponse {
+  string family_id = 1 [(google.api.field_behavior) = REQUIRED];
+  FamilyDetails family = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateFamilyRequest {
+  // Provide either the family_id or client_key to identify the family to update.
+  oneof family_identifier {
+    string family_id = 1;
+    string client_key = 2;
+  }
+
+  // The family data to update. Only fields referenced in the update_mask will be updated.
+  FamilyDetails family = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to update. The fields available to be updated are
+  // `family_version.name`, `family_version.description`, `family_version.run_query`, `family_version.metadata`, `family_version.user_notes`, `family.is_archived`, `family.client_key`, `family_runs`, `family_alignments`, and `family_stats`.
+
+  // Note: Whenever the family is updated, the family stats are also updated to point to the new family version to ensure the family stats are always up to date.
+  // client_key can only be updated if it is not already set. It must be passed in via the family request and cannot be used as identifier.
+  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateFamilyResponse {
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+  FamilyDetails family = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated FamilyStatDetails family_stats = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyVersionsRequest {
+  // The maximum number of family versions to return. The service may return fewer than this value, even if
+  // there are additional pages. If unspecified, the max limit defaults to 50. The maximum value is 200.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are: `family_id`, `family_version_id`, `organization_id`, `name`, `description`, `run_query`, `user_notes`, `change_message`, `created_by_user_id`, `created_date`, `modified_by_user_id`, `modified_date`, `archived_date`, `is_archived`, `run_id_includes`, `run_id_excludes`, `alignment_name`, `alignment_description`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListFamilyVersions` call. Provide this to retrieve the
+  // subsequent page. When paginating, all other parameters provided to `ListFamilyVersions` must match
+  // the call that provided the page token.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved family versions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are: `created_date`, `modified_date`, `name`.
+  // If left empty, items are ordered by `created_date` in descending order.
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyVersionsResponse {
+  repeated FamilyVersion family_versions = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A token, which can be sent as `page_token` to retrieve the next page. If this field is omitted, there are no subsequent pages.
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyMembersRequest {
+  // Provide family_version_id to identify the family to list members for.
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of family members to return. The service may return fewer than this value, even if
+  // there are additional pages. If unspecified, the max limit defaults to 200. The maximum value is 500.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are: `is_exclusion`, `rationale`, `added_date`, `added_by_user_id`, `added_in_version_id`, and for the associated Run:`name`, `description`, `start_time`, `end_time`, `duration`.
+  // Note: `name`, `description`, `start_time`, `end_time`, and `duration` are filters on the associated run.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListFamilyMembers` call. Provide this to retrieve the
+  // subsequent page. When paginating, all other parameters provided to `ListFamilyMembers` must match
+  // the call that provided the page token.
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyMembersResponse {
+  repeated FamilyRun family_runs = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A token, which can be sent as `page_token` to retrieve the next page. If this field is omitted, there are no subsequent pages.
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyAlignmentsRequest {
+  // Provide family_id to identify the family to list alignments.
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of family version alignments to return. The service may return fewer than this value, even if
+  // there are additional pages. If unspecified, the limit defaults to 200. The maximum value is 1000.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are: `name`, `description`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListFamilyAlignments` call. Provide this to retrieve the
+  // subsequent page. When paginating, all other parameters provided to `ListFamilyAlignments` must match
+  // the call that provided the page token.
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyAlignmentsResponse {
+  repeated FamilyAlignment family_alignments = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A token, which can be sent as `page_token` to retrieve the next page. If this field is omitted, there are no subsequent pages.
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyAlignmentPointsRequest {
+  // Provide family_alignment_id to identify the family to list alignments points.
+  string family_alignment_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of family version alignment points to return. The service may return fewer than this value, even if
+  // there are additional pages. If unspecified, the limit defaults to 200. The maximum value is 1000.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are: `family_run_id`, and for the associated Run: `name`, `description`, `start_time`, `end_time`, `duration`.
+  // Note: `name`, `description`, `start_time`, `end_time`, and `duration` are filters on the associated run.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListFamilyAlignmentPoints` call. Provide this to retrieve the
+  // subsequent page. When paginating, all other parameters provided to `ListFamilyAlignmentPoints` must match
+  // the call that provided the page token.
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListFamilyAlignmentPointsResponse {
+  repeated FamilyAlignmentPoint family_alignment_points = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A token, which can be sent as `page_token` to retrieve the next page. If this field is omitted, there are no subsequent pages.
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ImportFamilyRequest {
+  // The source to import the family from. Must provide family_yaml. The contents of the source
+  // should match the shape of CreateFamilyRequest
+  string family_yaml = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ImportFamilyResponse {
+  string family_id = 1 [(google.api.field_behavior) = REQUIRED];
+  FamilyDetails family = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ImportUpdateFamilyRequest {
+  // Provide either the family_id or client_key to identify the family to update.
+  oneof family_identifier {
+    string family_id = 1;
+    string client_key = 2;
+  }
+
+  // The source to update the family from. Must provide family_yaml. The contents of the source
+  // should match the shape of UpdateFamilyRequest FamilyDetails. The update_mask is optional and defaults to updating provided fields.
+  string family_yaml = 3 [(google.api.field_behavior) = REQUIRED];
+  // See UpdateFamilyRequest
+  google.protobuf.FieldMask update_mask = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ImportUpdateFamilyResponse {
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+  FamilyDetails family = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ExportFamilyRequest {
+  // Provide either the family_id, client_key, or family_version_id to export. Export format is a YAML string.
+  oneof family_identifier {
+    string family_id = 1;
+    string client_key = 2;
+    string family_version_id = 3;
+  }
+}
+
+message ExportFamilyResponse {
+  string exported_family = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ValidateFamilyNameRequest {
+  string family_name = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ValidateFamilyNameResponse {
+  oneof result {
+    bool success = 1;
+    string error_message = 2;
+  }
+}
+
+message ValidateFamilyClientKeyRequest {
+  string client_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ValidateFamilyClientKeyResponse {
+  oneof result {
+    bool success = 1;
+    string error_message = 2;
+  }
+}
+
+// ----------------------
+// Family Stats
+// ----------------------
+
+message FamilyStat {
+  string family_stat_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The family version id of the family stat.
+  string family_version_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The name of the family stat.
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  // The description of the family stat.
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  // The sample rate of the family stat (Hz).
+  double sample_rate = 5 [(google.api.field_behavior) = REQUIRED];
+  // Ordered list of channel names to include in the family stat.
+  // The first channel name is the primary channel name across all the family members.
+  // The remaining channel names are fallback channels or individual overrides when the primary channel
+  // is not available across all the family members.
+  repeated string default_channel_names = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 7 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp modified_date = 8 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string created_by_user_id = 9 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string modified_by_user_id = 10 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string organization_id = 11 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+}
+
+message FamilyStatExpression {
+  string family_stat_expression_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string family_stat_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The statistical expression to apply to the channels in the family stat.
+  // The expression can be any of the following: AVG, MEDIAN, MIN, MAX, STDEV, SUM, INPUT_COUNT, SIGMA.
+  // SIGMA is auto-managed by the backend: it is created only when both AVG and STDEV are present,
+  // and fails when either is absent.
+  oneof expression {
+    google.protobuf.Empty avg = 3;
+    google.protobuf.Empty median = 4;
+    google.protobuf.Empty min = 5;
+    google.protobuf.Empty max = 6;
+    google.protobuf.Empty stdev = 7;
+    google.protobuf.Empty sum = 8;
+    google.protobuf.Empty input_count = 9;
+    google.protobuf.Empty sigma = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  }
+}
+
+message FamilyStatChannel {
+  string family_stat_channel_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string family_stat_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The channel id of the channel to include in the family stat given the list of channel names provided in the family stat.
+  string channel_id = 3 [(google.api.field_behavior) = REQUIRED];
+  // Specific alignment point id of the family member / channel to include in the family stat.
+  // When creating a family stat with a new Family, this field should contain the temporary_id
+  // from FamilyAlignmentPoint.family_alignment_point_id. The service will resolve it to the actual alignment_point_id.
+  // When updating a family stat, this field must contain the actual alignment_point_id.
+  // This will be prevalent when multiple alignment points are supported for a given family member.
+  string alignment_point_id = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+// WindowType represents a window boundary that can be either an alignment ID or a duration.
+message WindowType {
+  // Alignment ID to use as the window boundary.
+  // When creating a family stat with a new Family, this field should contain the temporary_id
+  // from FamilyAlignment.family_alignment_id. Default to the window's T-0 alignment.
+  // The service will resolve it to the actual alignment ID.
+  // When updating a family stat, this field must contain the actual family_alignment_id.
+  string family_alignment_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  // Duration relative to the alignment used to compare the data. Defaults to 0 seconds.
+  google.protobuf.Duration duration = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message FamilyStatRange {
+  string family_stat_range_id = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string family_stat_id = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // T-0 Alignment ID to align the data for stat calculation.
+  // When creating a family stat with a new Family, this field should contain the temporary_id
+  // from FamilyAlignment.family_alignment_id. The service will resolve it to the actual alignment ID.
+  // When updating a family stat, this field must contain the actual family_alignment_id.
+  string family_alignment_id = 3 [(google.api.field_behavior) = REQUIRED];
+  // Unique name for the family stat range.
+  string name = 4 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  // The start of the window for the stat calculation.
+  // The start is an alignment ID and a duration relative to the alignment.
+  // Defaults to T-0 alignment and 0 seconds.
+  optional WindowType window_start = 5 [(google.api.field_behavior) = OPTIONAL];
+  // The end of the window for the stat calculation.
+  // The end is an alignment ID and a duration relative to the alignment.
+  // Defaults to T-0 alignment and 0 seconds. However, window end must be after window start.
+  // Service provides basic validation: if window_start.family_alignment_id = window_end.family_alignment_id, then window_start.duration < window_end.duration.
+  optional WindowType window_end = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message FamilyStatDetails {
+  FamilyStat family_stat = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated FamilyStatExpression family_stat_expressions = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated FamilyStatChannel family_stat_channels = 3 [(google.api.field_behavior) = OPTIONAL];
+  repeated FamilyStatRange family_stat_ranges = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyStatRequest {
+  string family_stat_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyStatResponse {
+  FamilyStatDetails family_stat_details = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyStatsRequest {
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyStatsResponse {
+  repeated FamilyStatDetails family_stats_details = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateFamilyStatRangesRequest {
+  repeated string family_stat_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated FamilyStatRange family_stat_ranges = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateFamilyStatRangesResponse {
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+  FamilyDetails family = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated FamilyStatDetails family_stats = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyRuleDependenciesRequest {
+  string family_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyRuleDependenciesResponse {
+  repeated FamilyRuleDependency rule_dependencies = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message FamilyRuleDependency {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  sift.rules.v1.FamilyStatReference stat_reference = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+// AbstractWindowType represents a window boundary that is agnostic of the alignment ID.
+message AbstractWindowType {
+  string family_alignment_name = 1 [(google.api.field_behavior) = OPTIONAL];
+  // Duration relative to the alignment used to compare the data. Defaults to 0 seconds.
+  google.protobuf.Duration duration = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message GenerateFamilyStatRangeNameRequest {
+  string family_alignment_name = 1 [(google.api.field_behavior) = REQUIRED];
+  AbstractWindowType window_start = 2 [(google.api.field_behavior) = REQUIRED];
+  AbstractWindowType window_end = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GenerateFamilyStatRangeNameResponse {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyCandidateRunsRequest {
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyCandidateRunsResponse {
+  string run_query = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated string candidate_run_ids = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyCandidateRunCountRequest {
+  string family_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetFamilyCandidateRunCountResponse {
+  uint32 count = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Request for `FamilyService.ListFamilyCandidateRuns`.
+//
+// The CEL filter supports the standard run filter fields plus an
+// `include_archived` directive. Archived runs are excluded by default; pass
+// `include_archived == true` in the filter to include them.
+//
+// When `family_id` is set, the server filters out runs already on that
+// family's persisted membership (both included and excluded entries) so the
+// response only contains runs not yet on the family. Clients editing an
+// unsaved draft of family membership should omit `family_id` and apply their
+// own draft-aware filtering, since the persisted membership does not reflect
+// the draft state.
+message ListFamilyCandidateRunsRequest {
+  // The maximum number of runs to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 runs will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Supports all ListRuns filter fields plus `include_archived`.
+  // When `include_archived` is not present in the filter, archived runs are excluded by default.
+  // Set `include_archived == true` in the filter to include archived runs.
+  // Note: `include_archived` is a directive and must appear at the top level of the filter
+  // (or within a top-level AND chain). It cannot be used inside an OR expression.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved runs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `name`, `description`, `created_date`, `modified_date`, `start_time`, and `stop_time`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional family ID to filter out runs already on the family's persisted membership.
+  // When set, the response excludes runs that are already included or excluded in the family.
+  // Omit this field when working with draft membership changes.
+  string family_id = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+message ListFamilyCandidateRunsResponse {
+  repeated sift.runs.v2.Run runs = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+message GetFamilyCandidateRunFilterFieldsRequest {}
+
+message GetFamilyCandidateRunFilterFieldsResponse {
+  repeated sift.common.v1.FilterField filter_fields = 1;
+}

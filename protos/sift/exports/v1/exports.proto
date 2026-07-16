@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/calculated_channels/v2/calculated_channels.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/exports/v1;exportsv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Exports service"}
 };
@@ -93,6 +94,10 @@ message ExportOptions {
   bool split_export_by_asset = 4;
   // Split each run into their own export file
   bool split_export_by_run = 5;
+  // Embeds a re-importable channel configuration into the export: for CSV, as a config row
+  // inserted immediately after the header row; for Parquet, as per-column field metadata
+  // under the "sift_channel_config" key. Ignored for the SUN output format.
+  bool embed_channel_configs = 6;
 }
 
 message ExportDataResponse {

@@ -8,6 +8,7 @@ import "google/protobuf/field_mask.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/roles/v2/roles.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/user_groups/v2;usergroupsv2pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "User Group Service"}
 };
@@ -99,15 +100,11 @@ message UserGroup {
   string role_id = 3 [(google.api.field_behavior) = OPTIONAL];
   bool is_default = 4 [(google.api.field_behavior) = REQUIRED];
   message Resource {
-    repeated string asset_ids = 1 [
-      (google.api.field_behavior) = OPTIONAL
-    ];
+    repeated string asset_ids = 1 [(google.api.field_behavior) = OPTIONAL];
     bool all_assets = 2 [(google.api.field_behavior) = REQUIRED];
   }
   Resource resources = 6 [(google.api.field_behavior) = OPTIONAL];
-  repeated string user_ids = 7 [
-    (google.api.field_behavior) = OPTIONAL
-  ];
+  repeated string user_ids = 7 [(google.api.field_behavior) = OPTIONAL];
   bool is_external = 8 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -173,9 +170,7 @@ message UpdateUserGroupRequest {
   UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The list of fields to update.
-  google.protobuf.FieldMask update_mask = 2 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UpdateUserGroupResponse {
@@ -183,39 +178,27 @@ message UpdateUserGroupResponse {
 }
 
 message DeleteUserGroupRequest {
-  string user_group_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message DeleteUserGroupResponse {}
 
 message AddUserToUserGroupRequest {
-  string user_group_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
-  string user_id = 2 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message AddUserToUserGroupResponse {}
 
 message RemoveUserFromUserGroupRequest {
-  string user_group_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
-  string user_id = 2 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message RemoveUserFromUserGroupResponse {}
 
 message GetUserGroupsForAssetsRequest {
-  repeated string asset_ids = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string asset_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetUserGroupsForAssetsResponse {

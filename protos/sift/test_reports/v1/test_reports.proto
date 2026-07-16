@@ -10,6 +10,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/metadata/v1/metadata.proto";
 import "sift/unit/v2/unit.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/test_reports/v1;test_reportsv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Test Results Service"}
 };

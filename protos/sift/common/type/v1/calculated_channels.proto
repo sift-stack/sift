@@ -4,10 +4,9 @@ package sift.common.type.v1;
 
 import "google/api/field_behavior.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/common/type/v1;typev1pb";
 
 // A dependency on another calculated channel.
 message CalculatedChannelDependency {
-  string calculated_channel_version_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string calculated_channel_version_id = 1 [(google.api.field_behavior) = REQUIRED];
 }

@@ -8,6 +8,7 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/policies/v1;policiesv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Policy Service"}
 };
@@ -96,9 +97,7 @@ service PolicyService {
 }
 
 message Policy {
-  string policy_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string policy_id = 1 [(google.api.field_behavior) = REQUIRED];
   string name = 2 [(google.api.field_behavior) = REQUIRED];
   optional string description = 3 [(google.api.field_behavior) = OPTIONAL];
   string organization_id = 4 [
@@ -158,9 +157,7 @@ message PolicyConfiguration {
 
 // The request for a call to `PolicyService_GetPolicy`.
 message GetPolicyRequest {
-  string policy_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string policy_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `PolicyService_GetPolicy`.
@@ -248,9 +245,7 @@ message ValidatePolicyResponse {
 
 // The request for a call to `PolicyService_ArchivePolicy` to archive a policy.
 message ArchivePolicyRequest {
-  string policy_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string policy_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `PolicyService_ArchivePolicy`.
@@ -260,9 +255,7 @@ message ArchivePolicyResponse {
 
 // The request for a call to `PolicyService_UnarchivePolicy` to unarchive a previously-archived policy.
 message UnarchivePolicyRequest {
-  string policy_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string policy_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `PolicyService_UnarchivePolicy`.
