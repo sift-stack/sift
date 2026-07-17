@@ -56,8 +56,13 @@ mypy-win:
 pyright:
     uv run pyright lib
 
+# (internal) Ensure the dev-all environment is present. A bare `uv sync` prunes
+# these extras, which would make the checks below fail with "command not found".
+_sync-dev:
+    uv sync --extra dev-all --quiet
+
 # Run lint-fix, fmt, mypy, mypy-win, pyright sequentially
-check: lint-fix fmt mypy mypy-win pyright
+check: _sync-dev lint-fix fmt mypy mypy-win pyright
 
 # Execute non-integration tests against the project's Python
 test:
