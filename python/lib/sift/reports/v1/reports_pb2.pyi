@@ -12,6 +12,7 @@ import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
 import sift.canvas.v1.canvas_pb2
+import sift.families.v1.families_pb2
 import sift.metadata.v1.metadata_pb2
 import sys
 import typing
@@ -318,6 +319,8 @@ class ReportRuleSummary(google.protobuf.message.Message):
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     ASSET_ID_FIELD_NUMBER: builtins.int
     DELETED_DATE_FIELD_NUMBER: builtins.int
+    RESOLVED_FAMILY_STATS_FIELD_NUMBER: builtins.int
+    RESOLVED_ALIGNMENT_CONFIGS_FIELD_NUMBER: builtins.int
     DISPLAY_ORDER_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_client_key: builtins.str
@@ -341,6 +344,10 @@ class ReportRuleSummary(google.protobuf.message.Message):
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def deleted_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def resolved_family_stats(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ResolvedFamilyStat]: ...
+    @property
+    def resolved_alignment_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ResolvedAlignmentEntry]: ...
     def __init__(
         self,
         *,
@@ -358,10 +365,12 @@ class ReportRuleSummary(google.protobuf.message.Message):
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         asset_id: builtins.str = ...,
         deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        resolved_family_stats: collections.abc.Iterable[global___ResolvedFamilyStat] | None = ...,
+        resolved_alignment_configs: collections.abc.Iterable[global___ResolvedAlignmentEntry] | None = ...,
         display_order: builtins.int = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "status_details", b"status_details"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "display_order", b"display_order", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "display_order", b"display_order", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "resolved_alignment_configs", b"resolved_alignment_configs", "resolved_family_stats", b"resolved_family_stats", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
 
 global___ReportRuleSummary = ReportRuleSummary
 
@@ -446,6 +455,92 @@ class ReportCumulativeRuleSummary(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["num_annotations_failed", b"num_annotations_failed", "num_annotations_open", b"num_annotations_open", "num_annotations_passed", b"num_annotations_passed", "num_annotations_total", b"num_annotations_total", "num_of_rules_without_annotations", b"num_of_rules_without_annotations", "num_rules_canceled", b"num_rules_canceled", "num_rules_created", b"num_rules_created", "num_rules_error", b"num_rules_error", "num_rules_failed", b"num_rules_failed", "num_rules_finished", b"num_rules_finished", "num_rules_live", b"num_rules_live", "num_rules_total", b"num_rules_total"]) -> None: ...
 
 global___ReportCumulativeRuleSummary = ReportCumulativeRuleSummary
+
+@typing.final
+class ResolvedFamilyStat(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REFERENCE_FIELD_NUMBER: builtins.int
+    FAMILY_ID_FIELD_NUMBER: builtins.int
+    FAMILY_VERSION_ID_FIELD_NUMBER: builtins.int
+    FAMILY_STAT_EXPRESSION_ID_FIELD_NUMBER: builtins.int
+    FAMILY_STAT_RANGE_ID_FIELD_NUMBER: builtins.int
+    reference: builtins.str
+    family_id: builtins.str
+    family_version_id: builtins.str
+    family_stat_expression_id: builtins.str
+    family_stat_range_id: builtins.str
+    def __init__(
+        self,
+        *,
+        reference: builtins.str = ...,
+        family_id: builtins.str = ...,
+        family_version_id: builtins.str = ...,
+        family_stat_expression_id: builtins.str = ...,
+        family_stat_range_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["family_id", b"family_id", "family_stat_expression_id", b"family_stat_expression_id", "family_stat_range_id", b"family_stat_range_id", "family_version_id", b"family_version_id", "reference", b"reference"]) -> None: ...
+
+global___ResolvedFamilyStat = ResolvedFamilyStat
+
+@typing.final
+class ResolvedAlignmentEntry(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
+    T0_FIELD_NUMBER: builtins.int
+    START_TIME_FIELD_NUMBER: builtins.int
+    END_TIME_FIELD_NUMBER: builtins.int
+    @property
+    def channel_references(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def t0(self) -> global___ResolvedAlignmentPoint: ...
+    @property
+    def start_time(self) -> global___ResolvedAlignmentPoint: ...
+    @property
+    def end_time(self) -> global___ResolvedAlignmentPoint: ...
+    def __init__(
+        self,
+        *,
+        channel_references: collections.abc.Iterable[builtins.str] | None = ...,
+        t0: global___ResolvedAlignmentPoint | None = ...,
+        start_time: global___ResolvedAlignmentPoint | None = ...,
+        end_time: global___ResolvedAlignmentPoint | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["end_time", b"end_time", "start_time", b"start_time", "t0", b"t0"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "end_time", b"end_time", "start_time", b"start_time", "t0", b"t0"]) -> None: ...
+
+global___ResolvedAlignmentEntry = ResolvedAlignmentEntry
+
+@typing.final
+class ResolvedAlignmentPoint(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TIMESTAMP_FIELD_NUMBER: builtins.int
+    RUN_FIELD_NUMBER: builtins.int
+    ANNOTATION_FIELD_NUMBER: builtins.int
+    TIMESTAMP_CONFIG_FIELD_NUMBER: builtins.int
+    @property
+    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def run(self) -> sift.families.v1.families_pb2.RunAlignment: ...
+    @property
+    def annotation(self) -> sift.families.v1.families_pb2.AnnotationAlignment: ...
+    @property
+    def timestamp_config(self) -> sift.families.v1.families_pb2.TimestampAlignment: ...
+    def __init__(
+        self,
+        *,
+        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        run: sift.families.v1.families_pb2.RunAlignment | None = ...,
+        annotation: sift.families.v1.families_pb2.AnnotationAlignment | None = ...,
+        timestamp_config: sift.families.v1.families_pb2.TimestampAlignment | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["alignment_config", b"alignment_config", "annotation", b"annotation", "run", b"run", "timestamp", b"timestamp", "timestamp_config", b"timestamp_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["alignment_config", b"alignment_config", "annotation", b"annotation", "run", b"run", "timestamp", b"timestamp", "timestamp_config", b"timestamp_config"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["alignment_config", b"alignment_config"]) -> typing.Literal["run", "annotation", "timestamp_config"] | None: ...
+
+global___ResolvedAlignmentPoint = ResolvedAlignmentPoint
 
 @typing.final
 class ReportRuleStatusDetails(google.protobuf.message.Message):

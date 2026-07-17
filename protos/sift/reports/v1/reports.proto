@@ -8,6 +8,7 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/canvas/v1/canvas.proto";
+import "sift/families/v1/families.proto";
 import "sift/metadata/v1/metadata.proto";
 
 option go_package = "azimuth/gen/protos/go/sift/reports/v1;reportsv1pb";
@@ -219,6 +220,8 @@ message ReportRuleSummary {
   google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
   string asset_id = 13 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp deleted_date = 14 [(google.api.field_behavior) = OPTIONAL];
+  repeated ResolvedFamilyStat resolved_family_stats = 15 [(google.api.field_behavior) = OPTIONAL];
+  repeated ResolvedAlignmentEntry resolved_alignment_configs = 16 [(google.api.field_behavior) = OPTIONAL];
   // Zero-based position of this rule line on the report. Copied from the report template rule's `display_order`, or from the
   // position of `rule_id` in `CreateReportRequestRuleIds.rule_ids` when creating from explicit rule IDs. Lower values run first.
   uint32 display_order = 17 [(google.api.field_behavior) = REQUIRED];
@@ -258,6 +261,30 @@ message ReportCumulativeRuleSummary {
   uint32 num_rules_total = 11 [(google.api.field_behavior) = REQUIRED];
   // Number of finished rule versions that produced no annotations.
   uint32 num_of_rules_without_annotations = 12 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ResolvedFamilyStat {
+  string reference = 1 [(google.api.field_behavior) = REQUIRED];
+  string family_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string family_version_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string family_stat_expression_id = 4 [(google.api.field_behavior) = REQUIRED];
+  string family_stat_range_id = 5 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ResolvedAlignmentEntry {
+  repeated string channel_references = 1;
+  ResolvedAlignmentPoint t0 = 2;
+  ResolvedAlignmentPoint start_time = 3;
+  ResolvedAlignmentPoint end_time = 4;
+}
+
+message ResolvedAlignmentPoint {
+  google.protobuf.Timestamp timestamp = 1;
+  oneof alignment_config {
+    sift.families.v1.RunAlignment run = 3;
+    sift.families.v1.AnnotationAlignment annotation = 4;
+    sift.families.v1.TimestampAlignment timestamp_config = 5;
+  }
 }
 
 enum ReportRuleStatus {

@@ -10,7 +10,8 @@ import (
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	timestamppb1 "github.com/planetscale/vtprotobuf/types/known/timestamppb"
 	v1 "github.com/sift-stack/sift/go/gen/sift/common/type/v1"
-	v11 "github.com/sift-stack/sift/go/gen/sift/rules/v1"
+	v11 "github.com/sift-stack/sift/go/gen/sift/families/v1"
+	v12 "github.com/sift-stack/sift/go/gen/sift/rules/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -48,6 +49,13 @@ func (m *EvaluateRulesRequest) CloneVT() *EvaluateRulesRequest {
 	if rhs := m.ReportName; rhs != nil {
 		tmpVal := *rhs
 		r.ReportName = &tmpVal
+	}
+	if rhs := m.RunFamilyAlignmentConfigs; rhs != nil {
+		tmpContainer := make([]*RunFamilyAlignmentConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.RunFamilyAlignmentConfigs = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -312,6 +320,13 @@ func (m *EvaluateRulesPreviewRequest) CloneVT() *EvaluateRulesPreviewRequest {
 			CloneVT() isEvaluateRulesPreviewRequest_Mode
 		}).CloneVT()
 	}
+	if rhs := m.RunFamilyAlignmentConfigs; rhs != nil {
+		tmpContainer := make([]*RunFamilyAlignmentConfig, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.RunFamilyAlignmentConfigs = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -383,18 +398,89 @@ func (m *EvaluateRulesPreviewRequest_RuleConfigs) CloneVT() isEvaluateRulesPrevi
 	return r
 }
 
+func (m *RunFamilyAlignmentConfig) CloneVT() *RunFamilyAlignmentConfig {
+	if m == nil {
+		return (*RunFamilyAlignmentConfig)(nil)
+	}
+	r := new(RunFamilyAlignmentConfig)
+	r.FamilyAlignmentName = m.FamilyAlignmentName
+	if m.AlignmentConfig != nil {
+		r.AlignmentConfig = m.AlignmentConfig.(interface {
+			CloneVT() isRunFamilyAlignmentConfig_AlignmentConfig
+		}).CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *RunFamilyAlignmentConfig) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *RunFamilyAlignmentConfig_Run) CloneVT() isRunFamilyAlignmentConfig_AlignmentConfig {
+	if m == nil {
+		return (*RunFamilyAlignmentConfig_Run)(nil)
+	}
+	r := new(RunFamilyAlignmentConfig_Run)
+	if rhs := m.Run; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v11.RunAlignment }); ok {
+			r.Run = vtpb.CloneVT()
+		} else {
+			r.Run = proto.Clone(rhs).(*v11.RunAlignment)
+		}
+	}
+	return r
+}
+
+func (m *RunFamilyAlignmentConfig_Annotation) CloneVT() isRunFamilyAlignmentConfig_AlignmentConfig {
+	if m == nil {
+		return (*RunFamilyAlignmentConfig_Annotation)(nil)
+	}
+	r := new(RunFamilyAlignmentConfig_Annotation)
+	if rhs := m.Annotation; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface {
+			CloneVT() *v11.AnnotationAlignment
+		}); ok {
+			r.Annotation = vtpb.CloneVT()
+		} else {
+			r.Annotation = proto.Clone(rhs).(*v11.AnnotationAlignment)
+		}
+	}
+	return r
+}
+
+func (m *RunFamilyAlignmentConfig_Timestamp) CloneVT() isRunFamilyAlignmentConfig_AlignmentConfig {
+	if m == nil {
+		return (*RunFamilyAlignmentConfig_Timestamp)(nil)
+	}
+	r := new(RunFamilyAlignmentConfig_Timestamp)
+	if rhs := m.Timestamp; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface {
+			CloneVT() *v11.TimestampAlignment
+		}); ok {
+			r.Timestamp = vtpb.CloneVT()
+		} else {
+			r.Timestamp = proto.Clone(rhs).(*v11.TimestampAlignment)
+		}
+	}
+	return r
+}
+
 func (m *EvaluateRulesFromRuleConfigs) CloneVT() *EvaluateRulesFromRuleConfigs {
 	if m == nil {
 		return (*EvaluateRulesFromRuleConfigs)(nil)
 	}
 	r := new(EvaluateRulesFromRuleConfigs)
 	if rhs := m.Configs; rhs != nil {
-		tmpContainer := make([]*v11.UpdateRuleRequest, len(rhs))
+		tmpContainer := make([]*v12.UpdateRuleRequest, len(rhs))
 		for k, v := range rhs {
-			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v11.UpdateRuleRequest }); ok {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v12.UpdateRuleRequest }); ok {
 				tmpContainer[k] = vtpb.CloneVT()
 			} else {
-				tmpContainer[k] = proto.Clone(v).(*v11.UpdateRuleRequest)
+				tmpContainer[k] = proto.Clone(v).(*v12.UpdateRuleRequest)
 			}
 		}
 		r.Configs = tmpContainer
@@ -417,12 +503,12 @@ func (m *EvaluateRulesPreviewResponse) CloneVT() *EvaluateRulesPreviewResponse {
 	r := new(EvaluateRulesPreviewResponse)
 	r.CreatedAnnotationCount = m.CreatedAnnotationCount
 	if rhs := m.DryRunAnnotations; rhs != nil {
-		tmpContainer := make([]*v11.DryRunAnnotation, len(rhs))
+		tmpContainer := make([]*v12.DryRunAnnotation, len(rhs))
 		for k, v := range rhs {
-			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v11.DryRunAnnotation }); ok {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v12.DryRunAnnotation }); ok {
 				tmpContainer[k] = vtpb.CloneVT()
 			} else {
-				tmpContainer[k] = proto.Clone(v).(*v11.DryRunAnnotation)
+				tmpContainer[k] = proto.Clone(v).(*v12.DryRunAnnotation)
 			}
 		}
 		r.DryRunAnnotations = tmpContainer
@@ -476,6 +562,23 @@ func (this *EvaluateRulesRequest) EqualVT(that *EvaluateRulesRequest) bool {
 	}
 	if p, q := this.ReportName, that.ReportName; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
+	}
+	if len(this.RunFamilyAlignmentConfigs) != len(that.RunFamilyAlignmentConfigs) {
+		return false
+	}
+	for i, vx := range this.RunFamilyAlignmentConfigs {
+		vy := that.RunFamilyAlignmentConfigs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &RunFamilyAlignmentConfig{}
+			}
+			if q == nil {
+				q = &RunFamilyAlignmentConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -876,6 +979,23 @@ func (this *EvaluateRulesPreviewRequest) EqualVT(that *EvaluateRulesPreviewReque
 	if this.OrganizationId != that.OrganizationId {
 		return false
 	}
+	if len(this.RunFamilyAlignmentConfigs) != len(that.RunFamilyAlignmentConfigs) {
+		return false
+	}
+	for i, vx := range this.RunFamilyAlignmentConfigs {
+		vy := that.RunFamilyAlignmentConfigs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &RunFamilyAlignmentConfig{}
+			}
+			if q == nil {
+				q = &RunFamilyAlignmentConfig{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1042,6 +1162,128 @@ func (this *EvaluateRulesPreviewRequest_RunTimeRange) EqualVT(thatIface isEvalua
 	return true
 }
 
+func (this *RunFamilyAlignmentConfig) EqualVT(that *RunFamilyAlignmentConfig) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AlignmentConfig == nil && that.AlignmentConfig != nil {
+		return false
+	} else if this.AlignmentConfig != nil {
+		if that.AlignmentConfig == nil {
+			return false
+		}
+		if !this.AlignmentConfig.(interface {
+			EqualVT(isRunFamilyAlignmentConfig_AlignmentConfig) bool
+		}).EqualVT(that.AlignmentConfig) {
+			return false
+		}
+	}
+	if this.FamilyAlignmentName != that.FamilyAlignmentName {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RunFamilyAlignmentConfig) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*RunFamilyAlignmentConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *RunFamilyAlignmentConfig_Run) EqualVT(thatIface isRunFamilyAlignmentConfig_AlignmentConfig) bool {
+	that, ok := thatIface.(*RunFamilyAlignmentConfig_Run)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Run, that.Run; p != q {
+		if p == nil {
+			p = &v11.RunAlignment{}
+		}
+		if q == nil {
+			q = &v11.RunAlignment{}
+		}
+		if equal, ok := interface{}(p).(interface{ EqualVT(*v11.RunAlignment) bool }); ok {
+			if !equal.EqualVT(q) {
+				return false
+			}
+		} else if !proto.Equal(p, q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *RunFamilyAlignmentConfig_Annotation) EqualVT(thatIface isRunFamilyAlignmentConfig_AlignmentConfig) bool {
+	that, ok := thatIface.(*RunFamilyAlignmentConfig_Annotation)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Annotation, that.Annotation; p != q {
+		if p == nil {
+			p = &v11.AnnotationAlignment{}
+		}
+		if q == nil {
+			q = &v11.AnnotationAlignment{}
+		}
+		if equal, ok := interface{}(p).(interface {
+			EqualVT(*v11.AnnotationAlignment) bool
+		}); ok {
+			if !equal.EqualVT(q) {
+				return false
+			}
+		} else if !proto.Equal(p, q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *RunFamilyAlignmentConfig_Timestamp) EqualVT(thatIface isRunFamilyAlignmentConfig_AlignmentConfig) bool {
+	that, ok := thatIface.(*RunFamilyAlignmentConfig_Timestamp)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Timestamp, that.Timestamp; p != q {
+		if p == nil {
+			p = &v11.TimestampAlignment{}
+		}
+		if q == nil {
+			q = &v11.TimestampAlignment{}
+		}
+		if equal, ok := interface{}(p).(interface {
+			EqualVT(*v11.TimestampAlignment) bool
+		}); ok {
+			if !equal.EqualVT(q) {
+				return false
+			}
+		} else if !proto.Equal(p, q) {
+			return false
+		}
+	}
+	return true
+}
+
 func (this *EvaluateRulesFromRuleConfigs) EqualVT(that *EvaluateRulesFromRuleConfigs) bool {
 	if this == that {
 		return true
@@ -1055,13 +1297,13 @@ func (this *EvaluateRulesFromRuleConfigs) EqualVT(that *EvaluateRulesFromRuleCon
 		vy := that.Configs[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &v11.UpdateRuleRequest{}
+				p = &v12.UpdateRuleRequest{}
 			}
 			if q == nil {
-				q = &v11.UpdateRuleRequest{}
+				q = &v12.UpdateRuleRequest{}
 			}
 			if equal, ok := interface{}(p).(interface {
-				EqualVT(*v11.UpdateRuleRequest) bool
+				EqualVT(*v12.UpdateRuleRequest) bool
 			}); ok {
 				if !equal.EqualVT(q) {
 					return false
@@ -1097,13 +1339,13 @@ func (this *EvaluateRulesPreviewResponse) EqualVT(that *EvaluateRulesPreviewResp
 		vy := that.DryRunAnnotations[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &v11.DryRunAnnotation{}
+				p = &v12.DryRunAnnotation{}
 			}
 			if q == nil {
-				q = &v11.DryRunAnnotation{}
+				q = &v12.DryRunAnnotation{}
 			}
 			if equal, ok := interface{}(p).(interface {
-				EqualVT(*v11.DryRunAnnotation) bool
+				EqualVT(*v12.DryRunAnnotation) bool
 			}); ok {
 				if !equal.EqualVT(q) {
 					return false
@@ -1302,6 +1544,18 @@ func (m *EvaluateRulesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 			return 0, err
 		}
 		i -= size
+	}
+	if len(m.RunFamilyAlignmentConfigs) > 0 {
+		for iNdEx := len(m.RunFamilyAlignmentConfigs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RunFamilyAlignmentConfigs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x5a
+		}
 	}
 	if m.ReportName != nil {
 		i -= len(*m.ReportName)
@@ -1930,6 +2184,18 @@ func (m *EvaluateRulesPreviewRequest) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		}
 		i -= size
 	}
+	if len(m.RunFamilyAlignmentConfigs) > 0 {
+		for iNdEx := len(m.RunFamilyAlignmentConfigs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RunFamilyAlignmentConfigs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
 	if len(m.OrganizationId) > 0 {
 		i -= len(m.OrganizationId)
 		copy(dAtA[i:], m.OrganizationId)
@@ -2063,6 +2329,148 @@ func (m *EvaluateRulesPreviewRequest_RunTimeRange) MarshalToSizedBufferVT(dAtA [
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+func (m *RunFamilyAlignmentConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RunFamilyAlignmentConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if vtmsg, ok := m.AlignmentConfig.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if len(m.FamilyAlignmentName) > 0 {
+		i -= len(m.FamilyAlignmentName)
+		copy(dAtA[i:], m.FamilyAlignmentName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FamilyAlignmentName)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RunFamilyAlignmentConfig_Run) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig_Run) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Run != nil {
+		if vtmsg, ok := interface{}(m.Run).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Run)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+func (m *RunFamilyAlignmentConfig_Annotation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig_Annotation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Annotation != nil {
+		if vtmsg, ok := interface{}(m.Annotation).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Annotation)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *RunFamilyAlignmentConfig_Timestamp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig_Timestamp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Timestamp != nil {
+		if vtmsg, ok := interface{}(m.Timestamp).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Timestamp)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x22
 	}
 	return len(dAtA) - i, nil
 }
@@ -2214,6 +2622,18 @@ func (m *EvaluateRulesRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RunFamilyAlignmentConfigs) > 0 {
+		for iNdEx := len(m.RunFamilyAlignmentConfigs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RunFamilyAlignmentConfigs[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x5a
+		}
 	}
 	if msg, ok := m.Mode.(*EvaluateRulesRequest_AllApplicableRules); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -2873,6 +3293,18 @@ func (m *EvaluateRulesPreviewRequest) MarshalToSizedBufferVTStrict(dAtA []byte) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.RunFamilyAlignmentConfigs) > 0 {
+		for iNdEx := len(m.RunFamilyAlignmentConfigs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RunFamilyAlignmentConfigs[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
 	if msg, ok := m.Time.(*EvaluateRulesPreviewRequest_RunTimeRange); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -3051,6 +3483,160 @@ func (m *EvaluateRulesPreviewRequest_RunTimeRange) MarshalToSizedBufferVTStrict(
 	}
 	return len(dAtA) - i, nil
 }
+func (m *RunFamilyAlignmentConfig) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RunFamilyAlignmentConfig) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if msg, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Timestamp); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if msg, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Annotation); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if msg, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Run); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if len(m.FamilyAlignmentName) > 0 {
+		i -= len(m.FamilyAlignmentName)
+		copy(dAtA[i:], m.FamilyAlignmentName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FamilyAlignmentName)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RunFamilyAlignmentConfig_Run) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig_Run) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Run != nil {
+		if vtmsg, ok := interface{}(m.Run).(interface {
+			MarshalToSizedBufferVTStrict([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Run)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+func (m *RunFamilyAlignmentConfig_Annotation) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig_Annotation) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Annotation != nil {
+		if vtmsg, ok := interface{}(m.Annotation).(interface {
+			MarshalToSizedBufferVTStrict([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Annotation)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *RunFamilyAlignmentConfig_Timestamp) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *RunFamilyAlignmentConfig_Timestamp) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Timestamp != nil {
+		if vtmsg, ok := interface{}(m.Timestamp).(interface {
+			MarshalToSizedBufferVTStrict([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Timestamp)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
 func (m *EvaluateRulesFromRuleConfigs) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3193,6 +3779,12 @@ func (m *EvaluateRulesRequest) SizeVT() (n int) {
 	if m.ReportName != nil {
 		l = len(*m.ReportName)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.RunFamilyAlignmentConfigs) > 0 {
+		for _, e := range m.RunFamilyAlignmentConfigs {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3454,6 +4046,12 @@ func (m *EvaluateRulesPreviewRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if len(m.RunFamilyAlignmentConfigs) > 0 {
+		for _, e := range m.RunFamilyAlignmentConfigs {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3532,6 +4130,77 @@ func (m *EvaluateRulesPreviewRequest_RunTimeRange) SizeVT() (n int) {
 	_ = l
 	if m.RunTimeRange != nil {
 		l = m.RunTimeRange.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
+func (m *RunFamilyAlignmentConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.FamilyAlignmentName)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if vtmsg, ok := m.AlignmentConfig.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RunFamilyAlignmentConfig_Run) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Run != nil {
+		if size, ok := interface{}(m.Run).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Run)
+		}
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
+func (m *RunFamilyAlignmentConfig_Annotation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Annotation != nil {
+		if size, ok := interface{}(m.Annotation).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Annotation)
+		}
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
+func (m *RunFamilyAlignmentConfig_Timestamp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Timestamp != nil {
+		if size, ok := interface{}(m.Timestamp).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Timestamp)
+		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	return n
@@ -3996,6 +4665,40 @@ func (m *EvaluateRulesRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Mode = &EvaluateRulesRequest_AllApplicableRules{AllApplicableRules: b}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunFamilyAlignmentConfigs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunFamilyAlignmentConfigs = append(m.RunFamilyAlignmentConfigs, &RunFamilyAlignmentConfig{})
+			if err := m.RunFamilyAlignmentConfigs[len(m.RunFamilyAlignmentConfigs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5179,6 +5882,294 @@ func (m *EvaluateRulesPreviewRequest) UnmarshalVT(dAtA []byte) error {
 				m.Time = &EvaluateRulesPreviewRequest_RunTimeRange{RunTimeRange: v}
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunFamilyAlignmentConfigs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunFamilyAlignmentConfigs = append(m.RunFamilyAlignmentConfigs, &RunFamilyAlignmentConfig{})
+			if err := m.RunFamilyAlignmentConfigs[len(m.RunFamilyAlignmentConfigs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RunFamilyAlignmentConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RunFamilyAlignmentConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RunFamilyAlignmentConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FamilyAlignmentName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FamilyAlignmentName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Run", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Run); ok {
+				if unmarshal, ok := interface{}(oneof.Run).(interface {
+					UnmarshalVT([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Run); err != nil {
+						return err
+					}
+				}
+			} else {
+				v := &v11.RunAlignment{}
+				if unmarshal, ok := interface{}(v).(interface {
+					UnmarshalVT([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], v); err != nil {
+						return err
+					}
+				}
+				m.AlignmentConfig = &RunFamilyAlignmentConfig_Run{Run: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Annotation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Annotation); ok {
+				if unmarshal, ok := interface{}(oneof.Annotation).(interface {
+					UnmarshalVT([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Annotation); err != nil {
+						return err
+					}
+				}
+			} else {
+				v := &v11.AnnotationAlignment{}
+				if unmarshal, ok := interface{}(v).(interface {
+					UnmarshalVT([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], v); err != nil {
+						return err
+					}
+				}
+				m.AlignmentConfig = &RunFamilyAlignmentConfig_Annotation{Annotation: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Timestamp); ok {
+				if unmarshal, ok := interface{}(oneof.Timestamp).(interface {
+					UnmarshalVT([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Timestamp); err != nil {
+						return err
+					}
+				}
+			} else {
+				v := &v11.TimestampAlignment{}
+				if unmarshal, ok := interface{}(v).(interface {
+					UnmarshalVT([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], v); err != nil {
+						return err
+					}
+				}
+				m.AlignmentConfig = &RunFamilyAlignmentConfig_Timestamp{Timestamp: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5259,7 +6250,7 @@ func (m *EvaluateRulesFromRuleConfigs) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Configs = append(m.Configs, &v11.UpdateRuleRequest{})
+			m.Configs = append(m.Configs, &v12.UpdateRuleRequest{})
 			if unmarshal, ok := interface{}(m.Configs[len(m.Configs)-1]).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
@@ -5371,7 +6362,7 @@ func (m *EvaluateRulesPreviewResponse) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DryRunAnnotations = append(m.DryRunAnnotations, &v11.DryRunAnnotation{})
+			m.DryRunAnnotations = append(m.DryRunAnnotations, &v12.DryRunAnnotation{})
 			if unmarshal, ok := interface{}(m.DryRunAnnotations[len(m.DryRunAnnotations)-1]).(interface {
 				UnmarshalVT([]byte) error
 			}); ok {
@@ -5827,6 +6818,40 @@ func (m *EvaluateRulesRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Mode = &EvaluateRulesRequest_AllApplicableRules{AllApplicableRules: b}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunFamilyAlignmentConfigs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunFamilyAlignmentConfigs = append(m.RunFamilyAlignmentConfigs, &RunFamilyAlignmentConfig{})
+			if err := m.RunFamilyAlignmentConfigs[len(m.RunFamilyAlignmentConfigs)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7026,6 +8051,298 @@ func (m *EvaluateRulesPreviewRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				m.Time = &EvaluateRulesPreviewRequest_RunTimeRange{RunTimeRange: v}
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunFamilyAlignmentConfigs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunFamilyAlignmentConfigs = append(m.RunFamilyAlignmentConfigs, &RunFamilyAlignmentConfig{})
+			if err := m.RunFamilyAlignmentConfigs[len(m.RunFamilyAlignmentConfigs)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RunFamilyAlignmentConfig) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RunFamilyAlignmentConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RunFamilyAlignmentConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FamilyAlignmentName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.FamilyAlignmentName = stringValue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Run", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Run); ok {
+				if unmarshal, ok := interface{}(oneof.Run).(interface {
+					UnmarshalVTUnsafe([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Run); err != nil {
+						return err
+					}
+				}
+			} else {
+				v := &v11.RunAlignment{}
+				if unmarshal, ok := interface{}(v).(interface {
+					UnmarshalVTUnsafe([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], v); err != nil {
+						return err
+					}
+				}
+				m.AlignmentConfig = &RunFamilyAlignmentConfig_Run{Run: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Annotation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Annotation); ok {
+				if unmarshal, ok := interface{}(oneof.Annotation).(interface {
+					UnmarshalVTUnsafe([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Annotation); err != nil {
+						return err
+					}
+				}
+			} else {
+				v := &v11.AnnotationAlignment{}
+				if unmarshal, ok := interface{}(v).(interface {
+					UnmarshalVTUnsafe([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], v); err != nil {
+						return err
+					}
+				}
+				m.AlignmentConfig = &RunFamilyAlignmentConfig_Annotation{Annotation: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.AlignmentConfig.(*RunFamilyAlignmentConfig_Timestamp); ok {
+				if unmarshal, ok := interface{}(oneof.Timestamp).(interface {
+					UnmarshalVTUnsafe([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Timestamp); err != nil {
+						return err
+					}
+				}
+			} else {
+				v := &v11.TimestampAlignment{}
+				if unmarshal, ok := interface{}(v).(interface {
+					UnmarshalVTUnsafe([]byte) error
+				}); ok {
+					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+						return err
+					}
+				} else {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], v); err != nil {
+						return err
+					}
+				}
+				m.AlignmentConfig = &RunFamilyAlignmentConfig_Timestamp{Timestamp: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7106,7 +8423,7 @@ func (m *EvaluateRulesFromRuleConfigs) UnmarshalVTUnsafe(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Configs = append(m.Configs, &v11.UpdateRuleRequest{})
+			m.Configs = append(m.Configs, &v12.UpdateRuleRequest{})
 			if unmarshal, ok := interface{}(m.Configs[len(m.Configs)-1]).(interface {
 				UnmarshalVTUnsafe([]byte) error
 			}); ok {
@@ -7218,7 +8535,7 @@ func (m *EvaluateRulesPreviewResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DryRunAnnotations = append(m.DryRunAnnotations, &v11.DryRunAnnotation{})
+			m.DryRunAnnotations = append(m.DryRunAnnotations, &v12.DryRunAnnotation{})
 			if unmarshal, ok := interface{}(m.DryRunAnnotations[len(m.DryRunAnnotations)-1]).(interface {
 				UnmarshalVTUnsafe([]byte) error
 			}); ok {
