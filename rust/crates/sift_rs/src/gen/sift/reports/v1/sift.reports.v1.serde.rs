@@ -2304,6 +2304,12 @@ impl serde::Serialize for Report {
         if self.report_type != 0 {
             len += 1;
         }
+        if self.canvas_execution_id.is_some() {
+            len += 1;
+        }
+        if self.canvas_status.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.Report", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -2361,6 +2367,14 @@ impl serde::Serialize for Report {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.report_type)))?;
             struct_ser.serialize_field("reportType", &v)?;
         }
+        if let Some(v) = self.canvas_execution_id.as_ref() {
+            struct_ser.serialize_field("canvasExecutionId", v)?;
+        }
+        if let Some(v) = self.canvas_status.as_ref() {
+            let v = super::super::canvas::v1::CanvasCellExecutionStatus::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("canvasStatus", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2402,6 +2416,10 @@ impl<'de> serde::Deserialize<'de> for Report {
             "isArchived",
             "report_type",
             "reportType",
+            "canvas_execution_id",
+            "canvasExecutionId",
+            "canvas_status",
+            "canvasStatus",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2424,6 +2442,8 @@ impl<'de> serde::Deserialize<'de> for Report {
             Metadata,
             IsArchived,
             ReportType,
+            CanvasExecutionId,
+            CanvasStatus,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2463,6 +2483,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "reportType" | "report_type" => Ok(GeneratedField::ReportType),
+                            "canvasExecutionId" | "canvas_execution_id" => Ok(GeneratedField::CanvasExecutionId),
+                            "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2500,6 +2522,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
                 let mut report_type__ = None;
+                let mut canvas_execution_id__ = None;
+                let mut canvas_status__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -2610,6 +2634,18 @@ impl<'de> serde::Deserialize<'de> for Report {
                             }
                             report_type__ = Some(map_.next_value::<ReportType>()? as i32);
                         }
+                        GeneratedField::CanvasExecutionId => {
+                            if canvas_execution_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasExecutionId"));
+                            }
+                            canvas_execution_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::CanvasStatus => {
+                            if canvas_status__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasStatus"));
+                            }
+                            canvas_status__ = map_.next_value::<::std::option::Option<super::super::canvas::v1::CanvasCellExecutionStatus>>()?.map(|x| x as i32);
+                        }
                     }
                 }
                 Ok(Report {
@@ -2631,6 +2667,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
                     report_type: report_type__.unwrap_or_default(),
+                    canvas_execution_id: canvas_execution_id__,
+                    canvas_status: canvas_status__,
                 })
             }
         }
@@ -3861,6 +3899,12 @@ impl serde::Serialize for ReportRuleSummary {
         if self.deleted_date.is_some() {
             len += 1;
         }
+        if !self.resolved_family_stats.is_empty() {
+            len += 1;
+        }
+        if !self.resolved_alignment_configs.is_empty() {
+            len += 1;
+        }
         if self.display_order != 0 {
             len += 1;
         }
@@ -3909,6 +3953,12 @@ impl serde::Serialize for ReportRuleSummary {
         if let Some(v) = self.deleted_date.as_ref() {
             struct_ser.serialize_field("deletedDate", v)?;
         }
+        if !self.resolved_family_stats.is_empty() {
+            struct_ser.serialize_field("resolvedFamilyStats", &self.resolved_family_stats)?;
+        }
+        if !self.resolved_alignment_configs.is_empty() {
+            struct_ser.serialize_field("resolvedAlignmentConfigs", &self.resolved_alignment_configs)?;
+        }
         if self.display_order != 0 {
             struct_ser.serialize_field("displayOrder", &self.display_order)?;
         }
@@ -3949,6 +3999,10 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             "assetId",
             "deleted_date",
             "deletedDate",
+            "resolved_family_stats",
+            "resolvedFamilyStats",
+            "resolved_alignment_configs",
+            "resolvedAlignmentConfigs",
             "display_order",
             "displayOrder",
         ];
@@ -3969,6 +4023,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             ModifiedDate,
             AssetId,
             DeletedDate,
+            ResolvedFamilyStats,
+            ResolvedAlignmentConfigs,
             DisplayOrder,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -4005,6 +4061,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
+                            "resolvedFamilyStats" | "resolved_family_stats" => Ok(GeneratedField::ResolvedFamilyStats),
+                            "resolvedAlignmentConfigs" | "resolved_alignment_configs" => Ok(GeneratedField::ResolvedAlignmentConfigs),
                             "displayOrder" | "display_order" => Ok(GeneratedField::DisplayOrder),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
@@ -4039,6 +4097,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                 let mut modified_date__ = None;
                 let mut asset_id__ = None;
                 let mut deleted_date__ = None;
+                let mut resolved_family_stats__ = None;
+                let mut resolved_alignment_configs__ = None;
                 let mut display_order__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -4134,6 +4194,18 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             }
                             deleted_date__ = map_.next_value()?;
                         }
+                        GeneratedField::ResolvedFamilyStats => {
+                            if resolved_family_stats__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("resolvedFamilyStats"));
+                            }
+                            resolved_family_stats__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ResolvedAlignmentConfigs => {
+                            if resolved_alignment_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("resolvedAlignmentConfigs"));
+                            }
+                            resolved_alignment_configs__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::DisplayOrder => {
                             if display_order__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("displayOrder"));
@@ -4159,6 +4231,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                     modified_date: modified_date__,
                     asset_id: asset_id__.unwrap_or_default(),
                     deleted_date: deleted_date__,
+                    resolved_family_stats: resolved_family_stats__.unwrap_or_default(),
+                    resolved_alignment_configs: resolved_alignment_configs__.unwrap_or_default(),
                     display_order: display_order__.unwrap_or_default(),
                 })
             }
@@ -4267,6 +4341,7 @@ impl serde::Serialize for ReportType {
         let variant = match self {
             Self::Unspecified => "REPORT_TYPE_UNSPECIFIED",
             Self::RuleEvaluation => "REPORT_TYPE_RULE_EVALUATION",
+            Self::Canvas => "REPORT_TYPE_CANVAS",
         };
         serializer.serialize_str(variant)
     }
@@ -4280,6 +4355,7 @@ impl<'de> serde::Deserialize<'de> for ReportType {
         const FIELDS: &[&str] = &[
             "REPORT_TYPE_UNSPECIFIED",
             "REPORT_TYPE_RULE_EVALUATION",
+            "REPORT_TYPE_CANVAS",
         ];
 
         struct GeneratedVisitor;
@@ -4322,6 +4398,7 @@ impl<'de> serde::Deserialize<'de> for ReportType {
                 match value {
                     "REPORT_TYPE_UNSPECIFIED" => Ok(ReportType::Unspecified),
                     "REPORT_TYPE_RULE_EVALUATION" => Ok(ReportType::RuleEvaluation),
+                    "REPORT_TYPE_CANVAS" => Ok(ReportType::Canvas),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -4388,6 +4465,12 @@ impl serde::Serialize for ReportWithCumulativeSummary {
         if self.report_type != 0 {
             len += 1;
         }
+        if self.canvas_execution_id.is_some() {
+            len += 1;
+        }
+        if self.canvas_status.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportWithCumulativeSummary", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -4442,6 +4525,14 @@ impl serde::Serialize for ReportWithCumulativeSummary {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.report_type)))?;
             struct_ser.serialize_field("reportType", &v)?;
         }
+        if let Some(v) = self.canvas_execution_id.as_ref() {
+            struct_ser.serialize_field("canvasExecutionId", v)?;
+        }
+        if let Some(v) = self.canvas_status.as_ref() {
+            let v = super::super::canvas::v1::CanvasCellExecutionStatus::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("canvasStatus", &v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4483,6 +4574,10 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             "isArchived",
             "report_type",
             "reportType",
+            "canvas_execution_id",
+            "canvasExecutionId",
+            "canvas_status",
+            "canvasStatus",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4504,6 +4599,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             ArchivedDate,
             IsArchived,
             ReportType,
+            CanvasExecutionId,
+            CanvasStatus,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4542,6 +4639,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "reportType" | "report_type" => Ok(GeneratedField::ReportType),
+                            "canvasExecutionId" | "canvas_execution_id" => Ok(GeneratedField::CanvasExecutionId),
+                            "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4578,6 +4677,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
                 let mut report_type__ = None;
+                let mut canvas_execution_id__ = None;
+                let mut canvas_status__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -4682,6 +4783,18 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             }
                             report_type__ = Some(map_.next_value::<ReportType>()? as i32);
                         }
+                        GeneratedField::CanvasExecutionId => {
+                            if canvas_execution_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasExecutionId"));
+                            }
+                            canvas_execution_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::CanvasStatus => {
+                            if canvas_status__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasStatus"));
+                            }
+                            canvas_status__ = map_.next_value::<::std::option::Option<super::super::canvas::v1::CanvasCellExecutionStatus>>()?.map(|x| x as i32);
+                        }
                     }
                 }
                 Ok(ReportWithCumulativeSummary {
@@ -4702,6 +4815,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
                     report_type: report_type__.unwrap_or_default(),
+                    canvas_execution_id: canvas_execution_id__,
+                    canvas_status: canvas_status__,
                 })
             }
         }
@@ -4908,6 +5023,454 @@ impl<'de> serde::Deserialize<'de> for RerunReportResponse {
             }
         }
         deserializer.deserialize_struct("sift.reports.v1.RerunReportResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ResolvedAlignmentEntry {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.channel_references.is_empty() {
+            len += 1;
+        }
+        if self.t0.is_some() {
+            len += 1;
+        }
+        if self.start_time.is_some() {
+            len += 1;
+        }
+        if self.end_time.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ResolvedAlignmentEntry", len)?;
+        if !self.channel_references.is_empty() {
+            struct_ser.serialize_field("channelReferences", &self.channel_references)?;
+        }
+        if let Some(v) = self.t0.as_ref() {
+            struct_ser.serialize_field("t0", v)?;
+        }
+        if let Some(v) = self.start_time.as_ref() {
+            struct_ser.serialize_field("startTime", v)?;
+        }
+        if let Some(v) = self.end_time.as_ref() {
+            struct_ser.serialize_field("endTime", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ResolvedAlignmentEntry {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channel_references",
+            "channelReferences",
+            "t0",
+            "start_time",
+            "startTime",
+            "end_time",
+            "endTime",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ChannelReferences,
+            T0,
+            StartTime,
+            EndTime,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channelReferences" | "channel_references" => Ok(GeneratedField::ChannelReferences),
+                            "t0" => Ok(GeneratedField::T0),
+                            "startTime" | "start_time" => Ok(GeneratedField::StartTime),
+                            "endTime" | "end_time" => Ok(GeneratedField::EndTime),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ResolvedAlignmentEntry;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ResolvedAlignmentEntry")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ResolvedAlignmentEntry, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channel_references__ = None;
+                let mut t0__ = None;
+                let mut start_time__ = None;
+                let mut end_time__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ChannelReferences => {
+                            if channel_references__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelReferences"));
+                            }
+                            channel_references__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::T0 => {
+                            if t0__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("t0"));
+                            }
+                            t0__ = map_.next_value()?;
+                        }
+                        GeneratedField::StartTime => {
+                            if start_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("startTime"));
+                            }
+                            start_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::EndTime => {
+                            if end_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("endTime"));
+                            }
+                            end_time__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(ResolvedAlignmentEntry {
+                    channel_references: channel_references__.unwrap_or_default(),
+                    t0: t0__,
+                    start_time: start_time__,
+                    end_time: end_time__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ResolvedAlignmentEntry", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ResolvedAlignmentPoint {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.timestamp.is_some() {
+            len += 1;
+        }
+        if self.alignment_config.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ResolvedAlignmentPoint", len)?;
+        if let Some(v) = self.timestamp.as_ref() {
+            struct_ser.serialize_field("timestamp", v)?;
+        }
+        if let Some(v) = self.alignment_config.as_ref() {
+            match v {
+                resolved_alignment_point::AlignmentConfig::Run(v) => {
+                    struct_ser.serialize_field("run", v)?;
+                }
+                resolved_alignment_point::AlignmentConfig::Annotation(v) => {
+                    struct_ser.serialize_field("annotation", v)?;
+                }
+                resolved_alignment_point::AlignmentConfig::TimestampConfig(v) => {
+                    struct_ser.serialize_field("timestampConfig", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ResolvedAlignmentPoint {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "timestamp",
+            "run",
+            "annotation",
+            "timestamp_config",
+            "timestampConfig",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Timestamp,
+            Run,
+            Annotation,
+            TimestampConfig,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "timestamp" => Ok(GeneratedField::Timestamp),
+                            "run" => Ok(GeneratedField::Run),
+                            "annotation" => Ok(GeneratedField::Annotation),
+                            "timestampConfig" | "timestamp_config" => Ok(GeneratedField::TimestampConfig),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ResolvedAlignmentPoint;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ResolvedAlignmentPoint")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ResolvedAlignmentPoint, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut timestamp__ = None;
+                let mut alignment_config__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Timestamp => {
+                            if timestamp__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timestamp"));
+                            }
+                            timestamp__ = map_.next_value()?;
+                        }
+                        GeneratedField::Run => {
+                            if alignment_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("run"));
+                            }
+                            alignment_config__ = map_.next_value::<::std::option::Option<_>>()?.map(resolved_alignment_point::AlignmentConfig::Run)
+;
+                        }
+                        GeneratedField::Annotation => {
+                            if alignment_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotation"));
+                            }
+                            alignment_config__ = map_.next_value::<::std::option::Option<_>>()?.map(resolved_alignment_point::AlignmentConfig::Annotation)
+;
+                        }
+                        GeneratedField::TimestampConfig => {
+                            if alignment_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timestampConfig"));
+                            }
+                            alignment_config__ = map_.next_value::<::std::option::Option<_>>()?.map(resolved_alignment_point::AlignmentConfig::TimestampConfig)
+;
+                        }
+                    }
+                }
+                Ok(ResolvedAlignmentPoint {
+                    timestamp: timestamp__,
+                    alignment_config: alignment_config__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ResolvedAlignmentPoint", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ResolvedFamilyStat {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.reference.is_empty() {
+            len += 1;
+        }
+        if !self.family_id.is_empty() {
+            len += 1;
+        }
+        if !self.family_version_id.is_empty() {
+            len += 1;
+        }
+        if !self.family_stat_expression_id.is_empty() {
+            len += 1;
+        }
+        if !self.family_stat_range_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ResolvedFamilyStat", len)?;
+        if !self.reference.is_empty() {
+            struct_ser.serialize_field("reference", &self.reference)?;
+        }
+        if !self.family_id.is_empty() {
+            struct_ser.serialize_field("familyId", &self.family_id)?;
+        }
+        if !self.family_version_id.is_empty() {
+            struct_ser.serialize_field("familyVersionId", &self.family_version_id)?;
+        }
+        if !self.family_stat_expression_id.is_empty() {
+            struct_ser.serialize_field("familyStatExpressionId", &self.family_stat_expression_id)?;
+        }
+        if !self.family_stat_range_id.is_empty() {
+            struct_ser.serialize_field("familyStatRangeId", &self.family_stat_range_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ResolvedFamilyStat {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "reference",
+            "family_id",
+            "familyId",
+            "family_version_id",
+            "familyVersionId",
+            "family_stat_expression_id",
+            "familyStatExpressionId",
+            "family_stat_range_id",
+            "familyStatRangeId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Reference,
+            FamilyId,
+            FamilyVersionId,
+            FamilyStatExpressionId,
+            FamilyStatRangeId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reference" => Ok(GeneratedField::Reference),
+                            "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
+                            "familyVersionId" | "family_version_id" => Ok(GeneratedField::FamilyVersionId),
+                            "familyStatExpressionId" | "family_stat_expression_id" => Ok(GeneratedField::FamilyStatExpressionId),
+                            "familyStatRangeId" | "family_stat_range_id" => Ok(GeneratedField::FamilyStatRangeId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ResolvedFamilyStat;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ResolvedFamilyStat")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ResolvedFamilyStat, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut reference__ = None;
+                let mut family_id__ = None;
+                let mut family_version_id__ = None;
+                let mut family_stat_expression_id__ = None;
+                let mut family_stat_range_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Reference => {
+                            if reference__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reference"));
+                            }
+                            reference__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyId => {
+                            if family_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyId"));
+                            }
+                            family_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyVersionId => {
+                            if family_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyVersionId"));
+                            }
+                            family_version_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyStatExpressionId => {
+                            if family_stat_expression_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyStatExpressionId"));
+                            }
+                            family_stat_expression_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyStatRangeId => {
+                            if family_stat_range_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyStatRangeId"));
+                            }
+                            family_stat_range_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ResolvedFamilyStat {
+                    reference: reference__.unwrap_or_default(),
+                    family_id: family_id__.unwrap_or_default(),
+                    family_version_id: family_version_id__.unwrap_or_default(),
+                    family_stat_expression_id: family_stat_expression_id__.unwrap_or_default(),
+                    family_stat_range_id: family_stat_range_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ResolvedFamilyStat", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for UpdateReportRequest {

@@ -198,6 +198,7 @@ class ExportOptions(google.protobuf.message.Message):
     COMBINE_RUNS_FIELD_NUMBER: builtins.int
     SPLIT_EXPORT_BY_ASSET_FIELD_NUMBER: builtins.int
     SPLIT_EXPORT_BY_RUN_FIELD_NUMBER: builtins.int
+    EMBED_CHANNEL_CONFIGS_FIELD_NUMBER: builtins.int
     use_legacy_format: builtins.bool
     """Whether to use legacy format string for channel headers which contains key-value metadata."""
     simplify_channel_names: builtins.bool
@@ -208,6 +209,11 @@ class ExportOptions(google.protobuf.message.Message):
     """Split each asset into their own export file"""
     split_export_by_run: builtins.bool
     """Split each run into their own export file"""
+    embed_channel_configs: builtins.bool
+    """Embeds a re-importable channel configuration into the export: for CSV, as a config row
+    inserted immediately after the header row; for Parquet, as per-column field metadata
+    under the "sift_channel_config" key. Ignored for the SUN output format.
+    """
     def __init__(
         self,
         *,
@@ -216,8 +222,9 @@ class ExportOptions(google.protobuf.message.Message):
         combine_runs: builtins.bool = ...,
         split_export_by_asset: builtins.bool = ...,
         split_export_by_run: builtins.bool = ...,
+        embed_channel_configs: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["combine_runs", b"combine_runs", "simplify_channel_names", b"simplify_channel_names", "split_export_by_asset", b"split_export_by_asset", "split_export_by_run", b"split_export_by_run", "use_legacy_format", b"use_legacy_format"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["combine_runs", b"combine_runs", "embed_channel_configs", b"embed_channel_configs", "simplify_channel_names", b"simplify_channel_names", "split_export_by_asset", b"split_export_by_asset", "split_export_by_run", b"split_export_by_run", "use_legacy_format", b"use_legacy_format"]) -> None: ...
 
 global___ExportOptions = ExportOptions
 

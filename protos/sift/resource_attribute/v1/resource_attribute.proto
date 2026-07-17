@@ -337,9 +337,7 @@ message ResourceAttribute {
 
 // Represents an entity to which a resource_attribute will be assigned.
 message ResourceAttributeEntityIdentifier {
-  string entity_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string entity_id = 1 [(google.api.field_behavior) = REQUIRED];
   ResourceAttributeEntityType entity_type = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -349,9 +347,7 @@ message CreateResourceAttributeKeyRequest {
   string description = 2 [(google.api.field_behavior) = OPTIONAL];
   ResourceAttributeKeyType type = 3 [(google.api.field_behavior) = REQUIRED];
   // Optional initial enum values to create alongside the key. Only applicable for ENUM type keys.
-  repeated InitialEnumValue initial_enum_values = 4 [
-    (google.api.field_behavior) = OPTIONAL
-  ];
+  repeated InitialEnumValue initial_enum_values = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // Nested message for initial enum values in create requests.
   message InitialEnumValue {
@@ -367,9 +363,7 @@ message CreateResourceAttributeKeyResponse {
 }
 
 message GetResourceAttributeKeyRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetResourceAttributeKeyResponse {
@@ -411,9 +405,7 @@ message ListResourceAttributeKeysResponse {
 }
 
 message UpdateResourceAttributeKeyRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
   string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
   string description = 3 [(google.api.field_behavior) = OPTIONAL];
   // The list of fields to be updated. The fields available to be updated are `description` and `archived_date`.
@@ -425,9 +417,7 @@ message UpdateResourceAttributeKeyResponse {
 }
 
 message CheckResourceAttributeKeyArchiveImpactRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message CheckResourceAttributeKeyArchiveImpactResponse {
@@ -436,42 +426,32 @@ message CheckResourceAttributeKeyArchiveImpactResponse {
 }
 
 message ArchiveResourceAttributeKeyRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ArchiveResourceAttributeKeyResponse {}
 
 message UnarchiveResourceAttributeKeyRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UnarchiveResourceAttributeKeyResponse {}
 
 message BatchArchiveResourceAttributeKeysRequest {
-  repeated string resource_attribute_key_ids = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string resource_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BatchArchiveResourceAttributeKeysResponse {}
 
 message BatchUnarchiveResourceAttributeKeysRequest {
-  repeated string resource_attribute_key_ids = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string resource_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BatchUnarchiveResourceAttributeKeysResponse {}
 
 // ResourceAttribute Enum Value RPC messages
 message CreateResourceAttributeEnumValueRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
   string display_name = 2 [(google.api.field_behavior) = REQUIRED];
   string description = 3 [(google.api.field_behavior) = OPTIONAL];
 }
@@ -481,9 +461,7 @@ message CreateResourceAttributeEnumValueResponse {
 }
 
 message GetResourceAttributeEnumValueRequest {
-  string resource_attribute_enum_value_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetResourceAttributeEnumValueResponse {
@@ -491,9 +469,7 @@ message GetResourceAttributeEnumValueResponse {
 }
 
 message ListResourceAttributeEnumValuesRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The maximum number of enum values to return. The service may return fewer than this value.
   // If unspecified, at most 50 enum values will be returned. The maximum value is 100; values above
@@ -530,9 +506,7 @@ message ListResourceAttributeEnumValuesResponse {
 }
 
 message UpdateResourceAttributeEnumValueRequest {
-  string resource_attribute_enum_value_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
   string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
   string description = 3 [(google.api.field_behavior) = OPTIONAL];
   // The list of fields to be updated. The fields available to be updated are `description` and `archived_date`.
@@ -544,9 +518,7 @@ message UpdateResourceAttributeEnumValueResponse {
 }
 
 message ArchiveResourceAttributeEnumValueRequest {
-  string archived_enum_value_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string archived_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
   // When the archived_enum_value_id is archived all resource-attributes that reference it will be migrated to the replacement_enum_value_id
   // if provided. Otherwise, resource-attributes that reference it will be archived as well.
   string replacement_enum_value_id = 2 [(google.api.field_behavior) = OPTIONAL];
@@ -560,9 +532,7 @@ message ArchiveResourceAttributeEnumValueResponse {
 }
 
 message UnarchiveResourceAttributeEnumValueRequest {
-  string resource_attribute_enum_value_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UnarchiveResourceAttributeEnumValueResponse {}
@@ -570,17 +540,13 @@ message UnarchiveResourceAttributeEnumValueResponse {}
 message BatchArchiveResourceAttributeEnumValuesRequest {
   message EnumValueArchival {
     // The enum value ID to archive.
-    string archived_enum_value_id = 1 [
-      (google.api.field_behavior) = REQUIRED
-    ];
+    string archived_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
     // When the archived_enum_value_id is archived all resource-attributes that reference it will be migrated to the replacement_enum_value_id
     // if provided. Otherwise, resource-attributes that reference it will be archived as well.
     string replacement_enum_value_id = 2 [(google.api.field_behavior) = OPTIONAL];
   }
 
-  repeated EnumValueArchival archival_requests = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated EnumValueArchival archival_requests = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BatchArchiveResourceAttributeEnumValuesResponse {
@@ -590,9 +556,7 @@ message BatchArchiveResourceAttributeEnumValuesResponse {
 }
 
 message BatchUnarchiveResourceAttributeEnumValuesRequest {
-  repeated string resource_attribute_enum_value_ids = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string resource_attribute_enum_value_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BatchUnarchiveResourceAttributeEnumValuesResponse {}
@@ -603,9 +567,7 @@ message ResourceAttributeEnumValueIdList {
 
 // ResourceAttribute RPC messages
 message BatchCreateResourceAttributesRequest {
-  string resource_attribute_key_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
   oneof value {
     // For ENUM type: exactly one enum value ID.
     string resource_attribute_enum_value_id = 2;
@@ -615,9 +577,7 @@ message BatchCreateResourceAttributesRequest {
     bool boolean_value = 3;
     int64 number_value = 4;
   }
-  repeated ResourceAttributeEntityIdentifier entities = 5 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated ResourceAttributeEntityIdentifier entities = 5 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BatchCreateResourceAttributesResponse {
@@ -625,9 +585,7 @@ message BatchCreateResourceAttributesResponse {
 }
 
 message GetResourceAttributeRequest {
-  string resource_attribute_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetResourceAttributeResponse {
@@ -693,9 +651,7 @@ message ListResourceAttributesByEntityResponse {
 }
 
 message BatchListResourceAttributesByEntityRequest {
-  repeated ResourceAttributeEntityIdentifier entities = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated ResourceAttributeEntityIdentifier entities = 1 [(google.api.field_behavior) = REQUIRED];
 
   // Whether to include archived resource-attributes. Defaults to false.
   bool include_archived = 2 [(google.api.field_behavior) = OPTIONAL];
@@ -714,33 +670,25 @@ message BatchListResourceAttributesByEntityResponse {
 }
 
 message ArchiveResourceAttributeRequest {
-  string resource_attribute_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ArchiveResourceAttributeResponse {}
 
 message UnarchiveResourceAttributeRequest {
-  string resource_attribute_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UnarchiveResourceAttributeResponse {}
 
 message BatchArchiveResourceAttributesRequest {
-  repeated string resource_attribute_ids = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string resource_attribute_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BatchArchiveResourceAttributesResponse {}
 
 message BatchUnarchiveResourceAttributesRequest {
-  repeated string resource_attribute_ids = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string resource_attribute_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BatchUnarchiveResourceAttributesResponse {}

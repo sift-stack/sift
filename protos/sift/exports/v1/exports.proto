@@ -93,6 +93,10 @@ message ExportOptions {
   bool split_export_by_asset = 4;
   // Split each run into their own export file
   bool split_export_by_run = 5;
+  // Embeds a re-importable channel configuration into the export: for CSV, as a config row
+  // inserted immediately after the header row; for Parquet, as per-column field metadata
+  // under the "sift_channel_config" key. Ignored for the SUN output format.
+  bool embed_channel_configs = 6;
 }
 
 message ExportDataResponse {

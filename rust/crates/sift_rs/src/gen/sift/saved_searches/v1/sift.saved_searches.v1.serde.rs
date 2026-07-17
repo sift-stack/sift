@@ -747,6 +747,9 @@ impl serde::Serialize for ListSavedSearchesRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.saved_searches.v1.ListSavedSearchesRequest", len)?;
         if self.page_size != 0 {
             struct_ser.serialize_field("pageSize", &self.page_size)?;
@@ -759,6 +762,9 @@ impl serde::Serialize for ListSavedSearchesRequest {
         }
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
         }
         struct_ser.end()
     }
@@ -777,6 +783,8 @@ impl<'de> serde::Deserialize<'de> for ListSavedSearchesRequest {
             "filter",
             "organization_id",
             "organizationId",
+            "order_by",
+            "orderBy",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -785,6 +793,7 @@ impl<'de> serde::Deserialize<'de> for ListSavedSearchesRequest {
             PageToken,
             Filter,
             OrganizationId,
+            OrderBy,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -810,6 +819,7 @@ impl<'de> serde::Deserialize<'de> for ListSavedSearchesRequest {
                             "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
                             "filter" => Ok(GeneratedField::Filter),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -833,6 +843,7 @@ impl<'de> serde::Deserialize<'de> for ListSavedSearchesRequest {
                 let mut page_token__ = None;
                 let mut filter__ = None;
                 let mut organization_id__ = None;
+                let mut order_by__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PageSize => {
@@ -861,6 +872,12 @@ impl<'de> serde::Deserialize<'de> for ListSavedSearchesRequest {
                             }
                             organization_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ListSavedSearchesRequest {
@@ -868,6 +885,7 @@ impl<'de> serde::Deserialize<'de> for ListSavedSearchesRequest {
                     page_token: page_token__.unwrap_or_default(),
                     filter: filter__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
                 })
             }
         }
