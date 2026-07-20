@@ -30,6 +30,13 @@ pub struct DeriveAndUploadArgs {
     target_run: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AuditTestReportArgs {
+    test_report: String,
+    changes: Option<String>,
+    output_dir: Option<String>,
+}
+
 #[prompt_router(vis = "pub(crate)")]
 impl SiftMcpServer {
     #[prompt(
@@ -153,6 +160,63 @@ impl SiftMcpServer {
              5. Upload with `upload_dataset`, passing the `sql` output as `input`. After it returns, \
              tell the user where the data landed and offer to verify via `list_runs` or \
              `list_channels`."
+        );
+
+        vec![PromptMessage::new_text(PromptMessageRole::User, body)]
+    }
+
+    #[prompt(
+        name = "audit_test_report",
+        description = "Snapshot a test report for audit, and optionally dry-run a batch of edits: diff the projected changes before applying, then apply and verify. Writes only after you confirm the diff."
+    )]
+    pub async fn audit_test_report(
+        &self,
+        params: Parameters<AuditTestReportArgs>,
+    ) -> Vec<PromptMessage> {
+        let Parameters(AuditTestReportArgs {
+            test_report,
+            changes,
+            output_dir,
+        }) = params;
+
+        let dir = output_dir.unwrap_or_else(|| "the current working directory".to_string());
+
+        let tail = match changes {
+            Some(changes) => format!(
+                "The user wants to dry-run this batch of edits before applying them: \"{changes}\".\n\n\
+                 4. DRY RUN: apply the intended edits to a COPY of the baseline file (write \
+                 `<dir>/<test_report_id>.projected.json`). Do NOT call any write tool yet. Field names in \
+                 the snapshot mirror the update-tool inputs, so map each edit to the step or measurement \
+                 by its id. Remember `metadata` and `channel_names` are REPLACE, and changing a \
+                 measurement value does not recompute `passed` — set it explicitly if the verdict should \
+                 change.\n\
+                 5. Diff baseline vs projected and show the user exactly what would change. Get explicit \
+                 confirmation before writing.\n\
+                 6. On approval, apply the edits with `update_test_report`, `update_test_step`, and \
+                 `update_test_measurement`, using the ids from the snapshot.\n\
+                 7. Re-export to `<dir>/<test_report_id>.after.json` and diff it against the projected \
+                 file. Report any discrepancy between what was intended and what the server recorded."
+            ),
+            None => {
+                "This is an audit snapshot only. Report the baseline file path as the record and \
+                     make no changes."
+                    .to_string()
+            }
+        };
+
+        let body = format!(
+            "Help the user audit a Sift test report (the test-results feature: a report owns steps, which \
+             own measurements). The user referred to the report as: \"{test_report}\".\n\n\
+             Write snapshot files under: {dir}.\n\n\
+             Steps:\n\
+             1. Resolve the report with `list_test_reports`. If \"{test_report}\" looks like an id, filter \
+             `test_report_id == \"{test_report}\"`; otherwise filter `name == \"{test_report}\"`. If \
+             several match, ask the user which one before continuing.\n\
+             2. Snapshot the baseline with `export_test_report` to \
+             `<dir>/<test_report_id>.before.json`. This is the audit record; it omits server-managed \
+             fields and is deterministically ordered, so diffs show only user-editable changes.\n\
+             3. Confirm with the user what the baseline captured (step and measurement counts).\n\
+             {tail}"
         );
 
         vec![PromptMessage::new_text(PromptMessageRole::User, body)]

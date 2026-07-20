@@ -33,6 +33,7 @@ then in Claude Code each prompt is available as a slash command of the form
 - `/mcp__sift__explore_asset`
 - `/mcp__sift__analyze_run`
 - `/mcp__sift__derive_and_upload`
+- `/mcp__sift__audit_test_report`
 
 The `sift` in the command is your registered server name, so a different name
 in `.mcp.json` changes the prefix accordingly. Arguments are passed positionally
@@ -117,3 +118,34 @@ The agent extracts the source data, applies the transform with `sql` (keeping
 `timestamp_unix_nanos` as the first column, as Sift requires), confirms the
 target asset, run, and any tags with you, then uploads the result with
 `upload_dataset`.
+
+## `audit_test_report`
+
+Snapshots a test report (the test-results feature: a report owns steps, which
+own measurements) to a JSON file for audit and diffing. Given a description of
+intended edits, it dry-runs them first: it projects the changes, diffs them
+against the baseline for you to confirm, and only then applies the writes and
+verifies the result. Omit the edits for an audit snapshot alone.
+
+| Argument      | Required | Description                                                        |
+| ------------- | -------- | ----------------------------------------------------------------- |
+| `test_report` | yes      | Report to audit, by id or name.                                   |
+| `changes`     | no       | Plain-language description of the batch edits to dry-run.         |
+| `output_dir`  | no       | Directory for the snapshot files. Defaults to the working directory. |
+
+Snapshot a report for the record:
+
+```
+/mcp__sift__audit_test_report "nightly-regression 2024-05-01"
+```
+
+Dry-run a batch of edits before applying:
+
+```
+/mcp__sift__audit_test_report tr_abc123 "mark every step under power-on as FAILED and set its error_info"
+```
+
+The agent resolves the report, exports a baseline snapshot, projects the edits
+to a second file, and diffs the two so you can confirm. Once you approve, it
+applies the changes with the `update_test_*` tools, re-exports, and diffs
+against the projection to confirm the server recorded what you intended.
