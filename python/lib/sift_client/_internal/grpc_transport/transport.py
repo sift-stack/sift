@@ -165,7 +165,10 @@ def _compute_channel_options(opts: SiftChannelConfig) -> list[tuple[str, Any]]:
         # Primary cannot be overriden:
         #  https://github.com/grpc/grpc/blob/0498194240f55d7f4b12633ad01339fb690621bf/src/core/ext/filters/http/client/http_client_filter.cc#L97
         ("grpc.secondary_user_agent", _compute_user_agent()),
-        ("grpc.max_receive_message_length", 50 * 1024 * 1024),  # 50 MB — headroom for 1M-row GetData pages
+        (
+            "grpc.max_receive_message_length",
+            50 * 1024 * 1024,
+        ),  # 50 MB — headroom for 1M-row GetData pages
     ]
 
     enable_keepalive = opts.get("enable_keepalive", True)
