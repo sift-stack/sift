@@ -265,6 +265,7 @@ class ChannelsAPIAsync(ResourceBase):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
         ignore_cache: bool = False,
         show_progress: bool | None = None,
     ) -> dict[str, pd.DataFrame]:
@@ -276,6 +277,9 @@ class ChannelsAPIAsync(ResourceBase):
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            page_size: Number of data points to fetch per request. Defaults to 10,000.
+                The server caps this at 1,000,000; values above that are coerced down.
+                Increase toward 1,000,000 to reduce round-trips on large datasets.
             ignore_cache: Whether to ignore cached data and fetch fresh data from the server.
             show_progress: If True, display a progress bar naming each channel as
                 its data is fetched. Defaults to True for sync, False for async.
@@ -296,6 +300,7 @@ class ChannelsAPIAsync(ResourceBase):
             start_time=start_time,
             end_time=end_time,
             max_results=limit,
+            page_size=page_size,
             ignore_cache=ignore_cache,
             show_progress=show_progress,
         )
