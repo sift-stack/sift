@@ -146,6 +146,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.external_sync.v1)
         }
     }
+    pub mod families {
+        // @@protoc_insertion_point(attribute:sift.families.v1)
+        pub mod v1 {
+            include!("sift/families/v1/sift.families.v1.rs");
+            // @@protoc_insertion_point(sift.families.v1)
+        }
+    }
     pub mod filters {
         // @@protoc_insertion_point(attribute:sift.filters.v1)
         pub mod v1 {

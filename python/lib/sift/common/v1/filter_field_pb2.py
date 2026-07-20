@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n!sift/common/v1/filter_field.proto\x12\x0esift.common.v1\"\xb1\x02\n\x0b\x46ilterField\x12\x1d\n\nfield_name\x18\x01 \x01(\tR\tfieldName\x12\x33\n\x04type\x18\x02 \x01(\x0e\x32\x1f.sift.common.v1.FilterFieldTypeR\x04type\x12\x1f\n\x0b\x65num_values\x18\x03 \x03(\tR\nenumValues\x12 \n\x0b\x64\x65scription\x18\x04 \x01(\tR\x0b\x64\x65scription\x12!\n\x0c\x64isplay_name\x18\x05 \x01(\tR\x0b\x64isplayName\x12\x1c\n\toperators\x18\x06 \x03(\tR\toperators\x12\x1c\n\tfunctions\x18\x07 \x03(\tR\tfunctions\x12\x1f\n\x08nullable\x18\x08 \x01(\x08H\x00R\x08nullable\x88\x01\x01\x42\x0b\n\t_nullable*\xa0\x02\n\x0f\x46ilterFieldType\x12!\n\x1d\x46ILTER_FIELD_TYPE_UNSPECIFIED\x10\x00\x12\x1c\n\x18\x46ILTER_FIELD_TYPE_STRING\x10\x01\x12\x1f\n\x1b\x46ILTER_FIELD_TYPE_TIMESTAMP\x10\x02\x12\x19\n\x15\x46ILTER_FIELD_TYPE_INT\x10\x03\x12\x1a\n\x16\x46ILTER_FIELD_TYPE_BOOL\x10\x04\x12\x1e\n\x1a\x46ILTER_FIELD_TYPE_DURATION\x10\x05\x12\x1c\n\x18\x46ILTER_FIELD_TYPE_DOUBLE\x10\x06\x12\x1a\n\x16\x46ILTER_FIELD_TYPE_ENUM\x10\x07\x12\x1a\n\x16\x46ILTER_FIELD_TYPE_UUID\x10\x08\x42\x80\x01\n\x12\x63om.sift.common.v1B\x10\x46ilterFieldProtoP\x01\xa2\x02\x03SCX\xaa\x02\x0eSift.Common.V1\xca\x02\x0eSift\\Common\\V1\xe2\x02\x1aSift\\Common\\V1\\GPBMetadata\xea\x02\x10Sift::Common::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n!sift/common/v1/filter_field.proto\x12\x0esift.common.v1\"\x86\x04\n\x0b\x46ilterField\x12\x1d\n\nfield_name\x18\x01 \x01(\tR\tfieldName\x12\x33\n\x04type\x18\x02 \x01(\x0e\x32\x1f.sift.common.v1.FilterFieldTypeR\x04type\x12\x1f\n\x0b\x65num_values\x18\x03 \x03(\tR\nenumValues\x12 \n\x0b\x64\x65scription\x18\x04 \x01(\tR\x0b\x64\x65scription\x12!\n\x0c\x64isplay_name\x18\x05 \x01(\tR\x0b\x64isplayName\x12\x1c\n\toperators\x18\x06 \x03(\tR\toperators\x12\x1c\n\tfunctions\x18\x07 \x03(\tR\tfunctions\x12\x1f\n\x08nullable\x18\x08 \x01(\x08H\x00R\x08nullable\x88\x01\x01\x12\x16\n\x06\x65ntity\x18\t \x01(\tR\x06\x65ntity\x12\x12\n\x04name\x18\n \x01(\tR\x04name\x12\x10\n\x03key\x18\x0b \x01(\tR\x03key\x12>\n\nfield_kind\x18\x0c \x01(\x0e\x32\x1f.sift.common.v1.FilterFieldKindR\tfieldKind\x12\x33\n\x06\x66ields\x18\r \x03(\x0b\x32\x1b.sift.common.v1.FilterFieldR\x06\x66ields\x12 \n\x0bquantifiers\x18\x0e \x03(\tR\x0bquantifiersB\x0b\n\t_nullable*\xa0\x02\n\x0f\x46ilterFieldType\x12!\n\x1d\x46ILTER_FIELD_TYPE_UNSPECIFIED\x10\x00\x12\x1c\n\x18\x46ILTER_FIELD_TYPE_STRING\x10\x01\x12\x1f\n\x1b\x46ILTER_FIELD_TYPE_TIMESTAMP\x10\x02\x12\x19\n\x15\x46ILTER_FIELD_TYPE_INT\x10\x03\x12\x1a\n\x16\x46ILTER_FIELD_TYPE_BOOL\x10\x04\x12\x1e\n\x1a\x46ILTER_FIELD_TYPE_DURATION\x10\x05\x12\x1c\n\x18\x46ILTER_FIELD_TYPE_DOUBLE\x10\x06\x12\x1a\n\x16\x46ILTER_FIELD_TYPE_ENUM\x10\x07\x12\x1a\n\x16\x46ILTER_FIELD_TYPE_UUID\x10\x08*\xae\x01\n\x0f\x46ilterFieldKind\x12!\n\x1d\x46ILTER_FIELD_KIND_UNSPECIFIED\x10\x00\x12\x1c\n\x18\x46ILTER_FIELD_KIND_SCALAR\x10\x01\x12\x19\n\x15\x46ILTER_FIELD_KIND_MAP\x10\x02\x12\x1e\n\x1a\x46ILTER_FIELD_KIND_RELATION\x10\x03\x12\x1f\n\x1b\x46ILTER_FIELD_KIND_DIRECTIVE\x10\x04\x42\x80\x01\n\x12\x63om.sift.common.v1B\x10\x46ilterFieldProtoP\x01\xa2\x02\x03SCX\xaa\x02\x0eSift.Common.V1\xca\x02\x0eSift\\Common\\V1\xe2\x02\x1aSift\\Common\\V1\\GPBMetadata\xea\x02\x10Sift::Common::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -22,8 +22,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'sift.common.v1.filter_field
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\022com.sift.common.v1B\020FilterFieldProtoP\001\242\002\003SCX\252\002\016Sift.Common.V1\312\002\016Sift\\Common\\V1\342\002\032Sift\\Common\\V1\\GPBMetadata\352\002\020Sift::Common::V1'
-  _globals['_FILTERFIELDTYPE']._serialized_start=362
-  _globals['_FILTERFIELDTYPE']._serialized_end=650
+  _globals['_FILTERFIELDTYPE']._serialized_start=575
+  _globals['_FILTERFIELDTYPE']._serialized_end=863
+  _globals['_FILTERFIELDKIND']._serialized_start=866
+  _globals['_FILTERFIELDKIND']._serialized_end=1040
   _globals['_FILTERFIELD']._serialized_start=54
-  _globals['_FILTERFIELD']._serialized_end=359
+  _globals['_FILTERFIELD']._serialized_end=572
 # @@protoc_insertion_point(module_scope)

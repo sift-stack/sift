@@ -383,6 +383,7 @@ class CsvConfig(google.protobuf.message.Message):
     TIME_COLUMN_FIELD_NUMBER: builtins.int
     DATA_COLUMNS_FIELD_NUMBER: builtins.int
     NUM_ROWS_FIELD_NUMBER: builtins.int
+    USE_EMBEDDED_CONFIG_FIELD_NUMBER: builtins.int
     asset_name: builtins.str
     run_name: builtins.str
     run_id: builtins.str
@@ -393,6 +394,12 @@ class CsvConfig(google.protobuf.message.Message):
     """
     num_rows: builtins.int
     """This will be read on upload from the file if not set."""
+    use_embedded_config: builtins.bool
+    """If true, the time and data column configuration is read from a config
+    embedded in the file (written when the file was exported with
+    embed_channel_configs). Any time_column/data_columns supplied here are
+    ignored and replaced by the embedded config.
+    """
     @property
     def time_column(self) -> global___CsvTimeColumn: ...
     @property
@@ -409,9 +416,10 @@ class CsvConfig(google.protobuf.message.Message):
         time_column: global___CsvTimeColumn | None = ...,
         data_columns: collections.abc.Mapping[builtins.int, sift.common.type.v1.channel_config_pb2.ChannelConfig] | None = ...,
         num_rows: builtins.int | None = ...,
+        use_embedded_config: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_num_rows", b"_num_rows", "_time_column", b"_time_column", "num_rows", b"num_rows", "time_column", b"time_column"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_num_rows", b"_num_rows", "_time_column", b"_time_column", "asset_name", b"asset_name", "data_columns", b"data_columns", "first_data_row", b"first_data_row", "num_rows", b"num_rows", "run_id", b"run_id", "run_name", b"run_name", "time_column", b"time_column"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_num_rows", b"_num_rows", "_time_column", b"_time_column", "asset_name", b"asset_name", "data_columns", b"data_columns", "first_data_row", b"first_data_row", "num_rows", b"num_rows", "run_id", b"run_id", "run_name", b"run_name", "time_column", b"time_column", "use_embedded_config", b"use_embedded_config"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_num_rows", b"_num_rows"]) -> typing.Literal["num_rows"] | None: ...
     @typing.overload
@@ -702,6 +710,13 @@ class ParquetFlatDatasetConfig(google.protobuf.message.Message):
 
     TIME_COLUMN_FIELD_NUMBER: builtins.int
     DATA_COLUMNS_FIELD_NUMBER: builtins.int
+    USE_EMBEDDED_CONFIG_FIELD_NUMBER: builtins.int
+    use_embedded_config: builtins.bool
+    """If true, the time and data column configuration is read from the config
+    embedded in the file's Arrow field metadata (written when the file was
+    exported with embed_channel_configs). Any time_column/data_columns supplied
+    here are ignored and replaced by the embedded config.
+    """
     @property
     def time_column(self) -> global___ParquetTimeColumn: ...
     @property
@@ -711,9 +726,10 @@ class ParquetFlatDatasetConfig(google.protobuf.message.Message):
         *,
         time_column: global___ParquetTimeColumn | None = ...,
         data_columns: collections.abc.Iterable[global___ParquetDataColumn] | None = ...,
+        use_embedded_config: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["time_column", b"time_column"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["data_columns", b"data_columns", "time_column", b"time_column"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_columns", b"data_columns", "time_column", b"time_column", "use_embedded_config", b"use_embedded_config"]) -> None: ...
 
 global___ParquetFlatDatasetConfig = ParquetFlatDatasetConfig
 
@@ -1236,7 +1252,7 @@ class ListDataImportsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `data_import_id`, `source_url`, `status`.
+    Available fields to filter by are `data_import_id`, `source_url`, `status`, `run_id`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str

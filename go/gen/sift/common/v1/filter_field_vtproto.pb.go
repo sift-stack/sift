@@ -29,6 +29,10 @@ func (m *FilterField) CloneVT() *FilterField {
 	r.Type = m.Type
 	r.Description = m.Description
 	r.DisplayName = m.DisplayName
+	r.Entity = m.Entity
+	r.Name = m.Name
+	r.Key = m.Key
+	r.FieldKind = m.FieldKind
 	if rhs := m.EnumValues; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -47,6 +51,18 @@ func (m *FilterField) CloneVT() *FilterField {
 	if rhs := m.Nullable; rhs != nil {
 		tmpVal := *rhs
 		r.Nullable = &tmpVal
+	}
+	if rhs := m.Fields; rhs != nil {
+		tmpContainer := make([]*FilterField, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Fields = tmpContainer
+	}
+	if rhs := m.Quantifiers; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Quantifiers = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -107,6 +123,44 @@ func (this *FilterField) EqualVT(that *FilterField) bool {
 	if p, q := this.Nullable, that.Nullable; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
+	if this.Entity != that.Entity {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.Key != that.Key {
+		return false
+	}
+	if this.FieldKind != that.FieldKind {
+		return false
+	}
+	if len(this.Fields) != len(that.Fields) {
+		return false
+	}
+	for i, vx := range this.Fields {
+		vy := that.Fields[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &FilterField{}
+			}
+			if q == nil {
+				q = &FilterField{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Quantifiers) != len(that.Quantifiers) {
+		return false
+	}
+	for i, vx := range this.Quantifiers {
+		vy := that.Quantifiers[i]
+		if vx != vy {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -146,6 +200,53 @@ func (m *FilterField) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Quantifiers) > 0 {
+		for iNdEx := len(m.Quantifiers) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Quantifiers[iNdEx])
+			copy(dAtA[i:], m.Quantifiers[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Quantifiers[iNdEx])))
+			i--
+			dAtA[i] = 0x72
+		}
+	}
+	if len(m.Fields) > 0 {
+		for iNdEx := len(m.Fields) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Fields[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x6a
+		}
+	}
+	if m.FieldKind != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.FieldKind))
+		i--
+		dAtA[i] = 0x60
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.Entity) > 0 {
+		i -= len(m.Entity)
+		copy(dAtA[i:], m.Entity)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Entity)))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if m.Nullable != nil {
 		i--
@@ -242,6 +343,53 @@ func (m *FilterField) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Quantifiers) > 0 {
+		for iNdEx := len(m.Quantifiers) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Quantifiers[iNdEx])
+			copy(dAtA[i:], m.Quantifiers[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Quantifiers[iNdEx])))
+			i--
+			dAtA[i] = 0x72
+		}
+	}
+	if len(m.Fields) > 0 {
+		for iNdEx := len(m.Fields) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Fields[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x6a
+		}
+	}
+	if m.FieldKind != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.FieldKind))
+		i--
+		dAtA[i] = 0x60
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.Entity) > 0 {
+		i -= len(m.Entity)
+		copy(dAtA[i:], m.Entity)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Entity)))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if m.Nullable != nil {
 		i--
@@ -350,6 +498,33 @@ func (m *FilterField) SizeVT() (n int) {
 	}
 	if m.Nullable != nil {
 		n += 2
+	}
+	l = len(m.Entity)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.FieldKind != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.FieldKind))
+	}
+	if len(m.Fields) > 0 {
+		for _, e := range m.Fields {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Quantifiers) > 0 {
+		for _, s := range m.Quantifiers {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -616,6 +791,187 @@ func (m *FilterField) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Nullable = &b
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entity", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entity = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FieldKind", wireType)
+			}
+			m.FieldKind = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FieldKind |= FilterFieldKind(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fields", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Fields = append(m.Fields, &FilterField{})
+			if err := m.Fields[len(m.Fields)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quantifiers", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Quantifiers = append(m.Quantifiers, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -923,6 +1279,203 @@ func (m *FilterField) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Nullable = &b
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entity", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Entity = stringValue
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Name = stringValue
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Key = stringValue
+			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FieldKind", wireType)
+			}
+			m.FieldKind = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FieldKind |= FilterFieldKind(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fields", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Fields = append(m.Fields, &FilterField{})
+			if err := m.Fields[len(m.Fields)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Quantifiers", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Quantifiers = append(m.Quantifiers, stringValue)
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

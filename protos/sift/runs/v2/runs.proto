@@ -166,9 +166,7 @@ message Run {
 // The request for a call to `RunService_GetRun` to retrieve run.
 message GetRunRequest {
   // The ID of the run to retrieve.
-  string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `RunService_GetRun` containing the requested run.
@@ -245,9 +243,7 @@ message CreateRunRequest {
   string organization_id = 7 [(google.api.field_behavior) = OPTIONAL];
 
   // An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide.
-  optional string client_key = 8 [
-    (google.api.field_behavior) = OPTIONAL
-  ];
+  optional string client_key = 8 [(google.api.field_behavior) = OPTIONAL];
 
   // The metadata values associated with this run.
   repeated sift.metadata.v1.MetadataValue metadata = 9 [(google.api.field_behavior) = OPTIONAL];
@@ -264,9 +260,7 @@ message CreateRunResponse {
 // The request for a call to `RunService_CreateAdhocRun` to create an adhoc run.
 message CreateAdhocRunRequest {
   // The name that will be assigned to the new run.
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
   // A description about the new run.
   string description = 2 [(google.api.field_behavior) = REQUIRED];
   // The time at which data ingestion began for this new run. It must be before the `stop_time`
@@ -274,17 +268,13 @@ message CreateAdhocRunRequest {
   // The time at which data ingestion concluded for this new run.
   google.protobuf.Timestamp stop_time = 4 [(google.api.field_behavior) = REQUIRED];
   // A list of asset IDs to associate with the new run.
-  repeated string asset_ids = 5 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  repeated string asset_ids = 5 [(google.api.field_behavior) = REQUIRED];
   // Tags to associate with the new run.
   repeated string tags = 6 [(google.api.field_behavior) = OPTIONAL];
   // The metadata values associated with this run.
   repeated sift.metadata.v1.MetadataValue metadata = 7 [(google.api.field_behavior) = OPTIONAL];
   // An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide.
-  optional string client_key = 8 [
-    (google.api.field_behavior) = OPTIONAL
-  ];
+  optional string client_key = 8 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `RunService_CreateAdhocRun` containing the newly created adhoc run.
@@ -304,9 +294,7 @@ message UpdateRunRequest {
   // commences for this run, the `start_time` will be automatically overwritten and set to the timestamp
   // corresponding to the beginning of the latest run. Additionally, `client_key` can only be set once either in run creation or in update.
   // Any subsequent attempt to update `client_key` will result in an error.
-  google.protobuf.FieldMask update_mask = 2 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `RunService_UpdateRun` containing the updated run.
@@ -316,9 +304,7 @@ message UpdateRunResponse {
 
 message CreateAutomaticRunAssociationForAssetsRequest {
   // The ID of the run to associate the asset with.
-  string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
 
   // A list of asset names to automatically associate with the run.
   // Any data that is received for these assets will automatically added to the run.
@@ -334,9 +320,7 @@ message CreateAutomaticRunAssociationForAssetsResponse {}
 
 // The request for a call to `RunService_DeleteRun`.
 message DeleteRunRequest {
-  string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `RunService_DeleteRun`.
@@ -344,17 +328,14 @@ message DeleteRunResponse {}
 
 // The request for a call to `RunService_StopRun` to stop a run.
 message StopRunRequest {
-  string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED
-  ];
+  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `RunService_StopRun` to stop a run.
 message StopRunResponse {}
 
 // The request for a call to `RunService_GetFilterFields`.
-message GetFilterFieldsRequest {
-}
+message GetFilterFieldsRequest {}
 
 // The response of a call to `RunService_GetFilterFields`.
 message GetFilterFieldsResponse {

@@ -3477,6 +3477,169 @@ impl<'de> serde::Deserialize<'de> for EvaluatedAnnotationOptions {
         deserializer.deserialize_struct("sift.rules.v1.EvaluatedAnnotationOptions", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for FamilyStatReference {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.reference.is_empty() {
+            len += 1;
+        }
+        if !self.family_id.is_empty() {
+            len += 1;
+        }
+        if !self.family_stat_name.is_empty() {
+            len += 1;
+        }
+        if !self.family_stat_expression.is_empty() {
+            len += 1;
+        }
+        if !self.family_stat_range_name.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.FamilyStatReference", len)?;
+        if !self.reference.is_empty() {
+            struct_ser.serialize_field("reference", &self.reference)?;
+        }
+        if !self.family_id.is_empty() {
+            struct_ser.serialize_field("familyId", &self.family_id)?;
+        }
+        if !self.family_stat_name.is_empty() {
+            struct_ser.serialize_field("familyStatName", &self.family_stat_name)?;
+        }
+        if !self.family_stat_expression.is_empty() {
+            struct_ser.serialize_field("familyStatExpression", &self.family_stat_expression)?;
+        }
+        if !self.family_stat_range_name.is_empty() {
+            struct_ser.serialize_field("familyStatRangeName", &self.family_stat_range_name)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FamilyStatReference {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "reference",
+            "family_id",
+            "familyId",
+            "family_stat_name",
+            "familyStatName",
+            "family_stat_expression",
+            "familyStatExpression",
+            "family_stat_range_name",
+            "familyStatRangeName",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Reference,
+            FamilyId,
+            FamilyStatName,
+            FamilyStatExpression,
+            FamilyStatRangeName,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "reference" => Ok(GeneratedField::Reference),
+                            "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
+                            "familyStatName" | "family_stat_name" => Ok(GeneratedField::FamilyStatName),
+                            "familyStatExpression" | "family_stat_expression" => Ok(GeneratedField::FamilyStatExpression),
+                            "familyStatRangeName" | "family_stat_range_name" => Ok(GeneratedField::FamilyStatRangeName),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FamilyStatReference;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.FamilyStatReference")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FamilyStatReference, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut reference__ = None;
+                let mut family_id__ = None;
+                let mut family_stat_name__ = None;
+                let mut family_stat_expression__ = None;
+                let mut family_stat_range_name__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Reference => {
+                            if reference__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reference"));
+                            }
+                            reference__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyId => {
+                            if family_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyId"));
+                            }
+                            family_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyStatName => {
+                            if family_stat_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyStatName"));
+                            }
+                            family_stat_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyStatExpression => {
+                            if family_stat_expression__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyStatExpression"));
+                            }
+                            family_stat_expression__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FamilyStatRangeName => {
+                            if family_stat_range_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyStatRangeName"));
+                            }
+                            family_stat_range_name__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(FamilyStatReference {
+                    reference: reference__.unwrap_or_default(),
+                    family_id: family_id__.unwrap_or_default(),
+                    family_stat_name: family_stat_name__.unwrap_or_default(),
+                    family_stat_expression: family_stat_expression__.unwrap_or_default(),
+                    family_stat_range_name: family_stat_range_name__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.FamilyStatReference", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for GetRuleRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

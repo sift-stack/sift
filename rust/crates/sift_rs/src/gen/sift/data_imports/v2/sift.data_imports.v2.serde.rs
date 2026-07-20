@@ -1185,6 +1185,9 @@ impl serde::Serialize for CsvConfig {
         if self.num_rows.is_some() {
             len += 1;
         }
+        if self.use_embedded_config {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CsvConfig", len)?;
         if !self.asset_name.is_empty() {
             struct_ser.serialize_field("assetName", &self.asset_name)?;
@@ -1208,6 +1211,9 @@ impl serde::Serialize for CsvConfig {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("numRows", ToString::to_string(&v).as_str())?;
+        }
+        if self.use_embedded_config {
+            struct_ser.serialize_field("useEmbeddedConfig", &self.use_embedded_config)?;
         }
         struct_ser.end()
     }
@@ -1233,6 +1239,8 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
             "dataColumns",
             "num_rows",
             "numRows",
+            "use_embedded_config",
+            "useEmbeddedConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1244,6 +1252,7 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
             TimeColumn,
             DataColumns,
             NumRows,
+            UseEmbeddedConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1272,6 +1281,7 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
                             "timeColumn" | "time_column" => Ok(GeneratedField::TimeColumn),
                             "dataColumns" | "data_columns" => Ok(GeneratedField::DataColumns),
                             "numRows" | "num_rows" => Ok(GeneratedField::NumRows),
+                            "useEmbeddedConfig" | "use_embedded_config" => Ok(GeneratedField::UseEmbeddedConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1298,6 +1308,7 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
                 let mut time_column__ = None;
                 let mut data_columns__ = None;
                 let mut num_rows__ = None;
+                let mut use_embedded_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetName => {
@@ -1349,6 +1360,12 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
+                        GeneratedField::UseEmbeddedConfig => {
+                            if use_embedded_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("useEmbeddedConfig"));
+                            }
+                            use_embedded_config__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CsvConfig {
@@ -1359,6 +1376,7 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
                     time_column: time_column__,
                     data_columns: data_columns__.unwrap_or_default(),
                     num_rows: num_rows__,
+                    use_embedded_config: use_embedded_config__.unwrap_or_default(),
                 })
             }
         }
@@ -3695,12 +3713,18 @@ impl serde::Serialize for ParquetFlatDatasetConfig {
         if !self.data_columns.is_empty() {
             len += 1;
         }
+        if self.use_embedded_config {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.ParquetFlatDatasetConfig", len)?;
         if let Some(v) = self.time_column.as_ref() {
             struct_ser.serialize_field("timeColumn", v)?;
         }
         if !self.data_columns.is_empty() {
             struct_ser.serialize_field("dataColumns", &self.data_columns)?;
+        }
+        if self.use_embedded_config {
+            struct_ser.serialize_field("useEmbeddedConfig", &self.use_embedded_config)?;
         }
         struct_ser.end()
     }
@@ -3716,12 +3740,15 @@ impl<'de> serde::Deserialize<'de> for ParquetFlatDatasetConfig {
             "timeColumn",
             "data_columns",
             "dataColumns",
+            "use_embedded_config",
+            "useEmbeddedConfig",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             TimeColumn,
             DataColumns,
+            UseEmbeddedConfig,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -3745,6 +3772,7 @@ impl<'de> serde::Deserialize<'de> for ParquetFlatDatasetConfig {
                         match value {
                             "timeColumn" | "time_column" => Ok(GeneratedField::TimeColumn),
                             "dataColumns" | "data_columns" => Ok(GeneratedField::DataColumns),
+                            "useEmbeddedConfig" | "use_embedded_config" => Ok(GeneratedField::UseEmbeddedConfig),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -3766,6 +3794,7 @@ impl<'de> serde::Deserialize<'de> for ParquetFlatDatasetConfig {
             {
                 let mut time_column__ = None;
                 let mut data_columns__ = None;
+                let mut use_embedded_config__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::TimeColumn => {
@@ -3780,11 +3809,18 @@ impl<'de> serde::Deserialize<'de> for ParquetFlatDatasetConfig {
                             }
                             data_columns__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::UseEmbeddedConfig => {
+                            if use_embedded_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("useEmbeddedConfig"));
+                            }
+                            use_embedded_config__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ParquetFlatDatasetConfig {
                     time_column: time_column__,
                     data_columns: data_columns__.unwrap_or_default(),
+                    use_embedded_config: use_embedded_config__.unwrap_or_default(),
                 })
             }
         }
