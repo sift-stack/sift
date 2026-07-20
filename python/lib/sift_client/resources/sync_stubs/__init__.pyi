@@ -1,165 +1,171 @@
 # Auto-generated stub
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
-    from typing import TYPE_CHECKING, Any
-    from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
-    from sift_client.resources._base import ResourceBase
-    from sift_client.sift_types.asset import Asset, AssetUpdate
-    from sift_client.util import cel_utils as cel
     import re
-    from datetime import datetime
-    from sift_client.client import SiftClient
-    from sift_client.sift_types.tag import Tag
-    from sift_client._internal.low_level_wrappers.calculated_channels import CalculatedChannelsLowLevelClient
-    from sift_client.sift_types.asset import Asset
-    from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate, CalculatedChannelUpdate
-    from sift_client.sift_types.run import Run
-    from typing import TYPE_CHECKING
-    from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
-    from sift_client._internal.low_level_wrappers.units import UnitsLowLevelClient
-    from sift_client.sift_types.channel import Channel, ChannelUpdate
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    from typing import TYPE_CHECKING, Any, Sequence
+
     import pandas as pd
     import pyarrow as pa
-    from pyarrow import Table as ArrowTable
-    from sift_client._internal.low_level_wrappers.data import ChannelDataCache, DataLowLevelClient
-    from sift_client._internal.low_level_wrappers.exports import ExportsLowLevelClient
-    from sift_client._internal.util.channels import resolve_calculated_channels
-    from sift_client.sift_types.calculated_channel import CalculatedChannelCreate
-    from sift_client.sift_types.channel import Channel
+
+    from sift_client._internal.low_level_wrappers.test_results import (
+        ReplayResult,
+    )
+    from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset, AssetUpdate
+    from sift_client.sift_types.calculated_channel import (
+        CalculatedChannel,
+        CalculatedChannelCreate,
+        CalculatedChannelUpdate,
+    )
+    from sift_client.sift_types.channel import Channel, ChannelUpdate
+    from sift_client.sift_types.data_import import (
+        DataTypeKey,
+        ImportConfig,
+        TimeFormat,
+    )
     from sift_client.sift_types.export import ExportOutputFormat
-    from sift_client.sift_types.calculated_channel import CalculatedChannel
-    from sift_client.sift_types.job import Job
-    from pathlib import Path
-    from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
-    from sift_client._internal.util.executor import run_sync_function
-    from sift_client._internal.util.file import extract_parquet_footer, upload_file
-    from sift_client.sift_types.channel import ChannelDataType
-    from sift_client.sift_types.data_import import DATA_TYPE_KEY_TO_PROTO, EXTENSION_TO_DATA_TYPE_KEY, CsvImportConfig, DataTypeKey, Hdf5ImportConfig, ImportConfig, ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig, ParquetTimeColumn, TdmsImportConfig, TimeFormat, UlogImportConfig
-    from collections.abc import Iterable
-    from sift_client._internal.util.hdf5 import detect_hdf5_config
-    from sift_client._internal.util.tdms import detect_tdms_config
-    from sift_client._internal.util.ulog import detect_ulog_config
-    from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
-    from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
-    from sift_client._internal.util.file import download_file
-    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate, RemoteFileEntityType
-    from sift_client.sift_types.test_report import TestReport, TestStep
-    from sift_client.sift_types.file_attachment import FileAttachmentUpdate
-    from sift_client.sift_types.file_attachment import FileAttachment
-    import asyncio
-    import tempfile
-    import time
-    import zipfile
-    from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
-    from sift_client._internal.util.file import download_file, extract_zip
-    from sift_client._internal.util.progress import alive_bar
-    from sift_client.sift_types.job import DataExportStatusDetails, Job, JobStatus, JobType
-    from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
-    from sift_client._internal.low_level_wrappers.principal_attributes import PrincipalAttributesLowLevelClient
-    from sift_client.resources.access_control._common import attribute_value_kwargs, id_of, resolve_key
-    from sift_client.sift_types.principal_attribute import PrincipalAttributeAssignment, PrincipalAttributeEnumValue, PrincipalAttributeKey, PrincipalAttributeKeyUpdate, PrincipalAttributeValueLike, PrincipalAttributeValueType, PrincipalRef, PrincipalType
-    from sift_client.sift_types.user import User
-    from sift_client._internal.low_level_wrappers.report_templates import ReportTemplatesLowLevelClient
-    from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
-    from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
-    from sift_client.sift_types.job import Job, RuleEvaluationDetails
+    from sift_client.sift_types.file_attachment import (
+        FileAttachment,
+        FileAttachmentUpdate,
+        RemoteFileEntityType,
+    )
+    from sift_client.sift_types.job import (
+        Job,
+        JobStatus,
+        JobType,
+    )
+    from sift_client.sift_types.principal_attribute import (
+        PrincipalAttributeAssignment,
+        PrincipalAttributeEnumValue,
+        PrincipalAttributeKey,
+        PrincipalAttributeKeyUpdate,
+        PrincipalAttributeValueLike,
+        PrincipalAttributeValueType,
+        PrincipalRef,
+        PrincipalType,
+    )
     from sift_client.sift_types.report import Report, ReportUpdate
-    from sift_client.sift_types.report_template import ReportTemplate, ReportTemplateCreate, ReportTemplateUpdate
-    from sift_client.sift_types.rule import Rule, RuleVersion
-    from typing import TYPE_CHECKING, Union
-    from sift_client._internal.low_level_wrappers.resource_attributes import ResourceAttributesLowLevelClient
-    from sift_client.sift_types.resource_attribute import ResourceAttributeAssignment, ResourceAttributeEntity, ResourceAttributeEnumValue, ResourceAttributeKey, ResourceAttributeKeyUpdate, ResourceAttributeValueLike, ResourceAttributeValueType
-    import warnings
-    from typing import TYPE_CHECKING, Any, Sequence
-    from sift_client.errors import SiftWarning
+    from sift_client.sift_types.report_template import (
+        ReportTemplate,
+        ReportTemplateCreate,
+        ReportTemplateUpdate,
+    )
+    from sift_client.sift_types.resource_attribute import (
+        ResourceAttributeAssignment,
+        ResourceAttributeEntity,
+        ResourceAttributeEnumValue,
+        ResourceAttributeKey,
+        ResourceAttributeKeyUpdate,
+        ResourceAttributeValueLike,
+        ResourceAttributeValueType,
+    )
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate, RuleVersion
-    from typing import TYPE_CHECKING, Any, cast
-    from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
-    from datetime import datetime, timedelta
-    from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
     from sift_client.sift_types.tag import Tag, TagUpdate
-    import uuid
-    from sift_client._internal.low_level_wrappers.test_results import ReplayResult, TestResultsLowLevelClient
-    from sift_client.sift_types.test_report import TestMeasurement, TestMeasurementCreate, TestMeasurementType, TestMeasurementUpdate, TestReport, TestReportCreate, TestReportUpdate, TestStatus, TestStep, TestStepCreate, TestStepType, TestStepUpdate
-    from sift_client.util.cel_utils import and_, equals, in_
-    from sift_client._internal.low_level_wrappers.users import UsersLowLevelClient
+    from sift_client.sift_types.test_report import (
+        TestMeasurement,
+        TestMeasurementCreate,
+        TestMeasurementType,
+        TestMeasurementUpdate,
+        TestReport,
+        TestReportCreate,
+        TestReportUpdate,
+        TestStatus,
+        TestStep,
+        TestStepCreate,
+        TestStepType,
+        TestStepUpdate,
+    )
+    from sift_client.sift_types.user import User
 
 class AssetsAPI:
-    """
-    Sync counterpart to `AssetsAPIAsync`.
-    
+    """Sync counterpart to `AssetsAPIAsync`.
+
     High-level API for interacting with assets.
-    
+
     This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-    
+
     All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
     representation of an asset using standard Python data structures and types.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the AssetsAPI.
-        
+        """Initialize the AssetsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
-        """
-        Archive an asset.
-        
+        """Archive an asset.
+
         Args:
              asset: The Asset or asset ID to archive.
              archive_runs: If True, archive all Runs associated with the Asset.
-        
+
         Returns:
              The archived Asset.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> Asset | None:
-        """
-        Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
+        """Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
         raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
-        
+
         Returns:
             The Asset found or None.
         """
-
         ...
-    
+
     def get(self, *, asset_id: str | None = None, name: str | None = None) -> Asset:
-        """
-        Get an Asset.
-        
+        """Get an Asset.
+
         Args:
             asset_id: The ID of the asset.
             name: The name of the asset.
-        
+
         Returns:
             The Asset.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, asset_ids: list[str] | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by: Any | str | None = None, modified_by: Any | str | None = None, tags: list[Any] | list[str] | list[Tag] | None = None, metadata: list[Any] | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[Asset]:
-        """
-        List assets with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        asset_ids: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
+        metadata: list[Any] | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Asset]:
+        """List assets with optional filtering.
+
         Args:
             name: Exact name of the asset.
             names: List of asset names to filter by.
@@ -181,131 +187,137 @@ class AssetsAPI:
             limit: Maximum number of assets to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of Asset objects that match the filter criteria.
         """
-
         ...
-    
+
     def unarchive(self, asset: str | Asset) -> Asset:
-        """
-        Unarchive an asset.
-        
+        """Unarchive an asset.
+
         Args:
              asset: The Asset or asset ID to unarchive.
-        
+
         Returns:
              The unarchived Asset.
         """
-
         ...
-    
+
     def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
-        """
-        Update an Asset.
-        
+        """Update an Asset.
+
         Args:
             asset: The Asset or asset ID to update.
             update: Updates to apply to the Asset.
-        
+
         Returns:
             The updated Asset.
         """
-
         ...
 
-
-
 class CalculatedChannelsAPI:
-    """
-    Sync counterpart to `CalculatedChannelsAPIAsync`.
-    
+    """Sync counterpart to `CalculatedChannelsAPIAsync`.
+
     High-level API for interacting with calculated channels.
-    
+
     This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-    
+
     All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
     representation of a calculated channel using standard Python data structures and types.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the CalculatedChannelsAPI.
-        
+        """Initialize the CalculatedChannelsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
-        """
-        Archive a calculated channel.
-        
+        """Archive a calculated channel.
+
         Args:
             calculated_channel: The id or CalculatedChannel object of the calculated channel to archive.
-        
+
         Returns:
             The archived CalculatedChannel.
         """
-
         ...
-    
+
     def create(self, create: CalculatedChannelCreate | dict) -> CalculatedChannel:
-        """
-        Create a calculated channel.
-        
+        """Create a calculated channel.
+
         Args:
             create: A CalculatedChannelCreate object or dictionary with configuration for the new calculated channel.
                    This should include properties like name, expression, channel_references, etc.
-        
+
         Returns:
             The created CalculatedChannel.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> CalculatedChannel | None:
-        """
-        Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
+        """Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
         Will raise an error if multiple calculated channels are found.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
-        
+
         Returns:
             The CalculatedChannel found or None.
         """
-
         ...
-    
-    def get(self, *, calculated_channel_id: str | None = None, client_key: str | None = None) -> CalculatedChannel:
-        """
-        Get a Calculated Channel.
-        
+
+    def get(
+        self, *, calculated_channel_id: str | None = None, client_key: str | None = None
+    ) -> CalculatedChannel:
+        """Get a Calculated Channel.
+
         Args:
             calculated_channel_id: The ID of the calculated channel.
             client_key: The client key of the calculated channel.
-        
+
         Returns:
             The CalculatedChannel.
-        
+
         Raises:
             ValueError: If neither calculated_channel_id nor client_key is provided.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, calculated_channel_ids: list[str] | None = None, client_keys: list[str] | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by: Any | str | None = None, modified_by: Any | str | None = None, tags: list[Any] | list[str] | list[Tag] | None = None, metadata: list[Any] | None = None, asset: Asset | str | None = None, run: Run | str | None = None, version: int | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[CalculatedChannel]:
-        """
-        List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        calculated_channel_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
+        metadata: list[Any] | None = None,
+        asset: Asset | str | None = None,
+        run: Run | str | None = None,
+        version: int | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[CalculatedChannel]:
+        """List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
+
         Args:
             name: Exact name of the calculated channel.
             names: List of calculated channel names to filter by.
@@ -331,17 +343,38 @@ class CalculatedChannelsAPI:
             limit: How many calculated channels to retrieve. If None, retrieves all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of CalculatedChannels that matches the filter.
         """
-
         ...
-    
-    def list_versions(self, *, calculated_channel: CalculatedChannel | str | None = None, client_key: str | None = None, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by: Any | str | None = None, modified_by: Any | str | None = None, tags: list[Any] | list[str] | list[Tag] | None = None, metadata: list[Any] | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[CalculatedChannel]:
-        """
-        List versions of a calculated channel.
-        
+
+    def list_versions(
+        self,
+        *,
+        calculated_channel: CalculatedChannel | str | None = None,
+        client_key: str | None = None,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
+        metadata: list[Any] | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[CalculatedChannel]:
+        """List versions of a calculated channel.
+
         Args:
             calculated_channel: The CalculatedChannel or ID of the calculated channel to get versions for.
             client_key: The client key of the calculated channel.
@@ -364,112 +397,109 @@ class CalculatedChannelsAPI:
             limit: Maximum number of versions to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of CalculatedChannel versions that match the filter criteria.
         """
-
         ...
-    
+
     def unarchive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
-        """
-        Unarchive a calculated channel.
-        
+        """Unarchive a calculated channel.
+
         Args:
             calculated_channel: The id or CalculatedChannel object of the calculated channel to unarchive.
-        
+
         Returns:
             The unarchived CalculatedChannel.
         """
-
         ...
-    
-    def update(self, calculated_channel: CalculatedChannel | str, update: CalculatedChannelUpdate | dict, *, user_notes: str | None = None) -> CalculatedChannel:
-        """
-        Update a Calculated Channel.
-        
+
+    def update(
+        self,
+        calculated_channel: CalculatedChannel | str,
+        update: CalculatedChannelUpdate | dict,
+        *,
+        user_notes: str | None = None,
+    ) -> CalculatedChannel:
+        """Update a Calculated Channel.
+
         Args:
             calculated_channel: The CalculatedChannel or id of the CalculatedChannel to update.
             update: Updates to apply to the CalculatedChannel.
             user_notes: User notes for the update.
-        
+
         Returns:
             The updated CalculatedChannel.
         """
-
         ...
 
-
-
 class ChannelsAPI:
-    """
-    Sync counterpart to `ChannelsAPIAsync`.
-    
+    """Sync counterpart to `ChannelsAPIAsync`.
+
     High-level API for interacting with channels.
-    
+
     This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-    
+
     All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
     representation of a channel using standard Python data structures and types.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ChannelsAPI.
-        
+        """Initialize the ChannelsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, channels: list[str | Channel]) -> None:
-        """
-        Batch archive channels by setting active to false.
-        
+        """Batch archive channels by setting active to false.
+
         Args:
             channels: List of channel IDs or Channel objects to archive. If a Channel
                 has no id set, raises ValueError.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> Channel | None:
-        """
-        Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
+        """Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
         raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
-        
+
         Returns:
             The Channel found or None.
         """
-
         ...
-    
+
     def get(self, *, channel_id: str) -> Channel:
-        """
-        Get a Channel.
-        
+        """Get a Channel.
+
         Args:
             channel_id: The ID of the channel.
-        
+
         Returns:
             The Channel.
         """
-
         ...
-    
-    def get_data(self, *, channels: list[Channel], run: Run | str | None = None, start_time: datetime | None = None, end_time: datetime | None = None, limit: int | None = None, page_size: int | None = None, ignore_cache: bool = False, show_progress: bool | None = None) -> dict[str, pd.DataFrame]:
-        """
-        Get data for one or more channels.
-        
+
+    def get_data(
+        self,
+        *,
+        channels: list[Channel],
+        run: Run | str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+        ignore_cache: bool = False,
+        show_progress: bool | None = None,
+    ) -> dict[str, pd.DataFrame]:
+        """Get data for one or more channels.
+
         Args:
             channels: The channels to get data for.
             run: The Run or run_id to get data for.
@@ -483,24 +513,51 @@ class ChannelsAPI:
             show_progress: If True, display a progress bar naming each channel as
                 its data is fetched. Defaults to True for sync, False for async.
                 Use ``sift_client.config.show_progress = False`` to disable globally.
-        
+
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
-
         ...
-    
-    def get_data_as_arrow(self, *, channels: list[Channel], run: Run | str | None = None, start_time: datetime | None = None, end_time: datetime | None = None, limit: int | None = None, page_size: int | None = None, ignore_cache: bool = False, show_progress: bool | None = None) -> dict[str, pa.Table]:
-        """
-        Get data for one or more channels as pyarrow tables.
-        """
 
+    def get_data_as_arrow(
+        self,
+        *,
+        channels: list[Channel],
+        run: Run | str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+        ignore_cache: bool = False,
+        show_progress: bool | None = None,
+    ) -> dict[str, pa.Table]:
+        """Get data for one or more channels as pyarrow tables."""
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, channel_ids: list[str] | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, asset: Asset | str | None = None, assets: list[str | Asset] | None = None, run: Run | str | None = None, description_contains: str | None = None, archived: bool | None = None, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[Channel]:
-        """
-        List channels with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        channel_ids: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        asset: Asset | str | None = None,
+        assets: list[str | Asset] | None = None,
+        run: Run | str | None = None,
+        description_contains: str | None = None,
+        archived: bool | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Channel]:
+        """List channels with optional filtering.
+
         Args:
             name: Exact name of the channel.
             names: List of channel names to filter by.
@@ -521,88 +578,88 @@ class ChannelsAPI:
             limit: Maximum number of channels to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of Channels that matches the filter criteria.
         """
-
         ...
-    
+
     def unarchive(self, channels: list[str | Channel]) -> None:
-        """
-        Batch unarchive channels by setting active to true.
-        
+        """Batch unarchive channels by setting active to true.
+
         Args:
             channels: List of channel IDs or Channel objects to unarchive. If a Channel
                 has no id set, raises ValueError.
         """
-
         ...
-    
+
     def update(self, channel: str | Channel, update: ChannelUpdate | dict) -> Channel:
-        """
-        Update a Channel.
-        
+        """Update a Channel.
+
         Args:
             channel: The Channel or channel ID to update.
             update: Updates to apply to the Channel. See ChannelUpdate for the updatable fields
                 (description, unit, metadata, and archived status).
-        
+
         Returns:
             The updated Channel.
         """
-
         ...
 
-
-
 class DataExportAPI:
-    """
-    Sync counterpart to `DataExportAPIAsync`.
-    
+    """Sync counterpart to `DataExportAPIAsync`.
+
     High-level API for exporting data from Sift.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the DataExportAPI.
-        
+        """Initialize the DataExportAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
-    def export(self, *, output_format: ExportOutputFormat, runs: list[str | Run] | None = None, assets: list[str | Asset] | None = None, start_time: datetime | None = None, stop_time: datetime | None = None, channels: list[str | Channel] | None = None, calculated_channels: list[CalculatedChannel | CalculatedChannelCreate | dict] | None = None, simplify_channel_names: bool = False, combine_runs: bool = False, split_export_by_asset: bool = False, split_export_by_run: bool = False) -> Job:
-        """
-        Export data from Sift.
-        
+    def _run(self, coro): ...
+    def export(
+        self,
+        *,
+        output_format: ExportOutputFormat,
+        runs: list[str | Run] | None = None,
+        assets: list[str | Asset] | None = None,
+        start_time: datetime | None = None,
+        stop_time: datetime | None = None,
+        channels: list[str | Channel] | None = None,
+        calculated_channels: list[CalculatedChannel | CalculatedChannelCreate | dict] | None = None,
+        simplify_channel_names: bool = False,
+        combine_runs: bool = False,
+        split_export_by_asset: bool = False,
+        split_export_by_run: bool = False,
+    ) -> Job:
+        """Export data from Sift.
+
         Initiates an export on the server and returns a Job handle. Use
         ``job.wait_and_download()`` to poll for completion and download the files.
-        
+
         There are three ways to scope the export, determined by which arguments
         are provided:
-        
+
         1. **By runs** — provide ``runs``. The ``start_time``/``stop_time`` are
            optional (if omitted, the full time range of each run is used). If no
            ``channels`` or ``calculated_channels`` are provided, all channels
            from the runs' assets are included.
-        
+
         2. **By assets** — provide ``assets``. Both ``start_time`` and
            ``stop_time`` are **required**. If no ``channels`` or
            ``calculated_channels`` are provided, all channels from the assets
            are included.
-        
+
         3. **By time range only** — provide ``start_time`` and ``stop_time``
            without ``runs`` or ``assets``. At least one of ``channels`` or
            ``calculated_channels`` **must** be provided to scope the data.
-        
+
         You cannot provide both ``runs`` and ``assets`` at the same time.
-        
+
         Args:
             output_format: The file format for the export (CSV, Parquet, or Sun/WinPlot).
             runs: One or more Run objects or run IDs to export data from.
@@ -626,75 +683,70 @@ class DataExportAPI:
                 asset name removed from channel name display.
             split_export_by_run: Split each run into a separate file, with run
                 name removed from channel name display.
-        
+
         Returns:
             A Job handle for the pending export.
         """
-
         ...
 
-
-
 class DataImportAPI:
-    """
-    Sync counterpart to `DataImportAPIAsync`.
-    
+    """Sync counterpart to `DataImportAPIAsync`.
+
     High-level API for importing data into Sift.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the DataImportAPI.
-        
+        """Initialize the DataImportAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
-    def detect_config(self, file_path: str | Path, data_type: DataTypeKey | None = None, time_format: TimeFormat | None = None) -> ImportConfig:
-        """
-        Auto-detect import configuration from a file.
-        
+    def _run(self, coro): ...
+    def detect_config(
+        self,
+        file_path: str | Path,
+        data_type: DataTypeKey | None = None,
+        time_format: TimeFormat | None = None,
+    ) -> ImportConfig:
+        """Auto-detect import configuration from a file.
+
         Returns the detected configuration, inferring the file format from the
         extension when ``data_type`` is not provided. CSV and Parquet are
         detected by sending a sample of the file to the server's DetectConfig
         endpoint; TDMS, HDF5, and ULog are detected locally on the client.
-        
+
         CSV, Parquet, HDF5, TDMS, and ULog files are supported for
         auto-detection.
-        
+
         For CSV files, the server scans the first two rows for an optional
         JSON metadata row. Row 1 is checked first; row 2 is checked only
         if row 1 is not valid metadata. A row qualifies as metadata when
         every cell contains valid JSON that describes either a time column
         or a data column. When present, ``first_data_row`` in the returned
         config is set to the row after the metadata row.
-        
+
         Each data column cell is a JSON ``ChannelConfig``::
-        
+
             {"name": "speed", "units": "m/s", "dataType": "CHANNEL_DATA_TYPE_DOUBLE"}
-        
+
         The time column cell is a JSON ``CsvTimeColumn``::
-        
+
             {"format": "TIME_FORMAT_ABSOLUTE_RFC3339"}
-        
+
         Enum type definitions and bit field elements can also be specified
         in the metadata row; they are applied server-side during import
         but are not included in the returned config.
-        
+
         For ULog files, ``data`` lists the channels pyulog decodes from the
         file. When imported, a non-empty ``data`` list restricts the import
         to exactly those channels; the import fails if a listed channel is
         not in the file. Clear ``data`` to import every channel.
-        
+
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.
-        
+
         Args:
             file_path: Path to the file to analyze.
             data_type: Explicit data type key. Required for formats with
@@ -705,83 +757,90 @@ class DataImportAPI:
                 detected format if available, otherwise
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
-        
+
         Returns:
             The detected import config.
-        
+
         Raises:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file extension is unsupported, no supported
                 configuration could be detected, or ``data_type`` was
                 omitted for a file format that requires a variant.
         """
-
         ...
-    
+
     def get_run(self, data_import_id: str) -> Run:
-        """
-        Get the run associated with a data import.
-        
+        """Get the run associated with a data import.
+
         The ``data_import_id`` is available on the job returned by
         ``import_from_path`` via ``job.job_details.data_import_id``.
         For a more ergonomic approach, use ``job.get_import_run()``
         which calls this method internally.
-        
+
         Args:
             data_import_id: The ID of the data import.
-        
+
         Returns:
             The Run created by or associated with the import.
-        
+
         Raises:
             ValueError: If the data import has no associated run.
         """
-
         ...
-    
-    def import_from_path(self, file_path: str | Path, *, asset: Asset | str | None = None, config: ImportConfig | None = None, data_type: DataTypeKey | None = None, time_format: TimeFormat | None = None, run: Run | str | None = None, run_name: str | None = None, show_progress: bool | None = None) -> Job:
-        """
-        Import data from a local file.
-        
+
+    def import_from_path(
+        self,
+        file_path: str | Path,
+        *,
+        asset: Asset | str | None = None,
+        config: ImportConfig | None = None,
+        data_type: DataTypeKey | None = None,
+        time_format: TimeFormat | None = None,
+        run: Run | str | None = None,
+        run_name: str | None = None,
+        show_progress: bool | None = None,
+    ) -> Job:
+        """Import data from a local file.
+
         Creates a data import on the server, uploads the file, and returns
         a ``Job`` handle after uploading the file. The import processes
         server-side and typically completes shortly after upload. Use
         ``job.wait_until_complete()`` only if you need to confirm
         completion before proceeding.
-        
+
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV, Parquet, HDF5, TDMS, and ULog).
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
         set on the config), ``run_name`` defaults to the filename.
-        
+
         Examples:
             Import a CSV file with auto-detected config:
-        
+
                 job = client.data_imports.import_from_path(
                     "data.csv",
                     asset=my_asset,
                 )
-        
+
             Auto-detect config, inspect and patch before importing:
-        
+
                 config = client.data_imports.detect_config("data.csv")
-        
+
                 # Fix a column data type
                 config["temperature"].data_type = ChannelDataType.FLOAT
-        
+
                 # Remove an unwanted column
                 config.data_columns = [
                     dc for dc in config.data_columns if dc.name != "internal_id"
                 ]
-        
+
                 job = client.data_imports.import_from_path(
                     "data.csv",
                     asset=my_asset,
                     config=config,
                 )
-        
+
         Args:
             file_path: Path to the local file to import.
             asset: Asset object or asset name to import data into. Optional
@@ -808,93 +867,93 @@ class DataImportAPI:
                 neither ``run`` nor ``run_name`` is set.
             show_progress: If True, display a progress spinner during upload.
                 Defaults to True for sync, False for async.
-        
+
         Returns:
             A ``Job`` handle for the pending import.
-        
+
         Raises:
             FileNotFoundError: If the file does not exist.
         """
-
         ...
 
-
-
 class FileAttachmentsAPI:
-    """
-    Sync counterpart to `FileAttachmentsAPIAsync`.
-    
+    """Sync counterpart to `FileAttachmentsAPIAsync`.
+
     High-level API for interacting with file attachments (remote files).
-    
+
     This class provides a Pythonic interface for managing file attachments
     on Sift entities like runs, assets, and test reports.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the FileAttachmentsAPIAsync.
-        
+        """Initialize the FileAttachmentsAPIAsync.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
-    def delete(self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str) -> None:
-        """
-        Batch delete multiple file attachments.
-        
+    def _run(self, coro): ...
+    def delete(
+        self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str
+    ) -> None:
+        """Batch delete multiple file attachments.
+
         Args:
             file_attachments: List of FileAttachments or the IDs of the file attachments to delete (up to 1000).
         """
-
         ...
-    
+
     def download(self, *, file_attachment: FileAttachment | str, output_path: str | Path) -> None:
-        """
-        Download a file attachment to a local path.
-        
+        """Download a file attachment to a local path.
+
         Args:
             file_attachment: The FileAttachment or the ID of the file attachment to download.
             output_path: The path to download the file attachment to.
         """
-
         ...
-    
+
     def get(self, *, file_attachment_id: str) -> FileAttachment:
-        """
-        Get a file attachment by ID.
-        
+        """Get a file attachment by ID.
+
         Args:
             file_attachment_id: The ID of the file attachment to retrieve.
-        
+
         Returns:
             The FileAttachment.
         """
-
         ...
-    
+
     def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
-        """
-        Get a download URL for a file attachment.
-        
+        """Get a download URL for a file attachment.
+
         Args:
             file_attachment: The FileAttachment or the ID of the file attachment.
-        
+
         Returns:
             The download URL for the file attachment.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, remote_file_ids: list[str] | None = None, entities: list[Run | Asset | TestReport | TestStep] | None = None, entity_type: RemoteFileEntityType | None = None, entity_ids: list[str] | None = None, description_contains: str | None = None, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[FileAttachment]:
-        """
-        List file attachments with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        remote_file_ids: list[str] | None = None,
+        entities: list[Run | Asset | TestReport | TestStep] | None = None,
+        entity_type: RemoteFileEntityType | None = None,
+        entity_ids: list[str] | None = None,
+        description_contains: str | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[FileAttachment]:
+        """List file attachments with optional filtering.
+
         Args:
             name: Exact name of the file attachment.
             names: List of file attachment names to filter by.
@@ -910,99 +969,110 @@ class FileAttachmentsAPI:
             limit: Maximum number of file attachments to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of FileAttachment objects that match the filter criteria.
         """
-
         ...
-    
+
     def update(self, *, file_attachment: FileAttachmentUpdate | dict) -> FileAttachment:
-        """
-        Update a file attachment.
-        
+        """Update a file attachment.
+
         Args:
             file_attachment: The FileAttachmentUpdate with fields to update.
-        
+
         Returns:
             The updated FileAttachment.
         """
-
         ...
-    
-    def upload(self, *, path: str | Path, entity: Asset | Run | TestReport | TestStep, metadata: dict[str, Any] | None = None, description: str | None = None, organization_id: str | None = None) -> FileAttachment:
-        """
-        Upload a file attachment to a remote file.
-        
+
+    def upload(
+        self,
+        *,
+        path: str | Path,
+        entity: Asset | Run | TestReport | TestStep,
+        metadata: dict[str, Any] | None = None,
+        description: str | None = None,
+        organization_id: str | None = None,
+    ) -> FileAttachment:
+        """Upload a file attachment to a remote file.
+
         Args:
             path: The path to the file to upload.
             entity: The entity that the file is attached to.
             metadata: Optional metadata for the file (e.g., video/image metadata).
             description: Optional description of the file.
             organization_id: Optional organization ID.
-        
+
         Returns:
             The uploaded FileAttachment.
         """
-
         ...
 
-
-
 class JobsAPI:
-    """
-    Sync counterpart to `JobsAPIAsync`.
-    
+    """Sync counterpart to `JobsAPIAsync`.
+
     High-level API for interacting with jobs.
-    
+
     This class provides a Pythonic interface for managing jobs in Sift.
     Jobs represent long-running operations like data imports, rule evaluations, and data exports.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the JobsAPI.
-        
+        """Initialize the JobsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def cancel(self, job: Job | str) -> None:
-        """
-        Cancel a job.
-        
+        """Cancel a job.
+
         If the job hasn't started yet, it will be cancelled immediately.
         Jobs that are already finished, failed, or cancelled are not affected.
-        
+
         Args:
             job: The Job or ID of the job to cancel.
         """
-
         ...
-    
+
     def get(self, job_id: str) -> Job:
-        """
-        Get a job by ID.
-        
+        """Get a job by ID.
+
         Args:
             job_id: The ID of the job to retrieve.
-        
+
         Returns:
             The Job object.
         """
-
         ...
-    
-    def list_(self, *, job_ids: list[str] | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by_user_id: str | None = None, modified_by_user_id: str | None = None, job_type: JobType | None = None, job_status: JobStatus | None = None, started_date_after: datetime | None = None, started_date_before: datetime | None = None, completed_date_after: datetime | None = None, completed_date_before: datetime | None = None, organization_id: str | None = None, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[Job]:
-        """
-        List jobs with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        job_ids: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by_user_id: str | None = None,
+        modified_by_user_id: str | None = None,
+        job_type: JobType | None = None,
+        job_status: JobStatus | None = None,
+        started_date_after: datetime | None = None,
+        started_date_before: datetime | None = None,
+        completed_date_after: datetime | None = None,
+        completed_date_before: datetime | None = None,
+        organization_id: str | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Job]:
+        """List jobs with optional filtering.
+
         Args:
             job_ids: Filter to jobs with any of these IDs.
             created_after: Filter to jobs created after this datetime.
@@ -1023,35 +1093,40 @@ class JobsAPI:
             limit: Maximum number of jobs to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of Job objects that match the filter criteria.
         """
-
         ...
-    
+
     def retry(self, job: Job | str) -> Job:
-        """
-        Retry a failed job.
-        
+        """Retry a failed job.
+
         Jobs that are finished, in progress, or in the process of being cancelled are not affected.
-        
+
         Args:
             job: The Job or ID of the job to retry.
-        
+
         Returns:
             The updated Job object.
         """
-
         ...
-    
-    def wait_and_download(self, job: Job | str, *, polling_interval_secs: int = 5, timeout_secs: int | None = None, output_dir: str | Path | None = None, extract: bool = True, show_progress: bool | None = None) -> list[Path]:
-        """
-        Wait for a job to complete and download the result files.
-        
+
+    def wait_and_download(
+        self,
+        job: Job | str,
+        *,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        output_dir: str | Path | None = None,
+        extract: bool = True,
+        show_progress: bool | None = None,
+    ) -> list[Path]:
+        """Wait for a job to complete and download the result files.
+
         Polls the job status at the given interval until the job is FINISHED,
         FAILED, or CANCELLED, then downloads the result files.
-        
+
         Args:
             job: The Job or job ID to wait for.
             polling_interval_secs: Seconds between status polls. Defaults to 5.
@@ -1066,24 +1141,29 @@ class JobsAPI:
                 while waiting and a download progress bar. Defaults to True
                 for sync, False for async. Use ``sift_client.config.show_progress = False``
                 to disable globally for sync.
-        
+
         Returns:
             List of paths to the downloaded/extracted files.
-        
+
         Raises:
             RuntimeError: If the job fails or is cancelled.
             TimeoutError: If the job does not complete within timeout_secs.
         """
-
         ...
-    
-    def wait_until_complete(self, job: Job | str, *, polling_interval_secs: int = 5, timeout_secs: int | None = None, show_progress: bool | None = None) -> Job:
-        """
-        Wait until the job is complete or the timeout is reached.
-        
+
+    def wait_until_complete(
+        self,
+        job: Job | str,
+        *,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+        show_progress: bool | None = None,
+    ) -> Job:
+        """Wait until the job is complete or the timeout is reached.
+
         Polls the job status at the given interval until the job is FINISHED,
         FAILED, or CANCELLED, returning the completed Job
-        
+
         Args:
             job: The Job or job_id to wait for.
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
@@ -1093,87 +1173,76 @@ class JobsAPI:
                 the job status while polling. Defaults to True for sync, False
                 for async. Use ``sift_client.config.show_progress = False`` to disable
                 globally for sync.
-        
+
         Returns:
             The Job in the completed state.
         """
-
         ...
 
-
-
 class PingAPI:
-    """
-    Sync counterpart to `PingAPIAsync`.
-    
+    """Sync counterpart to `PingAPIAsync`.
+
     High-level API for performing health checks.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the AssetsAPI.
-        
+        """Initialize the AssetsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def ping(self) -> str:
-        """
-        Send a ping request to the server.
-        
+        """Send a ping request to the server.
+
         Returns:
             The response from the server.
         """
-
         ...
 
-
-
 class PrincipalAttributeAssignmentsAPI:
-    """
-    Sync counterpart to `PrincipalAttributeAssignmentsAPIAsync`.
-    
+    """Sync counterpart to `PrincipalAttributeAssignmentsAPIAsync`.
+
     High-level API for principal attribute assignments.
-    
+
     Accessed as a nested resource via
     ``client.access_control.principal_attributes.assignments``.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the PrincipalAttributeAssignmentsAPI.
-        
+        """Initialize the PrincipalAttributeAssignmentsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
-    def archive(self, assignments: list[str | PrincipalAttributeAssignment], *, principal_type: PrincipalType) -> None:
-        """
-        Batch archive assignments of the given principal type.
-        
+    def _run(self, coro): ...
+    def archive(
+        self,
+        assignments: list[str | PrincipalAttributeAssignment],
+        *,
+        principal_type: PrincipalType,
+    ) -> None:
+        """Batch archive assignments of the given principal type.
+
         Args:
             assignments: The assignments or assignment IDs to archive.
             principal_type: The kind of principal the assignments apply to.
         """
-
         ...
-    
-    def create(self, key: str | PrincipalAttributeKey, principals: list[PrincipalRef | User | str], *, value: PrincipalAttributeValueLike) -> list[PrincipalAttributeAssignment]:
-        """
-        Assign a key's value to principals.
-        
+
+    def create(
+        self,
+        key: str | PrincipalAttributeKey,
+        principals: list[PrincipalRef | User | str],
+        *,
+        value: PrincipalAttributeValueLike,
+    ) -> list[PrincipalAttributeAssignment]:
+        """Assign a key's value to principals.
+
         Args:
             key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
             principals: Principals to assign to. Pass ``PrincipalRef.user(...)`` /
@@ -1183,34 +1252,46 @@ class PrincipalAttributeAssignmentsAPI:
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
                 full set on each principal; for ``ENUM``, a single enum value; for ``BOOLEAN``,
                 a bool; for ``NUMBER``, an int.
-        
+
         Returns:
             The created assignments, one per enum value per principal for
             ``SET_OF_ENUM`` keys. Order is not guaranteed to match the input order.
         """
-
         ...
-    
-    def get(self, *, assignment_id: str, principal_type: PrincipalType) -> PrincipalAttributeAssignment:
-        """
-        Get a single assignment by ID and principal type.
-        
+
+    def get(
+        self, *, assignment_id: str, principal_type: PrincipalType
+    ) -> PrincipalAttributeAssignment:
+        """Get a single assignment by ID and principal type.
+
         Args:
             assignment_id: The ID of the assignment.
             principal_type: The kind of principal the assignment applies to.
-        
+
         Returns:
             The assignment.
         """
-
         ...
-    
-    def list_(self, *, key: str | PrincipalAttributeKey | None = None, principal: PrincipalRef | User | str | None = None, principal_type: PrincipalType | None = None, created_after: datetime | None = None, created_before: datetime | None = None, created_by: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[PrincipalAttributeAssignment]:
-        """
-        List principal attribute assignments.
-        
+
+    def list_(
+        self,
+        *,
+        key: str | PrincipalAttributeKey | None = None,
+        principal: PrincipalRef | User | str | None = None,
+        principal_type: PrincipalType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeAssignment]:
+        """List principal attribute assignments.
+
         For ``SET_OF_ENUM`` keys, each enum value is returned as its own assignment.
-        
+
         Args:
             key: Filter to assignments of this key.
             principal: Filter to assignments for this principal. Pass a ``PrincipalRef``,
@@ -1226,101 +1307,117 @@ class PrincipalAttributeAssignmentsAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
-        
+
         Returns:
             The matching assignments.
-        
+
         Raises:
             ValueError: If ``principal_type`` conflicts with the type of ``principal``.
         """
-
         ...
-    
-    def unarchive(self, assignments: list[str | PrincipalAttributeAssignment], *, principal_type: PrincipalType) -> None:
-        """
-        Batch unarchive assignments of the given principal type.
-        
+
+    def unarchive(
+        self,
+        assignments: list[str | PrincipalAttributeAssignment],
+        *,
+        principal_type: PrincipalType,
+    ) -> None:
+        """Batch unarchive assignments of the given principal type.
+
         Args:
             assignments: The assignments or assignment IDs to unarchive.
             principal_type: The kind of principal the assignments apply to.
         """
-
         ...
 
-
-
 class PrincipalAttributeEnumValuesAPI:
-    """
-    Sync counterpart to `PrincipalAttributeEnumValuesAPIAsync`.
-    
+    """Sync counterpart to `PrincipalAttributeEnumValuesAPIAsync`.
+
     High-level API for the enum values defined on principal attribute keys.
-    
+
     Accessed as a nested resource via
     ``client.access_control.principal_attributes.enum_values``.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the PrincipalAttributeEnumValuesAPI.
-        
+        """Initialize the PrincipalAttributeEnumValuesAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
-    def archive(self, enum_value: str | PrincipalAttributeEnumValue, *, replacement: str | PrincipalAttributeEnumValue | None = None) -> int:
-        """
-        Archive an enum value, migrating existing assignments to a replacement.
-        
+    def _run(self, coro): ...
+    def archive(
+        self,
+        enum_value: str | PrincipalAttributeEnumValue,
+        *,
+        replacement: str | PrincipalAttributeEnumValue | None = None,
+    ) -> int:
+        """Archive an enum value, migrating existing assignments to a replacement.
+
         Args:
             enum_value: The enum value or enum value ID to archive.
             replacement: Optional enum value or enum value ID that existing
                 assignments are migrated to.
-        
+
         Returns:
             The number of assignments migrated.
         """
-
         ...
-    
-    def create(self, key: str | PrincipalAttributeKey, display_name: str, *, description: str = '') -> PrincipalAttributeEnumValue:
-        """
-        Create a single enum value for a key.
-        
+
+    def create(
+        self, key: str | PrincipalAttributeKey, display_name: str, *, description: str = ""
+    ) -> PrincipalAttributeEnumValue:
+        """Create a single enum value for a key.
+
         Args:
             key: The key or key ID the enum value belongs to.
             display_name: The human-readable name of the enum value.
             description: Optional description.
-        
+
         Returns:
             The created enum value.
         """
-
         ...
-    
-    def get_or_create(self, key: str | PrincipalAttributeKey, names: list[str]) -> list[PrincipalAttributeEnumValue]:
-        """
-        Get enum values for a key by name, creating any that don't exist.
-        
+
+    def get_or_create(
+        self, key: str | PrincipalAttributeKey, names: list[str]
+    ) -> list[PrincipalAttributeEnumValue]:
+        """Get enum values for a key by name, creating any that don't exist.
+
         Args:
             key: The key or key ID the enum values belong to.
             names: Display names of the enum values to get or create.
-        
+
         Returns:
             The enum values, in the same order as ``names``.
         """
-
         ...
-    
-    def list_(self, key: str | PrincipalAttributeKey, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by: str | None = None, modified_by: str | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[PrincipalAttributeEnumValue]:
-        """
-        List the enum values defined for a key.
-        
+
+    def list_(
+        self,
+        key: str | PrincipalAttributeKey,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeEnumValue]:
+        """List the enum values defined for a key.
+
         Args:
             key: The key or key ID to list enum values for.
             name: Exact display name of the enum value.
@@ -1339,146 +1436,148 @@ class PrincipalAttributeEnumValuesAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of enum values to return.
             page_size: Results to fetch per request.
-        
+
         Returns:
             The matching enum values.
         """
-
         ...
-    
-    def unarchive(self, enum_value: str | PrincipalAttributeEnumValue) -> PrincipalAttributeEnumValue:
-        """
-        Unarchive an enum value.
-        
+
+    def unarchive(
+        self, enum_value: str | PrincipalAttributeEnumValue
+    ) -> PrincipalAttributeEnumValue:
+        """Unarchive an enum value.
+
         Args:
             enum_value: The enum value or enum value ID to unarchive.
-        
+
         Returns:
             The unarchived enum value.
         """
-
         ...
 
-
-
 class PrincipalAttributeKeysAPI:
-    """
-    Sync counterpart to `PrincipalAttributeKeysAPIAsync`.
-    
+    """Sync counterpart to `PrincipalAttributeKeysAPIAsync`.
+
     High-level API for principal attribute keys.
-    
+
     Accessed as a nested resource via ``client.access_control.principal_attributes.keys``.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the PrincipalAttributeKeysAPI.
-        
+        """Initialize the PrincipalAttributeKeysAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        """
-        Archive a key. Cascades to its enum values and assignments.
-        
+        """Archive a key. Cascades to its enum values and assignments.
+
         Args:
             key: The key or key ID to archive.
-        
+
         Returns:
             The archived key.
         """
-
         ...
-    
+
     def check_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
-        """
-        Check how many assignments archiving a key would affect.
-        
+        """Check how many assignments archiving a key would affect.
+
         Counts both user and user-group assignments.
-        
+
         Args:
             key: The key or key ID to check.
-        
+
         Returns:
             The number of active assignments archiving this key would affect.
         """
-
         ...
-    
-    def create(self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = '') -> PrincipalAttributeKey:
-        """
-        Create a principal attribute key.
-        
+
+    def create(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Create a principal attribute key.
+
         Args:
             display_name: The human-readable name of the key.
             value_type: The value type of the key.
             description: Optional description.
-        
+
         Returns:
             The created key.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> PrincipalAttributeKey | None:
-        """
-        Find a single key matching the query. Takes the same arguments as `list_`.
-        
+        """Find a single key matching the query. Takes the same arguments as `list_`.
+
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
-        
+
         Returns:
             The key found, or None if no key matches.
-        
+
         Raises:
             ValueError: If more than one key matches.
         """
-
         ...
-    
+
     def get(self, *, key_id: str) -> PrincipalAttributeKey:
-        """
-        Get a principal attribute key by ID.
-        
+        """Get a principal attribute key by ID.
+
         Args:
             key_id: The ID of the key.
-        
+
         Returns:
             The key.
         """
-
         ...
-    
-    def get_or_create(self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = '') -> PrincipalAttributeKey:
-        """
-        Get a key by display name, creating it if it does not exist.
-        
+
+    def get_or_create(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
         Args:
             display_name: The human-readable name of the key.
             value_type: The value type used if the key is created.
             description: Optional description used if the key is created.
-        
+
         Returns:
             The existing or newly created key.
-        
+
         Note:
             Display names are not guaranteed unique. If multiple keys share the display
             name, the first active match is returned.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, value_type: PrincipalAttributeValueType | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by: str | None = None, modified_by: str | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[PrincipalAttributeKey]:
-        """
-        List principal attribute keys with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        value_type: PrincipalAttributeValueType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeKey]:
+        """List principal attribute keys with optional filtering.
+
         Args:
             name: Exact display name of the key.
             names: Display names to filter by.
@@ -1497,175 +1596,161 @@ class PrincipalAttributeKeysAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of keys to return.
             page_size: Results to fetch per request.
-        
+
         Returns:
             The matching keys.
         """
-
         ...
-    
+
     def unarchive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        """
-        Unarchive a key. Does not restore its cascaded enum values or assignments.
-        
+        """Unarchive a key. Does not restore its cascaded enum values or assignments.
+
         Args:
             key: The key or key ID to unarchive.
-        
+
         Returns:
             The unarchived key.
         """
-
         ...
-    
-    def update(self, key: str | PrincipalAttributeKey, update: PrincipalAttributeKeyUpdate | dict) -> PrincipalAttributeKey:
-        """
-        Update a key.
-        
+
+    def update(
+        self, key: str | PrincipalAttributeKey, update: PrincipalAttributeKeyUpdate | dict
+    ) -> PrincipalAttributeKey:
+        """Update a key.
+
         Args:
             key: The key or key ID to update.
             update: Updates to apply to the key.
-        
+
         Returns:
             The updated key.
         """
-
         ...
 
-
-
 class PrincipalAttributesAPI:
-    """
-    Sync counterpart to `PrincipalAttributesAPIAsync`.
-    
+    """Sync counterpart to `PrincipalAttributesAPIAsync`.
+
     High-level API for principal attributes.
-    
+
     Principal attributes describe the users or groups an access decision applies to.
     A principal is the "who" in an access decision, such as a user or user group.
-    
+
     Create or fetch an attribute key via `keys`, define enum values via `enum_values`
     when the key uses them, then assign a value to principals via `assignments`. Pass
     ``User`` objects, ``PrincipalRef`` references, or user email addresses; use
     ``PrincipalRef.user_group(...)`` for user groups.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the PrincipalAttributesAPI.
-        
+        """Initialize the PrincipalAttributesAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
+    def _run(self, coro): ...
     @property
     def assignments(self) -> PrincipalAttributeAssignmentsAPI:
-        """
-        Nested PrincipalAttributeAssignmentsAPI for making synchronous requests.
-        """
-
+        """Nested PrincipalAttributeAssignmentsAPI for making synchronous requests."""
         ...
     @property
     def enum_values(self) -> PrincipalAttributeEnumValuesAPI:
-        """
-        Nested PrincipalAttributeEnumValuesAPI for making synchronous requests.
-        """
-
+        """Nested PrincipalAttributeEnumValuesAPI for making synchronous requests."""
         ...
     @property
     def keys(self) -> PrincipalAttributeKeysAPI:
-        """
-        Nested PrincipalAttributeKeysAPI for making synchronous requests.
-        """
-
+        """Nested PrincipalAttributeKeysAPI for making synchronous requests."""
         ...
 
-
-
 class ReportTemplatesAPI:
-    """
-    Sync counterpart to `ReportTemplatesAPIAsync`.
-    
+    """Sync counterpart to `ReportTemplatesAPIAsync`.
+
     High-level API for interacting with report templates.
-    
+
     Accessed as a nested resource of the Reports API via `client.reports.templates`.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ReportTemplatesAPI.
-        
+        """Initialize the ReportTemplatesAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, *, report_template: ReportTemplate | str) -> ReportTemplate:
-        """
-        Archive a report template.
-        """
-
+        """Archive a report template."""
         ...
-    
+
     def create(self, create: ReportTemplateCreate | dict) -> ReportTemplate:
-        """
-        Create a new report template.
-        
+        """Create a new report template.
+
         Args:
             create: A ReportTemplateCreate object or a dictionary with configuration for
                 the new report template.
-        
+
         Returns:
             The created ReportTemplate.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> ReportTemplate | None:
-        """
-        Find a single report template matching the given query. Takes the same arguments as `list`.
+        """Find a single report template matching the given query. Takes the same arguments as `list`.
         If more than one report template is found, raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list`.
-        
+
         Returns:
             The ReportTemplate found or None.
         """
-
         ...
-    
-    def get(self, *, report_template_id: str | None = None, client_key: str | None = None, organization_id: str | None = None) -> ReportTemplate:
-        """
-        Get a ReportTemplate.
-        
+
+    def get(
+        self,
+        *,
+        report_template_id: str | None = None,
+        client_key: str | None = None,
+        organization_id: str | None = None,
+    ) -> ReportTemplate:
+        """Get a ReportTemplate.
+
         Args:
             report_template_id: The ID of the report template.
             client_key: The client key of the report template.
             organization_id: The organization ID. Only required when getting by
                 client_key and the user belongs to multiple organizations.
-        
+
         Returns:
             The ReportTemplate.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, names: list[str] | None = None, report_template_ids: list[str] | None = None, client_keys: list[str] | None = None, organization_id: str | None = None, metadata: dict[str, str | float | bool] | None = None, tag_names: list[str] | list[Tag] | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[ReportTemplate]:
-        """
-        List report templates with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        names: list[str] | None = None,
+        report_template_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        organization_id: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        tag_names: list[str] | list[Tag] | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ReportTemplate]:
+        """List report templates with optional filtering.
+
         The report template service only supports filtering on the fields below;
         time and user based filters are not available for this resource.
-        
+
         Args:
             name: Exact name of the report template.
             name_contains: Partial name of the report template.
@@ -1682,79 +1767,69 @@ class ReportTemplatesAPI:
             limit: How many report templates to retrieve. If None, retrieves all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of ReportTemplates that matches the filter.
         """
-
         ...
-    
+
     def unarchive(self, *, report_template: ReportTemplate | str) -> ReportTemplate:
-        """
-        Unarchive a report template.
-        """
-
+        """Unarchive a report template."""
         ...
-    
-    def update(self, report_template: ReportTemplate | str, update: ReportTemplateUpdate | dict) -> ReportTemplate:
-        """
-        Update a report template.
-        
+
+    def update(
+        self, report_template: ReportTemplate | str, update: ReportTemplateUpdate | dict
+    ) -> ReportTemplate:
+        """Update a report template.
+
         Args:
             report_template: The ReportTemplate or report template ID to update.
             update: The updates to apply.
-        
+
         Returns:
             The updated ReportTemplate.
         """
-
         ...
 
-
-
 class ReportsAPI:
-    """
-    Sync counterpart to `ReportsAPIAsync`.
-    
+    """Sync counterpart to `ReportsAPIAsync`.
+
     High-level API for interacting with reports.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ReportsAPI.
-        
+        """Initialize the ReportsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, *, report: str | Report) -> Report:
-        """
-        Archive a report.
-        """
-
+        """Archive a report."""
         ...
-    
+
     def cancel(self, *, report: str | Report) -> None:
-        """
-        Cancel a report.
-        
+        """Cancel a report.
+
         Args:
             report: The Report or report ID to cancel.
         """
-
         ...
-    
-    def create_from_applicable_rules(self, *, run: Run | str | None = None, organization_id: str | None = None, name: str | None = None, start_time: datetime | None = None, end_time: datetime | None = None) -> Job | None:
-        """
-        Create a new report from applicable rules based on a run.
+
+    def create_from_applicable_rules(
+        self,
+        *,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        name: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> Job | None:
+        """Create a new report from applicable rules based on a run.
         If you want to evaluate against assets, use the rules client instead since no report is created in that case.
-        
+
         Args:
             run: The run or run ID to associate with the report.
             organization_id: The organization ID.
@@ -1763,33 +1838,45 @@ class ReportsAPI:
                 is also set and a run is provided.
             end_time: End of the time range to evaluate rules over. Ignored unless start_time
                 is also set and a run is provided.
-        
+
         Returns:
             The Job for the pending report, or None if no report was created.
         """
-
         ...
-    
-    def create_from_rule_versions(self, *, name: str, run: Run | str | None = None, organization_id: str | None = None, rule_versions: list[RuleVersion] | list[str]) -> Job | None:
-        """
-        Create a new report from rule versions.
-        
+
+    def create_from_rule_versions(
+        self,
+        *,
+        name: str,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        rule_versions: list[RuleVersion] | list[str],
+    ) -> Job | None:
+        """Create a new report from rule versions.
+
         Args:
             name: The name of the report.
             run: The run or run ID to associate with the report.
             organization_id: The organization ID.
             rule_versions: List of RuleVersions or rule_version IDs to include in the report.
-        
+
         Returns:
             The Job for the pending report, or None if no report was created.
         """
-
         ...
-    
-    def create_from_rules(self, *, name: str, run: Run | str | None = None, organization_id: str | None = None, rules: list[Rule] | list[str], start_time: datetime | None = None, end_time: datetime | None = None) -> Job | None:
-        """
-        Create a new report from rules.
-        
+
+    def create_from_rules(
+        self,
+        *,
+        name: str,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        rules: list[Rule] | list[str],
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> Job | None:
+        """Create a new report from rules.
+
         Args:
             name: The name of the report.
             run: The run or run ID to associate with the report.
@@ -1799,60 +1886,84 @@ class ReportsAPI:
                 is also set and a run is provided.
             end_time: End of the time range to evaluate rules over. Ignored unless start_time
                 is also set and a run is provided.
-        
+
         Returns:
             The Job for the pending report, or None if no report was created.
         """
-
         ...
-    
-    def create_from_template(self, *, report_template: ReportTemplate | str, run: Run | str, organization_id: str | None = None, name: str | None = None) -> Job | None:
-        """
-        Create a new report from a report template.
-        
+
+    def create_from_template(
+        self,
+        *,
+        report_template: ReportTemplate | str,
+        run: Run | str,
+        organization_id: str | None = None,
+        name: str | None = None,
+    ) -> Job | None:
+        """Create a new report from a report template.
+
         Args:
             report_template: The ReportTemplate or report template ID to use.
             run: The Run or run ID to associate with the report.
             organization_id: The organization ID.
             name: Optional name for the report.
-        
+
         Returns:
             The Job for the pending report, or None if no report was created.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> Report | None:
-        """
-        Find a single report matching the given query. Takes the same arguments as `list`. If more than one report is found,
+        """Find a single report matching the given query. Takes the same arguments as `list`. If more than one report is found,
         raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list`.
-        
+
         Returns:
             The Report found or None.
         """
-
         ...
-    
+
     def get(self, *, report_id: str) -> Report:
-        """
-        Get a Report.
-        
+        """Get a Report.
+
         Args:
             report_id: The ID of the report.
-        
+
         Returns:
             The Report.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, names: list[str] | None = None, description_contains: str | None = None, run: Run | str | None = None, organization_id: str | None = None, report_ids: list[str] | None = None, report_template_id: str | None = None, metadata: dict[str, str | float | bool] | None = None, tag_names: list[str] | list[Tag] | None = None, created_by: str | None = None, modified_by: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None, include_archived: bool = False, filter_query: str | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None) -> list[Report]:
-        """
-        List reports with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        names: list[str] | None = None,
+        description_contains: str | None = None,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        report_ids: list[str] | None = None,
+        report_template_id: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        tag_names: list[str] | list[Tag] | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+    ) -> list[Report]:
+        """List reports with optional filtering.
+
         Args:
             name: Exact name of the report.
             name_contains: Partial name of the report.
@@ -1877,117 +1988,106 @@ class ReportsAPI:
             created_before: Filter reports created before this datetime.
             modified_after: Filter reports modified after this datetime.
             modified_before: Filter reports modified before this datetime.
-        
+
         Returns:
             A list of Reports that matches the filter.
         """
-
         ...
-    
+
     def rerun(self, *, report: str | Report) -> Job:
-        """
-        Rerun a report.
-        
+        """Rerun a report.
+
         Args:
             report: The Report or report ID to rerun.
-        
+
         Returns:
             The Job for the new pending report.
         """
-
         ...
-    
+
     def unarchive(self, *, report: str | Report) -> Report:
-        """
-        Unarchive a report.
-        """
-
+        """Unarchive a report."""
         ...
-    
+
     def update(self, report: str | Report, update: ReportUpdate | dict) -> Report:
-        """
-        Update a report.
-        
+        """Update a report.
+
         Args:
             report: The Report or report ID to update.
             update: The updates to apply.
         """
-
         ...
-    
-    def wait_until_complete(self, *, report: Report | str | None = None, job: Job | str | None = None, polling_interval_secs: int = 5, timeout_secs: int | None = None) -> Report:
-        """
-        Wait until the report is complete or the timeout is reached.
-        
+
+    def wait_until_complete(
+        self,
+        *,
+        report: Report | str | None = None,
+        job: Job | str | None = None,
+        polling_interval_secs: int = 5,
+        timeout_secs: int | None = None,
+    ) -> Report:
+        """Wait until the report is complete or the timeout is reached.
+
         Polls the report job status at the given interval until the job is FINISHED,
         FAILED, or CANCELLED, returning the completed Report.
-        
+
         Either a report or job must be provided. The job must be a rule evaluation job.
-        
+
         Args:
             report: The Report or report ID to wait for.
             job: The pending rule evaluation Job or job ID to wait for.
             polling_interval_secs: Seconds between status polls. Defaults to 5s.
             timeout_secs: Maximum seconds to wait. If None, polls indefinitely.
                 Defaults to None (indefinite).
-        
+
         Returns:
             The Report in the completed state.
-        
+
         Raises:
             ValueError: If both or neither report and job are provided, or if
                 job is not a rule evaluation job.
         """
-
         ...
     @property
     def templates(self) -> ReportTemplatesAPI:
-        """
-        Nested ReportTemplatesAPI for making synchronous requests.
-        """
-
+        """Nested ReportTemplatesAPI for making synchronous requests."""
         ...
 
-
-
 class ResourceAttributeAssignmentsAPI:
-    """
-    Sync counterpart to `ResourceAttributeAssignmentsAPIAsync`.
-    
+    """Sync counterpart to `ResourceAttributeAssignmentsAPIAsync`.
+
     High-level API for resource attribute assignments.
-    
+
     Accessed as a nested resource via
     ``client.access_control.resource_attributes.assignments``.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ResourceAttributeAssignmentsAPI.
-        
+        """Initialize the ResourceAttributeAssignmentsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
-        """
-        Batch archive assignments.
-        
+        """Batch archive assignments.
+
         Args:
             assignments: The assignments or assignment IDs to archive.
         """
-
         ...
-    
-    def create(self, key: str | ResourceAttributeKey, resources: list[ResourceAttributeEntity | Asset | Channel | Run], *, value: ResourceAttributeValueLike) -> list[ResourceAttributeAssignment]:
-        """
-        Assign a key's value to resources.
-        
+
+    def create(
+        self,
+        key: str | ResourceAttributeKey,
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run],
+        *,
+        value: ResourceAttributeValueLike,
+    ) -> list[ResourceAttributeAssignment]:
+        """Assign a key's value to resources.
+
         Args:
             key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
             resources: Resources to assign to. Pass ``Asset``, ``Channel``, or ``Run``
@@ -1996,33 +2096,42 @@ class ResourceAttributeAssignmentsAPI:
             value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
                 full set on each resource; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
                 bool; for ``NUMBER``, an int.
-        
+
         Returns:
             The created assignments, one per enum value per resource for
             ``SET_OF_ENUM`` keys.
         """
-
         ...
-    
+
     def get(self, *, assignment_id: str) -> ResourceAttributeAssignment:
-        """
-        Get a single assignment by ID.
-        
+        """Get a single assignment by ID.
+
         Args:
             assignment_id: The ID of the assignment.
-        
+
         Returns:
             The assignment.
         """
-
         ...
-    
-    def list_(self, *, key: str | ResourceAttributeKey | None = None, resource: ResourceAttributeEntity | Asset | Channel | Run | None = None, created_after: datetime | None = None, created_before: datetime | None = None, created_by: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[ResourceAttributeAssignment]:
-        """
-        List resource attribute assignments.
-        
+
+    def list_(
+        self,
+        *,
+        key: str | ResourceAttributeKey | None = None,
+        resource: ResourceAttributeEntity | Asset | Channel | Run | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ResourceAttributeAssignment]:
+        """List resource attribute assignments.
+
         For ``SET_OF_ENUM`` keys, each enum value is returned as its own assignment.
-        
+
         Args:
             key: Filter to assignments of this key.
             resource: Filter to assignments on this resource. Cannot be combined with
@@ -2036,104 +2145,110 @@ class ResourceAttributeAssignmentsAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of assignments to return.
             page_size: Results to fetch per request.
-        
+
         Returns:
             The matching assignments.
-        
+
         Raises:
             ValueError: If ``resource`` is combined with other filter arguments, which
                 the by-resource listing does not support.
         """
-
         ...
-    
+
     def unarchive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
-        """
-        Batch unarchive assignments.
-        
+        """Batch unarchive assignments.
+
         Args:
             assignments: The assignments or assignment IDs to unarchive.
         """
-
         ...
 
-
-
 class ResourceAttributeEnumValuesAPI:
-    """
-    Sync counterpart to `ResourceAttributeEnumValuesAPIAsync`.
-    
+    """Sync counterpart to `ResourceAttributeEnumValuesAPIAsync`.
+
     High-level API for the enum values defined on resource attribute keys.
-    
+
     Accessed as a nested resource via
     ``client.access_control.resource_attributes.enum_values``.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ResourceAttributeEnumValuesAPI.
-        
+        """Initialize the ResourceAttributeEnumValuesAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
-    def archive(self, enum_value: str | ResourceAttributeEnumValue, *, replacement: str | ResourceAttributeEnumValue | None = None) -> int:
-        """
-        Archive an enum value, migrating existing assignments to a replacement.
-        
+    def _run(self, coro): ...
+    def archive(
+        self,
+        enum_value: str | ResourceAttributeEnumValue,
+        *,
+        replacement: str | ResourceAttributeEnumValue | None = None,
+    ) -> int:
+        """Archive an enum value, migrating existing assignments to a replacement.
+
         Args:
             enum_value: The enum value or enum value ID to archive.
             replacement: Optional enum value or enum value ID that existing
                 assignments are migrated to.
-        
+
         Returns:
             The number of assignments migrated.
         """
-
         ...
-    
-    def create(self, key: str | ResourceAttributeKey, display_name: str, *, description: str = '') -> ResourceAttributeEnumValue:
-        """
-        Create a single enum value for a key.
-        
+
+    def create(
+        self, key: str | ResourceAttributeKey, display_name: str, *, description: str = ""
+    ) -> ResourceAttributeEnumValue:
+        """Create a single enum value for a key.
+
         Args:
             key: The key or key ID the enum value belongs to.
             display_name: The human-readable name of the enum value.
             description: Optional description.
-        
+
         Returns:
             The created enum value.
         """
-
         ...
-    
-    def get_or_create(self, key: str | ResourceAttributeKey, names: list[str]) -> list[ResourceAttributeEnumValue]:
-        """
-        Get enum values for a key by name, creating any that don't exist.
-        
+
+    def get_or_create(
+        self, key: str | ResourceAttributeKey, names: list[str]
+    ) -> list[ResourceAttributeEnumValue]:
+        """Get enum values for a key by name, creating any that don't exist.
+
         Args:
             key: The key or key ID the enum values belong to.
             names: Display names of the enum values to get or create.
-        
+
         Returns:
             The enum values, in the same order as ``names``.
         """
-
         ...
-    
-    def list_(self, key: str | ResourceAttributeKey, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, created_after: datetime | None = None, created_before: datetime | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[ResourceAttributeEnumValue]:
-        """
-        List the enum values defined for a key.
-        
+
+    def list_(
+        self,
+        key: str | ResourceAttributeKey,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ResourceAttributeEnumValue]:
+        """List the enum values defined for a key.
+
         The service does not yet support filtering enum values by description,
         modified date, or user.
-        
+
         Args:
             key: The key or key ID to list enum values for.
             name: Exact display name of the enum value.
@@ -2147,146 +2262,142 @@ class ResourceAttributeEnumValuesAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of enum values to return.
             page_size: Results to fetch per request.
-        
+
         Returns:
             The matching enum values.
         """
-
         ...
-    
+
     def unarchive(self, enum_value: str | ResourceAttributeEnumValue) -> ResourceAttributeEnumValue:
-        """
-        Unarchive an enum value.
-        
+        """Unarchive an enum value.
+
         Args:
             enum_value: The enum value or enum value ID to unarchive.
-        
+
         Returns:
             The unarchived enum value.
         """
-
         ...
 
-
-
 class ResourceAttributeKeysAPI:
-    """
-    Sync counterpart to `ResourceAttributeKeysAPIAsync`.
-    
+    """Sync counterpart to `ResourceAttributeKeysAPIAsync`.
+
     High-level API for resource attribute keys.
-    
+
     Accessed as a nested resource via ``client.access_control.resource_attributes.keys``.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ResourceAttributeKeysAPI.
-        
+        """Initialize the ResourceAttributeKeysAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """
-        Archive a key. Cascades to its enum values and assignments.
-        
+        """Archive a key. Cascades to its enum values and assignments.
+
         Args:
             key: The key or key ID to archive.
-        
+
         Returns:
             The archived key.
         """
-
         ...
-    
+
     def check_archive_impact(self, key: str | ResourceAttributeKey) -> int:
-        """
-        Check how many assignments archiving a key would affect.
-        
+        """Check how many assignments archiving a key would affect.
+
         Args:
             key: The key or key ID to check.
-        
+
         Returns:
             The number of active assignments archiving this key would affect.
         """
-
         ...
-    
-    def create(self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = '') -> ResourceAttributeKey:
-        """
-        Create a resource attribute key.
-        
+
+    def create(
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Create a resource attribute key.
+
         Args:
             display_name: The human-readable name of the key.
             value_type: The value type of the key.
             description: Optional description.
-        
+
         Returns:
             The created key.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> ResourceAttributeKey | None:
-        """
-        Find a single key matching the query. Takes the same arguments as `list_`.
-        
+        """Find a single key matching the query. Takes the same arguments as `list_`.
+
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
-        
+
         Returns:
             The key found, or None if no key matches.
-        
+
         Raises:
             ValueError: If more than one key matches.
         """
-
         ...
-    
+
     def get(self, *, key_id: str) -> ResourceAttributeKey:
-        """
-        Get a resource attribute key by ID.
-        
+        """Get a resource attribute key by ID.
+
         Args:
             key_id: The ID of the key.
-        
+
         Returns:
             The key.
         """
-
         ...
-    
-    def get_or_create(self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = '') -> ResourceAttributeKey:
-        """
-        Get a key by display name, creating it if it does not exist.
-        
+
+    def get_or_create(
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
         Args:
             display_name: The human-readable name of the key.
             value_type: The value type used if the key is created.
             description: Optional description used if the key is created.
-        
+
         Returns:
             The existing or newly created key.
-        
+
         Note:
             Display names are not guaranteed unique. If multiple keys share the display
             name, the first active match is returned.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, value_type: ResourceAttributeValueType | None = None, created_after: datetime | None = None, created_before: datetime | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[ResourceAttributeKey]:
-        """
-        List resource attribute keys with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        value_type: ResourceAttributeValueType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ResourceAttributeKey]:
+        """List resource attribute keys with optional filtering.
+
         The service does not yet support filtering keys by modified date or user.
-        
+
         Args:
             name: Exact display name of the key.
             names: Display names to filter by.
@@ -2301,229 +2412,221 @@ class ResourceAttributeKeysAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of keys to return.
             page_size: Results to fetch per request.
-        
+
         Returns:
             The matching keys.
         """
-
         ...
-    
+
     def unarchive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """
-        Unarchive a key. Does not restore its cascaded enum values or assignments.
-        
+        """Unarchive a key. Does not restore its cascaded enum values or assignments.
+
         Args:
             key: The key or key ID to unarchive.
-        
+
         Returns:
             The unarchived key.
         """
-
         ...
-    
-    def update(self, key: str | ResourceAttributeKey, update: ResourceAttributeKeyUpdate | dict) -> ResourceAttributeKey:
-        """
-        Update a key.
-        
+
+    def update(
+        self, key: str | ResourceAttributeKey, update: ResourceAttributeKeyUpdate | dict
+    ) -> ResourceAttributeKey:
+        """Update a key.
+
         Args:
             key: The key or key ID to update.
             update: Updates to apply to the key.
-        
+
         Returns:
             The updated key.
         """
-
         ...
 
-
-
 class ResourceAttributesAPI:
-    """
-    Sync counterpart to `ResourceAttributesAPIAsync`.
-    
+    """Sync counterpart to `ResourceAttributesAPIAsync`.
+
     High-level API for resource attributes.
-    
+
     Resource attributes describe the Sift objects an access decision applies to. A
     resource is the "what" in an access decision.
-    
+
     Create or fetch an attribute key via `keys`, define enum values via `enum_values`
     when the key uses them, then assign a value to resources via `assignments`. Pass
     existing ``Asset``, ``Channel``, and ``Run`` objects directly, or build a
     ``ResourceAttributeEntity`` from a resource ID.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ResourceAttributesAPI.
-        
+        """Initialize the ResourceAttributesAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
+    def _run(self, coro): ...
     @property
     def assignments(self) -> ResourceAttributeAssignmentsAPI:
-        """
-        Nested ResourceAttributeAssignmentsAPI for making synchronous requests.
-        """
-
+        """Nested ResourceAttributeAssignmentsAPI for making synchronous requests."""
         ...
     @property
     def enum_values(self) -> ResourceAttributeEnumValuesAPI:
-        """
-        Nested ResourceAttributeEnumValuesAPI for making synchronous requests.
-        """
-
+        """Nested ResourceAttributeEnumValuesAPI for making synchronous requests."""
         ...
     @property
     def keys(self) -> ResourceAttributeKeysAPI:
-        """
-        Nested ResourceAttributeKeysAPI for making synchronous requests.
-        """
-
+        """Nested ResourceAttributeKeysAPI for making synchronous requests."""
         ...
 
-
-
 class RulesAPI:
-    """
-    Sync counterpart to `RulesAPIAsync`.
-    
+    """Sync counterpart to `RulesAPIAsync`.
+
     High-level API for interacting with rules.
-    
+
     This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-    
+
     All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
     representation of a rule using standard Python data structures and types.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the RulesAPI.
-        
+        """Initialize the RulesAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, rule: str | Rule) -> Rule:
-        """
-        Archive a rule.
-        
+        """Archive a rule.
+
         Args:
             rule: The id or Rule object of the rule to archive.
-        
+
         Returns:
             The archived Rule.
         """
-
         ...
-    
+
     def batch_get_rule_versions(self, rule_versions: list[RuleVersion] | list[str]) -> list[Rule]:
-        """
-        Get multiple rules at specific versions by rule version IDs.
-        
+        """Get multiple rules at specific versions by rule version IDs.
+
         Args:
             rule_versions: List of RuleVersion instances or rule version IDs.
-        
+
         Returns:
             List of Rules at those versions.
         """
-
         ...
-    
-    def batch_update_or_create_rules(self, rules: Sequence[RuleCreate | RuleUpdate], *, override_expression_validation: bool = False) -> list[Rule]:
-        """
-        Batch update or create multiple rules.
-        
+
+    def batch_update_or_create_rules(
+        self,
+        rules: Sequence[RuleCreate | RuleUpdate],
+        *,
+        override_expression_validation: bool = False,
+    ) -> list[Rule]:
+        """Batch update or create multiple rules.
+
         Args:
             rules: List of rule creates or updates to apply. RuleUpdate objects must have resource_id set.
             override_expression_validation: When true, the rules will be created even if the expressions are invalid.
-        
+
         Warnings:
             SiftWarning: If not all rules are created or updated.
-        
+
         Returns:
             List of updated or created Rules.
-        
+
         Raises:
             ValueError: If the update/create fails or if not all rules were updated/created.
         """
-
         ...
-    
-    def create(self, create: RuleCreate | dict | Sequence[RuleCreate | dict], *, override_expression_validation: bool = True) -> Rule | list[Rule]:
-        """
-        Create a new rule.
-        
+
+    def create(
+        self,
+        create: RuleCreate | dict | Sequence[RuleCreate | dict],
+        *,
+        override_expression_validation: bool = True,
+    ) -> Rule | list[Rule]:
+        """Create a new rule.
+
         Args:
             create: A RuleCreate object, a dictionary with configuration for the new rule, or a list of the previously mentioned objects.
             override_expression_validation: When true, the rule will be created even if the expression is invalid.
-        
+
         Warnings:
             SiftWarning: If not all rules are created.
-        
+
         Returns:
             The created Rule (if a single dictionary or RuleCreate was provided) otherwise a list of the created rules.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> Rule | None:
-        """
-        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
+        """Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list`.
-        
+
         Returns:
             The Rule found or None.
         """
-
         ...
-    
+
     def get(self, *, rule_id: str | None = None, client_key: str | None = None) -> Rule:
-        """
-        Get a Rule.
-        
+        """Get a Rule.
+
         Args:
             rule_id: The ID of the rule.
             client_key: The client key of the rule.
-        
+
         Returns:
             The Rule.
         """
-
         ...
-    
+
     def get_rule_version(self, rule_version: RuleVersion | str) -> Rule:
-        """
-        Get a rule at a specific version by rule version ID.
-        
+        """Get a rule at a specific version by rule version ID.
+
         Args:
             rule_version: The RuleVersion instance or rule version ID.
-        
+
         Returns:
             The Rule at that version.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, rule_ids: list[str] | None = None, client_keys: list[str] | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by: Any | str | None = None, modified_by: Any | str | None = None, metadata: list[Any] | None = None, assets: list[str] | list[Asset] | None = None, asset_tags: list[str | Tag] | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[Rule]:
-        """
-        List rules with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        metadata: list[Any] | None = None,
+        assets: list[str] | list[Asset] | None = None,
+        asset_tags: list[str | Tag] | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Rule]:
+        """List rules with optional filtering.
+
         Args:
             name: Exact name of the rule.
             names: List of rule names to filter by.
@@ -2547,17 +2650,25 @@ class RulesAPI:
             limit: Maximum number of rules to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, defaults to `limit`.
-        
+
         Returns:
             A list of Rules that matches the filter.
         """
-
         ...
-    
-    def list_rule_versions(self, rule: Rule | str, *, user_notes_contains: str | None = None, change_message_contains: str | None = None, rule_version_ids: list[str] | None = None, filter_query: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[RuleVersion]:
-        """
-        List versions of a rule with optional filtering.
-        
+
+    def list_rule_versions(
+        self,
+        rule: Rule | str,
+        *,
+        user_notes_contains: str | None = None,
+        change_message_contains: str | None = None,
+        rule_version_ids: list[str] | None = None,
+        filter_query: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[RuleVersion]:
+        """List versions of a rule with optional filtering.
+
         Args:
             rule: The Rule instance or rule ID.
             user_notes_contains: Filter by user notes (notes for a given version) containing this string.
@@ -2567,86 +2678,77 @@ class RulesAPI:
             limit: Maximum number of versions to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, defaults to `limit`.
-        
+
         Returns:
             A list of RuleVersion objects matching the filters, ordered by newest versions first.
         """
-
         ...
-    
+
     def unarchive(self, rule: str | Rule) -> Rule:
-        """
-        Unarchive a rule.
-        
+        """Unarchive a rule.
+
         Args:
             rule: The id or Rule object of the rule to unarchive.
-        
+
         Returns:
             The unarchived Rule.
         """
-
         ...
-    
-    def update(self, rule: Rule | str, update: RuleUpdate | dict, *, version_notes: str | None = None) -> Rule:
-        """
-        Update a Rule.
-        
+
+    def update(
+        self, rule: Rule | str, update: RuleUpdate | dict, *, version_notes: str | None = None
+    ) -> Rule:
+        """Update a Rule.
+
         Args:
             rule: The Rule or rule ID to update.
             update: Updates to apply to the Rule.
             version_notes: Notes to include in the rule version.
-        
+
         Returns:
             The updated Rule.
         """
-
         ...
 
-
-
 class RunsAPI:
-    """
-    Sync counterpart to `RunsAPIAsync`.
-    
+    """Sync counterpart to `RunsAPIAsync`.
+
     High-level API for interacting with runs.
-    
+
     This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-    
+
     All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
     representation of a run using standard Python data structures and types.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the RunsAPI.
-        
+        """Initialize the RunsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, run: str | Run) -> Run:
-        """
-        Archive a run.
-        
+        """Archive a run.
+
         Args:
             run: The Run or run ID to archive.
         """
-
         ...
-    
-    def create(self, create: RunCreate | dict, assets: list[str | Asset] | None = None, associate_new_data: bool = False) -> Run:
-        """
-        Create a new run.
-        
+
+    def create(
+        self,
+        create: RunCreate | dict,
+        assets: list[str | Asset] | None = None,
+        associate_new_data: bool = False,
+    ) -> Run:
+        """Create a new run.
+
         The behavior depends on the arguments:
-        
+
         - No assets: a standard run. Assets are associated later, automatically, when the run is
           used in their ingestion configs, so asset info is not needed up front.
         - assets, associate_new_data=False (default): an adhoc run over the assets' existing data
@@ -2654,7 +2756,7 @@ class RunsAPI:
         - assets, associate_new_data=True: a standard run that also captures data ingested later.
           Data is associated when it lands in one of the assets within the run's time period,
           even if its timestamp is in the past.
-        
+
         Args:
             create: The run definition. For an adhoc run, set start_time and stop_time to bound
                 the window.
@@ -2663,45 +2765,71 @@ class RunsAPI:
                 adhoc run, and as an asset name when associate_new_data is True.
             associate_new_data: If True, associate data ingested after the run is created that
                 falls within its time period. Requires assets.
-        
+
         Returns:
             The created Run.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> Run | None:
-        """
-        Find a single run matching the given query. Takes the same arguments as `list_`. If more than one run is found,
+        """Find a single run matching the given query. Takes the same arguments as `list_`. If more than one run is found,
         raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
-        
+
         Returns:
             The Run found or None.
         """
-
         ...
-    
+
     def get(self, *, run_id: str | None = None, client_key: str | None = None) -> Run:
-        """
-        Get a Run.
-        
+        """Get a Run.
+
         Args:
             run_id: The ID of the run.
             client_key: The client key of the run.
-        
+
         Returns:
             The Run.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, run_ids: list[str] | None = None, client_keys: list[str] | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, created_by: Any | str | None = None, modified_by: Any | str | None = None, tags: list[str | Tag] | None = None, metadata: list[Any] | None = None, assets: list[Asset] | list[str] | None = None, asset_tags: list[str | Tag] | None = None, duration_less_than: timedelta | None = None, duration_greater_than: timedelta | None = None, start_time_after: datetime | None = None, start_time_before: datetime | None = None, stop_time_after: datetime | None = None, stop_time_before: datetime | None = None, is_stopped: bool | None = None, description_contains: str | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[Run]:
-        """
-        List runs with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        run_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        tags: list[str | Tag] | None = None,
+        metadata: list[Any] | None = None,
+        assets: list[Asset] | list[str] | None = None,
+        asset_tags: list[str | Tag] | None = None,
+        duration_less_than: timedelta | None = None,
+        duration_greater_than: timedelta | None = None,
+        start_time_after: datetime | None = None,
+        start_time_before: datetime | None = None,
+        stop_time_after: datetime | None = None,
+        stop_time_before: datetime | None = None,
+        is_stopped: bool | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Run]:
+        """List runs with optional filtering.
+
         Args:
             name: Exact name of the run.
             names: List of run names to filter by.
@@ -2733,114 +2861,104 @@ class RunsAPI:
             limit: Maximum number of runs to return. If None, returns all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of Run objects that match the filter criteria.
         """
-
         ...
-    
+
     def stop(self, run: str | Run) -> Run:
-        """
-        Stop a run by setting its stop time to the current time.
-        
+        """Stop a run by setting its stop time to the current time.
+
         Args:
             run: The Run or run ID to stop.
         """
-
         ...
-    
+
     def unarchive(self, run: str | Run) -> Run:
-        """
-        Unarchive a run.
-        
+        """Unarchive a run.
+
         Args:
             run: The Run or run ID to unarchive.
         """
-
         ...
-    
+
     def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
-        """
-        Update a Run.
-        
+        """Update a Run.
+
         Args:
             run: The Run or run ID to update.
             update: Updates to apply to the Run.
-        
+
         Returns:
             The updated Run.
         """
-
         ...
 
-
-
 class TagsAPI:
-    """
-    Sync counterpart to `TagsAPIAsync`.
-    
+    """Sync counterpart to `TagsAPIAsync`.
+
     High-level API for interacting with tags.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the TagsAPI.
-        
+        """Initialize the TagsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def create(self, name: str) -> Tag:
-        """
-        Create a new tag.
-        
+        """Create a new tag.
+
         Args:
             name: The name of the tag.
-        
+
         Returns:
             The created Tag.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> Tag | None:
-        """
-        Find a single tag matching the given query. Takes the same arguments as `list`. If more than one tag is found,
+        """Find a single tag matching the given query. Takes the same arguments as `list`. If more than one tag is found,
         raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list`.
-        
+
         Returns:
             The Tag found or None.
         """
-
         ...
-    
+
     def find_or_create(self, names: list[str]) -> list[Tag]:
-        """
-        Find tags by name or create them if they don't exist.
-        
+        """Find tags by name or create them if they don't exist.
+
         Args:
             names: List of tag names to find or create.
-        
+
         Returns:
             List of Tags that were found or created.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, names: list[str] | None = None, tag_ids: list[str] | None = None, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[Tag]:
-        """
-        List tags with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        names: list[str] | None = None,
+        tag_ids: list[str] | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Tag]:
+        """List tags with optional filtering.
+
         Args:
             name: Exact name of the tag.
             name_contains: Partial name of the tag.
@@ -2852,223 +2970,222 @@ class TagsAPI:
             limit: How many tags to retrieve. If None, retrieves all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of Tags that matches the filter.
         """
-
         ...
-    
+
     def update(self, tag: str | Tag, update: TagUpdate | dict) -> Tag:
-        """
-        Update a Tag.
-        
+        """Update a Tag.
+
         Args:
             tag: The Tag or tag ID to update.
             update: Updates to apply to the Tag.
-        
+
         Returns:
             The updated Tag.
-        
+
         Note:
             The tags API doesn't have an update method in the proto,
             so this would need to be implemented if the API supports it.
         """
-
         ...
 
-
-
 class TestResultsAPI:
-    """
-    Sync counterpart to `TestResultsAPIAsync`.
-    
+    """Sync counterpart to `TestResultsAPIAsync`.
+
     High-level API for interacting with test reports, steps, and measurements.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the TestResultsAPI.
-        
+        """Initialize the TestResultsAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def archive(self, *, test_report: str | TestReport) -> TestReport:
-        """
-        Archive a test report.
-        
+        """Archive a test report.
+
         Args:
             test_report: The TestReport or test report ID to archive.
         """
-
         ...
-    
-    def create(self, test_report: TestReportCreate | dict, log_file: str | Path | None = None) -> TestReport:
-        """
-        Create a new test report.
-        
+
+    def create(
+        self, test_report: TestReportCreate | dict, log_file: str | Path | None = None
+    ) -> TestReport:
+        """Create a new test report.
+
         Args:
             test_report: The test report to create (can be TestReport or TestReportCreate).
             log_file: If set, log the request to this file and return a simulated response.
-        
+
         Returns:
             The created TestReport.
         """
-
         ...
-    
-    def create_measurement(self, test_measurement: TestMeasurementCreate | dict, update_step: bool = False, log_file: str | Path | None = None) -> TestMeasurement:
-        """
-        Create a new test measurement.
-        
+
+    def create_measurement(
+        self,
+        test_measurement: TestMeasurementCreate | dict,
+        update_step: bool = False,
+        log_file: str | Path | None = None,
+    ) -> TestMeasurement:
+        """Create a new test measurement.
+
         Args:
             test_measurement: The test measurement to create (can be TestMeasurement or TestMeasurementCreate).
             update_step: Whether to update the step to failed if the measurement is being created is failed.
             log_file: If set, log the request to this file and return a simulated response.
-        
+
         Returns:
             The created TestMeasurement.
         """
-
         ...
-    
-    def create_measurements(self, test_measurements: list[TestMeasurementCreate], log_file: str | Path | None = None) -> tuple[int, list[str]]:
-        """
-        Create multiple test measurements in a single request.
-        
+
+    def create_measurements(
+        self, test_measurements: list[TestMeasurementCreate], log_file: str | Path | None = None
+    ) -> tuple[int, list[str]]:
+        """Create multiple test measurements in a single request.
+
         Args:
             test_measurements: The test measurements to create.
             log_file: If set, log the request to this file and return a simulated response.
-        
+
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
         """
-
         ...
-    
-    def create_step(self, test_step: TestStepCreate | dict, log_file: str | Path | None = None) -> TestStep:
-        """
-        Create a new test step.
-        
+
+    def create_step(
+        self, test_step: TestStepCreate | dict, log_file: str | Path | None = None
+    ) -> TestStep:
+        """Create a new test step.
+
         Args:
             test_step: The test step to create (can be TestStep or TestStepCreate).
             log_file: If set, log the request to this file and return a simulated response.
-        
+
         Returns:
             The created TestStep.
         """
-
         ...
-    
+
     def delete(self, *, test_report: str | TestReport) -> None:
-        """
-        Delete a test report.
-        
+        """Delete a test report.
+
         Args:
             test_report: The TestReport or test report ID to delete.
         """
-
         ...
-    
+
     def delete_measurement(self, *, test_measurement: str | TestMeasurement) -> None:
-        """
-        Delete a test measurement.
-        
+        """Delete a test measurement.
+
         Args:
             test_measurement: The TestMeasurement or measurement ID to delete.
         """
-
         ...
-    
+
     def delete_step(self, *, test_step: str | TestStep) -> None:
-        """
-        Delete a test step.
-        
+        """Delete a test step.
+
         Args:
             test_step: The TestStep or test step ID to delete.
         """
-
         ...
-    
+
     def find(self, **kwargs) -> TestReport | None:
-        """
-        Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
+        """Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
         raises an error.
-        
+
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
-        
+
         Returns:
             The TestReport found or None.
         """
-
         ...
-    
+
     def get(self, *, test_report_id: str) -> TestReport:
-        """
-        Get a TestReport.
-        
+        """Get a TestReport.
+
         Args:
             test_report_id: The ID of the test report.
-        
+
         Returns:
             The TestReport.
         """
-
         ...
-    
+
     def get_step(self, test_step: str | TestStep) -> TestStep:
-        """
-        Get a TestStep.
-        
+        """Get a TestStep.
+
         Args:
             test_step: The TestStep or test step ID to get.
         """
-
         ...
-    
+
     def import_(self, test_file: str | Path) -> TestReport:
-        """
-        Import a test report from an already-uploaded file.
-        
+        """Import a test report from an already-uploaded file.
+
         Args:
             test_file: The path to the test report file to import. We currently only support XML files exported from NI TestStand.
-        
+
         Returns:
             The imported TestReport.
         """
-
         ...
-    
+
     def import_log_file(self, log_file: str | Path, incremental: bool = False) -> ReplayResult:
-        """
-        Replay a log file by parsing each entry, simulating the results, then creating for real.
-        
+        """Replay a log file by parsing each entry, simulating the results, then creating for real.
+
         This method reads a log file created by the simulation logging, reconstructs
         all the objects via simulation, and then creates them via the actual API.
         IDs are mapped from simulated to real during the creation process.
-        
+
         Args:
             log_file: Path to the log file to import.
             incremental: (internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).
-        
+
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, test_report_ids: list[str] | None = None, status: TestStatus | None = None, test_system_name: str | None = None, test_case: str | None = None, serial_numbers: list[str] | None = None, part_numbers: list[str] | None = None, system_operator: str | None = None, created_by: str | None = None, modified_by: str | None = None, created_after: datetime | None = None, created_before: datetime | None = None, modified_after: datetime | None = None, modified_before: datetime | None = None, metadata: list[Any] | dict[str, Any] | None = None, include_archived: bool = False, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[TestReport]:
-        """
-        List test reports with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        test_report_ids: list[str] | None = None,
+        status: TestStatus | None = None,
+        test_system_name: str | None = None,
+        test_case: str | None = None,
+        serial_numbers: list[str] | None = None,
+        part_numbers: list[str] | None = None,
+        system_operator: str | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        metadata: list[Any] | dict[str, Any] | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[TestReport]:
+        """List test reports with optional filtering.
+
         Args:
             name: Exact name of the test report.
             names: List of test report names to filter by.
@@ -3094,17 +3211,31 @@ class TestResultsAPI:
             limit: How many test reports to retrieve. If None, retrieves all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of TestReports that matches the filter.
         """
-
         ...
-    
-    def list_measurements(self, *, measurements: list[str] | list[TestMeasurement] | None = None, test_steps: list[str] | list[TestStep] | None = None, test_reports: list[str] | list[TestReport] | None = None, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, measurement_type: TestMeasurementType | None = None, passed: bool | None = None, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[TestMeasurement]:
-        """
-        List test measurements with optional filtering.
-        
+
+    def list_measurements(
+        self,
+        *,
+        measurements: list[str] | list[TestMeasurement] | None = None,
+        test_steps: list[str] | list[TestStep] | None = None,
+        test_reports: list[str] | list[TestReport] | None = None,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        measurement_type: TestMeasurementType | None = None,
+        passed: bool | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[TestMeasurement]:
+        """List test measurements with optional filtering.
+
         Args:
             measurements: Measurements to filter by.
             test_steps: Test steps to filter by.
@@ -3120,17 +3251,31 @@ class TestResultsAPI:
             limit: How many test measurements to retrieve. If None, retrieves all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of TestMeasurements that matches the filter.
         """
-
         ...
-    
-    def list_steps(self, *, test_steps: list[str] | list[TestStep] | None = None, test_reports: list[str] | list[TestReport] | None = None, parent_steps: list[str] | list[TestStep] | None = None, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, status: TestStatus | None = None, step_type: TestStepType | None = None, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[TestStep]:
-        """
-        List test steps with optional filtering.
-        
+
+    def list_steps(
+        self,
+        *,
+        test_steps: list[str] | list[TestStep] | None = None,
+        test_reports: list[str] | list[TestReport] | None = None,
+        parent_steps: list[str] | list[TestStep] | None = None,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        status: TestStatus | None = None,
+        step_type: TestStepType | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[TestStep]:
+        """List test steps with optional filtering.
+
         Args:
             test_steps: Test steps to filter by.
             test_reports: Test reports to filter by.
@@ -3146,120 +3291,127 @@ class TestResultsAPI:
             limit: How many test steps to retrieve. If None, retrieves all matches.
             page_size: Number of results to fetch per request. Lower this if you hit gRPC
                 message size limits on responses. If None, uses the server default.
-        
+
         Returns:
             A list of TestSteps that matches the filter.
         """
-
         ...
-    
+
     def unarchive(self, *, test_report: str | TestReport) -> TestReport:
-        """
-        Unarchive a test report.
-        
+        """Unarchive a test report.
+
         Args:
             test_report: The TestReport or test report ID to unarchive.
         """
-
         ...
-    
-    def update(self, test_report: str | TestReport, update: TestReportUpdate | dict, log_file: str | Path | None = None) -> TestReport:
-        """
-        Update a TestReport.
-        
+
+    def update(
+        self,
+        test_report: str | TestReport,
+        update: TestReportUpdate | dict,
+        log_file: str | Path | None = None,
+    ) -> TestReport:
+        """Update a TestReport.
+
         Args:
             test_report: The TestReport or test report ID to update.
             update: Updates to apply to the TestReport.
             log_file: If set, log the request to this file and return a simulated response.
-        
+
         Returns:
             The updated TestReport.
         """
-
         ...
-    
-    def update_measurement(self, test_measurement: TestMeasurement, update: TestMeasurementUpdate | dict, update_step: bool = False, log_file: str | Path | None = None) -> TestMeasurement:
-        """
-        Update a TestMeasurement.
-        
+
+    def update_measurement(
+        self,
+        test_measurement: TestMeasurement,
+        update: TestMeasurementUpdate | dict,
+        update_step: bool = False,
+        log_file: str | Path | None = None,
+    ) -> TestMeasurement:
+        """Update a TestMeasurement.
+
         Args:
             test_measurement: The TestMeasurement or measurement ID to update.
             update: Updates to apply to the TestMeasurement.
             update_step: Whether to update the step to failed if the measurement is being updated to failed.
             log_file: If set, log the request to this file and return a simulated response.
-        
+
         Returns:
             The updated TestMeasurement.
         """
-
         ...
-    
-    def update_step(self, test_step: str | TestStep, update: TestStepUpdate | dict, log_file: str | Path | None = None) -> TestStep:
-        """
-        Update a TestStep.
-        
+
+    def update_step(
+        self,
+        test_step: str | TestStep,
+        update: TestStepUpdate | dict,
+        log_file: str | Path | None = None,
+    ) -> TestStep:
+        """Update a TestStep.
+
         Args:
             test_step: The TestStep or test step ID to update.
             update: Updates to apply to the TestStep.
             log_file: If set, log the request to this file and return a simulated response.
-        
+
         Returns:
             The updated TestStep.
         """
-
         ...
 
-
-
 class UsersAPI:
-    """
-    Sync counterpart to `UsersAPIAsync`.
-    
+    """Sync counterpart to `UsersAPIAsync`.
+
     High-level API for users.
-    
+
     A user's ``name`` is their login name, typically their email address.
     """
-    
+
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the UsersAPI.
-        
+        """Initialize the UsersAPI.
+
         Args:
             sift_client: The Sift client to use.
         """
-
         ...
-    
-    def _run(self, coro):
 
-        ...
-    
+    def _run(self, coro): ...
     def find(self, **kwargs) -> User | None:
-        """
-        Find a single user matching the query. Raises if more than one matches.
-        
+        """Find a single user matching the query. Raises if more than one matches.
+
         Takes the same arguments as ``list_``.
         """
-
         ...
-    
+
     def get(self, *, user_id: str) -> User:
-        """
-        Get a user by ID.
-        
+        """Get a user by ID.
+
         Args:
             user_id: The ID of the user to retrieve.
-        
+
         Returns:
             The User.
         """
-
         ...
-    
-    def list_(self, *, name: str | None = None, names: list[str] | None = None, name_contains: str | None = None, name_regex: str | re.Pattern | None = None, include_inactive: bool = False, organization_id: str | None = None, filter_query: str | None = None, order_by: str | None = None, limit: int | None = None, page_size: int | None = None) -> list[User]:
-        """
-        List users with optional filtering.
-        
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        include_inactive: bool = False,
+        organization_id: str | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[User]:
+        """List users with optional filtering.
+
         Args:
             name: Exact login name (typically the email address).
             names: Login names to filter by.
@@ -3272,31 +3424,27 @@ class UsersAPI:
             order_by: Field and direction to order by.
             limit: Maximum number of users to return.
             page_size: Results to fetch per request.
-        
+
         Returns:
             The matching users.
         """
-
         ...
-    
+
     def resolve_ids(self, emails: list[str]) -> dict[str, str]:
-        """
-        Resolve user login emails (their user names) to user IDs.
-        
+        """Resolve user login emails (their user names) to user IDs.
+
         Matching is case-insensitive. Login names are stored and compared
         case-sensitively, so emails that miss on exact casing fall back to a
         case-insensitive match against the full user list. Inactive users are
         resolved too.
-        
+
         Returns a mapping of email (as passed) to user ID for the emails that were
         found. Emails with no matching user are omitted.
-        
+
         Args:
             emails: The login emails to resolve.
-        
+
         Raises:
             ValueError: If an email matches multiple users case-insensitively.
         """
-
         ...
-
