@@ -19,7 +19,7 @@ from sift.data.v2.data_pb2_grpc import DataServiceStub
 
 from sift_client._internal.disk_cache import DiskCache
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client._internal.time import to_timestamp_nanos
+from sift_client._internal.time import to_timestamp_nanos, to_timestamp_pb
 from sift_client._internal.util.progress import alive_bar
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.transport import WithGrpcClient
@@ -580,8 +580,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request_kwargs: dict[str, Any] = {
             "queries": queries,
             "sample_ms": 0,
-            "start_time": start_time,
-            "end_time": end_time,
+            "start_time": to_timestamp_pb(start_time) if start_time else None,
+            "end_time": to_timestamp_pb(end_time),
             "page_size": page_size,
             "page_token": page_token,
         }
