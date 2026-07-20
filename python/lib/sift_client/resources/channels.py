@@ -313,6 +313,7 @@ class ChannelsAPIAsync(ResourceBase):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
         ignore_cache: bool = False,
         show_progress: bool | None = None,
     ) -> dict[str, pa.Table]:
@@ -326,6 +327,7 @@ class ChannelsAPIAsync(ResourceBase):
             start_time=start_time,
             end_time=end_time,
             limit=limit,
+            page_size=page_size,
             ignore_cache=ignore_cache,
             show_progress=show_progress,
         )
