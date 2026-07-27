@@ -1644,11 +1644,11 @@ def test_auto_generated_ids_fall_back_to_name_value(
     assert "v=2" in by_name
 
 
-def test_combined_axis_ids_fall_back_to_name_value(
+def test_combined_axis_renders_one_frame_with_its_id(
     pytester: pytest.Pytester, out_dir: Path
 ) -> None:
-    """A combined ``"a,b"`` axis can't attribute its shared ID, so each frame uses
-    ``name=value`` rather than mislabelling both with the same combined ID.
+    """A combined ``"a,b"`` axis is ONE axis in pytest, so it is one step labelled
+    with the shared ID, not one step per argname.
     """
     pytester.makepyfile(
         test_comb=dedent(
@@ -1664,10 +1664,140 @@ def test_combined_axis_ids_fall_back_to_name_value(
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
-    # The shared "combined" ID is not adopted for either per-arg frame.
-    assert "combined" not in by_name
-    assert "a=1" in by_name
-    assert "b=2" in by_name
+    assert "combined" in by_name
+    # No per-argname frames beneath it.
+    assert "a=1" not in by_name
+    assert "b=2" not in by_name
+
+
+def test_combined_axis_without_ids_joins_name_value_pairs(
+    pytester: pytest.Pytester, out_dir: Path
+) -> None:
+    """With no ``ids=``, a combined axis still renders as ONE frame, labelled with
+    the tuple's ``name=value`` pairs rather than pytest's noisier auto-ID.
+    """
+    pytester.makepyfile(
+        test_comb=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("a,b", [(1, 2)])
+            def test_comb(a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=1)
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
+    assert "a=1, b=2" in by_name
+    assert "a=1" not in by_name
+
+
+def test_callable_id_factory_on_combined_axis(pytester: pytest.Pytester, out_dir: Path) -> None:
+    """A callable ``ids=`` factory runs per value and the results join with ``-``,
+    matching how pytest builds a combined axis's node-ID segment.
+    """
+    pytester.makepyfile(
+        test_comb=dedent(
+            """
+            import pytest
+
+            def label(value):
+                return f"v{value}"
+
+            @pytest.mark.parametrize("a,b", [(1, 2)], ids=label)
+            def test_comb(a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=1)
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
+    assert "v1-v2" in by_name
+
+
+def test_combined_axis_stacked_with_single_axis(pytester: pytest.Pytester, out_dir: Path) -> None:
+    """A combined axis stacked under a single-name axis yields two frames, top
+    decorator outermost, each labelled by its own ID.
+    """
+    pytester.makepyfile(
+        test_comb=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", ["hi", "lo"])
+            @pytest.mark.parametrize("a,b", [(1, 2)], ids=["combined"])
+            def test_comb(v, a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
+    by_name = _by_name(steps)
+    assert "v='hi'" in by_name
+    assert "combined" in by_name
+    assert "a=1" not in by_name
+    # Top decorator outermost: every combined-axis frame nests under a ``v=`` frame.
+    assert len(by_name["combined"]) == 2
+    for frame in by_name["combined"]:
+        ancestors = _ancestor_names(steps, frame)
+        assert "v='hi'" in ancestors or "v='lo'" in ancestors
+
+
+def test_combined_axis_under_scoped_fixture_param(pytester: pytest.Pytester, out_dir: Path) -> None:
+    """A module-scoped fixture axis above a three-argname combined axis whose
+    tuples carry a function object. One frame per axis, each labelled by its own
+    ID, and no frame carrying an object repr.
+    """
+    pytester.makepyfile(
+        test_axes=dedent(
+            """
+            import pytest
+
+            def handler_a(): pass
+            def handler_b(): pass
+
+            CASES = [
+                (handler_a, "signal.alpha", "ALPHA"),
+                (handler_b, "signal.beta", "BETA"),
+            ]
+            CASE_IDS = ["ALPHA", "BETA"]
+
+            @pytest.fixture(scope="module", params=["mode one"], ids=["mode one"])
+            def mode(request):
+                return request.param
+
+            @pytest.mark.parametrize("handler,signal_name,case_name", CASES, ids=CASE_IDS)
+            def test_signal(handler, signal_name, case_name, mode, step):
+                with step.substep("record baseline"):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
+    by_name = _by_name(steps)
+    assert "mode one" in by_name
+    assert "ALPHA" in by_name
+    assert "BETA" in by_name
+    # The other two argnames of the combined axis open no frames of their own.
+    assert not [n for n in by_name if n.startswith(("handler=", "signal_name="))]
+    # No label carries a function repr (heap address, unstable across runs).
+    assert not [n for n in by_name if "<function" in n]
+    # Expected chain: module → mode → test → ID → substep.
+    ancestors = _ancestor_names(steps, by_name["record baseline"][0])
+    assert ancestors == [
+        "record baseline",
+        "ALPHA",
+        "test_signal",
+        "mode one",
+        "test_axes.py",
+    ]
 
 
 # ---------------------------------------------------------------------------

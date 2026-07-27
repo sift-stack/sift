@@ -16,7 +16,7 @@ from __future__ import annotations
 import inspect
 import logging
 import warnings
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple
 
 import pytest
 
@@ -110,7 +110,8 @@ HierarchyChain = Tuple[HierarchyFrame, ...]
 HierarchyParent = Tuple[HierarchyKey, str, Optional[str]]  # (identity, name, docstring)
 ParametrizeParent = Tuple[ParametrizeKey, str]  # (registry key, frame name)
 # Scope-promoted params (anything broader than function scope) stashed per item.
-# Each entry is ``(scope, param_name, label)``; in callspec application order.
+# Each entry is ``(scope, param_name, label)``; in callspec application order, one
+# per axis. ``param_name`` is the axis's first argname (see ``_param_axes``).
 ScopedParams = Tuple[Tuple[str, str, str], ...]
 # A gated-in leaf's parents: its rendered hierarchy identities and parametrize keys.
 LeafParents = Tuple[List[HierarchyKey], List[ParametrizeKey]]
@@ -277,14 +278,14 @@ def _id_from_spec(ids: Any, index: int, value: Any) -> str | None:
 
 
 def _explicit_param_id(item: pytest.Item, name: str, value: Any) -> str | None:
-    """The author-supplied pytest ID for param ``name`` on ``item``, else None.
+    """The author-supplied pytest ID for single-argname axis ``name``, else None.
 
     Honours an explicit ``ids=`` (list or callable factory) declared on the
     fixture (``@pytest.fixture(params=..., ids=...)``) or on the
     ``@pytest.mark.parametrize`` axis, matching the friendly labels pytest puts
-    in the node ID. Combined axes (``"a,b"``) are skipped: their single shared
-    ID can't be attributed to one of the two frames the report renders, so those
-    fall back to ``name=value``.
+    in the node ID. Combined axes (``"a,b"``) are handled by
+    ``_combined_axis_label``: they render as one frame, so their shared ID needs
+    no attribution and is adopted directly.
     """
     callspec = getattr(item, "callspec", None)
     if callspec is None:
@@ -309,15 +310,101 @@ def _explicit_param_id(item: pytest.Item, name: str, value: Any) -> str | None:
 
 
 def _param_label(item: pytest.Item, name: str, value: Any) -> str:
-    """Display label for one param axis: its explicit pytest ID, else ``name=value``."""
+    """Display label for one single-argname axis: its explicit pytest ID, else ``name=value``."""
     return _explicit_param_id(item, name, value) or f"{name}={value!r}"
+
+
+def _mark_for_param(item: pytest.Item, name: str) -> pytest.Mark | None:
+    """The ``parametrize`` mark covering param ``name``, or None if it is fixture-based."""
+    for mark in item.iter_markers("parametrize"):
+        if name in _mark_argnames(mark):
+            return mark
+    return None
+
+
+def _combined_axis_label(item: pytest.Item, mark: pytest.Mark, names: Sequence[str]) -> str:
+    """Display label for one multi-argname axis (``@parametrize("a,b", ...)``).
+
+    A combined axis is a single axis in pytest's model: one tuple per case, one
+    ID per tuple, one bracket segment in the node ID. It renders as one step, so
+    the author's shared ``ids=`` entry labels it directly.
+
+    A callable ``ids=`` factory is applied per value and the results joined with
+    ``-``, mirroring how pytest builds the segment for a combined axis. If any
+    value yields no ID the whole factory result is discarded rather than
+    part-labelling the frame.
+
+    With no usable ``ids=``, fall back to the tuple's ``name=value`` pairs joined
+    with ``, ``. Pytest's auto-generated IDs are deliberately not adopted here,
+    for the same reason ``_id_from_spec`` rejects them: they are noisier than the
+    structured pairs for non-trivial values.
+    """
+    callspec = item.callspec  # type: ignore[attr-defined]
+    ids = mark.kwargs.get("ids")
+    index = callspec.indices.get(names[0])
+    if ids is not None and index is not None:
+        if callable(ids):
+            parts: list[str] = []
+            for name in names:
+                try:
+                    resolved = ids(callspec.params[name])
+                except Exception:
+                    resolved = None
+                if resolved is None:
+                    break
+                parts.append(str(resolved))
+            else:
+                return "-".join(parts)
+        elif index < len(ids):
+            return str(ids[index])
+    return ", ".join(f"{name}={callspec.params[name]!r}" for name in names)
+
+
+def _param_axes(item: pytest.Item) -> tuple[tuple[tuple[str, ...], str, str], ...]:
+    """The item's parametrize axes as ``(argnames, scope, label)``, application order.
+
+    One entry per AXIS, not per argname: a combined ``@parametrize("a,b", ...)``
+    contributes a single entry covering both names, because that is what pytest
+    treats as one axis (one ID, one node-ID segment) and what the report should
+    render as one step. Ordering follows ``callspec.params``, with each axis
+    placed at its first argname's position.
+
+    ``scope`` and the fixture-based ``ids=`` lookup are resolved from the axis's
+    first argname; pytest requires every argname in a combined axis to share a
+    scope, so the first is representative.
+    """
+    callspec = getattr(item, "callspec", None)
+    if callspec is None or not callspec.params:
+        return ()
+    axes: list[tuple[tuple[str, ...], str, str]] = []
+    seen: set[str] = set()
+    for name in callspec.params:
+        if name in seen:
+            continue
+        mark = _mark_for_param(item, name)
+        # Restrict to argnames this callspec actually carries: a mark can name a
+        # param that a later ``pytest_generate_tests`` hook removed.
+        names = (
+            tuple(n for n in _mark_argnames(mark) if n in callspec.params)
+            if mark is not None
+            else (name,)
+        )
+        if len(names) > 1 and mark is not None:
+            label = _combined_axis_label(item, mark, names)
+        else:
+            names = (name,)
+            label = _param_label(item, name, callspec.params[name])
+        seen.update(names)
+        axes.append((names, _param_scope(item, names[0]), label))
+    return tuple(axes)
 
 
 def build_scoped_params(item: pytest.Item) -> ScopedParams:
     """Scope-promoted params for ``item`` (anything broader than function scope).
 
     Each entry is ``(scope, name, label)`` in ``callspec.params`` application
-    order. ``resolved_parents`` buckets these by scope and places them at their
+    order, one per axis (see ``_param_axes``); ``name`` is the axis's first
+    argname. ``resolved_parents`` buckets these by scope and places them at their
     scope's hierarchy level. Function-scoped axes are excluded; they stay inner,
     handled by ``build_parametrize_path``.
     """
@@ -325,13 +412,11 @@ def build_scoped_params(item: pytest.Item) -> ScopedParams:
     if callspec is None or not callspec.params:
         return ()
     try:
-        out: list[tuple[str, str, str]] = []
-        for name, value in callspec.params.items():
-            scope = _param_scope(item, name)
-            if scope == "function":
-                continue
-            out.append((scope, name, _param_label(item, name, value)))
-        return tuple(out)
+        return tuple(
+            (scope, names[0], label)
+            for names, scope, label in _param_axes(item)
+            if scope != "function"
+        )
     except Exception as exc:
         # Degrade to "nothing promoted": every axis stays function-scoped via
         # build_parametrize_path, so the leaf still renders, just flat.
@@ -344,12 +429,15 @@ def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
 
     Pytest stores ``callspec.params`` with the BOTTOM decorator's axis first;
     the Sift step tree treats the TOP decorator as outermost, so we reverse.
+    One frame per AXIS (see ``_param_axes``), so a combined
+    ``@parametrize("a,b", ...)`` is one frame rather than one per argname.
     Only function-scoped axes appear here; higher-scoped params are promoted
     into the hierarchy by ``resolved_parents``. Each axis is labelled by its
     explicit pytest ID when the author supplied one, otherwise by ``name=value``
-    (see ``_param_label``). The first frame is always ``originalname`` so the
-    leaf step (``path[-1]`` in ``report.step_impl``) is the bare function name
-    when a test has no function-scoped params of its own.
+    (see ``_param_label`` and ``_combined_axis_label``). The first frame is
+    always ``originalname`` so the leaf step (``path[-1]`` in
+    ``report.step_impl``) is the bare function name when a test has no
+    function-scoped params of its own.
     """
     callspec = getattr(item, "callspec", None)
     if callspec is None or not callspec.params:
@@ -357,10 +445,10 @@ def build_parametrize_path(item: pytest.Item) -> ParametrizePath:
     originalname = getattr(item, "originalname", item.name)
     frames: list[str] = [originalname]
     try:
-        for name, value in reversed(callspec.params.items()):
-            if _param_scope(item, name) != "function":
+        for _names, scope, label in reversed(_param_axes(item)):
+            if scope != "function":
                 continue
-            frames.append(_param_label(item, name, value))
+            frames.append(label)
     except Exception as exc:
         # Mirror the build_scoped_params degradation: with scope resolution
         # broken nothing is promoted, so render every axis here under the bare
