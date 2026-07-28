@@ -1561,6 +1561,38 @@ def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, out_d
     assert by_name["two"][0]["parent_step_id"] == parent_id
 
 
+def test_explicit_list_ids_survive_a_stacked_outer_axis(
+    pytester: pytest.Pytester, out_dir: Path
+) -> None:
+    """``ids=`` must resolve per axis, not by the item's position in the whole matrix.
+
+    An axis stacked under another one is where ``callspec.indices`` stops meaning
+    "position within this axis" (it tracks the expanded callspec on pytest 8.4),
+    so an ID list indexed by it runs off the end or picks a neighbour's entry.
+    Every ``inner`` universe must carry the same two IDs, in every ``outer`` one.
+    """
+    pytester.makepyfile(
+        test_slid=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("outer", ["o1", "o2", "o3"])
+            @pytest.mark.parametrize("inner", [1, 2], ids=["one", "two"])
+            def test_slid(outer, inner):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=6)
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
+    # One leaf per (outer, inner) pair, every one labelled by its own axis's ID.
+    assert len(by_name.get("one", [])) == 3
+    assert len(by_name.get("two", [])) == 3
+    assert "inner=1" not in by_name
+    assert "inner=2" not in by_name
+
+
 def test_callable_id_factory_on_inner_parametrize(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A callable ``ids=`` factory is invoked per value, just as pytest does."""
     pytester.makepyfile(
@@ -1644,19 +1676,19 @@ def test_auto_generated_ids_fall_back_to_name_value(
     assert "v=2" in by_name
 
 
-def test_combined_axis_ids_fall_back_to_name_value(
+def test_combined_axis_renders_one_frame_with_its_id(
     pytester: pytest.Pytester, out_dir: Path
 ) -> None:
-    """A combined ``"a,b"`` axis can't attribute its shared ID, so each frame uses
-    ``name=value`` rather than mislabelling both with the same combined ID.
+    """A combined ``"a,b"`` axis is ONE axis in pytest, so it is one step labelled
+    with the shared ID, not one step per argname.
     """
     pytester.makepyfile(
-        test_comb=dedent(
+        test_comb_ids=dedent(
             """
             import pytest
 
             @pytest.mark.parametrize("a,b", [(1, 2)], ids=["combined"])
-            def test_comb(a, b):
+            def test_comb_ids(a, b):
                 pass
             """
         )
@@ -1664,10 +1696,140 @@ def test_combined_axis_ids_fall_back_to_name_value(
     result = pytester.runpytest_inprocess("-v")
     result.assert_outcomes(passed=1)
     by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
-    # The shared "combined" ID is not adopted for either per-arg frame.
-    assert "combined" not in by_name
-    assert "a=1" in by_name
-    assert "b=2" in by_name
+    assert "combined" in by_name
+    # No per-argname frames beneath it.
+    assert "a=1" not in by_name
+    assert "b=2" not in by_name
+
+
+def test_combined_axis_without_ids_joins_name_value_pairs(
+    pytester: pytest.Pytester, out_dir: Path
+) -> None:
+    """With no ``ids=``, a combined axis still renders as ONE frame, labelled with
+    the tuple's ``name=value`` pairs rather than pytest's noisier auto-ID.
+    """
+    pytester.makepyfile(
+        test_comb_noids=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("a,b", [(1, 2)])
+            def test_comb_noids(a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=1)
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
+    assert "a=1, b=2" in by_name
+    assert "a=1" not in by_name
+
+
+def test_callable_id_factory_on_combined_axis(pytester: pytest.Pytester, out_dir: Path) -> None:
+    """A callable ``ids=`` factory runs per value and the results join with ``-``,
+    matching how pytest builds a combined axis's node-ID segment.
+    """
+    pytester.makepyfile(
+        test_comb_factory=dedent(
+            """
+            import pytest
+
+            def label(value):
+                return f"v{value}"
+
+            @pytest.mark.parametrize("a,b", [(1, 2)], ids=label)
+            def test_comb_factory(a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=1)
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
+    assert "v1-v2" in by_name
+
+
+def test_combined_axis_stacked_with_single_axis(pytester: pytest.Pytester, out_dir: Path) -> None:
+    """A combined axis stacked under a single-name axis yields two frames, top
+    decorator outermost, each labelled by its own ID.
+    """
+    pytester.makepyfile(
+        test_comb_stacked=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("v", ["hi", "lo"])
+            @pytest.mark.parametrize("a,b", [(1, 2)], ids=["combined"])
+            def test_comb_stacked(v, a, b):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
+    by_name = _by_name(steps)
+    assert "v='hi'" in by_name
+    assert "combined" in by_name
+    assert "a=1" not in by_name
+    # Top decorator outermost: every combined-axis frame nests under a ``v=`` frame.
+    assert len(by_name["combined"]) == 2
+    for frame in by_name["combined"]:
+        ancestors = _ancestor_names(steps, frame)
+        assert "v='hi'" in ancestors or "v='lo'" in ancestors
+
+
+def test_combined_axis_under_scoped_fixture_param(pytester: pytest.Pytester, out_dir: Path) -> None:
+    """A module-scoped fixture axis above a three-argname combined axis whose
+    tuples carry a function object. One frame per axis, each labelled by its own
+    ID, and no frame carrying an object repr.
+    """
+    pytester.makepyfile(
+        test_axes=dedent(
+            """
+            import pytest
+
+            def handler_a(): pass
+            def handler_b(): pass
+
+            CASES = [
+                (handler_a, "signal.alpha", "ALPHA"),
+                (handler_b, "signal.beta", "BETA"),
+            ]
+            CASE_IDS = ["ALPHA", "BETA"]
+
+            @pytest.fixture(scope="module", params=["mode one"], ids=["mode one"])
+            def mode(request):
+                return request.param
+
+            @pytest.mark.parametrize("handler,signal_name,case_name", CASES, ids=CASE_IDS)
+            def test_signal(handler, signal_name, case_name, mode, step):
+                with step.substep("record baseline"):
+                    pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=2)
+    steps = capture.load_steps(capture.run_jsonl(out_dir))
+    by_name = _by_name(steps)
+    assert "mode one" in by_name
+    assert "ALPHA" in by_name
+    assert "BETA" in by_name
+    # The other two argnames of the combined axis open no frames of their own.
+    assert not [n for n in by_name if n.startswith(("handler=", "signal_name="))]
+    # No label carries a function repr (heap address, unstable across runs).
+    assert not [n for n in by_name if "<function" in n]
+    # Expected chain: module → mode → test → ID → substep. Asserted over every
+    # leaf rather than a fixed index, since the inner run order is not pinned.
+    seen_ids = set()
+    for leaf in by_name["record baseline"]:
+        ancestors = _ancestor_names(steps, leaf)
+        assert ancestors[0] == "record baseline"
+        assert ancestors[2:] == ["test_signal", "mode one", "test_axes.py"]
+        seen_ids.add(ancestors[1])
+    assert seen_ids == {"ALPHA", "BETA"}
 
 
 # ---------------------------------------------------------------------------
@@ -1998,12 +2160,53 @@ def _raise(*_args: object, **_kwargs: object) -> None:
     raise RuntimeError("simulated pytest internals change")
 
 
+def test_no_ids_declared_resolves_quietly() -> None:
+    """The ordinary "author supplied no ``ids=``" path must stay silent."""
+    steps.reset_introspection_state()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SiftPytestPluginWarning)
+        assert steps._id_from_spec(None, [1, 2], (1,), "v") is None
+    assert steps._warned_once == set()
+
+
+def test_unmatchable_value_warns_once_per_axis() -> None:
+    """A declared ``ids=`` we cannot attribute warns once for that axis.
+
+    Once per AXIS, not once per session: when a pytest version breaks the
+    resolution every axis is affected, and naming each is what shows the scope.
+    Repeats of the same axis stay quiet so the matrix cannot flood the output.
+    """
+    steps.reset_introspection_state()
+    with pytest.warns(SiftPytestPluginWarning, match="could not match the ids="):
+        assert steps._id_from_spec(["one", "two"], [1, 2], (99,), "v") is None
+    assert steps._warned_once == {"id_unresolved:v"}
+
+    # Same axis again: latched, no second warning.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SiftPytestPluginWarning)
+        assert steps._id_from_spec(["one", "two"], [1, 2], (98,), "v") is None
+
+    # A different axis is its own signal and must still be reported.
+    with pytest.warns(SiftPytestPluginWarning, match="argnames 'w'"):
+        assert steps._id_from_spec(["only"], [1], (99,), "w") is None
+    assert steps._warned_once == {"id_unresolved:v", "id_unresolved:w"}
+
+
+def test_id_factory_returning_none_does_not_warn() -> None:
+    """An ID factory returning None is the author's choice, not a fault."""
+    steps.reset_introspection_state()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SiftPytestPluginWarning)
+        assert steps._id_from_spec(lambda v: None, [1], (1,), "v") is None
+    assert steps._warned_once == set()
+
+
 def test_fixturedefs_degrades_when_fixture_manager_missing() -> None:
     steps.reset_introspection_state()
     item = _fake_item_without_fixture_manager()
     with pytest.warns(SiftPytestPluginWarning, match="scope-aware parametrize"):
         assert steps._fixturedefs(item, "x") is None
-    assert steps._introspection_degraded is True
+    assert "introspection_degraded" in steps._warned_once
 
 
 def test_fixturedefs_degrades_when_getfixturedefs_raises() -> None:
@@ -2183,4 +2386,4 @@ def test_fixturedefs_falls_back_to_nodeid_on_pytest7_signature() -> None:
         warnings.simplefilter("error")  # a degradation warning would raise here
         result = steps._fixturedefs(item, "x")
     assert result == (sentinel,)
-    assert steps._introspection_degraded is False
+    assert "introspection_degraded" not in steps._warned_once
