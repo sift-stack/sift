@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 from sift_client._internal.low_level_wrappers._test_results_log import parse_log_data_lines
 from sift_client.sift_types.test_report import TestStatus
@@ -172,7 +172,7 @@ def final_error_message(name: str) -> str | None:
 
 # Ordered ``(line index, status)`` writes, for asserting write order across
 # entry kinds. See ``status_writes``.
-StatusWrites = list[tuple[int, TestStatus]]
+StatusWrites = List[Tuple[int, TestStatus]]
 
 
 def log_events(log_path: Path) -> list[tuple[str, str, TestStatus]]:
