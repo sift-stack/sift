@@ -28,8 +28,10 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`, `active`. Default sort is `created_date` ascending (oldest first) —
                 note this differs from `list_assets` and `list_runs`. Example: `\"name,created_date desc\"`.
-              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
-                passing a value above 1000 returns ALL matching channels (paginated server-side).
+              - `limit`: max items to return. Always pass it — start at 200 and only raise it if the
+                result is capped and you still need more. Valid range is `1..=1000`; omitting it or
+                passing a value above 1000 returns ALL matching channels (paginated server-side), which
+                can overflow the context window and fail the call.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
