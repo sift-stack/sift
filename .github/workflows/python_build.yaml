@@ -117,7 +117,11 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install build pip-tools
+          # pip-tools 7.6.0 imports typing_extensions on Python < 3.11 without
+          # declaring it as a dependency, so pip-compile fails to import on the
+          # 3.9 and 3.10 legs. Drop this cap once 7.6.1 is released:
+          # https://github.com/jazzband/pip-tools/pull/2428
+          pip install build 'pip-tools<7.6'
 
       - name: Generate requirements
         working-directory: python
