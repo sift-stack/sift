@@ -1651,12 +1651,12 @@ def test_combined_axis_renders_one_frame_with_its_id(
     with the shared ID, not one step per argname.
     """
     pytester.makepyfile(
-        test_comb=dedent(
+        test_comb_ids=dedent(
             """
             import pytest
 
             @pytest.mark.parametrize("a,b", [(1, 2)], ids=["combined"])
-            def test_comb(a, b):
+            def test_comb_ids(a, b):
                 pass
             """
         )
@@ -1677,12 +1677,12 @@ def test_combined_axis_without_ids_joins_name_value_pairs(
     the tuple's ``name=value`` pairs rather than pytest's noisier auto-ID.
     """
     pytester.makepyfile(
-        test_comb=dedent(
+        test_comb_noids=dedent(
             """
             import pytest
 
             @pytest.mark.parametrize("a,b", [(1, 2)])
-            def test_comb(a, b):
+            def test_comb_noids(a, b):
                 pass
             """
         )
@@ -1699,7 +1699,7 @@ def test_callable_id_factory_on_combined_axis(pytester: pytest.Pytester, out_dir
     matching how pytest builds a combined axis's node-ID segment.
     """
     pytester.makepyfile(
-        test_comb=dedent(
+        test_comb_factory=dedent(
             """
             import pytest
 
@@ -1707,7 +1707,7 @@ def test_callable_id_factory_on_combined_axis(pytester: pytest.Pytester, out_dir
                 return f"v{value}"
 
             @pytest.mark.parametrize("a,b", [(1, 2)], ids=label)
-            def test_comb(a, b):
+            def test_comb_factory(a, b):
                 pass
             """
         )
@@ -1723,13 +1723,13 @@ def test_combined_axis_stacked_with_single_axis(pytester: pytest.Pytester, out_d
     decorator outermost, each labelled by its own ID.
     """
     pytester.makepyfile(
-        test_comb=dedent(
+        test_comb_stacked=dedent(
             """
             import pytest
 
             @pytest.mark.parametrize("v", ["hi", "lo"])
             @pytest.mark.parametrize("a,b", [(1, 2)], ids=["combined"])
-            def test_comb(v, a, b):
+            def test_comb_stacked(v, a, b):
                 pass
             """
         )
@@ -1789,15 +1789,15 @@ def test_combined_axis_under_scoped_fixture_param(pytester: pytest.Pytester, out
     assert not [n for n in by_name if n.startswith(("handler=", "signal_name="))]
     # No label carries a function repr (heap address, unstable across runs).
     assert not [n for n in by_name if "<function" in n]
-    # Expected chain: module → mode → test → ID → substep.
-    ancestors = _ancestor_names(steps, by_name["record baseline"][0])
-    assert ancestors == [
-        "record baseline",
-        "ALPHA",
-        "test_signal",
-        "mode one",
-        "test_axes.py",
-    ]
+    # Expected chain: module → mode → test → ID → substep. Asserted over every
+    # leaf rather than a fixed index, since the inner run order is not pinned.
+    seen_ids = set()
+    for leaf in by_name["record baseline"]:
+        ancestors = _ancestor_names(steps, leaf)
+        assert ancestors[0] == "record baseline"
+        assert ancestors[2:] == ["test_signal", "mode one", "test_axes.py"]
+        seen_ids.add(ancestors[1])
+    assert seen_ids == {"ALPHA", "BETA"}
 
 
 # ---------------------------------------------------------------------------
