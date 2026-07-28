@@ -5,6 +5,39 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.19.1] - July 27, 2026
+
+### What's New
+
+#### `page_size` on `get_data`
+
+`client.channels.get_data(...)` and `get_data_as_arrow(...)` now take a `page_size`, the number of points fetched per request. It defaults to 10,000; the server caps it at 1,000,000 and coerces higher values down. Raise it to cut round-trips on large windows.
+
+```python
+data = client.channels.get_data(
+    channels=channels,
+    run=run,
+    page_size=1_000_000,
+)
+```
+
+#### New generated protos
+
+- Added the public `sift.canvas.v1` package. ([#683](https://github.com/sift-stack/sift/pull/683))
+- Refreshed the generated protobufs, adding `sift.families.v1` and updating common, data imports, exports, reports, rules, rule evaluation, and saved searches. ([#689](https://github.com/sift-stack/sift/pull/689))
+
+### Bugfixes
+- Fix `get_data` failing to build its request: `start_time` and `end_time` were passed as `datetime` objects where protobuf timestamps were required. ([#688](https://github.com/sift-stack/sift/pull/688))
+- Upload a teardown failure on the final test of a pytest session. The session-scoped `report_context` fixture tore down before pytest reported the outcome, so a run whose last test failed in teardown was recorded as fully passing. Late failures now also correct already-closed ancestor steps from passed to failed. ([#691](https://github.com/sift-stack/sift/pull/691))
+- Record combined `@pytest.mark.parametrize("a,b,c", ...)` axes as one step instead of one per argument name, and honor `ids=`. Step names and tree depth change, so reports from before and after this release will not group together. ([#691](https://github.com/sift-stack/sift/pull/691))
+
+### Full Changelog
+- [Add public sift.canvas.v1 proto package](https://github.com/sift-stack/sift/pull/683)
+- [Fix time type in get_data requests](https://github.com/sift-stack/sift/pull/688)
+- [Update protos](https://github.com/sift-stack/sift/pull/689)
+- [Surface get_data page_size parameter](https://github.com/sift-stack/sift/pull/690)
+- [Fix teardown failure on the last test and combined parametrize axis nesting](https://github.com/sift-stack/sift/pull/691)
+
 ## [v0.19.0] - July 10, 2026
 
 ### What's New
