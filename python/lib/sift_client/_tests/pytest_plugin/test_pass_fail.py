@@ -506,6 +506,50 @@ def test_call_fail_plus_teardown_fail(inner):
     assert outer.statuses[-1] == TestStatus.FAILED
 
 
+def test_teardown_failure_on_last_item_reaches_the_report(inner):
+    """A teardown failure on the FINAL collected item must reach the report.
+
+    pytest tears down the session-scoped ``report_context`` fixture during the
+    last item's teardown phase and only *then* reports that phase's outcome. The
+    report status and the import-worker drain therefore have to be deferred to
+    ``pytest_sessionfinish``, or the failure is computed too late to matter and
+    its log entry is written after the worker has already stopped reading.
+    """
+    _run(
+        inner,
+        """
+        import pytest
+
+        @pytest.fixture
+        def bad_teardown():
+            yield
+            raise RuntimeError("teardown boom")
+
+        def test_x(bad_teardown):
+            assert True
+        """,
+    )
+    log_path = capture._active_log
+    assert log_path is not None
+
+    outer = capture.test_step("test_x")
+    assert outer is not None
+    assert outer.statuses[-1] == TestStatus.FAILED
+
+    report_writes, step_writes = capture.status_writes(log_path, "test_x")
+
+    # The report's LAST status write must be FAILED. Before the fix the report
+    # was finalized as PASSED inside the fixture teardown, ahead of the failure.
+    assert report_writes, "report never wrote a status"
+    assert report_writes[-1][1] == TestStatus.FAILED
+
+    # Ordering is the real guarantee: the report's terminal status has to be
+    # written AFTER the step's late FAILED update. If it precedes it, the drain
+    # preceded it too and the failure would never have been uploaded.
+    assert step_writes, "step never wrote a FAILED status"
+    assert report_writes[-1][0] > step_writes[-1][0]
+
+
 # ---------------------------------------------------------------------------
 # Collection-phase failures
 # ---------------------------------------------------------------------------

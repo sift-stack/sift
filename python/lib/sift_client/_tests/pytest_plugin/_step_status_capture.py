@@ -170,6 +170,11 @@ def final_error_message(name: str) -> str | None:
     return step.error_messages[-1] if step and step.error_messages else None
 
 
+# Ordered ``(line index, status)`` writes, for asserting write order across
+# entry kinds. See ``status_writes``.
+StatusWrites = list[tuple[int, TestStatus]]
+
+
 def log_events(log_path: Path) -> list[tuple[str, str, TestStatus]]:
     """Ordered ``(request_type, step_name, status)`` tuples as they appear in the log.
 
@@ -194,6 +199,38 @@ def log_events(log_path: Path) -> list[tuple[str, str, TestStatus]]:
         elif request_type == "UpdateTestStep":
             events.append((request_type, id_to_name.get(test_step.get("testStepId"), ""), status))
     return events
+
+
+def status_writes(log_path: Path, step_name: str) -> tuple[StatusWrites, StatusWrites]:
+    """``(report writes, FAILED writes on ``step_name``)`` as ``(line index, status)``.
+
+    Line indices come from the same pass, so they are comparable across the two
+    lists and a test can assert the ORDER of a report write against a step write.
+    ``log_events`` can't express that, since it drops report entries.
+    """
+    if not log_path.exists():
+        return [], []
+    report_writes: StatusWrites = []
+    step_writes: StatusWrites = []
+    step_ids: set[str] = set()
+    for idx, (request_type, response_id, json_str) in enumerate(_log_data_lines(log_path)):
+        # Skip the JSON decode for measurement entries, which dominate most logs.
+        if not request_type.endswith(("TestReport", "TestStep")):
+            continue
+        payload = json.loads(json_str)
+        if request_type.endswith("TestReport"):
+            raw = payload.get("testReport", {}).get("status")
+            if raw:
+                report_writes.append((idx, _status(raw)))
+            continue
+        test_step = payload.get("testStep", {})
+        if request_type == "CreateTestStep" and test_step.get("name") == step_name and response_id:
+            step_ids.add(response_id)
+        elif request_type == "UpdateTestStep" and test_step.get("testStepId") in step_ids:
+            status = _status(test_step.get("status"))
+            if status == TestStatus.FAILED:
+                step_writes.append((idx, status))
+    return report_writes, step_writes
 
 
 def load_steps(log_path: Path) -> list[dict]:
