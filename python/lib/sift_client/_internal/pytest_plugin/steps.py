@@ -35,16 +35,28 @@ logger = logging.getLogger(__name__)
 # pytest internals (the fixture manager, ``callspec``). If a pytest version
 # moves or reshapes those, we degrade to function-scoped nesting with
 # ``name=value`` labels instead of failing the user's collection, and surface
-# the loss once per session via ``_signal_introspection_degraded``. This latch
-# keeps that to a single warning; ``reset_introspection_state`` clears it at the
-# start of each session (see ``pytest_configure``).
-_introspection_degraded = False
+# the loss once per session rather than on every item. Keyed by signal name and
+# mutated in place, so adding a signal needs no new module state and no
+# ``global``; ``reset_introspection_state`` clears it at the start of each
+# session (see ``pytest_configure``).
+_warned_once: set = set()
 
 
 def reset_introspection_state() -> None:
-    """Clear the one-shot introspection-failure latch. Called at session start."""
-    global _introspection_degraded
-    _introspection_degraded = False
+    """Clear the one-shot warning latches. Called at session start."""
+    _warned_once.clear()
+
+
+def _warn_once(key: str, message: str) -> bool:
+    """Warn the first time ``key`` is seen this session. True if this call warned."""
+    if key in _warned_once:
+        return False
+    _warned_once.add(key)
+    # Local import avoids a circular import (pytest_plugin imports this module).
+    from sift_client.pytest_plugin import SiftPytestPluginWarning
+
+    warnings.warn(message, SiftPytestPluginWarning, stacklevel=3)
+    return True
 
 
 def _signal_introspection_degraded(detail: str) -> None:
@@ -54,22 +66,42 @@ def _signal_introspection_degraded(detail: str) -> None:
     ordinary "no fixturedef, it's a mark-based param" case. The report still
     renders; scope-promoted params just fall back to function-scoped nesting.
     """
-    global _introspection_degraded
-    if _introspection_degraded:
-        return
-    _introspection_degraded = True
-    # Local import avoids a circular import (pytest_plugin imports this module).
-    from sift_client.pytest_plugin import SiftPytestPluginWarning
-
-    warnings.warn(
+    if _warn_once(
+        "introspection_degraded",
         "Sift pytest plugin could not read pytest internals for scope-aware "
         f"parametrize placement ({detail}); parametrized fixtures will render "
         "flat (function-scoped) with name=value labels. The rest of the report "
         "is unaffected. This usually means an unsupported pytest version.",
-        SiftPytestPluginWarning,
-        stacklevel=2,
+    ):
+        log_event(logger, logging.WARNING, "parametrize.introspection_degraded", detail=detail)
+
+
+def _log_id_unresolved(argnames: str, detail: str) -> None:
+    """Trace one dropped ``ids=`` to the audit log, without warning."""
+    log_event(logger, logging.DEBUG, "parametrize.id_unresolved", argnames=argnames, detail=detail)
+
+
+def _signal_id_unresolved(argnames: str, detail: str) -> None:
+    """Trace a dropped ``ids=`` and warn once that step labels changed.
+
+    Fired only when the author supplied ``ids=`` and we failed to use it, never
+    for the ordinary "no ``ids=``" case where ``name=value`` is the intended
+    label. An unusable ``ids=`` is otherwise invisible, and the relabel it causes
+    changes step identity, so those steps stop grouping across runs.
+    """
+    _log_id_unresolved(argnames, detail)
+    # Keyed by axis, not globally: a pytest version we misread breaks every axis
+    # at once, and naming each one is what tells the author the scope. Bounded by
+    # the number of parametrize decorators, unlike a per-item warning, which
+    # would scale with the matrix and bury the signal.
+    _warn_once(
+        f"id_unresolved:{argnames}",
+        f"Sift pytest plugin could not match the ids= entry for parametrize "
+        f"argnames '{argnames}' to a declared paramset ({detail}); that axis "
+        "falls back to name=value step labels. Those labels differ from the "
+        "pytest node ID and will not group with steps from other runs. The rest "
+        "of the report is unaffected.",
     )
-    log_event(logger, logging.WARNING, "parametrize.introspection_degraded", detail=detail)
 
 
 if TYPE_CHECKING:
@@ -222,6 +254,11 @@ def _mark_argnames(mark: pytest.Mark) -> list[str]:
     return list(argnames)
 
 
+def _mark_argvalues(mark: pytest.Mark) -> Any:
+    """The argvalues a ``parametrize`` mark declares, or None if absent."""
+    return mark.args[1] if len(mark.args) > 1 else None
+
+
 def _param_scope(item: pytest.Item, name: str) -> str:
     """The pytest scope governing param ``name`` on ``item``.
 
@@ -254,27 +291,94 @@ def _param_scope(item: pytest.Item, name: str) -> str:
     return "function"
 
 
-def _id_from_spec(ids: Any, index: int, value: Any) -> str | None:
+def _values_equal(left: Any, right: Any) -> bool:
+    """``left == right`` as a plain bool, False when the values refuse comparison.
+
+    Param values are arbitrary objects. A numpy array's ``==`` returns an array
+    whose truth value raises, and a custom ``__eq__`` can raise anything, so an
+    unusable comparison means "no match" rather than an error.
+    """
+    if left is right:
+        return True
+    try:
+        return bool(left == right)
+    except Exception:
+        return False
+
+
+def _paramset_index(argvalues: Any, current: tuple) -> int | None:
+    """Position of the paramset holding ``current`` in a declared ``argvalues``, else None.
+
+    ``current`` is the axis's values in argname order, so a single-name axis
+    passes a 1-tuple. Entries are raw values, tuples (for a combined axis), or
+    ``pytest.param`` wrappers, whose ``.values`` is always a tuple.
+
+    This replaces indexing by ``callspec.indices``, which does NOT mean "position
+    within this axis": on pytest 8.4 a stacked axis's index tracks the expanded
+    callspec instead, so ``ids[index]`` silently ran off the end (or picked a
+    neighbour's ID). Matching the value against what the author declared is
+    version-independent. Duplicate paramsets resolve to the first match, which is
+    also the ID pytest would disambiguate with a numeric suffix.
+    """
+    try:
+        entries = list(argvalues)
+    except TypeError:
+        return None
+    for index, entry in enumerate(entries):
+        candidate = getattr(entry, "values", None)  # pytest.param(...)
+        if candidate is None:
+            candidate = tuple(entry) if len(current) > 1 else (entry,)
+        if len(candidate) == len(current) and all(
+            _values_equal(a, b) for a, b in zip(candidate, current)
+        ):
+            return index
+    return None
+
+
+def _id_from_spec(ids: Any, argvalues: Any, current: tuple, argnames: str) -> str | None:
     """Resolve one axis's author-supplied ``ids`` spec to a string, or None.
 
-    A list spec is indexed by the param's position; a callable spec (an ID
-    factory) is invoked with the param value, mirroring how pytest builds the
-    node ID. A callable that raises or returns ``None`` yields None, so the
+    A callable spec (an ID factory) is invoked per value and the results joined
+    with ``-``, mirroring how pytest builds the node-ID segment; if any value
+    yields no ID the whole factory result is discarded rather than part-labelling
+    the axis. A list spec is indexed by the paramset ``current`` came from (see
+    ``_paramset_index``).
+
+    A callable that raises, or a list that cannot be indexed, yields None so the
     caller falls back to the structured ``name=value`` label. ``None`` here also
     covers "the author supplied no ``ids``"; those auto-generated IDs are noisier
     than ``name=value`` for non-trivial values, so we never adopt them.
+
+    Every failure AFTER the author supplied an ``ids=`` is reported through
+    ``_signal_id_unresolved``, since the fallback is otherwise silent.
     """
     if ids is None:
         return None
     if callable(ids):
-        try:
-            result = ids(value)
-        except Exception:
-            return None
-        return str(result) if result is not None else None
-    if index < len(ids):
+        parts = []
+        for value in current:
+            # An ID factory that returns None or raises is the author's own doing
+            # (pytest falls back to its auto ID, and surfaces the error itself),
+            # so trace it but do not warn.
+            try:
+                resolved = ids(value)
+            except Exception as exc:
+                _log_id_unresolved(argnames, f"ids factory raised {exc!r}")
+                return None
+            if resolved is None:
+                _log_id_unresolved(argnames, "ids factory returned None")
+                return None
+            parts.append(str(resolved))
+        return "-".join(parts)
+    index = _paramset_index(argvalues, current)
+    if index is None:
+        _signal_id_unresolved(argnames, "value not found in the declared argvalues")
+        return None
+    try:
         return str(ids[index])
-    return None
+    except (IndexError, KeyError, TypeError) as exc:
+        _signal_id_unresolved(argnames, f"ids[{index}] not usable ({exc!r})")
+        return None
 
 
 def _explicit_param_id(item: pytest.Item, name: str, value: Any) -> str | None:
@@ -287,23 +391,25 @@ def _explicit_param_id(item: pytest.Item, name: str, value: Any) -> str | None:
     ``_combined_axis_label``: they render as one frame, so their shared ID needs
     no attribution and is adopted directly.
     """
-    callspec = getattr(item, "callspec", None)
-    if callspec is None:
+    if getattr(item, "callspec", None) is None:
         return None
-    index = callspec.indices.get(name)
-    if index is None:
-        return None
-    # Fixture params: the ``ids`` spec lives on the active FixtureDef.
+    current = (value,)
+    # Fixture params: the ``ids`` spec and the declared values live on the
+    # active FixtureDef. An indirect param has no ``params`` of its own, so it
+    # falls through to the mark below.
     defs = _fixturedefs(item, name)
     if defs:
-        resolved = _id_from_spec(getattr(defs[-1], "ids", None), index, value)
+        resolved = _id_from_spec(
+            getattr(defs[-1], "ids", None), getattr(defs[-1], "params", None), current, name
+        )
         if resolved is not None:
             return resolved
-    # mark.parametrize: the ``ids`` spec lives in the marker kwargs.
+    # mark.parametrize: the ``ids`` spec is in the marker kwargs, the declared
+    # values in ``mark.args[1]``.
     for mark in item.iter_markers("parametrize"):
         names = _mark_argnames(mark)
         if len(names) == 1 and names[0] == name:
-            resolved = _id_from_spec(mark.kwargs.get("ids"), index, value)
+            resolved = _id_from_spec(mark.kwargs.get("ids"), _mark_argvalues(mark), current, name)
             if resolved is not None:
                 return resolved
     return None
@@ -329,35 +435,19 @@ def _combined_axis_label(item: pytest.Item, mark: pytest.Mark, names: Sequence[s
     ID per tuple, one bracket segment in the node ID. It renders as one step, so
     the author's shared ``ids=`` entry labels it directly.
 
-    A callable ``ids=`` factory is applied per value and the results joined with
-    ``-``, mirroring how pytest builds the segment for a combined axis. If any
-    value yields no ID the whole factory result is discarded rather than
-    part-labelling the frame.
-
     With no usable ``ids=``, fall back to the tuple's ``name=value`` pairs joined
     with ``, ``. Pytest's auto-generated IDs are deliberately not adopted here,
     for the same reason ``_id_from_spec`` rejects them: they are noisier than the
     structured pairs for non-trivial values.
     """
     callspec = item.callspec  # type: ignore[attr-defined]
-    ids = mark.kwargs.get("ids")
-    index = callspec.indices.get(names[0])
-    if ids is not None and index is not None:
-        if callable(ids):
-            parts: list[str] = []
-            for name in names:
-                try:
-                    resolved = ids(callspec.params[name])
-                except Exception:
-                    resolved = None
-                if resolved is None:
-                    break
-                parts.append(str(resolved))
-            else:
-                return "-".join(parts)
-        elif index < len(ids):
-            return str(ids[index])
-    return ", ".join(f"{name}={callspec.params[name]!r}" for name in names)
+    current = tuple(callspec.params[name] for name in names)
+    resolved = _id_from_spec(
+        mark.kwargs.get("ids"), _mark_argvalues(mark), current, ",".join(names)
+    )
+    if resolved is not None:
+        return resolved
+    return ", ".join(f"{name}={value!r}" for name, value in zip(names, current))
 
 
 def _param_axes(item: pytest.Item) -> tuple[tuple[tuple[str, ...], str, str], ...]:

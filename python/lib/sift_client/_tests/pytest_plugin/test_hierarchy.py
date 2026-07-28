@@ -1561,6 +1561,38 @@ def test_explicit_list_ids_on_inner_parametrize(pytester: pytest.Pytester, out_d
     assert by_name["two"][0]["parent_step_id"] == parent_id
 
 
+def test_explicit_list_ids_survive_a_stacked_outer_axis(
+    pytester: pytest.Pytester, out_dir: Path
+) -> None:
+    """``ids=`` must resolve per axis, not by the item's position in the whole matrix.
+
+    An axis stacked under another one is where ``callspec.indices`` stops meaning
+    "position within this axis" (it tracks the expanded callspec on pytest 8.4),
+    so an ID list indexed by it runs off the end or picks a neighbour's entry.
+    Every ``inner`` universe must carry the same two IDs, in every ``outer`` one.
+    """
+    pytester.makepyfile(
+        test_slid=dedent(
+            """
+            import pytest
+
+            @pytest.mark.parametrize("outer", ["o1", "o2", "o3"])
+            @pytest.mark.parametrize("inner", [1, 2], ids=["one", "two"])
+            def test_slid(outer, inner):
+                pass
+            """
+        )
+    )
+    result = pytester.runpytest_inprocess("-v")
+    result.assert_outcomes(passed=6)
+    by_name = _by_name(capture.load_steps(capture.run_jsonl(out_dir)))
+    # One leaf per (outer, inner) pair, every one labelled by its own axis's ID.
+    assert len(by_name.get("one", [])) == 3
+    assert len(by_name.get("two", [])) == 3
+    assert "inner=1" not in by_name
+    assert "inner=2" not in by_name
+
+
 def test_callable_id_factory_on_inner_parametrize(pytester: pytest.Pytester, out_dir: Path) -> None:
     """A callable ``ids=`` factory is invoked per value, just as pytest does."""
     pytester.makepyfile(
@@ -2128,12 +2160,53 @@ def _raise(*_args: object, **_kwargs: object) -> None:
     raise RuntimeError("simulated pytest internals change")
 
 
+def test_no_ids_declared_resolves_quietly() -> None:
+    """The ordinary "author supplied no ``ids=``" path must stay silent."""
+    steps.reset_introspection_state()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SiftPytestPluginWarning)
+        assert steps._id_from_spec(None, [1, 2], (1,), "v") is None
+    assert steps._warned_once == set()
+
+
+def test_unmatchable_value_warns_once_per_axis() -> None:
+    """A declared ``ids=`` we cannot attribute warns once for that axis.
+
+    Once per AXIS, not once per session: when a pytest version breaks the
+    resolution every axis is affected, and naming each is what shows the scope.
+    Repeats of the same axis stay quiet so the matrix cannot flood the output.
+    """
+    steps.reset_introspection_state()
+    with pytest.warns(SiftPytestPluginWarning, match="could not match the ids="):
+        assert steps._id_from_spec(["one", "two"], [1, 2], (99,), "v") is None
+    assert steps._warned_once == {"id_unresolved:v"}
+
+    # Same axis again: latched, no second warning.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SiftPytestPluginWarning)
+        assert steps._id_from_spec(["one", "two"], [1, 2], (98,), "v") is None
+
+    # A different axis is its own signal and must still be reported.
+    with pytest.warns(SiftPytestPluginWarning, match="argnames 'w'"):
+        assert steps._id_from_spec(["only"], [1], (99,), "w") is None
+    assert steps._warned_once == {"id_unresolved:v", "id_unresolved:w"}
+
+
+def test_id_factory_returning_none_does_not_warn() -> None:
+    """An ID factory returning None is the author's choice, not a fault."""
+    steps.reset_introspection_state()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SiftPytestPluginWarning)
+        assert steps._id_from_spec(lambda v: None, [1], (1,), "v") is None
+    assert steps._warned_once == set()
+
+
 def test_fixturedefs_degrades_when_fixture_manager_missing() -> None:
     steps.reset_introspection_state()
     item = _fake_item_without_fixture_manager()
     with pytest.warns(SiftPytestPluginWarning, match="scope-aware parametrize"):
         assert steps._fixturedefs(item, "x") is None
-    assert steps._introspection_degraded is True
+    assert "introspection_degraded" in steps._warned_once
 
 
 def test_fixturedefs_degrades_when_getfixturedefs_raises() -> None:
@@ -2313,4 +2386,4 @@ def test_fixturedefs_falls_back_to_nodeid_on_pytest7_signature() -> None:
         warnings.simplefilter("error")  # a degradation warning would raise here
         result = steps._fixturedefs(item, "x")
     assert result == (sentinel,)
-    assert steps._introspection_degraded is False
+    assert "introspection_degraded" not in steps._warned_once
