@@ -114,8 +114,7 @@ sift-cli agent doctor
 ```
 
 The lifecycle and supported-client matrix are documented under
-[Agent Integration](./skills.md). Pi receives the skill but not an MCP
-registration because Pi has no built-in MCP client.
+[Agent Integration](./skills.md).
 
 For clients not managed by that command, point the MCP client at the CLI
 manually:

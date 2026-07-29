@@ -18,7 +18,6 @@ pub(super) enum State {
     ManagedDrift(AccessMode),
     Conflict(String),
     Unavailable(String),
-    Unsupported,
 }
 
 pub(super) fn inspect(harness: Harness, environment: &Environment) -> Result<State> {
@@ -27,7 +26,6 @@ pub(super) fn inspect(harness: Harness, environment: &Environment) -> Result<Sta
         Harness::Codex => inspect_codex(environment),
         Harness::Cursor => inspect_json(harness, environment),
         Harness::OpenCode => inspect_json(harness, environment),
-        Harness::Pi => Ok(State::Unsupported),
     }
 }
 
@@ -40,13 +38,12 @@ pub(super) fn install(
         Harness::Claude => install_claude(environment, access),
         Harness::Codex => install_codex(environment, access),
         Harness::Cursor | Harness::OpenCode => install_json(harness, environment, access),
-        Harness::Pi => Ok(()),
     }
 }
 
 pub(super) fn uninstall(harness: Harness, environment: &Environment) -> Result<bool> {
     match inspect(harness, environment)? {
-        State::Missing | State::Unsupported => Ok(false),
+        State::Missing => Ok(false),
         State::Conflict(_) | State::Unavailable(_) => Ok(false),
         State::Current(_) | State::ManagedDrift(_) => match harness {
             Harness::Claude => {
@@ -67,7 +64,6 @@ pub(super) fn uninstall(harness: Harness, environment: &Environment) -> Result<b
                 remove_json(harness, environment)?;
                 Ok(true)
             }
-            Harness::Pi => Ok(false),
         },
     }
 }

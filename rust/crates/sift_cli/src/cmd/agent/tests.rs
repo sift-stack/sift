@@ -31,18 +31,14 @@ fn stale_native_config_directories_are_not_detected_as_installed_clients() {
 
 #[test]
 fn one_shared_skill_covers_agent_skills_clients() {
-    let (directory, mut environment) = environment(vec![
-        Harness::Codex,
-        Harness::Cursor,
-        Harness::OpenCode,
-        Harness::Pi,
-    ]);
+    let (directory, mut environment) =
+        environment(vec![Harness::Codex, Harness::Cursor, Harness::OpenCode]);
     environment.home = directory.path().to_path_buf();
 
     let targets = skill::targets(&environment);
 
     assert_eq!(targets.len(), 1);
-    assert_eq!(targets[0].harnesses.len(), 4);
+    assert_eq!(targets[0].harnesses.len(), 3);
     assert_eq!(
         targets[0].path,
         directory.path().join(".agents/skills/sift/SKILL.md")
@@ -166,7 +162,7 @@ fn malformed_config_container_is_caught_during_preflight() {
     let environment = Environment::for_test(
         directory.path().to_path_buf(),
         directory.path().join("bin/sift-cli"),
-        vec![Harness::Cursor, Harness::Pi],
+        vec![Harness::Cursor],
     );
     let config_path = directory.path().join(".cursor/mcp.json");
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();
@@ -307,7 +303,6 @@ fn every_plugin_manifest_matches_the_cli_release() {
         include_str!("../../../plugins/sift/.codex-plugin/plugin.json"),
         include_str!("../../../plugins/sift/.claude-plugin/plugin.json"),
         include_str!("../../../plugins/sift/.cursor-plugin/plugin.json"),
-        include_str!("../../../plugins/sift/package.json"),
     ];
 
     for manifest in manifests {
@@ -335,7 +330,7 @@ fn install_preflight_keeps_every_target_unchanged_on_conflict() {
     let environment = Environment::for_test(
         directory.path().to_path_buf(),
         directory.path().join("bin/sift-cli"),
-        vec![Harness::Cursor, Harness::Pi],
+        vec![Harness::Cursor],
     );
     let config_path = directory.path().join(".cursor/mcp.json");
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();
@@ -361,7 +356,7 @@ fn uninstall_preflight_keeps_every_target_unchanged_on_conflict() {
     let environment = Environment::for_test(
         directory.path().to_path_buf(),
         directory.path().join("bin/sift-cli"),
-        vec![Harness::Cursor, Harness::Pi],
+        vec![Harness::Cursor],
     );
     let skill_path = directory.path().join(".agents/skills/sift/SKILL.md");
     skill::install(&skill_path).unwrap();

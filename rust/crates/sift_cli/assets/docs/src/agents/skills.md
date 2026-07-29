@@ -20,9 +20,8 @@ sift-cli agent install
 | Codex       | `~/.agents/skills/sift/SKILL.md`          | User-scoped Codex MCP registration             |
 | Cursor      | `~/.agents/skills/sift/SKILL.md`          | `sift` entry in `~/.cursor/mcp.json`            |
 | OpenCode    | `~/.agents/skills/sift/SKILL.md`          | `sift` entry in the user `opencode.json`        |
-| Pi          | `~/.agents/skills/sift/SKILL.md`          | Skill only; Pi has no built-in MCP client       |
 
-Codex, Cursor, OpenCode, and Pi intentionally share one Agent Skills standard
+Codex, Cursor, and OpenCode intentionally share one Agent Skills standard
 installation. There are no generated `AGENTS.md` copies and no per-client skill
 versions.
 

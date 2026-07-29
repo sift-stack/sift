@@ -39,7 +39,7 @@ pub(super) fn targets(environment: &Environment) -> Vec<Target> {
                 .join("skills")
                 .join("sift")
                 .join("SKILL.md"),
-            Harness::Codex | Harness::Cursor | Harness::OpenCode | Harness::Pi => environment
+            Harness::Codex | Harness::Cursor | Harness::OpenCode => environment
                 .home
                 .join(".agents")
                 .join("skills")

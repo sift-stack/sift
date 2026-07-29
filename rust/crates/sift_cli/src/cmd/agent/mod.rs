@@ -41,7 +41,6 @@ pub(super) enum Harness {
     Codex,
     Cursor,
     OpenCode,
-    Pi,
 }
 
 impl Harness {
@@ -51,7 +50,6 @@ impl Harness {
             Self::Codex => "Codex",
             Self::Cursor => "Cursor",
             Self::OpenCode => "OpenCode",
-            Self::Pi => "Pi",
         }
     }
 }
@@ -93,7 +91,6 @@ impl Environment {
                 &["opencode"][..],
                 self.home.join(".config").join("opencode"),
             ),
-            (Harness::Pi, &["pi"][..], self.home.join(".pi")),
         ];
 
         candidates
@@ -104,9 +101,7 @@ impl Environment {
                     .any(|command| self.command_available(command));
                 let detected = match harness {
                     Harness::Claude | Harness::Codex => command_exists,
-                    Harness::Cursor | Harness::OpenCode | Harness::Pi => {
-                        command_exists || config_dir.exists()
-                    }
+                    Harness::Cursor | Harness::OpenCode => command_exists || config_dir.exists(),
                 };
                 detected.then_some(harness)
             })
@@ -275,12 +270,6 @@ pub async fn doctor() -> Result<ExitCode> {
                 unhealthy = true;
                 blocked = true;
             }
-            config::State::Unsupported => {
-                println!(
-                    "[ok] {} skill-only integration (Pi has no built-in MCP client)",
-                    harness.label()
-                );
-            }
         }
     }
     let mixed_access = has_mixed_access_modes(&access_modes);
@@ -378,7 +367,6 @@ fn uninstall_environment(environment: &Environment) -> Result<ExitCode> {
                     harness.label()
                 );
             }
-            config::State::Unsupported => {}
             config::State::Conflict(detail) | config::State::Unavailable(detail) => {
                 unreachable!(
                     "{} config changed after preflight: {detail}",
@@ -404,7 +392,7 @@ fn install_environment(
     if environment.harnesses.is_empty() {
         println!(
             "No supported AI coding clients were detected. Supported clients: \
-             Claude Code, Codex, Cursor, OpenCode, and Pi."
+             Claude Code, Codex, Cursor, and OpenCode."
         );
         return Ok(ExitCode::FAILURE);
     }
@@ -447,10 +435,6 @@ fn install_environment(
         );
     }
     for harness in &environment.harnesses {
-        if *harness == Harness::Pi {
-            println!("[ok] Pi uses the shared skill; built-in MCP is not available");
-            continue;
-        }
         config::install(*harness, environment, access)?;
         println!(
             "[ok] {verb} {} MCP registration ({})",

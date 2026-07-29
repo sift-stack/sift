@@ -9,11 +9,9 @@ The CLI owns one agent bundle at `plugins/sift/`. It contains:
 - `mcp.json` — Cursor's equivalent descriptor.
 - `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, and
   `.cursor-plugin/plugin.json` — client-native package metadata.
-- `package.json` — Pi package metadata. Pi consumes the shared skill but has no
-  built-in MCP client.
 
 Do not add per-client copies of the skill. Claude installs the canonical file to
-`~/.claude/skills/sift/SKILL.md`; Codex, Cursor, OpenCode, and Pi share
+`~/.claude/skills/sift/SKILL.md`; Codex, Cursor, and OpenCode share
 `~/.agents/skills/sift/SKILL.md`.
 
 The skill is embedded at compile time, and the complete plugin directory is
