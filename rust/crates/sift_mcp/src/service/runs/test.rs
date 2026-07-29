@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::RunService;
-use crate::service::common::PAGE_SIZE;
+use crate::service::common::DEFAULT_LIMIT;
 
 async fn service_with_mock(mock: MockRunServiceImpl) -> (RunService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -58,7 +58,7 @@ async fn list_runs_paginates_until_token_empty() {
     let mut mock = MockRunServiceImpl::new();
     mock.expect_list_runs().returning(|req| {
         let req = req.into_inner();
-        assert_eq!(req.page_size, PAGE_SIZE);
+        assert_eq!(req.page_size, DEFAULT_LIMIT);
         let (runs, next) = match req.page_token.as_str() {
             "" => (
                 vec![Run {

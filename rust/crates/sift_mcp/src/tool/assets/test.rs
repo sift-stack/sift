@@ -6,7 +6,7 @@ use tonic::{Response, Status, transport::Server};
 
 use crate::{
     server::SiftMcpServer,
-    service::common::PAGE_SIZE,
+    service::common::DEFAULT_LIMIT,
     tool::common::test_support::{list_params, structured_field},
 };
 
@@ -71,7 +71,7 @@ async fn list_assets_paginates_until_token_empty() {
     let mut asset_mock = MockAssetServiceImpl::new();
     asset_mock.expect_list_assets().returning(|req| {
         let req = req.into_inner();
-        assert_eq!(req.page_size, PAGE_SIZE);
+        assert_eq!(req.page_size, DEFAULT_LIMIT);
         let (assets, next) = match req.page_token.as_str() {
             "" => (
                 vec![Asset {

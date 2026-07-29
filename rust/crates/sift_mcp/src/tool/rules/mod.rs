@@ -73,10 +73,8 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields:
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
-              - `limit`: max items to return. Always pass it — start at 200 and only raise it if the
-                result is capped and you still need more. Valid range is `1..=1000`; omitting it or
-                passing a value above 1000 returns ALL matching rules (paginated server-side), which
-                can overflow the context window and fail the call.
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -126,10 +124,8 @@ impl SiftMcpServer {
               - `rule_id`: required. The rule whose versions to list.
               - `filter`: optional CEL expression. Filterable fields: `rule_version_id`, `user_notes`, and
                 `change_message`. Omit or pass an empty string to list all versions.
-              - `limit`: max items to return. Always pass it — start at 200 and only raise it if the
-                result is capped and you still need more. Valid range is `1..=1000`; omitting it or
-                passing a value above 1000 returns ALL matching versions (paginated server-side), which
-                can overflow the context window and fail the call.
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.

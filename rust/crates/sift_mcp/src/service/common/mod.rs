@@ -7,18 +7,22 @@ mod test;
 
 /// Default and max page size for list calls.
 pub const PAGE_SIZE: u32 = 1000;
+/// Record limit applied when a caller omits `limit`. Matches the starting limit
+/// the `list_*` tool descriptions advise, so a caller that ignores that advice
+/// cannot trigger an unbounded query.
+pub const DEFAULT_LIMIT: u32 = 200;
 pub const BIT_FIELD_METADATA_KEY: &str = "bit_field_elements";
 pub const ENUM_METADATA_KEY: &str = "enum_config";
 pub const TS_COLUMN_NAME: &str = "timestamp_unix_nanos";
 
 const NANOS_PER_SEC: i64 = 1_000_000_000;
 
-/// Returns page size and limit.
+/// Returns page size and record limit. `limit` is clamped to `1..=PAGE_SIZE`;
+/// omitting it falls back to [`DEFAULT_LIMIT`]. No input yields an unbounded
+/// record limit.
 pub fn paging(limit: Option<u32>) -> (u32, usize) {
-    match limit {
-        Some(lim) if lim <= PAGE_SIZE => (lim, lim as usize),
-        _ => (PAGE_SIZE, usize::MAX),
-    }
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).clamp(1, PAGE_SIZE);
+    (limit, limit as usize)
 }
 
 pub fn unix_nanos_to_secs_and_subsec_nanos(nanos: i64) -> (i64, i32) {

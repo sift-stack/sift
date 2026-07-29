@@ -76,10 +76,8 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
-              - `limit`: max items to return. Always pass it — start at 200 and only raise it if the
-                result is capped and you still need more. Valid range is `1..=1000`; omitting it or
-                passing a value above 1000 returns ALL matching reports (paginated server-side), which
-                can overflow the context window and fail the call.
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations; it
                 scopes the listing to that org. Omit it for single-organization users.
 
@@ -135,10 +133,8 @@ impl SiftMcpServer {
                 `rule_id`, `rule_version_id`, `asset_id`, and `status`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `display_order`,
                 `created_date`, `modified_date`. Default sort is `display_order` ascending.
-              - `limit`: max items to return. Always pass it — start at 200 and only raise it if the
-                result is capped and you still need more. Valid range is `1..=1000`; omitting it or
-                passing a value above 1000 returns ALL matching summaries (paginated server-side), which
-                can overflow the context window and fail the call.
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
 
             Errors:
               - `INVALID_PARAMS` if `report_id` is empty or `filter`/`order_by` is invalid.
