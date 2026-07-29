@@ -1,4 +1,25 @@
-use super::ColumnName;
+use super::{ColumnName, DEFAULT_LIMIT, PAGE_SIZE, paging};
+
+#[test]
+fn paging_uses_default_limit_when_unset() {
+    assert_eq!(paging(None), (DEFAULT_LIMIT, DEFAULT_LIMIT as usize));
+}
+
+#[test]
+fn paging_passes_through_in_range_limit() {
+    assert_eq!(paging(Some(200)), (200, 200));
+}
+
+#[test]
+fn paging_clamps_limit_above_page_size() {
+    assert_eq!(paging(Some(50_000)), (PAGE_SIZE, PAGE_SIZE as usize));
+    assert_eq!(paging(Some(u32::MAX)), (PAGE_SIZE, PAGE_SIZE as usize));
+}
+
+#[test]
+fn paging_clamps_zero_limit_to_one() {
+    assert_eq!(paging(Some(0)), (1, 1));
+}
 
 #[test]
 fn column_name_required_fields_only() {

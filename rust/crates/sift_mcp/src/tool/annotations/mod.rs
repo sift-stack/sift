@@ -107,8 +107,8 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
                 `modified_date`, `start_time`, `end_time`, `name`, `description`. Default sort is `created_date desc`
                 (newest first). Example: `\"start_time desc,name\"`.
-              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
-                passing a value above 1000 returns ALL matching annotations (paginated server-side).
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
 
             Errors:

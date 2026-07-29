@@ -45,15 +45,16 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`, `archived_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
-              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
-                passing a value above 1000 returns ALL matching assets (paginated server-side).
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
-              - Always prefer narrowing the filter over relying on `limit` — very large unfiltered listings can be slow.
+              - Narrow with `filter` whenever you know what you're looking for; pass `limit` regardless, so an
+                open-ended listing stays bounded.
               - Use `is_archived == false` to exclude archived assets unless they're explicitly needed.
         ",
         annotations(title = "assets/list_assets", read_only_hint = true)

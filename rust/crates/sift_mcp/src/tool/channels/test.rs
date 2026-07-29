@@ -8,7 +8,7 @@ use tonic::{Response, Status, transport::Server};
 
 use crate::{
     server::SiftMcpServer,
-    service::common::PAGE_SIZE,
+    service::common::DEFAULT_LIMIT,
     tool::common::test_support::{list_params, structured_field},
 };
 
@@ -72,7 +72,7 @@ async fn list_channels_paginates_until_token_empty() {
     let mut channel_mock = MockChannelServiceImpl::new();
     channel_mock.expect_list_channels().returning(|req| {
         let req = req.into_inner();
-        assert_eq!(req.page_size, PAGE_SIZE);
+        assert_eq!(req.page_size, DEFAULT_LIMIT);
         let (channels, next) = match req.page_token.as_str() {
             "" => (
                 vec![Channel {

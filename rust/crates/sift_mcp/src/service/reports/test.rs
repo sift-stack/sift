@@ -8,7 +8,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::{ReportService, ReportSource, RuleIdentifier};
-use crate::service::common::PAGE_SIZE;
+use crate::service::common::DEFAULT_LIMIT;
 
 async fn service_with_mock(mock: MockReportServiceImpl) -> (ReportService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -85,7 +85,7 @@ async fn list_reports_paginates_until_token_empty() {
     let mut mock = MockReportServiceImpl::new();
     mock.expect_list_reports().returning(|req| {
         let req = req.into_inner();
-        assert_eq!(req.page_size, PAGE_SIZE);
+        assert_eq!(req.page_size, DEFAULT_LIMIT);
         let (reports, next) = match req.page_token.as_str() {
             "" => (
                 vec![Report {
@@ -270,7 +270,7 @@ async fn list_report_rule_summaries_paginates_until_token_empty() {
     let mut mock = MockReportServiceImpl::new();
     mock.expect_list_report_rule_summaries().returning(|req| {
         let req = req.into_inner();
-        assert_eq!(req.page_size, PAGE_SIZE);
+        assert_eq!(req.page_size, DEFAULT_LIMIT);
         let (summaries, next) = match req.page_token.as_str() {
             "" => (
                 vec![ReportRuleSummary {

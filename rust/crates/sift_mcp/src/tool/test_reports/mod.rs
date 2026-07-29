@@ -69,8 +69,8 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_report_id`,
                 `name`, `test_system_name`, `test_case`, `start_time`, `end_time`, `created_date`, `modified_date`.
                 Default sort is `start_time desc` (newest first). Example: `\"start_time desc,name\"`.
-              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
-                passing a value above 1000 returns ALL matching reports (paginated server-side).
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -124,8 +124,8 @@ impl SiftMcpServer {
                 `name`, `step_type`, `step_path`, `status`, `start_time`, `end_time`, `created_date`,
                 `modified_date`. Default sort is `step_path` ascending (tree order). Example:
                 `\"step_path asc,start_time desc\"`.
-              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
-                passing a value above 1000 returns ALL matching steps (paginated server-side). Use
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
                 `count_test_steps` to learn the true total before relying on a capped page.
 
             Errors:
@@ -181,8 +181,8 @@ impl SiftMcpServer {
                 `name`, `measurement_type`, `test_step_id`, `test_report_id`, `passed`, `timestamp`,
                 `created_date`, `modified_date`. Default sort is `timestamp` ascending. Example:
                 `\"timestamp asc,name\"`.
-              - `limit`: optional cap on returned items. Values in `1..=1000` cap the result set. Omitting it OR
-                passing a value above 1000 returns ALL matching measurements (paginated server-side). Use
+              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
                 `count_test_measurements` to learn the true total before relying on a capped page.
 
             Errors:

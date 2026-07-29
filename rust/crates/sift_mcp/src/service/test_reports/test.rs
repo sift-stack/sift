@@ -14,7 +14,7 @@ use tonic::{Response, Status, transport::Server};
 use super::TestReportService;
 use super::spec;
 use crate::policy::RetryPolicy;
-use crate::service::common::PAGE_SIZE;
+use crate::service::common::DEFAULT_LIMIT;
 
 fn built_from_json(json: &str) -> spec::BuiltReport {
     let parsed = serde_json::from_str(json).expect("spec should parse");
@@ -79,7 +79,7 @@ async fn list_test_reports_paginates_until_token_empty() {
     let mut mock = MockTestReportServiceImpl::new();
     mock.expect_list_test_reports().returning(|req| {
         let req = req.into_inner();
-        assert_eq!(req.page_size, PAGE_SIZE);
+        assert_eq!(req.page_size, DEFAULT_LIMIT);
         let (test_reports, next) = match req.page_token.as_str() {
             "" => (
                 vec![TestReport {
