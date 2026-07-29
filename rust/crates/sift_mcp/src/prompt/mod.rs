@@ -1,6 +1,6 @@
 use rmcp::{
     handler::server::wrapper::Parameters,
-    model::{PromptMessage, PromptMessageRole},
+    model::{PromptMessage, Role},
     prompt, prompt_router,
     schemars::{self, JsonSchema},
 };
@@ -57,7 +57,7 @@ impl SiftMcpServer {
              This step is discovery only. Do not pull sample data."
         );
 
-        vec![PromptMessage::new_text(PromptMessageRole::User, body)]
+        vec![PromptMessage::new_text(Role::User, body)]
     }
 
     #[prompt(
@@ -101,7 +101,7 @@ impl SiftMcpServer {
              5. Report the findings and surface the Parquet paths so the work can be continued."
         );
 
-        vec![PromptMessage::new_text(PromptMessageRole::User, body)]
+        vec![PromptMessage::new_text(Role::User, body)]
     }
 
     #[prompt(
@@ -155,6 +155,6 @@ impl SiftMcpServer {
              `list_channels`."
         );
 
-        vec![PromptMessage::new_text(PromptMessageRole::User, body)]
+        vec![PromptMessage::new_text(Role::User, body)]
     }
 }

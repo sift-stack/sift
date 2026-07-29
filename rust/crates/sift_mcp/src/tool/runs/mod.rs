@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, Content},
+    model::{CallToolResult, ContentBlock},
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -201,7 +201,7 @@ impl SiftMcpServer {
             "run_url": run_url,
             "next_step": next_step,
         }));
-        result.content = vec![Content::text(next_step)];
+        result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
 }
