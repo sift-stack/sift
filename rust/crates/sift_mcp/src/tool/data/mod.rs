@@ -4,7 +4,7 @@ use anyhow::Context;
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, Content},
+    model::{CallToolResult, ContentBlock},
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -248,7 +248,7 @@ impl SiftMcpServer {
             "output": output_str,
             "next_step": next_step,
         }));
-        result.content = vec![Content::text(next_step)];
+        result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
 
@@ -336,7 +336,7 @@ impl SiftMcpServer {
             "output": output_str,
             "next_step": next_step,
         }));
-        result.content = vec![Content::text(next_step)];
+        result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
 
@@ -446,7 +446,7 @@ impl SiftMcpServer {
             "run_id": uploaded.run_id,
             "next_step": next_step,
         }));
-        result.content = vec![Content::text(next_step)];
+        result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
 }

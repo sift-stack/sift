@@ -2,10 +2,7 @@ use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     handler::server::router::prompt::PromptRouter,
     handler::server::tool::ToolRouter,
-    model::{
-        GetPromptRequestParams, GetPromptResult, ListPromptsResult, ListToolsResult,
-        PaginatedRequestParams,
-    },
+    model::{ListToolsResult, PaginatedRequestParams},
     prompt_handler,
     service::RequestContext,
     tool_handler,
@@ -68,11 +65,7 @@ impl ServerHandler for SiftMcpServer {
                 .unwrap_or(b.name.as_ref());
             a_key.cmp(b_key)
         });
-        Ok(ListToolsResult {
-            tools,
-            meta: None,
-            next_cursor: None,
-        })
+        Ok(ListToolsResult::with_all_items(tools))
     }
 }
 

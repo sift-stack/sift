@@ -51,6 +51,6 @@ async fn handler_returns_structured_url_and_text_content() {
     assert_eq!(
         result.content.len(),
         1,
-        "expected one Content::text wrapping the next_step"
+        "expected one ContentBlock::text wrapping the next_step"
     );
 }
