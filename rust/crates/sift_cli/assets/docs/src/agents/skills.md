@@ -1,65 +1,91 @@
-# Agent Skills
+# Agent Integration
 
-`sift-cli install agent-skills` installs a Sift "skill", a short instruction file
-that teaches an AI coding assistant how to work with Sift: which tool to reach
-for, the order to prefer them in, and how to import or stream data.
-
-> The skills point agents at `sift-cli mcp` as a preferred tool surface, but
-> the MCP server is still in active development and is not built into default
-> releases — see [MCP Server](./mcp.md) for its current status.
-
-```
-sift-cli install agent-skills <AGENT> [--output <PATH>] [--print]
-```
-
-## Supported agents
-
-| Agent          | File        | Default location                                  |
-| -------------- | ----------- | ------------------------------------------------- |
-| `claude-code`  | `SKILL.md`  | `~/.claude/skills/sift/SKILL.md`                  |
-| `agents-md`    | `AGENTS.md` | `AGENTS.md` at the root of your current project   |
-
-`agents-md` follows the open [AGENTS.md](https://agents.md) standard recognized
-by Codex, Cursor, Aider, Zed, Windsurf, Amp, Jules, Factory, and RooCode.
-
-## Installing
-
-For Claude Code (writes to your per-user skills directory):
+The Sift agent integration is one release-matched bundle: a Sift skill plus the
+MCP sidecar already embedded in `sift-cli`. One command detects supported AI
+coding clients and configures all of them together:
 
 ```sh
-sift-cli install agent-skills claude-code
+sift-cli agent install
 ```
 
-For the AGENTS.md ecosystem (writes to the current project root):
+> **The Sift MCP server and `agent` commands are in active development.** They
+> remain behind the `mcp` Cargo feature in 0.3.0 and are intended for local
+> development and evaluation before the open beta.
+
+## Supported clients
+
+| Client      | Skill location                            | MCP setup                                      |
+| ----------- | ----------------------------------------- | ---------------------------------------------- |
+| Claude Code | `~/.claude/skills/sift/SKILL.md`          | User-scoped Claude MCP registration            |
+| Codex       | `~/.agents/skills/sift/SKILL.md`          | User-scoped Codex MCP registration             |
+| Cursor      | `~/.agents/skills/sift/SKILL.md`          | `sift` entry in `~/.cursor/mcp.json`            |
+| OpenCode    | `~/.agents/skills/sift/SKILL.md`          | `sift` entry in the user `opencode.json`        |
+| Pi          | `~/.agents/skills/sift/SKILL.md`          | Skill only; Pi has no built-in MCP client       |
+
+Codex, Cursor, OpenCode, and Pi intentionally share one Agent Skills standard
+installation. There are no generated `AGENTS.md` copies and no per-client skill
+versions.
+
+## Lifecycle commands
 
 ```sh
-sift-cli install agent-skills agents-md
+sift-cli agent install
+sift-cli agent update
+sift-cli agent doctor
+sift-cli agent uninstall
 ```
 
-## Choosing where it goes
+- `install` writes the current CLI's embedded bundle to every detected client.
+  MCP registrations are read-only by default; pass `--allow-destructive` to
+  opt every detected MCP client in during initial setup.
+- `update` first checks for a newer stable `sift-cli` release. If the CLI is
+  outdated, it prints the exact version-pinned curl or PowerShell installer and
+  asks you to rerun the command. Otherwise it refreshes every detected client
+  and preserves the current access mode.
+- `doctor` checks the CLI release, installed skill contents, and MCP
+  registrations, including their read-only or destructive access mode. It
+  prints the same version-pinned installer when the CLI is outdated.
+- `uninstall` removes Sift-managed skill files and MCP registrations from every
+  detected client.
 
-Write the skill to a specific path with `--output`:
+Switch access for all detected MCP clients in lockstep:
 
 ```sh
-sift-cli install agent-skills agents-md --output ./docs/AGENTS.md
+sift-cli agent update --allow-destructive
+sift-cli agent update --read-only
 ```
 
-Or print it to stdout without writing anything, to review or pipe it elsewhere:
+The first command requires an intentional user choice because it exposes tools
+that modify or archive existing Sift resources. Reload or restart the clients
+after changing access. If clients have mixed modes, ordinary `update` and
+`doctor` report the inconsistency and ask you to choose one of these commands
+instead of silently choosing a mode.
 
-```sh
-sift-cli install agent-skills claude-code --print
-```
+These commands do not maintain a Sift state file. Status comes from the actual
+skill contents and deterministic MCP config keys. Install and update preflight
+all detected targets before writing; if a custom skill or custom MCP server
+already uses the name `sift`, the command leaves everything untouched and
+reports the conflict. Uninstall likewise leaves unmanaged content in place.
+Uninstall performs the same all-client preflight, so a conflict prevents a
+partial removal.
+
+OpenCode configurations written as `opencode.jsonc` are diagnosed but not
+rewritten because doing so could destroy user comments. Convert that file to
+plain `opencode.json` or add the reported Sift entry manually.
+
+If you previously ran `install agent-skills agents-md`, remove that legacy Sift
+block from the affected project's `AGENTS.md` manually. The new lifecycle is
+intentionally user-scoped and cannot safely discover or edit old project files.
 
 ## What the skill covers
 
-The installed file documents your Sift toolbox and the recommended order of
-preference for agents:
+The single installed skill documents the recommended Sift toolbox:
 
-1. The Sift MCP server (see [MCP Server](./mcp.md)).
-2. `sift-cli` itself.
+1. The Sift MCP server.
+2. `sift-cli`.
 3. The Sift REST API over cURL.
 4. The Sift Python library (`sift_client`) and Rust streaming library
    (`sift_stream`).
 
-It also explains how to import files versus stream data, so your assistant picks
-the right path for a given task.
+It also explains when to import files, stream data, query locally, or open data
+in Sift Explore.

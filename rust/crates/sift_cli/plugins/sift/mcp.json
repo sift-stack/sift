@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "sift": {
+      "command": "sift-cli",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}

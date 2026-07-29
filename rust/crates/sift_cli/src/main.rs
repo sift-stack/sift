@@ -14,6 +14,8 @@ use util::tty::Output;
 
 use clap::{CommandFactory, Parser};
 
+#[cfg(feature = "mcp")]
+use crate::cli::AgentCmd;
 use crate::cli::InstallCmd;
 
 const BIN_NAME: &str = "sift-cli";
@@ -79,7 +81,13 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::CompletionsCmd::Print(args) => return cmd::install::completions::print(args),
                 cli::CompletionsCmd::Update => return cmd::install::completions::update(),
             },
-            InstallCmd::AgentSkills(args) => return cmd::install::agent::skills(args),
+        },
+        #[cfg(feature = "mcp")]
+        Cmd::Agent(cmd) => match cmd {
+            AgentCmd::Install(args) => return cmd::agent::install(args),
+            AgentCmd::Update(args) => return run_future(cmd::agent::update(args)),
+            AgentCmd::Doctor => return run_future(cmd::agent::doctor()),
+            AgentCmd::Uninstall => return cmd::agent::uninstall(),
         },
         _ => (),
     }

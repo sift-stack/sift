@@ -1,0 +1,561 @@
+mod config;
+mod files;
+mod skill;
+
+#[cfg(test)]
+mod tests;
+
+use std::{
+    env,
+    ffi::OsString,
+    path::{Path, PathBuf},
+    process::ExitCode,
+};
+
+use anyhow::{Context, Result};
+use semver::Version;
+
+use crate::{
+    cli::{AgentInstallArgs, AgentUpdateArgs},
+    cmd::version,
+};
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub(super) enum AccessMode {
+    ReadOnly,
+    Destructive,
+}
+
+impl AccessMode {
+    fn label(self) -> &'static str {
+        match self {
+            Self::ReadOnly => "read-only",
+            Self::Destructive => "destructive tools enabled",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(super) enum Harness {
+    Claude,
+    Codex,
+    Cursor,
+    OpenCode,
+    Pi,
+}
+
+impl Harness {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Claude => "Claude Code",
+            Self::Codex => "Codex",
+            Self::Cursor => "Cursor",
+            Self::OpenCode => "OpenCode",
+            Self::Pi => "Pi",
+        }
+    }
+}
+
+pub(super) struct Environment {
+    home: PathBuf,
+    current_exe: PathBuf,
+    path: OsString,
+    harnesses: Vec<Harness>,
+}
+
+impl Environment {
+    fn discover() -> Result<Self> {
+        let home = dirs::home_dir().context("failed to locate the user home directory")?;
+        let current_exe =
+            env::current_exe().context("failed to locate the running sift-cli executable")?;
+        let path = env::var_os("PATH").unwrap_or_default();
+        let mut environment = Self {
+            home,
+            current_exe,
+            path,
+            harnesses: Vec::new(),
+        };
+        environment.harnesses = environment.detect_harnesses();
+        Ok(environment)
+    }
+
+    fn detect_harnesses(&self) -> Vec<Harness> {
+        let candidates = [
+            (Harness::Claude, &["claude"][..], self.home.join(".claude")),
+            (Harness::Codex, &["codex"][..], self.home.join(".codex")),
+            (
+                Harness::Cursor,
+                &["cursor", "cursor-agent"][..],
+                self.home.join(".cursor"),
+            ),
+            (
+                Harness::OpenCode,
+                &["opencode"][..],
+                self.home.join(".config").join("opencode"),
+            ),
+            (Harness::Pi, &["pi"][..], self.home.join(".pi")),
+        ];
+
+        candidates
+            .into_iter()
+            .filter_map(|(harness, commands, config_dir)| {
+                let command_exists = commands
+                    .iter()
+                    .any(|command| self.command_available(command));
+                let detected = match harness {
+                    Harness::Claude | Harness::Codex => command_exists,
+                    Harness::Cursor | Harness::OpenCode | Harness::Pi => {
+                        command_exists || config_dir.exists()
+                    }
+                };
+                detected.then_some(harness)
+            })
+            .collect()
+    }
+
+    fn command_available(&self, command: &str) -> bool {
+        env::split_paths(&self.path).any(|directory| {
+            let direct = directory.join(command);
+            if is_executable(&direct) {
+                return true;
+            }
+            cfg!(windows)
+                && ["exe", "cmd", "bat"].iter().any(|extension| {
+                    is_executable(&directory.join(format!("{command}.{extension}")))
+                })
+        })
+    }
+
+    #[cfg(test)]
+    fn for_test(home: PathBuf, current_exe: PathBuf, harnesses: Vec<Harness>) -> Self {
+        Self {
+            home,
+            current_exe,
+            path: OsString::new(),
+            harnesses,
+        }
+    }
+}
+
+pub fn install(args: AgentInstallArgs) -> Result<ExitCode> {
+    let access = if args.allow_destructive {
+        AccessMode::Destructive
+    } else {
+        AccessMode::ReadOnly
+    };
+    install_environment(&Environment::discover()?, "Installed", access)
+}
+
+pub async fn update(args: AgentUpdateArgs) -> Result<ExitCode> {
+    let current = Version::parse(env!("CARGO_PKG_VERSION"))?;
+    match version::fetch_latest().await {
+        Ok(Some(latest)) if latest > current => {
+            println!("sift-cli {current} is outdated; the current agent bundle was not installed.");
+            println!("Update the CLI and its embedded bundle with:");
+            println!("\n  {}\n", version::install_command(&latest));
+            println!("Then run `sift-cli agent update` again.");
+            return Ok(ExitCode::FAILURE);
+        }
+        Ok(_) => {}
+        Err(error) => {
+            eprintln!(
+                "warning: unable to check GitHub for a newer sift-cli release ({error}); \
+                 refreshing the bundle embedded in this CLI"
+            );
+        }
+    }
+
+    let environment = Environment::discover()?;
+    let access = if args.allow_destructive {
+        AccessMode::Destructive
+    } else if args.read_only {
+        AccessMode::ReadOnly
+    } else {
+        match infer_access_mode(&environment)? {
+            AccessInference::Resolved(access) => access,
+            AccessInference::Mixed => {
+                println!(
+                    "No changes were made because detected MCP clients use mixed access modes."
+                );
+                println!(
+                    "Choose one explicitly with `sift-cli agent update --allow-destructive` or \
+                     `sift-cli agent update --read-only`."
+                );
+                return Ok(ExitCode::FAILURE);
+            }
+        }
+    };
+
+    install_environment(&environment, "Updated", access)
+}
+
+pub async fn doctor() -> Result<ExitCode> {
+    let environment = Environment::discover()?;
+    println!("Sift agent bundle {}", env!("CARGO_PKG_VERSION"));
+
+    let mut unhealthy = check_release().await;
+    let mut blocked = false;
+    if environment.harnesses.is_empty() {
+        println!("[error] No supported AI coding clients were detected.");
+        return Ok(ExitCode::FAILURE);
+    }
+
+    println!(
+        "Detected: {}",
+        environment
+            .harnesses
+            .iter()
+            .map(|harness| harness.label())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+
+    for target in skill::targets(&environment) {
+        let clients = harness_labels(&target.harnesses);
+        match skill::inspect(&target.path)? {
+            skill::State::Current => {
+                println!("[ok] {clients} skill: {}", target.path.display());
+            }
+            skill::State::Missing => {
+                println!(
+                    "[error] {clients} skill is missing: {}",
+                    target.path.display()
+                );
+                unhealthy = true;
+            }
+            skill::State::ManagedOutdated => {
+                println!(
+                    "[error] {clients} skill is from a different sift-cli release: {}",
+                    target.path.display()
+                );
+                unhealthy = true;
+            }
+            skill::State::Conflict => {
+                println!(
+                    "[error] {clients} has an unmanaged skill at {}",
+                    target.path.display()
+                );
+                unhealthy = true;
+                blocked = true;
+            }
+        }
+    }
+
+    let mut access_modes = Vec::new();
+    for harness in &environment.harnesses {
+        match config::inspect(*harness, &environment)? {
+            config::State::Current(access) => {
+                println!(
+                    "[ok] {} MCP registration ({})",
+                    harness.label(),
+                    access.label()
+                );
+                access_modes.push(access);
+            }
+            config::State::Missing => {
+                println!("[error] {} MCP registration is missing", harness.label());
+                unhealthy = true;
+            }
+            config::State::ManagedDrift(access) => {
+                println!(
+                    "[error] {} MCP registration differs from the current bundle ({})",
+                    harness.label(),
+                    access.label()
+                );
+                access_modes.push(access);
+                unhealthy = true;
+            }
+            config::State::Conflict(detail) => {
+                println!("[error] {} MCP registration: {detail}", harness.label());
+                unhealthy = true;
+                blocked = true;
+            }
+            config::State::Unavailable(detail) => {
+                println!("[error] {} MCP registration: {detail}", harness.label());
+                unhealthy = true;
+                blocked = true;
+            }
+            config::State::Unsupported => {
+                println!(
+                    "[ok] {} skill-only integration (Pi has no built-in MCP client)",
+                    harness.label()
+                );
+            }
+        }
+    }
+    let mixed_access = has_mixed_access_modes(&access_modes);
+    if mixed_access {
+        println!("[error] Detected MCP clients use mixed access modes.");
+        unhealthy = true;
+    }
+
+    if unhealthy {
+        if blocked {
+            if mixed_access {
+                println!(
+                    "Resolve the reported conflicts, then choose \
+                     `sift-cli agent update --allow-destructive` or \
+                     `sift-cli agent update --read-only` to repair all integrations together."
+                );
+            } else {
+                println!(
+                    "Resolve the reported conflicts, then run `sift-cli agent update` to repair \
+                     all detected integrations together."
+                );
+            }
+        } else if mixed_access {
+            println!(
+                "Choose one explicitly with `sift-cli agent update --allow-destructive` or \
+                 `sift-cli agent update --read-only`."
+            );
+        } else {
+            println!("Run `sift-cli agent update` to repair the detected integrations.");
+        }
+        Ok(ExitCode::FAILURE)
+    } else {
+        println!("All detected Sift agent integrations are healthy.");
+        Ok(ExitCode::SUCCESS)
+    }
+}
+
+pub fn uninstall() -> Result<ExitCode> {
+    uninstall_environment(&Environment::discover()?)
+}
+
+fn uninstall_environment(environment: &Environment) -> Result<ExitCode> {
+    if environment.harnesses.is_empty() {
+        println!("No supported AI coding clients were detected; nothing to uninstall.");
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    let targets = skill::targets(environment);
+    let mut blockers = Vec::new();
+    for target in &targets {
+        if skill::inspect(&target.path)? == skill::State::Conflict {
+            blockers.push(format!(
+                "{} has an unmanaged skill at {}",
+                harness_labels(&target.harnesses),
+                target.path.display()
+            ));
+        }
+    }
+    for harness in &environment.harnesses {
+        match config::inspect(*harness, environment)? {
+            config::State::Conflict(detail) | config::State::Unavailable(detail) => {
+                blockers.push(format!("{} MCP registration: {detail}", harness.label()));
+            }
+            _ => {}
+        }
+    }
+    if !blockers.is_empty() {
+        println!("No changes were made because the existing setup needs attention:");
+        for blocker in blockers {
+            println!("  - {blocker}");
+        }
+        return Ok(ExitCode::FAILURE);
+    }
+
+    for target in targets {
+        let clients = harness_labels(&target.harnesses);
+        match skill::inspect(&target.path)? {
+            skill::State::Missing => println!("[skip] {clients} skill was not installed"),
+            skill::State::Current | skill::State::ManagedOutdated => {
+                skill::uninstall(&target.path)?;
+                println!("[removed] {clients} skill: {}", target.path.display());
+            }
+            skill::State::Conflict => {
+                unreachable!("unmanaged skills are rejected during preflight");
+            }
+        }
+    }
+
+    for harness in &environment.harnesses {
+        let state = config::inspect(*harness, environment)?;
+        match &state {
+            config::State::Missing => {
+                println!(
+                    "[skip] {} MCP registration was not installed",
+                    harness.label()
+                );
+            }
+            config::State::Unsupported => {}
+            config::State::Conflict(detail) | config::State::Unavailable(detail) => {
+                unreachable!(
+                    "{} config changed after preflight: {detail}",
+                    harness.label()
+                );
+            }
+            config::State::Current(_) | config::State::ManagedDrift(_) => {
+                config::uninstall(*harness, environment)?;
+                println!("[removed] {} MCP registration", harness.label());
+            }
+        }
+    }
+
+    println!("Removed the Sift agent bundle from every detected client.");
+    Ok(ExitCode::SUCCESS)
+}
+
+fn install_environment(
+    environment: &Environment,
+    verb: &str,
+    access: AccessMode,
+) -> Result<ExitCode> {
+    if environment.harnesses.is_empty() {
+        println!(
+            "No supported AI coding clients were detected. Supported clients: \
+             Claude Code, Codex, Cursor, OpenCode, and Pi."
+        );
+        return Ok(ExitCode::FAILURE);
+    }
+
+    let targets = skill::targets(environment);
+    let mut blockers = Vec::new();
+    for target in &targets {
+        if skill::inspect(&target.path)? == skill::State::Conflict {
+            blockers.push(format!(
+                "{} has an unmanaged skill at {}",
+                harness_labels(&target.harnesses),
+                target.path.display()
+            ));
+        }
+    }
+    for harness in &environment.harnesses {
+        let state = config::inspect(*harness, environment)?;
+        match state {
+            config::State::Conflict(detail) | config::State::Unavailable(detail) => {
+                blockers.push(format!("{} MCP registration: {detail}", harness.label()));
+            }
+            _ => {}
+        }
+    }
+
+    if !blockers.is_empty() {
+        println!("No changes were made because the existing setup needs attention:");
+        for blocker in blockers {
+            println!("  - {blocker}");
+        }
+        return Ok(ExitCode::FAILURE);
+    }
+
+    for target in &targets {
+        skill::install(&target.path)?;
+        println!(
+            "[ok] {verb} {} skill: {}",
+            harness_labels(&target.harnesses),
+            target.path.display()
+        );
+    }
+    for harness in &environment.harnesses {
+        if *harness == Harness::Pi {
+            println!("[ok] Pi uses the shared skill; built-in MCP is not available");
+            continue;
+        }
+        config::install(*harness, environment, access)?;
+        println!(
+            "[ok] {verb} {} MCP registration ({})",
+            harness.label(),
+            access.label()
+        );
+    }
+
+    println!(
+        "{verb} the Sift agent bundle for: {} ({}).",
+        harness_labels(&environment.harnesses),
+        access.label()
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum AccessInference {
+    Resolved(AccessMode),
+    Mixed,
+}
+
+fn infer_access_mode(environment: &Environment) -> Result<AccessInference> {
+    let mut access_modes = Vec::new();
+    for harness in &environment.harnesses {
+        match config::inspect(*harness, environment)? {
+            config::State::Current(access) | config::State::ManagedDrift(access) => {
+                access_modes.push(access);
+            }
+            _ => {}
+        }
+    }
+    Ok(infer_access_modes(&access_modes))
+}
+
+fn infer_access_modes(access_modes: &[AccessMode]) -> AccessInference {
+    if has_mixed_access_modes(access_modes) {
+        AccessInference::Mixed
+    } else {
+        AccessInference::Resolved(
+            access_modes
+                .first()
+                .copied()
+                .unwrap_or(AccessMode::ReadOnly),
+        )
+    }
+}
+
+fn has_mixed_access_modes(access_modes: &[AccessMode]) -> bool {
+    access_modes
+        .first()
+        .is_some_and(|first| access_modes.iter().any(|access| access != first))
+}
+
+async fn check_release() -> bool {
+    let current = match Version::parse(env!("CARGO_PKG_VERSION")) {
+        Ok(current) => current,
+        Err(error) => {
+            println!("[warning] Could not parse the installed CLI version: {error}");
+            return false;
+        }
+    };
+    match version::fetch_latest().await {
+        Ok(Some(latest)) if latest > current => {
+            println!("[error] sift-cli {current} is outdated; latest is {latest}");
+            println!("Update with:\n\n  {}\n", version::install_command(&latest));
+            true
+        }
+        Ok(Some(_)) => {
+            println!("[ok] sift-cli {current} is current");
+            false
+        }
+        Ok(None) => {
+            println!("[warning] No stable sift-cli releases were found on GitHub");
+            false
+        }
+        Err(error) => {
+            println!("[warning] Could not check for a newer sift-cli release: {error}");
+            false
+        }
+    }
+}
+
+fn harness_labels(harnesses: &[Harness]) -> String {
+    harnesses
+        .iter()
+        .map(|harness| harness.label())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+fn is_executable(path: &Path) -> bool {
+    let Ok(metadata) = path.metadata() else {
+        return false;
+    };
+    if !metadata.is_file() {
+        return false;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        metadata.permissions().mode() & 0o111 != 0
+    }
+    #[cfg(not(unix))]
+    {
+        true
+    }
+}

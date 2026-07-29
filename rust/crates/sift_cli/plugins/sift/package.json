@@ -1,0 +1,18 @@
+{
+  "name": "@sift-stack/agent-plugin",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Sift agent skill package",
+  "keywords": [
+    "pi-package",
+    "sift",
+    "telemetry",
+    "agent-skill"
+  ],
+  "license": "MIT",
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

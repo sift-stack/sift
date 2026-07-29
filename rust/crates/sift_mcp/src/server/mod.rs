@@ -42,7 +42,12 @@ pub struct SiftMcpServer {
     router = self.tool_router,
     name = "SiftMcp",
     version = "0.1.0",
-    instructions = "Sift MCP Server",
+    instructions = "Use Sift tools for telemetry discovery, analysis, and \
+    ingestion. Run `sift-cli agent doctor` for read-only integration \
+    diagnosis, `sift-cli agent install` for first setup, and \
+    `sift-cli agent update` to refresh every detected client together. If the \
+    CLI is outdated, relay the exact curl or PowerShell installer it prints. \
+    Never enable destructive tools without explicit user approval.",
 )]
 #[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {
@@ -129,14 +134,17 @@ impl SiftMcpServer {
             return Ok(());
         }
         Err(ErrorData::invalid_request(
-            "This tool is destructive and is disabled. Ask the user to relaunch \
-             the Sift MCP server with the `--allow-destructive` flag (e.g. \
-             `sift-cli mcp --allow-destructive`) and update their MCP client \
-             config accordingly. Do not retry until they confirm the server has \
-             been restarted.",
+            "This tool is destructive and is disabled. Ask the user for explicit \
+             approval to enable destructive Sift tools. If they approve, run \
+             `sift-cli agent update --allow-destructive` to update every detected \
+             client together, then ask the user to reload or restart their MCP \
+             client. Do not retry until they confirm the client has restarted.",
             Some(serde_json::json!({
                 "status": "stopped",
                 "reason": "DestructiveToolsDisabled",
+                "requires_user_approval": true,
+                "remediation_command": "sift-cli agent update --allow-destructive",
+                "restart_required": true,
             })),
         ))
     }

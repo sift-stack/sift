@@ -1,9 +1,24 @@
+---
+name: sift
+description: >-
+  Use when working with Sift: ingesting or importing time-series data,
+  querying assets/runs/channels, exporting data, decimating or running SQL
+  over data, opening a view in the Sift Explore web app, writing code
+  that integrates with Sift, installing, updating, or diagnosing the Sift
+  agent integration, or looking up how Sift works in its product and API
+  documentation. Covers the Sift MCP server (started by
+  `sift-cli mcp`), the `sift-cli` itself, the Sift REST API over cURL, the
+  Sift Python library (`sift_client`), and the Sift Rust streaming library
+  (`sift_stream`). Triggers include phrases like "import this file into
+  Sift", "stream data to Sift", "list assets/runs/channels", "export a
+  run", "query Sift", "graph", "plot", "visualize", "open in Explore",
+  "write code to integrate with Sift", "how does X work in Sift", "what does
+  this endpoint do", or "look up the Sift API reference".
+---
+
 <!--
-  LOCKSTEP: This file shares its body with assets/skills/claude-code/SKILL.md.
-  Everything from the "# Sift toolbox" heading down must stay identical to the
-  body of SKILL.md (which carries the same content under YAML frontmatter).
-  When you change one, change the other in the same commit.
-  See rust/crates/sift_cli/CLAUDE.md for the rules.
+  Managed by sift-cli. Reinstalled as one release-coupled bundle by
+  `sift-cli agent install` and `sift-cli agent update`.
 -->
 
 # Sift toolbox
@@ -44,9 +59,13 @@ to combine them when working with Sift.
      collections use replace semantics, so confirm the change first).
    - `create_report`, `update_report`: manage reports (writes — confirm first).
    - Destructive tools (`update_*`, `archive_*`, `unarchive_*`) are gated on
-     `--allow-destructive`. If one errors with a message about the flag, tell
-     the user to relaunch the server with `sift-cli mcp --allow-destructive`
-     (and update their MCP client config) before retrying.
+     `--allow-destructive`. If one is blocked, explain that this access is
+     disabled by default and ask the user for explicit approval to enable it
+     across every detected client. Only after approval, run
+     `sift-cli agent update --allow-destructive`, ask the user to reload or
+     restart the MCP client, and wait for confirmation before retrying. Never
+     enable it silently. Restore safe mode with
+     `sift-cli agent update --read-only`.
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
      selection, with an optional panel/chart pre-defined. Surface the URL to
      the user as plain text, in full, so the user can open the view. Do not
@@ -61,7 +80,7 @@ to combine them when working with Sift.
    - `mcp`: start the MCP server.
    - `ping`: verify credentials and connectivity.
    - `config`: manage profiles and credentials.
-   - `install`: install completions and these agent skills.
+   - `agent`: install, update, diagnose, or uninstall Sift's agent integration.
 3. **REST API over cURL** — the full API surface. Docs:
    https://docs.siftstack.com/api/rest
 4. **Sift Python library** — module `sift_client`. Reference:
@@ -85,6 +104,25 @@ and stop at the first that does the job:
 4. **Python library (`sift_client`).** Use when the task needs a script:
    custom streaming, data transformation, or programmatic logic the above
    cannot express. Prefer `sift_client` over the deprecated `sift_py`.
+
+## Managing the agent integration
+
+Use the CLI lifecycle instead of editing one client's MCP configuration or
+skill:
+
+- Run `sift-cli agent doctor` to diagnose setup without changing it.
+- For first-time setup, explain that `sift-cli agent install` installs the
+  release-matched skill and read-only MCP registration for every detected
+  client. Run it when the user asks you to install or approves the change.
+- Run `sift-cli agent update` to refresh every detected client together. It
+  preserves the existing read-only or destructive access mode.
+- If the CLI is outdated, relay the exact curl or PowerShell installer printed
+  by `agent doctor` or `agent update`. After the user updates `sift-cli`, rerun
+  `sift-cli agent update`.
+- Never repair or update only one detected client. If doctor reports mixed
+  access modes, ask the user to choose
+  `sift-cli agent update --read-only` or
+  `sift-cli agent update --allow-destructive`.
 
 ## Running `sift-cli` from your shell
 

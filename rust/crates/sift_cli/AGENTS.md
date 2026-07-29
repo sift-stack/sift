@@ -1,0 +1,78 @@
+# sift_cli — agent bundle guidance
+
+## One release-coupled bundle
+
+The CLI owns one agent bundle at `plugins/sift/`. It contains:
+
+- `skills/sift/SKILL.md` — the only source for Sift's agent instructions.
+- `.mcp.json` — the Codex and Claude MCP descriptor.
+- `mcp.json` — Cursor's equivalent descriptor.
+- `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, and
+  `.cursor-plugin/plugin.json` — client-native package metadata.
+- `package.json` — Pi package metadata. Pi consumes the shared skill but has no
+  built-in MCP client.
+
+Do not add per-client copies of the skill. Claude installs the canonical file to
+`~/.claude/skills/sift/SKILL.md`; Codex, Cursor, OpenCode, and Pi share
+`~/.agents/skills/sift/SKILL.md`.
+
+The skill is embedded at compile time, and the complete plugin directory is
+included in the `sift_cli` Cargo package. Rebuild `sift-cli` after changing the
+skill. Every manifest version must equal `sift_cli`'s Cargo package version; the
+agent tests enforce this. Release the skill, MCP sidecar, and manifests
+together.
+
+## CLI lifecycle
+
+`src/cmd/agent/` implements four stateless, user-scoped commands:
+
+- `sift-cli agent install`
+- `sift-cli agent update`
+- `sift-cli agent doctor`
+- `sift-cli agent uninstall`
+
+Install and update operate on every detected supported client. They preflight
+all targets before writing and refuse to overwrite an unmanaged same-name skill
+or MCP entry. Doctor derives status from the installed files and client configs.
+Uninstall removes only content identifiable as Sift-managed. Do not add a state
+file or per-client version tracking.
+
+Install defaults every MCP registration to read-only. Install accepts
+`--allow-destructive` as an explicit opt-in. An ordinary update preserves the
+single access mode discovered from the managed client configs; update accepts
+`--allow-destructive` or `--read-only` to switch every detected client
+together. Doctor reports the access mode, and mixed modes are an error rather
+than something the CLI silently resolves.
+
+The `agent` command and `mcp` sidecar remain behind the `mcp` Cargo feature until
+the open-beta release explicitly changes that policy.
+
+## Updating the skill
+
+Keep the skill accurate to the CLI and `sift_mcp` tool surfaces. In particular:
+
+- The MCP tool list must mirror the tools registered by `sift_mcp`.
+- The `sift-cli` subcommand list must mirror `src/cli/mod.rs`.
+- Keep the preference order MCP → CLI → REST/cURL → Python.
+- Keep `sift_client` as the recommended Python module; `sift_py` is deprecated.
+- Teach agents to use `agent doctor`, `install`, and `update` instead of editing
+  one client. They must obtain explicit user approval before running
+  `agent update --allow-destructive` and tell the user to reload the client.
+
+Write in direct voice and keep it concise. The skill is loaded under context
+pressure, so every line should change what the agent does.
+
+## Local development
+
+From the repository root:
+
+```sh
+cargo build -p sift_cli --features mcp
+cargo test -p sift_cli --features mcp cmd::agent
+./target/debug/sift-cli agent doctor
+```
+
+`agent install` changes real user-level client configuration and points it at
+the exact `sift-cli` executable running the command. Use `doctor` for read-only
+validation, and only run install/update/uninstall when those user-level changes
+are intended.

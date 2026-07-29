@@ -568,9 +568,9 @@ exist as far as users are concerned. Update the docs in the same change.
 These docs are mdBook source. Keep prose in direct voice, concise, and consistent with the
 surrounding pages.
 
-Parallel obligation: the agent skill files (`SKILL.md` / `AGENTS.md`) also carry the MCP tool
-list. They are governed by `rust/crates/sift_cli/CLAUDE.md`; follow its lockstep rules and
-update them in the same change when you add or remove a tool.
+Parallel obligation: the installed Sift skill also carries the MCP tool list. It is governed
+by `rust/crates/sift_cli/AGENTS.md`; follow its packaging rules and
+update it in the same change when you add or remove a tool.
 
 ---
 
@@ -629,6 +629,6 @@ Run through this before declaring the tool done:
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
       was added to `sift_test_util` if one did not exist.
-- [ ] Onboarding docs updated: `agents/mcp.md` for a tool, `agents/prompts.md` for a prompt. Skill
-      files (`SKILL.md` / `AGENTS.md`) updated per `sift_cli/CLAUDE.md` if the tool list changed.
+- [ ] Onboarding docs updated: `agents/mcp.md` for a tool, `agents/prompts.md` for a prompt.
+      Installed skill updated per `sift_cli/AGENTS.md` if the tool list changed.
 - [ ] `cargo build -p sift_mcp` and `cargo test -p sift_mcp` both pass.

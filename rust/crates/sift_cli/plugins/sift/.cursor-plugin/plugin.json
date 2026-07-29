@@ -1,0 +1,25 @@
+{
+  "name": "sift",
+  "displayName": "Sift",
+  "version": "0.3.0",
+  "description": "Work with Sift telemetry through the Sift CLI and MCP server.",
+  "author": {
+    "name": "Sift"
+  },
+  "homepage": "https://docs.siftstack.com",
+  "repository": "https://github.com/sift-stack/sift",
+  "license": "MIT",
+  "keywords": [
+    "sift",
+    "telemetry",
+    "time-series",
+    "mcp"
+  ],
+  "category": "developer-tools",
+  "tags": [
+    "telemetry",
+    "time-series",
+    "developer-tools"
+  ],
+  "skills": "./skills/"
+}

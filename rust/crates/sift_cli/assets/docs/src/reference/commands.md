@@ -54,6 +54,21 @@ In active development and not built into default releases. Opt in only if
 you are exploring or contributing to its development by building from source
 with `--features mcp`.
 
+## `agent`
+
+Manage the release-matched skill and MCP sidecar for all detected AI coding
+clients. This command is available in builds made with `--features mcp`.
+
+| Command                              | Description                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| `agent install`                      | Install the bundle for every detected client in read-only mode.           |
+| `agent install --allow-destructive`  | Install the bundle and enable destructive tools for every detected client. |
+| `agent update`                       | Check CLI freshness, refresh all clients, and preserve their access mode. |
+| `agent update --allow-destructive`   | Refresh all clients with destructive tools enabled.                       |
+| `agent update --read-only`           | Refresh all clients with destructive tools disabled.                      |
+| `agent doctor`                       | Diagnose CLI, skill, MCP config, and access mode without changing them.   |
+| `agent uninstall`                    | Remove only Sift-managed artifacts from every detected client.            |
+
 ## `ping`
 
 Verify credentials and connectivity. See
@@ -67,4 +82,3 @@ Install optional tooling.
 | -------------------------------- | -------------------------------------------- |
 | `install completions print`      | Print shell completions to stdout.           |
 | `install completions update`     | Update the completions file for your shell.  |
-| `install agent-skills <AGENT>`   | Install a Sift skill for an AI assistant.    |
