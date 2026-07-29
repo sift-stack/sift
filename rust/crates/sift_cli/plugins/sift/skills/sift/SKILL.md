@@ -33,8 +33,8 @@ to combine them when working with Sift.
    agents. Exposes structured, authenticated tools:
    - `list_assets`, `list_runs`, `list_channels`, `list_reports`, `list_rules`,
      `list_rule_versions`, `list_annotations`: discover what exists. Pass `limit`
-     (start at 200, max 1000). Omitting it defaults to 200 and values above 1000
-     clamp to 1000, so raise `limit` when a result comes back capped.
+     (start at 50, max 200). Omitting it defaults to 50 and values above 200
+     clamp to 200, so raise `limit` when a result comes back capped.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
    - `list_test_reports`, `list_test_steps`, `list_test_measurements`: inspect
      test-results data (reports own steps own measurements); `count_test_steps`,

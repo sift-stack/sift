@@ -2,16 +2,19 @@ use super::{ColumnName, DEFAULT_LIMIT, PAGE_SIZE, paging};
 
 #[test]
 fn paging_uses_default_limit_when_unset() {
-    assert_eq!(paging(None), (DEFAULT_LIMIT, DEFAULT_LIMIT as usize));
+    assert_eq!(DEFAULT_LIMIT, 50);
+    assert_eq!(paging(None), (50, 50));
 }
 
 #[test]
 fn paging_passes_through_in_range_limit() {
-    assert_eq!(paging(Some(200)), (200, 200));
+    assert_eq!(paging(Some(125)), (125, 125));
 }
 
 #[test]
 fn paging_clamps_limit_above_page_size() {
+    assert_eq!(PAGE_SIZE, 200);
+    assert_eq!(paging(Some(201)), (200, 200));
     assert_eq!(paging(Some(50_000)), (PAGE_SIZE, PAGE_SIZE as usize));
     assert_eq!(paging(Some(u32::MAX)), (PAGE_SIZE, PAGE_SIZE as usize));
 }

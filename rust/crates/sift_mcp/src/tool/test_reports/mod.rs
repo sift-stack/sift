@@ -69,8 +69,8 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_report_id`,
                 `name`, `test_system_name`, `test_case`, `start_time`, `end_time`, `created_date`, `modified_date`.
                 Default sort is `start_time desc` (newest first). Example: `\"start_time desc,name\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -124,8 +124,8 @@ impl SiftMcpServer {
                 `name`, `step_type`, `step_path`, `status`, `start_time`, `end_time`, `created_date`,
                 `modified_date`. Default sort is `step_path` ascending (tree order). Example:
                 `\"step_path asc,start_time desc\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50. Use
                 `count_test_steps` to learn the true total before relying on a capped page.
 
             Errors:
@@ -181,8 +181,8 @@ impl SiftMcpServer {
                 `name`, `measurement_type`, `test_step_id`, `test_report_id`, `passed`, `timestamp`,
                 `created_date`, `modified_date`. Default sort is `timestamp` ascending. Example:
                 `\"timestamp asc,name\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50. Use
                 `count_test_measurements` to learn the true total before relying on a capped page.
 
             Errors:
@@ -216,7 +216,7 @@ impl SiftMcpServer {
         name = "count_test_steps",
         description = "
             Count test steps matching a CEL filter, without fetching them. Use this to learn the true total when a
-            report may hold more steps than the 1000-item list cap, or to reconcile expected vs actual counts in an
+            report may hold more steps than the 200-item list cap, or to reconcile expected vs actual counts in an
             audit (e.g. \"how many steps failed in this report\").
 
             Output:
@@ -251,7 +251,7 @@ impl SiftMcpServer {
         name = "count_test_measurements",
         description = "
             Count test measurements matching a CEL filter, without fetching them. Use this to learn the true total
-            when a report may hold more measurements than the 1000-item list cap, or to reconcile expected vs actual
+            when a report may hold more measurements than the 200-item list cap, or to reconcile expected vs actual
             counts in an audit (e.g. \"how many measurements failed their limits\").
 
             Output:

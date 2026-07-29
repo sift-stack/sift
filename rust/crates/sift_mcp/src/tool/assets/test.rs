@@ -56,6 +56,37 @@ async fn server_instructions_explain_agent_lifecycle() {
 }
 
 #[tokio::test]
+async fn list_tool_descriptions_advertise_bounded_limits() {
+    let (server, _h) = server_with_mock(MockAssetServiceImpl::new()).await;
+    let list_tools: Vec<_> = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .filter(|tool| tool.name.starts_with("list_"))
+        .collect();
+
+    assert!(!list_tools.is_empty());
+    for tool in list_tools {
+        let description = tool.description.as_deref().unwrap_or_default();
+        assert!(
+            description.contains("Start at 50"),
+            "{} does not advertise the starting limit",
+            tool.name
+        );
+        assert!(
+            description.contains("1..=200"),
+            "{} does not advertise the maximum limit",
+            tool.name
+        );
+        assert!(
+            description.contains("defaults to 50"),
+            "{} does not advertise the default limit",
+            tool.name
+        );
+    }
+}
+
+#[tokio::test]
 async fn list_assets_returns_single_page() {
     let mut asset_mock = MockAssetServiceImpl::new();
     asset_mock

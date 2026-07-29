@@ -5,12 +5,12 @@ use anyhow::{Context, bail};
 #[cfg(test)]
 mod test;
 
-/// Default and max page size for list calls.
-pub const PAGE_SIZE: u32 = 1000;
+/// Maximum page size and record limit for list calls.
+pub const PAGE_SIZE: u32 = 200;
 /// Record limit applied when a caller omits `limit`. Matches the starting limit
 /// the `list_*` tool descriptions advise, so a caller that ignores that advice
 /// cannot trigger an unbounded query.
-pub const DEFAULT_LIMIT: u32 = 200;
+pub const DEFAULT_LIMIT: u32 = 50;
 pub const BIT_FIELD_METADATA_KEY: &str = "bit_field_elements";
 pub const ENUM_METADATA_KEY: &str = "enum_config";
 pub const TS_COLUMN_NAME: &str = "timestamp_unix_nanos";

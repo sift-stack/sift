@@ -489,8 +489,8 @@ When you add or update a list tool:
    - Order-by: list every orderable field, the default sort when the field is empty (assets and
      runs default to `created_date desc`; channels defaults to `created_date` ascending — these
      differ, do not assume), and the `\"FIELD_NAME[ desc],...\"` format.
-   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=1000`,
-     and omitting `limit` falls back to `DEFAULT_LIMIT` (200), so no call is ever unbounded. This
+   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=200`,
+     and omitting `limit` falls back to `DEFAULT_LIMIT` (50), so no call is ever unbounded. This
      differs from the proto's raw `page_size` (it caps higher for some services).
 4. **Re-read the proto whenever the resource changes.** If a filterable or orderable field is
    added to the proto, update the tool description in the same change. A stale description is
