@@ -83,7 +83,7 @@ jobs:
           set -e
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install maturin pytest pytest-asyncio ruff
+          pip install maturin pytest pytest-asyncio ruff==0.15.20
           cd rust/crates/sift_stream_bindings
           maturin develop --release
           ruff check sift_stream_bindings.pyi
